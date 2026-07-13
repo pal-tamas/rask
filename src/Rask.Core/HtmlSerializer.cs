@@ -23,6 +23,12 @@ internal static class HtmlSerializer
         "0123456789" +
         " -._/:,?!()*=#%");
 
+    // Phase B: set true whenever a user component is serialized, so an enclosing component can tell
+    // whether its subtree is pure elements (safe to cache + replay from frames) or contains a nested
+    // user component that could go dirty independently (must keep the element-walk path). The default
+    // switch branch saves/resets this around each component's walk to make it a per-subtree signal.
+    [ThreadStatic] private static bool _sawNestedComponent;
+
     private static readonly HashSet<string> _shellTags = new(StringComparer.Ordinal)
     {
         "html",
@@ -422,11 +428,31 @@ internal static class HtmlSerializer
                     liveCtx.CollectNativeChrome(component);
                 }
 
+                // Phase B: replay a cached clean subtree straight from its retained frame span instead
+                // of re-walking (and thus retaining) its Element object graph. Only clean, pure-element,
+                // handler-free subtrees were cached (see Component.TryCacheCleanSubtree); a dirty or
+                // ineligible component returns false here and falls through to the walk below, which
+                // re-renders it and may re-cache. A replayed component is itself a nested user component
+                // for its parent, so flag that.
+                if (frames is not null && component.TryReplayCleanSubtree(sb, frames))
+                {
+                    _sawNestedComponent = true;
+                    break;
+                }
+
                 // User components are transparent in the frame stream — their rendered
                 // body's elements/text emit at the surrounding DOM level. That keeps the
                 // diff codec's path computation a simple count over DOM-structural frames
-                // without a Component-as-wrapper case. (A later optimisation may re-add
-                // Component markers for cached-subtree short-circuiting.)
+                // without a Component-as-wrapper case.
+                //
+                // Track whether THIS component's subtree contains any nested user component: reset the
+                // ambient flag, walk, then read it back. A pure-element subtree (flag still false) is
+                // safe to cache and replay; one with a nested component is not (the nested one could go
+                // dirty on a later render and replaying the parent's frames would skip it). The flag is
+                // re-asserted to true after the walk so an ENCLOSING component still sees us as nested.
+                _sawNestedComponent = false;
+                var frameStart = frames?.Count ?? -1;
+
                 using (LiveRenderContext.PushScopeOrNone(liveCtx, component))
                 using (LiveRenderContext.EnterParentScopeOrNone(liveCtx, component))
                 using (component.EnterChildrenScopeInternal())
@@ -454,6 +480,16 @@ internal static class HtmlSerializer
                         }
                     }
                 }
+
+                var hadNested = _sawNestedComponent;
+                if (frames is not null && frameStart >= 0)
+                {
+                    component.TryCacheCleanSubtree(
+                        frames, frameStart, hadNested, liveCtx?.CollectsNativeChrome ?? false);
+                }
+
+                // Mark that our parent's subtree now contains a user component (us).
+                _sawNestedComponent = true;
 
                 break;
         }

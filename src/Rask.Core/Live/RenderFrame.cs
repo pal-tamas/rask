@@ -255,6 +255,32 @@ public sealed class FrameWriter
         };
     }
 
+    /// <summary>
+    ///     Append a previously-captured frame span (a clean component's retained subtree) to this
+    ///     writer, rebasing each DOM-structural frame's HTML offsets by <paramref name="htmlDelta" />
+    ///     so they point into the current render's HTML rather than the render the span was captured
+    ///     from. Frame kinds, names, values and subtree lengths copy verbatim — a replayed clean
+    ///     subtree is byte- and frame-identical to what a fresh walk would have produced, so the diff
+    ///     sees no change. Attribute frames carry no meaningful offset (the diff never reads it) and
+    ///     copy unchanged. This is the frame half of clean-subtree replay; <see cref="HtmlSerializer" />
+    ///     emits the matching HTML via <c>EmitFromFrames</c>.
+    /// </summary>
+    public void CopyFrom(ReadOnlySpan<RenderFrame> src, int htmlDelta)
+    {
+        for (var s = 0; s < src.Length; s++)
+        {
+            var idx = Reserve();
+            var f = src[s];
+            if (f.Kind != RenderFrameKind.Attribute)
+            {
+                f.HtmlStart += htmlDelta;
+                f.HtmlEnd += htmlDelta;
+            }
+
+            _buffer[idx] = f;
+        }
+    }
+
     private int Reserve()
     {
         if (Count == _buffer.Length)

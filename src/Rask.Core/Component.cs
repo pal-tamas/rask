@@ -842,6 +842,96 @@ public abstract class Component
         return Live.CachedRenderResult;
     }
 
+    // Phase B clean-subtree frame replay. A user component whose last render was cached as a frame
+    // span (pure elements, no handlers, no nested user components — see TryCacheCleanSubtree) re-emits
+    // its HTML and frames directly from that span instead of re-walking (and retaining) an Element
+    // object graph. Returns true when it replayed; false when the component is dirty or was never
+    // cached, in which case the caller walks it normally (re-rendering, and possibly re-caching).
+    //
+    // The clean test mirrors RenderForLive's short-circuit: no prop/state change, no cache bypass, and
+    // no ambient-state read. A dirty component falls through so its fresh Render() runs; if it stays
+    // eligible afterwards it re-caches, otherwise it reverts to the element path transparently.
+    internal bool TryReplayCleanSubtree(StringBuilder sb, FrameWriter frames)
+    {
+        var cached = _live?.CachedFrames;
+        if (cached is null
+            || Live.PropsDirty || Live.StateDirty
+            || BypassRenderCache || _readsAmbientState)
+        {
+            return false;
+        }
+
+        var span = cached.AsSpan(0, Live.CachedFrameCount);
+        // Frames are in document order, so the first is the subtree's opening DOM frame (never an
+        // attribute) and carries the fragment's start offset. Rebase every offset to where this
+        // replay lands in the current render's HTML so the diff codec's ranges stay correct.
+        var htmlDelta = sb.Length - span[0].HtmlStart;
+        HtmlSerializer.EmitFromFrames(span, sb);
+        frames.CopyFrom(span, htmlDelta);
+        return true;
+    }
+
+    // Phase B clean-subtree frame capture. Called right after a user component's subtree was walked
+    // and serialized into <paramref name="frames" /> (starting at <paramref name="frameStart" />). When
+    // the subtree is safe to replay from frames alone, snapshot its frame span and RELEASE the cached
+    // Element subtree (CachedRenderResult) so the object graph is collectible — the retained cost drops
+    // from the full element tree to a compact frame array. Safety requires:
+    //   * no nested user component (a nested component could go dirty independently; replaying the
+    //     parent's frames would skip its re-render and show stale content — <paramref name="hadNested" />),
+    //   * no event handlers (Rask reissues handler ids positionally each render, so a baked-in id in a
+    //     replayed span could collide with a sibling's — deferred to a stable-id follow-up),
+    //   * no Key (reconciliation identity can change without a re-render), no indexer Children, no Head
+    //     contribution (would be dropped on replay), not collecting native chrome, and cache-eligible
+    //     (no bypass / ambient-state read) — everything that would make a frame replay diverge from a walk.
+    internal void TryCacheCleanSubtree(
+        FrameWriter frames, int frameStart, bool hadNested, bool collectsNativeChrome)
+    {
+        if (hadNested
+            || Key is not null
+            || Children is not null
+            || BypassRenderCache
+            || _readsAmbientState
+            || HeadInternal is not null
+            || collectsNativeChrome)
+        {
+            return;
+        }
+
+        var count = frames.Count - frameStart;
+        if (count <= 0)
+        {
+            // Rendered nothing (or nothing new appended) — no subtree to cache; leave the element path.
+            return;
+        }
+
+        var span = frames.WrittenSpan.Slice(frameStart, count);
+        for (var i = 0; i < span.Length; i++)
+        {
+            ref readonly var f = ref span[i];
+            if (f.Kind == RenderFrameKind.Attribute
+                && f.Name is { } n
+                && n.StartsWith("data-rask-on-", StringComparison.Ordinal))
+            {
+                return;
+            }
+        }
+
+        // Reuse the existing snapshot array when it still fits, so a component that re-renders every
+        // frame (e.g. a stateful counter page) re-captures with ZERO allocation — only a fresh or grown
+        // subtree allocates. Without this the per-update allocation win regresses by the snapshot size.
+        var snapshot = _live!.CachedFrames;
+        if (snapshot is null || snapshot.Length < count)
+        {
+            snapshot = new RenderFrame[count];
+        }
+
+        span.CopyTo(snapshot);
+        Live.CachedFrames = snapshot;
+        Live.CachedFrameCount = count;
+        // Drop the Element object graph: a clean re-render now replays the frame span above.
+        Live.CachedRenderResult = null;
+    }
+
     internal T GetOrCreateChild<T>(
         Func<IServiceProvider, T> factory,
         IServiceProvider? services,
@@ -957,6 +1047,12 @@ public abstract class Component
     // root to re-execute Render() this frame" semantics — the same behavior
     // RenderAsLiveRootCore applies to its own root.
     internal void MarkDirtyForFrame() => Live.StateDirty = true;
+
+    // Test hooks for the Phase B clean-subtree frame cache: whether this component's rendered
+    // subtree was cached as frames, and whether it still retains its Element object graph. A cached
+    // component has the first true and the second false (the graph was released).
+    internal bool IsCleanSubtreeCachedForTest => _live?.CachedFrames is not null;
+    internal bool RetainsElementGraphForTest => _live?.CachedRenderResult is not null;
 
     public Task StateHasChangedAsync()
     {
@@ -1718,6 +1814,14 @@ public abstract class Component
         public IRenderHandle? RenderHandle;
         public CancellationTokenSource? LifetimeCts;
         public Component? CachedRenderResult;
+
+        // Phase B clean-subtree frame cache. When a user component's rendered subtree is pure
+        // elements/text (no nested user components, no event handlers), we retain its RenderFrame
+        // span here and RELEASE CachedRenderResult, so the (large) Element object graph is collectible
+        // — a clean re-render replays these frames (+ EmitFromFrames) instead of re-walking elements.
+        // CachedFrames.Length may exceed CachedFrameCount (the array is a snapshot sized to the span).
+        public RenderFrame[]? CachedFrames;
+        public int CachedFrameCount;
         public int ChildPositions;
         public Dictionary<(Type, int), Component>? Children;
         public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;

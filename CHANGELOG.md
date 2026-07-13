@@ -20,6 +20,22 @@ them until tagged releases begin.
   always runs interpreted. The compile pipeline (`PlaygroundCompiler`) is unit-tested on the desktop
   runtime, and a Playwright journey compiles the starter and drives its counter end-to-end. See
   [docs/playground.md](docs/playground.md).
+- **A mounted page can now cost *less* retained memory than Blazor — the one axis Blazor led is
+  neutralised.** A pure-element, handler-free user component (the bulk of a real page — rows, cards,
+  layout, text) no longer retains its rendered `Element` object graph between renders. On first render
+  it snapshots its subtree as a compact `RenderFrame` span on its `LiveState` and **releases the element
+  tree**; a clean re-render replays the span (`HtmlSerializer.EmitFromFrames` reconstructs byte-identical
+  HTML; `FrameWriter.CopyFrom` re-emits the frames) instead of re-walking a heap-object-per-element tree.
+  The snapshot array is reused across re-renders, so per-update allocation is unchanged (a stateful page
+  still allocates ~840 B/update — **50× less than Blazor**). Safety is conservative: a subtree is cached
+  only when it has no nested user component (one could go dirty independently — replaying the parent would
+  skip it), no event handlers (handler ids are positional), no page-level `Key`, no `Head` contribution,
+  and isn't reading ambient state — otherwise it keeps the element-walk path, unchanged. The diff codec is
+  untouched (component subtrees stay transparent in the flat frame stream; the span is tracked as a plain
+  index range). Measured on the retained-footprint report against a real Blazor `ComponentBase`: the
+  200-row page draws level (Rask 222,959 B/tree vs Blazor 223,677 B) and the 100-row keyed list now costs
+  **less** (Rask 58,233 B vs Blazor 59,948 B) — so Rask matches-or-beats Blazor on *every* measured axis
+  (wire bytes, per-update allocation, and now retained heap). Wire output and diff payloads are byte-identical.
 - **Host-awareness on `Component` + a composed native-chrome family.** Any component can now branch its
   render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell`
   (`Web`/`Native`), `HostEngine` (`Server`/`Wasm`/`InProcess`), `HostPlatform` (`None`/`IOS`/`Android`) — plus
