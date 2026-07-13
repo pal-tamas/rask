@@ -62,6 +62,104 @@ internal static class HtmlSerializer
         sb.Append(HtmlEncoder.Default.Encode(value));
     }
 
+    /// <summary>
+    ///     Reconstruct the HTML for a subtree directly from its captured
+    ///     <see cref="RenderFrame" /> span, byte-for-byte identical to what
+    ///     <see cref="Serialize(Component, StringBuilder)" /> produced when it emitted those
+    ///     frames. This is the clean-subtree replay path (Phase B): a component whose render
+    ///     did not change re-emits from its retained frame span instead of re-walking (and thus
+    ///     retaining) its Element object graph.
+    ///     <para>
+    ///         The span must be a well-formed subtree: it starts at a DOM-structural frame
+    ///         (Element / Text / Raw / Doctype) and each Element frame's
+    ///         <see cref="RenderFrame.SubtreeLength" /> stays within the span. Attribute frames
+    ///         are the leading children of their Element (as <c>WriteAttributes</c> runs before
+    ///         children), so they are consumed by the Element case, never at top level. The span
+    ///         must NOT contain the shell tags (<c>head</c>/<c>body</c>) whose sentinel / runtime
+    ///         script are appended without frames — those live only in the always-dirty root and
+    ///         are never replayed from frames.
+    ///     </para>
+    /// </summary>
+    internal static void EmitFromFrames(ReadOnlySpan<RenderFrame> frames, StringBuilder sb)
+    {
+        var i = 0;
+        while (i < frames.Length)
+        {
+            i = EmitFrame(frames, i, sb);
+        }
+    }
+
+    private static int EmitFrame(ReadOnlySpan<RenderFrame> frames, int i, StringBuilder sb)
+    {
+        ref readonly var f = ref frames[i];
+        switch (f.Kind)
+        {
+            case RenderFrameKind.Text:
+                // Text frames store the raw (un-encoded) value; re-encode on emit exactly as
+                // Serialize did. Adjacent text was coalesced into one frame at capture, and HTML
+                // encoding is per-char so the coalesced encode is byte-identical to the piecewise one.
+                AppendEncoded(sb, f.Name ?? string.Empty);
+                return i + 1;
+
+            case RenderFrameKind.Raw:
+                sb.Append(f.Name);
+                return i + 1;
+
+            case RenderFrameKind.Doctype:
+                sb.Append("<!DOCTYPE html>");
+                return i + 1;
+
+            case RenderFrameKind.Element:
+            {
+                var end = i + f.SubtreeLength;
+                sb.Append('<').Append(f.Name);
+
+                // Leading Attribute frames = this element's attributes, in emit order.
+                var j = i + 1;
+                while (j < end && frames[j].Kind == RenderFrameKind.Attribute)
+                {
+                    ref readonly var a = ref frames[j];
+                    sb.Append(' ').Append(a.Name);
+                    if (a.Value is not null)
+                    {
+                        sb.Append("=\"");
+                        AppendEncoded(sb, a.Value);
+                        sb.Append('"');
+                    }
+
+                    j++;
+                }
+
+                // Scoped-CSS marker rides the Element frame's Value (Serialize appends it after
+                // the real attributes and before '>' / ' />'), not an Attribute frame.
+                if (f.Value is not null)
+                {
+                    sb.Append(" data-").Append(f.Value);
+                }
+
+                if (f.SelfClosing)
+                {
+                    sb.Append(" />");
+                    return end;
+                }
+
+                sb.Append('>');
+                while (j < end)
+                {
+                    j = EmitFrame(frames, j, sb);
+                }
+
+                sb.Append("</").Append(f.Name).Append('>');
+                return end;
+            }
+
+            default:
+                // Attribute at top level (shouldn't happen for a well-formed subtree) or a
+                // Component marker (never emitted into the stream). Skip defensively.
+                return i + 1;
+        }
+    }
+
     public static void Serialize(Component? component, StringBuilder sb)
     {
         // A null component means "render nothing" — Render()/RenderForLive() return Component? and
