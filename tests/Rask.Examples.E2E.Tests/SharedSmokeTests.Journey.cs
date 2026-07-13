@@ -220,37 +220,45 @@ public abstract partial class SharedSmokeTests
         await AssertNoGlobalCrashAsync();
     }
 
-    // Bootstrap guide: the Rask.Bootstrap component example pages, folded into three docs pages under the
-    // "Bootstrap" sidebar group (overview & layout, navigation & overlays, forms & inputs) as inline live
-    // demos. Walk each page in turn, hydration-gate on one of its interactive demos, and drive the
-    // representative components in place — all live via Rask state, no bootstrap.js.
+    // Bootstrap guide: the Rask.Bootstrap component showcase, now split into one small page per component
+    // group under the "Bootstrap" sidebar group (a thin hub + buttons, cards, feedback, icons, navbar,
+    // overlays, disclosure, toasts, form controls, selects, pickers, utilities). Walk the pages that carry
+    // interactive demos, hydration-gate on one demo per page, and drive the representative components in
+    // place — all live via Rask state, no bootstrap.js. Demo resolution is keyed by demo-id, so the demos
+    // themselves are unchanged; only their host page moved.
     protected async Task WalkBootstrapGuideAsync()
     {
-        // === Page 1: Bootstrap components — overview & layout (buttons, cards, alerts, icons, utilities) ===
-        await SideAsync("Bootstrap components", "Rask.Bootstrap", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 4,
-            "expected the Bootstrap overview page to embed the layout component demos as live demos");
-        // Buttons — Bootstrap CSS applied (the _content bundle served): .btn-primary renders. Gate on it so
-        // the co-mounted page has hydrated before we assert.
+        // === Hub: the overview / component-map page (no live demos — it links out to each group page). ===
+        await SideAsync("Bootstrap", "Rask.Bootstrap", "main .markdown-body h1");
+        // The component map's relative .md links were rewritten to SPA-routed /guides/* anchors.
+        Assert.True(
+            await Page.Locator(".markdown-body a[data-rask-nav][href$='/guides/bootstrap-buttons']").CountAsync() > 0,
+            "expected the Bootstrap hub to link out to the per-group pages");
+
+        // === Buttons & badges — Bootstrap CSS applied (the _content bundle served): .btn-primary renders. ===
+        await SideAsync("Buttons & badges", "buttons & badges", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 1,
+            "expected the Buttons page to embed the buttons demo as a live demo");
+        // Gate on it so the page has hydrated before we assert.
         await Expect(Page.Locator(".guide-demo .sample-result-body button.btn.btn-primary").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
-        // === Page 2: Bootstrap navigation & overlays (nav, tabs, modal, toast, dropdown) ===
-        await SideAsync("Bootstrap navigation", "navigation & overlays", "main .markdown-body h1");
-        await Expect(Page.Locator(".guide-demo button:has-text(\"Launch demo modal\")").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
-
-        // Navbar & nav — the BsNavItems render as SPA-routed anchors (data-rask-nav), the same primitive
-        // the showcase chrome is built from.
+        // === Navbar & nav — the BsNavItems render as SPA-routed anchors (data-rask-nav), the same primitive
+        //     the showcase chrome is built from. ===
+        await SideAsync("Navbar & nav", "navbar & nav", "main .markdown-body h1");
         await Expect(Page.Locator(".guide-demo .sample-result-body .navbar").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
         Assert.True(
             await Page.Locator(".guide-demo .sample-result-body .nav .nav-link[data-rask-nav]").CountAsync() > 0);
+
+        // === Modals, offcanvas & dropdowns ===
+        await SideAsync("Modals, offcanvas & dropdowns", "modals, offcanvas & dropdowns", "main .markdown-body h1");
 
         // Modal — open + close driven by Rask state, no bootstrap.js loaded. The runtime focus trap
         // (data-rask-focus-trap in rask-dom.js) moves focus into the dialog on open, Escape dismisses
         // it via the backdrop-close handler, and focus returns to the trigger on close.
         var launchModal = Page.Locator(".guide-demo button:has-text(\"Launch demo modal\")").First;
+        await Expect(launchModal).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
         await launchModal.ClickAsync();
         var dialog = Page.Locator("div.modal.show").First;
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
@@ -271,16 +279,6 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
 
-        // Toast (its standalone /toast page folded in) — shown and dismissed entirely by live-diff state
-        // (no bootstrap.js, no data-bs-dismiss). Showing renders class="toast show"; the × removes it.
-        await Page.Locator(".guide-demo button:has-text('Show toast')").First.ClickAsync();
-        var toast = Page.Locator(".guide-demo .sample-result-body .toast.show").First;
-        await Expect(toast).ToContainTextAsync("Hello, world!",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await toast.Locator(".btn-close").ClickAsync();
-        await Expect(Page.Locator(".guide-demo .sample-result-body .toast.show")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-
         // Dropdown (Popper-less, controlled) opened inside the same overflow:hidden card — the menu is
         // re-anchored position:fixed by the same helper so it isn't clipped. Selecting an item closes the
         // menu (its handler sets Open=false) and updates the readout. AlignEnd is covered by the unit test.
@@ -294,80 +292,28 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#demo-dropdown-out")).ToContainTextAsync("Archive",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // === Page 3: Bootstrap forms & inputs (forms, select, multiselect, pickers) ===
-        await SideAsync("Bootstrap forms", "forms & inputs", "main .markdown-body h1");
-        await Expect(Page.Locator("#pick-date").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        // === Toasts — shown and dismissed entirely by live-diff state (no bootstrap.js, no data-bs-dismiss).
+        //     Showing renders class="toast show"; the × removes it. ===
+        await SideAsync("Toasts", "toasts", "main .markdown-body h1");
+        var showToast = Page.Locator(".guide-demo button:has-text('Show toast')").First;
+        await Expect(showToast).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        await showToast.ClickAsync();
+        var toast = Page.Locator(".guide-demo .sample-result-body .toast.show").First;
+        await Expect(toast).ToContainTextAsync("Hello, world!",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await toast.Locator(".btn-close").ClickAsync();
+        await Expect(Page.Locator(".guide-demo .sample-result-body .toast.show")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
-        // Date picker (custom popover) — the calendar opens, is navigated and a day picked entirely from
-        // Rask live-diff state (no bootstrap.js). Picking the 1st of the current month writes the bound
-        // model; the readout rendered OUTSIDE the Form updates, proving the two-way bind round-trips with
-        // no StateHasChanged. Cell ids are invariant (yyyyMMdd), so this is deterministic on any date.
-        var ym = DateTime.Today.ToString("yyyyMM");
-        var firstIso = DateTime.Today.ToString("yyyy-MM") + "-01";
-        await Page.Locator("#pick-date").First.ClickAsync();
-        await Expect(Page.Locator("#pick-date-cal.bs-cal[role=\"grid\"]").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // The popover escapes the .sample-card { overflow:hidden } wrapper: the runtime helper
-        // (data-rask-popover in rask-dom.js, spliced into both hosts) re-anchors the open .dropdown-menu
-        // with position:fixed. Under the old position:absolute the card would clip it. Assert the menu is
-        // fixed and within the viewport — the regression guard for the overflow-clipping bug.
-        var pickMenu = Page.Locator(".dropdown-menu.show:has(#pick-date-cal)").First;
-        Assert.Equal("fixed", await pickMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
-        await Expect(pickMenu).ToBeInViewportAsync(
-            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
-        await Page.Locator($"#pick-date-d-{ym}01").First.ClickAsync();
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(firstIso,
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Hand-editable: the picker box is a text <input>. Typing a date commits live per keystroke (culture
-        // parse; ISO yyyy-MM-dd is accepted in any culture), so the bound readout updates with no calendar.
-        var dateInput = Page.Locator("#pick-date").First;
-        await dateInput.FillAsync("2026-12-25");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        // An unparseable entry keeps the raw text (no mid-typing revert) and leaves the value unchanged.
-        await dateInput.FillAsync("not a date");
-        await Expect(dateInput).ToHaveValueAsync("not a date",
-            new LocatorAssertionsToHaveValueOptions { Timeout = 5_000 });
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25",
-            new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
-        // Close the opened picker so its full-viewport backdrop doesn't intercept later clicks. (The nullable
-        // picker's × clear is unit-tested; the ×-clears-to-null click is E2E-covered on #bs-seats below.)
-        await Page.Locator(".dropdown:has(#pick-date) .position-fixed").DispatchEventAsync("click");
-
-        // Date-time picker (#pick-datetime, bound to a DateTime): open the calendar and pick a day. The
-        // composed value must write back as a DateTime — regression guard for the "Object of type
-        // DateTimeOffset cannot be converted to type DateTime" write crash (BoxValue could box the wrong
-        // date/time type; WriteBoxedAsync now coerces to the property's real type). A crash surfaces as the
-        // Rask error boundary; the readout's third segment updating proves the write succeeded.
-        await Page.Locator("#pick-datetime").First.ClickAsync();
-        await Expect(Page.Locator("#pick-datetime-cal.bs-cal[role=\"grid\"]").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Page.Locator($"#pick-datetime-d-{ym}15").First.ClickAsync();
-        await Expect(Page.Locator("#pick-readout"))
-            .ToContainTextAsync(DateTime.Today.ToString("yyyy-MM") + "-15",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        // Also pick an hour + minute (the time columns compose with the date — same DateTime write path),
-        // and type a full value into the box (the parse path). None may throw the DateTimeOffset cast.
-        var dtMenu = Page.Locator(".dropdown-menu.show:has(#pick-datetime-cal)").First;
-        await dtMenu.Locator(".bs-time-col").Nth(0)
-            .GetByText("11", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
-        await dtMenu.Locator(".bs-time-col").Nth(1)
-            .GetByText("30", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("-15 11:30",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("#pick-datetime").First.FillAsync("2026-12-25 14:45");
-        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25 14:45",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator(".dropdown:has(#pick-datetime) .position-fixed").DispatchEventAsync("click");
+        // === Form controls — the IFormControl<T>-bound demo, incl. the in-form single-select (BsSelect). ===
+        await SideAsync("Form controls", "form controls", "main .markdown-body h1");
 
         // Single-select (BsSelect) — a .form-select DISPLAY combobox <div>. Clicking opens the .dropdown-menu
         // listbox (re-anchored position:fixed by the overflow-escape helper). A Filter predicate adds a SEARCH
         // FIELD in the dropdown: typing there narrows the options; picking writes the bound model and the box
         // shows the option's label, then closes. Component markup is unit-tested in BsSelectTests.
         var plan = Page.Locator("#bs-plan");
-        await Expect(plan).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(plan).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
         await plan.ClickAsync();
         var planMenu = Page.Locator("#bs-plan-list.dropdown-menu.show");
         await Expect(planMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -427,10 +373,13 @@ public abstract partial class SharedSmokeTests
         await Page.Locator(".dropdown:has(#bs-seats) .bs-select-clear").First.ClickAsync();
         await Expect(seats).ToContainTextAsync("Any", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
+        // === Selects & multiselect — the BsSelect/BsMultiSelect variant galleries. ===
+        await SideAsync("Selects & multiselect", "selects & multiselect", "main .markdown-body h1");
+
         // BsSelect variant gallery — the native variant binds and holds its pick; a custom basic pick writes
         // the model. Both are echoed by the gallery's own readout.
         var selTier = Page.Locator("select#sel-tier");
-        await Expect(selTier).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(selTier).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
         await selTier.SelectOptionAsync("team");
         await Expect(selTier).ToHaveValueAsync("team", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
         var selPlan = Page.Locator("#sel-plan");
@@ -482,6 +431,74 @@ public abstract partial class SharedSmokeTests
         // intercept the next navigation click.
         await Page.Locator("#ms-basic .position-fixed").DispatchEventAsync("click");
         await Expect(msMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
+        // === Date & time pickers — hand-editable, custom-popover calendar/clock controls (no bootstrap.js). ===
+        await SideAsync("Date & time pickers", "date & time pickers", "main .markdown-body h1");
+        await Expect(Page.Locator("#pick-date").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Date picker (custom popover) — the calendar opens, is navigated and a day picked entirely from
+        // Rask live-diff state (no bootstrap.js). Picking the 1st of the current month writes the bound
+        // model; the readout rendered OUTSIDE the Form updates, proving the two-way bind round-trips with
+        // no StateHasChanged. Cell ids are invariant (yyyyMMdd), so this is deterministic on any date.
+        var ym = DateTime.Today.ToString("yyyyMM");
+        var firstIso = DateTime.Today.ToString("yyyy-MM") + "-01";
+        await Page.Locator("#pick-date").First.ClickAsync();
+        await Expect(Page.Locator("#pick-date-cal.bs-cal[role=\"grid\"]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // The popover escapes the .sample-card { overflow:hidden } wrapper: the runtime helper
+        // (data-rask-popover in rask-dom.js, spliced into both hosts) re-anchors the open .dropdown-menu
+        // with position:fixed. Under the old position:absolute the card would clip it. Assert the menu is
+        // fixed and within the viewport — the regression guard for the overflow-clipping bug.
+        var pickMenu = Page.Locator(".dropdown-menu.show:has(#pick-date-cal)").First;
+        Assert.Equal("fixed", await pickMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
+        await Expect(pickMenu).ToBeInViewportAsync(
+            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+        await Page.Locator($"#pick-date-d-{ym}01").First.ClickAsync();
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(firstIso,
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Hand-editable: the picker box is a text <input>. Typing a date commits live per keystroke (culture
+        // parse; ISO yyyy-MM-dd is accepted in any culture), so the bound readout updates with no calendar.
+        var dateInput = Page.Locator("#pick-date").First;
+        await dateInput.FillAsync("2026-12-25");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // An unparseable entry keeps the raw text (no mid-typing revert) and leaves the value unchanged.
+        await dateInput.FillAsync("not a date");
+        await Expect(dateInput).ToHaveValueAsync("not a date",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 5_000 });
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25",
+            new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+        // Close the opened picker so its full-viewport backdrop doesn't intercept later clicks. (The nullable
+        // picker's × clear is unit-tested; the ×-clears-to-null click is E2E-covered on #bs-seats above.)
+        await Page.Locator(".dropdown:has(#pick-date) .position-fixed").DispatchEventAsync("click");
+
+        // Date-time picker (#pick-datetime, bound to a DateTime): open the calendar and pick a day. The
+        // composed value must write back as a DateTime — regression guard for the "Object of type
+        // DateTimeOffset cannot be converted to type DateTime" write crash (BoxValue could box the wrong
+        // date/time type; WriteBoxedAsync now coerces to the property's real type). A crash surfaces as the
+        // Rask error boundary; the readout's third segment updating proves the write succeeded.
+        await Page.Locator("#pick-datetime").First.ClickAsync();
+        await Expect(Page.Locator("#pick-datetime-cal.bs-cal[role=\"grid\"]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator($"#pick-datetime-d-{ym}15").First.ClickAsync();
+        await Expect(Page.Locator("#pick-readout"))
+            .ToContainTextAsync(DateTime.Today.ToString("yyyy-MM") + "-15",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Also pick an hour + minute (the time columns compose with the date — same DateTime write path),
+        // and type a full value into the box (the parse path). None may throw the DateTimeOffset cast.
+        var dtMenu = Page.Locator(".dropdown-menu.show:has(#pick-datetime-cal)").First;
+        await dtMenu.Locator(".bs-time-col").Nth(0)
+            .GetByText("11", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
+        await dtMenu.Locator(".bs-time-col").Nth(1)
+            .GetByText("30", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("-15 11:30",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#pick-datetime").First.FillAsync("2026-12-25 14:45");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25 14:45",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator(".dropdown:has(#pick-datetime) .position-fixed").DispatchEventAsync("click");
     }
 
     protected async Task WalkUserComponentsGuideAsync()
