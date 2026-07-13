@@ -869,6 +869,16 @@ public abstract class Component
             // the parameter, so null is fine; DI-ctor closures (ActivatorUtilities) will
             // surface their own NRE if asked to resolve against a null provider.
             instance = factory(services!);
+
+            // `this` is the creating parent (CurrentParent when the factory ran) — the provider whose
+            // Render() authored this control. A form control records it once at creation so a bound
+            // two-way write outside a Form can re-render the provider's derived UI (see
+            // Forms/BindingConsumerRegistry). The creator is stable across frames, so a reused instance
+            // keeps its entry — no work on the steady-state render path.
+            if (instance is Forms.IFormControl fc)
+            {
+                Forms.BindingConsumerRegistry.Record(fc, this);
+            }
         }
 
         instance.RenderHandle ??= handle;
@@ -895,9 +905,16 @@ public abstract class Component
         else
         {
             instance = factory(services!);
+
+            // Record the creating parent once at creation — see the generic overload.
+            if (instance is Forms.IFormControl fc)
+            {
+                Forms.BindingConsumerRegistry.Record(fc, this);
+            }
         }
 
         instance.RenderHandle ??= handle;
+
         (Live.Children ??= new Dictionary<(Type, int), Component>())[key] = instance;
         return instance;
     }

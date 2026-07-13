@@ -196,6 +196,16 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **A bound wrapper form control used outside a `Form` didn't re-render sibling derived UI.** A two-way
+  bound `Bs*` control (`BsCheck`/`BsInput`/`BsSelect`/pickers/groups) rendered outside a `Form<T>` re-rendered
+  only itself, so a sibling whose class/text derived from the same model property went stale on change — most
+  visibly a `BsCheck(() => item.Done)` in a list next to a `Span` styled from `item.Done`. A raw inline core
+  `Input` never had the bug (its handler owner is the authoring page). The binding-owner resolution
+  (`IFormControl<T>.RegisterValidator`) now falls back to the control's **creating component** when the bind
+  expression's root isn't itself a component (e.g. a loop local `() => item.Field`), recorded weakly at
+  create time (`BindingConsumerRegistry`, keyed by the control — no per-render-node field added). One core
+  change fixes every wrapper control and any custom `IFormControl<T>`, in and out of a `Form`, with no
+  `StateHasChanged`/`AfterBind` on the user surface.
 - **Native `IJSRuntime` calls threw `NotSupportedException` on iOS.** Any component invoking a browser API
   with arguments (e.g. the guide-chrome scroll-spy) failed on iOS with *"JsonTypeInfo metadata for type
   'System.Object[]' was not provided"*. `NativeJSRuntime` added the reflection-based JSON resolver only when
