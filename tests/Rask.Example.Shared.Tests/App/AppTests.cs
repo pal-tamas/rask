@@ -20,11 +20,11 @@ public sealed class AppTests
     {
         var html = new Shared.App().RenderAsLiveRoot(TestServices.Default());
 
-        // Title body content is HTML-encoded: literal "—" → "&#x2014;". HomePage
-        // overrides App's fallback title via the framework's singleton-key dedupe.
-        // <title> carries data-rask-key="tag:title" so we match the body, not the
+        // Title body content is HTML-encoded: literal "—" → "&#x2014;". GuidesIndexPage
+        // (the site root) overrides App's fallback title via the framework's singleton-key
+        // dedupe. <title> carries data-rask-key="tag:title" so we match the body, not the
         // opening tag verbatim.
-        Assert.Contains(">Welcome &#x2014; Rask</title>", html);
+        Assert.Contains(">Guides &#x2014; Rask</title>", html);
         Assert.Contains("charset=\"utf-8\"", html);
         Assert.Contains("viewport", html);
         Assert.Contains("/_content/Rask.Bootstrap/css/bootstrap.min.css", html);

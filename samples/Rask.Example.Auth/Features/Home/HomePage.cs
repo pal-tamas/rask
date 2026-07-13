@@ -14,7 +14,7 @@ public sealed class HomePage : Component
                 P(Class: "card-text text-secondary")[
                     "A minimal, real cookie login: a protected ", Code()["/members"],
                     " page, a ", Code()["/login"], " form, and sign-out — all over Rask's live runtime."],
-                NavLink("/members", Id: "go-members", Class: "btn btn-primary")[
+                NavLink(Routes.MembersPage(), Id: "go-members", Class: "btn btn-primary")[
                     "Go to the members area →"]
             ]
         ];

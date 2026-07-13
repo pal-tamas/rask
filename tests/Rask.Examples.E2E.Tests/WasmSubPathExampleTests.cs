@@ -60,10 +60,11 @@ public sealed class WasmSubPathExampleTests : IAsyncLifetime
     [Fact]
     public async Task Journey_BootsUnderPrefix_AssetsAndEndpointsHonorPrefix()
     {
-        // 1. The app boots under the /sub prefix.
+        // 1. The app boots under the /sub prefix. Guides-first: "/" is the guides index (the Welcome
+        // landing page is gone), whose PageHeader renders an <h1 class="h2">Guides</h1>.
         await Page.GotoAsync("/sub/");
-        await Expect(Page.Locator("h1.display-5"))
-            .ToContainTextAsync("The Rask framework",
+        await Expect(Page.Locator("main h1.h2"))
+            .ToContainTextAsync("Guides",
                 new LocatorAssertionsToContainTextOptions { Timeout = 90_000 });
 
         // 2. Every scoped-CSS <link> points at the prefixed asset endpoint; none stays root-relative.

@@ -1,3 +1,4 @@
+using Rask.Core.Routing;
 using Rask.Example.Shared;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
@@ -97,9 +98,10 @@ public sealed class CodeSampleTests
     {
         // Highlighting is now produced server-side by ColorCode (token <span>s in the
         // rendered HTML); there is no longer any highlight.js <link>/<script> in <head>.
-        // HomePage's CodeSample source contains C# string literals, so its tokenized
-        // output carries a <span class="string">.
-        var html = new Shared.App().RenderAsLiveRoot(TestServices.Default());
+        // TodosPage's CodeSample self-embeds its own source, which contains C# string
+        // literals, so its tokenized output carries a <span class="string">.
+        var routeState = new RouteState { Path = "/todos" };
+        var html = new Shared.App().RenderAsLiveRoot(TestServices.Default(routeState: routeState));
         Assert.Contains("class=\"string\"", html);
         Assert.DoesNotContain("/lib/highlightjs/", html);
     }

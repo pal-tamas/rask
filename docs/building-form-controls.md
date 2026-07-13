@@ -207,10 +207,15 @@ change re-renders the host for free (host-side derived UI just updates). But a s
 `Component` subclass, so the generator can't synthesize a factory for it and it can't implement `IFormControl<T>`.
 
 A control written as a **`Component`** (required for `IFormControl<T>`, or because it needs view state like an
-open/closed dropdown) is its own re-render boundary: a toggle re-renders *it*, not the host. Keep live
-feedback **inside** the control (an embedded `ValidationMessage`, chips), and for host-side derived UI use
-**controlled** mode — `OnChange` is auto-wrapped (`AutoCallback`), so invoking it re-renders the host with no
-`StateHasChanged`.
+open/closed dropdown) is its own re-render boundary for *arbitrary* state: a plain toggle re-renders *it*, not
+the host. But **two-way binding is not** a boundary — a bound write (`Bind: () => model.Field`, in **or**
+outside a `Form`) re-renders the component that authored the binding, so host-side derived UI (a sibling whose
+class/text is computed from the same model property) updates with no `StateHasChanged`. This holds even when
+the bind closed over a loop local (`() => item.Field`): the framework records the control's creating component
+as the binding owner (via `RegisterValidator`), so the authoring host re-renders on change. For **controlled**
+mode (`Value`/`OnChange`, no `Bind`) the same guarantee comes from `OnChange` being auto-wrapped
+(`AutoCallback`) to re-render its owner. Reserve in-control feedback (an embedded `ValidationMessage`, chips)
+for state the control *itself* owns.
 
 ---
 

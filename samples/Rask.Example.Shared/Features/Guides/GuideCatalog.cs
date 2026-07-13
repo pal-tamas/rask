@@ -30,8 +30,6 @@ public static class GuideCatalog
             "bi-input-cursor-text", "Core"),
         new("js-interop", "JavaScript interop", "Scoped CSS/JS, element refs, IJSRuntime, typed APIs.",
             "bi-braces", "Core"),
-        new("browser-apis", "Browser APIs", "The typed wrappers over the platform's browser APIs.",
-            "bi-globe", "Core"),
 
         new("bootstrap", "Bootstrap components", "Setup, buttons, cards, alerts, icons, and typed utility classes.",
             "bi-bootstrap", "Bootstrap"),
@@ -39,6 +37,16 @@ public static class GuideCatalog
             "Navbars, tabs, modals, toasts, and dropdowns — all zero-JS.", "bi-window-stack", "Bootstrap"),
         new("bootstrap-forms", "Bootstrap forms & inputs",
             "Inputs, searchable selects/multiselect, and date/time pickers.", "bi-ui-checks-grid", "Bootstrap"),
+
+        // Mobile & devices: the browser-API surface, PWA/installable/offline, and the native iOS/Android
+        // host — three overlapping guides kept together as one group (browser-apis.md ↔ pwa.md cross-link).
+        new("browser-apis", "Browser APIs", "The typed wrappers over the platform's browser APIs.",
+            "bi-globe", "Mobile & devices"),
+        new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.",
+            "bi-phone", "Mobile & devices"),
+        new("native", "Native (iOS/Android)",
+            "WebView-hybrid native host — INativeWebView bridge, safe-area insets, native bars.",
+            "bi-phone-fill", "Mobile & devices"),
 
         new("authentication", "Authentication", "Cookie/JWT/OIDC on Server and WASM, route guards.",
             "bi-shield-lock", "Integration"),
@@ -50,8 +58,6 @@ public static class GuideCatalog
             "bi-shuffle", "Integration"),
         new("accessibility", "Accessibility", "ARIA, focus management, the img-alt analyzer.",
             "bi-universal-access", "Integration"),
-        new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.",
-            "bi-phone", "Integration"),
         new("observability", "Observability", "Logging, tracing, diagnostics.",
             "bi-activity", "Integration"),
         new("configuration", "Configuration", "App configuration and settings.",
@@ -67,7 +73,8 @@ public static class GuideCatalog
             "bi-exclamation-diamond", "Advanced")
     ];
 
-    public static readonly string[] GroupOrder = ["Start here", "Core", "Bootstrap", "Integration", "Advanced"];
+    public static readonly string[] GroupOrder =
+        ["Start here", "Core", "Bootstrap", "Mobile & devices", "Integration", "Advanced"];
 
     public static string TitleFor(string slug)
     {

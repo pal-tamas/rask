@@ -23,6 +23,12 @@ internal static class HtmlSerializer
         "0123456789" +
         " -._/:,?!()*=#%");
 
+    // Phase B: set true whenever a user component is serialized, so an enclosing component can tell
+    // whether its subtree is pure elements (safe to cache + replay from frames) or contains a nested
+    // user component that could go dirty independently (must keep the element-walk path). The default
+    // switch branch saves/resets this around each component's walk to make it a per-subtree signal.
+    [ThreadStatic] private static bool _sawNestedComponent;
+
     private static readonly HashSet<string> _shellTags = new(StringComparer.Ordinal)
     {
         "html",
@@ -60,6 +66,119 @@ internal static class HtmlSerializer
         }
 
         sb.Append(HtmlEncoder.Default.Encode(value));
+    }
+
+    /// <summary>
+    ///     Replay a clean component's retained <see cref="LeanFrame" /> subtree (Phase B): re-emit its
+    ///     HTML byte-for-byte identical to the original <see cref="Serialize(Component, StringBuilder)" />
+    ///     walk AND re-write the full <see cref="RenderFrame" /> stream (with fresh HTML offsets) into
+    ///     <paramref name="writer" />, in a single pass — so a component that did not change re-emits from
+    ///     a compact frame span instead of re-walking (and thus retaining) its Element object graph.
+    ///     <para>
+    ///         The span must be a well-formed subtree: it starts at a DOM-structural frame (Element /
+    ///         Text / Raw / Doctype) and each Element frame's <see cref="LeanFrame.SubtreeLength" /> stays
+    ///         within the span. Attribute frames are the leading children of their Element (as
+    ///         <c>WriteAttributes</c> runs before children), consumed by the Element case, never at top
+    ///         level. The span must NOT contain the shell tags (<c>head</c>/<c>body</c>) whose sentinel /
+    ///         runtime script are appended without frames — those live only in the always-dirty root and
+    ///         are never cached.
+    ///     </para>
+    /// </summary>
+    internal static void ReplayLeanFrames(ReadOnlySpan<LeanFrame> frames, StringBuilder sb, FrameWriter writer)
+    {
+        var i = 0;
+        while (i < frames.Length)
+        {
+            i = ReplayFrame(frames, i, sb, writer);
+        }
+    }
+
+    private static int ReplayFrame(ReadOnlySpan<LeanFrame> frames, int i, StringBuilder sb, FrameWriter writer)
+    {
+        ref readonly var f = ref frames[i];
+        switch (f.Kind)
+        {
+            case RenderFrameKind.Text:
+            {
+                // Text frames store the raw (un-encoded) value; re-encode on emit exactly as Serialize
+                // did. Adjacent text was coalesced into one frame at capture, and HTML encoding is
+                // per-char so the coalesced encode is byte-identical to the piecewise one.
+                var start = sb.Length;
+                AppendEncoded(sb, f.Name ?? string.Empty);
+                writer.Text(f.Name, start, sb.Length);
+                return i + 1;
+            }
+
+            case RenderFrameKind.Raw:
+            {
+                var start = sb.Length;
+                sb.Append(f.Name);
+                writer.Raw(f.Name, start, sb.Length);
+                return i + 1;
+            }
+
+            case RenderFrameKind.Doctype:
+            {
+                var start = sb.Length;
+                sb.Append("<!DOCTYPE html>");
+                writer.Doctype(start, sb.Length);
+                return i + 1;
+            }
+
+            case RenderFrameKind.Element:
+            {
+                var end = i + f.SubtreeLength;
+                var start = sb.Length;
+                var frameIdx = writer.OpenElement(f.Name!, f.Value, f.SelfClosing, start);
+                sb.Append('<').Append(f.Name);
+
+                // Leading Attribute frames = this element's attributes, in emit order.
+                var j = i + 1;
+                while (j < end && frames[j].Kind == RenderFrameKind.Attribute)
+                {
+                    ref readonly var a = ref frames[j];
+                    sb.Append(' ').Append(a.Name);
+                    if (a.Value is not null)
+                    {
+                        sb.Append("=\"");
+                        AppendEncoded(sb, a.Value);
+                        sb.Append('"');
+                    }
+
+                    writer.Attribute(a.Name!, a.Value);
+                    j++;
+                }
+
+                // Scoped-CSS marker rides the Element frame's Value (Serialize appends it after the
+                // real attributes and before '>' / ' />'), not an Attribute frame.
+                if (f.Value is not null)
+                {
+                    sb.Append(" data-").Append(f.Value);
+                }
+
+                if (f.SelfClosing)
+                {
+                    sb.Append(" />");
+                    writer.CloseElement(frameIdx, sb.Length);
+                    return end;
+                }
+
+                sb.Append('>');
+                while (j < end)
+                {
+                    j = ReplayFrame(frames, j, sb, writer);
+                }
+
+                sb.Append("</").Append(f.Name).Append('>');
+                writer.CloseElement(frameIdx, sb.Length);
+                return end;
+            }
+
+            default:
+                // Attribute at top level (shouldn't happen for a well-formed subtree) or a Component
+                // marker (never emitted into the stream). Skip defensively.
+                return i + 1;
+        }
     }
 
     public static void Serialize(Component? component, StringBuilder sb)
@@ -324,11 +443,31 @@ internal static class HtmlSerializer
                     liveCtx.CollectNativeChrome(component);
                 }
 
+                // Phase B: replay a cached clean subtree straight from its retained frame span instead
+                // of re-walking (and thus retaining) its Element object graph. Only clean, pure-element,
+                // handler-free subtrees were cached (see Component.TryCacheCleanSubtree); a dirty or
+                // ineligible component returns false here and falls through to the walk below, which
+                // re-renders it and may re-cache. A replayed component is itself a nested user component
+                // for its parent, so flag that.
+                if (frames is not null && component.TryReplayCleanSubtree(sb, frames))
+                {
+                    _sawNestedComponent = true;
+                    break;
+                }
+
                 // User components are transparent in the frame stream — their rendered
                 // body's elements/text emit at the surrounding DOM level. That keeps the
                 // diff codec's path computation a simple count over DOM-structural frames
-                // without a Component-as-wrapper case. (A later optimisation may re-add
-                // Component markers for cached-subtree short-circuiting.)
+                // without a Component-as-wrapper case.
+                //
+                // Track whether THIS component's subtree contains any nested user component: reset the
+                // ambient flag, walk, then read it back. A pure-element subtree (flag still false) is
+                // safe to cache and replay; one with a nested component is not (the nested one could go
+                // dirty on a later render and replaying the parent's frames would skip it). The flag is
+                // re-asserted to true after the walk so an ENCLOSING component still sees us as nested.
+                _sawNestedComponent = false;
+                var frameStart = frames?.Count ?? -1;
+
                 using (LiveRenderContext.PushScopeOrNone(liveCtx, component))
                 using (LiveRenderContext.EnterParentScopeOrNone(liveCtx, component))
                 using (component.EnterChildrenScopeInternal())
@@ -356,6 +495,16 @@ internal static class HtmlSerializer
                         }
                     }
                 }
+
+                var hadNested = _sawNestedComponent;
+                if (frames is not null && frameStart >= 0)
+                {
+                    component.TryCacheCleanSubtree(
+                        frames, frameStart, hadNested, liveCtx?.CollectsNativeChrome ?? false);
+                }
+
+                // Mark that our parent's subtree now contains a user component (us).
+                _sawNestedComponent = true;
 
                 break;
         }

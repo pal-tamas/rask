@@ -1,3 +1,19 @@
+/* BsCheck renders its checkbox inside a .form-check wrapper; in a list row we want just the box,
+   so drop the wrapper's block spacing and indent and let it sit inline with the title. */
+.list-group-item .form-check {
+    min-height: 0;
+    margin-bottom: 0;
+    padding-left: 0;
+    display: flex;
+    align-items: center;
+}
+
+.list-group-item .form-check .form-check-input {
+    margin-left: 0;
+    margin-top: 0;
+    float: none;
+}
+
 .todo-title {
     flex: 1 1 auto;
 }
