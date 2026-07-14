@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Gesture bridge — activation-gated browser APIs on the Server host.** New headless `GestureTrigger`
+  (and typed `FullscreenTrigger` / `EyeDropperTrigger`) generalise `Shareable`'s trick: they hand your
+  element a `data-rask-gesture` bundle and the shared client runs the capability **inside the click
+  gesture**, so the browser's transient user activation survives. That makes normally-WASM-only APIs like
+  fullscreen and the eyedropper reachable **declaratively on the Server host** (where a round-tripped
+  service call would lose the activation). Capabilities that return a value post it back to an
+  `OnResult` / `OnColor` callback via a new `[JSInvokable]`. The `__raskFullscreen` / `__raskEyeDropper`
+  DOM helpers moved from `rask-wasm-api.js` into the shared `rask-api.js` so they ship to Server too.
+
 ### Documentation
 - **Browser/device API capability matrix + per-API reference pages.** New
   [`docs/browser-capabilities.md`](docs/browser-capabilities.md) is a single table of all 43 wrappers

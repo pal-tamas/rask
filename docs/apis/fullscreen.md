@@ -8,9 +8,9 @@
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜
 - **Native backend:** — (WebView JS)
 
-Needs transient activation → WASM-only imperatively; a Server `FullscreenTrigger` (declarative gesture bridge) is planned.
+Needs transient activation, so the imperative `IFullscreen` service is WASM-only. On the **Server** host, use the declarative **`FullscreenTrigger`** component — its click requests fullscreen inside the gesture (the activation survives, unlike a round-tripped service call).
 
-> 🟡 On the Server host this is reachable declaratively via the planned gesture bridge, not as an injected service.
+> 🟡 On the Server host, reachable declaratively via `FullscreenTrigger` (a click-gesture component), not as an injected service.
 
 ## See also
 
