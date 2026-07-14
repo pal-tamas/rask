@@ -348,6 +348,9 @@ protected override Component? Render() =>
 - **Type-safe icons** — `NativeIcon` pairs an iOS SF Symbol with an Android drawable/Material name; use a
   curated member (`NativeIcon.Home`) or an escape hatch (`NativeIcon.Custom(sfSymbol, drawable)` /
   `NativeIcon.SfSymbol(...)` / `NativeIcon.Drawable(...)`). Routes are type-safe too (`Features.Routes.*`).
+- **Tab badges** — a `NativeTab` takes an optional `Badge` string (an unread count like `"3"` / `"99+"`),
+  projected to `UITabBarItem.BadgeValue` (iOS) / a small overlay on the icon (Android). Leave it `null`/empty
+  for no badge; bind it to live state (e.g. `Badge: unread.ToString()`) and it updates on the next render.
 - **Bar buttons** run their `OnClick` on the render thread and re-render, like any Rask callback. **Tabs**
   navigate to their route; the page recomputes `Selected` from the current route on the next render. Each
   projected bar view carries a stable **accessibility identifier** (the tab/button title, or

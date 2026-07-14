@@ -252,6 +252,34 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
         using var doc = JsonDocument.Parse(chrome.Pushed[0]);
         Assert.False(doc.RootElement.GetProperty("header").TryGetProperty("background", out _));
     }
+
+    [Fact]
+    public async Task TabBadge_SerializesOnlyWhenSet()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<BadgeTabApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var tabs = doc.RootElement.GetProperty("footer").GetProperty("tabs");
+        Assert.False(tabs[0].TryGetProperty("badge", out _)); // no badge on Home
+        Assert.Equal("2", tabs[1].GetProperty("badge").GetString()); // Todos badge
+    }
+
+    [Fact]
+    public async Task TabBadge_ChangeIsRepushed()
+    {
+        // A badge bound to live state updates the native tab on the next render (and re-pushes the chrome).
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<BadgeTabApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        await chrome.TapAsync("h.trailing.0"); // increments the count behind the badge
+
+        Assert.Equal(2, chrome.Pushed.Count);
+        using var doc = JsonDocument.Parse(chrome.LastJson);
+        Assert.Equal("3", doc.RootElement.GetProperty("footer").GetProperty("tabs")[1].GetProperty("badge").GetString());
+    }
 }
 
 internal sealed class HeaderApp : Component
@@ -369,6 +397,26 @@ internal sealed class StyledTabApp : Component
             [
                 NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/"),
                 NativeTab(Title: "Me", Icon: NativeIcon.Person, To: "/me"),
+            ])
+    ];
+}
+
+internal sealed class BadgeTabApp : Component
+{
+    private int _count = 2;
+
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(Title: "B", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: () => _count++)]),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()[$"c={_count}"]]]
+        ],
+        NativeTabBar(
+            Tabs:
+            [
+                NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/"),
+                NativeTab(Title: "Todos", Icon: NativeIcon.List, To: "/todos", Badge: _count.ToString()),
             ])
     ];
 }

@@ -147,6 +147,10 @@ them until tagged releases begin.
   `UINavigationBarAppearance`/`UITabBarAppearance` (adaptive colors via a dynamic `UIColor`); the Android
   head tints its bars against the current night mode. Descriptor serialization + layering are unit-tested
   (`NativeColorTests`, `NativeChromeTests`); the `Rask.Example.Native` showcase brands its bars.
+- **Native tab badges.** `NativeTab` takes an optional `Badge` string (an unread count like `"3"`/`"99+"`),
+  projected to `UITabBarItem.BadgeValue` (iOS) and a small icon overlay (Android, no AndroidX dependency).
+  Leave it null/empty for no badge; bind it to live state and it updates on the next render (the chrome
+  re-pushes only when the badge changes). Unit-tested in `NativeChromeTests`; the showcase badges the Todos tab.
 
 ### Fixed
 - **Native Android bars now render icons.** The Android chrome head rendered tabs and bar buttons as

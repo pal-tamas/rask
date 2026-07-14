@@ -16,4 +16,11 @@ public sealed class NativeTab : NativeBarItem
 
     /// <summary>The type-safe route this tab navigates to (e.g. <c>Features.Routes.Home()</c>). Required.</summary>
     public required RouteUrl To { get; set; }
+
+    /// <summary>
+    ///     An optional badge shown on the tab (e.g. an unread count <c>"3"</c> or <c>"99+"</c>) — projected to
+    ///     <c>UITabBarItem.BadgeValue</c> (iOS) / a small overlay on the icon (Android). Leave <c>null</c> or
+    ///     empty for no badge. Bind it to live state and the badge updates on the next render.
+    /// </summary>
+    public string? Badge { get; set; }
 }

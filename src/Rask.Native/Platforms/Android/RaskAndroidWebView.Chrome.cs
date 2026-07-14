@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Android.Content;
 using Android.Graphics;
+using Android.Graphics.Drawables;
 using Android.Views;
 using Android.Webkit;
 using Android.Widget;
@@ -46,6 +47,8 @@ public sealed partial class RaskAndroidWebView
         _topBar = new LinearLayout(_context) { Orientation = Orientation.Horizontal, Visibility = ViewStates.Gone };
         _topBar.SetGravity(GravityFlags.CenterVertical);
         _bottomBar = new LinearLayout(_context) { Orientation = Orientation.Horizontal, Visibility = ViewStates.Gone };
+        // Let a tab's corner badge overflow its cell without being clipped by the bar.
+        _bottomBar.SetClipChildren(false);
 
         root.AddView(_topBar, MatchWrap());
         root.AddView(_webView, new LinearLayout.LayoutParams(
@@ -159,6 +162,7 @@ public sealed partial class RaskAndroidWebView
         container.ContentDescription = tab.Title;
         container.ImportantForAccessibility = ImportantForAccessibility.Yes;
 
+        var badgeText = string.IsNullOrEmpty(tab.Badge) ? null : tab.Badge;
         var resId = ResolveDrawable(tab.AndroidIcon);
         if (resId != 0)
         {
@@ -166,7 +170,29 @@ public sealed partial class RaskAndroidWebView
             icon.SetImageResource(resId);
             icon.SetColorFilter(color);
             var size = Dp(24);
-            container.AddView(icon, new LinearLayout.LayoutParams(size, size));
+            if (badgeText is null)
+            {
+                container.AddView(icon, new LinearLayout.LayoutParams(size, size));
+            }
+            else
+            {
+                // Overlay the badge on the top-right of the icon (no AndroidX BadgeDrawable dependency). The
+                // frame is icon-sized and clipping is disabled so the badge can hug the corner and overflow.
+                var frame = new FrameLayout(_context);
+                frame.SetClipChildren(false);
+                container.SetClipChildren(false);
+                frame.AddView(icon, new FrameLayout.LayoutParams(size, size));
+                frame.AddView(BuildBadge(badgeText),
+                    new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WrapContent, ViewGroup.LayoutParams.WrapContent,
+                        GravityFlags.Top | GravityFlags.End));
+                container.AddView(frame, new LinearLayout.LayoutParams(size, size));
+            }
+        }
+        else if (badgeText is not null)
+        {
+            // No icon to hang the badge on — show it above the label.
+            container.AddView(BuildBadge(badgeText));
         }
 
         var label = new TextView(_context)
@@ -219,6 +245,29 @@ public sealed partial class RaskAndroidWebView
         }
 
         return view;
+    }
+
+    // A small rounded badge (e.g. an unread count) drawn without AndroidX — a white-on-red pill TextView.
+    private TextView BuildBadge(string text)
+    {
+        var badge = new TextView(_context)
+        {
+            Text = text,
+            TextSize = 9f,
+            Gravity = GravityFlags.Center,
+            ImportantForAccessibility = ImportantForAccessibility.No,
+        };
+        badge.SetTextColor(Color.White);
+        badge.SetPadding(Dp(4), 0, Dp(4), 0);
+        badge.SetMinWidth(Dp(16));
+        badge.SetMinHeight(Dp(16));
+
+        var background = new GradientDrawable();
+        background.SetShape(ShapeType.Rectangle);
+        background.SetColor(Color.Argb(255, 0xD3, 0x2F, 0x2F)); // Material red 700
+        background.SetCornerRadius(Dp(8));
+        badge.Background = background;
+        return badge;
     }
 
     // Material primary-text black (~87% opacity) — the default content color on a light bar.

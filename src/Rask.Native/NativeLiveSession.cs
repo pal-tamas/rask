@@ -224,6 +224,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                             IosIcon = tab.Icon.IosSymbol,
                             AndroidIcon = tab.Icon.AndroidResource,
                             Path = tab.To.ToString(),
+                            Badge = string.IsNullOrEmpty(tab.Badge) ? null : tab.Badge,
                         });
                     }
                 }

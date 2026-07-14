@@ -188,6 +188,8 @@ internal sealed class RaskChromeContainerView : UIView
             {
                 // Address each tab by its title (screen readers + the Appium E2E), independent of the icon.
                 AccessibilityIdentifier = tabs[i].Title,
+                // Optional badge (e.g. an unread count); null clears it.
+                BadgeValue = string.IsNullOrEmpty(tabs[i].Badge) ? null : tabs[i].Badge,
             };
         }
 

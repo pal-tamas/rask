@@ -35,7 +35,8 @@ public sealed class NativeShowcaseApp : App
             [
                 // Guides is the site root ("/") now that the Welcome landing page is gone.
                 NativeTab(Title: "Guides", Icon: NativeIcon.Home, To: AppRoutes.GuidesIndexPage()),
-                NativeTab(Title: "Todos", Icon: NativeIcon.Custom("checklist", "ic_todo"), To: AppRoutes.TodosPage()),
+                // A badge (e.g. an unread count) — bind it to live state and it updates on the next render.
+                NativeTab(Title: "Todos", Icon: NativeIcon.Custom("checklist", "ic_todo"), To: AppRoutes.TodosPage(), Badge: "2"),
             ])
         // Selected is omitted — the framework highlights the tab matching the current route.
     ];

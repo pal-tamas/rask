@@ -61,6 +61,9 @@ internal sealed class NativeTabDescriptor
 
     /// <summary>The route this tab navigates to (raised as a <c>navigate</c> event when tapped).</summary>
     public string Path { get; set; } = "/";
+
+    /// <summary>Optional badge text (e.g. an unread count); null/empty ⇒ no badge.</summary>
+    public string? Badge { get; set; }
 }
 
 [JsonSourceGenerationOptions(
