@@ -50,27 +50,35 @@ rask generate page Products --route /catalog # a custom route
 rask generate component PriceTag             # → Components/PriceTag.cs
 rask generate component PriceTag -o Widgets  # into a chosen folder
 rask generate page Orders --dry-run          # print what would be written, write nothing
+
+# A full CRUD vertical slice — entity + DbContext + list/create/edit pages
+rask generate feature Product --fields "Name:string,Price:decimal,InStock:bool"
 ```
 
-`rask generate` writes an idiomatic file into the current project. It finds the owning `.csproj` by
-walking up from the working directory, derives the file's namespace from its folder (root namespace +
+`rask generate` writes idiomatic files into the current project. It finds the owning `.csproj` by
+walking up from the working directory, derives each file's namespace from its folder (root namespace +
 folder path, the C# convention), and **refuses to overwrite an existing file** unless you pass `--force`.
 
 | Artifact | Emits | Class / namespace |
 |----------|-------|-------------------|
 | `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
 | `component <Name>` | `Components/<Name>.cs` — a plain `Component` | `<Name>` in `<Root>.Components` |
+| `feature <Name> --fields …` | `Features/<Plural>/` — a POCO entity, a `DbContext`, and list / create / edit pages wired to EF Core | in `<Root>.Features.<Plural>` |
 
 | Option | Meaning |
 |--------|---------|
-| `--route`, `-r` | The `[Route]` path for a page (default: kebab-case of the name, e.g. `/products`). |
+| `--fields`, `-f` | `feature` only: the entity's fields as `Name:type,…`. Types: `string`, `int`, `long`, `decimal`, `double`, `bool`, `DateTime`, `Guid` (aliases like `text`/`number`/`money`/`date` too). An `Id` is added automatically. |
+| `--context`, `-c` | `feature` only: reference an existing `DbContext` by name instead of generating a feature-local one (then add a `DbSet` to it). |
+| `--plural`, `-p` | `feature` only: the plural used for the folder, DbSet, list page, and route. Give the entity a **singular** name (`Product`) and this defaults to a simple pluralization (`Products`); override it when that guess is wrong (`--plural People`). |
+| `--route`, `-r` | `page` only: the `[Route]` path (default: kebab-case of the name, e.g. `/products`). |
 | `--output`, `-o` | Write into this folder instead of the default (the namespace follows the folder). |
-| `--force` | Overwrite an existing file. |
-| `--dry-run` | Print the file that would be written, and write nothing. |
+| `--force` | Overwrite existing file(s). |
+| `--dry-run` | Print the file(s) that would be written, and write nothing. |
 
-The generated code compiles as-is in any `dotnet new rask-*` project (the factory methods and the
-`Component` base come from Rask's implicit usings). A `feature` generator — a full CRUD vertical slice
-(entity + list/create/edit pages + EF wiring) — is next on the roadmap.
+The generated code compiles as-is in any `dotnet new rask-*` project — the factory methods and the
+`Component` base come from Rask's implicit usings, and pages navigate with the type-safe generated
+`Routes.*()` URLs. A generated `feature` needs EF Core referenced; after scaffolding, `rask generate`
+prints the one DI registration and the `dotnet ef` migration to run before it works.
 
 ## `rask dev` — run with hot reload
 
@@ -103,6 +111,6 @@ templates are installed, and the OS. `rask --version` prints just the tool versi
 
 ## Roadmap
 
-The CLI is the front door for Rask's "one person framework" tooling. Next up: `rask generate feature`
-(a full CRUD vertical slice), `rask db` (migrations), and `rask deploy` (one-command deploy). See the
-[development workflow](development-workflow.md) for how the framework is built.
+The CLI is the front door for Rask's "one person framework" tooling. Next up: `rask db` (migrations)
+and `rask deploy` (one-command deploy). See the [development workflow](development-workflow.md) for how
+the framework is built.

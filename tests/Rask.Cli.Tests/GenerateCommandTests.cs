@@ -54,7 +54,7 @@ public sealed class GenerateCommandTests
 
         Assert.Equal(1, exit);
         Assert.Equal("// existing", fs.Files[Path.GetFullPath("/proj/Components/PriceTag.cs")]);
-        Assert.Contains("already exists", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Refusing to overwrite", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -79,6 +79,102 @@ public sealed class GenerateCommandTests
         Assert.Equal(1, exit);
         Assert.DoesNotContain(fs.Files, f => f.Value.Contains("class", StringComparison.Ordinal));
         Assert.Contains("not a valid C# type name", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Generates_a_full_feature_slice()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string,Price:decimal"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        foreach (var file in new[] { "Product.cs", "ProductsDbContext.cs", "ProductsPage.cs", "CreateProductPage.cs", "EditProductPage.cs" })
+        {
+            Assert.Contains(fs.Files, f => f.Key.EndsWith(file, StringComparison.Ordinal));
+        }
+
+        Assert.Contains("Next steps:", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Feature_without_fields_fails()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Empty(fs.Files.Where(f => f.Key.EndsWith("Product.cs", StringComparison.Ordinal)).ToArray());
+        Assert.Contains("needs --fields", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Feature_with_unknown_field_type_fails()
+    {
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:blob"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Unknown field type 'blob'", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Explicit_context_omits_the_dbcontext_file()
+    {
+        var (_, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--context", "AppDbContext"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("DbContext.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Field_named_like_the_entity_is_rejected()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Product:string"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("Product.cs", StringComparison.Ordinal));
+        Assert.Contains("can't share the entity's name", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Invalid_context_name_is_rejected()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--context", "App-Db Context"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Empty(fs.Files.Where(f => f.Key.EndsWith("Product.cs", StringComparison.Ordinal)).ToArray());
+        Assert.Contains("not a valid C# type name for --context", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Plural_override_is_honored()
+    {
+        var (_, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Person", "--fields", "Name:string", "--plural", "People"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains(fs.Files, f => f.Key.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Fields_on_a_page_are_rejected()
+    {
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["page", "Products", "--fields", "Name:string"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("only apply to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
