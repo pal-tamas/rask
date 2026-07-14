@@ -51,8 +51,9 @@ rask generate component PriceTag             # → Components/PriceTag.cs
 rask generate component PriceTag -o Widgets  # into a chosen folder
 rask generate page Orders --dry-run          # print what would be written, write nothing
 
-# A full CRUD vertical slice — entity + DbContext + list/create/edit pages
-rask generate feature Product --fields "Name:string,Price:decimal,InStock:bool"
+# A full CQRS + EF Core CRUD vertical slice
+rask generate feature Product --fields "Name:string,Price:decimal,InStock:bool,Note:string?(500)"
+rask g f Order --fields "Total:decimal" --id long   # short aliases: g = generate, f = feature
 ```
 
 `rask generate` writes idiomatic files into the current project. It finds the owning `.csproj` by
@@ -63,11 +64,12 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 |----------|-------|-------------------|
 | `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
 | `component <Name>` | `Components/<Name>.cs` — a plain `Component` | `<Name>` in `<Root>.Components` |
-| `feature <Name> --fields …` | `Features/<Plural>/` — a POCO entity, a `DbContext`, and list / create / edit pages wired to EF Core | in `<Root>.Features.<Plural>` |
+| `feature <Name> --fields …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id), a `DbContext`, **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
 
 | Option | Meaning |
 |--------|---------|
-| `--fields`, `-f` | `feature` only: the entity's fields as `Name:type,…`. Types: `string`, `int`, `long`, `decimal`, `double`, `bool`, `DateTime`, `Guid` (aliases like `text`/`number`/`money`/`date` too). An `Id` is added automatically. |
+| `--fields`, `-f` | `feature` only: the entity's fields as `Name:type,…`. Types: `string`, `int`, `long`, `decimal`, `double`, `bool`, `DateTime`, `Guid` (aliases like `text`/`number`/`money`/`date` too). A field is optional with a trailing `?` (`Note:string?`); strings get a default max length, overridable with `Name:string(100)`. An `Id` is added automatically. |
+| `--id` | `feature` only: the entity's key type — `guid` (default), `int`, or `long`. |
 | `--context`, `-c` | `feature` only: reference an existing `DbContext` by name instead of generating a feature-local one (then add a `DbSet` to it). |
 | `--plural`, `-p` | `feature` only: the plural used for the folder, DbSet, list page, and route. Give the entity a **singular** name (`Product`) and this defaults to a simple pluralization (`Products`); override it when that guess is wrong (`--plural People`). |
 | `--route`, `-r` | `page` only: the `[Route]` path (default: kebab-case of the name, e.g. `/products`). |
@@ -77,8 +79,12 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 
 The generated code compiles as-is in any `dotnet new rask-*` project — the factory methods and the
 `Component` base come from Rask's implicit usings, and pages navigate with the type-safe generated
-`Routes.*()` URLs. A generated `feature` needs EF Core referenced; after scaffolding, `rask generate`
-prints the one DI registration and the `dotnet ef` migration to run before it works.
+`Routes.*()` URLs. A generated `feature` needs **EF Core + `Rask.Cqrs`** referenced; after scaffolding,
+`rask generate` prints the DI registration (`AddRaskCqrs()` + `AddDbContextFactory`) and the `dotnet ef`
+migration to run before it works.
+
+Every command has short aliases: `rask g` = `rask generate`, and `g f` / `g c` / `g p` scaffold a
+feature / component / page.
 
 ## `rask dev` — run with hot reload
 

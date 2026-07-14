@@ -13,15 +13,24 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 {
     private static readonly string[] Kinds = ["page", "component", "feature"];
 
+    private static readonly Dictionary<string, string> KindAliases = new(StringComparer.Ordinal)
+    {
+        ["p"] = "page",
+        ["c"] = "component",
+        ["f"] = "feature",
+    };
+
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly string _workingDirectory = workingDirectory;
 
     public override string Name => "generate";
 
+    public override IReadOnlyList<string> Aliases => ["g"];
+
     public override string Summary => "Scaffold a page, component, or CRUD feature into the current project.";
 
     public override string Usage =>
-        "rask generate <page|component|feature> <Name> [--fields \"Name:type,...\"] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
+        "rask generate <page|component|feature> <Name> [--fields \"Name:type,...\"] [--id guid|int|long] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
 
     public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -32,10 +41,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return Task.FromResult(1);
         }
 
-        var kind = args[0];
+        var kind = KindAliases.GetValueOrDefault(args[0], args[0]);
         if (!Kinds.Contains(kind))
         {
-            Console.Error.WriteLine($"Unknown artifact '{kind}'. Generate one of: {string.Join(", ", Kinds)}.");
+            Console.Error.WriteLine($"Unknown artifact '{args[0]}'. Generate one of: {string.Join(", ", Kinds)} (aliases: p, c, f).");
             return Task.FromResult(1);
         }
 
@@ -45,6 +54,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Option("fields", 'f')
             .Option("context", 'c')
             .Option("plural", 'p')
+            .Option("id")
             .Flag("force")
             .Flag("dry-run");
 
@@ -83,9 +93,11 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             }
         }
 
-        if (kind != "feature" && (parsed.Option("fields") is not null || parsed.Option("context") is not null || parsed.Option("plural") is not null))
+        if (kind != "feature"
+            && (parsed.Option("fields") is not null || parsed.Option("context") is not null
+                || parsed.Option("plural") is not null || parsed.Option("id") is not null))
         {
-            Console.Error.WriteLine("--fields, --context, and --plural only apply to 'generate feature'.");
+            Console.Error.WriteLine("--fields, --context, --plural, and --id only apply to 'generate feature'.");
             return Task.FromResult(1);
         }
 
@@ -152,7 +164,22 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     return false;
                 }
 
-                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
+                var idType = parsed.Option("id")?.ToLowerInvariant() switch
+                {
+                    null or "guid" => "Guid",
+                    "int" => "int",
+                    "long" => "long",
+                    _ => "",
+                };
+
+                if (idType.Length == 0)
+                {
+                    result = null!;
+                    error = "--id must be 'guid' (default), 'int', or 'long'.";
+                    return false;
+                }
+
+                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
                 return true;
         }
     }

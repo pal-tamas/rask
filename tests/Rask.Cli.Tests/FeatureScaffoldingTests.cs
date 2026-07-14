@@ -75,48 +75,64 @@ public sealed class FieldSpecParserTests
         Assert.False(FieldSpecParser.TryParse("Name:string,Name:int", out _, out var error));
         Assert.Contains("Duplicate field 'Name'", error!, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Optional_field_is_nullable_with_no_initializer()
+    {
+        Assert.True(FieldSpecParser.TryParse("Note:string?", out var fields, out _));
+
+        Assert.True(fields[0].IsNullable);
+        Assert.Equal("string?", fields[0].PropertyType);
+        Assert.Null(fields[0].Initializer);
+    }
+
+    [Fact]
+    public void String_gets_a_default_max_length()
+    {
+        Assert.True(FieldSpecParser.TryParse("Name:string", out var fields, out _));
+        Assert.Equal(FieldSpecParser.DefaultStringMaxLength, fields[0].MaxLength);
+    }
+
+    [Fact]
+    public void String_max_length_can_be_overridden()
+    {
+        Assert.True(FieldSpecParser.TryParse("Note:string?(500)", out var fields, out _));
+        Assert.Equal(500, fields[0].MaxLength);
+        Assert.True(fields[0].IsNullable);
+    }
+
+    [Fact]
+    public void Length_on_a_non_string_is_rejected()
+    {
+        Assert.False(FieldSpecParser.TryParse("Price:decimal(2)", out _, out var error));
+        Assert.Contains("only applies to string", error!, StringComparison.Ordinal);
+    }
 }
 
 public sealed class FeatureGeneratorTests
 {
     private static readonly IReadOnlyList<FieldSpec> Fields =
     [
-        new("Name", "string", "= \"\""),
-        new("Price", "decimal", null),
+        new("Name", "string", IsNullable: false, MaxLength: 200),
+        new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, context, plural, outputOverride: null);
+
+    private static string File(ScaffoldResult result, string fileName) =>
+        result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
 
     [Fact]
-    public void Plural_override_drives_names_and_route()
+    public void Generates_the_full_cqrs_slice_as_vertical_slice_files()
     {
-        var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            [new FieldSpec("Name", "string", "= \"\"")], contextOverride: null, pluralOverride: "People", outputOverride: null);
+        var names = Generate().Files.Select(f => Path.GetFileName(f.Path)).OrderBy(n => n, StringComparer.Ordinal).ToArray();
 
-        Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
-        Assert.Contains("[Route(\"/people\")]", result.Files.Single(f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal)).Content, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Bool_field_renders_a_bootstrap_checkbox()
-    {
-        var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Task",
-            [new FieldSpec("Done", "bool", null)], contextOverride: null, pluralOverride: null, outputOverride: null);
-
-        var create = result.Files.Single(f => f.Path.EndsWith("CreateTaskPage.cs", StringComparison.Ordinal)).Content;
-        Assert.Contains("form-check-input", create, StringComparison.Ordinal);
-        Assert.DoesNotContain("Input(() => _item.Done, Id: \"done\", Class: \"form-control\")", create, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Generates_five_files_with_a_local_context_by_default()
-    {
-        var result = Generate();
-
-        var names = result.Files.Select(f => Path.GetFileName(f.Path)).OrderBy(n => n, StringComparer.Ordinal).ToArray();
         Assert.Equal(
-            ["CreateProductPage.cs", "EditProductPage.cs", "Product.cs", "ProductsDbContext.cs", "ProductsPage.cs"],
+            [
+                "CreateProduct.cs", "DeleteProduct.cs", "Product.cs", "ProductRequest.cs",
+                "ProductsDbContext.cs", "ProductsPage.cs", "UpdateProduct.cs",
+            ],
             names);
     }
 
@@ -126,47 +142,131 @@ public sealed class FeatureGeneratorTests
         var result = Generate();
 
         Assert.All(result.Files, f => Assert.Equal(Path.GetFullPath("/proj/Features/Products"), Path.GetFullPath(Path.GetDirectoryName(f.Path)!)));
-        var entity = result.Files.Single(f => f.Path.EndsWith("Product.cs", StringComparison.Ordinal));
-        Assert.Contains("namespace MyApp.Features.Products;", entity.Content, StringComparison.Ordinal);
+        Assert.Contains("namespace MyApp.Features.Products;", File(result, "Product.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Entity_has_an_id_and_a_property_per_field()
+    public void Entity_is_encapsulated_with_create_update_and_a_guid_id_by_default()
     {
-        var entity = Generate().Files.Single(f => f.Path.EndsWith("Product.cs", StringComparison.Ordinal)).Content;
+        var entity = File(Generate(), "Product.cs");
 
-        Assert.Contains("public int Id { get; set; }", entity, StringComparison.Ordinal);
-        Assert.Contains("public string Name { get; set; } = \"\";", entity, StringComparison.Ordinal);
-        Assert.Contains("public decimal Price { get; set; }", entity, StringComparison.Ordinal);
-        Assert.DoesNotContain("{ get; set; };", entity, StringComparison.Ordinal); // no stray semicolon
+        Assert.Contains("public Guid Id { get; private set; } = Guid.NewGuid();", entity, StringComparison.Ordinal);
+        Assert.Contains("public static Product Create(string name, decimal price)", entity, StringComparison.Ordinal);
+        Assert.Contains("public void Update(string name, decimal price)", entity, StringComparison.Ordinal);
+        Assert.Contains("public string Name { get; private set; } = \"\";", entity, StringComparison.Ordinal);
+        Assert.Contains("[MaxLength(200)]", entity, StringComparison.Ordinal);
+        Assert.DoesNotContain("{ get; set; }", entity, StringComparison.Ordinal); // all encapsulated
     }
 
     [Fact]
-    public void Pages_use_type_safe_routes_not_string_paths()
+    public void Assignments_are_this_qualified_so_a_lowercase_field_does_not_self_assign()
     {
-        var list = Generate().Files.Single(f => f.Path.EndsWith("ProductsPage.cs", StringComparison.Ordinal)).Content;
+        var entity = FeatureGenerator.RenderEntity("MyApp.Features.Notes", "Note",
+            [new FieldSpec("title", "string", false, 200)], "Guid");
 
-        Assert.Contains("NavLink(Routes.CreateProductPage()", list, StringComparison.Ordinal);
-        Assert.Contains("Routes.EditProductPage(x.Id)", list, StringComparison.Ordinal);
-        Assert.Contains("[Route(\"/products\")]", list, StringComparison.Ordinal); // route attribute keeps the literal
+        Assert.Contains("this.title = title;", entity, StringComparison.Ordinal);
+        Assert.DoesNotContain("\n        title = title;", entity, StringComparison.Ordinal); // not a self-assignment
     }
 
-    [Fact]
-    public void Default_next_steps_register_the_generated_context()
+    [Theory]
+    [InlineData("int", "public int Id { get; private set; }", "{id:int}")]
+    [InlineData("long", "public long Id { get; private set; }", "{id:long}")]
+    public void Id_type_is_configurable(string idType, string idProp, string routeConstraint)
     {
-        var result = Generate();
+        var result = Generate(idType);
 
-        Assert.Contains("AddDbContextFactory<ProductsDbContext>", result.Notes!, StringComparison.Ordinal);
-        Assert.Contains("dotnet ef migrations add AddProduct", result.Notes!, StringComparison.Ordinal);
+        Assert.Contains(idProp, File(result, "Product.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("Guid.NewGuid()", File(result, "Product.cs"), StringComparison.Ordinal);
+        Assert.Contains(routeConstraint, File(result, "UpdateProduct.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Explicit_context_skips_the_dbcontext_file_and_tells_you_to_add_a_dbset()
+    public void Request_is_shared_and_carries_the_validation_attributes()
+    {
+        var request = File(Generate(), "ProductRequest.cs");
+
+        Assert.Contains("public sealed class ProductRequest", request, StringComparison.Ordinal);
+        Assert.Contains("[Required]", request, StringComparison.Ordinal);
+        Assert.Contains("[MaxLength(200)]", request, StringComparison.Ordinal);
+        // Both slices bind the same shared request — no Create/Update-specific request types.
+        Assert.Contains("CreateProductCommand(ProductRequest Request)", File(Generate(), "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.Contains("UpdateProductCommand(Guid Id, ProductRequest Request)", File(Generate(), "UpdateProduct.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_slice_holds_its_command_handler_and_page()
+    {
+        var slice = File(Generate(), "CreateProduct.cs");
+
+        Assert.Contains("public sealed record CreateProductCommand(ProductRequest Request) : ICommand<Guid>", slice, StringComparison.Ordinal);
+        Assert.Contains("ICommandHandler<CreateProductCommand, Guid>", slice, StringComparison.Ordinal);
+        Assert.Contains("Product.Create(command.Request.Name, command.Request.Price)", slice, StringComparison.Ordinal);
+        Assert.Contains("public sealed class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Component", slice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Delete_is_a_reusable_component_with_its_command()
+    {
+        var slice = File(Generate(), "DeleteProduct.cs");
+
+        Assert.Contains("public sealed record DeleteProductCommand(Guid Id) : ICommand", slice, StringComparison.Ordinal);
+        Assert.Contains("public sealed class DeleteProduct(IDispatcher dispatcher) : Component", slice, StringComparison.Ordinal);
+        Assert.Contains("public Func<Task>? OnDeleted { get; set; }", slice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void List_page_dispatches_queries_and_renders_the_delete_component()
+    {
+        var list = File(Generate(), "ProductsPage.cs");
+
+        Assert.Contains("public sealed class ProductsPage(IDispatcher dispatcher) : Component", list, StringComparison.Ordinal);
+        Assert.Contains("dispatcher.DispatchAsync(new ListProductsQuery()", list, StringComparison.Ordinal);
+        Assert.Contains("DeleteProduct(Id: x.Id, OnDeleted: LoadAsync)", list, StringComparison.Ordinal);
+        Assert.Contains("NavLink(Routes.CreateProduct()", list, StringComparison.Ordinal);
+        Assert.Contains("Routes.UpdateProduct(x.Id)", list, StringComparison.Ordinal);
+        Assert.Contains("[Route(\"/products\")]", list, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Plural_override_drives_names_and_route()
+    {
+        var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
+            Fields, "Guid", contextOverride: null, pluralOverride: "People", outputOverride: null);
+
+        Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
+        Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Bool_field_renders_a_bootstrap_checkbox_not_a_text_input()
+    {
+        var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Job",
+            [new FieldSpec("Done", "bool", false, null)], "Guid", null, null, outputOverride: null);
+
+        var create = File(result, "CreateJob.cs");
+        Assert.Contains("form-check-input", create, StringComparison.Ordinal);
+        Assert.Contains("Input(() => _form.Done", create, StringComparison.Ordinal);
+        Assert.DoesNotContain("Input(() => _form.Done, Id: \"done\", Class: \"form-control\")", create, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_next_steps_register_cqrs_the_context_and_the_ef_design_package()
+    {
+        var notes = Generate().Notes!;
+
+        Assert.Contains("AddRaskCqrs();", notes, StringComparison.Ordinal);
+        Assert.Contains("AddDbContextFactory<ProductsDbContext>", notes, StringComparison.Ordinal);
+        Assert.Contains("Microsoft.EntityFrameworkCore.Design", notes, StringComparison.Ordinal);
+        Assert.Contains("dotnet ef migrations add AddProduct", notes, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Explicit_context_skips_the_dbcontext_file_and_wires_handlers_to_it()
     {
         var result = Generate(context: "AppDbContext");
 
         Assert.DoesNotContain(result.Files, f => f.Path.EndsWith("DbContext.cs", StringComparison.Ordinal));
-        Assert.Contains("IDbContextFactory<AppDbContext>", result.Files.First(f => f.Path.EndsWith("ProductsPage.cs", StringComparison.Ordinal)).Content, StringComparison.Ordinal);
+        Assert.Contains("IDbContextFactory<AppDbContext>", File(result, "ProductsPage.cs"), StringComparison.Ordinal);
         Assert.Contains("public DbSet<Product> Products => Set<Product>();", result.Notes!, StringComparison.Ordinal);
     }
 }
