@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **The live playground is now a real in-browser IDE.** The `samples/Rask.Example.Playground` editor gains
+  three IDE features, all powered by Roslyn compiled to WebAssembly:
+  - **IntelliSense** — Roslyn's `CompletionService` (via a new `Microsoft.CodeAnalysis.CSharp.Features`
+    reference) drives Monaco completions that know the full BCL + `Rask.Core` surface *and* the generator's
+    `Generated.Div(...)` factories, so the terse `Div()[…]` members complete as they would in a real project.
+  - **As-you-type diagnostics** — CS errors and Rask's RASK hints squiggle on every edit, not only on Run.
+  - **An example gallery** — a left-hand rail with **Counter**, **Form + validation** (built-in `Form<T>`
+    validation) and a **Todo app** starter, one click to load; plus **Reset** and **Ctrl/Cmd + Enter** to Run.
+
+  A new `PlaygroundWorkspace` backs the live features over an `AdhocWorkspace`; critically it **never `Emit`s
+  or `Assembly.Load`s** (unlike the Run path), so as-you-type analysis can't leak assemblies on the Mono
+  runtime — only pressing Run does. Monaco reaches it through static `[JSInvokable]` bridge methods. The
+  diagnostics/completion mapping and every gallery snippet are unit-tested on the desktop runtime, and the
+  Playwright journey now asserts a live squiggle appears before Run and that a gallery example loads + runs.
+  Adds ~3.7 MB (brotli) to the untrimmed playground bundle for the Features/Workspaces assemblies.
+
 ## [0.16.0] - 2026-07-14
 
 ### Added
