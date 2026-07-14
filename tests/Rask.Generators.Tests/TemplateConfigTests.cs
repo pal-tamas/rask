@@ -219,6 +219,54 @@ public class TemplateConfigTests
         Assert.True(hasIndexConditional, $"{shortName}: no index.html with a <!--#if (pwa)--> block");
     }
 
+    [Theory]
+    [MemberData(nameof(Templates))]
+    public void DockerSymbol_IsBoolean_DefaultsFalse(string shortName, string _)
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(TemplatesRoot, shortName, ".template.config", "template.json")));
+
+        var docker = doc.RootElement.GetProperty("symbols").GetProperty("docker");
+        Assert.Equal("parameter", docker.GetProperty("type").GetString());
+        Assert.Equal("bool", docker.GetProperty("datatype").GetString());
+        Assert.Equal("false", docker.GetProperty("defaultValue").GetString());
+    }
+
+    [Theory]
+    [MemberData(nameof(Templates))]
+    public void Sources_ExcludeDockerfile_WhenDockerOff(string shortName, string _)
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(TemplatesRoot, shortName, ".template.config", "template.json")));
+
+        var dockerExclusion = doc.RootElement.GetProperty("sources").EnumerateArray()
+            .SelectMany(s => s.GetProperty("modifiers").EnumerateArray())
+            .FirstOrDefault(m => m.TryGetProperty("condition", out var c) && c.GetString() == "(!docker)");
+
+        Assert.True(dockerExclusion.ValueKind == JsonValueKind.Object,
+            "expected a (!docker) source modifier");
+        var excludes = dockerExclusion.GetProperty("exclude").EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.Contains("Dockerfile", excludes);
+        Assert.Contains(".dockerignore", excludes);
+    }
+
+    [Theory]
+    [MemberData(nameof(Templates))]
+    public void DockerScaffolding_Exists(string shortName, string _)
+    {
+        var dir = Path.Combine(TemplatesRoot, shortName);
+
+        // The Dockerfile + .dockerignore excluded by (!docker) must actually be present to ship.
+        Assert.True(File.Exists(Path.Combine(dir, "Dockerfile")), $"{shortName}: missing Dockerfile");
+        Assert.True(File.Exists(Path.Combine(dir, ".dockerignore")), $"{shortName}: missing .dockerignore");
+
+        // The standalone WASM template serves its static bundle from nginx, so its nginx.conf ships too.
+        if (shortName == "rask-wasm")
+        {
+            Assert.True(File.Exists(Path.Combine(dir, "nginx.conf")), "rask-wasm: missing nginx.conf");
+        }
+    }
+
     // Walks up from the test assembly to the repo root (the directory holding Rask.slnx) so the
     // tests find the template sources regardless of the bin/ depth they run from.
     private static string RepoRoot()

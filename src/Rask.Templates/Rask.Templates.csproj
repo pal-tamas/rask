@@ -78,8 +78,21 @@
                        NewValue="$(PackageVersion)"/>
     <ItemGroup>
       <_RaskStagedAll Include="$(_RaskStageDir)**\*"/>
-      <TfmSpecificPackageFile Include="@(_RaskStagedAll)">
+      <!--
+        Files with an extension: NuGet treats a PackagePath that has a file extension as a full
+        file path, so give it the complete content/-rooted path.
+      -->
+      <TfmSpecificPackageFile Include="@(_RaskStagedAll)" Condition="'%(_RaskStagedAll.Extension)' != ''">
         <PackagePath>content/%(_RaskStagedAll.RecursiveDir)%(_RaskStagedAll.Filename)%(_RaskStagedAll.Extension)</PackagePath>
+      </TfmSpecificPackageFile>
+      <!--
+        Extensionless files (the templates' Dockerfiles): NuGet treats a PackagePath WITHOUT an
+        extension as a directory and copies the file into it under its own RecursiveDir + name — so a
+        full path would double the folder (content/rask-server/Dockerfile/rask-server/Dockerfile).
+        Point at the content root instead and let NuGet append RecursiveDir + filename itself.
+      -->
+      <TfmSpecificPackageFile Include="@(_RaskStagedAll)" Condition="'%(_RaskStagedAll.Extension)' == ''">
+        <PackagePath>content</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>

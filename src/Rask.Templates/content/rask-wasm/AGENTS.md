@@ -52,5 +52,6 @@ dotnet run        # then open the printed URL
 dotnet test       # if the project has tests
 ```
 - **Unit-testing components:** add `Rask.Testing` to your test project, then `RaskTest.Render(new MyComponent())` and drive it via `.ClickAsync()`/`.InputAsync()`/`.SubmitAsync()`, asserting on `.Html` — no browser or server. See docs/testing.md.
+- **Deploy (`--docker`):** scaffolded with `dotnet new rask-wasm --docker` — a multi-stage `Dockerfile` (+ `.dockerignore` + `nginx.conf`) that publishes the static bundle and serves it from `nginx:alpine` (SPA fallback, `application/wasm` MIME, `gzip_static`). `docker build -t myapp . && docker run -p 8080:80 myapp`. It's plain static files, so any CDN / static host works too. See docs/deployment.md.
 
 If you hit a `RASKxxx` compile error, see https://github.com/pal-tamas/rask/blob/main/docs/diagnostics.md

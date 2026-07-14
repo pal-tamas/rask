@@ -59,5 +59,6 @@ dotnet run        # then open the printed URL
 dotnet test       # if the project has tests
 ```
 - **Unit-testing components:** add `Rask.Testing` to your test project, then `RaskTest.Render(new MyComponent())` and drive it via `.ClickAsync()`/`.InputAsync()`/`.SubmitAsync()`, asserting on `.Html` — no browser or server. See docs/testing.md.
+- **Deploy (`--docker`):** scaffolded with `dotnet new rask-server --docker` — a multi-stage `Dockerfile` (+ `.dockerignore`) that runs on `aspnet:10.0` (non-root, port 8080). `docker build -t myapp . && docker run -p 8080:8080 myapp`. `UseHttpsRedirection()` no-ops in-container; terminate TLS at your proxy and forward the WebSocket upgrade to 8080. See docs/deployment.md.
 
 If you hit a `RASKxxx` compile error, see https://github.com/pal-tamas/rask/blob/main/docs/diagnostics.md

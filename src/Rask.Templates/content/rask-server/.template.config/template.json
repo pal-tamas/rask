@@ -31,6 +31,12 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Scaffold the Rask.Cqrs mediator: a sample IQuery + handler, a /greeting page that injects IDispatcher and dispatches it, the Rask.Cqrs package reference, and the AddRaskCqrs() wiring."
+    },
+    "docker": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Add a multi-stage Dockerfile + .dockerignore to containerize the app (build on the .NET SDK image, run on the aspnet:10.0 runtime)."
     }
   },
   "sources": [
@@ -47,6 +53,10 @@
         {
           "condition": "(!cqrs)",
           "exclude": [ "Cqrs/**" ]
+        },
+        {
+          "condition": "(!docker)",
+          "exclude": [ "Dockerfile", ".dockerignore" ]
         }
       ]
     }
