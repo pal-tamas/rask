@@ -7,21 +7,33 @@ namespace Rask.Example.Shared.Features;
 [Route("todos/new")]
 [Route("todos/{id:guid}/edit")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class TodosPage(Navigator nav, RouteState route) : Component
+public sealed class TodosPage : Component
 {
+    private readonly Navigator _nav;
+    private readonly RouteState _route;
     private readonly TodoForm _form = new();
 
-    private readonly List<TodoItem> _todos =
-    [
-        new() { Title = "Read the Rask README" },
-        new() { Title = "Wire up a feature toggle", Completed = true }
-    ];
+    // Persistence seam: the injected ITodoStore, or a throwaway seeded in-memory store when none is
+    // registered (Server/WASM showcase). The native app registers a SQLite-backed store, so the same
+    // screen persists across an app restart on-device. _todos is the render working set, written through
+    // to the store on every change.
+    private readonly ITodoStore _store;
+
+    private readonly List<TodoItem> _todos;
+
+    public TodosPage(Navigator nav, RouteState route, ITodoStore? store = null)
+    {
+        _nav = nav;
+        _route = route;
+        _store = store ?? new InMemoryTodoStore();
+        _todos = _store.GetAll().ToList();
+    }
 
     [RouteParam] public Guid? Id { get; set; }
 
     protected override Component? Head => Title()["Todos — Rask"];
 
-    private bool IsAdding => route.Path.EndsWith("/new", StringComparison.OrdinalIgnoreCase);
+    private bool IsAdding => _route.Path.EndsWith("/new", StringComparison.OrdinalIgnoreCase);
 
     private TodoItem? EditingItem =>
         Id is { } id ? _todos.FirstOrDefault(t => t.Id == id) : null;
@@ -37,28 +49,42 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
     // The list route has a generated type-safe URL (Routes.TodosPage() → "/todos"); the /new and
     // /{id}/edit dialog routes are secondary [Route] templates on this same page, which the generator
     // doesn't emit a formatter for, so those two stay as string paths.
-    private void OpenAdd() => nav.NavigateTo("/todos/new");
+    private void OpenAdd() => _nav.NavigateTo("/todos/new");
 
-    private void OpenEdit(TodoItem item) => nav.NavigateTo($"/todos/{item.Id}/edit");
+    private void OpenEdit(TodoItem item) => _nav.NavigateTo($"/todos/{item.Id}/edit");
 
-    private void Cancel() => nav.NavigateTo(Routes.TodosPage());
+    private void Cancel() => _nav.NavigateTo(Routes.TodosPage());
 
+    // Every mutation is written through to the store, so a SQLite-backed store (native) persists it.
     private void Save(TodoForm m)
     {
         var title = m.Title.Trim();
         if (IsAdding)
         {
-            _todos.Add(new TodoItem { Title = title });
+            var item = new TodoItem { Title = title };
+            _todos.Add(item);
+            _store.Add(item);
         }
         else if (EditingItem is { } item)
         {
             item.Title = title;
+            _store.Update(item);
         }
 
-        nav.NavigateTo(Routes.TodosPage());
+        _nav.NavigateTo(Routes.TodosPage());
     }
 
-    private void Delete(TodoItem item) => _todos.Remove(item);
+    private void Toggle(TodoItem item, bool completed)
+    {
+        item.Completed = completed;
+        _store.Update(item);
+    }
+
+    private void Delete(TodoItem item)
+    {
+        _todos.Remove(item);
+        _store.Delete(item.Id);
+    }
 
     protected override Component? Render() =>
         [
@@ -79,7 +105,8 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
                 : BsListGroup()[
                     _todos.Select(item => BsListGroupItem(Key: item.Id,
                         Class: Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), Flex.Gap(2)))[
-                        BsCheck(() => item.Completed, Id: $"todo-done-{item.Id}", Class: Margin.Bottom(0)),
+                        BsCheck(Value: item.Completed, OnChange: v => Toggle(item, v),
+                            Id: $"todo-done-{item.Id}", Class: Margin.Bottom(0)),
                         Span(Class: item.Completed ? "todo-title completed" : "todo-title")[item.Title],
                         BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => OpenEdit(item))[
                             BsIcon(Name: BsIconName.Pencil)
@@ -144,7 +171,7 @@ public sealed class TodoFormDialog : Component
 
 public sealed class TodoItem
 {
-    public Guid Id { get; } = Guid.NewGuid();
+    public Guid Id { get; init; } = Guid.NewGuid();
     public string Title { get; set; } = "";
     public bool Completed { get; set; }
 }

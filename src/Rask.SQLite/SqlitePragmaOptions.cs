@@ -52,8 +52,9 @@ public enum SqliteTempStore
 }
 
 /// <summary>
-/// The SQLite pragmas <see cref="RaskSqliteConnectionInterceptor"/> (for Entity Framework Core) and
-/// <see cref="IRaskSqliteConnectionFactory"/> (for raw ADO.NET) apply to every connection they open.
+/// The SQLite pragmas <see cref="IRaskSqliteConnectionFactory"/> (for raw ADO.NET) — and the Entity
+/// Framework Core interceptor in the <c>Rask.SQLite.EntityFrameworkCore</c> package — apply to every
+/// connection they open.
 /// Every property defaults to the value a modern <b>Ruby on Rails 8</b> app runs
 /// (see <a href="https://github.com/rails/rails/pull/49349">rails/rails#49349</a>); set any property to
 /// <see langword="null"/> to leave that pragma unset and fall back to SQLite's own default.

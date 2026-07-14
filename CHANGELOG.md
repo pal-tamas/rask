@@ -27,13 +27,22 @@ them until tagged releases begin.
   applies the Ruby on Rails 8 production pragma set — `journal_mode=WAL`, `synchronous=NORMAL`,
   `foreign_keys=ON`, `busy_timeout=5000`, `cache_size`, `mmap_size`, `journal_size_limit` (values
   verified against rails/rails#49349) — to **every** SQLite connection, so concurrent writers stop
-  hitting `database is locked` and foreign keys are actually enforced. Entity Framework Core users
-  swap `UseSqlite(cs)` for `UseRaskSqlite(cs)` (a `ConnectionOpened` interceptor); raw-ADO.NET users
-  call `services.AddRaskSqlite(cs)` and inject `IRaskSqliteConnectionFactory`. The per-connection
-  pragmas are re-applied on every pooled open (only WAL persists in the file header); every value is
-  overridable — or nullable to skip — via `SqlitePragmaOptions`. Depends only on `Microsoft.Data.Sqlite`
-  and `Microsoft.EntityFrameworkCore.Sqlite`; server-side. New `samples/Rask.Example.Sqlite` shows the
-  live pragma values and a concurrent-writes demo. See [docs/sqlite.md](docs/sqlite.md).
+  hitting `database is locked` and foreign keys are actually enforced. Register
+  `services.AddRaskSqlite(cs)` and inject `IRaskSqliteConnectionFactory`. The per-connection pragmas are
+  re-applied on every pooled open (only WAL persists in the file header); every value is overridable — or
+  nullable to skip — via `SqlitePragmaOptions`. Depends only on `Microsoft.Data.Sqlite` and is
+  reflection-free, so it works server-side, on mobile, and under trimming/AOT. New
+  `samples/Rask.Example.Sqlite` shows the live pragma values and a concurrent-writes demo. See
+  [docs/sqlite.md](docs/sqlite.md).
+- **`Rask.SQLite.EntityFrameworkCore` — the EF Core integration.** `UseRaskSqlite(...)`, a drop-in for
+  `UseSqlite` that also registers the pragma `ConnectionOpened` interceptor, lives in this companion
+  package (which pulls in `Microsoft.EntityFrameworkCore.Sqlite`) — split out so the base `Rask.SQLite`
+  pragma engine stays free of an EF Core dependency for mobile/AOT consumers.
+- **On-device SQLite in the native showcase.** `samples/Rask.Example.Native`'s **Todos** tab now persists
+  to a SQLite database in the app sandbox via `Rask.SQLite`'s raw connection factory (reflection-free, so
+  it's safe under iOS full-AOT) — so todos survive an app restart on device, while Server/WASM keep the
+  transient in-memory store. The shared `TodosPage` gained an `ITodoStore` seam (`InMemoryTodoStore`
+  default; `SqliteTodoStore` on native). See [docs/sqlite.md](docs/sqlite.md#sqlite-on-mobile-rasknative).
 - **`Rask.SQLite.Litestream` — managed [Litestream](https://litestream.io) backup.** A companion
   opt-in package that supervises the Litestream sidecar from inside the app: `AddRaskSqliteLitestream(…)`
   registers a hosted background service that continuously streams the WAL to S3/GCS/Azure Blob/file
