@@ -16,15 +16,6 @@ them until tagged releases begin.
   service call would lose the activation). Capabilities that return a value post it back to an
   `OnResult` / `OnColor` callback via a new `[JSInvokable]`. The `__raskFullscreen` / `__raskEyeDropper`
   DOM helpers moved from `rask-wasm-api.js` into the shared `rask-api.js` so they ship to Server too.
-
-### Documentation
-- **Browser/device API capability matrix + per-API reference pages.** New
-  [`docs/browser-capabilities.md`](docs/browser-capabilities.md) is a single table of all 43 wrappers
-  showing where each works (Web / PWA / Native) and which have a native iOS/Android backend, linking to a
-  dedicated reference page per API under `docs/apis/`. Reconciled the stale WASM-only classification of
-  `IWebPush`/`INotifications`/`IBadge`/`IWakeLock` (they are transport-agnostic and register on Server).
-
-### Added
 - **Native iOS/Android backends for the browser/device APIs, wired with one line.** `Rask.Native` now
   ships native C# implementations of ten interfaces and a platform module that installs them:
   `host.UsePlatform(new ApplePlatform(() => rootVc))` / `new AndroidPlatform(this)`. Injecting the
@@ -48,12 +39,34 @@ them until tagged releases begin.
 - **`NativeAppHost.UsePlatform(INativePlatform)`** — a native platform module (iOS/Android) contributes
   native C# backends for the browser/device interfaces; the host applies them before the JS fallbacks in
   `RunLocalAsync`, so any interface a platform backs natively wins and the rest fall back to the WebView.
+- **The live playground is now a real in-browser IDE.** The `samples/Rask.Example.Playground` editor gains
+  three IDE features, all powered by Roslyn compiled to WebAssembly:
+  - **IntelliSense** — Roslyn's `CompletionService` (via a new `Microsoft.CodeAnalysis.CSharp.Features`
+    reference) drives Monaco completions that know the full BCL + `Rask.Core` surface *and* the generator's
+    `Generated.Div(...)` factories, so the terse `Div()[…]` members complete as they would in a real project.
+  - **As-you-type diagnostics** — CS errors and Rask's RASK hints squiggle on every edit, not only on Run.
+  - **An example gallery** — a left-hand rail with **Counter**, **Form + validation** (built-in `Form<T>`
+    validation) and a **Todo app** starter, one click to load; plus **Reset** and **Ctrl/Cmd + Enter** to Run.
+
+  A new `PlaygroundWorkspace` backs the live features over an `AdhocWorkspace`; critically it **never `Emit`s
+  or `Assembly.Load`s** (unlike the Run path), so as-you-type analysis can't leak assemblies on the Mono
+  runtime — only pressing Run does. Monaco reaches it through static `[JSInvokable]` bridge methods. The
+  diagnostics/completion mapping and every gallery snippet are unit-tested on the desktop runtime, and the
+  Playwright journey now asserts a live squiggle appears before Run and that a gallery example loads + runs.
+  Adds ~3.7 MB (brotli) to the untrimmed playground bundle for the Features/Workspaces assemblies.
 
 ### Changed
 - **Consistent one-file-per-API layout.** Every browser/device wrapper now lives in an `I{Api}.cs` file
   holding the interface, its implementation, and its DTOs together (e.g. `Clipboard.cs` folded into
   `IClipboard.cs`; `Geolocation.cs`/`GeolocationOptions.cs`/`GeolocationPosition.cs` into `IGeolocation.cs`;
   the WASM wrappers renamed `Fullscreen.cs` → `IFullscreen.cs`, …). No public API or namespace changed.
+
+### Documentation
+- **Browser/device API capability matrix + per-API reference pages.** New
+  [`docs/browser-capabilities.md`](docs/browser-capabilities.md) is a single table of all 43 wrappers
+  showing where each works (Web / PWA / Native) and which have a native iOS/Android backend, linking to a
+  dedicated reference page per API under `docs/apis/`. Reconciled the stale WASM-only classification of
+  `IWebPush`/`INotifications`/`IBadge`/`IWakeLock` (they are transport-agnostic and register on Server).
 
 ## [0.16.0] - 2026-07-14
 
