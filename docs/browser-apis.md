@@ -353,6 +353,13 @@ shell. For a code-driven share on the in-process hosts, inject **`IShare`** (`Ra
 
 <!-- demo:browser-share -->
 
+**`GestureTrigger` / `FullscreenTrigger` / `EyeDropperTrigger`** *(`Rask.Core` — all hosts)* — headless
+gesture bridge: hand *your* element the `data-rask-gesture` attribute and its click runs an activation-gated
+API (fullscreen, the eyedropper, …) in the gesture, so it works on Server too, where the imperative service
+can't be injected. See [Gesture bridge](#gesture-bridge-activation-gated-apis-on-the-server-host).
+
+<!-- demo:browser-gesture-bridge -->
+
 ## Notes
 
 - **Secure context.** Clipboard, geolocation, notifications, push, `crypto.subtle`, and others require
