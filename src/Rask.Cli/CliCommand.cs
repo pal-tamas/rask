@@ -1,15 +1,14 @@
 namespace Rask.Cli;
 
 /// <summary>
-/// A single <c>rask</c> subcommand. Commands receive their collaborators (<see cref="Console"/> and
-/// <see cref="Process"/>) by constructor injection so tests can substitute fakes, and parse their own
-/// arguments from the tail passed to <see cref="ExecuteAsync"/>.
+/// A single <c>rask</c> subcommand. Every command needs the <see cref="Console"/>; each declares any
+/// further collaborators it needs (an <see cref="IProcessRunner"/>, an <see cref="IFileSystem"/>) in its
+/// own constructor, so tests can substitute fakes. Commands parse their own arguments from the tail
+/// passed to <see cref="ExecuteAsync"/>.
 /// </summary>
-internal abstract class CliCommand(IConsole console, IProcessRunner process)
+internal abstract class CliCommand(IConsole console)
 {
     protected IConsole Console { get; } = console;
-
-    protected IProcessRunner Process { get; } = process;
 
     /// <summary>The verb the user types, e.g. <c>new</c>.</summary>
     public abstract string Name { get; }

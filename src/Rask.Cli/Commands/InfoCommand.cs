@@ -7,8 +7,10 @@ namespace Rask.Cli.Commands;
 /// <c>rask info</c> — a quick environment report: the CLI version, the .NET SDK version, whether the
 /// Rask templates are installed, and the OS. Useful first thing when diagnosing a machine.
 /// </summary>
-internal sealed class InfoCommand(IConsole console, IProcessRunner process) : CliCommand(console, process)
+internal sealed class InfoCommand(IConsole console, IProcessRunner process) : CliCommand(console)
 {
+    private readonly IProcessRunner _process = process;
+
     public override string Name => "info";
 
     public override string Summary => "Show Rask CLI, .NET SDK, and template environment information.";
@@ -18,7 +20,7 @@ internal sealed class InfoCommand(IConsole console, IProcessRunner process) : Cl
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         var sdkVersion = await CaptureSingleLineAsync(["--version"], cancellationToken).ConfigureAwait(false);
-        var templatesInstalled = await TemplateProbe.AreInstalledAsync(Process, cancellationToken).ConfigureAwait(false);
+        var templatesInstalled = await TemplateProbe.AreInstalledAsync(_process, cancellationToken).ConfigureAwait(false);
 
         Console.Out.WriteLine(FormatReport(CliMetadata.Version, sdkVersion, templatesInstalled, RuntimeInformation.OSDescription));
         return 0;
@@ -45,7 +47,7 @@ internal sealed class InfoCommand(IConsole console, IProcessRunner process) : Cl
 
     private async Task<string?> CaptureSingleLineAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
-        var result = await Process.CaptureAsync("dotnet", arguments, null, cancellationToken).ConfigureAwait(false);
+        var result = await _process.CaptureAsync("dotnet", arguments, null, cancellationToken).ConfigureAwait(false);
         if (result.ExitCode != 0)
         {
             return null;

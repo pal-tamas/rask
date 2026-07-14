@@ -42,6 +42,36 @@ time if it isn't present.
 Requesting a flag a template doesn't support (for example `--cqrs` on `wasm`) fails fast with the list
 of flags that template *does* support, rather than passing an unknown option through to `dotnet new`.
 
+## `rask generate` — scaffold code
+
+```bash
+rask generate page Products                  # → Features/Products/ProductsPage.cs  ([Route("/products")])
+rask generate page Products --route /catalog # a custom route
+rask generate component PriceTag             # → Components/PriceTag.cs
+rask generate component PriceTag -o Widgets  # into a chosen folder
+rask generate page Orders --dry-run          # print what would be written, write nothing
+```
+
+`rask generate` writes an idiomatic file into the current project. It finds the owning `.csproj` by
+walking up from the working directory, derives the file's namespace from its folder (root namespace +
+folder path, the C# convention), and **refuses to overwrite an existing file** unless you pass `--force`.
+
+| Artifact | Emits | Class / namespace |
+|----------|-------|-------------------|
+| `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
+| `component <Name>` | `Components/<Name>.cs` — a plain `Component` | `<Name>` in `<Root>.Components` |
+
+| Option | Meaning |
+|--------|---------|
+| `--route`, `-r` | The `[Route]` path for a page (default: kebab-case of the name, e.g. `/products`). |
+| `--output`, `-o` | Write into this folder instead of the default (the namespace follows the folder). |
+| `--force` | Overwrite an existing file. |
+| `--dry-run` | Print the file that would be written, and write nothing. |
+
+The generated code compiles as-is in any `dotnet new rask-*` project (the factory methods and the
+`Component` base come from Rask's implicit usings). A `feature` generator — a full CRUD vertical slice
+(entity + list/create/edit pages + EF wiring) — is next on the roadmap.
+
 ## `rask dev` — run with hot reload
 
 ```bash
@@ -73,6 +103,6 @@ templates are installed, and the OS. `rask --version` prints just the tool versi
 
 ## Roadmap
 
-The CLI is the front door for Rask's "one person framework" tooling. Planned commands include
-`rask generate` (scaffold a CRUD feature slice), `rask db` (migrations), and `rask deploy`
-(one-command deploy). See the [development workflow](development-workflow.md) for how the framework is built.
+The CLI is the front door for Rask's "one person framework" tooling. Next up: `rask generate feature`
+(a full CRUD vertical slice), `rask db` (migrations), and `rask deploy` (one-command deploy). See the
+[development workflow](development-workflow.md) for how the framework is built.

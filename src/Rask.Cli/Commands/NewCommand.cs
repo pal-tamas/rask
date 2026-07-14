@@ -7,8 +7,10 @@ namespace Rask.Cli.Commands;
 /// short name, validates the requested feature flags against that template, ensures the Rask.Templates
 /// package is installed, then delegates to <c>dotnet new</c>.
 /// </summary>
-internal sealed class NewCommand(IConsole console, IProcessRunner process) : CliCommand(console, process)
+internal sealed class NewCommand(IConsole console, IProcessRunner process) : CliCommand(console)
 {
+    private readonly IProcessRunner _process = process;
+
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
     internal static readonly string[] FeatureFlags = ["auth", "pwa", "cqrs", "docker"];
 
@@ -66,10 +68,10 @@ internal sealed class NewCommand(IConsole console, IProcessRunner process) : Cli
 
         var dotnetArgs = BuildDotnetNewArguments(template, name, parsed.Option("output"), requestedFlags);
 
-        if (!await TemplateProbe.AreInstalledAsync(Process, cancellationToken).ConfigureAwait(false))
+        if (!await TemplateProbe.AreInstalledAsync(_process, cancellationToken).ConfigureAwait(false))
         {
             Console.Out.WriteLine("Rask templates were not found — installing the Rask.Templates package…");
-            var install = await Process.RunAsync("dotnet", ["new", "install", "Rask.Templates"], null, cancellationToken).ConfigureAwait(false);
+            var install = await _process.RunAsync("dotnet", ["new", "install", "Rask.Templates"], null, cancellationToken).ConfigureAwait(false);
             if (install != 0)
             {
                 Console.Error.WriteLine("Failed to install Rask.Templates. Run 'dotnet new install Rask.Templates' and retry.");
@@ -78,7 +80,7 @@ internal sealed class NewCommand(IConsole console, IProcessRunner process) : Cli
         }
 
         Console.Out.WriteLine($"Creating {template.DisplayName} '{name}'…");
-        return await Process.RunAsync("dotnet", dotnetArgs, null, cancellationToken).ConfigureAwait(false);
+        return await _process.RunAsync("dotnet", dotnetArgs, null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Build the <c>dotnet new</c> argument list. Pure and deterministic, so it is unit-tested directly.</summary>

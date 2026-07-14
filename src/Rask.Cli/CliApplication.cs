@@ -1,4 +1,5 @@
 using Rask.Cli.Commands;
+using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli;
 
@@ -19,11 +20,12 @@ internal sealed class CliApplication
     }
 
     /// <summary>Wire the real command set with production collaborators.</summary>
-    public static CliApplication CreateDefault(IConsole console, IProcessRunner process) =>
+    public static CliApplication CreateDefault(IConsole console, IProcessRunner process, IFileSystem fileSystem) =>
         new(console,
         [
             new NewCommand(console, process),
             new DevCommand(console, process),
+            new GenerateCommand(console, fileSystem, Environment.CurrentDirectory),
             new InfoCommand(console, process),
         ]);
 

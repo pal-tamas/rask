@@ -5,8 +5,10 @@ namespace Rask.Cli.Commands;
 /// on save); <c>--no-hot-reload</c> falls back to a plain <c>dotnet run</c>. Anything after <c>--</c> is
 /// forwarded to the app.
 /// </summary>
-internal sealed class DevCommand(IConsole console, IProcessRunner process) : CliCommand(console, process)
+internal sealed class DevCommand(IConsole console, IProcessRunner process) : CliCommand(console)
 {
+    private readonly IProcessRunner _process = process;
+
     public override string Name => "dev";
 
     public override string Summary => "Run the app with hot reload (dotnet watch).";
@@ -26,7 +28,7 @@ internal sealed class DevCommand(IConsole console, IProcessRunner process) : Cli
         }
 
         var dotnetArgs = BuildDotnetArguments(parsed.Option("project"), parsed.HasFlag("no-hot-reload"), parsed.Passthrough);
-        return await Process.RunAsync("dotnet", dotnetArgs, null, cancellationToken).ConfigureAwait(false);
+        return await _process.RunAsync("dotnet", dotnetArgs, null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Build the <c>dotnet watch/run</c> argument list. Pure and deterministic, so it is unit-tested directly.</summary>
