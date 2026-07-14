@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **Git hooks auto-enable on first build.** A `Directory.Build.targets` target points git at `.githooks/`
+  (`core.hooksPath`) on the first local `dotnet build`, so a fresh clone gets the `commit-msg` /
+  `pre-commit` (format + unit) / `pre-push` (E2E) hooks with no manual `git config`. Idempotent and
+  best-effort; skipped in CI (`CI=true`), during IDE design-time builds, and outside a git working copy
+  (restored packages never trigger it). Hooks stay advisory (bypass with the git no-verify flag /
+  `RASK_SKIP_UNIT=1` / `RASK_SKIP_E2E=1`).
 - **Unit tests + formatting moved out of CI to a local pre-commit gate.** The unit/integration suite no
   longer runs in the ci/nightly/release pipelines. `scripts/run-unit-local.sh` builds the solution and runs
   every test except the browser E2E; a new `.githooks/pre-commit` hook runs `dotnet format
