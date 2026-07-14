@@ -3,14 +3,18 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Rask.Core.Routing;
 using Rask.Example.Sqlite.Data;
+using Rask.SQLite;
 
 namespace Rask.Example.Sqlite.Features;
 
 // The whole sample on one page: show the live pragma values the connection is actually running with,
 // then let the visitor fire a burst of concurrent writers and watch every one commit — the payoff of
-// WAL + busy_timeout that a stock `UseSqlite` would turn into "database is locked".
+// WAL + busy_timeout that a stock `UseSqlite` would turn into "database is locked". The second demo fires
+// the same burst through the raw factory's BEGIN IMMEDIATE + non-blocking fair-interval retry.
 [Route("/")]
-public sealed class PragmaDemoPage(IDbContextFactory<DemoDbContext> dbContextFactory) : Component
+public sealed class PragmaDemoPage(
+    IDbContextFactory<DemoDbContext> dbContextFactory,
+    IRaskSqliteConnectionFactory connectionFactory) : Component
 {
     private const int Workers = 25;
 
@@ -23,12 +27,30 @@ public sealed class PragmaDemoPage(IDbContextFactory<DemoDbContext> dbContextFac
         //   cache_size, mmap_size, journal_size_limit — applied on every open.
         """;
 
+    // The non-blocking write path: BEGIN IMMEDIATE + a constant 1 ms fair-interval retry that yields the
+    // thread while it waits for the write lock (Rails' busy handler, ported).
+    private const string ImmediateSnippet =
+        """
+        await connectionFactory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+        {
+            await using var cmd = connection.CreateCommand();
+            cmd.CommandText = "INSERT INTO WriteLogs (Note) VALUES ($note);";
+            cmd.Parameters.AddWithValue("$note", note);
+            await cmd.ExecuteNonQueryAsync(ct);
+        });
+        // BEGIN IMMEDIATE takes the write lock up front; a contended lock is polled every 1 ms
+        // (thread-free) until it frees — no "database is locked", no blocked thread.
+        """;
+
     private IReadOnlyList<(string Name, string Value)> _pragmas = [];
     private int _rowCount;
     private bool _loaded;
     private int _attempted;
     private int _succeeded;
     private bool _hasRun;
+    private int _immediateAttempted;
+    private int _immediateSucceeded;
+    private bool _immediateHasRun;
 
     protected override Component? Head => Title()["SQLite pragmas — Rask"];
 
@@ -81,6 +103,40 @@ public sealed class PragmaDemoPage(IDbContextFactory<DemoDbContext> dbContextFac
         _attempted = Workers;
         _succeeded = results.Count(succeeded => succeeded);
         _hasRun = true;
+
+        await LoadAsync();
+    }
+
+    // Fire N writers through the raw factory's non-blocking BEGIN IMMEDIATE path. Each takes the write
+    // lock via a 1 ms fair-interval retry that yields the thread while it waits, so all N commit without
+    // any thread being blocked on the lock.
+    private async Task RunImmediateWritersAsync()
+    {
+        var tasks = Enumerable.Range(1, Workers).Select(async n =>
+        {
+            try
+            {
+                await connectionFactory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+                {
+                    await using var command = connection.CreateCommand();
+                    command.CommandText = "INSERT INTO WriteLogs (Note) VALUES ($note);";
+                    command.Parameters.AddWithValue("$note", $"immediate worker {n}");
+                    await command.ExecuteNonQueryAsync(ct);
+                }, CancellationToken);
+                return true;
+            }
+            catch (SqliteException)
+            {
+                // With the fair-interval retry this should not happen within the timeout — but if the lock
+                // never frees, ExecuteInImmediateTransactionAsync surfaces SQLITE_BUSY here.
+                return false;
+            }
+        });
+
+        var results = await Task.WhenAll(tasks);
+        _immediateAttempted = Workers;
+        _immediateSucceeded = results.Count(succeeded => succeeded);
+        _immediateHasRun = true;
 
         await LoadAsync();
     }
@@ -150,6 +206,42 @@ public sealed class PragmaDemoPage(IDbContextFactory<DemoDbContext> dbContextFac
                             : Div(Class: $"alert mt-3 mb-0 {(_succeeded == _attempted ? "alert-success" : "alert-danger")}")[
                                 I(Class: $"bi me-2 {(_succeeded == _attempted ? "bi-check-circle" : "bi-exclamation-triangle")}"),
                                 $"{_succeeded.ToString(CultureInfo.InvariantCulture)} of {_attempted.ToString(CultureInfo.InvariantCulture)} writers committed. ",
+                                $"Total rows now: {_rowCount.ToString(CultureInfo.InvariantCulture)}."
+                            ]
+                    ]
+                ],
+
+                // Second demo: the non-blocking BEGIN IMMEDIATE + fair-interval retry write path (raw factory).
+                Div(Class: "card shadow-sm mb-4 mt-4")[
+                    Div(Class: "card-header bg-dark text-light py-2")[
+                        I(Class: "bi bi-code-slash me-2"), "Non-blocking IMMEDIATE write"
+                    ],
+                    Pre(Class: "mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
+                        Code()[ImmediateSnippet]
+                    ]
+                ],
+
+                Div(Class: "card shadow-sm")[
+                    Div(Class: "card-body")[
+                        H2(Class: "h5")["Concurrent IMMEDIATE writers (non-blocking)"],
+                        P(Class: "text-secondary")[
+                            $"Fire {Workers.ToString(CultureInfo.InvariantCulture)} writers through ",
+                            Code()["ExecuteInImmediateTransactionAsync"],
+                            ". Each takes the write lock with ", Code()["BEGIN IMMEDIATE"],
+                            " and, when it's contended, polls every 1 ms — yielding the thread while it waits, ",
+                            "the .NET port of Rails' busy handler — so every writer commits with no thread blocked."
+                        ],
+                        Button("button", Class: "btn btn-primary", OnClickAsync: RunImmediateWritersAsync)[
+                            I(Class: "bi bi-lightning-charge me-1"),
+                            $"Run {Workers.ToString(CultureInfo.InvariantCulture)} IMMEDIATE writers"
+                        ],
+                        !_immediateHasRun
+                            ? Div(Class: "text-secondary mt-3 mb-0")[
+                                "One BEGIN IMMEDIATE transaction per writer, all committing via the fair-interval retry."
+                            ]
+                            : Div(Class: $"alert mt-3 mb-0 {(_immediateSucceeded == _immediateAttempted ? "alert-success" : "alert-danger")}")[
+                                I(Class: $"bi me-2 {(_immediateSucceeded == _immediateAttempted ? "bi-check-circle" : "bi-exclamation-triangle")}"),
+                                $"{_immediateSucceeded.ToString(CultureInfo.InvariantCulture)} of {_immediateAttempted.ToString(CultureInfo.InvariantCulture)} IMMEDIATE writers committed. ",
                                 $"Total rows now: {_rowCount.ToString(CultureInfo.InvariantCulture)}."
                             ]
                     ]

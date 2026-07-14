@@ -16,7 +16,8 @@ public static class SqliteServiceCollectionExtensions
     public static IServiceCollection AddRaskSqlite(
         this IServiceCollection services,
         string connectionString,
-        Action<SqlitePragmaOptions>? configure = null)
+        Action<SqlitePragmaOptions>? configure = null,
+        Action<SqliteBusyRetryOptions>? configureRetry = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrEmpty(connectionString);
@@ -34,9 +35,14 @@ public static class SqliteServiceCollectionExtensions
         configure?.Invoke(options);
         options.Validate();
 
+        var retry = new SqliteBusyRetryOptions();
+        configureRetry?.Invoke(retry);
+        retry.Validate();
+
         services.TryAddSingleton(options);
+        services.TryAddSingleton(retry);
         services.TryAddSingleton<IRaskSqliteConnectionFactory>(
-            new RaskSqliteConnectionFactory(connectionString, options));
+            new RaskSqliteConnectionFactory(connectionString, options, retry));
 
         return services;
     }

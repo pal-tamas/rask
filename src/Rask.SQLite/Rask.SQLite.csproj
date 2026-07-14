@@ -24,6 +24,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
     <PackageReference Include="Microsoft.Data.Sqlite"/>
+    <!-- The non-blocking busy-retry acquires the write lock through the raw sqlite3 handle
+         (SQLitePCL.raw) to bypass Microsoft.Data.Sqlite's synchronous Thread.Sleep retry. It flows in
+         transitively via Microsoft.Data.Sqlite; reference it explicitly since we call it directly. -->
+    <PackageReference Include="SQLitePCLRaw.core"/>
   </ItemGroup>
 
   <!-- The EF Core companion shares SqlitePragmaOptions.Validate() (internal). -->

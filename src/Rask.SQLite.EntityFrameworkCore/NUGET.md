@@ -32,6 +32,19 @@ o.UseRaskSqlite($"Data Source={dbPath}", p =>
 });
 ```
 
+## Busy-retry for `SaveChanges`
+
+Pass `configureRetry` (even empty) to register a Rails-style fair-interval execution strategy so
+`SaveChanges`/queries retry on `SQLITE_BUSY`/`SQLITE_LOCKED` at a constant 1 ms interval, awaiting
+(not blocking) between attempts:
+
+```csharp
+o.UseRaskSqlite($"Data Source={dbPath}", configureRetry: _ => { });
+```
+
+The truly non-blocking, `BEGIN IMMEDIATE` write path lives in `Rask.SQLite`
+(`ExecuteInImmediateTransactionAsync`); see the docs for when to reach for it.
+
 Not using EF Core? Use `Rask.SQLite` directly: `services.AddRaskSqlite(cs)` + inject
 `IRaskSqliteConnectionFactory`.
 

@@ -81,14 +81,69 @@ on *every* open. `Rask.SQLite` does exactly that: an EF Core `ConnectionOpened` 
 (`RaskSqliteConnectionInterceptor`) and, for raw ADO.NET, a `StateChange` hook on the factory's
 connections. Running them once at startup would silently lose them on the next pooled connection.
 
-## Transactions: prefer `BEGIN IMMEDIATE` (not handled here)
+## Transactions: `BEGIN IMMEDIATE` + a non-blocking, fair-interval retry
 
-The other half of Rails' concurrency story is starting write transactions with `BEGIN IMMEDIATE`
-rather than the default deferred `BEGIN`, which takes the write lock up front and avoids a
-busy-retry deadlock between two upgrading readers. `Rask.SQLite` does not change EF Core's
-transaction begin-mode — with the `busy_timeout` above, deferred transactions are fine for most
-apps; reach for an explicit `BEGIN IMMEDIATE` on a raw connection only if you see write-write
-contention under heavy concurrency.
+The other half of Rails' concurrency story is *how* you take the write lock. A deferred `BEGIN`
+becomes a reader on its first `SELECT` and only upgrades to a writer on its first write — so two
+read-then-write transactions can each hold a read lock and then dead-lock trying to upgrade. That
+`SQLITE_BUSY` is **unretryable**: SQLite doesn't even invoke the busy handler, because retrying can
+never win. `BEGIN IMMEDIATE` takes the write lock up front, turning that dead-lock into a plain,
+waitable lock wait.
+
+Rails then waits on that lock with a **busy handler that releases the GVL** between retries at a
+**constant 1 ms interval** (not exponential backoff, which has far worse tail latency). `Rask.SQLite`
+ports both halves.
+
+### Raw ADO.NET — genuinely non-blocking
+
+`ExecuteInImmediateTransactionAsync` runs your work inside a `BEGIN IMMEDIATE` transaction and
+acquires the write lock through the raw `sqlite3` handle with the native busy handler off — so the
+only waiting is an `await Task.Delay` at the fair interval, which **frees the thread** (the .NET
+equivalent of releasing the GVL). It commits when your callback returns and rolls back if it throws:
+
+```csharp
+await factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+{
+    await using var cmd = connection.CreateCommand();
+    cmd.CommandText = "INSERT INTO WriteLogs (Note) VALUES ($note);";
+    cmd.Parameters.AddWithValue("$note", note);
+    await cmd.ExecuteNonQueryAsync(ct);
+});
+```
+
+Tune the retry when registering (defaults: 5 s timeout, 1 ms interval — Rails' values):
+
+```csharp
+builder.Services.AddRaskSqlite($"Data Source={dbPath}",
+    configureRetry: r =>
+    {
+        r.Timeout = TimeSpan.FromSeconds(10);
+        r.PollInterval = TimeSpan.FromMilliseconds(1);
+    });
+```
+
+For a transaction you drive yourself, `connection.BeginImmediate()` gives you a `SqliteTransaction`
+that took the write lock up front (its wait, though, blocks the thread inside Microsoft.Data.Sqlite —
+use `ExecuteInImmediateTransactionAsync` when you want the non-blocking retry).
+
+### Entity Framework Core — opt-in retry strategy
+
+Pass `configureRetry` (even empty) to register a fair-interval execution strategy so `SaveChanges`
+and queries retry on `SQLITE_BUSY`/`SQLITE_LOCKED`:
+
+```csharp
+o.UseRaskSqlite($"Data Source={dbPath}", configureRetry: _ => { });
+```
+
+Enabling it turns SQLite's native busy handler off (`busy_timeout=0`) and lowers
+Microsoft.Data.Sqlite's own command timeout so the async strategy owns the waiting. Two caveats:
+
+- EF Core issues every command through Microsoft.Data.Sqlite, whose busy-retry is synchronous, so a
+  contended attempt can block a thread for up to ~1 s before the fair-interval strategy takes over.
+  The raw path above has no such floor.
+- The implicit `SaveChanges` transaction stays `DEFERRED` (a write-only batch already takes the write
+  lock on its first statement). For a **read-then-write** transaction, wrap it in
+  `BeginImmediate` (and, as with any retrying strategy, inside `IExecutionStrategy.ExecuteAsync`).
 
 ## Continuous backup with Litestream
 
