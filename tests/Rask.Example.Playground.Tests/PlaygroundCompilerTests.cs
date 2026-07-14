@@ -1,6 +1,3 @@
-using System.Collections.Immutable;
-using System.Reflection;
-using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Example.Playground.Compiler;
@@ -14,7 +11,7 @@ namespace Rask.Example.Playground.Tests;
 public sealed class PlaygroundCompilerTests
 {
     private static PlaygroundCompiler NewCompiler() =>
-        new(BuildReferences(), new ServiceCollection().BuildServiceProvider());
+        new(TestReferences.Build(), new ServiceCollection().BuildServiceProvider());
 
     [Fact]
     public async Task Compiles_and_renders_a_simple_component()
@@ -144,20 +141,4 @@ public sealed class PlaygroundCompilerTests
     private static string DumpDiagnostics(PlaygroundResult result) =>
         "Diagnostics:\n" + string.Join("\n",
             result.Diagnostics.Select(d => $"  {d.Severity} {d.Id} ({d.StartLine},{d.StartColumn}): {d.Message}"));
-
-    // Mirror of GeneratorDriverFixture.BuildReferences: the shared-framework BCL from the trusted-platform
-    // set plus Rask.Core (where Component and the Generated.* factories live). This is the desktop stand-in
-    // for the browser host downloading _framework/*.dll.
-    private static ImmutableArray<MetadataReference> BuildReferences()
-    {
-        var trusted = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-
-        var refs = trusted
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-
-        refs.Add(MetadataReference.CreateFromFile(Assembly.Load("Rask.Core").Location));
-        return refs.ToImmutableArray();
-    }
 }

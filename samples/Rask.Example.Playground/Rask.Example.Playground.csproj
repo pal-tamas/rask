@@ -45,8 +45,11 @@
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
     <PackageReference Include="Microsoft.JSInterop"/>
     <!-- Roslyn, shipped to the browser (a normal reference, so Microsoft.CodeAnalysis.* land in
-         _framework and load at runtime). This is the ~15-20 MB the sub-app isolation exists to contain. -->
+         _framework and load at runtime). This is the ~15-20 MB the sub-app isolation exists to contain.
+         CSharp.Features (transitively pulling Workspaces + Features) powers the in-editor IDE experience:
+         CompletionService for IntelliSense and a workspace-backed diagnostics pass that never Emits. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features"/>
     <!-- Rask.Generators referenced BOTH ways: as an Analyzer so this app's own build gets the factories,
          AND as a normal assembly (ReferenceOutputAssembly=true) so Rask.Generators.dll ships and the
          in-browser compile can `new ComponentFactoryGenerator()` + run the analyzers for live RASK hints. -->
