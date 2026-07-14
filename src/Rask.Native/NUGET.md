@@ -53,6 +53,10 @@ NativeServerShell shell = NativeAppHost.ConnectToServer(new Uri("https://app.exa
 - **WebView hybrid, not a native-control renderer** — C# runs native, the view is a WebView (same
   architecture as MAUI Blazor Hybrid / Capacitor). What it buys over a PWA: App Store / Play Store
   distribution, native device APIs, and real background execution.
+- **Native header / tab / tool bars** — compose `NativeHeaderBar` / `NativeTabBar` / `NativeToolbar` as
+  siblings of a `NativeWebView` and they project to real `UINavigationBar`/`UITabBar` (iOS) and platform bars
+  (Android). Style them with type-safe, dark-mode-aware `NativeColor` (background / tint / title color) per
+  bar or via an app-wide `NativeTheme`; unset colors keep the platform default.
 - The typed `Rask.Core.Browser` device wrappers (`IGeolocation`, `IClipboard`, `IVibration`, …) work
   through the WebView's JS engine with no extra code.
 

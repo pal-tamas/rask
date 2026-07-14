@@ -3,6 +3,7 @@ using System.Text.Json;
 using CoreFoundation;
 using CoreGraphics;
 using Foundation;
+using Rask.Native.Components;
 using UIKit;
 using WebKit;
 
@@ -126,6 +127,7 @@ internal sealed class RaskChromeContainerView : UIView
         }
 
         _headerVisible = true;
+        ApplyNavBarAppearance(header);
         var item = new UINavigationItem(header.Title ?? string.Empty);
         if (header.Leading is { } leading)
         {
@@ -144,7 +146,39 @@ internal sealed class RaskChromeContainerView : UIView
             item.RightBarButtonItems = right;
         }
 
+        if (header.Segments is { Count: > 0 } segments)
+        {
+            // A segmented control replaces the title (iOS's standard titleView pattern).
+            item.TitleView = BuildSegmentedControl(segments, header.SelectedSegment, ResolveUIColor(header.Tint));
+        }
+
         _navBar.Items = [item];
+    }
+
+    private UISegmentedControl BuildSegmentedControl(
+        IReadOnlyList<NativeSegmentDescriptor> segments, int selected, UIColor? tint)
+    {
+        var control = new UISegmentedControl();
+        for (var i = 0; i < segments.Count; i++)
+        {
+            control.InsertSegment(segments[i].Title ?? string.Empty, i, false);
+        }
+
+        control.SelectedSegment = Math.Clamp(selected, 0, segments.Count - 1);
+        if (tint is not null)
+        {
+            control.SelectedSegmentTintColor = tint;
+        }
+
+        control.ValueChanged += (_, _) =>
+        {
+            var i = (int)control.SelectedSegment;
+            if (i >= 0 && i < segments.Count && segments[i].Id is { } id)
+            {
+                _raise?.Invoke($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+            }
+        };
+        return control;
     }
 
     private void ApplyFooter(NativeFooterDescriptor? footer)
@@ -162,6 +196,7 @@ internal sealed class RaskChromeContainerView : UIView
 
         if (_footerIsToolbar)
         {
+            ApplyToolbarAppearance(footer);
             _tabs = null;
             _tabItems = [];
             var items = footer.Items ?? [];
@@ -175,6 +210,7 @@ internal sealed class RaskChromeContainerView : UIView
             return;
         }
 
+        ApplyTabBarAppearance(footer);
         var tabs = footer.Tabs ?? [];
         _tabs = tabs;
         _tabItems = new UITabBarItem[tabs.Count];
@@ -184,6 +220,8 @@ internal sealed class RaskChromeContainerView : UIView
             {
                 // Address each tab by its title (screen readers + the Appium E2E), independent of the icon.
                 AccessibilityIdentifier = tabs[i].Title,
+                // Optional badge (e.g. an unread count); null clears it.
+                BadgeValue = string.IsNullOrEmpty(tabs[i].Badge) ? null : tabs[i].Badge,
             };
         }
 
@@ -194,12 +232,145 @@ internal sealed class RaskChromeContainerView : UIView
         }
     }
 
+    // Project the descriptor's optional colors onto the UINavigationBar. When nothing is styled we leave the
+    // bar's system appearance untouched (styling is opt-in) — critically, we don't override iOS's default
+    // transparent scroll-edge appearance on an unstyled bar. Tint drives the bar buttons.
+    private void ApplyNavBarAppearance(NativeHeaderDescriptor header)
+    {
+        var bg = ResolveUIColor(header.Background);
+        var title = ResolveUIColor(header.TitleColor);
+        var tint = ResolveUIColor(header.Tint);
+        if (bg is null && title is null && tint is null)
+        {
+            return;
+        }
+
+        var appearance = new UINavigationBarAppearance();
+        ConfigureBackground(appearance, bg);
+        if (title is not null)
+        {
+            appearance.TitleTextAttributes = new UIStringAttributes { ForegroundColor = title };
+            appearance.LargeTitleTextAttributes = new UIStringAttributes { ForegroundColor = title };
+        }
+
+        _navBar.StandardAppearance = appearance;
+        // Only pin the scroll-edge appearance when a background color is set (so a colored bar stays colored
+        // edge-to-edge); otherwise keep iOS's default scroll-edge look.
+        if (bg is not null)
+        {
+            _navBar.ScrollEdgeAppearance = appearance;
+        }
+
+        if (tint is not null)
+        {
+            _navBar.TintColor = tint;
+        }
+    }
+
+    private void ApplyTabBarAppearance(NativeFooterDescriptor footer)
+    {
+        var bg = ResolveUIColor(footer.Background);
+        var tint = ResolveUIColor(footer.Tint);
+        var unselected = ResolveUIColor(footer.UnselectedTint);
+        if (bg is null && tint is null && unselected is null)
+        {
+            return;
+        }
+
+        var appearance = new UITabBarAppearance();
+        ConfigureBackground(appearance, bg);
+        _tabBar.StandardAppearance = appearance;
+        if (bg is not null && OperatingSystem.IsIOSVersionAtLeast(15, 0))
+        {
+            _tabBar.ScrollEdgeAppearance = appearance;
+        }
+
+        // TintColor is the selected-item color; UnselectedItemTintColor the rest. Leaving unselected null keeps
+        // the system gray, so the selected tab still stands out even when only Tint is set.
+        if (tint is not null)
+        {
+            _tabBar.TintColor = tint;
+        }
+
+        if (unselected is not null)
+        {
+            _tabBar.UnselectedItemTintColor = unselected;
+        }
+    }
+
+    private void ApplyToolbarAppearance(NativeFooterDescriptor footer)
+    {
+        var bg = ResolveUIColor(footer.Background);
+        var tint = ResolveUIColor(footer.Tint);
+        if (bg is null && tint is null)
+        {
+            return;
+        }
+
+        var appearance = new UIToolbarAppearance();
+        ConfigureBackground(appearance, bg);
+        _toolbar.StandardAppearance = appearance;
+        if (tint is not null)
+        {
+            _toolbar.TintColor = tint;
+        }
+    }
+
+    // Shared bar-background config (UINavigationBar/UITabBar/UIToolbar appearances all derive from UIBarAppearance).
+    private static void ConfigureBackground(UIBarAppearance appearance, UIColor? bg)
+    {
+        if (bg is not null)
+        {
+            appearance.ConfigureWithOpaqueBackground();
+            appearance.BackgroundColor = bg;
+        }
+        else
+        {
+            appearance.ConfigureWithDefaultBackground();
+        }
+    }
+
+    // A wire token → UIColor. A fixed token yields a static color; an adaptive ("light|dark") token yields a
+    // dynamic UIColor that resolves per the current UI style, so the bar tracks light/dark automatically.
+    private static UIColor? ResolveUIColor(string? token)
+    {
+        if (!NativeColor.TryResolve(token, out var light, out var dark))
+        {
+            return null;
+        }
+
+        var lightColor = FromChannels(light);
+        if (light.Equals(dark))
+        {
+            return lightColor;
+        }
+
+        var darkColor = FromChannels(dark);
+        return UIColor.FromDynamicProvider(traits =>
+            traits.UserInterfaceStyle == UIUserInterfaceStyle.Dark ? darkColor : lightColor);
+    }
+
+    private static UIColor FromChannels((byte R, byte G, byte B, byte A) c) =>
+        UIColor.FromRGBA((nfloat)(c.R / 255f), (nfloat)(c.G / 255f), (nfloat)(c.B / 255f), (nfloat)(c.A / 255f));
+
     private UIBarButtonItem BuildBarButton(NativeBarItemDescriptor item)
     {
         if (string.Equals(item.Kind, "back", StringComparison.Ordinal))
         {
-            // A plain back chevron — a navigation host provides the actual pop; emit nothing extra here.
-            return new UIBarButtonItem(UIBarButtonSystemItem.Cancel) { AccessibilityIdentifier = "rask-native-back" };
+            // A back chevron that pops the WebView history (like hardware Back) via a "back" event.
+            var backItem = new UIBarButtonItem
+            {
+                Style = UIBarButtonItemStyle.Plain,
+                Image = UIImage.GetSystemImage("chevron.backward"),
+                AccessibilityIdentifier = "rask-native-back",
+            };
+            backItem.Clicked += (_, _) => _raise?.Invoke("""{"type":"back"}""");
+            return backItem;
+        }
+
+        if (string.Equals(item.Kind, "menu", StringComparison.Ordinal))
+        {
+            return BuildMenuButton(item);
         }
 
         // Address the button by its tap id (falling back to its title) for screen readers + the E2E.
@@ -217,6 +388,47 @@ internal sealed class RaskChromeContainerView : UIView
         if (id is not null)
         {
             button.Clicked += (_, _) => _raise?.Invoke($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+        }
+
+        return button;
+    }
+
+    // An overflow button whose primary tap opens a UIMenu pull-down (iOS 14+). Each entry raises the same
+    // nativeTap the session dispatches, so a menu selection re-enters the ordinary handler path.
+    private UIBarButtonItem BuildMenuButton(NativeBarItemDescriptor item)
+    {
+        var entries = item.Menu ?? [];
+        var actions = new UIMenuElement[entries.Count];
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var id = entries[i].Id;
+            var action = UIAction.Create(
+                entries[i].Title ?? string.Empty,
+                ImageFor(entries[i].IosIcon),
+                null,
+                _ =>
+                {
+                    if (id is not null)
+                    {
+                        _raise?.Invoke($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+                    }
+                });
+            if (entries[i].Destructive)
+            {
+                action.Attributes = UIMenuElementAttributes.Destructive;
+            }
+
+            actions[i] = action;
+        }
+
+        var button = new UIBarButtonItem { AccessibilityIdentifier = item.Title, Menu = UIMenu.Create(actions) };
+        if (ImageFor(item.IosIcon) is { } image)
+        {
+            button.Image = image;
+        }
+        else
+        {
+            button.Title = item.Title ?? "More";
         }
 
         return button;
