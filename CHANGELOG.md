@@ -29,6 +29,21 @@ them until tagged releases begin.
   `rask info` reports the CLI / .NET SDK / template / OS environment. The tool is dependency-free (pure
   BCL over `dotnet`) and its command surface is unit-tested through an injectable process-runner seam.
   See [docs/cli.md](docs/cli.md). First step of the CLI roadmap (`generate` / `db` / `deploy` to follow).
+- **`Rask.SQLite` IMMEDIATE transactions + a non-blocking, fair-interval busy retry.** Completes Rails'
+  SQLite concurrency story on top of the production pragmas. On the raw ADO.NET path,
+  `IRaskSqliteConnectionFactory.ExecuteInImmediateTransactionAsync(...)` (and the
+  `SqliteConnection.ExecuteInImmediateTransactionAsync`/`BeginImmediate` extensions) run your write in a
+  `BEGIN IMMEDIATE` transaction, acquiring the write lock through the raw `sqlite3` handle with the native
+  busy handler off — so the only waiting is an `await Task.Delay` at a **constant 1 ms fair interval**
+  (ported from rails/rails#51958; not exponential backoff) that **frees the thread** instead of blocking
+  one inside native code, the .NET equivalent of Rails' GVL-releasing busy handler. `BEGIN IMMEDIATE`
+  takes the write lock up front, converting the otherwise **unretryable** deferred read-then-write
+  dead-lock into a plain waitable wait. New `SqliteBusyRetryOptions` (5 s timeout, 1 ms interval by
+  default) is configurable via `AddRaskSqlite(..., configureRetry:)`. For Entity Framework Core,
+  `UseRaskSqlite(..., configureRetry:)` registers a fair-interval `RaskSqliteExecutionStrategy` so
+  `SaveChanges`/queries retry on `SQLITE_BUSY`/`SQLITE_LOCKED` (turning `busy_timeout` off and lowering the
+  command timeout so the async strategy owns the wait; the implicit `SaveChanges` transaction stays
+  `DEFERRED`). The `Rask.Example.Sqlite` sample gains a non-blocking concurrent-IMMEDIATE-writers demo.
 - **Opt-in `--docker` for the web templates.** `dotnet new rask-server`, `rask-wasm`, and
   `rask-wasm-hosted` take a `--docker` flag (default off) that scaffolds a production multi-stage
   `Dockerfile` + `.dockerignore`. The two Kestrel templates build on the .NET SDK image and run on

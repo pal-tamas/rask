@@ -34,6 +34,25 @@ builder.Services.AddRaskSqlite($"Data Source={dbPath}", p =>
 });
 ```
 
+## Concurrent writes: IMMEDIATE transactions + a non-blocking retry
+
+For the write path under concurrency, `ExecuteInImmediateTransactionAsync` runs your work in a
+`BEGIN IMMEDIATE` transaction and acquires the write lock through a **non-blocking, Rails-style
+fair-interval retry** — a constant 1 ms poll that *yields the thread* while it waits (no blocked
+thread, no spurious `database is locked`):
+
+```csharp
+await factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
+{
+    await using var cmd = connection.CreateCommand();
+    cmd.CommandText = "INSERT INTO WriteLogs (Note) VALUES ($note);";
+    cmd.Parameters.AddWithValue("$note", note);
+    await cmd.ExecuteNonQueryAsync(ct);
+});
+```
+
+Tune it with `AddRaskSqlite(cs, configureRetry: r => …)` (defaults: 5 s timeout, 1 ms interval).
+
 ## Using Entity Framework Core?
 
 Add [`Rask.SQLite.EntityFrameworkCore`](https://www.nuget.org/packages/Rask.SQLite.EntityFrameworkCore)

@@ -15,6 +15,12 @@ var dbPath = builder.Configuration["RASK_DB_PATH"] ?? "raskExampleSqlite.db";
 builder.Services.AddDbContextFactory<DemoDbContext>(options =>
     options.UseRaskSqlite($"Data Source={dbPath}"));
 
+// The raw ADO.NET counterpart to the EF context above (same database file): AddRaskSqlite registers an
+// IRaskSqliteConnectionFactory whose ExecuteInImmediateTransactionAsync runs each write in a
+// BEGIN IMMEDIATE transaction, acquiring the write lock through a non-blocking, Rails-style fair-interval
+// retry — no thread is held while it waits. The second demo card exercises it.
+builder.Services.AddRaskSqlite($"Data Source={dbPath}");
+
 // Continuous backup with Litestream (Rask.SQLite.Litestream) — commented so `dotnet run` works without
 // the litestream binary or a cloud replica. In production you'd enable this to stream the WAL to
 // object storage and restore on a fresh host. See docs/sqlite.md#continuous-backup-with-litestream.
