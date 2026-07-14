@@ -49,8 +49,9 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     private static bool CanClear => Nullable.GetUnderlyingType(typeof(TValue)) is not null;
 
     // A per-instance suffix so two id-less selects still emit unique option ids for aria-activedescendant.
-    private static int _seq;
-    private readonly int _instanceId = System.Threading.Interlocked.Increment(ref _seq);
+    // Uses the shared non-generic counter so two id-less selects of different generic arguments don't both
+    // start at 1 and collide.
+    private readonly int _instanceId = BsInstanceId.Next();
 
     protected override Component? Render()
     {

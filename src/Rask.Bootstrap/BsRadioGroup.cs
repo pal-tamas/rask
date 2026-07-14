@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
@@ -36,6 +37,11 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
 
+    // Unique suffix for the auto-generated group name of an UNNAMED group, so two id-less controlled
+    // radio groups on one page don't both fall back to name="radio-group" — which would make the browser
+    // treat them as one radio group (selecting in one clears the other) and collide their option ids.
+    private readonly int _instanceId = BsInstanceId.Next();
+
     protected override Component? Render()
     {
         ArgumentNullException.ThrowIfNull(Options);
@@ -66,7 +72,8 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
         }
 
         var disabled = Disabled == true;
-        var groupName = Name ?? acc?.PropertyName ?? "radio-group";
+        var groupName = Name ?? acc?.PropertyName
+            ?? "radio-group-" + _instanceId.ToString(CultureInfo.InvariantCulture);
         var wrapperClass = BsClass.Join("form-check", ItemClass);
 
         // Reading GetValidationMessages here latches the render-cache opt-out (see BsFormControl) so the group
@@ -75,9 +82,7 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
         IReadOnlyList<string> messages = bound && ctx is not null ? ctx.GetValidationMessages(fid) : [];
         var invalid = messages.Count > 0;
         var errorId = invalid ? groupName + "-error" : null;
-        var optionAria = invalid
-            ? new Dictionary<string, string?> { ["invalid"] = "true", ["describedby"] = errorId }
-            : null;
+        var optionAria = BsClass.FieldAria(invalid, errorId);
 
         var children = new List<Component>();
         var index = 0;
@@ -108,7 +113,9 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
         {
             var content = new List<Component> { Legend(Class: "form-label fs-6")[Label] };
             content.AddRange(children);
-            return Fieldset(Disabled: Disabled, Class: "border-0 p-0 m-0")[content];
+            // Disabled is NOT set on the fieldset: a disabled fieldset disables ALL descendants, which would
+            // also disable interactive content in a rich OptionLabel. The radios carry their own Disabled.
+            return Fieldset(Class: "border-0 p-0 m-0")[content];
         }
 
         return [.. children];

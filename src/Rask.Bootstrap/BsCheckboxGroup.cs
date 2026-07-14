@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
@@ -33,6 +34,10 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
 
+    // Unique suffix for the auto-generated group name of an UNNAMED group, so two id-less controlled
+    // checkbox groups on one page don't both fall back to name="checkbox-group" and collide their ids.
+    private readonly int _instanceId = BsInstanceId.Next();
+
     protected override Component? Render()
     {
         ArgumentNullException.ThrowIfNull(Options);
@@ -63,7 +68,8 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
         }
 
         var disabled = Disabled == true;
-        var groupName = Name ?? acc?.PropertyName ?? "checkbox-group";
+        var groupName = Name ?? acc?.PropertyName
+            ?? "checkbox-group-" + _instanceId.ToString(CultureInfo.InvariantCulture);
         var wrapperClass = BsClass.Join("form-check", ItemClass);
 
         // Reading GetValidationMessages here latches the render-cache opt-out (see BsFormControl) so the group
@@ -72,9 +78,7 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
         IReadOnlyList<string> messages = bound && ctx is not null ? ctx.GetValidationMessages(fid) : [];
         var invalid = messages.Count > 0;
         var errorId = invalid ? groupName + "-error" : null;
-        var optionAria = invalid
-            ? new Dictionary<string, string?> { ["invalid"] = "true", ["describedby"] = errorId }
-            : null;
+        var optionAria = BsClass.FieldAria(invalid, errorId);
 
         var children = new List<Component>();
         var index = 0;
@@ -107,7 +111,9 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
         {
             var content = new List<Component> { Legend(Class: "form-label fs-6")[Label] };
             content.AddRange(children);
-            return Fieldset(Disabled: Disabled, Class: "border-0 p-0 m-0")[content];
+            // Disabled is NOT set on the fieldset: a disabled fieldset disables ALL descendants, which would
+            // also disable interactive content in a rich OptionLabel. The checkboxes carry their own Disabled.
+            return Fieldset(Class: "border-0 p-0 m-0")[content];
         }
 
         return [.. children];

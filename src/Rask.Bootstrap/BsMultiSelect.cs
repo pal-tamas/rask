@@ -45,9 +45,9 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     private string? _filter;
 
     // A per-instance suffix so two id-less multiselects still emit unique list/label ids for the
-    // combobox aria-controls / aria-labelledby wiring (mirrors BsSelectBase).
-    private static int _seq;
-    private readonly int _instanceId = System.Threading.Interlocked.Increment(ref _seq);
+    // combobox aria-controls / aria-labelledby wiring. Uses the shared non-generic counter so two
+    // id-less multiselects of different TItem don't both start at 1 and collide.
+    private readonly int _instanceId = BsInstanceId.Next();
 
     protected override Component? Render()
     {
@@ -179,10 +179,14 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             boxAria["labelledby"] = labelId;
         }
 
-        if (invalid)
+        // Merge the shared aria-invalid/aria-describedby contract (the same builder BsSelect/BsFormControl
+        // use) so the four controls stay in lockstep if it ever grows.
+        if (BsClass.FieldAria(invalid, errorId) is { } fa)
         {
-            boxAria["invalid"] = "true";
-            boxAria["describedby"] = errorId;
+            foreach (var kv in fa)
+            {
+                boxAria[kv.Key] = kv.Value;
+            }
         }
 
         var boxDiv = Div(

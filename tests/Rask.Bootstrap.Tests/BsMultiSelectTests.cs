@@ -1,3 +1,7 @@
+#pragma warning disable RASK014 // StubComponent constructed directly in tests
+
+using System.Text.Json;
+
 namespace Rask.Bootstrap.Tests;
 
 // Rendered-HTML assertions for BsMultiSelect (controlled mode). The `.form-select` box shows the selected
@@ -77,4 +81,32 @@ public class BsMultiSelectTests
     public void MultiSelect_RequiresExactlyOneOfBindOrValue() =>
         // Neither Bind nor Value set → the mode guard throws when the control renders.
         Assert.Throws<InvalidOperationException>(() => BsMultiSelect<string>(Options: ["a"]).ToHtml());
+
+    [Fact]
+    public async Task MultiSelect_Bound_Invalid_WiresAriaInvalidDescribedbyAndAlertFeedback()
+    {
+        // A bound multiselect that fails validation must expose the failure to assistive tech: is-invalid +
+        // aria-invalid + aria-describedby on the combobox box, and a role="alert" error region with the id.
+        var model = new TagModel();
+        var view = new StubComponent(() => Form(model)[
+            BsMultiSelect(() => model.Tags, ["a", "b"], Id: "m",
+                Validate: v => v.Count == 0 ? new[] { "pick a tag" } : Array.Empty<string>())
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+        var submitId = Markup.Attr(html, "data-rask-on-submit")!;
+        using var payload = JsonDocument.Parse("{\"form\":{}}");
+        await view.TryInvokeHandlerAsync(submitId, payload.RootElement);
+
+        var after = view.RenderAsLiveRoot();
+        Assert.Contains("is-invalid", after);
+        Assert.Contains("aria-invalid=\"true\" aria-describedby=\"m-error\"", after);
+        Assert.Contains(
+            "<div id=\"m-error\" class=\"invalid-feedback d-block\" role=\"alert\">pick a tag</div>", after);
+    }
+
+    private sealed class TagModel
+    {
+        public List<string> Tags { get; set; } = [];
+    }
 }

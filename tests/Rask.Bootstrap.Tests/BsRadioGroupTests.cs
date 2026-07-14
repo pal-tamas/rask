@@ -78,6 +78,17 @@ public class BsRadioGroupTests
     }
 
     [Fact]
+    public void RadioGroup_TwoUnnamedControlled_GetDistinctGroupNames()
+    {
+        // Two id-less controlled groups must not both fall back to name="radio-group": the browser would
+        // treat them as ONE radio group (selecting in one clears the other) and their ids would collide.
+        var nameA = Markup.Attr(BsRadioGroup(Options: ["x"], Value: "x", OnChange: _ => { }).ToHtml(), "name");
+        var nameB = Markup.Attr(BsRadioGroup(Options: ["x"], Value: "x", OnChange: _ => { }).ToHtml(), "name");
+        Assert.StartsWith("radio-group-", nameA);
+        Assert.NotEqual(nameA, nameB);
+    }
+
+    [Fact]
     public void RadioGroup_NeitherBindNorHandler_Throws() =>
         Assert.Throws<InvalidOperationException>(() =>
             BsRadioGroup(Options: ["a"], Value: "a").ToHtml());
