@@ -233,6 +233,9 @@ jobs:
       - name: Pack Rask.SQLite.Litestream
         run: dotnet pack src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.SQLite.Snapshots
+        run: dotnet pack src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj -c Release --no-build -o ./artifacts
+
       - name: Upload packages
         uses: actions/upload-artifact@v7
         with:

@@ -150,6 +150,56 @@ must respect:
 The same recipe applies to any ephemeral-container platform (Kubernetes, Fly.io, Container Apps):
 local-disk DB + `abs://`/`s3://` replica + single writer + restore-on-boot.
 
+## Scheduled snapshots
+
+Litestream is continuous streaming replication to object storage. Sometimes you want the other kind of
+backup: a **periodic, consistent full copy** you can grab without a sidecar or object storage — "give me
+last night's database." The **`Rask.SQLite.Snapshots`** package does exactly that, using SQLite's
+**Online Backup API** (never an unsafe `File.Copy` of a live WAL database):
+
+```bash
+dotnet add package Rask.SQLite.Snapshots
+```
+
+```csharp
+builder.Services.AddRaskSqliteSnapshots(o =>
+{
+    o.DatabasePath = "/data/app.db";
+    o.DestinationDirectory = "/backups";
+    o.Interval = TimeSpan.FromHours(6);
+    o.Retain = 14;                  // keep the 14 newest, prune the rest
+    o.SnapshotOnStartup = true;     // also snapshot at boot
+});
+```
+
+Each snapshot is a complete standalone database (`app-20260714-030000000.db`). Need one on demand — say,
+right before a risky migration? Inject `ISqliteSnapshotter` and `await snapshotter.SnapshotAsync(ct)`.
+To send snapshots to object storage instead of a local directory, register your own
+`ISqliteSnapshotStore` before `AddRaskSqliteSnapshots` (then `DestinationDirectory` isn't required).
+
+**Snapshots vs Litestream — use one, or both:** Litestream is continuous (near-zero data loss, point-in-time
+restore) but needs object storage and a sidecar binary; snapshots are periodic, self-contained, need
+nothing external, and are trivial to copy or archive. They complement each other — streaming for DR, plus
+a retained snapshot history for "restore last Tuesday."
+
+## In a Docker container
+
+All three packages run in a container — with the same care the platform sections above call for:
+
+- **Put the database on a writable local layer or a named volume, never a network mount.** The
+  container's own filesystem, a Docker **named volume**, or a bind mount to local disk all give WAL the
+  real file locking it needs. An NFS/CIFS-backed volume does not — keep the DB off those.
+- **Mount a volume for snapshots** (`DestinationDirectory`) — otherwise the backups live in the
+  container's ephemeral layer and vanish on `docker rm`. Or register an object-storage
+  `ISqliteSnapshotStore` and skip the volume. `Rask.SQLite` + `Rask.SQLite.Snapshots` need no extra
+  binary, so they work on minimal/distroless .NET images (the bundled `e_sqlite3` native lib covers
+  Debian/Ubuntu **and** Alpine/musl).
+- **Litestream needs its binary in the image.** `COPY` it into your Dockerfile (or copy from the
+  official `litestream/litestream` image in a multi-stage build) and set `ExecutablePath` if it isn't on
+  `PATH`. Restore-on-boot then rehydrates the DB when a fresh container starts.
+- **Single writer.** Don't scale the service to multiple replicas writing the same database
+  (`docker compose --scale`, K8s `replicas > 1`) — run one instance.
+
 ## Testing
 
 The pragmas are easy to assert against a real database file — open a connection through the factory
