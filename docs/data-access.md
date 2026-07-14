@@ -21,6 +21,10 @@ builder.Services.AddDbContextFactory<CatalogDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 ```
 
+> Production tip: swap `UseSqlite` for `UseRaskSqlite` (the standalone `Rask.SQLite` package) to apply
+> the Rails-style production pragma set — WAL, `foreign_keys=ON`, a `busy_timeout`, `synchronous=NORMAL`
+> — on every connection. See [SQLite production pragmas](sqlite.md).
+
 ```csharp
 await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
 var products = await db.Products.AsNoTracking().OrderBy(p => p.Id).ToListAsync(CancellationToken);

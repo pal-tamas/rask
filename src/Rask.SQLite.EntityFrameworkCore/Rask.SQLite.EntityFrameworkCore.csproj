@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.SQLite.EntityFrameworkCore</PackageId>
+    <Title>Rask.SQLite.EntityFrameworkCore — production pragmas for EF Core</Title>
+    <Description>The Entity Framework Core integration for Rask.SQLite: `UseRaskSqlite(...)`, a drop-in replacement for `UseSqlite` that also registers a `ConnectionOpened` interceptor applying the Rails-style production pragma set (WAL, `synchronous=NORMAL`, `foreign_keys=ON`, a `busy_timeout`, `mmap_size`, `journal_size_limit`) to every connection the context opens. Split out from Rask.SQLite so apps that only need the raw `Microsoft.Data.Sqlite` path (or run on mobile/AOT) don't pull in Entity Framework Core.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — a standalone data-layer helper. -->
+    <PackageTags>sqlite pragma wal rails entity-framework-core efcore interceptor dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.SQLite\Rask.SQLite.csproj"/>
+  </ItemGroup>
+
+</Project>

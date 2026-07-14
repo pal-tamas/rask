@@ -1,0 +1,65 @@
+# Rask.SQLite
+
+**Rails-style production SQLite for .NET.** Applies the same tuned pragma set a modern Ruby on
+Rails 8 app runs — WAL journaling, `synchronous=NORMAL`, `foreign_keys=ON`, a `busy_timeout`, a
+shared `mmap_size`, and a capped `journal_size_limit` — to **every** SQLite connection, so your app
+gets correct, concurrent, production-ready SQLite by default instead of the lock-prone stock config.
+
+Standalone and lean: it depends only on `Microsoft.Data.Sqlite` and is **reflection-free**, so it is
+fine under trimming/AOT and on mobile. You do **not** need the rest of Rask to use it.
+
+## Install
+
+```bash
+dotnet add package Rask.SQLite
+```
+
+## Use
+
+```csharp
+builder.Services.AddRaskSqlite($"Data Source={dbPath}");
+
+// then inject IRaskSqliteConnectionFactory:
+await using var connection = await factory.CreateOpenAsync(ct);   // pragmas already applied
+```
+
+The Rails production defaults are on out of the box; override any of them:
+
+```csharp
+builder.Services.AddRaskSqlite($"Data Source={dbPath}", p =>
+{
+    p.BusyTimeout = TimeSpan.FromSeconds(10);
+    p.CacheSize = -20_000;              // negative ⇒ KiB, so 20 MB
+    p.TempStore = SqliteTempStore.Memory;
+});
+```
+
+## Using Entity Framework Core?
+
+Add [`Rask.SQLite.EntityFrameworkCore`](https://www.nuget.org/packages/Rask.SQLite.EntityFrameworkCore)
+for the one-line `UseRaskSqlite(...)` (a drop-in for `UseSqlite` that wires the pragma interceptor).
+It's a separate package so the pragma engine stays free of an EF Core dependency.
+
+## Defaults (verified against rails/rails#49349)
+
+| Pragma | Default |
+|---|---|
+| `journal_mode` | `WAL` |
+| `synchronous` | `NORMAL` |
+| `foreign_keys` | `ON` |
+| `busy_timeout` | `5000` ms |
+| `cache_size` | `2000` pages |
+| `mmap_size` | `134217728` (128 MiB) |
+| `journal_size_limit` | `67108864` (64 MiB) |
+| `temp_store` | unset (opt-in `MEMORY`) |
+
+## Notes
+
+- **Applied on every open, not once at startup.** `Microsoft.Data.Sqlite` pools connections and the
+  per-connection pragmas don't persist, so they are re-applied each time a connection opens (a
+  `StateChange` hook on the factory's connections; the EF Core package uses a `ConnectionOpened`
+  interceptor). Only `journal_mode=WAL` persists in the database file header.
+- **Fully overridable / opt-outable.** Set any option to `null` to leave that pragma at SQLite's own
+  default.
+
+Full documentation: <https://github.com/pal-tamas/rask/blob/main/docs/sqlite.md>

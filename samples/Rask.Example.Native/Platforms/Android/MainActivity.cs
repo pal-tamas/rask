@@ -2,8 +2,11 @@ using Android.App;
 using Android.OS;
 using Android.Webkit;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Example.Native.Data;
 using Rask.Example.Shared;
+using Rask.Example.Shared.Features;
 using Rask.Native;
+using Rask.SQLite;
 
 namespace Rask.Example.Native;
 
@@ -59,6 +62,15 @@ public class MainActivity : Activity
             {
                 BaseAddress = new Uri(RaskAndroidWebView.DefaultOrigin)
             });
+
+        // Persist the Todos screen on-device. Rask.SQLite's raw connection factory applies the production
+        // pragmas (WAL, foreign_keys, busy_timeout) on every connection; it's reflection-free. The database
+        // lives in the app sandbox, and this AddSingleton overrides the in-memory ITodoStore (last
+        // registration wins) — so the Todos tab survives an app restart.
+        var todoDbPath = Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "rask-todos.db");
+        host.Services.AddRaskSqlite($"Data Source={todoDbPath}");
+        host.Services.AddSingleton<ITodoStore, SqliteTodoStore>();
 
         _app = await host.RunLocalAsync<NativeShowcaseApp>(webView);
         webView.LoadShell();

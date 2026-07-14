@@ -48,6 +48,14 @@ them until tagged releases begin.
 - **`NativeAppHost.UsePlatform(INativePlatform)`** — a native platform module (iOS/Android) contributes
   native C# backends for the browser/device interfaces; the host applies them before the JS fallbacks in
   `RunLocalAsync`, so any interface a platform backs natively wins and the rest fall back to the WebView.
+- **`Rask.SQLite.Litestream` now fetches the `litestream` binary for you.** MSBuild `build/` targets in
+  the package download the litestream binary for the target runtime at build/publish time (Linux
+  x64/arm64/armv7, macOS x64/arm64, Windows x64/arm64), SHA-256-verify it against a pinned checksum,
+  cache it under `~/.rask/litestream/<version>/<rid>`, and copy it next to the app — so a published app
+  (and its Docker image) has litestream with nothing to install. The package stays tiny (no binaries
+  shipped). The default `ExecutablePath` resolves to the bundled binary, then falls back to `PATH`. Opt
+  out with `-p:RaskLitestreamDownload=false`; pin a different version with `RaskLitestreamVersion` +
+  `RaskLitestreamSha256`. See [docs/sqlite.md](docs/sqlite.md#the-litestream-binary-is-fetched-for-you).
 - **The live playground is now a real in-browser IDE.** The `samples/Rask.Example.Playground` editor gains
   three IDE features, all powered by Roslyn compiled to WebAssembly:
   - **IntelliSense** — Roslyn's `CompletionService` (via a new `Microsoft.CodeAnalysis.CSharp.Features`
@@ -63,6 +71,45 @@ them until tagged releases begin.
   diagnostics/completion mapping and every gallery snippet are unit-tested on the desktop runtime, and the
   Playwright journey now asserts a live squiggle appears before Run and that a gallery example loads + runs.
   Adds ~3.7 MB (brotli) to the untrimmed playground bundle for the Features/Workspaces assemblies.
+- **`Rask.SQLite` — Rails-style production SQLite pragmas.** A new opt-in, standalone package that
+  applies the Ruby on Rails 8 production pragma set — `journal_mode=WAL`, `synchronous=NORMAL`,
+  `foreign_keys=ON`, `busy_timeout=5000`, `cache_size`, `mmap_size`, `journal_size_limit` (values
+  verified against rails/rails#49349) — to **every** SQLite connection, so concurrent writers stop
+  hitting `database is locked` and foreign keys are actually enforced. Register
+  `services.AddRaskSqlite(cs)` and inject `IRaskSqliteConnectionFactory`. The per-connection pragmas are
+  re-applied on every pooled open (only WAL persists in the file header); every value is overridable — or
+  nullable to skip — via `SqlitePragmaOptions`. Depends only on `Microsoft.Data.Sqlite` and is
+  reflection-free, so it works server-side, on mobile, and under trimming/AOT. New
+  `samples/Rask.Example.Sqlite` shows the live pragma values and a concurrent-writes demo. See
+  [docs/sqlite.md](docs/sqlite.md).
+- **`Rask.SQLite.EntityFrameworkCore` — the EF Core integration.** `UseRaskSqlite(...)`, a drop-in for
+  `UseSqlite` that also registers the pragma `ConnectionOpened` interceptor, lives in this companion
+  package (which pulls in `Microsoft.EntityFrameworkCore.Sqlite`) — split out so the base `Rask.SQLite`
+  pragma engine stays free of an EF Core dependency for mobile/AOT consumers.
+- **On-device SQLite in the native showcase.** `samples/Rask.Example.Native`'s **Todos** tab now persists
+  to a SQLite database in the app sandbox via `Rask.SQLite`'s raw connection factory (reflection-free, so
+  it's safe under iOS full-AOT) — so todos survive an app restart on device, while Server/WASM keep the
+  transient in-memory store. The shared `TodosPage` gained an `ITodoStore` seam (`InMemoryTodoStore`
+  default; `SqliteTodoStore` on native). See [docs/sqlite.md](docs/sqlite.md#sqlite-on-mobile-rasknative).
+- **`Rask.SQLite.Litestream` — managed [Litestream](https://litestream.io) backup.** A companion
+  opt-in package that supervises the Litestream sidecar from inside the app: `AddRaskSqliteLitestream(…)`
+  registers a hosted background service that continuously streams the WAL to S3/GCS/Azure Blob/file
+  storage, and `RestoreSqliteFromLitestreamAsync()` restores the database from its replica on a fresh
+  host (no-op when the local file exists). The `litestream` binary is driven via CliWrap; shutdown sends
+  a graceful interrupt so the final WAL frames flush (a `ShutdownGracePeriod` before force-kill) — the
+  right behaviour for SIGTERM-recycled platforms like Azure App Service Linux and Kubernetes. If the
+  backup process exits or crashes it is restarted with capped exponential backoff (`RestartDelay`); a
+  failure is logged at Critical and never crashes the app. Depends only on the Microsoft.Extensions
+  hosting/DI abstractions and CliWrap. See [docs/sqlite.md](docs/sqlite.md#continuous-backup-with-litestream).
+- **`Rask.SQLite.Snapshots` — scheduled consistent backups, no external binary.** A companion opt-in
+  package that takes point-in-time file snapshots of a live SQLite database on a schedule using SQLite's
+  Online Backup API (never an unsafe file copy), keeps the newest N, and writes them to a directory — or
+  a pluggable `ISqliteSnapshotStore` for object storage. `AddRaskSqliteSnapshots(…)` runs a hosted
+  service on an interval (with optional snapshot-on-startup); inject `ISqliteSnapshotter` to snapshot on
+  demand (e.g. before a migration). Pure `Microsoft.Data.Sqlite` — works on minimal/distroless and
+  Alpine images — plus the Microsoft.Extensions hosting/DI abstractions. Complements
+  `Rask.SQLite.Litestream` (streaming) or stands alone. See
+  [docs/sqlite.md](docs/sqlite.md#scheduled-snapshots).
 
 ### Changed
 - **Consistent one-file-per-API layout.** Every browser/device wrapper now lives in an `I{Api}.cs` file

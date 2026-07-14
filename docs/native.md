@@ -105,6 +105,11 @@ Two ordering rules the generated heads already follow — keep them if you edit 
 - **Wire the session *before* loading the shell.** The first render fires when the WebView's client
   posts its `ready` message, so `RunLocalAsync<App>(webView)` must run before the head loads the boot
   shell — otherwise the shell load races the handshake.
+- **On-device data with SQLite.** Because the C# runs on the device, you can persist to a local SQLite
+  database. Register [`Rask.SQLite`](sqlite.md#sqlite-on-mobile-rasknative)'s `AddRaskSqlite($"Data
+  Source={sandboxPath}")` on `host.Services` (the raw, reflection-free path — safe under iOS AOT) and
+  inject `IRaskSqliteConnectionFactory`. The showcase's **Todos** tab does exactly this
+  (`SqliteTodoStore`), so it survives an app restart on device while staying in-memory on Server/WASM.
 
 ## Safe-area insets (notch / status bar)
 
