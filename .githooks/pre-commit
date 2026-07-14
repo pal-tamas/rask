@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Pre-commit gate: enforce formatting (dotnet format) and the local unit/integration suite before a
+# code commit.
+#
+# Both were moved OUT of CI — they run locally instead, and this hook enforces them on commit.
+# Enable it once with:  git config core.hooksPath .githooks  (installs commit-msg + pre-commit + pre-push)
+#
+# Runs ONLY when the staged change touches code (src/, tests/, benchmarks/, Rask.slnx, Directory.*), so
+# docs-only / workflow-only commits stay fast. Bypass any commit with 'git commit --no-verify' or
+# RASK_SKIP_UNIT=1.
+set -euo pipefail
+
+if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
+  echo "pre-commit: RASK_SKIP_UNIT=1 set — skipping the local format + unit gate."
+  exit 0
+fi
+
+if ! git diff --cached --name-only | grep -qE '^(src/|tests/|benchmarks/|Rask\.slnx$|Directory\.)'; then
+  echo "pre-commit: no code changes staged — skipping the format + unit gate."
+  exit 0
+fi
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+echo "pre-commit: checking formatting (dotnet format --verify-no-changes)."
+echo "            bypass with 'git commit --no-verify' or RASK_SKIP_UNIT=1."
+if ! dotnet format Rask.slnx --verify-no-changes; then
+  echo "pre-commit: formatting check FAILED — run 'dotnet format Rask.slnx', restage, and commit again." >&2
+  exit 1
+fi
+
+echo "pre-commit: running the local unit gate (staged code changes detected)."
+if ! "$root/scripts/run-unit-local.sh"; then
+  echo "pre-commit: unit gate FAILED — commit aborted. Fix the tests, or bypass with --no-verify." >&2
+  exit 1
+fi

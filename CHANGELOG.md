@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **Unit tests + formatting moved out of CI to a local pre-commit gate.** The unit/integration suite no
+  longer runs in the ci/nightly/release pipelines. `scripts/run-unit-local.sh` builds the solution and runs
+  every test except the browser E2E; a new `.githooks/pre-commit` hook runs `dotnet format
+  --verify-no-changes` then that script whenever a commit stages code (`src/`, `tests/`, `benchmarks/`,
+  `Rask.slnx`, `Directory.*`) — docs-only commits skip it (bypass with `git commit --no-verify` or
+  `RASK_SKIP_UNIT=1`). CI now runs only the deterministic benchmark byte-gates, the native compile gate,
+  commitlint, and CodeQL; branch protection no longer requires the `unit` check. (Releases and the nightly
+  prerelease are no longer test-gated in CI — run `scripts/run-unit-local.sh` + `scripts/run-e2e-local.sh`
+  locally before tagging.)
 - **E2E moved out of CI to a local pre-push gate.** The browser-journey E2E
   (`tests/Rask.Examples.E2E.Tests`, Playwright) and the on-device native E2E
   (`tests/Rask.Native.Appium.Tests`, Appium) no longer run in the CI/nightly/release pipelines. They run

@@ -9,46 +9,11 @@ permissions:
   contents: read
 
 jobs:
-  # Fast gate: every unit/integration test that does NOT need a browser.
-  # Skips the expensive WASM work (-p:RaskWasm=false + -p:WasmBuildNative=false) since
-  # no unit test consumes the published browser bundle. Mirrors ci.yml `unit`.
-  unit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7   # shallow: this job packs nothing
-
-      - uses: ./.github/actions/setup
-        with:
-          workloads: wasm-tools
-
-      - name: Restore
-        run: dotnet restore Rask.slnx
-
-      - name: Build (no WASM bundle)
-        # -p:RaskWasm=false skips the nested WASM publish, so no Rask.Core.dll copy race (no -m:1).
-        run: dotnet build Rask.slnx -c Release --no-restore -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true
-
-      - name: Unit & integration tests
-        run: >-
-          dotnet test Rask.slnx -c Release --no-build
-          --filter "FullyQualifiedName!~Rask.Examples.E2E"
-          --logger "trx;LogFileName=test-results.trx"
-          --logger "console;verbosity=normal"
-
-      - name: Upload test results on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: unit-test-results
-          path: |
-            **/TestResults/**
-
   # Rask.Native ships its iOS/Android platform heads (RaskWkWebView / RaskAndroidWebView / NativeShare /
   # the Native+Server controllers), so its package must be built + packed on macOS with the mobile
   # workloads (-p:RaskNativeHeads=true multi-targets net10.0;net10.0-ios;net10.0-android). It's produced
   # here and handed to the publish job as an artifact.
   pack-native:
-    needs: [unit]
     # Pinned to macos-26 (not the moving macos-latest label) so the Microsoft.iOS workload lands on the
     # matching Xcode SDK.
     runs-on: macos-26
@@ -75,7 +40,7 @@ jobs:
   # Pack & publish: gated on the unit/integration suite being green (browser + on-device E2E run locally
   # before push — see CONTRIBUTING.md / scripts/run-e2e-local.sh — and no longer in CI).
   publish:
-    needs: [unit, pack-native]
+    needs: [pack-native]
     runs-on: ubuntu-latest
     permissions:
       contents: write
