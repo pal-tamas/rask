@@ -1,0 +1,17 @@
+# IDeviceOrientation
+
+> Gyroscope/compass tilt (alpha/beta/gamma) pushed to a callback.
+
+- **Wraps:** Device Orientation events
+- **Home:** `Rask.Core.Browser` (all hosts)
+- **Shape:** subscription (pushes to a callback)
+- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
+- **Native backend:** CoreMotion / SensorManager
+
+iOS requires a gesture-triggered permission grant in the browser; the native backend needs none. Readings come from CoreMotion attitude / the Android rotation-vector sensor.
+
+## See also
+
+- Source: [`IDeviceOrientation.cs`](../../src/Rask.Core/Browser/IDeviceOrientation.cs)
+- [Capability matrix](../browser-capabilities.md)
+- [Browser APIs — the narrative map](../browser-apis.md)

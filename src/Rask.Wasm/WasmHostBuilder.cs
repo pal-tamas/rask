@@ -36,49 +36,14 @@ public sealed class WasmHostBuilder
         // Transient user messages / toasts (Rails-style flash). Singleton = one queue for the app instance
         // (the whole WASM app is a single session), so a message queued before a NavigateTo survives it.
         Services.AddSingleton<IToaster, Toaster>();
-        Services.AddSingleton<IBrowserStorage, BrowserStorage>();
-        Services.AddSingleton<IClipboard, Clipboard>();
-        Services.AddSingleton<IGeolocation, Geolocation>();
-        Services.AddSingleton<INavigatorInfo, NavigatorInfo>();
-        Services.AddSingleton<INetworkInfo, NetworkInfo>();
-        Services.AddSingleton<IMediaQuery, MediaQuery>();
-        Services.AddSingleton<ISpeechSynthesis, SpeechSynthesis>();
-        Services.AddSingleton<IScreenInfo, ScreenInfoReader>();
-        Services.AddSingleton<IStorageEstimator, StorageEstimator>();
-        Services.AddSingleton<IVisualViewport, VisualViewportReader>();
-        Services.AddSingleton<IBroadcastChannel, BroadcastChannelService>();
-        Services.AddSingleton<IIntersectionObserver, IntersectionObserverService>();
-        Services.AddSingleton<IResizeObserver, ResizeObserverService>();
-        Services.AddSingleton<IMutationObserver, MutationObserverService>();
-        Services.AddSingleton<IMediaSession, MediaSession>();
-        Services.AddSingleton<IGamepad, Gamepad>();
-        Services.AddSingleton<IDeviceOrientation, DeviceOrientation>();
-        Services.AddSingleton<IDeviceMotion, DeviceMotion>();
-        Services.AddSingleton<ICrypto, Crypto>();
-        Services.AddSingleton<IPerformance, Performance>();
-        Services.AddSingleton<IIndexedDb, IndexedDb>();
-        Services.AddSingleton<IFileSystemAccess, FileSystemAccess>();
-        Services.AddSingleton<IWebAuthn, WebAuthn>();
-        Services.AddSingleton<ICookies, Cookies>();
-        Services.AddSingleton<IPermissions, Permissions>();
-        Services.AddSingleton<IShare, Share>();
-        Services.AddSingleton<IWebPush, WebPush>();
-        Services.AddSingleton<INotifications, Notifications>();
-        Services.AddSingleton<IBadge, Badge>();
-        Services.AddSingleton<IWakeLock, WakeLock>();
-        Services.AddSingleton<IScreenOrientation, ScreenOrientation>();
-        Services.AddSingleton<IFullscreen, Fullscreen>();
-        Services.AddSingleton<IEyeDropper, EyeDropper>();
-        Services.AddSingleton<IPictureInPicture, PictureInPicture>();
-        Services.AddSingleton<IIdleDetector, IdleDetectorService>();
-        Services.AddSingleton<IMediaDevices, MediaDevices>();
-        Services.AddSingleton<ISerial, Serial>();
-        Services.AddSingleton<IUsb, Usb>();
-        Services.AddSingleton<IHid, Hid>();
-        Services.AddSingleton<IBluetooth, Bluetooth>();
-        Services.AddSingleton<IInstallPrompt, InstallPrompt>();
-        Services.AddSingleton<IVibration, Vibration>();
-        Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
+        // Typed browser/device API wrappers, Singleton (one per app instance). Registered via the shared
+        // helpers (RaskBrowserApis / RaskClientBrowserApis / RaskWasmBrowserApis) so the interface → impl list
+        // lives in one place instead of duplicated across hosts. TryAdd inside the helpers means an app can
+        // pre-register a better implementation and win. WASM serves all three tiers: the transport-agnostic
+        // Core set, the in-process IShare, and the WASM-only device/handle set.
+        Services.AddCoreBrowserApis(ServiceLifetime.Singleton);
+        Services.AddClientBrowserApis(ServiceLifetime.Singleton);
+        Services.AddWasmBrowserApis(ServiceLifetime.Singleton);
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
         Services.TryAddSingleton<IAuthSignIn, WasmAuthSignIn>();
         Services.AddAuthorizationCore();

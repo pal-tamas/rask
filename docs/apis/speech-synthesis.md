@@ -1,0 +1,17 @@
+# ISpeechSynthesis
+
+> Speak text aloud; cancel the queue.
+
+- **Wraps:** SpeechSynthesis API
+- **Home:** `Rask.Core.Browser` (all hosts)
+- **Shape:** one-shot
+- **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
+- **Native backend:** AVSpeechSynthesizer / TextToSpeech
+
+The native backend uses the platform TTS voices (WKWebView speech is unreliable).
+
+## See also
+
+- Source: [`ISpeechSynthesis.cs`](../../src/Rask.Core/Browser/ISpeechSynthesis.cs)
+- [Capability matrix](../browser-capabilities.md)
+- [Browser APIs — the narrative map](../browser-apis.md)

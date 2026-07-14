@@ -6,10 +6,13 @@ shape right yourself. Each is a thin, awaitable layer over the same unified
 [`IJSRuntime`](js-interop.md#calling-js-from-c-ijsruntime), so it works the same way whether your
 app runs on the **Server** (WebSocket) or **WASM** (`JSImport`/`JSExport`) transport.
 
-This page is the **map of the whole surface**. For the deeper "why" — user activation, the
-transport seam, element refs — see [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis);
-for the mobile/PWA angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in
-the **Browser APIs** section of the [showcase](https://pal-tamas.github.io/rask/demo/).
+This page is the **map of the whole surface**. For an at-a-glance view of *where each API works*
+(Web / PWA / Native, and which have a native backend), see the
+[**capability matrix**](browser-capabilities.md) — it links to a dedicated reference page per API
+under [`docs/apis/`](apis/). For the deeper "why" — user activation, the transport seam, element
+refs — see [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis); for the mobile/PWA
+angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in the **Browser APIs**
+section of the [showcase](https://pal-tamas.github.io/rask/demo/).
 
 ## Three homes, one rule
 
@@ -86,6 +89,15 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
 | `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
 | `IGamepad` | Gamepad API | Connected controllers — sticks / triggers / buttons (browser games) | **subscription** |
+| `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription`); send from the backend with [`Rask.WebPush`](pwa.md#sending-from-your-backend-raskwebpush) | one-shot |
+| `INotifications` | Notifications API | Show a local notification from the page | one-shot |
+| `IBadge` | Badging API | Set/clear a count on the installed app icon | one-shot |
+| `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | one-shot |
+
+The last four are **PWA** APIs but transport-agnostic (`IJSRuntime`-backed, no transient activation), so they
+register on Server too — their JS helpers just ship on the Server client only under `AddRaskPwa` (see
+[pwa.md](pwa.md)). On Native, several Shared APIs resolve to a **native C# backend** instead of the WebView —
+see the [capability matrix](browser-capabilities.md) and the [Native guide](native.md#native-device-backends).
 
 ## Sharing — declarative (all hosts) vs imperative (in-process)
 
@@ -114,6 +126,24 @@ the **WASM and Native** hosts (`Rask.Native` can't reference the browser-only `R
 | `Shareable` | `Rask.Core` | **all** (Server too) | Headless declarative share — attaches `data-rask-share` to your element; fires `navigator.share` in the gesture |
 | `IShare` | `Rask.Client.Browser` | WASM + Native | Imperative share from code; native backend on Native |
 
+### Gesture bridge — activation-gated APIs on the Server host
+
+`Shareable`'s trick — run the call **inside the click gesture** so the transient user activation survives —
+generalises. **`GestureTrigger`** (and the typed **`FullscreenTrigger`** / **`EyeDropperTrigger`**) are headless
+the same way: they hand your element a `data-rask-gesture` bundle, and the shared client runs the capability in
+the gesture. That makes normally-WASM-only, activation-gated APIs reachable **declaratively on the Server host**
+(they're still not injectable there). Capabilities that return a value (the eyedropper's hex) post it back to an
+`OnResult` / `OnColor` callback.
+
+```csharp
+FullscreenTrigger(g => Button(Type: "button", Data: g)["Full screen"])
+EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
+    g => Button(Type: "button", Data: g)["Pick a colour"])
+```
+
+Shipped capabilities: fullscreen and the eyedropper; screen-orientation, picture-in-picture, install-prompt, and
+media capture are planned on the same mechanism. See the [capability matrix](browser-capabilities.md).
+
 ## WASM-only APIs — `Rask.Wasm.Browser`
 
 Registered only by the WASM host. Each needs something neither the Server transport nor a native WebView
@@ -122,10 +152,6 @@ provides — the installed-PWA instance / live document, or a browser-only devic
 | Service | Wraps | What it does | Why WASM-only |
 | --- | --- | --- | --- |
 | `IFullscreen` | Fullscreen API | Present an element/page fullscreen | transient activation |
-| `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription`); send from the backend with [`Rask.WebPush`](pwa.md#sending-from-your-backend-raskwebpush) | service worker + installed PWA |
-| `INotifications` | Notifications API | Show a local notification from the page | permission needs a live gesture |
-| `IBadge` | Badging API | Set/clear a count on the installed app icon | installed-PWA instance |
-| `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | tied to the live document |
 | `IScreenOrientation` | Screen Orientation API | Read / lock orientation (lock needs fullscreen) | live document |
 | `IInstallPrompt` | `beforeinstallprompt` | Custom "Install app" button: capture + replay the deferred prompt | live document + activation |
 | `IMediaDevices` | `getUserMedia` / `getDisplayMedia` | Capture camera / mic / screen into a `<video>` (calls, capture) | transient activation + secure context |
@@ -326,6 +352,13 @@ attribute and its click opens the OS share sheet, on every host including Server
 shell. For a code-driven share on the in-process hosts, inject **`IShare`** (`Rask.Client.Browser`) instead.
 
 <!-- demo:browser-share -->
+
+**`GestureTrigger` / `FullscreenTrigger` / `EyeDropperTrigger`** *(`Rask.Core` — all hosts)* — headless
+gesture bridge: hand *your* element the `data-rask-gesture` attribute and its click runs an activation-gated
+API (fullscreen, the eyedropper, …) in the gesture, so it works on Server too, where the imperative service
+can't be injected. See [Gesture bridge](#gesture-bridge-activation-gated-apis-on-the-server-host).
+
+<!-- demo:browser-gesture-bridge -->
 
 ## Notes
 

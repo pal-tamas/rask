@@ -41,6 +41,10 @@ public sealed class NativeAppHost
     // native session tests run without serializing on the global.
     private LiveDiffMode _diffMode = LiveDiffMode.Auto;
 
+    // The platform module (iOS / Android) whose native backends take precedence over the JS fallbacks.
+    // Applied in RunLocalAsync before the tier helpers so its registrations win (native-first).
+    private INativePlatform? _platform;
+
     private NativeAppHost()
     {
         Services = new ServiceCollection();
@@ -51,49 +55,11 @@ public sealed class NativeAppHost
         // message queued before a NavigateTo survives it. Same model as WasmHostBuilder.
         Services.AddSingleton<IToaster, Toaster>();
 
-        // The transport-agnostic browser-API surface (Rask.Core.Browser) — every wrapper is IJSRuntime-
-        // backed and works through the WebView's JS engine. These are the default backings; a platform
-        // head can replace any of them with a native C# backend by registering its own implementation on
-        // host.Services before RunLocalAsync (last registration wins) — see IShare below and docs/native.md.
-        // The remaining WASM-only wrappers (IFullscreen, device APIs) live in Rask.Wasm and are not
-        // referenced here.
-        Services.AddSingleton<IBrowserStorage, BrowserStorage>();
-        Services.AddSingleton<IClipboard, Clipboard>();
-        Services.AddSingleton<IGeolocation, Geolocation>();
-        Services.AddSingleton<INavigatorInfo, NavigatorInfo>();
-        Services.AddSingleton<INetworkInfo, NetworkInfo>();
-        Services.AddSingleton<IMediaQuery, MediaQuery>();
-        Services.AddSingleton<ISpeechSynthesis, SpeechSynthesis>();
-        Services.AddSingleton<IScreenInfo, ScreenInfoReader>();
-        Services.AddSingleton<IStorageEstimator, StorageEstimator>();
-        Services.AddSingleton<IVisualViewport, VisualViewportReader>();
-        Services.AddSingleton<IBroadcastChannel, BroadcastChannelService>();
-        Services.AddSingleton<IIntersectionObserver, IntersectionObserverService>();
-        Services.AddSingleton<IResizeObserver, ResizeObserverService>();
-        Services.AddSingleton<IMutationObserver, MutationObserverService>();
-        Services.AddSingleton<IMediaSession, MediaSession>();
-        Services.AddSingleton<IGamepad, Gamepad>();
-        Services.AddSingleton<IDeviceOrientation, DeviceOrientation>();
-        Services.AddSingleton<IDeviceMotion, DeviceMotion>();
-        Services.AddSingleton<ICrypto, Crypto>();
-        Services.AddSingleton<IPerformance, Performance>();
-        Services.AddSingleton<IIndexedDb, IndexedDb>();
-        Services.AddSingleton<IFileSystemAccess, FileSystemAccess>();
-        Services.AddSingleton<IWebAuthn, WebAuthn>();
-        Services.AddSingleton<ICookies, Cookies>();
-        Services.AddSingleton<IPermissions, Permissions>();
-        Services.AddSingleton<IVibration, Vibration>();
-        Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
-        // Share: JS-backed default (navigator.share). On a real device a platform head registers a native
-        // backend (UIActivityViewController / Intent.ACTION_SEND) over this before RunLocalAsync — the
-        // native path needs no user activation and works where the WebView lacks navigator.share.
-        Services.AddSingleton<IShare, Share>();
-        // Transport-agnostic PWA APIs (IJSRuntime-backed) — push subscribe, local notifications, app badge,
-        // wake lock — work in the WebView too, like on Server.
-        Services.AddSingleton<IWebPush, WebPush>();
-        Services.AddSingleton<INotifications, Notifications>();
-        Services.AddSingleton<IBadge, Badge>();
-        Services.AddSingleton<IWakeLock, WakeLock>();
+        // The transport-agnostic browser-API surface (Rask.Core.Browser + the in-process IShare) is NOT wired
+        // here — it is registered in RunLocalAsync, AFTER any INativePlatform passed to UsePlatform has added
+        // its native C# backends. Because the tier helpers use TryAdd, a native backend registered by the
+        // platform (or an explicit app registration) wins, and every interface it does not cover falls back to
+        // the WebView's JS engine. This is the framework-picks-the-best-impl path — see UsePlatform below.
 
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
         Services.AddAuthorizationCore();
@@ -106,6 +72,20 @@ public sealed class NativeAppHost
 
     /// <summary>The DI container for the app. Register your services here before running.</summary>
     public IServiceCollection Services { get; }
+
+    /// <summary>
+    ///     Installs a native platform module (e.g. <c>ApplePlatform</c> / <c>AndroidPlatform</c> from the
+    ///     platform head) whose native C# backends implement the browser/device API interfaces. The host
+    ///     applies it in <see cref="RunLocalAsync{TApp}" /> before the JS-backed fallbacks, so any interface
+    ///     the platform backs natively wins and the rest fall back to the WebView. Returns <c>this</c> for
+    ///     chaining. Calling it again replaces the previous module.
+    /// </summary>
+    public NativeAppHost UsePlatform(INativePlatform platform)
+    {
+        ArgumentNullException.ThrowIfNull(platform);
+        _platform = platform;
+        return this;
+    }
 
     /// <summary>Creates a host with framework-default live options (<see cref="LiveDiffMode.Auto" />).</summary>
     public static NativeAppHost CreateDefault() => CreateDefault(null);
@@ -156,6 +136,13 @@ public sealed class NativeAppHost
         where TApp : Component
     {
         ArgumentNullException.ThrowIfNull(webView);
+
+        // Native-first wiring: the platform's native backends first, then the JS-backed fallbacks via TryAdd,
+        // so a natively-backed interface wins and everything else resolves to the WebView's JS engine. The
+        // WASM-only tier is intentionally absent — Rask.Native does not reference Rask.Wasm.
+        _platform?.Register(Services);
+        Services.AddCoreBrowserApis(ServiceLifetime.Singleton);
+        Services.AddClientBrowserApis(ServiceLifetime.Singleton);
 
         var provider = Services.BuildServiceProvider();
 
