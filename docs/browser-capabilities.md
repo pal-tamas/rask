@@ -5,8 +5,9 @@ framework resolves the best implementation for the host — a native iOS/Android
 exists, the WebView's JS otherwise. Each API links to its own reference page; the narrative overview
 (with the three-homes rationale and the subscription pattern) is [browser-apis.md](browser-apis.md).
 
-**Legend** — ✅ implemented · 🟡 planned via the Server gesture bridge · ⬜ not available · — n/a. A
-**★** in the Native column marks an API with a native C# backend (the rest run through the WebView's JS).
+**Legend** — ✅ injectable service · 🟡 reachable on Server via a declarative **gesture component** (runs the
+activation-gated call inside a click), not as an injected service · ⬜ not available · — n/a. A **★** in the
+Native column marks an API with a native C# backend (the rest run through the WebView's JS).
 
 | API | Web / Server | PWA / WASM | Native | Native backend |
 |-----|:---:|:---:|:---:|-----|
@@ -58,7 +59,10 @@ exists, the WebView's JS otherwise. Each API links to its own reference page; th
 
 - **Web / Server** is the ASP.NET host (per-session, over WebSocket). The 31 transport-agnostic
   wrappers register there; the activation-gated ones (🟡) can't be injected but are reachable through
-  declarative gesture components (planned — see the roadmap in [browser-apis.md](browser-apis.md)).
+  declarative **gesture components** that run the call inside the click gesture. Shipped today:
+  [`FullscreenTrigger`](apis/fullscreen.md) and [`EyeDropperTrigger`](apis/eye-dropper.md) (plus the
+  generic `GestureTrigger`); triggers for screen-orientation, picture-in-picture, install-prompt, and
+  media capture are planned on the same mechanism.
 - **PWA / WASM** is the in-browser WebAssembly host, which registers the full set.
 - **Native** is the `Rask.Native` host. Every ★ API has a first-class native backend wired by
   `ApplePlatform` / `AndroidPlatform` (see [native.md](native.md)); the rest run through the WebView.

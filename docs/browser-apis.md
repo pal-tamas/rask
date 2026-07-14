@@ -126,6 +126,24 @@ the **WASM and Native** hosts (`Rask.Native` can't reference the browser-only `R
 | `Shareable` | `Rask.Core` | **all** (Server too) | Headless declarative share — attaches `data-rask-share` to your element; fires `navigator.share` in the gesture |
 | `IShare` | `Rask.Client.Browser` | WASM + Native | Imperative share from code; native backend on Native |
 
+### Gesture bridge — activation-gated APIs on the Server host
+
+`Shareable`'s trick — run the call **inside the click gesture** so the transient user activation survives —
+generalises. **`GestureTrigger`** (and the typed **`FullscreenTrigger`** / **`EyeDropperTrigger`**) are headless
+the same way: they hand your element a `data-rask-gesture` bundle, and the shared client runs the capability in
+the gesture. That makes normally-WASM-only, activation-gated APIs reachable **declaratively on the Server host**
+(they're still not injectable there). Capabilities that return a value (the eyedropper's hex) post it back to an
+`OnResult` / `OnColor` callback.
+
+```csharp
+FullscreenTrigger(g => Button(Type: "button", Data: g)["Full screen"])
+EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
+    g => Button(Type: "button", Data: g)["Pick a colour"])
+```
+
+Shipped capabilities: fullscreen and the eyedropper; screen-orientation, picture-in-picture, install-prompt, and
+media capture are planned on the same mechanism. See the [capability matrix](browser-capabilities.md).
+
 ## WASM-only APIs — `Rask.Wasm.Browser`
 
 Registered only by the WASM host. Each needs something neither the Server transport nor a native WebView
