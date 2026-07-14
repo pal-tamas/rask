@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Opt-in `--docker` for the web templates.** `dotnet new rask-server`, `rask-wasm`, and
+  `rask-wasm-hosted` take a `--docker` flag (default off) that scaffolds a production multi-stage
+  `Dockerfile` + `.dockerignore`. The two Kestrel templates build on the .NET SDK image and run on
+  `aspnet:10.0` (non-root, port 8080); the standalone `rask-wasm` bundle publishes then serves from
+  `nginx:alpine` with a bundled `nginx.conf` (SPA fallback, `application/wasm` MIME, `gzip_static`).
+  New `docs/deployment.md` covers containerizing each template (TLS-at-proxy, WebSocket upgrade,
+  sub-paths) and why `rask-native` (a mobile app) isn't containerized.
 - **Gesture bridge — activation-gated browser APIs on the Server host.** New headless `GestureTrigger`
   and six typed wrappers generalise `Shareable`'s trick: they hand your element a `data-rask-gesture`
   bundle and the shared client runs the capability **inside the click gesture**, so the browser's transient

@@ -33,4 +33,19 @@ Scaffolded with `--auth`: **cookie** auth. The host serves the login / `me` / lo
 endpoints; the client hydrates the current user and gates a protected `/members` page.
 Auth-related files live under each project's `Auth/` folder and are omitted without `--auth`.
 
+## Docker
+
+Scaffolded with `--docker`: a multi-stage `Dockerfile` (+ `.dockerignore`) that installs the
+`wasm-tools` workload, builds both projects, and runs the **Host** on `aspnet:10.0` (non-root, port
+**8080**).
+
+```bash
+docker build -t myapp .
+docker run --rm -p 8080:8080 myapp
+```
+
+`UseHttpsRedirection()` no-ops in the container — terminate TLS at your reverse proxy and forward
+plain HTTP to 8080. See
+[docs/deployment.md](https://github.com/pal-tamas/rask/blob/main/docs/deployment.md).
+
 Next steps: the [Rask docs](https://github.com/pal-tamas/rask/tree/main/docs).
