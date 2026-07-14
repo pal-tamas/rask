@@ -33,5 +33,9 @@
 	<!-- Native + Local serves everything from the raskapp:// custom scheme and never loads plain http, so
 	     no App Transport Security exception is needed here. (The Native + Server sample, which loads a dev
 	     server over http, is the one that relaxes ATS.) -->
+	<!-- Native IGeolocation (ApplePlatform → CoreLocation) shows the system location prompt; iOS requires a
+	     purpose string. Clipboard / vibration / wake-lock / network-info need no usage description. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>The showcase reads your location to demo the native IGeolocation backend.</string>
 </dict>
 </plist>
