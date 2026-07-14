@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-07-14
+
 ### Added
 - **Marketing landing site, built in Rask (`samples/Rask.Example.Site`).** The GitHub Pages front door
   at `https://pal-tamas.github.io/rask/` is now a standalone Rask WASM app that renders the whole page —
