@@ -47,8 +47,13 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 
 ## CI
 
-- `ci.yml` — unit/integration gate, deterministic benchmark byte-gates, and a native compile gate
-  (both native samples × android/ios). **E2E does not run in CI** (see below).
+- `ci.yml` — the deterministic benchmark byte-gates and a native compile gate (both native samples ×
+  android/ios). **Tests do not run in CI** — the unit/integration suite and the E2E suites run locally
+  (see below).
+- **Unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the solution and
+  runs every test except the browser E2E. The `.githooks/pre-commit` hook runs `dotnet format
+  --verify-no-changes` then that script whenever a commit stages code (enable hooks with
+  `git config core.hooksPath .githooks`; bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`).
 - **E2E runs locally, enforced before push.** The browser-journey E2E
   (`tests/Rask.Examples.E2E.Tests`, Playwright) and the on-device native E2E
   (`tests/Rask.Native.Appium.Tests`, Appium) were moved out of the CI pipeline. Run the browser gate
