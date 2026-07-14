@@ -9,14 +9,16 @@ them until tagged releases begin.
 
 ### Added
 - **Native iOS/Android backends for the browser/device APIs, wired with one line.** `Rask.Native` now
-  ships native C# implementations of six interfaces and a platform module that installs them:
+  ships native C# implementations of ten interfaces and a platform module that installs them:
   `host.UsePlatform(new ApplePlatform(() => rootVc))` / `new AndroidPlatform(this)`. Injecting the
   ordinary interface then resolves the native backend on device — `IGeolocation` → `CLLocationManager` /
   `LocationManager`, `IClipboard` → `UIPasteboard` / `ClipboardManager`, `IVibration` → system vibration /
   `Vibrator`, `IWakeLock` → idle-timer / `FLAG_KEEP_SCREEN_ON`, `INetworkInfo` → `NWPathMonitor` /
-  `ConnectivityManager`, and `IShare` (already native) — instead of the WebView's JS, which is often
-  gesture-gated or absent on the platform. Everything else falls back to the WebView automatically. The
-  `rask-native` sample uses the new modules (and adds the location / network-state / vibrate permissions).
+  `ConnectivityManager`, `ISpeechSynthesis` → `AVSpeechSynthesizer` / `TextToSpeech`, `IScreenInfo` →
+  `UIScreen` / `DisplayMetrics`, `IDeviceOrientation` / `IDeviceMotion` → CoreMotion / `SensorManager`, and
+  `IShare` (already native) — instead of the WebView's JS, which is often gesture-gated or absent on the
+  platform. Everything else falls back to the WebView automatically. The `rask-native` sample uses the new
+  modules (and adds the location / network-state / vibrate permissions).
 - **Central registration for the typed browser/device APIs, with native-first resolution.** The
   interface → implementation map for the 43 browser wrappers, previously hand-duplicated across the
   Server, WASM, and Native hosts, now lives in one place per assembly: `AddCoreBrowserApis` (the 31

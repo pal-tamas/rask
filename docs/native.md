@@ -289,6 +289,10 @@ The shipped native backends (both platforms):
 | `IVibration` | system vibration (AudioToolbox) | `Vibrator` / `VibratorManager` |
 | `IWakeLock` | `UIApplication.IdleTimerDisabled` | window `FLAG_KEEP_SCREEN_ON` |
 | `INetworkInfo` | `NWPathMonitor` | `ConnectivityManager` |
+| `ISpeechSynthesis` | `AVSpeechSynthesizer` | `TextToSpeech` |
+| `IScreenInfo` | `UIScreen` | `DisplayMetrics` |
+| `IDeviceOrientation` | CoreMotion (`CMMotionManager`) | `SensorManager` (rotation vector) |
+| `IDeviceMotion` | CoreMotion (`CMMotionManager`) | `SensorManager` (accelerometer + gyroscope) |
 
 So `await geolocation.GetCurrentPositionAsync()` returns a native fix (real permission prompt +
 `CLLocationManager` / `LocationManager` accuracy) instead of `navigator.geolocation`, `clipboard.WriteTextAsync`
