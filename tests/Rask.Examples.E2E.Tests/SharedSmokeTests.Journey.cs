@@ -1154,6 +1154,9 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // BsRadioGroup — bound (Component control): the derived readout sits OUTSIDE the Form yet updates.
+        // The bound group passes Label:, so the radios are wrapped in an accessible <fieldset>/<legend>.
+        await Expect(Page.Locator("#fc-radio-bound fieldset > legend")).ToHaveTextAsync("Plan",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
         await Page.Locator("input[type=radio][name='fc-radio-b'][value='Team']").CheckAsync();
         await Expect(Page.Locator("#fc-radio-bound-out")).ToContainTextAsync("Team",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });

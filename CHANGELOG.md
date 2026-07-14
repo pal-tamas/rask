@@ -26,6 +26,15 @@ them until tagged releases begin.
   `nginx:alpine` with a bundled `nginx.conf` (SPA fallback, `application/wasm` MIME, `gzip_static`).
   New `docs/deployment.md` covers containerizing each template (TLS-at-proxy, WebSocket upgrade,
   sub-paths) and why `rask-native` (a mobile app) isn't containerized.
+- **Full HTML-attribute passthrough on the Bootstrap `BsInput`/`BsTextarea`.** `BsInput` now forwards
+  `Min`/`Max`/`Step`/`Pattern`/`MaxLength`/`MinLength`/`List`/`Autofocus` (constraints & affordances),
+  `Accept`/`Capture`/`Multiple` (file inputs), and `InputMode`/`EnterKeyHint`/`Spellcheck` (mobile-keyboard
+  & a11y hints) to the core `Input`; `BsTextarea` forwards `Cols`/`MaxLength`/`MinLength`/`Autocomplete`/
+  `Autofocus`. Previously a Bootstrap number/date/range/file field could not set any of these. (The HTML
+  `size` attribute stays unexposed on `BsInput` — the base `Size` is Bootstrap control sizing.)
+- **New mobile / accessibility attributes on the core `Input`.** `InputMode` (on-screen keyboard),
+  `EnterKeyHint` (action-key label), `Spellcheck` (the enumerated `spellcheck="true|false"`), `Capture`
+  (camera/mic for file inputs), and `Dirname` (submit text direction) join the `<input>` surface.
 - **Gesture bridge — activation-gated browser APIs on the Server host.** New headless `GestureTrigger`
   and six typed wrappers generalise `Shareable`'s trick: they hand your element a `data-rask-gesture`
   bundle and the shared client runs the capability **inside the click gesture**, so the browser's transient
@@ -148,7 +157,25 @@ them until tagged releases begin.
   version — a fallback version otherwise breaks the routes registry's cross-assembly load at startup. No
   gate changed — same tests, filters, warnings-as-errors build, and byte-regression benchmark gate.
 
+### Fixed
+- **Accessible names + validation semantics for the Bootstrap group/combobox form controls.** `BsSelect`
+  (custom combobox) and `BsMultiSelect` named their visible label with a `<label for>` pointing at a
+  `<div role="combobox">` — void, since a div is not a labelable element — so the control had no accessible
+  name; both now associate the label via `aria-labelledby`, and `BsMultiSelect` gained the
+  `aria-haspopup`/`aria-expanded`/`aria-controls` (+ `aria-invalid`/`aria-describedby`) contract `BsSelect`
+  already had. `BsRadioGroup`/`BsCheckboxGroup` gained an optional `Label` that wraps the options in a
+  `<fieldset>` named by a `<legend>` (the correct group semantics + accessible name), and their invalid
+  feedback is now a `role="alert"` live region carrying an id the option inputs reference via
+  `aria-describedby` (with `aria-invalid` on each) — matching the `BsFormControl` field contract.
+
 ### Documentation
+- **Forms guide: full input-type set, file inputs, and the new form-control surface.**
+  [`docs/forms.md`](docs/forms.md) now enumerates every `InputType` (and flags the string-only family
+  as [RASK025](docs/diagnostics.md#rask025)), documents file inputs (`OnFiles`/`Accept`/`Capture`/
+  `Multiple`) with a cross-link to [http-and-files.md](docs/http-and-files.md), and lists the mobile/a11y
+  input attributes. [`docs/bootstrap-forms.md`](docs/bootstrap-forms.md) documents the `BsInput`/
+  `BsTextarea` attribute passthrough and the accessible-group `Label`. The `FormControls` radio/checkbox
+  samples showcase the named-group `<fieldset>`/`<legend>`.
 - **Browser/device API capability matrix + per-API reference pages.** New
   [`docs/browser-capabilities.md`](docs/browser-capabilities.md) is a single table of all 43 wrappers
   showing where each works (Web / PWA / Native) and which have a native iOS/Android backend, linking to a

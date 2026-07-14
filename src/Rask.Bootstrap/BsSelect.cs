@@ -49,8 +49,9 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     private static bool CanClear => Nullable.GetUnderlyingType(typeof(TValue)) is not null;
 
     // A per-instance suffix so two id-less selects still emit unique option ids for aria-activedescendant.
-    private static int _seq;
-    private readonly int _instanceId = System.Threading.Interlocked.Increment(ref _seq);
+    // Uses the shared non-generic counter so two id-less selects of different generic arguments don't both
+    // start at 1 and collide.
+    private readonly int _instanceId = BsInstanceId.Next();
 
     protected override Component? Render()
     {
@@ -107,6 +108,12 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         var selectedIdx = SelectedIndex(b, opts);
         var floating = Floating is true && Label is not null;
 
+        // The combobox is a <div role="combobox">, which is NOT a labelable element, so a <label for>
+        // pointing at it is void (the accessible name is never computed). Give the visible label a stable
+        // id and name the combobox with aria-labelledby instead. controlId can be null (no Id/Name/bound
+        // property) — fall back to the always-present prefix so the id is stable across renders.
+        var labelId = Label is not null ? (controlId ?? prefix) + "-label" : null;
+
         // Filtering is opt-in: only a supplied Filter predicate shows the search field and narrows the list.
         var searchable = Filter is not null;
         var filtered = searchable && !string.IsNullOrEmpty(_filter)
@@ -124,6 +131,11 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
             ["expanded"] = _open ? "true" : "false",
             ["controls"] = listId,
         };
+        if (labelId is not null)
+        {
+            aria["labelledby"] = labelId;
+        }
+
         if (_open && _cursor >= 0 && _cursor < filtered.Count)
         {
             aria["activedescendant"] = OptId(prefix, _cursor);
@@ -211,7 +223,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 
         var labelNode = Label is null
             ? null
-            : Rask.Core.Components.Generated.Label(For: controlId, Class: floating ? null : "form-label")[
+            : Rask.Core.Components.Generated.Label(Id: labelId, Class: floating ? null : "form-label")[
                 Label,
                 Required is true ? Span(Class: "text-danger ms-1")["*"] : null];
 

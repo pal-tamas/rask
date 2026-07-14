@@ -1,7 +1,7 @@
 namespace Rask.Core;
 
 // The HTML <input> type, as a closed set instead of a free string — so the type is validated at compile
-// time and the analyzer (RASK023) can check it against a bound Input<T>'s value type. When an Input<T> is
+// time and the analyzer (RASK025) can check it against a bound Input<T>'s value type. When an Input<T> is
 // bound and no Type is given, the type is derived from T (bool→Checkbox, numeric→Number, DateOnly→Date, …);
 // an explicit Type overrides that.
 public enum InputType
@@ -34,15 +34,9 @@ public enum InputType
 
 public static class InputTypeExtensions
 {
-    // The HTML attribute string for an InputType. All members are their lower-cased name except
-    // DatetimeLocal, which renders as the hyphenated "datetime-local".
+    // The HTML attribute string for an InputType: each member's lower-cased name, except DatetimeLocal
+    // which renders as the hyphenated "datetime-local" (the only multi-word HTML input type).
     public static string ToHtml(this InputType type) => type switch
-    {
-        InputType.DatetimeLocal => "datetime-local",
-        _ => ToLowerName(type)
-    };
-
-    private static string ToLowerName(InputType type) => type switch
     {
         InputType.Text => "text",
         InputType.Search => "search",
@@ -57,6 +51,7 @@ public static class InputTypeExtensions
         InputType.Range => "range",
         InputType.Color => "color",
         InputType.Date => "date",
+        InputType.DatetimeLocal => "datetime-local",
         InputType.Time => "time",
         InputType.Week => "week",
         InputType.Month => "month",

@@ -55,10 +55,56 @@ public class FluentValidationValidatorTests
         Assert.Contains(msgs, m => m.Contains("could not be completed"));
     }
 
+    [Fact]
+    public async Task MustAsync_FailingRule_SurfacesMessageForField()
+    {
+        // The async rule path (MustAsync) must be awaited and its failure surfaced per field, exactly like a
+        // sync rule — this is the headline reason FluentValidation registers an IAsyncFieldValidator.
+        var p = new Person { Name = "taken", Age = 1 };
+        var ctx = RegisterValidator(p, new AsyncNameValidator());
+
+        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"));
+
+        Assert.Contains("Name taken", ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
+    }
+
+    [Fact]
+    public async Task MustAsync_PassingRule_LeavesFieldClean()
+    {
+        var p = new Person { Name = "free", Age = 1 };
+        var ctx = RegisterValidator(p, new AsyncNameValidator());
+
+        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"));
+
+        Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
+    }
+
+    [Fact]
+    public async Task ValidateAsync_RunsAsyncRuleAcrossTheWholeForm()
+    {
+        var p = new Person { Name = "taken", Age = 1 };
+        var ctx = RegisterValidator(p, new AsyncNameValidator());
+
+        var ok = await ctx.ValidateAsync();
+
+        Assert.False(ok);
+        Assert.Contains("Name taken", ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
+    }
+
     private sealed class Person
     {
         public string Name { get; set; } = "";
         public int Age { get; set; }
+    }
+
+    private sealed class AsyncNameValidator : AbstractValidator<Person>
+    {
+        public AsyncNameValidator() =>
+            RuleFor(x => x.Name).MustAsync(async (name, _) =>
+            {
+                await Task.Yield();
+                return name != "taken";
+            }).WithMessage("Name taken");
     }
 
     private sealed class PersonValidator : AbstractValidator<Person>

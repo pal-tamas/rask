@@ -180,3 +180,14 @@ internal static class BsClass
         return sb.Length == 0 ? null : sb.ToString();
     }
 }
+
+// A process-wide counter for controls that need a page-unique id suffix when the caller gives no id
+// (id-less comboboxes/groups derive list/label/error ids from it). It lives on a NON-generic type on
+// purpose: a `static` field on a generic control is per-closed-type, so `BsMultiSelect<string>` and
+// `BsMultiSelect<int>` would each restart at 1 and collide — this shared counter never does.
+internal static class BsInstanceId
+{
+    private static int _seq;
+
+    public static int Next() => System.Threading.Interlocked.Increment(ref _seq);
+}

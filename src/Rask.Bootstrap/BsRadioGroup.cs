@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
@@ -27,9 +28,19 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
     public Func<TValue, Component>? OptionLabel { get; set; }
     public string? Name { get; set; }
 
+    // The group's accessible name. When set, the radios are wrapped in a <fieldset> named by a <legend>
+    // (the correct grouping semantics + accessible name for a set of related radios); when null, the bare
+    // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
+    public string? Label { get; set; }
+
     // Extra wrapper classes per item, e.g. "form-check-inline".
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
+
+    // Unique suffix for the auto-generated group name of an UNNAMED group, so two id-less controlled
+    // radio groups on one page don't both fall back to name="radio-group" — which would make the browser
+    // treat them as one radio group (selecting in one clears the other) and collide their option ids.
+    private readonly int _instanceId = BsInstanceId.Next();
 
     protected override Component? Render()
     {
@@ -61,8 +72,17 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
         }
 
         var disabled = Disabled == true;
-        var groupName = Name ?? acc?.PropertyName ?? "radio-group";
+        var groupName = Name ?? acc?.PropertyName
+            ?? "radio-group-" + _instanceId.ToString(CultureInfo.InvariantCulture);
         var wrapperClass = BsClass.Join("form-check", ItemClass);
+
+        // Reading GetValidationMessages here latches the render-cache opt-out (see BsFormControl) so the group
+        // repaints its aria-invalid + feedback when a rule fails on submit, instead of serving a stale cache.
+        // The error is a role="alert" live region carrying a stable id the radios point at via aria-describedby.
+        IReadOnlyList<string> messages = bound && ctx is not null ? ctx.GetValidationMessages(fid) : [];
+        var invalid = messages.Count > 0;
+        var errorId = invalid ? groupName + "-error" : null;
+        var optionAria = BsClass.FieldAria(invalid, errorId);
 
         var children = new List<Component>();
         var index = 0;
@@ -77,15 +97,25 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
                 Input<string>(
                     InputType.Radio, groupName, BindingHelpers.FormatValue(option),
                     Checked: isChecked, Disabled: Disabled, Class: "form-check-input", Id: optionId,
+                    Aria: optionAria,
                     OnChangeAsync: disabled ? null : _ => SelectAsync(acc, ctx, fid, optionValue)),
                 Rask.Core.Components.Generated.Label(Class: "form-check-label", For: optionId)[label]
             ]);
             index++;
         }
 
-        if (bound)
+        if (invalid)
         {
-            children.Add(ValidationMessage(Bind!, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]]));
+            children.Add(Div(Id: errorId, Class: "invalid-feedback d-block", Role: "alert")[messages[0]]);
+        }
+
+        if (Label is not null)
+        {
+            var content = new List<Component> { Legend(Class: "form-label fs-6")[Label] };
+            content.AddRange(children);
+            // Disabled is NOT set on the fieldset: a disabled fieldset disables ALL descendants, which would
+            // also disable interactive content in a rich OptionLabel. The radios carry their own Disabled.
+            return Fieldset(Class: "border-0 p-0 m-0")[content];
         }
 
         return [.. children];
