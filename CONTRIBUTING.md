@@ -74,8 +74,16 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   `dotnet test` are green. Run `dotnet format` before committing.
 - **[Conventional Commits](https://www.conventionalcommits.org/)** are required and enforced by
   CI (`commitlint`): `type(scope): subject` with type ∈
-  `feat, fix, perf, refactor, docs, test, build, ci, chore, revert`. Enable the local guard:
-  `git config core.hooksPath .githooks`.
+  `feat, fix, perf, refactor, docs, test, build, ci, chore, revert`. Enable the local guards with
+  `git config core.hooksPath .githooks` — this installs the `commit-msg` (Conventional Commits) hook
+  **and** the `pre-push` hook that runs the local E2E gate (see below).
+- **E2E runs locally, not in CI.** The browser-journey E2E (`tests/Rask.Examples.E2E.Tests`, Playwright)
+  and the on-device native E2E (`tests/Rask.Native.Appium.Tests`, Appium) are not part of the CI
+  pipeline. Run the browser gate with `scripts/run-e2e-local.sh` (the `pre-push` hook runs it for you on
+  `git push`; bypass a docs-only push with `git push --no-verify` or `RASK_SKIP_E2E=1`). The on-device
+  native suite needs a booted emulator/simulator + Appium — run it manually before shipping native
+  changes (see [docs/native.md](docs/native.md)). CI still runs unit/integration tests, the deterministic
+  benchmark byte-gates, and a native compile gate.
 - **Do not** append `Co-Authored-By` or `Generated-with` footers to commits or PR descriptions.
 - Add a note to [`CHANGELOG.md`](CHANGELOG.md) under `[Unreleased]` for user-visible changes.
 - User-facing changes must update a sample under `samples/` and the relevant docs
