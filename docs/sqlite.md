@@ -240,6 +240,30 @@ the SQLite store on mobile, so adding a todo, killing the app, and relaunching s
 > `Environment.SpecialFolder.LocalApplicationData` maps to the app sandbox (iOS `Library/`, Android
 > `filesDir`), which is local storage, so the locking WAL needs is fine.
 
+## SQLite in the browser? (WASM)
+
+`Rask.SQLite` is a **server- and mobile-side** package, and deliberately so. Its whole value is the
+production pragma set — WAL, `busy_timeout`, `synchronous` — which tames **concurrent** access to a
+file database. A browser (WebAssembly) app has none of that: it's single-threaded, there's no real
+filesystem, and **WAL doesn't work** there, so the pragmas that make this package worthwhile don't
+apply. Running `Microsoft.Data.Sqlite` in the browser also means compiling and linking a WASM build of
+`e_sqlite3` (a native relink at publish) for a database that lives in memory and is lost on reload
+unless you serialize the whole file out by hand — a lot of moving parts for little gain.
+
+For client-side storage in a Rask WASM app, reach for what the browser already gives you and Rask
+already wraps:
+
+- **Key/value** — `IBrowserStorage` (localStorage/sessionStorage, ~5 MB) or `IIndexedDb` (hundreds of
+  MB, async), both in `Rask.Core.Browser`. See [browser-apis.md](browser-apis.md).
+- **A real client-side SQL database** — use the JavaScript
+  [`sqlite-wasm`](https://sqlite.org/wasm/) + OPFS (Origin Private File System) stack in a Web Worker.
+  That's a different engine from `Microsoft.Data.Sqlite`, purpose-built for the browser, and it owns
+  the durable-persistence story (OPFS sync access handles) that `Rask.SQLite` intentionally does not
+  try to reinvent.
+
+Keep SQLite behind the server (or on device with `Rask.Native`), and let the WASM client talk to it
+through an API or the browser storage APIs above.
+
 ## Testing
 
 The pragmas are easy to assert against a real database file — open a connection through the factory
