@@ -192,6 +192,25 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             }
         }
 
+        if (bar.Segments is { Count: > 0 } segments)
+        {
+            dto.Segments = new List<NativeSegmentDescriptor>(segments.Count);
+            for (var i = 0; i < segments.Count; i++)
+            {
+                string? id = null;
+                if (bar.OnSegmentChanged is { } onChanged)
+                {
+                    var index = i; // capture per iteration so the tapped segment's index is echoed
+                    id = "h.segment." + i;
+                    handlers[id] = () => onChanged(index);
+                }
+
+                dto.Segments.Add(new NativeSegmentDescriptor { Title = segments[i], Id = id });
+            }
+
+            dto.SelectedSegment = Math.Clamp(bar.SelectedSegment ?? 0, 0, segments.Count - 1);
+        }
+
         return dto;
     }
 

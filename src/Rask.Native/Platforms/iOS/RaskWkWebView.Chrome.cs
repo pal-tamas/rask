@@ -146,7 +146,39 @@ internal sealed class RaskChromeContainerView : UIView
             item.RightBarButtonItems = right;
         }
 
+        if (header.Segments is { Count: > 0 } segments)
+        {
+            // A segmented control replaces the title (iOS's standard titleView pattern).
+            item.TitleView = BuildSegmentedControl(segments, header.SelectedSegment, ResolveUIColor(header.Tint));
+        }
+
         _navBar.Items = [item];
+    }
+
+    private UISegmentedControl BuildSegmentedControl(
+        IReadOnlyList<NativeSegmentDescriptor> segments, int selected, UIColor? tint)
+    {
+        var control = new UISegmentedControl();
+        for (var i = 0; i < segments.Count; i++)
+        {
+            control.InsertSegment(segments[i].Title ?? string.Empty, i, false);
+        }
+
+        control.SelectedSegment = Math.Clamp(selected, 0, segments.Count - 1);
+        if (tint is not null)
+        {
+            control.SelectedSegmentTintColor = tint;
+        }
+
+        control.ValueChanged += (_, _) =>
+        {
+            var i = (int)control.SelectedSegment;
+            if (i >= 0 && i < segments.Count && segments[i].Id is { } id)
+            {
+                _raise?.Invoke($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+            }
+        };
+        return control;
     }
 
     private void ApplyFooter(NativeFooterDescriptor? footer)

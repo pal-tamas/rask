@@ -49,6 +49,8 @@ https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/nati
   bar + bottom tab bar on Android — and serializes the `NativeWebView`'s HTML into the WebView between them.
   Build bars from `NativeBarButton` / `NativeTab` / `NativeBackButton` and type-safe `NativeIcon`s. A
   `NativeTab` also takes an optional `Badge` string (unread count) → `UITabBarItem.BadgeValue` / icon overlay.
+  `NativeHeaderBar` takes optional `Segments` (shown in place of the title) → a `UISegmentedControl` / button
+  row, controlled via `SelectedSegment` + `OnSegmentChanged(int)`.
 - **Style the bars** with `NativeColor` (the color sibling of `NativeIcon`: `Hex` / `Rgba` / `Adaptive(light,
   dark)` / `System`) — set `Background` / `Tint` / `TitleColor` per bar (`NativeTabBar` also `UnselectedTint`),
   or register an app-wide `NativeTheme` on `host.Services`. Per-bar wins, then the theme, then the platform

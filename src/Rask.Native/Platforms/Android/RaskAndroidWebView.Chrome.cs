@@ -89,16 +89,25 @@ public sealed partial class RaskAndroidWebView
             _topBar.AddView(BuildBarButton(leading, tint));
         }
 
-        var title = new TextView(_context)
+        var titleSlot = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, weight: 1f);
+        if (header.Segments is { Count: > 0 } segments)
         {
-            Text = header.Title ?? string.Empty,
-            TextSize = 18f,
-            // Stable content-desc so screen readers + the Appium E2E can address the native header.
-            ContentDescription = "rask-native-header",
-        };
-        title.SetPadding(Dp(12), Dp(12), Dp(12), Dp(12));
-        title.SetTextColor(ResolveColor(header.TitleColor) ?? onBar);
-        _topBar.AddView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, weight: 1f));
+            // A segmented control takes the title's slot (parity with the iOS titleView).
+            _topBar.AddView(BuildSegmentedControl(segments, header.SelectedSegment, tint), titleSlot);
+        }
+        else
+        {
+            var title = new TextView(_context)
+            {
+                Text = header.Title ?? string.Empty,
+                TextSize = 18f,
+                // Stable content-desc so screen readers + the Appium E2E can address the native header.
+                ContentDescription = "rask-native-header",
+            };
+            title.SetPadding(Dp(12), Dp(12), Dp(12), Dp(12));
+            title.SetTextColor(ResolveColor(header.TitleColor) ?? onBar);
+            _topBar.AddView(title, titleSlot);
+        }
 
         if (header.Trailing is { Count: > 0 } trailing)
         {
@@ -275,15 +284,62 @@ public sealed partial class RaskAndroidWebView
 
     // A readable content color for a bar with the given background: dark content on a light bar, light on a
     // dark one. The custom LinearLayout widgets carry no themed color, so an explicit default keeps them legible.
-    private Color OnBarColor(string? backgroundToken)
+    private Color OnBarColor(string? backgroundToken) =>
+        ResolveColor(backgroundToken) is { } bg ? ContrastOn(bg) : DarkContent;
+
+    // Dark or white, whichever reads on the given fill color.
+    private static Color ContrastOn(Color fill)
     {
-        if (ResolveColor(backgroundToken) is { } bg)
+        var luminance = ((0.299 * fill.R) + (0.587 * fill.G) + (0.114 * fill.B)) / 255.0;
+        return luminance > 0.5 ? DarkContent : Color.White;
+    }
+
+    // A segmented control: a rounded, tint-bordered row of buttons; the selected one is filled with the tint.
+    // Built without AndroidX so it themes with the plain app; best for 2–3 short labels.
+    private Android.Views.View BuildSegmentedControl(
+        IReadOnlyList<NativeSegmentDescriptor> segments, int selected, Color tint)
+    {
+        var row = new LinearLayout(_context) { Orientation = Orientation.Horizontal };
+        var border = new GradientDrawable();
+        border.SetShape(ShapeType.Rectangle);
+        border.SetCornerRadius(Dp(6));
+        border.SetStroke(Dp(1), tint);
+        row.Background = border;
+        row.SetPadding(Dp(2), Dp(2), Dp(2), Dp(2));
+
+        for (var i = 0; i < segments.Count; i++)
         {
-            var luminance = ((0.299 * bg.R) + (0.587 * bg.G) + (0.114 * bg.B)) / 255.0;
-            return luminance > 0.5 ? DarkContent : Color.White;
+            var seg = segments[i];
+            var button = new Button(_context) { Text = seg.Title, TextSize = 12f, ContentDescription = seg.Title };
+            button.SetAllCaps(false);
+            button.SetMinWidth(0);
+            button.SetMinimumWidth(0);
+            button.SetPadding(Dp(10), Dp(4), Dp(10), Dp(4));
+            if (i == selected)
+            {
+                var fill = new GradientDrawable();
+                fill.SetShape(ShapeType.Rectangle);
+                fill.SetCornerRadius(Dp(4));
+                fill.SetColor(tint);
+                button.Background = fill;
+                button.SetTextColor(ContrastOn(tint));
+            }
+            else
+            {
+                button.SetBackgroundColor(Color.Transparent);
+                button.SetTextColor(tint);
+            }
+
+            var id = seg.Id;
+            if (id is not null)
+            {
+                button.Click += (_, _) => Raise($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+            }
+
+            row.AddView(button, EqualWeight());
         }
 
-        return DarkContent; // no explicit background ⇒ the default (light) surface
+        return row;
     }
 
     // A dimmed variant for unselected tabs, so the active tab stands out even when no tints are set.

@@ -351,6 +351,11 @@ protected override Component? Render() =>
 - **Tab badges** — a `NativeTab` takes an optional `Badge` string (an unread count like `"3"` / `"99+"`),
   projected to `UITabBarItem.BadgeValue` (iOS) / a small overlay on the icon (Android). Leave it `null`/empty
   for no badge; bind it to live state (e.g. `Badge: unread.ToString()`) and it updates on the next render.
+- **Segmented control** — `NativeHeaderBar` takes optional `Segments` (2–3 short labels) shown in place of the
+  title — a `UISegmentedControl` as the nav bar's `titleView` (iOS) / an equivalent row (Android). It is
+  controlled: bind `SelectedSegment` to state and handle `OnSegmentChanged(int)` (which runs on the render
+  thread and re-renders, like any callback). Use it for a small mode/sub-section switch:
+  `NativeHeaderBar(Segments: ["All", "Active", "Done"], SelectedSegment: filter, OnSegmentChanged: i => filter = i)`.
 - **Bar buttons** run their `OnClick` on the render thread and re-render, like any Rask callback. **Tabs**
   navigate to their route; the page recomputes `Selected` from the current route on the next render. Each
   projected bar view carries a stable **accessibility identifier** (the tab/button title, or

@@ -23,6 +23,18 @@ internal sealed class NativeHeaderDescriptor
     public string? Background { get; set; }
     public string? Tint { get; set; }
     public string? TitleColor { get; set; }
+
+    // Optional segmented control shown in place of the title; null ⇒ plain title.
+    public List<NativeSegmentDescriptor>? Segments { get; set; }
+    public int SelectedSegment { get; set; }
+}
+
+internal sealed class NativeSegmentDescriptor
+{
+    public string? Title { get; set; }
+
+    /// <summary>The tap id echoed back (as a <c>nativeTap</c>) when this segment is selected; null if no handler.</summary>
+    public string? Id { get; set; }
 }
 
 internal sealed class NativeFooterDescriptor

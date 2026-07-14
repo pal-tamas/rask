@@ -151,6 +151,11 @@ them until tagged releases begin.
   projected to `UITabBarItem.BadgeValue` (iOS) and a small icon overlay (Android, no AndroidX dependency).
   Leave it null/empty for no badge; bind it to live state and it updates on the next render (the chrome
   re-pushes only when the badge changes). Unit-tested in `NativeChromeTests`; the showcase badges the Todos tab.
+- **Native segmented control.** `NativeHeaderBar` takes optional `Segments` (2–3 labels) shown in place of the
+  title — a `UISegmentedControl` as the nav bar's `titleView` (iOS) / a tint-styled button row (Android, no
+  AndroidX). Controlled via `SelectedSegment` + `OnSegmentChanged(int)` (runs on the render thread and
+  re-renders, reusing the `nativeTap` dispatch). Unit-tested in `NativeChromeTests`; the showcase shows an
+  All/Active/Done filter on the Todos page that drives the Todos tab badge.
 
 ### Fixed
 - **Native Android bars now render icons.** The Android chrome head rendered tabs and bar buttons as

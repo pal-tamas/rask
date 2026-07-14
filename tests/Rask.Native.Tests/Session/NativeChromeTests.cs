@@ -280,6 +280,37 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
         using var doc = JsonDocument.Parse(chrome.LastJson);
         Assert.Equal("3", doc.RootElement.GetProperty("footer").GetProperty("tabs")[1].GetProperty("badge").GetString());
     }
+
+    [Fact]
+    public async Task Segmented_SerializesTitlesSelectionAndTapIds()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<SegmentedApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var header = doc.RootElement.GetProperty("header");
+        var segments = header.GetProperty("segments");
+        Assert.Equal("All", segments[0].GetProperty("title").GetString());
+        Assert.Equal("Active", segments[1].GetProperty("title").GetString());
+        Assert.Equal("h.segment.1", segments[1].GetProperty("id").GetString()); // OnSegmentChanged ⇒ a tap id
+        Assert.Equal(0, header.GetProperty("selectedSegment").GetInt32());
+    }
+
+    [Fact]
+    public async Task Segmented_SelectionInvokesCallback_AndUpdatesSelection()
+    {
+        var chrome = new FakeNativeChrome();
+        var (_, webView, _) = await NewSessionAsync<SegmentedApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        await chrome.TapAsync("h.segment.2"); // select the third segment
+
+        using var body = JsonDocument.Parse(webView.LastFrame.AsMemory());
+        Assert.Contains("seg=2", body.RootElement.GetProperty("html").GetString()!); // callback ran + re-rendered
+        using var doc = JsonDocument.Parse(chrome.LastJson);
+        Assert.Equal(2, doc.RootElement.GetProperty("header").GetProperty("selectedSegment").GetInt32());
+    }
 }
 
 internal sealed class HeaderApp : Component
@@ -418,6 +449,24 @@ internal sealed class BadgeTabApp : Component
                 NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/"),
                 NativeTab(Title: "Todos", Icon: NativeIcon.List, To: "/todos", Badge: _count.ToString()),
             ])
+    ];
+}
+
+internal sealed class SegmentedApp : Component
+{
+    private int _seg;
+
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(
+            Title: "S",
+            Segments: ["All", "Active", "Done"],
+            SelectedSegment: _seg,
+            OnSegmentChanged: i => _seg = i),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()[$"seg={_seg}"]]]
+        ]
     ];
 }
 
