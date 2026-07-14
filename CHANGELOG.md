@@ -60,6 +60,18 @@ them until tagged releases begin.
   holding the interface, its implementation, and its DTOs together (e.g. `Clipboard.cs` folded into
   `IClipboard.cs`; `Geolocation.cs`/`GeolocationOptions.cs`/`GeolocationPosition.cs` into `IGeolocation.cs`;
   the WASM wrappers renamed `Fullscreen.cs` → `IFullscreen.cs`, …). No public API or namespace changed.
+- **Faster CI.** The browser-journey shards now run the prebuilt test assembly directly under VSTest
+  (`dotnet test <dll>`) off the shared `e2e-build` artifact — no per-shard `dotnet restore` and no MSBuild
+  graph evaluation — and the wasm-tools workload is installed only on the shards that actually need it
+  (those whose fixture shells `dotnet run --no-build` on a `net10.0-browser` host). The setup block
+  (setup-dotnet + NuGet cache + cached workload install + Playwright cache) is consolidated into a local
+  composite action (`.github/actions/setup`), and the build-once + sharded-VSTest pipeline into a reusable
+  workflow (`.github/workflows/e2e.yml`) shared by `ci`/`nightly`/`release` — so `nightly` and `release`
+  also stop rebuilding the whole solution once per shard. In-process test/benchmark jobs use a shallow
+  checkout with `-p:MinVerSkip=true`; jobs that pack, or that run a *published* app out-of-process (the
+  E2E build-once server publish, the on-device native APK), keep full history so MinVer stamps the real
+  version — a fallback version otherwise breaks the routes registry's cross-assembly load at startup. No
+  gate changed — same tests, filters, warnings-as-errors build, and byte-regression benchmark gate.
 
 ### Documentation
 - **Browser/device API capability matrix + per-API reference pages.** New

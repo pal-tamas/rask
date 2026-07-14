@@ -1,0 +1,77 @@
+name: Setup .NET for Rask
+description: >-
+  Installs the .NET SDK and (optionally) the requested workloads with caching, plus the NuGet and
+  Playwright caches. One place for every workflow's setup so the three CI workflows can't drift.
+  Run it AFTER actions/checkout (this action's file has to be on disk first).
+
+inputs:
+  workloads:
+    description: >-
+      Space-separated workloads to install (e.g. "wasm-tools", "ios android"). Empty installs none —
+      pass it only for jobs that actually build/evaluate a project graph needing the workload.
+    required: false
+    default: ''
+  nuget-cache:
+    description: Cache ~/.nuget/packages. Turn off for jobs that never restore (e.g. VSTest-direct shards).
+    required: false
+    default: 'true'
+  playwright:
+    description: Cache ~/.cache/ms-playwright (the browser-journey shards).
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Cache NuGet packages
+      if: inputs.nuget-cache == 'true'
+      uses: actions/cache@v6
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    # Resolve the SDK version so the workload cache invalidates when the SDK moves (workload packs are
+    # SDK-band-specific). Only needed when we install workloads.
+    - name: Resolve SDK version
+      if: inputs.workloads != ''
+      id: sdk
+      shell: bash
+      run: echo "version=$(dotnet --version)" >> "$GITHUB_OUTPUT"
+
+    # Cache the workload packs under the SDK root so the install below is a fast unpack rather than a
+    # multi-minute download. actions/cache save/restore are non-fatal, so a cold or perm-blocked cache
+    # simply falls back to a full install — the job never fails on it. If the default $DOTNET_ROOT ever
+    # fights the cache on perms, set DOTNET_INSTALL_DIR to a runner-owned dir on setup-dotnet above.
+    - name: Cache .NET workloads
+      if: inputs.workloads != ''
+      uses: actions/cache@v6
+      with:
+        path: |
+          ${{ env.DOTNET_ROOT }}/sdk-manifests
+          ${{ env.DOTNET_ROOT }}/packs
+          ${{ env.DOTNET_ROOT }}/metadata
+          ${{ env.DOTNET_ROOT }}/library-packs
+          ${{ env.DOTNET_ROOT }}/template-packs
+        key: workloads-${{ runner.os }}-${{ steps.sdk.outputs.version }}-${{ inputs.workloads }}-${{ hashFiles('Directory.Packages.props') }}
+        restore-keys: |
+          workloads-${{ runner.os }}-${{ steps.sdk.outputs.version }}-${{ inputs.workloads }}-
+          workloads-${{ runner.os }}-${{ steps.sdk.outputs.version }}-
+
+    - name: Install workloads
+      if: inputs.workloads != ''
+      shell: bash
+      # --skip-manifest-update: don't re-resolve the advertising manifests on a warm cache (the slow part).
+      run: dotnet workload install ${{ inputs.workloads }} --skip-manifest-update
+
+    - name: Cache Playwright browsers
+      if: inputs.playwright == 'true'
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj') }}
+        restore-keys: playwright-${{ runner.os }}-
