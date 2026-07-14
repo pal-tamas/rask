@@ -29,9 +29,6 @@ public sealed class WasmReferenceLoader
         _http = http;
     }
 
-    /// <summary>Count of references in the last successful load — surfaced in the UI as a sanity signal.</summary>
-    public int LoadedCount { get; private set; }
-
     public async Task<IReadOnlyList<MetadataReference>> LoadAsync(CancellationToken cancellationToken = default)
     {
         if (_cache is not null)
@@ -69,7 +66,6 @@ public sealed class WasmReferenceLoader
                 references.Add(MetadataReference.CreateFromImage(image));
             }
 
-            LoadedCount = references.Count;
             _cache = references;
             return references;
         }

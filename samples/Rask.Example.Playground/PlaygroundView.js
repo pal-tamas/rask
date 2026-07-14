@@ -16,6 +16,12 @@ let monacoApi = null;
 let editor = null;
 let loadPromise = null;
 
+// Language-feature state (set up once, after the .NET side finishes loading the framework references).
+let languageRegistered = false;
+let diagnoseTimer = 0;
+// The assembly that hosts PlaygroundLanguageInterop's [JSInvokable]s (window.DotNet dispatches by name).
+const PLAYGROUND_ASSEMBLY = "Rask.Example.Playground";
+
 function loadMonaco() {
     if (monacoApi) return Promise.resolve(monacoApi);
     if (loadPromise) return loadPromise;
@@ -84,6 +90,97 @@ export function editorValue(host) {
 }
 
 export function setMarkers(host, diagnosticsJson) {
+    applyMarkers(diagnosticsJson);
+}
+
+// Replace the editor's whole buffer — used by the example gallery and Reset. editor.setValue fires the
+// model's change event, so live diagnostics refresh for the new code with nothing else to trigger.
+export function setEditorValue(host, code) {
+    if (editor) {
+        editor.setValue(code);
+        editor.setScrollTop(0);
+        return;
+    }
+    if (host && host.__fallback) {
+        host.__fallback.value = code;
+        return;
+    }
+    const ta = host && host.querySelector ? host.querySelector("textarea") : null;
+    if (ta) ta.value = code;
+}
+
+// Turn the editor into an IDE, once the framework references have loaded on the .NET side. Wires three
+// things, all feeding the static [JSInvokable]s in PlaygroundLanguageInterop via window.DotNet.invokeMethodAsync
+// (the same JS→.NET dispatch the framework's own browser wrappers use):
+//   (1) IntelliSense — a Roslyn-backed completion provider,
+//   (2) as-you-type diagnostics — debounced on every edit, and
+//   (3) Ctrl/Cmd + Enter to Run.
+export function registerLanguageFeatures(host) {
+    if (!editor || !monacoApi || languageRegistered) return;
+    languageRegistered = true;
+
+    // (3) Run on Ctrl/Cmd+Enter by clicking the enabled Run button — same handler path as a real click.
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.Enter, () => {
+        const run = document.querySelector(".pg-run:not([disabled])");
+        if (run) run.click();
+    });
+
+    // (2) Live diagnostics: debounce edits, then ask .NET to bind the buffer and paint the markers.
+    editor.onDidChangeModelContent(() => {
+        clearTimeout(diagnoseTimer);
+        diagnoseTimer = setTimeout(runDiagnostics, 400);
+    });
+    runDiagnostics(); // check the freshly-loaded code once now, without waiting for a keystroke
+
+    // (1) IntelliSense.
+    monacoApi.languages.registerCompletionItemProvider("csharp", {
+        triggerCharacters: [".", " "],
+        async provideCompletionItems(model, position) {
+            const offset = model.getOffsetAt(position);
+            let items;
+            try {
+                const json = await window.DotNet.invokeMethodAsync(
+                    PLAYGROUND_ASSEMBLY, "PlaygroundComplete", model.getValue(), offset);
+                items = JSON.parse(json);
+            } catch {
+                return { suggestions: [] };
+            }
+
+            const word = model.getWordUntilPosition(position);
+            const range = {
+                startLineNumber: position.lineNumber,
+                endLineNumber: position.lineNumber,
+                startColumn: word.startColumn,
+                endColumn: word.endColumn
+            };
+            return {
+                suggestions: items.map((it) => ({
+                    label: it.label,
+                    kind: completionKind(it.kind),
+                    insertText: it.insertText,
+                    sortText: it.sortText,
+                    detail: it.detail || undefined,
+                    range
+                }))
+            };
+        }
+    });
+}
+
+async function runDiagnostics() {
+    if (!editor || !window.DotNet) return;
+    try {
+        const json = await window.DotNet.invokeMethodAsync(
+            PLAYGROUND_ASSEMBLY, "PlaygroundDiagnose", editor.getValue());
+        applyMarkers(json);
+    } catch {
+        // No live squiggles this pass — swallow so a transient interop hiccup can't wedge the editor.
+    }
+}
+
+// Paint compiler/analyzer markers (JSON string) onto the editor model. Shared by Run (setMarkers) and the
+// live diagnostics loop so both render diagnostics identically.
+function applyMarkers(diagnosticsJson) {
     if (!editor || !monacoApi) return;
     let diagnostics;
     try {
@@ -97,16 +194,40 @@ export function setMarkers(host, diagnosticsJson) {
             : s === "Warning" ? monacoApi.MarkerSeverity.Warning
                 : monacoApi.MarkerSeverity.Info;
 
-    const markers = diagnostics.map((d) => ({
+    monacoApi.editor.setModelMarkers(editor.getModel(), "rask", diagnostics.map((d) => ({
         severity: severity(d.severity),
         message: `${d.id}: ${d.message}`,
         startLineNumber: d.startLine,
         startColumn: d.startColumn,
         endLineNumber: d.endLine,
         endColumn: d.endColumn
-    }));
+    })));
+}
 
-    monacoApi.editor.setModelMarkers(editor.getModel(), "rask", markers);
+// Map Roslyn's primary completion tag onto a Monaco icon kind.
+function completionKind(kind) {
+    const K = monacoApi.languages.CompletionItemKind;
+    switch (kind) {
+        case "Method":
+        case "ExtensionMethod": return K.Method;
+        case "Property": return K.Property;
+        case "Field": return K.Field;
+        case "Class": return K.Class;
+        case "Structure": return K.Struct;
+        case "Interface": return K.Interface;
+        case "Enum": return K.Enum;
+        case "EnumMember": return K.EnumMember;
+        case "Delegate": return K.Function;
+        case "Event": return K.Event;
+        case "Namespace": return K.Module;
+        case "Keyword": return K.Keyword;
+        case "Local":
+        case "Parameter": return K.Variable;
+        case "TypeParameter": return K.TypeParameter;
+        case "Constant": return K.Constant;
+        case "Snippet": return K.Snippet;
+        default: return K.Text;
+    }
 }
 
 // The playground ships its managed assemblies as plain PE under _framework/ (WasmEnableWebcil=false), and

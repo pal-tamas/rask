@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="xunit"/>
@@ -29,10 +30,13 @@
 
   <!-- The compiler is a browser-WASM app type at runtime, but its logic is portable Roslyn + BCL. Link
        the sources here so the pipeline is unit-tested on the desktop runtime (fast, no WASM), supplying
-       metadata references from real files the way the browser host supplies them from _framework/*.dll. -->
+       metadata references from real files the way the browser host supplies them from _framework/*.dll.
+       PlaygroundSamples is linked too so a test compiles every shipped gallery snippet. -->
   <ItemGroup>
     <Compile Include="..\..\samples\Rask.Example.Playground\Compiler\*.cs"
              LinkBase="Compiler"/>
+    <Compile Include="..\..\samples\Rask.Example.Playground\PlaygroundSamples.cs"
+             LinkBase="Samples"/>
   </ItemGroup>
 
 </Project>

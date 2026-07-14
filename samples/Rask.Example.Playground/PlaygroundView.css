@@ -1,5 +1,6 @@
-/* Scoped styles for PlaygroundView — a compact IDE-style two-pane layout. The framework stamps a scope
-   id onto this component's elements, so these selectors don't leak into the compiled preview subtree. */
+/* Scoped styles for PlaygroundView — a compact IDE-style three-pane layout (examples | editor | preview).
+   The framework stamps a scope id onto this component's elements, so these selectors don't leak into the
+   compiled preview subtree. */
 
 .pg {
     display: flex;
@@ -68,17 +69,146 @@
     cursor: default;
 }
 
-.pg-split {
+.pg-reset {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 6px;
+    padding: 0.4rem 0.85rem;
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: #e5e5f5;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.pg-reset:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.pg-reset[disabled] {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* IntelliSense/diagnostics readiness pill next to the title. */
+.pg-ide {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+}
+
+.pg-ide.is-loading {
+    color: #c4b5fd;
+    border-color: rgba(196, 181, 253, 0.4);
+}
+
+.pg-ide.is-ready {
+    color: #86efac;
+    border-color: rgba(134, 239, 172, 0.4);
+}
+
+.pg-ide.is-off {
+    color: #fca5a5;
+    border-color: rgba(252, 165, 165, 0.4);
+}
+
+.pg-body {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(190px, 250px) 1.1fr 1fr;
     flex: 1;
     min-height: 0;
 }
 
-@media (max-width: 800px) {
-    .pg-split {
+/* Left example gallery. */
+.pg-examples {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #181825;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pg-examples-head {
+    padding: 0.55rem 1rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #a1a1c0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pg-example-list {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: auto;
+    padding: 0.5rem;
+    gap: 0.4rem;
+}
+
+.pg-example {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.55rem 0.7rem;
+    color: #e6e6f0;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.pg-example:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.pg-example.is-active {
+    background: rgba(124, 58, 237, 0.18);
+    border-color: rgba(124, 58, 237, 0.55);
+}
+
+.pg-example[disabled] {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.pg-example-title {
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+
+.pg-example-blurb {
+    font-size: 0.74rem;
+    line-height: 1.35;
+    color: #a1a1c0;
+}
+
+@media (max-width: 900px) {
+    .pg-body {
         grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
+        grid-template-rows: auto 1fr 1fr;
+    }
+
+    /* Collapse the gallery into a horizontal strip so the editor keeps the full width below it. */
+    .pg-examples {
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .pg-example-list {
+        flex-direction: row;
+        overflow-x: auto;
+    }
+
+    .pg-example {
+        flex: 0 0 auto;
+        min-width: 180px;
     }
 }
 

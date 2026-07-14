@@ -1,8 +1,9 @@
 # Live playground
 
 **[Open the playground ↗](https://pal-tamas.github.io/rask/playground/)** — write Rask component C# in
-your browser and see it render live, with the framework's own diagnostics as inline squiggles. Nothing is
-sent to a server: the C# is compiled entirely in WebAssembly.
+your browser with a real IDE: **IntelliSense**, **as-you-type diagnostics** (the framework's own RASK
+squiggles included, before you ever press Run), and a **gallery of ready-to-run examples**. See it render
+live — nothing is sent to a server, the C# is compiled entirely in WebAssembly.
 
 The playground is the `samples/Rask.Example.Playground` app, published to GitHub Pages next to the
 [feature showcase](https://pal-tamas.github.io/rask/demo/) (the showcase's navbar links to it).
@@ -30,10 +31,31 @@ All of that runs in the browser, on the Mono WebAssembly runtime:
    live session, your component's event handlers, state and live diffing all work — it's a real mini-app,
    not a static snapshot.
 
-Compiler and analyzer diagnostics are shown both as a panel and as inline
-[Monaco](https://microsoft.github.io/monaco-editor/) markers.
+Pressing Run is the only path that Emits and loads an assembly; the diagnostics from that run are shown
+both as a panel and as inline [Monaco](https://microsoft.github.io/monaco-editor/) markers.
+
+### IntelliSense and as-you-type diagnostics
+
+The editor is a real IDE, not just a text box. A few seconds after load — once the framework references
+finish downloading in the background — a **workspace-backed analysis path** comes alive (the readiness pill
+next to the title flips to *IntelliSense ready*):
+
+- **IntelliSense** is Roslyn's own `CompletionService`, so completions know the full BCL + `Rask.Core`
+  surface *and* the `Generated.Div(...)` factories the source generator brings into scope — you get the
+  terse `Div()[…]` members exactly as you would in a real project.
+- **Diagnostics update as you type** — CS errors and Rask's RASK hints squiggle on every edit, not only on
+  Run.
+
+Crucially this path **never `Emit`s or `Assembly.Load`s** — it binds and queries only. That's what makes
+typing free: only pressing Run loads an assembly (and Mono WebAssembly can't unload one), so as-you-type
+analysis can't leak. Monaco talks to it through a pair of static `[JSInvokable]` bridge methods, the same
+JS→.NET dispatch the framework's browser wrappers use.
 
 ## Writing code
+
+Pick one of the **examples** in the left-hand gallery — **Counter**, **Form + validation** (Rask's built-in
+`Form<T>` validation), or a small **Todo app** — as a starting point; **Reset** restores an example's
+original code, and **Ctrl/Cmd + Enter** runs.
 
 Define a component named **`Playground`** as the entry point, in a namespace (as in any real Rask project —
 that's what lets the generator bring your own components' factories into scope):
@@ -65,8 +87,8 @@ You can declare additional components, use `Context`, callbacks, lifecycle hooks
   a few seconds). Later compiles reuse the cached references.
 - **User code always runs interpreted.** Assemblies loaded at runtime are never AOT-compiled, even in an
   AOT-published app, so the preview runs at interpreter speed.
-- **Memory grows per compile.** Mono WebAssembly can't unload an assembly, so each Run leaks one — reload
-  the tab to reclaim.
+- **Memory grows per Run.** Mono WebAssembly can't unload an assembly, so each **Run** leaks one — reload
+  the tab to reclaim. (As-you-type diagnostics and IntelliSense never Emit or load, so typing is free.)
 
 The [Monaco](https://microsoft.github.io/monaco-editor/) editor is vendored under
 `wwwroot/lib/monaco/` (self-contained, works offline); if it ever fails to initialize the app falls back
