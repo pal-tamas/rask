@@ -134,11 +134,13 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         }
 
         var currentPath = Services.GetRequiredService<RouteState>().Path;
+        // Optional app-wide default appearance; a per-bar style prop overrides it, an unset slot keeps the default.
+        var theme = Services.GetService<NativeTheme>();
         var handlers = new Dictionary<string, Action>(StringComparer.Ordinal);
         var descriptor = new NativeChromeDescriptor
         {
-            Header = BuildHeaderDescriptor(_pendingHeader, handlers),
-            Footer = BuildFooterDescriptor(_pendingFooter, handlers, currentPath),
+            Header = BuildHeaderDescriptor(_pendingHeader, handlers, theme),
+            Footer = BuildFooterDescriptor(_pendingFooter, handlers, currentPath, theme),
         };
         // Refresh the tap-handler map every render — the OnClick delegates capture fresh state even when the
         // serialized descriptor is byte-identical, so a tap must always reach the latest closure.
@@ -155,15 +157,27 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         await _chrome.ApplyChromeAsync(bytes).ConfigureAwait(false);
     }
 
+    // A per-bar style prop wins; the theme fills an unset slot; unset in both ⇒ null token ⇒ platform default.
+    // An explicit NativeColor.System on a bar has a value (so it overrides the theme) but a null token, which
+    // correctly forces the platform default for that slot.
+    private static string? ResolveColor(NativeColor? barProp, NativeColor? themeProp) =>
+        (barProp ?? themeProp)?.ToToken();
+
     private static NativeHeaderDescriptor? BuildHeaderDescriptor(
-        NativeHeaderBar? bar, Dictionary<string, Action> handlers)
+        NativeHeaderBar? bar, Dictionary<string, Action> handlers, NativeTheme? theme)
     {
         if (bar is null)
         {
             return null;
         }
 
-        var dto = new NativeHeaderDescriptor { Title = bar.Title };
+        var dto = new NativeHeaderDescriptor
+        {
+            Title = bar.Title,
+            Background = ResolveColor(bar.Background, theme?.Background),
+            Tint = ResolveColor(bar.Tint, theme?.Tint),
+            TitleColor = ResolveColor(bar.TitleColor, theme?.TitleColor),
+        };
         if (bar.Leading is { } leading)
         {
             dto.Leading = BuildItemDescriptor(leading, "h.leading", handlers);
@@ -178,11 +192,30 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             }
         }
 
+        if (bar.Segments is { Count: > 0 } segments)
+        {
+            dto.Segments = new List<NativeSegmentDescriptor>(segments.Count);
+            for (var i = 0; i < segments.Count; i++)
+            {
+                string? id = null;
+                if (bar.OnSegmentChanged is { } onChanged)
+                {
+                    var index = i; // capture per iteration so the tapped segment's index is echoed
+                    id = "h.segment." + i;
+                    handlers[id] = () => onChanged(index);
+                }
+
+                dto.Segments.Add(new NativeSegmentDescriptor { Title = segments[i], Id = id });
+            }
+
+            dto.SelectedSegment = Math.Clamp(bar.SelectedSegment ?? 0, 0, segments.Count - 1);
+        }
+
         return dto;
     }
 
     private static NativeFooterDescriptor? BuildFooterDescriptor(
-        NativeComponent? footer, Dictionary<string, Action> handlers, string currentPath)
+        NativeComponent? footer, Dictionary<string, Action> handlers, string currentPath, NativeTheme? theme)
     {
         switch (footer)
         {
@@ -191,7 +224,14 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 // the highlighted tab tracks navigation (a tap, hardware Back, or a deep link) automatically —
                 // the caller never re-derives it by hand.
                 var selected = tabBar.Selected ?? DeriveSelectedTab(tabBar.Tabs, currentPath);
-                var tabFooter = new NativeFooterDescriptor { Kind = "tabbar", Selected = selected };
+                var tabFooter = new NativeFooterDescriptor
+                {
+                    Kind = "tabbar",
+                    Selected = selected,
+                    Background = ResolveColor(tabBar.Background, theme?.Background),
+                    Tint = ResolveColor(tabBar.Tint, theme?.Tint),
+                    UnselectedTint = ResolveColor(tabBar.UnselectedTint, theme?.UnselectedTint),
+                };
                 if (tabBar.Tabs is { Count: > 0 } tabs)
                 {
                     tabFooter.Tabs = new List<NativeTabDescriptor>(tabs.Count);
@@ -203,6 +243,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                             IosIcon = tab.Icon.IosSymbol,
                             AndroidIcon = tab.Icon.AndroidResource,
                             Path = tab.To.ToString(),
+                            Badge = string.IsNullOrEmpty(tab.Badge) ? null : tab.Badge,
                         });
                     }
                 }
@@ -210,7 +251,12 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 return tabFooter;
 
             case NativeToolbar toolbar:
-                var toolFooter = new NativeFooterDescriptor { Kind = "toolbar" };
+                var toolFooter = new NativeFooterDescriptor
+                {
+                    Kind = "toolbar",
+                    Background = ResolveColor(toolbar.Background, theme?.Background),
+                    Tint = ResolveColor(toolbar.Tint, theme?.Tint),
+                };
                 if (toolbar.Items is { Count: > 0 } items)
                 {
                     toolFooter.Items = new List<NativeBarItemDescriptor>(items.Count);
@@ -235,6 +281,41 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             case NativeBackButton:
                 // The head wires a back item to the platform's own back affordance — no server round-trip.
                 return new NativeBarItemDescriptor { Kind = "back" };
+
+            case NativeMenuButton menu:
+                var menuIcon = menu.Icon ?? NativeIcon.More;
+                var menuDto = new NativeBarItemDescriptor
+                {
+                    Kind = "menu",
+                    IosIcon = menuIcon.IosSymbol,
+                    AndroidIcon = menuIcon.AndroidResource,
+                    Title = menu.Title ?? "More",
+                };
+                if (menu.Items is { Count: > 0 } entries)
+                {
+                    menuDto.Menu = new List<NativeMenuItemDescriptor>(entries.Count);
+                    for (var i = 0; i < entries.Count; i++)
+                    {
+                        var entry = entries[i];
+                        string? entryId = null;
+                        if (entry.OnClick is { } entryClick)
+                        {
+                            entryId = id + ".menu." + i;
+                            handlers[entryId] = entryClick;
+                        }
+
+                        menuDto.Menu.Add(new NativeMenuItemDescriptor
+                        {
+                            Title = entry.Title,
+                            IosIcon = entry.Icon?.IosSymbol,
+                            AndroidIcon = entry.Icon?.AndroidResource,
+                            Id = entryId,
+                            Destructive = entry.Destructive == true,
+                        });
+                    }
+                }
+
+                return menuDto;
 
             case NativeBarButton button:
                 string? tapId = null;
@@ -277,6 +358,14 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
 
         return 0;
     }
+
+    /// <summary>
+    ///     Handle a native back affordance (<c>{"type":"back"}</c>, from a <c>NativeBackButton</c>): pop the
+    ///     WebView's own history, exactly like the hardware Back button. The client's <c>popstate</c> listener
+    ///     then sends a <c>navigate</c> to the now-current (previous) route, which re-enters the router — so back
+    ///     reuses the existing history plumbing rather than a parallel server-side stack.
+    /// </summary>
+    public ValueTask GoBackAsync() => _webView.EvaluateJavaScriptAsync("window.history.back()");
 
     /// <summary>
     ///     Handle a bar-button tap (<c>{"type":"nativeTap","id":"…"}</c>): look up the button's <c>OnClick</c>,
@@ -341,14 +430,17 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 try
                 {
                     await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
-                    if (!await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false))
+                    var emitted = await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false);
+                    if (emitted)
                     {
-                        return Array.Empty<byte>();
+                        _htmlBuffers.Commit();
                     }
 
-                    _htmlBuffers.Commit();
+                    // Push chrome even when the body produced no diff: a bar tap can change ONLY native chrome
+                    // (a tab badge, a segmented selection, a menu action) and leave the HTML body identical, which
+                    // emits no frame — but the bars still need the update.
                     await PushChromeIfChangedAsync().ConfigureAwait(false);
-                    return _lastSentBuffer!.WrittenSpan.ToArray();
+                    return emitted ? _lastSentBuffer!.WrittenSpan.ToArray() : Array.Empty<byte>();
                 }
                 finally
                 {
@@ -450,7 +542,11 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         await _renderLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            // Seed WebView history with the initial route as a REPLACE so it supersedes the boot shell URL
+            // (/index.native.html) — otherwise Back from the first navigation (or hardware Back) lands on that
+            // 404-ing shell path instead of the app's first screen.
+            var initialPath = Services.GetRequiredService<RouteState>().Path;
+            await BuildPayloadAsync(initialPath, replace: true).ConfigureAwait(false);
             if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 return Array.Empty<byte>();

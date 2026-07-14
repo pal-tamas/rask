@@ -135,6 +135,58 @@ them until tagged releases begin.
   showing where each works (Web / PWA / Native) and which have a native iOS/Android backend, linking to a
   dedicated reference page per API under `docs/apis/`. Reconciled the stale WASM-only classification of
   `IWebPush`/`INotifications`/`IBadge`/`IWakeLock` (they are transport-agnostic and register on Server).
+- **Native bar styling (`NativeColor` + per-bar colors + `NativeTheme`).** The native chrome bars
+  (`NativeHeaderBar` / `NativeTabBar` / `NativeToolbar`) can now be colored. A new **`NativeColor`** value
+  type — the color sibling of `NativeIcon`, one authored value the head resolves to a `UIColor` / Android
+  `Color` — offers `Hex`, `Rgba`, curated members (`White`/`Black`/`Clear`), a `System` default, and
+  `Adaptive(light, dark)` for dark-mode-aware colors. Each bar gains optional `Background` / `Tint`
+  (buttons / selected tab) / `TitleColor` slots (`NativeTabBar` also `UnselectedTint`); an app-wide
+  **`NativeTheme`** registered on `host.Services` fills unset slots. Resolution is layered — per-bar wins,
+  then the theme, then the platform default — so styling is fully opt-in and backward compatible (an unset
+  color, or an explicit `NativeColor.System`, keeps the OS look). The iOS head projects colors through
+  `UINavigationBarAppearance`/`UITabBarAppearance` (adaptive colors via a dynamic `UIColor`); the Android
+  head tints its bars against the current night mode. Descriptor serialization + layering are unit-tested
+  (`NativeColorTests`, `NativeChromeTests`); the `Rask.Example.Native` showcase brands its bars.
+- **Native tab badges.** `NativeTab` takes an optional `Badge` string (an unread count like `"3"`/`"99+"`),
+  projected to `UITabBarItem.BadgeValue` (iOS) and a small icon overlay (Android, no AndroidX dependency).
+  Leave it null/empty for no badge; bind it to live state and it updates on the next render (the chrome
+  re-pushes only when the badge changes). Unit-tested in `NativeChromeTests`; the showcase badges the Todos tab.
+- **Native segmented control.** `NativeHeaderBar` takes optional `Segments` (2–3 labels) shown in place of the
+  title — a `UISegmentedControl` as the nav bar's `titleView` (iOS) / a tint-styled button row (Android, no
+  AndroidX). Controlled via `SelectedSegment` + `OnSegmentChanged(int)` (runs on the render thread and
+  re-renders, reusing the `nativeTap` dispatch). Unit-tested in `NativeChromeTests`; the showcase shows an
+  All/Active/Done filter on the Todos page that drives the Todos tab badge.
+- **Native back button.** `NativeBackButton` (header `Leading`) now works — tapping it pops the WebView
+  history like the hardware Back button (the platform back chevron on iOS, "‹" on Android), re-entering the
+  router via the existing `popstate` → `navigate` path. Previously it rendered but did nothing. The showcase
+  shows it on a drill-down guide page. Unit-tested in `NativeChromeTests`.
+- **Native overflow menu.** A `NativeMenuButton` bar item (header `Leading`/`Trailing` or a toolbar's `Items`)
+  opens a native pull-down of `NativeMenuItem`s — an iOS `UIMenu` on a `UIBarButtonItem`, an Android
+  `PopupMenu` (framework, no AndroidX) — for secondary actions. Each entry has a `Title`, optional `Icon`,
+  `OnClick`, and optional `Destructive` (iOS red); selections re-enter the `nativeTap` dispatch so `OnClick`
+  runs on the render thread and re-renders. Defaults to a "⋯" (`NativeIcon.More`) glyph. Unit-tested in
+  `NativeChromeTests`; the showcase adds an overflow menu to the header.
+
+### Fixed
+- **Native Android bars now render icons.** The Android chrome head rendered tabs and bar buttons as
+  text-only labels — the `NativeIcon` Android drawable was never resolved (an iOS/Android parity gap). Tabs
+  and icon buttons now resolve their drawable (`Resources.GetIdentifier`) and show a real icon (with the
+  selected tab highlighted via the tint), matching the iOS SF-Symbol bars; unresolved names still fall back
+  to text.
+- **Native bar taps that change only chrome now update the bars.** A bar interaction whose handler changed
+  *only* native chrome — a tab badge, a segmented-control selection, a menu action — left the HTML body
+  identical, so in diff mode it produced no frame and `NativeLiveSession`'s no-frame early return skipped the
+  chrome push, so the bars never updated. The chrome is now re-pushed even when the body has no diff (guarded
+  by a diff-mode `NativeChromeTests` regression). The Android overflow `PopupMenu` is also now held while shown
+  so its managed item-click callback isn't garbage-collected.
+- **Native Back no longer lands on the boot shell.** The first native render now seeds WebView history with a
+  *replace* of the app's initial route, so it supersedes the boot shell URL (`/index.native.html`). Previously
+  the initial render emitted no history, so Back from the first navigation (a `NativeBackButton` or hardware
+  Back) popped to `/index.native.html` — a 404 "Page not found". Guarded by a `NativeChromeTests` case.
+- **Native Android bars are inset for the system bars.** The Android header/footer are drawn edge-to-edge (the
+  colored bars fill behind the status/navigation bars); their content is now padded by the system-bar insets
+  (framework `WindowInsets`, no AndroidX) so the title / segmented control / overflow button clear the status
+  bar and the tab bar clears the navigation bar — parity with the iOS safe-area handling.
 
 ## [0.16.0] - 2026-07-14
 

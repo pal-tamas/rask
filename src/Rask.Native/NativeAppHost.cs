@@ -264,6 +264,10 @@ public sealed class NativeAppHost
                 // flow through DispatchAsync's default path below).
                 await app.Session.DispatchNativeTapAsync(json).ConfigureAwait(false);
                 return;
+            case "back":
+                // A native back button — pop WebView history (its popstate re-enters the router as a navigate).
+                await app.Session.GoBackAsync().ConfigureAwait(false);
+                return;
             default:
                 await app.Session.DispatchAsync(json).ConfigureAwait(false);
                 return;

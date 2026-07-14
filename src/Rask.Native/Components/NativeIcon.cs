@@ -60,6 +60,9 @@ public readonly record struct NativeIcon
     /// <summary>A star / favourite icon.</summary>
     public static NativeIcon Star => new("star", "ic_star");
 
+    /// <summary>An overflow / "more" (ellipsis) icon, for a <see cref="NativeMenuButton" />.</summary>
+    public static NativeIcon More => new("ellipsis", "ic_more");
+
     // --- Escape hatches (named factories, like RouteUrl.External) --------------------------------------------
     /// <summary>An icon with explicit per-platform tokens, for icons outside the curated set.</summary>
     public static NativeIcon Custom(string iosSymbol, string androidResource) => new(iosSymbol, androidResource);

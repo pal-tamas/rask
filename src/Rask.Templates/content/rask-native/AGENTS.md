@@ -47,7 +47,16 @@ https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/nati
   compose them in `Render()`, they are not magic base-class slots.
 - The native host projects the bars to **real platform bars** — a `UINavigationBar` + `UITabBar` on iOS, a top
   bar + bottom tab bar on Android — and serializes the `NativeWebView`'s HTML into the WebView between them.
-  Build bars from `NativeBarButton` / `NativeTab` / `NativeBackButton` and type-safe `NativeIcon`s.
+  Build bars from `NativeBarButton` / `NativeTab` / `NativeBackButton` and type-safe `NativeIcon`s. A
+  `NativeTab` also takes an optional `Badge` string (unread count) → `UITabBarItem.BadgeValue` / icon overlay.
+  `NativeHeaderBar` takes optional `Segments` (shown in place of the title) → a `UISegmentedControl` / button
+  row, controlled via `SelectedSegment` + `OnSegmentChanged(int)`. A `NativeMenuButton` bar item (with
+  `NativeMenuItem` entries) opens a native overflow pull-down → `UIMenu` (iOS) / `PopupMenu` (Android). A
+  `NativeBackButton` (header `Leading`) pops WebView history like hardware Back.
+- **Style the bars** with `NativeColor` (the color sibling of `NativeIcon`: `Hex` / `Rgba` / `Adaptive(light,
+  dark)` / `System`) — set `Background` / `Tint` / `TitleColor` per bar (`NativeTabBar` also `UnselectedTint`),
+  or register an app-wide `NativeTheme` on `host.Services`. Per-bar wins, then the theme, then the platform
+  default; an unset color keeps the OS look.
 - **Opt-in wiring (already done in the heads):** host `webView.ChromeView` (not `webView.View`) and register
   the WebView head as `INativeChrome` on `host.Services` before `RunLocalAsync`. With no `INativeChrome`
   registered the bars are inert (they render nothing; the WebView fills the screen) — fully backward compatible.

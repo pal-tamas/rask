@@ -156,6 +156,253 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
         using var doc = JsonDocument.Parse(initial.AsMemory());
         Assert.Contains("added=0", doc.RootElement.GetProperty("html").GetString()!);
     }
+
+    [Fact]
+    public async Task UnstyledBar_EmitsNoColorFields()
+    {
+        // An unstyled bar with no theme carries no appearance fields, so the head keeps the platform default.
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<HeaderApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var header = doc.RootElement.GetProperty("header");
+        Assert.False(header.TryGetProperty("background", out _));
+        Assert.False(header.TryGetProperty("tint", out _));
+        Assert.False(header.TryGetProperty("titleColor", out _));
+    }
+
+    [Fact]
+    public async Task StyledHeader_SerializesColorTokens()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<StyledHeaderApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var header = doc.RootElement.GetProperty("header");
+        Assert.Equal("#1E88E5FF", header.GetProperty("background").GetString());
+        Assert.Equal("#FFFFFFFF", header.GetProperty("tint").GetString());
+        // An adaptive title color serializes as the "light|dark" pair the heads split.
+        Assert.Equal("#000000FF|#FFFFFFFF", header.GetProperty("titleColor").GetString());
+    }
+
+    [Fact]
+    public async Task StyledTabBar_SerializesTintTokens()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<StyledTabApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var footer = doc.RootElement.GetProperty("footer");
+        Assert.Equal("#1E88E5FF", footer.GetProperty("background").GetString());
+        Assert.Equal("#FFFFFFFF", footer.GetProperty("tint").GetString());
+        Assert.Equal("#888888FF", footer.GetProperty("unselectedTint").GetString());
+    }
+
+    [Fact]
+    public async Task Theme_FillsUnsetBarColors()
+    {
+        // HeaderApp sets no colors; a registered NativeTheme supplies the default background.
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<HeaderApp>(
+            configure: s =>
+            {
+                s.AddSingleton<INativeChrome>(chrome);
+                s.AddSingleton(new NativeTheme { Background = NativeColor.Hex("#111") });
+            },
+            diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        Assert.Equal("#111111FF", doc.RootElement.GetProperty("header").GetProperty("background").GetString());
+    }
+
+    [Fact]
+    public async Task BarColor_OverridesTheme()
+    {
+        // A per-bar color wins over the theme default for the same slot.
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<StyledHeaderApp>(
+            configure: s =>
+            {
+                s.AddSingleton<INativeChrome>(chrome);
+                s.AddSingleton(new NativeTheme { Background = NativeColor.Hex("#111") });
+            },
+            diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        Assert.Equal("#1E88E5FF", doc.RootElement.GetProperty("header").GetProperty("background").GetString());
+    }
+
+    [Fact]
+    public async Task ExplicitSystemColor_BeatsTheme_AndOmitsField()
+    {
+        // An explicit NativeColor.System on a bar overrides the theme yet emits no token — forcing the
+        // platform default for that slot (the field is absent, so the head keeps its default).
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<SystemHeaderApp>(
+            configure: s =>
+            {
+                s.AddSingleton<INativeChrome>(chrome);
+                s.AddSingleton(new NativeTheme { Background = NativeColor.Hex("#111") });
+            },
+            diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        Assert.False(doc.RootElement.GetProperty("header").TryGetProperty("background", out _));
+    }
+
+    [Fact]
+    public async Task TabBadge_SerializesOnlyWhenSet()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<BadgeTabApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var tabs = doc.RootElement.GetProperty("footer").GetProperty("tabs");
+        Assert.False(tabs[0].TryGetProperty("badge", out _)); // no badge on Home
+        Assert.Equal("2", tabs[1].GetProperty("badge").GetString()); // Todos badge
+    }
+
+    [Fact]
+    public async Task TabBadge_ChangeIsRepushed()
+    {
+        // A badge bound to live state updates the native tab on the next render (and re-pushes the chrome).
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<BadgeTabApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        await chrome.TapAsync("h.trailing.0"); // increments the count behind the badge
+
+        Assert.Equal(2, chrome.Pushed.Count);
+        using var doc = JsonDocument.Parse(chrome.LastJson);
+        Assert.Equal("3", doc.RootElement.GetProperty("footer").GetProperty("tabs")[1].GetProperty("badge").GetString());
+    }
+
+    [Fact]
+    public async Task Segmented_SerializesTitlesSelectionAndTapIds()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<SegmentedApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var header = doc.RootElement.GetProperty("header");
+        var segments = header.GetProperty("segments");
+        Assert.Equal("All", segments[0].GetProperty("title").GetString());
+        Assert.Equal("Active", segments[1].GetProperty("title").GetString());
+        Assert.Equal("h.segment.1", segments[1].GetProperty("id").GetString()); // OnSegmentChanged ⇒ a tap id
+        Assert.Equal(0, header.GetProperty("selectedSegment").GetInt32());
+    }
+
+    [Fact]
+    public async Task Segmented_SelectionInvokesCallback_AndUpdatesSelection()
+    {
+        var chrome = new FakeNativeChrome();
+        var (_, webView, _) = await NewSessionAsync<SegmentedApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        await chrome.TapAsync("h.segment.2"); // select the third segment
+
+        using var body = JsonDocument.Parse(webView.LastFrame.AsMemory());
+        Assert.Contains("seg=2", body.RootElement.GetProperty("html").GetString()!); // callback ran + re-rendered
+        using var doc = JsonDocument.Parse(chrome.LastJson);
+        Assert.Equal(2, doc.RootElement.GetProperty("header").GetProperty("selectedSegment").GetInt32());
+    }
+
+    [Fact]
+    public async Task Menu_SerializesEntriesIconsAndIds()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<MenuApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var menuButton = doc.RootElement.GetProperty("header").GetProperty("trailing")[0];
+        Assert.Equal("menu", menuButton.GetProperty("kind").GetString());
+        Assert.Equal("ellipsis", menuButton.GetProperty("iosIcon").GetString()); // default NativeIcon.More
+        var entries = menuButton.GetProperty("menu");
+        Assert.Equal("Refresh", entries[0].GetProperty("title").GetString());
+        Assert.Equal("h.trailing.0.menu.0", entries[0].GetProperty("id").GetString());
+        Assert.False(entries[0].GetProperty("destructive").GetBoolean()); // not destructive
+        Assert.True(entries[1].GetProperty("destructive").GetBoolean());
+        Assert.Equal("h.trailing.0.menu.1", entries[1].GetProperty("id").GetString());
+    }
+
+    [Fact]
+    public async Task MenuItemTap_InvokesOnClick_AndRerenders()
+    {
+        var chrome = new FakeNativeChrome();
+        var (_, webView, _) = await NewSessionAsync<MenuApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        await chrome.TapAsync("h.trailing.0.menu.1"); // "Delete"
+
+        using var body = JsonDocument.Parse(webView.LastFrame.AsMemory());
+        Assert.Contains("last=delete", body.RootElement.GetProperty("html").GetString()!);
+    }
+
+    [Fact]
+    public async Task ChromeOnlyTap_RepushesChrome_WhenBodyHasNoDiff()
+    {
+        // A bar tap that changes ONLY native chrome (a tab badge) leaves the HTML body identical, so in diff
+        // mode it emits no frame. The chrome must still be re-pushed — regression: the no-frame early return in
+        // DispatchNativeTapAsync used to skip the chrome push, so segmented/menu/badge-only taps did nothing.
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<ChromeOnlyApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: LiveDiffMode.Auto);
+
+        using (var d0 = JsonDocument.Parse(chrome.Pushed[0]))
+        {
+            Assert.False(d0.RootElement.GetProperty("footer").GetProperty("tabs")[0].TryGetProperty("badge", out _));
+        }
+
+        await chrome.TapAsync("h.trailing.0"); // toggles the badge; the body stays "static"
+
+        Assert.Equal(2, chrome.Pushed.Count);
+        using var d1 = JsonDocument.Parse(chrome.LastJson);
+        Assert.Equal("1", d1.RootElement.GetProperty("footer").GetProperty("tabs")[0].GetProperty("badge").GetString());
+    }
+
+    [Fact]
+    public async Task BackButton_SerializesAsBackKind()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<BackApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        Assert.Equal("back", doc.RootElement.GetProperty("header").GetProperty("leading").GetProperty("kind").GetString());
+    }
+
+    [Fact]
+    public async Task InitialRender_ReplacesBootUrlWithAppRoute()
+    {
+        // The first frame seeds history with a REPLACE of the app's initial route so it supersedes the boot
+        // shell URL (/index.native.html) — otherwise Back from the first navigation lands on that 404 page.
+        var (_, _, initial) = await NewSessionAsync<BackApp>(diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(initial.AsMemory());
+        var history = doc.RootElement.GetProperty("history");
+        Assert.Equal("replace", history.GetProperty("action").GetString());
+        Assert.Equal("/", history.GetProperty("url").GetString());
+    }
+
+    [Fact]
+    public async Task BackButton_PopsWebViewHistory()
+    {
+        // A native back tap pops the WebView history (window.history.back()) — the client's popstate then
+        // re-enters the router as a navigate, so back reuses the existing history plumbing.
+        var chrome = new FakeNativeChrome();
+        var (_, webView, _) = await NewSessionAsync<BackApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        await chrome.BackAsync();
+
+        Assert.Contains(webView.Evaluated, js => js.Contains("history.back", StringComparison.Ordinal));
+    }
 }
 
 internal sealed class HeaderApp : Component
@@ -235,6 +482,143 @@ internal sealed class TwoHeaderApp : Component
     [
         NativeHeaderBar(Title: "Outer"),
         NativeHeaderBar(Title: "Inner"),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
+        ]
+    ];
+}
+
+internal sealed class StyledHeaderApp : Component
+{
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(Title: "Home",
+            Background: NativeColor.Hex("#1E88E5"),
+            Tint: NativeColor.White,
+            TitleColor: NativeColor.Adaptive(NativeColor.Black, NativeColor.White)),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
+        ]
+    ];
+}
+
+internal sealed class StyledTabApp : Component
+{
+    protected override Component? Render() =>
+    [
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
+        ],
+        NativeTabBar(
+            Background: NativeColor.Hex("#1E88E5"),
+            Tint: NativeColor.White,
+            UnselectedTint: NativeColor.Hex("#888"),
+            Tabs:
+            [
+                NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/"),
+                NativeTab(Title: "Me", Icon: NativeIcon.Person, To: "/me"),
+            ])
+    ];
+}
+
+internal sealed class BadgeTabApp : Component
+{
+    private int _count = 2;
+
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(Title: "B", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: () => _count++)]),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()[$"c={_count}"]]]
+        ],
+        NativeTabBar(
+            Tabs:
+            [
+                NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/"),
+                NativeTab(Title: "Todos", Icon: NativeIcon.List, To: "/todos", Badge: _count.ToString()),
+            ])
+    ];
+}
+
+internal sealed class BackApp : Component
+{
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(Title: "Detail", Leading: NativeBackButton()),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
+        ]
+    ];
+}
+
+internal sealed class ChromeOnlyApp : Component
+{
+    private bool _flag;
+
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(Title: "C", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: () => _flag = !_flag)]),
+        NativeWebView()[
+            Doctype(),
+            // The body NEVER changes — only the native badge below does, so a tap emits no HTML diff.
+            Html()[Head()[Title()["t"]], Body()[P()["static"]]]
+        ],
+        NativeTabBar(Tabs: [NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/", Badge: _flag ? "1" : null)])
+    ];
+}
+
+internal sealed class MenuApp : Component
+{
+    private string _last = "none";
+
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(
+            Title: "M",
+            Trailing:
+            [
+                NativeMenuButton(Items:
+                [
+                    NativeMenuItem(Title: "Refresh", Icon: NativeIcon.Search, OnClick: () => _last = "refresh"),
+                    NativeMenuItem(Title: "Delete", Destructive: true, OnClick: () => _last = "delete"),
+                ]),
+            ]),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()[$"last={_last}"]]]
+        ]
+    ];
+}
+
+internal sealed class SegmentedApp : Component
+{
+    private int _seg;
+
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(
+            Title: "S",
+            Segments: ["All", "Active", "Done"],
+            SelectedSegment: _seg,
+            OnSegmentChanged: i => _seg = i),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()[$"seg={_seg}"]]]
+        ]
+    ];
+}
+
+internal sealed class SystemHeaderApp : Component
+{
+    protected override Component? Render() =>
+    [
+        // Explicit System overrides any registered theme, forcing the platform default for the slot.
+        NativeHeaderBar(Title: "Home", Background: NativeColor.System),
         NativeWebView()[
             Doctype(),
             Html()[Head()[Title()["t"]], Body()[P()["x"]]]

@@ -31,4 +31,8 @@ internal sealed class FakeNativeChrome : INativeChrome
     /// <summary>Simulate a tab tap navigating to the given path.</summary>
     public Task NavigateAsync(string path) =>
         OnChromeEvent?.Invoke(Encoding.UTF8.GetBytes($$"""{"type":"navigate","path":"{{path}}"}""")) ?? Task.CompletedTask;
+
+    /// <summary>Simulate a native back-button tap.</summary>
+    public Task BackAsync() =>
+        OnChromeEvent?.Invoke(Encoding.UTF8.GetBytes("""{"type":"back"}""")) ?? Task.CompletedTask;
 }

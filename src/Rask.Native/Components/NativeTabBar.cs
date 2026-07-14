@@ -21,4 +21,13 @@ public sealed class NativeTabBar : NativeComponent
     ///     current route — the active tab then tracks navigation automatically. Set it to pin a specific tab.
     /// </summary>
     public int? Selected { get; set; }
+
+    /// <summary>The tab bar's background color. Leave <c>null</c> to inherit the registered <c>NativeTheme</c>, else the platform default.</summary>
+    public NativeColor? Background { get; set; }
+
+    /// <summary>The tint of the selected tab (icon + label). <c>null</c> ⇒ theme, else platform default.</summary>
+    public NativeColor? Tint { get; set; }
+
+    /// <summary>The tint of the unselected tabs. <c>null</c> ⇒ theme, else platform default.</summary>
+    public NativeColor? UnselectedTint { get; set; }
 }
