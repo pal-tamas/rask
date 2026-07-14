@@ -26,7 +26,7 @@ internal sealed class CliWrapLitestreamExecutor : ILitestreamExecutor
     {
         ArgumentNullException.ThrowIfNull(arguments);
 
-        var command = Cli.Wrap(_options.ExecutablePath)
+        var command = Cli.Wrap(LitestreamExecutableResolver.Resolve(_options.ExecutablePath))
             .WithArguments(arguments)
             .WithValidation(CommandResultValidation.None)
             .WithStandardOutputPipe(PipeTarget.ToDelegate(line => _logger.LogInformation("litestream: {Line}", line)))

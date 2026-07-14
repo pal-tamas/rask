@@ -9,7 +9,9 @@ Pairs with [`Rask.SQLite`](https://www.nuget.org/packages/Rask.SQLite), whose WA
 what Litestream requires. Standalone otherwise: it depends only on the Microsoft.Extensions
 hosting/DI abstractions and [CliWrap](https://github.com/Tyrrrz/CliWrap).
 
-> Requires the `litestream` binary on the host (or a path you set via `ExecutablePath`).
+> The `litestream` binary is **downloaded at build time** and dropped next to your app (SHA-256-verified,
+> cached, tiny package) — nothing to install. Opt out with `-p:RaskLitestreamDownload=false` and set your
+> own `ExecutablePath`.
 
 ## Install
 

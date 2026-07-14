@@ -123,8 +123,23 @@ driven through [CliWrap](https://github.com/Tyrrrz/CliWrap); a backup failure is
 but never crashes the app it protects. Point `ConfigPath` at a full `litestream.yml` for multiple
 databases or custom retention.
 
-> You need the `litestream` binary on the host — install it, bundle it with your deployment and set
-> `ExecutablePath`, or use a container image that includes it.
+### The litestream binary is fetched for you
+
+By default the package **downloads the `litestream` binary at build/publish time** and drops it next to
+your app, so there's nothing to install — the default `ExecutablePath` finds it automatically. The
+binary for the target runtime (Linux x64/arm64/armv7, macOS x64/arm64, Windows x64/arm64) is fetched
+once into a per-user cache (`~/.rask/litestream/<version>/<rid>`), **SHA-256-verified** against a pinned
+checksum, and reused by later builds. Knobs (in your project or with `-p:`):
+
+| Property | Purpose |
+|---|---|
+| `RaskLitestreamDownload` | `false` to skip the download (air-gapped builds); provide your own binary via `ExecutablePath`. |
+| `RaskLitestreamVersion` | Pin a different litestream version (also set `RaskLitestreamSha256`). |
+| `RaskLitestreamSha256` | The expected checksum when you override the version. |
+
+> Building on a platform litestream doesn't ship (or with the download off)? Install `litestream`
+> yourself and point `ExecutablePath` at it — a bundled binary next to the app always wins, otherwise a
+> bare `"litestream"` falls back to `PATH`.
 
 ### Deploying on Azure App Service Linux (and other ephemeral containers)
 

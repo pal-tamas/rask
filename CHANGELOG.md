@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Rask.SQLite.Litestream` now fetches the `litestream` binary for you.** MSBuild `build/` targets in
+  the package download the litestream binary for the target runtime at build/publish time (Linux
+  x64/arm64/armv7, macOS x64/arm64, Windows x64/arm64), SHA-256-verify it against a pinned checksum,
+  cache it under `~/.rask/litestream/<version>/<rid>`, and copy it next to the app — so a published app
+  (and its Docker image) has litestream with nothing to install. The package stays tiny (no binaries
+  shipped). The default `ExecutablePath` resolves to the bundled binary, then falls back to `PATH`. Opt
+  out with `-p:RaskLitestreamDownload=false`; pin a different version with `RaskLitestreamVersion` +
+  `RaskLitestreamSha256`. See [docs/sqlite.md](docs/sqlite.md#the-litestream-binary-is-fetched-for-you).
 - **The live playground is now a real in-browser IDE.** The `samples/Rask.Example.Playground` editor gains
   three IDE features, all powered by Roslyn compiled to WebAssembly:
   - **IntelliSense** — Roslyn's `CompletionService` (via a new `Microsoft.CodeAnalysis.CSharp.Features`

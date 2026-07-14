@@ -28,4 +28,13 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
   </ItemGroup>
 
+  <!-- Ship the MSBuild props/targets that download the litestream binary into a consumer's output. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.SQLite.Litestream.Tests"/>
+  </ItemGroup>
+
 </Project>
