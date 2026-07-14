@@ -35,10 +35,13 @@ https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/nati
   inject `IShare` (`Rask.Client.Browser`) to share from code. Both hit the OS share sheet.
 - **Native backends** override a JS default with real platform code. The head registers one on
   `host.Services` **before `RunLocalAsync`** (last-wins). The template ships `NativeShare` for `IShare`
-  (iOS `UIActivityViewController`, Android `Intent.ACTION_SEND`) and `NativeGeolocation` for `IGeolocation`
-  (iOS `CLLocationManager`, Android `LocationManager`) under `Platforms/`; register your own the same way.
-  Geolocation needs the location permission (already in `AndroidManifest.xml` / `Info.plist`; `MainActivity`
-  requests the runtime grant). Further native backends (biometrics, push) are a framework work-in-progress.
+  (iOS `UIActivityViewController`, Android `Intent.ACTION_SEND`), `NativeGeolocation` for `IGeolocation`
+  (iOS `CLLocationManager`, Android `LocationManager`), and `NativeNotifications` / `NativeBadge` for
+  `INotifications` / `IBadge` (iOS `UNUserNotificationCenter`, Android `NotificationManager` + a badge
+  notification) under `Platforms/`; register your own the same way. Geolocation needs the location
+  permission and notifications need `POST_NOTIFICATIONS` on Android 33+ (both already in
+  `AndroidManifest.xml` / `Info.plist`; `MainActivity` requests the runtime grants). Further native
+  backends (biometrics, push) are a framework work-in-progress.
 
 ## Native header & footer bars
 - A native page is a small **composed tree**: the native bars (`NativeHeaderBar` / `NativeTabBar` /

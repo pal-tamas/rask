@@ -123,6 +123,7 @@ public static class DemoRegistry
             ["browser-file-system"] = () => CodeSample(["FileSystemAccessDemo.cs"], Result: FileSystemAccessDemo()),
             ["browser-webauthn"] = () => CodeSample(["WebAuthnDemo.cs"], Result: WebAuthnDemo()),
             ["browser-broadcast-channel"] = () => CodeSample(["BroadcastChannelDemo.cs"], Result: BroadcastChannelDemo()),
+            ["browser-notifications"] = () => CodeSample(["NotificationsDemo.cs"], Result: NotificationsDemo()),
             ["browser-share"] = () => CodeSample(
                 ["ShareDemo.cs"],
                 Notes:
