@@ -135,6 +135,25 @@ them until tagged releases begin.
   showing where each works (Web / PWA / Native) and which have a native iOS/Android backend, linking to a
   dedicated reference page per API under `docs/apis/`. Reconciled the stale WASM-only classification of
   `IWebPush`/`INotifications`/`IBadge`/`IWakeLock` (they are transport-agnostic and register on Server).
+- **Native bar styling (`NativeColor` + per-bar colors + `NativeTheme`).** The native chrome bars
+  (`NativeHeaderBar` / `NativeTabBar` / `NativeToolbar`) can now be colored. A new **`NativeColor`** value
+  type — the color sibling of `NativeIcon`, one authored value the head resolves to a `UIColor` / Android
+  `Color` — offers `Hex`, `Rgba`, curated members (`White`/`Black`/`Clear`), a `System` default, and
+  `Adaptive(light, dark)` for dark-mode-aware colors. Each bar gains optional `Background` / `Tint`
+  (buttons / selected tab) / `TitleColor` slots (`NativeTabBar` also `UnselectedTint`); an app-wide
+  **`NativeTheme`** registered on `host.Services` fills unset slots. Resolution is layered — per-bar wins,
+  then the theme, then the platform default — so styling is fully opt-in and backward compatible (an unset
+  color, or an explicit `NativeColor.System`, keeps the OS look). The iOS head projects colors through
+  `UINavigationBarAppearance`/`UITabBarAppearance` (adaptive colors via a dynamic `UIColor`); the Android
+  head tints its bars against the current night mode. Descriptor serialization + layering are unit-tested
+  (`NativeColorTests`, `NativeChromeTests`); the `Rask.Example.Native` showcase brands its bars.
+
+### Fixed
+- **Native Android bars now render icons.** The Android chrome head rendered tabs and bar buttons as
+  text-only labels — the `NativeIcon` Android drawable was never resolved (an iOS/Android parity gap). Tabs
+  and icon buttons now resolve their drawable (`Resources.GetIdentifier`) and show a real icon (with the
+  selected tab highlighted via the tint), matching the iOS SF-Symbol bars; unresolved names still fall back
+  to text.
 
 ## [0.16.0] - 2026-07-14
 

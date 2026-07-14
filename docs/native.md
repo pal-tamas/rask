@@ -361,6 +361,54 @@ protected override Component? Render() =>
   with `IsNative`: compose the native tree under the native shell and return the plain shell on Server/WASM.
   This is a **bounded native-widget surface** (a header + footer), not a general native-control renderer.
 
+### Styling the bars
+
+The HTML inside `NativeWebView` is styled the usual way — scoped CSS, `global.css`, Bootstrap. The **bars**
+are real platform views, so they take **native** colors through a small, type-safe surface. `NativeColor` is
+the color sibling of `NativeIcon` — one authored value the platform head resolves to a `UIColor` (iOS) /
+`Color` (Android):
+
+```csharp
+NativeColor.Hex("#1E88E5")                                  // fixed
+NativeColor.Rgba(30, 136, 229)                              // fixed, from channels
+NativeColor.Adaptive(NativeColor.Black, NativeColor.White)  // light / dark — tracks the system theme
+NativeColor.System                                          // the platform default (the unset value)
+```
+
+Set colors **per bar** — every slot is optional, and an unset slot keeps the platform default (so styling is
+fully opt-in and backward compatible):
+
+```csharp
+NativeHeaderBar(Title: "Home",
+    Background: NativeColor.Hex("#1E88E5"),
+    Tint: NativeColor.White,                                 // leading/trailing button color
+    TitleColor: NativeColor.White),
+NativeTabBar(Tabs: [...],
+    Tint: NativeColor.Hex("#1E88E5"),                        // the selected tab
+    UnselectedTint: NativeColor.Hex("#6B7280")),
+```
+
+For an app-wide default, register a **`NativeTheme`** on `host.Services` (like `INativeChrome`); a per-bar
+color wins, the theme fills the slots a bar left unset, and a slot unset in both keeps the platform default:
+
+```csharp
+host.Services.AddSingleton(new NativeTheme
+{
+    Background = NativeColor.Hex("#1E88E5"),
+    Tint       = NativeColor.White,
+    TitleColor = NativeColor.White,
+});
+```
+
+- **Dark mode** — an `Adaptive(light, dark)` color resolves per appearance: on iOS via a dynamic `UIColor`
+  (it switches live); on Android against the current night mode (the Activity re-runs on a uiMode change).
+- **`NativeColor.System` vs. leaving it null** — omitting a color inherits the theme (then the platform
+  default); passing `NativeColor.System` explicitly *overrides* the theme and forces the platform default for
+  that one slot.
+- **Colors, not CSS** — this is a deliberately small surface (background, tint, title color). Bar fonts,
+  heights, and richer Material chrome are out of scope; the palette is kept in C#, so align it with your web
+  theme's tokens by hand (the showcase sources both from one `Brand` constant).
+
 ## Honest framing
 
 This is a **WebView hybrid** (the same architecture as .NET MAUI Blazor Hybrid, Ionic/Capacitor): C# runs

@@ -18,6 +18,11 @@ internal sealed class NativeHeaderDescriptor
     public string? Title { get; set; }
     public NativeBarItemDescriptor? Leading { get; set; }
     public List<NativeBarItemDescriptor>? Trailing { get; set; }
+
+    // Optional appearance tokens (NativeColor.ToToken(): "#RRGGBBAA" or "light|dark"); null ⇒ platform default.
+    public string? Background { get; set; }
+    public string? Tint { get; set; }
+    public string? TitleColor { get; set; }
 }
 
 internal sealed class NativeFooterDescriptor
@@ -28,6 +33,11 @@ internal sealed class NativeFooterDescriptor
     public List<NativeTabDescriptor>? Tabs { get; set; }
     public int Selected { get; set; }
     public List<NativeBarItemDescriptor>? Items { get; set; }
+
+    // Optional appearance tokens; null ⇒ platform default. UnselectedTint applies to the tab-bar kind only.
+    public string? Background { get; set; }
+    public string? Tint { get; set; }
+    public string? UnselectedTint { get; set; }
 }
 
 internal sealed class NativeBarItemDescriptor

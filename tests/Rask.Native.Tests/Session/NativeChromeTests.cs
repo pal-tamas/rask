@@ -156,6 +156,102 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
         using var doc = JsonDocument.Parse(initial.AsMemory());
         Assert.Contains("added=0", doc.RootElement.GetProperty("html").GetString()!);
     }
+
+    [Fact]
+    public async Task UnstyledBar_EmitsNoColorFields()
+    {
+        // An unstyled bar with no theme carries no appearance fields, so the head keeps the platform default.
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<HeaderApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var header = doc.RootElement.GetProperty("header");
+        Assert.False(header.TryGetProperty("background", out _));
+        Assert.False(header.TryGetProperty("tint", out _));
+        Assert.False(header.TryGetProperty("titleColor", out _));
+    }
+
+    [Fact]
+    public async Task StyledHeader_SerializesColorTokens()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<StyledHeaderApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var header = doc.RootElement.GetProperty("header");
+        Assert.Equal("#1E88E5FF", header.GetProperty("background").GetString());
+        Assert.Equal("#FFFFFFFF", header.GetProperty("tint").GetString());
+        // An adaptive title color serializes as the "light|dark" pair the heads split.
+        Assert.Equal("#000000FF|#FFFFFFFF", header.GetProperty("titleColor").GetString());
+    }
+
+    [Fact]
+    public async Task StyledTabBar_SerializesTintTokens()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<StyledTabApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var footer = doc.RootElement.GetProperty("footer");
+        Assert.Equal("#1E88E5FF", footer.GetProperty("background").GetString());
+        Assert.Equal("#FFFFFFFF", footer.GetProperty("tint").GetString());
+        Assert.Equal("#888888FF", footer.GetProperty("unselectedTint").GetString());
+    }
+
+    [Fact]
+    public async Task Theme_FillsUnsetBarColors()
+    {
+        // HeaderApp sets no colors; a registered NativeTheme supplies the default background.
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<HeaderApp>(
+            configure: s =>
+            {
+                s.AddSingleton<INativeChrome>(chrome);
+                s.AddSingleton(new NativeTheme { Background = NativeColor.Hex("#111") });
+            },
+            diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        Assert.Equal("#111111FF", doc.RootElement.GetProperty("header").GetProperty("background").GetString());
+    }
+
+    [Fact]
+    public async Task BarColor_OverridesTheme()
+    {
+        // A per-bar color wins over the theme default for the same slot.
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<StyledHeaderApp>(
+            configure: s =>
+            {
+                s.AddSingleton<INativeChrome>(chrome);
+                s.AddSingleton(new NativeTheme { Background = NativeColor.Hex("#111") });
+            },
+            diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        Assert.Equal("#1E88E5FF", doc.RootElement.GetProperty("header").GetProperty("background").GetString());
+    }
+
+    [Fact]
+    public async Task ExplicitSystemColor_BeatsTheme_AndOmitsField()
+    {
+        // An explicit NativeColor.System on a bar overrides the theme yet emits no token — forcing the
+        // platform default for that slot (the field is absent, so the head keeps its default).
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<SystemHeaderApp>(
+            configure: s =>
+            {
+                s.AddSingleton<INativeChrome>(chrome);
+                s.AddSingleton(new NativeTheme { Background = NativeColor.Hex("#111") });
+            },
+            diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        Assert.False(doc.RootElement.GetProperty("header").TryGetProperty("background", out _));
+    }
 }
 
 internal sealed class HeaderApp : Component
@@ -235,6 +331,54 @@ internal sealed class TwoHeaderApp : Component
     [
         NativeHeaderBar(Title: "Outer"),
         NativeHeaderBar(Title: "Inner"),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
+        ]
+    ];
+}
+
+internal sealed class StyledHeaderApp : Component
+{
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(Title: "Home",
+            Background: NativeColor.Hex("#1E88E5"),
+            Tint: NativeColor.White,
+            TitleColor: NativeColor.Adaptive(NativeColor.Black, NativeColor.White)),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
+        ]
+    ];
+}
+
+internal sealed class StyledTabApp : Component
+{
+    protected override Component? Render() =>
+    [
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
+        ],
+        NativeTabBar(
+            Background: NativeColor.Hex("#1E88E5"),
+            Tint: NativeColor.White,
+            UnselectedTint: NativeColor.Hex("#888"),
+            Tabs:
+            [
+                NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/"),
+                NativeTab(Title: "Me", Icon: NativeIcon.Person, To: "/me"),
+            ])
+    ];
+}
+
+internal sealed class SystemHeaderApp : Component
+{
+    protected override Component? Render() =>
+    [
+        // Explicit System overrides any registered theme, forcing the platform default for the slot.
+        NativeHeaderBar(Title: "Home", Background: NativeColor.System),
         NativeWebView()[
             Doctype(),
             Html()[Head()[Title()["t"]], Body()[P()["x"]]]

@@ -1,9 +1,11 @@
 using System.Text;
 using System.Text.Json;
 using Android.Content;
+using Android.Graphics;
 using Android.Views;
 using Android.Webkit;
 using Android.Widget;
+using Rask.Native.Components;
 
 namespace Rask.Native;
 
@@ -73,9 +75,15 @@ public sealed partial class RaskAndroidWebView
         }
 
         _topBar.Visibility = ViewStates.Visible;
+        ApplyBarBackground(_topBar, header.Background);
+        // Content color: the bar's own colors when set, else one that contrasts with the background — the
+        // custom LinearLayout widgets carry no themed color of their own, so an explicit color keeps them
+        // readable on a styled/dark bar.
+        var onBar = OnBarColor(header.Background);
+        var tint = ResolveColor(header.Tint) ?? onBar;
         if (header.Leading is { } leading)
         {
-            _topBar.AddView(BuildBarButton(leading));
+            _topBar.AddView(BuildBarButton(leading, tint));
         }
 
         var title = new TextView(_context)
@@ -86,13 +94,14 @@ public sealed partial class RaskAndroidWebView
             ContentDescription = "rask-native-header",
         };
         title.SetPadding(Dp(12), Dp(12), Dp(12), Dp(12));
+        title.SetTextColor(ResolveColor(header.TitleColor) ?? onBar);
         _topBar.AddView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, weight: 1f));
 
         if (header.Trailing is { Count: > 0 } trailing)
         {
             foreach (var item in trailing)
             {
-                _topBar.AddView(BuildBarButton(item));
+                _topBar.AddView(BuildBarButton(item, tint));
             }
         }
     }
@@ -112,46 +121,165 @@ public sealed partial class RaskAndroidWebView
         }
 
         _bottomBar.Visibility = ViewStates.Visible;
+        ApplyBarBackground(_bottomBar, footer.Background);
 
         if (string.Equals(footer.Kind, "toolbar", StringComparison.Ordinal))
         {
+            var toolTint = ResolveColor(footer.Tint) ?? OnBarColor(footer.Background);
             foreach (var item in footer.Items ?? [])
             {
-                _bottomBar.AddView(BuildBarButton(item), EqualWeight());
+                _bottomBar.AddView(BuildBarButton(item, toolTint), EqualWeight());
             }
 
             return;
         }
 
+        // Tab bar: the selected tab uses the full content color (Tint or the on-bar default); the rest use a
+        // muted color (UnselectedTint or a dimmed on-bar default), so the active tab is always highlighted even
+        // when only Tint — or nothing — is set. Parity with iOS's selected/unselected item tints.
+        var onBar = OnBarColor(footer.Background);
+        var selectedColor = ResolveColor(footer.Tint) ?? onBar;
+        var unselectedColor = ResolveColor(footer.UnselectedTint) ?? Muted(onBar);
         var tabs = footer.Tabs ?? [];
         for (var i = 0; i < tabs.Count; i++)
         {
-            var tab = tabs[i];
-            // Address each tab by its title (content-desc) for screen readers + the Appium E2E.
-            var button = new Button(_context) { Text = tab.Title, ContentDescription = tab.Title };
-            var path = tab.Path;
-            button.Click += (_, _) => Raise($$"""{"type":"navigate","path":"{{Escape(path)}}"}""");
-            _bottomBar.AddView(button, EqualWeight());
+            _bottomBar.AddView(BuildTabItem(tabs[i], i == footer.Selected ? selectedColor : unselectedColor), EqualWeight());
         }
     }
 
-    private Android.Views.View BuildBarButton(NativeBarItemDescriptor item)
+    // A tab is an icon (resolved from its Android drawable name) over a label — a plain bottom-nav item built
+    // without AndroidX. When the drawable can't be resolved it degrades to a text-only label.
+    private Android.Views.View BuildTabItem(NativeTabDescriptor tab, Color color)
+    {
+        var container = new LinearLayout(_context) { Orientation = Orientation.Vertical };
+        container.SetGravity(GravityFlags.Center);
+        container.Clickable = true;
+        // The whole tab is one tap target and one accessibility node addressed by its title (screen readers +
+        // the Appium E2E) — the icon/label are decorative, so they don't become separate nodes.
+        container.ContentDescription = tab.Title;
+        container.ImportantForAccessibility = ImportantForAccessibility.Yes;
+
+        var resId = ResolveDrawable(tab.AndroidIcon);
+        if (resId != 0)
+        {
+            var icon = new ImageView(_context) { ImportantForAccessibility = ImportantForAccessibility.No };
+            icon.SetImageResource(resId);
+            icon.SetColorFilter(color);
+            var size = Dp(24);
+            container.AddView(icon, new LinearLayout.LayoutParams(size, size));
+        }
+
+        var label = new TextView(_context)
+        {
+            Text = tab.Title,
+            TextSize = 12f,
+            Gravity = GravityFlags.Center,
+            ImportantForAccessibility = ImportantForAccessibility.No,
+        };
+        label.SetTextColor(color);
+        container.AddView(label);
+
+        var path = tab.Path;
+        container.Click += (_, _) => Raise($$"""{"type":"navigate","path":"{{Escape(path)}}"}""");
+        return container;
+    }
+
+    private Android.Views.View BuildBarButton(NativeBarItemDescriptor item, Color tint)
     {
         var isBack = string.Equals(item.Kind, "back", StringComparison.Ordinal);
-        var button = new Button(_context)
+        var resId = isBack ? 0 : ResolveDrawable(item.AndroidIcon);
+        Android.Views.View view;
+        if (resId != 0)
         {
-            Text = isBack ? "‹" : item.Title ?? "•",
-            // Address the button by its tap id (back → a stable token) for screen readers + the E2E.
-            ContentDescription = isBack ? "rask-native-back" : item.Id ?? item.Title,
-        };
+            // An icon button when the drawable resolves — matches iOS's SF-Symbol bar buttons. A visible title
+            // is often null for an icon button, so prefer it for the spoken/queryable label, then the tap id.
+            var imageButton = new ImageButton(_context);
+            imageButton.SetImageResource(resId);
+            imageButton.SetBackgroundColor(Color.Transparent);
+            imageButton.SetColorFilter(tint);
+            imageButton.ContentDescription = item.Title ?? item.Id;
+            view = imageButton;
+        }
+        else
+        {
+            var button = new Button(_context)
+            {
+                Text = isBack ? "‹" : item.Title ?? "•",
+                // Address the button by its tap id (back → a stable token) for screen readers + the E2E.
+                ContentDescription = isBack ? "rask-native-back" : item.Id ?? item.Title,
+            };
+            button.SetTextColor(tint);
+            view = button;
+        }
 
         var id = item.Id;
         if (id is not null)
         {
-            button.Click += (_, _) => Raise($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+            view.Click += (_, _) => Raise($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
         }
 
-        return button;
+        return view;
+    }
+
+    // Material primary-text black (~87% opacity) — the default content color on a light bar.
+    private static readonly Color DarkContent = Color.Argb(222, 0, 0, 0);
+
+    // A readable content color for a bar with the given background: dark content on a light bar, light on a
+    // dark one. The custom LinearLayout widgets carry no themed color, so an explicit default keeps them legible.
+    private Color OnBarColor(string? backgroundToken)
+    {
+        if (ResolveColor(backgroundToken) is { } bg)
+        {
+            var luminance = ((0.299 * bg.R) + (0.587 * bg.G) + (0.114 * bg.B)) / 255.0;
+            return luminance > 0.5 ? DarkContent : Color.White;
+        }
+
+        return DarkContent; // no explicit background ⇒ the default (light) surface
+    }
+
+    // A dimmed variant for unselected tabs, so the active tab stands out even when no tints are set.
+    private static Color Muted(Color color) => Color.Argb((int)(color.A * 0.6), color.R, color.G, color.B);
+
+    // Set an explicit bar background from a color token, or clear it (null background ⇒ the theme default shows).
+    private void ApplyBarBackground(LinearLayout bar, string? token)
+    {
+        if (ResolveColor(token) is { } color)
+        {
+            bar.SetBackgroundColor(color);
+        }
+        else
+        {
+            bar.Background = null;
+        }
+    }
+
+    // A wire token → Android Color, resolving an adaptive ("light|dark") pair against the current night mode.
+    // (Android recreates the Activity on a uiMode change, so this re-runs with the new mode — no live swap needed.)
+    private Color? ResolveColor(string? token)
+    {
+        if (!NativeColor.TryResolve(token, out var light, out var dark))
+        {
+            return null;
+        }
+
+        var c = IsNightMode ? dark : light;
+        return Color.Argb(c.A, c.R, c.G, c.B);
+    }
+
+    private bool IsNightMode =>
+        (_context.Resources?.Configuration?.UiMode & Android.Content.Res.UiMode.NightMask)
+        == Android.Content.Res.UiMode.NightYes;
+
+    private int ResolveDrawable(string? name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return 0;
+        }
+
+#pragma warning disable CA1422 // GetIdentifier is the supported path for a name→drawable lookup on all API levels.
+        return _context.Resources?.GetIdentifier(name, "drawable", _context.PackageName) ?? 0;
+#pragma warning restore CA1422
     }
 
     private void Raise(string json) => OnChromeEvent?.Invoke(Encoding.UTF8.GetBytes(json));

@@ -134,11 +134,13 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         }
 
         var currentPath = Services.GetRequiredService<RouteState>().Path;
+        // Optional app-wide default appearance; a per-bar style prop overrides it, an unset slot keeps the default.
+        var theme = Services.GetService<NativeTheme>();
         var handlers = new Dictionary<string, Action>(StringComparer.Ordinal);
         var descriptor = new NativeChromeDescriptor
         {
-            Header = BuildHeaderDescriptor(_pendingHeader, handlers),
-            Footer = BuildFooterDescriptor(_pendingFooter, handlers, currentPath),
+            Header = BuildHeaderDescriptor(_pendingHeader, handlers, theme),
+            Footer = BuildFooterDescriptor(_pendingFooter, handlers, currentPath, theme),
         };
         // Refresh the tap-handler map every render — the OnClick delegates capture fresh state even when the
         // serialized descriptor is byte-identical, so a tap must always reach the latest closure.
@@ -155,15 +157,27 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         await _chrome.ApplyChromeAsync(bytes).ConfigureAwait(false);
     }
 
+    // A per-bar style prop wins; the theme fills an unset slot; unset in both ⇒ null token ⇒ platform default.
+    // An explicit NativeColor.System on a bar has a value (so it overrides the theme) but a null token, which
+    // correctly forces the platform default for that slot.
+    private static string? ResolveColor(NativeColor? barProp, NativeColor? themeProp) =>
+        (barProp ?? themeProp)?.ToToken();
+
     private static NativeHeaderDescriptor? BuildHeaderDescriptor(
-        NativeHeaderBar? bar, Dictionary<string, Action> handlers)
+        NativeHeaderBar? bar, Dictionary<string, Action> handlers, NativeTheme? theme)
     {
         if (bar is null)
         {
             return null;
         }
 
-        var dto = new NativeHeaderDescriptor { Title = bar.Title };
+        var dto = new NativeHeaderDescriptor
+        {
+            Title = bar.Title,
+            Background = ResolveColor(bar.Background, theme?.Background),
+            Tint = ResolveColor(bar.Tint, theme?.Tint),
+            TitleColor = ResolveColor(bar.TitleColor, theme?.TitleColor),
+        };
         if (bar.Leading is { } leading)
         {
             dto.Leading = BuildItemDescriptor(leading, "h.leading", handlers);
@@ -182,7 +196,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     }
 
     private static NativeFooterDescriptor? BuildFooterDescriptor(
-        NativeComponent? footer, Dictionary<string, Action> handlers, string currentPath)
+        NativeComponent? footer, Dictionary<string, Action> handlers, string currentPath, NativeTheme? theme)
     {
         switch (footer)
         {
@@ -191,7 +205,14 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 // the highlighted tab tracks navigation (a tap, hardware Back, or a deep link) automatically —
                 // the caller never re-derives it by hand.
                 var selected = tabBar.Selected ?? DeriveSelectedTab(tabBar.Tabs, currentPath);
-                var tabFooter = new NativeFooterDescriptor { Kind = "tabbar", Selected = selected };
+                var tabFooter = new NativeFooterDescriptor
+                {
+                    Kind = "tabbar",
+                    Selected = selected,
+                    Background = ResolveColor(tabBar.Background, theme?.Background),
+                    Tint = ResolveColor(tabBar.Tint, theme?.Tint),
+                    UnselectedTint = ResolveColor(tabBar.UnselectedTint, theme?.UnselectedTint),
+                };
                 if (tabBar.Tabs is { Count: > 0 } tabs)
                 {
                     tabFooter.Tabs = new List<NativeTabDescriptor>(tabs.Count);
@@ -210,7 +231,12 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 return tabFooter;
 
             case NativeToolbar toolbar:
-                var toolFooter = new NativeFooterDescriptor { Kind = "toolbar" };
+                var toolFooter = new NativeFooterDescriptor
+                {
+                    Kind = "toolbar",
+                    Background = ResolveColor(toolbar.Background, theme?.Background),
+                    Tint = ResolveColor(toolbar.Tint, theme?.Tint),
+                };
                 if (toolbar.Items is { Count: > 0 } items)
                 {
                     toolFooter.Items = new List<NativeBarItemDescriptor>(items.Count);
