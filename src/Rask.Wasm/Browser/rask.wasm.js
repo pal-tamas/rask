@@ -899,6 +899,28 @@ window.__raskWebAuthn = window.__raskWebAuthn || (() => {
     };
 })();
 
+// Gesture-bridge DOM helpers — moved here from rask-wasm-api.js so they ship to the Server client too.
+// They drive activation-gated browser APIs that must run inside a click gesture; the declarative
+// FullscreenTrigger / EyeDropperTrigger components (and the data-rask-gesture click handler in
+// rask-events.js) call these synchronously in the gesture, which is why they work even on the Server
+// transport. The imperative IFullscreen / IEyeDropper services (WASM-only) call the same helpers.
+
+// Fullscreen: with no element the whole page goes fullscreen (document.documentElement); exit is a no-op
+// when nothing is fullscreen.
+window.__raskFullscreen = window.__raskFullscreen || {
+    isSupported: () => !!document.fullscreenEnabled,
+    isActive: () => document.fullscreenElement != null,
+    request: (el) => (el || document.documentElement).requestFullscreen(),
+    exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
+};
+
+// EyeDropper: open() resolves to the picked colour (#rrggbb); the picker rejects with AbortError when the
+// user cancels (Escape) — map that to null rather than surfacing an error.
+window.__raskEyeDropper = window.__raskEyeDropper || {
+    isSupported: () => "EyeDropper" in window,
+    open: () => new EyeDropper().open().then((r) => r.sRGBHex, () => null)
+};
+
 
 // Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) spliced from
 // Rask.Core/Resources/rask-pwa.js — the same source the Server client uses.
@@ -1165,15 +1187,9 @@ window.__raskOrientation = window.__raskOrientation || {
     unlock: () => { screen.orientation.unlock(); }
 };
 
-// Fullscreen (driven by IFullscreen). requestFullscreen needs transient activation, so this is WASM-only.
-// The element arg is resolved from an ElementRef by the JSON reviver; with no element the whole page goes
-// fullscreen (document.documentElement). exit is a no-op when nothing is fullscreen.
-window.__raskFullscreen = window.__raskFullscreen || {
-    isSupported: () => !!document.fullscreenEnabled,
-    isActive: () => document.fullscreenElement != null,
-    request: (el) => (el || document.documentElement).requestFullscreen(),
-    exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
-};
+// __raskFullscreen moved to Rask.Core/Resources/rask-api.js so it also ships to the Server client (the
+// declarative FullscreenTrigger drives it inside the click gesture there). The imperative IFullscreen
+// service stays WASM-only.
 
 // Media Capture / getUserMedia (driven by IMediaDevices). getUserMedia needs transient activation + a
 // secure context, so this is WASM-only. The live MediaStream can't cross interop, so each is held here
@@ -1222,12 +1238,9 @@ window.__raskMedia = window.__raskMedia || (() => {
     };
 })();
 
-// EyeDropper (driven by IEyeDropper). open() needs transient activation, so this is WASM-only. The picker
-// rejects with AbortError when the user cancels (Escape) — map that to null rather than surfacing an error.
-window.__raskEyeDropper = window.__raskEyeDropper || {
-    isSupported: () => "EyeDropper" in window,
-    open: () => new EyeDropper().open().then((r) => r.sRGBHex, () => null)
-};
+// __raskEyeDropper moved to Rask.Core/Resources/rask-api.js so it also ships to the Server client (the
+// declarative EyeDropperTrigger drives it inside the click gesture there). The imperative IEyeDropper
+// service stays WASM-only.
 
 // Picture-in-Picture (driven by IPictureInPicture). requestPictureInPicture needs transient activation, so
 // this is WASM-only. The element arg is resolved from an ElementRef by the JSON reviver; exit is a no-op
@@ -4049,6 +4062,40 @@ document.addEventListener("click", function (e) {
         try { data = JSON.parse(raw); } catch (err) { return; }
         // Fire in the gesture; swallow rejections (user cancel / unsupported payload).
         try { var p = navigator.share(data); if (p && p["catch"]) { p["catch"](function () {}); } } catch (err) {}
+    }
+});
+
+// ----- Gesture bridge (client-only) ------------------------------------------
+// GestureTrigger / FullscreenTrigger / EyeDropperTrigger emit data-rask-gesture="{cap,rid}". The capability
+// MUST run inside the click's own call stack so the browser's transient user activation is still live — a
+// server round-trip would lose it. That's what lets activation-gated APIs (fullscreen, eyedropper, …) work
+// even on the Server transport. When a result-callback id (rid) is set, the resolved value is posted back to
+// C# via the shared DotNet shim (static [JSInvokable] GestureResultInterop.Result in Rask.Core).
+var raskGestureCaps = {
+    "fullscreen.request": function () { return window.__raskFullscreen ? window.__raskFullscreen.request() : null; },
+    "eyedropper.open": function () { return window.__raskEyeDropper ? window.__raskEyeDropper.open() : null; }
+};
+function raskPostGestureResult(rid, value) {
+    if (window.DotNet && window.DotNet.invokeMethodAsync) {
+        window.DotNet.invokeMethodAsync("Rask.Core", "RaskGestureResult", rid, value == null ? null : value);
+    }
+}
+document.addEventListener("click", function (e) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-gesture]") : null;
+    if (!t || !inRoot(t)) { return; }
+    var raw = t.getAttribute("data-rask-gesture");
+    if (!raw) { return; }
+    var spec;
+    try { spec = JSON.parse(raw); } catch (err) { return; }
+    var run = raskGestureCaps[spec.cap];
+    if (!run) { return; }
+    var result;
+    try { result = run(); } catch (err) { if (spec.rid != null) { raskPostGestureResult(spec.rid, null); } return; }
+    if (spec.rid != null && result && typeof result.then === "function") {
+        result.then(function (value) { raskPostGestureResult(spec.rid, value); },
+            function () { raskPostGestureResult(spec.rid, null); });
+    } else if (result && result["catch"]) {
+        result["catch"](function () {});
     }
 });
 

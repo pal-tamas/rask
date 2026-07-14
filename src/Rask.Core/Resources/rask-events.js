@@ -235,3 +235,37 @@ document.addEventListener("click", function (e) {
         try { var p = navigator.share(data); if (p && p["catch"]) { p["catch"](function () {}); } } catch (err) {}
     }
 });
+
+// ----- Gesture bridge (client-only) ------------------------------------------
+// GestureTrigger / FullscreenTrigger / EyeDropperTrigger emit data-rask-gesture="{cap,rid}". The capability
+// MUST run inside the click's own call stack so the browser's transient user activation is still live — a
+// server round-trip would lose it. That's what lets activation-gated APIs (fullscreen, eyedropper, …) work
+// even on the Server transport. When a result-callback id (rid) is set, the resolved value is posted back to
+// C# via the shared DotNet shim (static [JSInvokable] GestureResultInterop.Result in Rask.Core).
+var raskGestureCaps = {
+    "fullscreen.request": function () { return window.__raskFullscreen ? window.__raskFullscreen.request() : null; },
+    "eyedropper.open": function () { return window.__raskEyeDropper ? window.__raskEyeDropper.open() : null; }
+};
+function raskPostGestureResult(rid, value) {
+    if (window.DotNet && window.DotNet.invokeMethodAsync) {
+        window.DotNet.invokeMethodAsync("Rask.Core", "RaskGestureResult", rid, value == null ? null : value);
+    }
+}
+document.addEventListener("click", function (e) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-gesture]") : null;
+    if (!t || !inRoot(t)) { return; }
+    var raw = t.getAttribute("data-rask-gesture");
+    if (!raw) { return; }
+    var spec;
+    try { spec = JSON.parse(raw); } catch (err) { return; }
+    var run = raskGestureCaps[spec.cap];
+    if (!run) { return; }
+    var result;
+    try { result = run(); } catch (err) { if (spec.rid != null) { raskPostGestureResult(spec.rid, null); } return; }
+    if (spec.rid != null && result && typeof result.then === "function") {
+        result.then(function (value) { raskPostGestureResult(spec.rid, value); },
+            function () { raskPostGestureResult(spec.rid, null); });
+    } else if (result && result["catch"]) {
+        result["catch"](function () {});
+    }
+});

@@ -1,6 +1,5 @@
 using Foundation;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Client.Browser;
 using Rask.Example.Shared;
 using Rask.Native;
 using UIKit;
@@ -46,9 +45,11 @@ public class AppDelegate : UIApplicationDelegate
         var host = NativeAppHost.CreateDefault();
         host.Services.AddExampleServices(_ => new Uri(RaskWkWebView.DefaultOrigin));
 
-        // Native device backend: hand IShare to the iOS OS share sheet (UIActivityViewController). Register
-        // native backends on host.Services BEFORE RunLocalAsync — the last registration wins.
-        host.Services.AddSingleton<IShare>(_ => new NativeShare(() => Window?.RootViewController));
+        // Native device backends: the iOS platform module wires IShare (system share sheet), IGeolocation
+        // (CoreLocation), IClipboard, IVibration, IWakeLock, and INetworkInfo to their native C# impls. The
+        // framework resolves each over the JS-backed default (native-first); everything else falls back to
+        // the WebView's JS. Call UsePlatform before RunLocalAsync.
+        host.UsePlatform(new ApplePlatform(() => Window?.RootViewController));
 
         // Native header/footer chrome: the same RaskWkWebView instance is the INativeChrome backend, so the
         // NativeShowcaseApp's NativeHeader/NativeFooter drive its UINavigationBar/UITabBar.

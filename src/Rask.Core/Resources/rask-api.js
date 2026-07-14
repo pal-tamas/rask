@@ -888,3 +888,25 @@ window.__raskWebAuthn = window.__raskWebAuthn || (() => {
         }
     };
 })();
+
+// Gesture-bridge DOM helpers — moved here from rask-wasm-api.js so they ship to the Server client too.
+// They drive activation-gated browser APIs that must run inside a click gesture; the declarative
+// FullscreenTrigger / EyeDropperTrigger components (and the data-rask-gesture click handler in
+// rask-events.js) call these synchronously in the gesture, which is why they work even on the Server
+// transport. The imperative IFullscreen / IEyeDropper services (WASM-only) call the same helpers.
+
+// Fullscreen: with no element the whole page goes fullscreen (document.documentElement); exit is a no-op
+// when nothing is fullscreen.
+window.__raskFullscreen = window.__raskFullscreen || {
+    isSupported: () => !!document.fullscreenEnabled,
+    isActive: () => document.fullscreenElement != null,
+    request: (el) => (el || document.documentElement).requestFullscreen(),
+    exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
+};
+
+// EyeDropper: open() resolves to the picked colour (#rrggbb); the picker rejects with AbortError when the
+// user cancels (Escape) — map that to null rather than surfacing an error.
+window.__raskEyeDropper = window.__raskEyeDropper || {
+    isSupported: () => "EyeDropper" in window,
+    open: () => new EyeDropper().open().then((r) => r.sRGBHex, () => null)
+};

@@ -118,15 +118,9 @@ window.__raskOrientation = window.__raskOrientation || {
     unlock: () => { screen.orientation.unlock(); }
 };
 
-// Fullscreen (driven by IFullscreen). requestFullscreen needs transient activation, so this is WASM-only.
-// The element arg is resolved from an ElementRef by the JSON reviver; with no element the whole page goes
-// fullscreen (document.documentElement). exit is a no-op when nothing is fullscreen.
-window.__raskFullscreen = window.__raskFullscreen || {
-    isSupported: () => !!document.fullscreenEnabled,
-    isActive: () => document.fullscreenElement != null,
-    request: (el) => (el || document.documentElement).requestFullscreen(),
-    exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
-};
+// __raskFullscreen moved to Rask.Core/Resources/rask-api.js so it also ships to the Server client (the
+// declarative FullscreenTrigger drives it inside the click gesture there). The imperative IFullscreen
+// service stays WASM-only.
 
 // Media Capture / getUserMedia (driven by IMediaDevices). getUserMedia needs transient activation + a
 // secure context, so this is WASM-only. The live MediaStream can't cross interop, so each is held here
@@ -175,12 +169,9 @@ window.__raskMedia = window.__raskMedia || (() => {
     };
 })();
 
-// EyeDropper (driven by IEyeDropper). open() needs transient activation, so this is WASM-only. The picker
-// rejects with AbortError when the user cancels (Escape) — map that to null rather than surfacing an error.
-window.__raskEyeDropper = window.__raskEyeDropper || {
-    isSupported: () => "EyeDropper" in window,
-    open: () => new EyeDropper().open().then((r) => r.sRGBHex, () => null)
-};
+// __raskEyeDropper moved to Rask.Core/Resources/rask-api.js so it also ships to the Server client (the
+// declarative EyeDropperTrigger drives it inside the click gesture there). The imperative IEyeDropper
+// service stays WASM-only.
 
 // Picture-in-Picture (driven by IPictureInPicture). requestPictureInPicture needs transient activation, so
 // this is WASM-only. The element arg is resolved from an ElementRef by the JSON reviver; exit is a no-op

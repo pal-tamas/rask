@@ -8,6 +8,37 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Gesture bridge — activation-gated browser APIs on the Server host.** New headless `GestureTrigger`
+  (and typed `FullscreenTrigger` / `EyeDropperTrigger`) generalise `Shareable`'s trick: they hand your
+  element a `data-rask-gesture` bundle and the shared client runs the capability **inside the click
+  gesture**, so the browser's transient user activation survives. That makes normally-WASM-only APIs like
+  fullscreen and the eyedropper reachable **declaratively on the Server host** (where a round-tripped
+  service call would lose the activation). Capabilities that return a value post it back to an
+  `OnResult` / `OnColor` callback via a new `[JSInvokable]`. The `__raskFullscreen` / `__raskEyeDropper`
+  DOM helpers moved from `rask-wasm-api.js` into the shared `rask-api.js` so they ship to Server too.
+- **Native iOS/Android backends for the browser/device APIs, wired with one line.** `Rask.Native` now
+  ships native C# implementations of ten interfaces and a platform module that installs them:
+  `host.UsePlatform(new ApplePlatform(() => rootVc))` / `new AndroidPlatform(this)`. Injecting the
+  ordinary interface then resolves the native backend on device — `IGeolocation` → `CLLocationManager` /
+  `LocationManager`, `IClipboard` → `UIPasteboard` / `ClipboardManager`, `IVibration` → system vibration /
+  `Vibrator`, `IWakeLock` → idle-timer / `FLAG_KEEP_SCREEN_ON`, `INetworkInfo` → `NWPathMonitor` /
+  `ConnectivityManager`, `ISpeechSynthesis` → `AVSpeechSynthesizer` / `TextToSpeech`, `IScreenInfo` →
+  `UIScreen` / `DisplayMetrics`, `IDeviceOrientation` / `IDeviceMotion` → CoreMotion / `SensorManager`, and
+  `IShare` (already native) — instead of the WebView's JS, which is often gesture-gated or absent on the
+  platform. Everything else falls back to the WebView automatically. The `rask-native` sample uses the new
+  modules (and adds the location / network-state / vibrate permissions).
+- **Central registration for the typed browser/device APIs, with native-first resolution.** The
+  interface → implementation map for the 43 browser wrappers, previously hand-duplicated across the
+  Server, WASM, and Native hosts, now lives in one place per assembly: `AddCoreBrowserApis` (the 31
+  transport-agnostic wrappers, in `Rask.Core.Browser`), `AddClientBrowserApis` (the in-process `IShare`,
+  in `Rask.Client.Browser`), and `AddWasmBrowserApis` (the 11 WASM-only wrappers, in `Rask.Wasm.Browser`).
+  Each host calls the tiers it can serve at its own lifetime (Server `Scoped`, WASM/Native `Singleton`).
+  Every registration uses `TryAdd`, so the JS-backed wrapper is now a **fallback**: a native backend — or
+  an explicit app registration — made first wins, and the framework resolves the best implementation per
+  host with no app-head wiring. Registrations use compile-time `typeof` only (reflection-free, trim-safe).
+- **`NativeAppHost.UsePlatform(INativePlatform)`** — a native platform module (iOS/Android) contributes
+  native C# backends for the browser/device interfaces; the host applies them before the JS fallbacks in
+  `RunLocalAsync`, so any interface a platform backs natively wins and the rest fall back to the WebView.
 - **The live playground is now a real in-browser IDE.** The `samples/Rask.Example.Playground` editor gains
   three IDE features, all powered by Roslyn compiled to WebAssembly:
   - **IntelliSense** — Roslyn's `CompletionService` (via a new `Microsoft.CodeAnalysis.CSharp.Features`
@@ -23,6 +54,19 @@ them until tagged releases begin.
   diagnostics/completion mapping and every gallery snippet are unit-tested on the desktop runtime, and the
   Playwright journey now asserts a live squiggle appears before Run and that a gallery example loads + runs.
   Adds ~3.7 MB (brotli) to the untrimmed playground bundle for the Features/Workspaces assemblies.
+
+### Changed
+- **Consistent one-file-per-API layout.** Every browser/device wrapper now lives in an `I{Api}.cs` file
+  holding the interface, its implementation, and its DTOs together (e.g. `Clipboard.cs` folded into
+  `IClipboard.cs`; `Geolocation.cs`/`GeolocationOptions.cs`/`GeolocationPosition.cs` into `IGeolocation.cs`;
+  the WASM wrappers renamed `Fullscreen.cs` → `IFullscreen.cs`, …). No public API or namespace changed.
+
+### Documentation
+- **Browser/device API capability matrix + per-API reference pages.** New
+  [`docs/browser-capabilities.md`](docs/browser-capabilities.md) is a single table of all 43 wrappers
+  showing where each works (Web / PWA / Native) and which have a native iOS/Android backend, linking to a
+  dedicated reference page per API under `docs/apis/`. Reconciled the stale WASM-only classification of
+  `IWebPush`/`INotifications`/`IBadge`/`IWakeLock` (they are transport-agnostic and register on Server).
 
 ## [0.16.0] - 2026-07-14
 

@@ -162,46 +162,17 @@ public static class RaskEndpointExtensions
         // Transient user messages / toasts (Rails-style flash). Scoped = one queue per session, so a
         // message queued before a client-side NavigateTo survives the navigation and shows once on arrival.
         services.AddScoped<IToaster, Toaster>();
-        services.AddScoped<IBrowserStorage, BrowserStorage>();
-        services.AddScoped<IClipboard, Clipboard>();
-        services.AddScoped<IGeolocation, Geolocation>();
-        services.AddScoped<INavigatorInfo, NavigatorInfo>();
-        services.AddScoped<INetworkInfo, NetworkInfo>();
-        services.AddScoped<IMediaQuery, MediaQuery>();
-        services.AddScoped<ISpeechSynthesis, SpeechSynthesis>();
-        services.AddScoped<IScreenInfo, ScreenInfoReader>();
-        services.AddScoped<IStorageEstimator, StorageEstimator>();
-        services.AddScoped<IVisualViewport, VisualViewportReader>();
-        services.AddScoped<IBroadcastChannel, BroadcastChannelService>();
-        services.AddScoped<IIntersectionObserver, IntersectionObserverService>();
-        services.AddScoped<IResizeObserver, ResizeObserverService>();
-        services.AddScoped<IMutationObserver, MutationObserverService>();
-        services.AddScoped<IMediaSession, MediaSession>();
-        services.AddScoped<IGamepad, Gamepad>();
-        services.AddScoped<IDeviceOrientation, DeviceOrientation>();
-        services.AddScoped<IDeviceMotion, DeviceMotion>();
-        services.AddScoped<ICrypto, Crypto>();
-        services.AddScoped<IPerformance, Performance>();
-        services.AddScoped<IIndexedDb, IndexedDb>();
-        services.AddScoped<IFileSystemAccess, FileSystemAccess>();
-        services.AddScoped<IWebAuthn, WebAuthn>();
-        services.AddScoped<ICookies, Cookies>();
-        services.AddScoped<IPermissions, Permissions>();
-        services.AddScoped<IVibration, Vibration>();
-        services.AddScoped<IPageVisibility, PageVisibilityInfo>();
-        // PWA APIs that are transport-agnostic (IJSRuntime-backed, no transient activation needed) are
-        // registered on Server too — push subscribe, local notifications, app badge, and screen wake lock.
-        // Their JS helpers ship in the Server client only when PWA is opted into; see AddRaskPwa.
-        services.AddScoped<IWebPush, WebPush>();
-        services.AddScoped<INotifications, Notifications>();
-        services.AddScoped<IBadge, Badge>();
-        services.AddScoped<IWakeLock, WakeLock>();
+        // Typed browser/device API wrappers — the transport-agnostic Core set, Scoped (one per WebSocket
+        // session). Registered via the shared helper (RaskBrowserApis) so the interface → impl list lives in
+        // one place instead of being duplicated across the Server/WASM/Native hosts. TryAdd inside the helper
+        // lets an app pre-register a better implementation and win. The PWA members (IWebPush, INotifications,
+        // IBadge, IWakeLock) are included; their JS helpers ship in the Server client only under AddRaskPwa.
         // The remaining browser APIs are intentionally NOT registered on Server: they need transient user
-        // activation, a live document/handle, or the installed-PWA instance, all of which the WebSocket
-        // round-trip loses. They are provided only by the in-process hosts — IShare lives in Rask.Client
-        // (shared by the WASM and Native hosts; a Native head can swap in a native backend), and the WASM-only
-        // set (see WasmHostBuilder) is IFullscreen, IInstallPrompt, IEyeDropper, IPictureInPicture,
-        // IMediaDevices, IScreenOrientation, IIdleDetector, ISerial, IUsb, IHid, IBluetooth.
+        // activation, a live document/handle, or the installed-PWA instance the WebSocket round-trip loses,
+        // so they are provided only by the in-process hosts — IShare in Rask.Client (WASM + Native, native
+        // backend swappable) and the WASM-only set (see RaskWasmBrowserApis). Server can still reach the
+        // activation-gated APIs declaratively via GestureTrigger — see docs/browser-capabilities.md.
+        services.AddCoreBrowserApis(ServiceLifetime.Scoped);
         services.AddScoped<AuthSignIn>();
         services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
         services.AddSingleton<IAuthTicketStore, AuthTicketStore>();
