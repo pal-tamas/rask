@@ -23,6 +23,27 @@ them until tagged releases begin.
   diagnostics/completion mapping and every gallery snippet are unit-tested on the desktop runtime, and the
   Playwright journey now asserts a live squiggle appears before Run and that a gallery example loads + runs.
   Adds ~3.7 MB (brotli) to the untrimmed playground bundle for the Features/Workspaces assemblies.
+- **`Rask.SQLite` — Rails-style production SQLite pragmas.** A new opt-in, standalone package that
+  applies the Ruby on Rails 8 production pragma set — `journal_mode=WAL`, `synchronous=NORMAL`,
+  `foreign_keys=ON`, `busy_timeout=5000`, `cache_size`, `mmap_size`, `journal_size_limit` (values
+  verified against rails/rails#49349) — to **every** SQLite connection, so concurrent writers stop
+  hitting `database is locked` and foreign keys are actually enforced. Entity Framework Core users
+  swap `UseSqlite(cs)` for `UseRaskSqlite(cs)` (a `ConnectionOpened` interceptor); raw-ADO.NET users
+  call `services.AddRaskSqlite(cs)` and inject `IRaskSqliteConnectionFactory`. The per-connection
+  pragmas are re-applied on every pooled open (only WAL persists in the file header); every value is
+  overridable — or nullable to skip — via `SqlitePragmaOptions`. Depends only on `Microsoft.Data.Sqlite`
+  and `Microsoft.EntityFrameworkCore.Sqlite`; server-side. New `samples/Rask.Example.Sqlite` shows the
+  live pragma values and a concurrent-writes demo. See [docs/sqlite.md](docs/sqlite.md).
+- **`Rask.SQLite.Litestream` — managed [Litestream](https://litestream.io) backup.** A companion
+  opt-in package that supervises the Litestream sidecar from inside the app: `AddRaskSqliteLitestream(…)`
+  registers a hosted background service that continuously streams the WAL to S3/GCS/Azure Blob/file
+  storage, and `RestoreSqliteFromLitestreamAsync()` restores the database from its replica on a fresh
+  host (no-op when the local file exists). The `litestream` binary is driven via CliWrap; shutdown sends
+  a graceful interrupt so the final WAL frames flush (a `ShutdownGracePeriod` before force-kill) — the
+  right behaviour for SIGTERM-recycled platforms like Azure App Service Linux and Kubernetes. If the
+  backup process exits or crashes it is restarted with capped exponential backoff (`RestartDelay`); a
+  failure is logged at Critical and never crashes the app. Depends only on the Microsoft.Extensions
+  hosting/DI abstractions and CliWrap. See [docs/sqlite.md](docs/sqlite.md#continuous-backup-with-litestream).
 
 ## [0.16.0] - 2026-07-14
 

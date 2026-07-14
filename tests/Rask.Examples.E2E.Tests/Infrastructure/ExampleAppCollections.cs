@@ -15,6 +15,13 @@ public sealed class EfCoreExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class SqliteExampleCollection
+    : ICollectionFixture<SqliteExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "SqliteExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class WasmExampleCollection
     : ICollectionFixture<WasmExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
 {

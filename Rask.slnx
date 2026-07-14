@@ -17,6 +17,7 @@
              `native` CI job, and the on-device Appium E2E (tests/Rask.Native.Appium.Tests) drives them. -->
         <Project Path="samples/Rask.Example.Server/Rask.Example.Server.csproj"/>
         <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj"/>
+        <Project Path="samples/Rask.Example.Sqlite/Rask.Example.Sqlite.csproj"/>
         <Project Path="samples/Rask.Example.Site/Rask.Example.Site.csproj"/>
         <Project Path="samples/Rask.Example.Wasm.Host/Rask.Example.Wasm.Host.csproj"/>
         <Project Path="samples/Rask.Example.Wasm/Rask.Example.Wasm.csproj"/>
@@ -31,6 +32,8 @@
         <Project Path="src/Rask.Generators.CodeFixes/Rask.Generators.CodeFixes.csproj"/>
         <Project Path="src/Rask.Native/Rask.Native.csproj"/>
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
+        <Project Path="src/Rask.SQLite/Rask.SQLite.csproj"/>
+        <Project Path="src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj"/>
         <Project Path="src/Rask.Templates/Rask.Templates.csproj"/>
         <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj"/>
         <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj"/>
@@ -56,6 +59,8 @@
         <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Native.Tests/Rask.Native.Tests.csproj"/>
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj"/>
+        <Project Path="tests/Rask.SQLite.Tests/Rask.SQLite.Tests.csproj"/>
+        <Project Path="tests/Rask.SQLite.Litestream.Tests/Rask.SQLite.Litestream.Tests.csproj"/>
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj"/>
         <Project Path="tests/Rask.Validation.DataAnnotations.Tests/Rask.Validation.DataAnnotations.Tests.csproj"/>
         <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj"/>
