@@ -55,6 +55,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Option("context", 'c')
             .Option("plural", 'p')
             .Option("id")
+            .Option("validation")
             .Flag("force")
             .Flag("dry-run");
 
@@ -95,9 +96,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
         if (kind != "feature"
             && (parsed.Option("fields") is not null || parsed.Option("context") is not null
-                || parsed.Option("plural") is not null || parsed.Option("id") is not null))
+                || parsed.Option("plural") is not null || parsed.Option("id") is not null
+                || parsed.Option("validation") is not null))
         {
-            Console.Error.WriteLine("--fields, --context, --plural, and --id only apply to 'generate feature'.");
+            Console.Error.WriteLine("--fields, --context, --plural, --id, and --validation only apply to 'generate feature'.");
             return Task.FromResult(1);
         }
 
@@ -179,7 +181,15 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     return false;
                 }
 
-                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
+                var validation = parsed.Option("validation")?.ToLowerInvariant() ?? "valueobjects";
+                if (validation is not ("valueobjects" or "dataannotations" or "fluent"))
+                {
+                    result = null!;
+                    error = "--validation must be 'valueobjects' (default), 'dataannotations', or 'fluent'.";
+                    return false;
+                }
+
+                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
                 return true;
         }
     }
