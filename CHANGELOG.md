@@ -8,8 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
-- **`rask generate feature --bs` scaffolds with Rask.Bootstrap.** The `--bs` flag renders the generated
-  pages with `Bs*` components — `BsCard`/`BsCardBody`, `BsTable`, `BsButton`, `BsIcon`, and the bound
+- **`rask generate feature --bs` scaffolds with Rask.Bootstrap; without it the pages are plain HTML.**
+  By default the generated pages are now plain, unstyled semantic HTML (no CSS classes at all), so they
+  compile and work in any project regardless of its stylesheet. The `--bs` flag renders the pages with
+  `Bs*` components — `BsCard`/`BsCardBody`, `BsTable`, `BsButton`, `BsIcon`, and the bound
   `BsInput`/`BsCheck` form controls (which carry their own label + validation feedback) — and lays them
   out with typed `Bs.Join(...)` utility classes (`Display.Flex()`, `Flex.Gap(3)`, `Shadow.Sm`, …) instead
   of raw class strings. Value-object / DataAnnotations / Fluent validation all compose with it. The

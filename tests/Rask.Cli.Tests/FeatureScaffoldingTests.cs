@@ -282,13 +282,17 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
-    public void Bool_field_renders_a_bootstrap_checkbox_not_a_text_input()
+    public void Without_bs_pages_are_plain_unstyled_html()
     {
-        var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Job",
-            [new FieldSpec("Done", "bool", false, null)], "Guid", "valueobjects", useBs: false, null, null, outputOverride: null);
+        var result = Generate(); // core (no --bs)
 
-        var createJob = File(result, "CreateJob.cs");
-        Assert.Contains("form-check-input", createJob, StringComparison.Ordinal);
+        foreach (var file in new[] { "ProductsPage.cs", "CreateProduct.cs", "UpdateProduct.cs", "DeleteProduct.cs" })
+        {
+            Assert.DoesNotContain("Class:", File(result, file), StringComparison.Ordinal); // no styling / classes at all
+        }
+
+        // A field is just a label + bound Input, no framework classes.
+        Assert.Contains("Input(() => _form.Price, Id: \"price\")", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
     }
 
     [Fact]

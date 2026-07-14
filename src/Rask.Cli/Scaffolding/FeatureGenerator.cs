@@ -263,18 +263,12 @@ internal static class FeatureGenerator
                 sb.Append("                    ").Append(control).Append("(() => _form.").Append(field.Name).Append(validate)
                     .Append(", Id: \"").Append(id).Append("\", Label: \"").Append(field.Name).Append("\"),\n");
             }
-            else if (field.CsType == "bool")
-            {
-                sb.Append("                    Div(Class: \"form-check\")[\n")
-                    .Append("                        Input(() => _form.").Append(field.Name).Append(", Id: \"").Append(id).Append("\", Class: \"form-check-input\"),\n")
-                    .Append("                        Label(\"").Append(id).Append("\", Class: \"form-check-label\")[\"").Append(field.Name).Append("\"]\n")
-                    .Append("                    ],\n");
-            }
             else
             {
+                // Plain, unstyled HTML: a label + the bound input (a bool renders as a checkbox).
                 sb.Append("                    Div()[\n")
-                    .Append("                        Label(\"").Append(id).Append("\", Class: \"form-label small mb-1\")[\"").Append(field.Name).Append("\"],\n")
-                    .Append("                        Input(() => _form.").Append(field.Name).Append(validate).Append(", Id: \"").Append(id).Append("\", Class: \"form-control\")\n")
+                    .Append("                        Label(\"").Append(id).Append("\")[\"").Append(field.Name).Append("\"],\n")
+                    .Append("                        Input(() => _form.").Append(field.Name).Append(validate).Append(", Id: \"").Append(id).Append("\")\n")
                     .Append("                    ],\n");
             }
         }
@@ -464,15 +458,15 @@ internal static class FeatureGenerator
 
             protected override Component? Render() =>
             [
-                Div(Class: "d-flex justify-content-between align-items-center mb-3")[
-                    H1(Class: "h3 mb-0")["__PLURAL__"],
-                    NavLink(Routes.Create__ENTITY__(), Class: "btn btn-primary")["New __ENTITY__"]
+                Div()[
+                    H1()["__PLURAL__"],
+                    NavLink(Routes.Create__ENTITY__())["New __ENTITY__"]
                 ],
                 !_loaded
-                    ? Div(Class: "text-secondary")["Loading…"]
+                    ? Div()["Loading…"]
                     : _items.Count == 0
-                        ? Div(Class: "alert alert-info")["No __PLURAL__ yet."]
-                        : Table(Class: "table table-striped align-middle")[
+                        ? Div()["No __PLURAL__ yet."]
+                        : Table()[
                             Thead()[
                                 Tr()[
                                     Th()["#"],
@@ -484,8 +478,8 @@ internal static class FeatureGenerator
                                 _items.Select(x => Tr(Key: x.Id)[
                                     Td()[$"{x.Id}"],
         __CELLS__
-                                    Td(Class: "text-end text-nowrap")[
-                                        NavLink(Routes.Update__ENTITY__(x.Id), Class: "btn btn-outline-secondary btn-sm me-1")["Edit"],
+                                    Td()[
+                                        NavLink(Routes.Update__ENTITY__(x.Id))["Edit"],
                                         Delete__ENTITY__(Id: x.Id, OnDeleted: LoadAsync)
                                     ]
                                 ])
@@ -532,7 +526,7 @@ internal static class FeatureGenerator
             }
 
             protected override Component? Render() =>
-                Button("button", Class: "btn btn-outline-danger btn-sm", OnClickAsync: DeleteAsync)["Delete"];
+                Button("button", OnClickAsync: DeleteAsync)["Delete"];
         }
 
         """;
@@ -573,14 +567,14 @@ internal static class FeatureGenerator
             }
 
             protected override Component? Render() =>
-                Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
-                    Div(Class: "card-body")[
-                        H1(Class: "h4 mb-3")["New __ENTITY__"],
-                        Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
+                Div()[
+                    Div()[
+                        H1()["New __ENTITY__"],
+                        Form(_form, OnValidSubmitAsync: SubmitAsync)[
         __VALIDATOR____FORMFIELDS__
-                            Div(Class: "d-flex justify-content-end gap-2 pt-2")[
-                                NavLink(Routes.__PLURAL__Page(), Class: "btn btn-outline-secondary")["Cancel"],
-                                Button("submit", Class: "btn btn-primary")["Save"]
+                            Div()[
+                                NavLink(Routes.__PLURAL__Page())["Cancel"],
+                                Button("submit")["Save"]
                             ]
                         ]
                     ]
@@ -661,22 +655,22 @@ internal static class FeatureGenerator
             {
                 if (!_loaded)
                 {
-                    return Div(Class: "text-secondary")["Loading…"];
+                    return Div()["Loading…"];
                 }
 
                 if (!_found)
                 {
-                    return Div(Class: "alert alert-warning")["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
+                    return Div()["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
                 }
 
-                return Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
-                    Div(Class: "card-body")[
-                        H1(Class: "h4 mb-3")["Edit __ENTITY__"],
-                        Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
+                return Div()[
+                    Div()[
+                        H1()["Edit __ENTITY__"],
+                        Form(_form, OnValidSubmitAsync: SubmitAsync)[
         __VALIDATOR____FORMFIELDS__
-                            Div(Class: "d-flex justify-content-end gap-2 pt-2")[
-                                NavLink(Routes.__PLURAL__Page(), Class: "btn btn-outline-secondary")["Cancel"],
-                                Button("submit", Class: "btn btn-primary")["Save changes"]
+                            Div()[
+                                NavLink(Routes.__PLURAL__Page())["Cancel"],
+                                Button("submit")["Save changes"]
                             ]
                         ]
                     ]
