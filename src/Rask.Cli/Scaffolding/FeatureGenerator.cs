@@ -1,12 +1,15 @@
+using System.Globalization;
 using System.Text;
 
 namespace Rask.Cli.Scaffolding;
 
 /// <summary>
-/// Scaffolds a full CRUD vertical slice under <c>Features/&lt;Plural&gt;/</c>: a POCO entity, a DbContext
-/// (unless an existing one is named with <c>--context</c>), and list / create / edit pages wired to EF Core
-/// through <c>IDbContextFactory</c>. The output compiles as-is; a printed next-steps note covers the one
-/// DI registration and the migration needed to make it run.
+/// Scaffolds a full CQRS + EF Core CRUD vertical slice under <c>Features/&lt;Plural&gt;/</c>. Each slice
+/// is one file: an encapsulated entity (<c>Create</c>/<c>Update</c>, Guid id by default), a shared
+/// request the forms bind to, a DbContext (unless <c>--context</c>), and <c>&lt;Plural&gt;Page</c> /
+/// <c>Create&lt;Entity&gt;</c> / <c>Update&lt;Entity&gt;</c> / <c>Delete&lt;Entity&gt;</c> components that
+/// each carry the CQRS message + handler they dispatch through <c>IDispatcher</c>. The output compiles
+/// as-is; a printed next-steps note covers the DI registration and the migration.
 /// </summary>
 internal static class FeatureGenerator
 {
@@ -15,326 +18,214 @@ internal static class FeatureGenerator
         string baseDirectory,
         string entityName,
         IReadOnlyList<FieldSpec> fields,
+        string idType,
         string? contextOverride,
         string? pluralOverride,
         string? outputOverride)
     {
         var plural = pluralOverride ?? Pluralizer.Pluralize(entityName);
         var route = Identifiers.ToRoutePath(plural);
+        var idConstraint = idType == "Guid" ? "guid" : idType;
         var generateContext = contextOverride is null;
         var context = contextOverride ?? plural + "DbContext";
 
         var targetDirectory = Scaffold.TargetDirectory(baseDirectory, outputOverride, "Features", plural);
-        var @namespace = project.NamespaceFor(targetDirectory);
+        var ns = project.NamespaceFor(targetDirectory);
+
+        var tokens = new (string, string)[]
+        {
+            ("__NS__", ns), ("__ENTITY__", entityName), ("__PLURAL__", plural), ("__CONTEXT__", context),
+            ("__ROUTE__", route), ("__IDTYPE__", idType), ("__IDCONSTRAINT__", idConstraint),
+            ("__CREATEARGS__", RequestArgs(fields, "command.Request")),
+            ("__HEADERS__", TableHeaders(fields)), ("__CELLS__", TableCells(fields)),
+            ("__FORMFIELDS__", FormFields(fields)), ("__COPYTOFORM__", CopyToForm(fields)),
+        };
 
         var files = new List<ScaffoldFile>
         {
-            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(@namespace, entityName, fields)),
+            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType)),
+            new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields)),
+            new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(ListPageTemplate, tokens)),
+            new(Path.Combine(targetDirectory, "Delete" + entityName + ".cs"), Apply(DeleteTemplate, tokens)),
+            new(Path.Combine(targetDirectory, "Create" + entityName + ".cs"), Apply(CreateTemplate, tokens)),
+            new(Path.Combine(targetDirectory, "Update" + entityName + ".cs"), Apply(UpdateTemplate, tokens)),
         };
 
         if (generateContext)
         {
-            files.Add(new(Path.Combine(targetDirectory, context + ".cs"), RenderDbContext(@namespace, context, entityName, plural)));
+            files.Insert(2, new ScaffoldFile(Path.Combine(targetDirectory, context + ".cs"), Apply(DbContextTemplate, tokens)));
         }
-
-        files.Add(new(Path.Combine(targetDirectory, plural + "Page.cs"), RenderListPage(@namespace, entityName, plural, context, route, fields)));
-        files.Add(new(Path.Combine(targetDirectory, "Create" + entityName + "Page.cs"), RenderCreatePage(@namespace, entityName, plural, context, route, fields)));
-        files.Add(new(Path.Combine(targetDirectory, "Edit" + entityName + "Page.cs"), RenderEditPage(@namespace, entityName, plural, context, route, fields)));
 
         return new ScaffoldResult(files, RenderNextSteps(context, entityName, plural, route, generateContext));
     }
 
-    internal static string RenderEntity(string @namespace, string entity, IReadOnlyList<FieldSpec> fields)
+    // ---- entity + shared request (StringBuilder — per-field attributes make raw strings awkward) ----
+
+    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType)
     {
-        var properties = new StringBuilder();
-        properties.Append("    public int Id { get; set; }").Append('\n');
+        var sb = new StringBuilder();
+        if (fields.Any(f => f.IsString))
+        {
+            sb.Append("using System.ComponentModel.DataAnnotations;\n\n");
+        }
+
+        sb.Append("namespace ").Append(ns).Append(";\n\n");
+        sb.Append("public sealed class ").Append(entity).Append("\n{\n");
+        sb.Append("    private ").Append(entity).Append("() { } // EF Core materialization\n\n");
+        sb.Append("    private ").Append(entity).Append('(').Append(ParamList(fields)).Append(")\n    {\n");
+        sb.Append(Assignments(fields, "        ")).Append("\n    }\n\n");
+        sb.Append("    public ").Append(idType).Append(" Id { get; private set; }");
+        sb.Append(idType == "Guid" ? " = Guid.NewGuid();\n" : "\n");
+
         foreach (var field in fields)
         {
-            properties.Append("    public ").Append(field.CsType).Append(' ').Append(field.Name).Append(" { get; set; }");
+            sb.Append('\n');
+            if (field.IsString)
+            {
+                if (!field.IsNullable)
+                {
+                    sb.Append("    [Required]\n");
+                }
+
+                sb.Append("    [MaxLength(").Append(field.MaxLength!.Value.ToString(CultureInfo.InvariantCulture)).Append(")]\n");
+            }
+
+            sb.Append("    public ").Append(field.PropertyType).Append(' ').Append(field.Name).Append(" { get; private set; }");
             if (field.Initializer is not null)
             {
-                // Only an initialized auto-property takes a trailing ';' (e.g. string = "";).
-                properties.Append(' ').Append(field.Initializer).Append(';');
+                sb.Append(' ').Append(field.Initializer).Append(';');
             }
 
-            properties.Append('\n');
+            sb.Append('\n');
         }
 
-        return $$"""
-        namespace {{@namespace}};
-
-        public sealed class {{entity}}
-        {
-        {{properties.ToString().TrimEnd('\n')}}
-        }
-
-        """;
+        sb.Append("\n    public static ").Append(entity).Append(" Create(").Append(ParamList(fields)).Append(") => new(").Append(ArgList(fields)).Append(");\n\n");
+        sb.Append("    public void Update(").Append(ParamList(fields)).Append(")\n    {\n").Append(Assignments(fields, "        ")).Append("\n    }\n}\n");
+        return sb.ToString();
     }
 
-    internal static string RenderDbContext(string @namespace, string context, string entity, string plural) =>
-        $$"""
-        using Microsoft.EntityFrameworkCore;
-
-        namespace {{@namespace}};
-
-        public sealed class {{context}}(DbContextOptions<{{context}}> options) : DbContext(options)
+    private static string RenderRequest(string ns, string entity, IReadOnlyList<FieldSpec> fields)
+    {
+        var sb = new StringBuilder();
+        if (fields.Any(f => f.IsString))
         {
-            public DbSet<{{entity}}> {{plural}} => Set<{{entity}}>();
+            sb.Append("using System.ComponentModel.DataAnnotations;\n\n");
         }
 
-        """;
-
-    private static string RenderListPage(string @namespace, string entity, string plural, string context, string route, IReadOnlyList<FieldSpec> fields)
-    {
-        var headers = new StringBuilder();
-        var cells = new StringBuilder();
+        sb.Append("namespace ").Append(ns).Append(";\n\n");
+        sb.Append("// The shared form model for the create + edit slices; maps onto ").Append(entity).Append(".Create/Update.\n");
+        sb.Append("// The forms bind this, so the validation attributes live here (a DataAnnotations validator reads them).\n");
+        sb.Append("public sealed class ").Append(entity).Append("Request\n{\n");
+        var first = true;
         foreach (var field in fields)
         {
-            headers.Append("                            Th()[\"").Append(field.Name).Append("\"],\n");
-            var cell = field.CsType == "string"
-                ? "Td()[x." + field.Name + "]"
-                : "Td()[$\"{x." + field.Name + "}\"]";
-            cells.Append("                            ").Append(cell).Append(",\n");
+            if (field.IsString)
+            {
+                if (!first)
+                {
+                    sb.Append('\n');
+                }
+
+                if (!field.IsNullable)
+                {
+                    sb.Append("    [Required]\n");
+                }
+
+                sb.Append("    [MaxLength(").Append(field.MaxLength!.Value.ToString(CultureInfo.InvariantCulture)).Append(")]\n");
+            }
+
+            sb.Append("    public ").Append(field.PropertyType).Append(' ').Append(field.Name).Append(" { get; set; }");
+            if (field.Initializer is not null)
+            {
+                sb.Append(' ').Append(field.Initializer).Append(';');
+            }
+
+            sb.Append('\n');
+            first = false;
         }
 
-        return Apply(
-            """
-            using System.Globalization;
-            using Microsoft.EntityFrameworkCore;
-            using Rask.Core.Routing;
-
-            namespace __NS__;
-
-            [Route("__ROUTE__")]
-            public sealed class __PLURAL__Page(IDbContextFactory<__CONTEXT__> dbContextFactory) : Component
-            {
-                private IReadOnlyList<__ENTITY__> _items = [];
-                private bool _loaded;
-
-                protected override Component? Head => Title()["__PLURAL__"];
-
-                protected override async Task OnMountAsync() => await LoadAsync();
-
-                private async Task LoadAsync()
-                {
-                    await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
-                    _items = await db.__PLURAL__.AsNoTracking().OrderBy(x => x.Id).ToListAsync(CancellationToken);
-                    _loaded = true;
-                }
-
-                private async Task DeleteAsync(int id)
-                {
-                    await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
-                    await db.__PLURAL__.Where(x => x.Id == id).ExecuteDeleteAsync(CancellationToken);
-                    await LoadAsync();
-                }
-
-                protected override Component? Render() =>
-                [
-                    Div(Class: "d-flex justify-content-between align-items-center mb-3")[
-                        H1(Class: "h3 mb-0")["__PLURAL__"],
-                        NavLink(Routes.Create__ENTITY__Page(), Class: "btn btn-primary")["New __ENTITY__"]
-                    ],
-                    !_loaded
-                        ? Div(Class: "text-secondary")["Loading…"]
-                        : _items.Count == 0
-                            ? Div(Class: "alert alert-info")["No __PLURAL__ yet."]
-                            : Table(Class: "table table-striped align-middle")[
-                                Thead()[
-                                    Tr()[
-                                        Th()["#"],
-            __HEADERS__
-                                        Th()[""]
-                                    ]
-                                ],
-                                Tbody()[
-                                    _items.Select(x => Tr(Key: x.Id)[
-                                        Td()[x.Id.ToString(CultureInfo.InvariantCulture)],
-            __CELLS__
-                                        Td(Class: "text-end text-nowrap")[
-                                            NavLink(Routes.Edit__ENTITY__Page(x.Id), Class: "btn btn-outline-secondary btn-sm me-1")["Edit"],
-                                            Button("button", Class: "btn btn-outline-danger btn-sm", OnClickAsync: () => DeleteAsync(x.Id))["Delete"]
-                                        ]
-                                    ])
-                                ]
-                            ]
-                ];
-            }
-
-            """,
-            ("__NS__", @namespace), ("__ENTITY__", entity), ("__PLURAL__", plural), ("__CONTEXT__", context), ("__ROUTE__", route),
-            ("__HEADERS__", headers.ToString().TrimEnd('\n')), ("__CELLS__", cells.ToString().TrimEnd('\n')));
+        sb.Append("}\n");
+        return sb.ToString();
     }
 
-    private static string RenderCreatePage(string @namespace, string entity, string plural, string context, string route, IReadOnlyList<FieldSpec> fields) =>
-        Apply(
-            """
-            using Microsoft.EntityFrameworkCore;
-            using Rask.Core.Routing;
+    // ---- per-field fragment builders ----
 
-            namespace __NS__;
+    private static string ParamList(IReadOnlyList<FieldSpec> fields) =>
+        string.Join(", ", fields.Select(f => $"{f.PropertyType} {Identifiers.ToCamelCase(f.Name)}"));
 
-            [Route("__ROUTE__/new")]
-            public sealed class Create__ENTITY__Page(IDbContextFactory<__CONTEXT__> dbContextFactory, Navigator navigator) : Component
-            {
-                private readonly __ENTITY__ _item = new();
+    private static string ArgList(IReadOnlyList<FieldSpec> fields) =>
+        string.Join(", ", fields.Select(f => Identifiers.ToCamelCase(f.Name)));
 
-                protected override Component? Head => Title()["New __ENTITY__"];
+    private static string Assignments(IReadOnlyList<FieldSpec> fields, string indent) =>
+        // `this.` disambiguates the property from an identically-cased parameter (e.g. a lowercase
+        // field name `title` → `this.title = title;`), avoiding a CS1717 self-assignment.
+        string.Join("\n", fields.Select(f => $"{indent}this.{f.Name} = {Identifiers.ToCamelCase(f.Name)};"));
 
-                private async Task SubmitAsync(__ENTITY__ item)
-                {
-                    await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
-                    db.__PLURAL__.Add(item);
-                    await db.SaveChangesAsync(CancellationToken);
-                    navigator.NavigateTo(Routes.__PLURAL__Page());
-                }
+    private static string RequestArgs(IReadOnlyList<FieldSpec> fields, string source) =>
+        string.Join(", ", fields.Select(f => $"{source}.{f.Name}"));
 
-                protected override Component? Render() =>
-                    Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
-                        Div(Class: "card-body")[
-                            H1(Class: "h4 mb-3")["New __ENTITY__"],
-                            Form(_item, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
-            __FIELDS__
-                                Div(Class: "d-flex justify-content-end gap-2 pt-2")[
-                                    NavLink(Routes.__PLURAL__Page(), Class: "btn btn-outline-secondary")["Cancel"],
-                                    Button("submit", Class: "btn btn-primary")["Save"]
-                                ]
-                            ]
-                        ]
-                    ];
-            }
+    private static string TableHeaders(IReadOnlyList<FieldSpec> fields) =>
+        string.Join("\n", fields.Select(f => $"                            Th()[\"{f.Name}\"],"));
 
-            """,
-            ("__NS__", @namespace), ("__ENTITY__", entity), ("__PLURAL__", plural), ("__CONTEXT__", context), ("__ROUTE__", route),
-            ("__FIELDS__", RenderFormFields(fields, "_item")));
+    private static string TableCells(IReadOnlyList<FieldSpec> fields) =>
+        string.Join("\n", fields.Select(f => f.IsString
+            ? $"                            Td()[x.{f.Name}],"
+            : $"                            Td()[$\"{{x.{f.Name}}}\"],"));
 
-    private static string RenderEditPage(string @namespace, string entity, string plural, string context, string route, IReadOnlyList<FieldSpec> fields) =>
-        Apply(
-            """
-            using Microsoft.EntityFrameworkCore;
-            using Rask.Core.Routing;
+    private static string CopyToForm(IReadOnlyList<FieldSpec> fields) =>
+        string.Join("\n", fields.Select(f => $"                _form.{f.Name} = entity.{f.Name};"));
 
-            namespace __NS__;
-
-            [Route("__ROUTE__/{id:int}/edit")]
-            public sealed class Edit__ENTITY__Page(IDbContextFactory<__CONTEXT__> dbContextFactory, Navigator navigator) : Component
-            {
-                private __ENTITY__ _item = new();
-                private bool _loaded;
-                private bool _found;
-
-                [RouteParam] public int Id { get; set; }
-
-                protected override Component? Head => Title()["Edit __ENTITY__"];
-
-                protected override async Task OnPropsChangedAsync()
-                {
-                    _loaded = false;
-                    await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
-                    var item = await db.__PLURAL__.AsNoTracking().FirstOrDefaultAsync(x => x.Id == Id, CancellationToken);
-                    _found = item is not null;
-                    if (item is not null)
-                    {
-                        _item = item;
-                    }
-
-                    _loaded = true;
-                }
-
-                private async Task SubmitAsync(__ENTITY__ item)
-                {
-                    await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
-                    db.__PLURAL__.Update(item);
-                    await db.SaveChangesAsync(CancellationToken);
-                    navigator.NavigateTo(Routes.__PLURAL__Page());
-                }
-
-                protected override Component? Render()
-                {
-                    if (!_loaded)
-                    {
-                        return Div(Class: "text-secondary")["Loading…"];
-                    }
-
-                    if (!_found)
-                    {
-                        return Div(Class: "alert alert-warning")["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
-                    }
-
-                    return Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
-                        Div(Class: "card-body")[
-                            H1(Class: "h4 mb-3")["Edit __ENTITY__"],
-                            Form(_item, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
-            __FIELDS__
-                                Div(Class: "d-flex justify-content-end gap-2 pt-2")[
-                                    NavLink(Routes.__PLURAL__Page(), Class: "btn btn-outline-secondary")["Cancel"],
-                                    Button("submit", Class: "btn btn-primary")["Save changes"]
-                                ]
-                            ]
-                        ]
-                    ];
-                }
-            }
-
-            """,
-            ("__NS__", @namespace), ("__ENTITY__", entity), ("__PLURAL__", plural), ("__CONTEXT__", context), ("__ROUTE__", route),
-            ("__FIELDS__", RenderFormFields(fields, "_item")));
-
-    private static string RenderFormFields(IReadOnlyList<FieldSpec> fields, string model)
+    private static string FormFields(IReadOnlyList<FieldSpec> fields)
     {
-        var builder = new StringBuilder();
+        var sb = new StringBuilder();
         foreach (var field in fields)
         {
             var id = field.Name.ToLowerInvariant();
             if (field.CsType == "bool")
             {
-                // A bound bool renders as a checkbox, which Bootstrap styles with form-check /
-                // form-check-input / form-check-label (not the text-input form-control).
-                builder
-                    .Append("                    Div(Class: \"form-check\")[\n")
-                    .Append("                        Input(() => ").Append(model).Append('.').Append(field.Name).Append(", Id: \"").Append(id).Append("\", Class: \"form-check-input\"),\n")
+                sb.Append("                    Div(Class: \"form-check\")[\n")
+                    .Append("                        Input(() => _form.").Append(field.Name).Append(", Id: \"").Append(id).Append("\", Class: \"form-check-input\"),\n")
                     .Append("                        Label(\"").Append(id).Append("\", Class: \"form-check-label\")[\"").Append(field.Name).Append("\"]\n")
                     .Append("                    ],\n");
             }
             else
             {
-                builder
-                    .Append("                    Div()[\n")
+                sb.Append("                    Div()[\n")
                     .Append("                        Label(\"").Append(id).Append("\", Class: \"form-label small mb-1\")[\"").Append(field.Name).Append("\"],\n")
-                    .Append("                        Input(() => ").Append(model).Append('.').Append(field.Name).Append(", Id: \"").Append(id).Append("\", Class: \"form-control\")\n")
+                    .Append("                        Input(() => _form.").Append(field.Name).Append(", Id: \"").Append(id).Append("\", Class: \"form-control\")\n")
                     .Append("                    ],\n");
             }
         }
 
-        return builder.ToString().TrimEnd('\n');
+        return sb.ToString().TrimEnd('\n');
     }
 
     private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext)
     {
         var steps = new StringBuilder();
         steps.Append("Next steps:\n");
-        steps.Append("  1. Reference EF Core + SQLite if the project doesn't already:\n");
+        steps.Append("  1. Reference EF Core + SQLite and Rask.Cqrs if the project doesn't already:\n");
         steps.Append("       dotnet add package Microsoft.EntityFrameworkCore.Sqlite\n");
-
+        steps.Append("       dotnet add package Microsoft.EntityFrameworkCore.Design\n");
+        steps.Append("       dotnet add package Rask.Cqrs\n");
+        steps.Append("  2. Register services in Program.cs:\n");
+        steps.Append("       builder.Services.AddRaskCqrs();\n");
         if (generatedContext)
         {
-            steps.Append("  2. Register the data context in Program.cs:\n");
             steps.Append("       builder.Services.AddDbContextFactory<").Append(context).Append(">(o => o.UseSqlite(\"Data Source=app.db\"));\n");
         }
         else
         {
-            steps.Append("  2. Add the entity to your ").Append(context).Append(":\n");
-            steps.Append("       public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();\n");
+            steps.Append("       // add the entity to your ").Append(context).Append(": public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();\n");
         }
 
         steps.Append("  3. Create the schema (EF Core migrations):\n");
-        steps.Append("       dotnet add package Microsoft.EntityFrameworkCore.Design\n");
         steps.Append("       dotnet ef migrations add Add").Append(entity).Append(" && dotnet ef database update\n");
         steps.Append("  4. Run the app and browse to ").Append(route).Append('.');
         return steps.ToString();
     }
 
-    private static string Apply(string template, params (string Token, string Value)[] replacements)
+    private static string Apply(string template, (string Token, string Value)[] replacements)
     {
         foreach (var (token, value) in replacements)
         {
@@ -343,4 +234,278 @@ internal static class FeatureGenerator
 
         return template;
     }
+
+    // ---- vertical-slice templates (token replacement keeps generated `$"…"` / `[Route("{id:…}")]` literal) ----
+
+    private const string DbContextTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+
+        namespace __NS__;
+
+        public sealed class __CONTEXT__(DbContextOptions<__CONTEXT__> options) : DbContext(options)
+        {
+            public DbSet<__ENTITY__> __PLURAL__ => Set<__ENTITY__>();
+        }
+
+        """;
+
+    private const string ListPageTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Rask.Core.Routing;
+
+        namespace __NS__;
+
+        public sealed record List__PLURAL__Query : IQuery<IReadOnlyList<__ENTITY__>>;
+
+        public sealed class List__PLURAL__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : IQueryHandler<List__PLURAL__Query, IReadOnlyList<__ENTITY__>>
+        {
+            public async Task<IReadOnlyList<__ENTITY__>> HandleAsync(List__PLURAL__Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                return await db.__PLURAL__.AsNoTracking().OrderBy(x => x.Id).ToListAsync(cancellationToken);
+            }
+        }
+
+        [Route("__ROUTE__")]
+        public sealed class __PLURAL__Page(IDispatcher dispatcher) : Component
+        {
+            private IReadOnlyList<__ENTITY__> _items = [];
+            private bool _loaded;
+
+            protected override Component? Head => Title()["__PLURAL__"];
+
+            protected override async Task OnMountAsync() => await LoadAsync();
+
+            private async Task LoadAsync()
+            {
+                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(), CancellationToken);
+                _loaded = true;
+            }
+
+            protected override Component? Render() =>
+            [
+                Div(Class: "d-flex justify-content-between align-items-center mb-3")[
+                    H1(Class: "h3 mb-0")["__PLURAL__"],
+                    NavLink(Routes.Create__ENTITY__(), Class: "btn btn-primary")["New __ENTITY__"]
+                ],
+                !_loaded
+                    ? Div(Class: "text-secondary")["Loading…"]
+                    : _items.Count == 0
+                        ? Div(Class: "alert alert-info")["No __PLURAL__ yet."]
+                        : Table(Class: "table table-striped align-middle")[
+                            Thead()[
+                                Tr()[
+                                    Th()["#"],
+        __HEADERS__
+                                    Th()[""]
+                                ]
+                            ],
+                            Tbody()[
+                                _items.Select(x => Tr(Key: x.Id)[
+                                    Td()[$"{x.Id}"],
+        __CELLS__
+                                    Td(Class: "text-end text-nowrap")[
+                                        NavLink(Routes.Update__ENTITY__(x.Id), Class: "btn btn-outline-secondary btn-sm me-1")["Edit"],
+                                        Delete__ENTITY__(Id: x.Id, OnDeleted: LoadAsync)
+                                    ]
+                                ])
+                            ]
+                        ]
+            ];
+        }
+
+        """;
+
+    private const string DeleteTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+
+        namespace __NS__;
+
+        public sealed record Delete__ENTITY__Command(__IDTYPE__ Id) : ICommand;
+
+        public sealed class Delete__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Delete__ENTITY__Command>
+        {
+            public async Task HandleAsync(Delete__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                await db.__PLURAL__.Where(x => x.Id == command.Id).ExecuteDeleteAsync(cancellationToken);
+            }
+        }
+
+        // A reusable delete button: dispatches the delete command, then invokes OnDeleted so the caller
+        // (the list page) can refresh.
+        public sealed class Delete__ENTITY__(IDispatcher dispatcher) : Component
+        {
+            public __IDTYPE__ Id { get; set; }
+
+            public Func<Task>? OnDeleted { get; set; }
+
+            private async Task DeleteAsync()
+            {
+                await dispatcher.DispatchAsync(new Delete__ENTITY__Command(Id), CancellationToken);
+                if (OnDeleted is not null)
+                {
+                    await OnDeleted();
+                }
+            }
+
+            protected override Component? Render() =>
+                Button("button", Class: "btn btn-outline-danger btn-sm", OnClickAsync: DeleteAsync)["Delete"];
+        }
+
+        """;
+
+    private const string CreateTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Rask.Core.Routing;
+
+        namespace __NS__;
+
+        public sealed record Create__ENTITY__Command(__ENTITY__Request Request) : ICommand<__IDTYPE__>;
+
+        public sealed class Create__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Create__ENTITY__Command, __IDTYPE__>
+        {
+            public async Task<__IDTYPE__> HandleAsync(Create__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                var entity = __ENTITY__.Create(__CREATEARGS__);
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                db.__PLURAL__.Add(entity);
+                await db.SaveChangesAsync(cancellationToken);
+                return entity.Id;
+            }
+        }
+
+        [Route("__ROUTE__/new")]
+        public sealed class Create__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
+        {
+            private readonly __ENTITY__Request _form = new();
+
+            protected override Component? Head => Title()["New __ENTITY__"];
+
+            private async Task SubmitAsync(__ENTITY__Request form)
+            {
+                await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
+                navigator.NavigateTo(Routes.__PLURAL__Page());
+            }
+
+            protected override Component? Render() =>
+                Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
+                    Div(Class: "card-body")[
+                        H1(Class: "h4 mb-3")["New __ENTITY__"],
+                        Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
+        __FORMFIELDS__
+                            Div(Class: "d-flex justify-content-end gap-2 pt-2")[
+                                NavLink(Routes.__PLURAL__Page(), Class: "btn btn-outline-secondary")["Cancel"],
+                                Button("submit", Class: "btn btn-primary")["Save"]
+                            ]
+                        ]
+                    ]
+                ];
+        }
+
+        """;
+
+    private const string UpdateTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Rask.Core.Routing;
+
+        namespace __NS__;
+
+        public sealed record Get__ENTITY__Query(__IDTYPE__ Id) : IQuery<__ENTITY__?>;
+
+        public sealed class Get__ENTITY__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : IQueryHandler<Get__ENTITY__Query, __ENTITY__?>
+        {
+            public async Task<__ENTITY__?> HandleAsync(Get__ENTITY__Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                return await db.__PLURAL__.AsNoTracking().FirstOrDefaultAsync(x => x.Id == query.Id, cancellationToken);
+            }
+        }
+
+        public sealed record Update__ENTITY__Command(__IDTYPE__ Id, __ENTITY__Request Request) : ICommand;
+
+        public sealed class Update__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Update__ENTITY__Command>
+        {
+            public async Task HandleAsync(Update__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var entity = await db.__PLURAL__.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
+                if (entity is null)
+                {
+                    return;
+                }
+
+                entity.Update(__CREATEARGS__);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        [Route("__ROUTE__/{id:__IDCONSTRAINT__}/edit")]
+        public sealed class Update__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
+        {
+            private readonly __ENTITY__Request _form = new();
+            private bool _loaded;
+            private bool _found;
+
+            [RouteParam] public __IDTYPE__ Id { get; set; }
+
+            protected override Component? Head => Title()["Edit __ENTITY__"];
+
+            protected override async Task OnPropsChangedAsync()
+            {
+                _loaded = false;
+                var entity = await dispatcher.DispatchAsync(new Get__ENTITY__Query(Id), CancellationToken);
+                _found = entity is not null;
+                if (entity is not null)
+                {
+        __COPYTOFORM__
+                }
+
+                _loaded = true;
+            }
+
+            private async Task SubmitAsync(__ENTITY__Request form)
+            {
+                await dispatcher.DispatchAsync(new Update__ENTITY__Command(Id, form), CancellationToken);
+                navigator.NavigateTo(Routes.__PLURAL__Page());
+            }
+
+            protected override Component? Render()
+            {
+                if (!_loaded)
+                {
+                    return Div(Class: "text-secondary")["Loading…"];
+                }
+
+                if (!_found)
+                {
+                    return Div(Class: "alert alert-warning")["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
+                }
+
+                return Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
+                    Div(Class: "card-body")[
+                        H1(Class: "h4 mb-3")["Edit __ENTITY__"],
+                        Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
+        __FORMFIELDS__
+                            Div(Class: "d-flex justify-content-end gap-2 pt-2")[
+                                NavLink(Routes.__PLURAL__Page(), Class: "btn btn-outline-secondary")["Cancel"],
+                                Button("submit", Class: "btn btn-primary")["Save changes"]
+                            ]
+                        ]
+                    ]
+                ];
+            }
+        }
+
+        """;
 }

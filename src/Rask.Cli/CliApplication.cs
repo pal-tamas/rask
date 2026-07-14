@@ -102,7 +102,7 @@ internal sealed class CliApplication
     {
         foreach (var candidate in _commands)
         {
-            if (candidate.Name.Equals(name, StringComparison.Ordinal))
+            if (candidate.Name.Equals(name, StringComparison.Ordinal) || candidate.Aliases.Contains(name))
             {
                 command = candidate;
                 return true;
