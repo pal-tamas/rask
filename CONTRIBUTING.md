@@ -74,10 +74,13 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   `dotnet test` are green. Run `dotnet format` before committing.
 - **[Conventional Commits](https://www.conventionalcommits.org/)** are required and enforced by
   CI (`commitlint`): `type(scope): subject` with type ∈
-  `feat, fix, perf, refactor, docs, test, build, ci, chore, revert`. Enable the local guards with
-  `git config core.hooksPath .githooks` — this installs the `commit-msg` (Conventional Commits) hook, the
-  `pre-commit` hook that runs the local **unit** gate, and the `pre-push` hook that runs the local **E2E**
-  gate (see below).
+  `feat, fix, perf, refactor, docs, test, build, ci, chore, revert`. The local git hooks are **enabled
+  automatically on your first `dotnet build`** (a `Directory.Build.targets` target points git at
+  `.githooks/`; skipped in CI and for restored packages) — or enable them by hand with
+  `git config core.hooksPath .githooks`. That installs the `commit-msg` (Conventional Commits) hook, the
+  `pre-commit` hook that runs the local **format + unit** gate, and the `pre-push` hook that runs the local
+  **E2E** gate (see below). Hooks are advisory — bypass any with the git no-verify flag,
+  `RASK_SKIP_UNIT=1`, or `RASK_SKIP_E2E=1`.
 - **Tests run locally, not in CI.** The unit/integration suite and both E2E suites were moved out of the
   CI pipeline; CI keeps only the deterministic benchmark byte-gates, the native compile gate, commitlint,
   and CodeQL.
