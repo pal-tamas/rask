@@ -937,6 +937,116 @@ window.__raskEyeDropper = window.__raskEyeDropper || {
     open: () => new EyeDropper().open().then((r) => r.sRGBHex, () => null)
 };
 
+// Screen Orientation (driven by IScreenOrientation + the declarative ScreenOrientationTrigger). Reading
+// returns the live screen.orientation as a plain { type, angle } object (mapped to OrientationInfo in C#);
+// lock/unlock pass through. lock() only works while fullscreen, so the orientation.lock gesture cap enters
+// fullscreen first. Shared here (not WASM-only) so the trigger reaches it on the Server client too.
+window.__raskOrientation = window.__raskOrientation || {
+    isSupported: () => "orientation" in screen,
+    get: () => ({ type: screen.orientation.type, angle: screen.orientation.angle }),
+    lock: (type) => screen.orientation.lock(type),
+    unlock: () => { screen.orientation.unlock(); }
+};
+
+// PWA install prompt (driven by IInstallPrompt + the declarative InstallTrigger). The browser fires
+// beforeinstallprompt once when the app becomes installable; we stash the event so it can be replayed from a
+// user gesture (a custom "Install" button). This ships to every client (WASM and Server), so it must NOT
+// preventDefault() — that would globally suppress the browser's own install affordance for apps that never
+// use InstallTrigger. It isn't needed anyway: the mini-infobar was removed in Chrome 76, and the deferred
+// event's prompt() replays fine without it. The listeners attach when this IIFE first runs at boot, so the
+// event isn't missed. (Installability still needs a manifest + service worker over HTTPS — AddRaskPwa on Server.)
+window.__raskInstall = window.__raskInstall || (() => {
+    let deferred = null;
+    let installed = false;
+    window.addEventListener("beforeinstallprompt", (e) => {
+        deferred = e;
+    });
+    window.addEventListener("appinstalled", () => {
+        installed = true;
+        deferred = null;
+    });
+    return {
+        canInstall: () => deferred != null,
+        isInstalled: () => installed
+            || !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
+            || window.navigator.standalone === true,
+        prompt: async () => {
+            if (!deferred) {
+                return "unavailable";
+            }
+            deferred.prompt();
+            let outcome = "dismissed";
+            try {
+                const choice = await deferred.userChoice;
+                outcome = (choice && choice.outcome === "accepted") ? "accepted" : "dismissed";
+            } catch (_) {
+                outcome = "dismissed";
+            }
+            deferred = null;
+            return outcome;
+        }
+    };
+})();
+
+// Media Capture / getUserMedia (driven by IMediaDevices + the declarative MediaCaptureTrigger). The live
+// MediaStream can't cross interop, so each is held here under a JS-minted id; the video element is resolved
+// from an ElementRef (imperative service) or the gesture bridge (declarative trigger). Stopping a stream
+// stops every track, releasing the camera/mic (and its hardware indicator). Shared here (not WASM-only) so
+// the trigger reaches it on the Server client too; getUserMedia still needs a secure (HTTPS) context.
+window.__raskMedia = window.__raskMedia || (() => {
+    const streams = new Map();
+    let nextId = 0;
+    const put = (stream) => {
+        const id = ++nextId;
+        streams.set(id, stream);
+        return id;
+    };
+    const stop = (id) => {
+        const stream = streams.get(id);
+        if (!stream) {
+            return;
+        }
+        stream.getTracks().forEach((t) => t.stop());
+        streams.delete(id);
+    };
+    return {
+        isSupported: () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        enumerate: async () => {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return devices.map((d) => ({deviceId: d.deviceId, kind: d.kind, label: d.label, groupId: d.groupId}));
+        },
+        getUserMedia: async (c) => {
+            const video = c.video
+                ? (c.facingMode ? {facingMode: c.facingMode} : true)
+                : false;
+            const stream = await navigator.mediaDevices.getUserMedia({audio: !!c.audio, video: video});
+            return put(stream);
+        },
+        getDisplayMedia: async () => put(await navigator.mediaDevices.getDisplayMedia({video: true})),
+        attach: (id, video) => {
+            const stream = streams.get(id);
+            if (!stream || !video) {
+                return Promise.resolve();
+            }
+            video.srcObject = stream;
+            video.muted = true;
+            return video.play();
+        },
+        stop: (id) => stop(id)
+    };
+})();
+
+// Picture-in-Picture (driven by IPictureInPicture + the declarative PictureInPictureTrigger). The element
+// arg is a live <video> (resolved from an ElementRef by the imperative service, or from the gesture
+// bridge's data-rask-ref for the trigger); exit is a no-op when no miniplayer is open. Shared here (not
+// WASM-only) so the trigger reaches it on the Server client too.
+window.__raskPip = window.__raskPip || {
+    isSupported: () => !!document.pictureInPictureEnabled,
+    isActive: () => document.pictureInPictureElement != null,
+    request: (el) => el ? el.requestPictureInPicture() : Promise.reject(new Error("no video element")),
+    exit: () => document.pictureInPictureElement ? document.exitPictureInPicture() : Promise.resolve()
+};
+
 
 // ----- Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) -----
 // Transport-agnostic PWA framework helpers, spliced into BOTH the Server client (rask.js) and the WASM
@@ -2520,9 +2630,34 @@ document.addEventListener("click", function (e) {
 // server round-trip would lose it. That's what lets activation-gated APIs (fullscreen, eyedropper, …) work
 // even on the Server transport. When a result-callback id (rid) is set, the resolved value is posted back to
 // C# via the shared DotNet shim (static [JSInvokable] GestureResultInterop.Result in Rask.Core).
+// Each cap runs synchronously inside the click, given (arg, el): arg is the payload's optional string
+// argument (orientation type, JSON media constraints), el the resolved target element (the <video> for
+// picture-in-picture / media capture). A returned Promise's value is posted back when a rid is set.
 var raskGestureCaps = {
-    "fullscreen.request": function () { return window.__raskFullscreen ? window.__raskFullscreen.request() : null; },
-    "eyedropper.open": function () { return window.__raskEyeDropper ? window.__raskEyeDropper.open() : null; }
+    "fullscreen.request": function (arg, el) { return window.__raskFullscreen ? window.__raskFullscreen.request(el) : null; },
+    "eyedropper.open": function () { return window.__raskEyeDropper ? window.__raskEyeDropper.open() : null; },
+    "orientation.lock": function (arg) {
+        // screen.orientation.lock only resolves while the page is fullscreen (and on a device that honours
+        // it); off-fullscreen / on desktop it rejects, which the dispatcher swallows — a genuine silent
+        // no-op. Pair with FullscreenTrigger (or app fullscreen) rather than forcing fullscreen here, which
+        // would strand a desktop user in a fullscreen page with the orientation unchanged.
+        return window.__raskOrientation ? window.__raskOrientation.lock(arg) : null;
+    },
+    "pip.request": function (arg, el) { return window.__raskPip ? window.__raskPip.request(el) : null; },
+    "install.prompt": function () {
+        return window.__raskInstall ? window.__raskInstall.prompt() : Promise.resolve("unavailable");
+    },
+    "media.start": function (arg, el) {
+        if (!window.__raskMedia || !el) { return Promise.resolve("denied"); }
+        var c;
+        try { c = arg ? JSON.parse(arg) : {}; } catch (err) { c = {}; }
+        return window.__raskMedia.getUserMedia(c).then(function (id) {
+            // Await the attach/play so "granted" reflects a stream actually running in the <video>, not just
+            // permission; a play() hiccup on a muted stream still counts as granted (permission was given).
+            return Promise.resolve(window.__raskMedia.attach(id, el)).then(
+                function () { return "granted"; }, function () { return "granted"; });
+        }, function () { return "denied"; });
+    }
 };
 function raskPostGestureResult(rid, value) {
     if (window.DotNet && window.DotNet.invokeMethodAsync) {
@@ -2538,12 +2673,21 @@ document.addEventListener("click", function (e) {
     try { spec = JSON.parse(raw); } catch (err) { return; }
     var run = raskGestureCaps[spec.cap];
     if (!run) { return; }
+    // Resolve an optional target element from its ElementRef id (data-rask-ref), same selector the ref reviver uses.
+    var el = spec.el ? document.querySelector('[data-rask-ref="' + spec.el + '"]') : undefined;
     var result;
-    try { result = run(); } catch (err) { if (spec.rid != null) { raskPostGestureResult(spec.rid, null); } return; }
-    if (spec.rid != null && result && typeof result.then === "function") {
-        result.then(function (value) { raskPostGestureResult(spec.rid, value); },
-            function () { raskPostGestureResult(spec.rid, null); });
-    } else if (result && result["catch"]) {
+    try { result = run(spec.arg, el); } catch (err) { if (spec.rid != null) { raskPostGestureResult(spec.rid, null); } return; }
+    var thenable = result && typeof result.then === "function";
+    if (spec.rid != null) {
+        // Always post back when a result is expected, so the one-shot server-side handler is consumed
+        // (never left dangling) — even if the cap returned a non-thenable (e.g. an unavailable capability).
+        if (thenable) {
+            result.then(function (value) { raskPostGestureResult(spec.rid, value); },
+                function () { raskPostGestureResult(spec.rid, null); });
+        } else {
+            raskPostGestureResult(spec.rid, result == null ? null : result);
+        }
+    } else if (thenable && result["catch"]) {
         result["catch"](function () {});
     }
 });

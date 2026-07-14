@@ -242,9 +242,34 @@ document.addEventListener("click", function (e) {
 // server round-trip would lose it. That's what lets activation-gated APIs (fullscreen, eyedropper, …) work
 // even on the Server transport. When a result-callback id (rid) is set, the resolved value is posted back to
 // C# via the shared DotNet shim (static [JSInvokable] GestureResultInterop.Result in Rask.Core).
+// Each cap runs synchronously inside the click, given (arg, el): arg is the payload's optional string
+// argument (orientation type, JSON media constraints), el the resolved target element (the <video> for
+// picture-in-picture / media capture). A returned Promise's value is posted back when a rid is set.
 var raskGestureCaps = {
-    "fullscreen.request": function () { return window.__raskFullscreen ? window.__raskFullscreen.request() : null; },
-    "eyedropper.open": function () { return window.__raskEyeDropper ? window.__raskEyeDropper.open() : null; }
+    "fullscreen.request": function (arg, el) { return window.__raskFullscreen ? window.__raskFullscreen.request(el) : null; },
+    "eyedropper.open": function () { return window.__raskEyeDropper ? window.__raskEyeDropper.open() : null; },
+    "orientation.lock": function (arg) {
+        // screen.orientation.lock only resolves while the page is fullscreen (and on a device that honours
+        // it); off-fullscreen / on desktop it rejects, which the dispatcher swallows — a genuine silent
+        // no-op. Pair with FullscreenTrigger (or app fullscreen) rather than forcing fullscreen here, which
+        // would strand a desktop user in a fullscreen page with the orientation unchanged.
+        return window.__raskOrientation ? window.__raskOrientation.lock(arg) : null;
+    },
+    "pip.request": function (arg, el) { return window.__raskPip ? window.__raskPip.request(el) : null; },
+    "install.prompt": function () {
+        return window.__raskInstall ? window.__raskInstall.prompt() : Promise.resolve("unavailable");
+    },
+    "media.start": function (arg, el) {
+        if (!window.__raskMedia || !el) { return Promise.resolve("denied"); }
+        var c;
+        try { c = arg ? JSON.parse(arg) : {}; } catch (err) { c = {}; }
+        return window.__raskMedia.getUserMedia(c).then(function (id) {
+            // Await the attach/play so "granted" reflects a stream actually running in the <video>, not just
+            // permission; a play() hiccup on a muted stream still counts as granted (permission was given).
+            return Promise.resolve(window.__raskMedia.attach(id, el)).then(
+                function () { return "granted"; }, function () { return "granted"; });
+        }, function () { return "denied"; });
+    }
 };
 function raskPostGestureResult(rid, value) {
     if (window.DotNet && window.DotNet.invokeMethodAsync) {
@@ -260,12 +285,21 @@ document.addEventListener("click", function (e) {
     try { spec = JSON.parse(raw); } catch (err) { return; }
     var run = raskGestureCaps[spec.cap];
     if (!run) { return; }
+    // Resolve an optional target element from its ElementRef id (data-rask-ref), same selector the ref reviver uses.
+    var el = spec.el ? document.querySelector('[data-rask-ref="' + spec.el + '"]') : undefined;
     var result;
-    try { result = run(); } catch (err) { if (spec.rid != null) { raskPostGestureResult(spec.rid, null); } return; }
-    if (spec.rid != null && result && typeof result.then === "function") {
-        result.then(function (value) { raskPostGestureResult(spec.rid, value); },
-            function () { raskPostGestureResult(spec.rid, null); });
-    } else if (result && result["catch"]) {
+    try { result = run(spec.arg, el); } catch (err) { if (spec.rid != null) { raskPostGestureResult(spec.rid, null); } return; }
+    var thenable = result && typeof result.then === "function";
+    if (spec.rid != null) {
+        // Always post back when a result is expected, so the one-shot server-side handler is consumed
+        // (never left dangling) — even if the cap returned a non-thenable (e.g. an unavailable capability).
+        if (thenable) {
+            result.then(function (value) { raskPostGestureResult(spec.rid, value); },
+                function () { raskPostGestureResult(spec.rid, null); });
+        } else {
+            raskPostGestureResult(spec.rid, result == null ? null : result);
+        }
+    } else if (thenable && result["catch"]) {
         result["catch"](function () {});
     }
 });

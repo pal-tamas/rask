@@ -59,10 +59,11 @@ Native column marks an API with a native C# backend (the rest run through the We
 
 - **Web / Server** is the ASP.NET host (per-session, over WebSocket). The 31 transport-agnostic
   wrappers register there; the activation-gated ones (🟡) can't be injected but are reachable through
-  declarative **gesture components** that run the call inside the click gesture. Shipped today:
-  [`FullscreenTrigger`](apis/fullscreen.md) and [`EyeDropperTrigger`](apis/eye-dropper.md) (plus the
-  generic `GestureTrigger`); triggers for screen-orientation, picture-in-picture, install-prompt, and
-  media capture are planned on the same mechanism.
+  declarative **gesture components** that run the call inside the click gesture. All six ship:
+  [`FullscreenTrigger`](apis/fullscreen.md), [`ScreenOrientationTrigger`](apis/screen-orientation.md),
+  [`EyeDropperTrigger`](apis/eye-dropper.md), [`InstallTrigger`](apis/install-prompt.md),
+  [`MediaCaptureTrigger`](apis/media-devices.md), and [`PictureInPictureTrigger`](apis/picture-in-picture.md)
+  (plus the generic `GestureTrigger`). The last two target a `<video>` via its `ElementRef`.
 - **PWA / WASM** is the in-browser WebAssembly host, which registers the full set.
 - **Native** is the `Rask.Native` host. Every ★ API has a first-class native backend wired by
   `ApplePlatform` / `AndroidPlatform` (see [native.md](native.md)); the rest run through the WebView.

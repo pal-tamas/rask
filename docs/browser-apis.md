@@ -129,20 +129,28 @@ the **WASM and Native** hosts (`Rask.Native` can't reference the browser-only `R
 ### Gesture bridge — activation-gated APIs on the Server host
 
 `Shareable`'s trick — run the call **inside the click gesture** so the transient user activation survives —
-generalises. **`GestureTrigger`** (and the typed **`FullscreenTrigger`** / **`EyeDropperTrigger`**) are headless
-the same way: they hand your element a `data-rask-gesture` bundle, and the shared client runs the capability in
-the gesture. That makes normally-WASM-only, activation-gated APIs reachable **declaratively on the Server host**
-(they're still not injectable there). Capabilities that return a value (the eyedropper's hex) post it back to an
-`OnResult` / `OnColor` callback.
+generalises. **`GestureTrigger`** and its six typed wrappers are headless the same way: they hand your element a
+`data-rask-gesture` bundle, and the shared client runs the capability in the gesture. That makes normally-WASM-only,
+activation-gated APIs reachable **declaratively on the Server host** (they're still not injectable there).
+Capabilities that return a value (the eyedropper's hex, the install outcome) post it back to an
+`OnResult` / `OnColor` / `OnOutcome` callback; the two `<video>` triggers target an element via its `ElementRef`.
 
 ```csharp
 FullscreenTrigger(g => Button(Type: "button", Data: g)["Full screen"])
+ScreenOrientationTrigger(Orientation: "landscape",
+    g => Button(Type: "button", Data: g)["Lock landscape"])
 EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
     g => Button(Type: "button", Data: g)["Pick a colour"])
+InstallTrigger(OnOutcome: o => { outcome = o; return Task.CompletedTask; },
+    g => Button(Type: "button", Data: g)["Install app"])
+MediaCaptureTrigger(For: preview, Video: true,
+    Template: g => Button(Type: "button", Data: g)["Start camera"])
+PictureInPictureTrigger(For: preview,
+    Template: g => Button(Type: "button", Data: g)["Pop out video"])
 ```
 
-Shipped capabilities: fullscreen and the eyedropper; screen-orientation, picture-in-picture, install-prompt, and
-media capture are planned on the same mechanism. See the [capability matrix](browser-capabilities.md).
+All six ship: `FullscreenTrigger`, `ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`,
+`MediaCaptureTrigger`, and `PictureInPictureTrigger`. See the [capability matrix](browser-capabilities.md).
 
 ## WASM-only APIs — `Rask.Wasm.Browser`
 
@@ -353,10 +361,11 @@ shell. For a code-driven share on the in-process hosts, inject **`IShare`** (`Ra
 
 <!-- demo:browser-share -->
 
-**`GestureTrigger` / `FullscreenTrigger` / `EyeDropperTrigger`** *(`Rask.Core` — all hosts)* — headless
-gesture bridge: hand *your* element the `data-rask-gesture` attribute and its click runs an activation-gated
-API (fullscreen, the eyedropper, …) in the gesture, so it works on Server too, where the imperative service
-can't be injected. See [Gesture bridge](#gesture-bridge-activation-gated-apis-on-the-server-host).
+**`GestureTrigger` + six typed triggers** *(`Rask.Core` — all hosts)* — headless gesture bridge: hand *your*
+element the `data-rask-gesture` attribute and its click runs an activation-gated API in the gesture, so it works
+on Server too, where the imperative service can't be injected. Ships `FullscreenTrigger`,
+`ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`, `MediaCaptureTrigger`, and
+`PictureInPictureTrigger`. See [Gesture bridge](#gesture-bridge-activation-gated-apis-on-the-server-host).
 
 <!-- demo:browser-gesture-bridge -->
 

@@ -8,9 +8,9 @@
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜
 - **Native backend:** — (WebView JS)
 
-Needs activation → WASM-only; Server gesture bridge planned.
+Needs transient activation, so the imperative `IPictureInPicture` service is WASM-only. On the **Server** host, use the declarative **`PictureInPictureTrigger`** component — point its `For:` at the `<video>`'s `ElementRef` and its click opens the mini-player inside the gesture.
 
-> 🟡 On the Server host this is reachable declaratively via the planned gesture bridge, not as an injected service.
+> 🟡 On the Server host, reachable declaratively via `PictureInPictureTrigger` (a click-gesture component), not as an injected service.
 
 ## See also
 
