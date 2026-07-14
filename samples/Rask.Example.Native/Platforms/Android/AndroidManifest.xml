@@ -2,10 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 	<uses-permission android:name="android.permission.INTERNET"/>
 	<!-- Native device backends wired by AndroidPlatform: IGeolocation (LocationManager), INetworkInfo
-	     (ConnectivityManager), IVibration (Vibrator). Clipboard and wake-lock need no permission. -->
+	     (ConnectivityManager), IVibration (Vibrator). INotifications AND IBadge (whose count rides a
+	     notification) both need POST_NOTIFICATIONS on API 33+. Clipboard and wake-lock need no permission. -->
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 	<uses-permission android:name="android.permission.VIBRATE"/>
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 	<!-- Native + Server mode loads a local dev server over http (http://10.0.2.2:5080). Cleartext is a
 	     DEVELOPMENT convenience only — a real deployment is https and would not need this. -->
 	<application android:label="Rask Showcase" android:allowBackup="true" android:supportsRtl="true"

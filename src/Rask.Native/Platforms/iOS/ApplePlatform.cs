@@ -11,7 +11,8 @@ namespace Rask.Native;
 ///     native C# backends for the browser/device API interfaces — <c>IShare</c> (system share sheet),
 ///     <c>IGeolocation</c> (CoreLocation), <c>IClipboard</c> (UIPasteboard), <c>IVibration</c>,
 ///     <c>IWakeLock</c>, <c>INetworkInfo</c> (NWPathMonitor), <c>ISpeechSynthesis</c> (AVSpeechSynthesizer),
-///     <c>IScreenInfo</c> (UIScreen), and <c>IDeviceOrientation</c>/<c>IDeviceMotion</c> (CoreMotion) — so
+///     <c>IScreenInfo</c> (UIScreen), <c>IDeviceOrientation</c>/<c>IDeviceMotion</c> (CoreMotion),
+///     <c>INotifications</c> (UNUserNotificationCenter), and <c>IBadge</c> (the app-icon badge) — so
 ///     injecting any of them resolves the native implementation, and every other interface falls back to the
 ///     WebView's JS. The app writes one line
 ///     (<c>host.UsePlatform(new ApplePlatform(() =&gt; Window?.RootViewController))</c>) instead of
@@ -39,5 +40,7 @@ public sealed class ApplePlatform(Func<UIViewController?> presenter) : INativePl
         services.TryAddSingleton<IScreenInfo>(_ => new NativeScreenInfo());
         services.TryAddSingleton<IDeviceOrientation>(_ => new NativeDeviceOrientation());
         services.TryAddSingleton<IDeviceMotion>(_ => new NativeDeviceMotion());
+        services.TryAddSingleton<INotifications>(_ => new NativeNotifications());
+        services.TryAddSingleton<IBadge>(_ => new NativeBadge());
     }
 }
