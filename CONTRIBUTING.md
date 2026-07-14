@@ -84,11 +84,13 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
 - **Tests run locally, not in CI.** The unit/integration suite and both E2E suites were moved out of the
   CI pipeline; CI keeps only the deterministic benchmark byte-gates, the native compile gate, commitlint,
   and CodeQL.
-- **Format + unit tests — `pre-commit`.** The `pre-commit` hook runs `dotnet format --verify-no-changes`
-  and then `scripts/run-unit-local.sh` (build + every test except the browser E2E) when a commit stages
-  code (`src/`, `tests/`, `benchmarks/`, `Rask.slnx`, `Directory.*`); docs-only commits skip it. If the
-  format check fails, run `dotnet format Rask.slnx` and restage. Bypass with `git commit --no-verify` or
-  `RASK_SKIP_UNIT=1`.
+- **Format + unit tests — `pre-commit`.** The `pre-commit` hook runs `scripts/run-unit-local.sh` when a
+  commit stages code (`src/`, `tests/`, `benchmarks/`, `Rask.slnx`, `Directory.*`); docs-only commits skip
+  it. The script builds once, runs `dotnet format whitespace --verify-no-changes`, then every test except
+  the browser E2E. (It uses the *whitespace* pass, not full `dotnet format`: full format's style/analyzer
+  passes run their own compile of the `Routes.*` source generator and spuriously report CS1503 in the
+  routing tests. Run `dotnet format Rask.slnx` before a PR for the style pass — the warnings-as-errors build
+  already enforces error-severity analyzer rules.) Bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`.
 - **E2E runs locally, not in CI.** The browser-journey E2E (`tests/Rask.Examples.E2E.Tests`, Playwright)
   and the on-device native E2E (`tests/Rask.Native.Appium.Tests`, Appium) are not part of the CI
   pipeline. Run the browser gate with `scripts/run-e2e-local.sh` (the `pre-push` hook runs it for you on
