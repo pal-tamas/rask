@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -130,8 +130,8 @@ public sealed class FeatureGeneratorTests
 
         Assert.Equal(
             [
-                "CreateProduct.cs", "DeleteProduct.cs", "Product.cs", "ProductRequest.cs",
-                "ProductsDbContext.cs", "ProductsPage.cs", "UpdateProduct.cs",
+                "CreateProduct.cs", "DeleteProduct.cs", "Product.cs", "ProductConfiguration.cs",
+                "ProductName.cs", "ProductRequest.cs", "ProductsDbContext.cs", "ProductsPage.cs", "UpdateProduct.cs",
             ],
             names);
     }
@@ -151,18 +151,45 @@ public sealed class FeatureGeneratorTests
         var entity = File(Generate(), "Product.cs");
 
         Assert.Contains("public Guid Id { get; private set; } = Guid.NewGuid();", entity, StringComparison.Ordinal);
-        Assert.Contains("public static Product Create(string name, decimal price)", entity, StringComparison.Ordinal);
-        Assert.Contains("public void Update(string name, decimal price)", entity, StringComparison.Ordinal);
-        Assert.Contains("public string Name { get; private set; } = \"\";", entity, StringComparison.Ordinal);
-        Assert.Contains("[MaxLength(200)]", entity, StringComparison.Ordinal);
+        // Create/Update take primitives; the required string becomes a value object, wrapped via Create.
+        Assert.Contains("public static Product Create(string name, decimal price) => new(ProductName.Create(name), price);", entity, StringComparison.Ordinal);
+        Assert.Contains("public ProductName Name { get; private set; }", entity, StringComparison.Ordinal);
+        Assert.Contains("this.Name = ProductName.Create(name);", entity, StringComparison.Ordinal);
         Assert.DoesNotContain("{ get; set; }", entity, StringComparison.Ordinal); // all encapsulated
+        Assert.DoesNotContain("DataAnnotations", entity, StringComparison.Ordinal); // schema lives in the EF config
+    }
+
+    [Fact]
+    public void Required_string_becomes_a_value_object_with_built_in_validation()
+    {
+        var result = Generate();
+
+        var vo = File(result, "ProductName.cs");
+        Assert.Contains("public readonly record struct ProductName", vo, StringComparison.Ordinal);
+        Assert.Contains("public const int MaxLength = 200;", vo, StringComparison.Ordinal);
+        Assert.Contains("public static IEnumerable<string> Validate(string value)", vo, StringComparison.Ordinal);
+        Assert.Contains("public static ProductName Create(string value)", vo, StringComparison.Ordinal);
+        // The form wires the value object's Validate into the bound input.
+        Assert.Contains("Input(() => _form.Name, Validate: ProductName.Validate", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Generates_an_ef_configuration_that_maps_the_schema()
+    {
+        var config = File(Generate(), "ProductConfiguration.cs");
+
+        Assert.Contains("public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>", config, StringComparison.Ordinal);
+        Assert.Contains("entity.HasKey(x => x.Id);", config, StringComparison.Ordinal);
+        // The value object maps through its converter.
+        Assert.Contains("entity.Property(x => x.Name).HasConversion(v => v.Value, s => ProductName.Create(s)).HasMaxLength(ProductName.MaxLength);", config, StringComparison.Ordinal);
+        Assert.Contains("ApplyConfigurationsFromAssembly", File(Generate(), "ProductsDbContext.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
     public void Assignments_are_this_qualified_so_a_lowercase_field_does_not_self_assign()
     {
         var entity = FeatureGenerator.RenderEntity("MyApp.Features.Notes", "Note",
-            [new FieldSpec("title", "string", false, 200)], "Guid");
+            [new FieldSpec("title", "string", false, 200)], "Guid", useValueObjects: false);
 
         Assert.Contains("this.title = title;", entity, StringComparison.Ordinal);
         Assert.DoesNotContain("\n        title = title;", entity, StringComparison.Ordinal); // not a self-assignment
@@ -181,13 +208,13 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
-    public void Request_is_shared_and_carries_the_validation_attributes()
+    public void Request_is_a_shared_plain_form_model()
     {
         var request = File(Generate(), "ProductRequest.cs");
 
         Assert.Contains("public sealed class ProductRequest", request, StringComparison.Ordinal);
-        Assert.Contains("[Required]", request, StringComparison.Ordinal);
-        Assert.Contains("[MaxLength(200)]", request, StringComparison.Ordinal);
+        Assert.Contains("public string Name { get; set; } = \"\";", request, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Required]", request, StringComparison.Ordinal); // validation lives on the value object
         // Both slices bind the same shared request — no Create/Update-specific request types.
         Assert.Contains("CreateProductCommand(ProductRequest Request)", File(Generate(), "CreateProduct.cs"), StringComparison.Ordinal);
         Assert.Contains("UpdateProductCommand(Guid Id, ProductRequest Request)", File(Generate(), "UpdateProduct.cs"), StringComparison.Ordinal);
@@ -231,7 +258,7 @@ public sealed class FeatureGeneratorTests
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
@@ -241,12 +268,36 @@ public sealed class FeatureGeneratorTests
     public void Bool_field_renders_a_bootstrap_checkbox_not_a_text_input()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Job",
-            [new FieldSpec("Done", "bool", false, null)], "Guid", null, null, outputOverride: null);
+            [new FieldSpec("Done", "bool", false, null)], "Guid", "valueobjects", null, null, outputOverride: null);
 
-        var create = File(result, "CreateJob.cs");
-        Assert.Contains("form-check-input", create, StringComparison.Ordinal);
-        Assert.Contains("Input(() => _form.Done", create, StringComparison.Ordinal);
-        Assert.DoesNotContain("Input(() => _form.Done, Id: \"done\", Class: \"form-control\")", create, StringComparison.Ordinal);
+        var createJob = File(result, "CreateJob.cs");
+        Assert.Contains("form-check-input", createJob, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DataAnnotations_mode_uses_a_poco_entity_attributes_and_the_validator()
+    {
+        var result = Generate(validation: "dataannotations");
+
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) == "ProductName.cs"); // no value object
+        Assert.Contains("public string Name { get; private set; } = \"\";", File(result, "Product.cs"), StringComparison.Ordinal);
+        var request = File(result, "ProductRequest.cs");
+        Assert.Contains("[Required]", request, StringComparison.Ordinal);
+        Assert.Contains("[MaxLength(200)]", request, StringComparison.Ordinal);
+        Assert.Contains("DataAnnotationsValidator(),", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.Contains("entity.Property(x => x.Name).IsRequired().HasMaxLength(200);", File(result, "ProductConfiguration.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Fluent_mode_generates_a_validator_and_wires_it()
+    {
+        var result = Generate(validation: "fluent");
+
+        var validator = File(result, "ProductRequestValidator.cs");
+        Assert.Contains("public sealed class ProductRequestValidator : AbstractValidator<ProductRequest>", validator, StringComparison.Ordinal);
+        Assert.Contains("RuleFor(x => x.Name).NotEmpty().MaximumLength(200);", validator, StringComparison.Ordinal);
+        Assert.Contains("FluentValidationValidator(new ProductRequestValidator()),", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) == "ProductName.cs"); // POCO, no value object
     }
 
     [Fact]
