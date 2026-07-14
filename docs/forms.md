@@ -38,9 +38,35 @@ derives everything from the bound property:
 - **Input type** ← the property's CLR type (`BindingHelpers.DefaultInputType`):
   `bool → checkbox`, every numeric primitive `→ number`, `DateOnly → date`,
   `DateTime`/`DateTimeOffset` `→ datetime-local`, `TimeOnly`/`TimeSpan` `→ time`, everything else
-  `→ text`. Override with `Type:` (an `InputType` enum value — `InputType.Email`, `InputType.Password`, …).
+  `→ text`. Override with `Type:` — an `InputType` enum value. The full set is
+  `Text`, `Search`, `Tel`, `Url`, `Email`, `Password`, `Number`, `Checkbox`, `Radio`, `File`, `Range`,
+  `Color`, `Date`, `DatetimeLocal` (renders `datetime-local`), `Time`, `Week`, `Month`, `Hidden`,
+  `Button`, `Submit`, `Reset`, `Image`. The *string-only* family (`Text`/`Search`/`Tel`/`Url`/`Email`/
+  `Password`) only makes sense on an `Input<string>`; setting one on a non-string bound input is
+  [RASK025](diagnostics.md#rask025).
 - **Update timing** — `string` fields update on every keystroke (`OnInput`); every other type
   updates on `OnChange` (blur). `Textarea(Bind: …)` always streams on `OnInput`.
+
+Beyond the constraint/affordance attributes shared with plain HTML (`Min`/`Max`/`Step`/`Pattern`/
+`MaxLength`/`MinLength`/`Multiple`/`Accept`/`List`/`Autocomplete`/`Autofocus`), the core `Input` also
+carries the mobile & accessibility hints `InputMode` (on-screen keyboard), `EnterKeyHint` (action-key
+label), `Spellcheck` (the enumerated `spellcheck="true|false"`), `Capture` (camera/mic for a file
+input), and `Dirname`. The Bootstrap `BsInput`/`BsTextarea` forward all of these (see
+[bootstrap-forms.md](bootstrap-forms.md)).
+
+### File inputs
+
+`InputType.File` turns an `<input>` into a file picker. Instead of binding a value, hand it an
+`OnFiles` (or `OnFilesAsync`) callback that receives the selected `RaskFile`s (`Name`/`Size`/
+`ContentType`/`OpenReadStream()`), and constrain the picker with `Accept`, `Multiple`, and `Capture`:
+
+```csharp
+Input(Type: InputType.File, Accept: "image/*", Multiple: true,
+      OnFilesAsync: async files => { foreach (var f in files) await Save(f); })
+```
+
+Uploading the bytes (streaming to a server endpoint, size limits, progress) is covered end-to-end in
+[http-and-files.md](http-and-files.md).
 
 ```csharp
 Input(Bind: () => _model.Subscribe)   // bool     → checkbox
@@ -188,12 +214,19 @@ floating-label markup with the label derived from the bound property, and surfac
 
 ### Accessible validation
 
-The `Rask.Bootstrap` controls (`BsInput`, `BsTextarea`, `BsSelect`, `BsCheck`) expose validation to
-assistive tech automatically — no extra props. When a bound field has messages, the control renders
-`aria-invalid="true"`, an `aria-describedby` that points at the error message's `id` (and the help-text
-`id` when `HelpText:` is set), and the `.invalid-feedback` as a `role="alert"` live region so screen
-readers announce the error the moment it appears, associated with the field rather than detached from
-it. Valid fields with `HelpText:` still get `aria-describedby` to the help text.
+The `Rask.Bootstrap` controls (`BsInput`, `BsTextarea`, `BsSelect`, `BsCheck`, `BsMultiSelect`,
+`BsRadioGroup`, `BsCheckboxGroup`) expose validation to assistive tech automatically — no extra props.
+When a bound field has messages, the control renders `aria-invalid="true"`, an `aria-describedby` that
+points at the error message's `id` (and the help-text `id` when `HelpText:` is set), and the
+`.invalid-feedback` as a `role="alert"` live region so screen readers announce the error the moment it
+appears, associated with the field rather than detached from it. Valid fields with `HelpText:` still get
+`aria-describedby` to the help text.
+
+The combobox controls (`BsSelect`'s custom dropdown, `BsMultiSelect`) are a `<div role="combobox">`,
+which is not a labelable element — so their visible label is tied to them with `aria-labelledby` (not a
+void `<label for>`), alongside the `aria-haspopup`/`aria-expanded`/`aria-controls` popup contract. Give
+`BsRadioGroup`/`BsCheckboxGroup` a `Label:` and the options are wrapped in a `<fieldset>` named by a
+`<legend>` — the correct grouping semantics and accessible name for a set of related radios/checkboxes.
 
 If you build your own control from the core `Input`/`ValidationMessage` primitives (§9), mirror the same
 three attributes so the field stays accessible: `aria-invalid` on the control, `aria-describedby` from
@@ -514,6 +547,11 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
   [check markup](https://getbootstrap.com/docs/5.3/forms/checks-radios/) — a
   `<div class="form-check">` wrapping a `.form-check-input` and a `.form-check-label` tied together by
   `id`/`for`. `ItemClass` adds extra classes (e.g. `"form-check-inline"`); `OptionLabel` customizes the label.
+- On the `Rask.Bootstrap` `BsRadioGroup`/`BsCheckboxGroup`, pass `Label:` to give the group an accessible
+  name: the options are then wrapped in a `<fieldset>` titled by a `<legend>`, which is the correct
+  grouping semantics for a set of related radios/checkboxes. Without a `Label` you get the bare per-item
+  fragment (so you can supply your own `<fieldset>`/heading). An unnamed control derives a page-unique
+  fallback `name`, so two on one page are never merged into a single browser radio group.
 - They are **Components** (their own re-render boundary), so a toggle re-renders the control itself; for
   host-side derived UI (a live summary) use **controlled** mode — the auto-wrapped `OnChange` re-renders
   the host. (In bound mode, feedback lives inside the control via the embedded `ValidationMessage`.)

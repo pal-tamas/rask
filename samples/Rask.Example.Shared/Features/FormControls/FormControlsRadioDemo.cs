@@ -28,7 +28,10 @@ public sealed class FormControlsRadioDemo : Component
             Div(Class: "col-md-6", Id: "fc-radio-bound")[
                 Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
-                    BsRadioGroup(() => _model.Plan, AllPlans, Name: "fc-radio-b", ItemClass: "form-check-inline")
+                    // Label: names the group — the options render inside a <fieldset>/<legend> for the
+                    // correct accessible grouping semantics.
+                    BsRadioGroup(() => _model.Plan, AllPlans, Name: "fc-radio-b", Label: "Plan",
+                        ItemClass: "form-check-inline")
                 ],
                 P(Class: "small text-secondary mb-0", Id: "fc-radio-bound-out")[
                     "Plan: ", Strong()[_model.Plan.ToString()]

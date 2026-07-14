@@ -1,6 +1,7 @@
 #pragma warning disable RASK014 // StubComponent constructed directly in tests
 
 using System.Text.Json;
+using Rask.Core;
 
 namespace Rask.Bootstrap.Tests;
 
@@ -36,6 +37,38 @@ public class BsFormControlTests
     [Fact]
     public void Textarea_RendersFormControl() =>
         Assert.Contains("class=\"form-control\"", BsTextarea<string>(Value: "hi", Rows: 3).ToHtml());
+
+    [Fact]
+    public void Input_NumericConstraints_ForwardMinMaxStepToCoreInput() =>
+        Assert.Contains("min=\"0\" max=\"120\" step=\"1\"",
+            BsInput<int>(Value: 5, Min: "0", Max: "120", Step: "1").ToHtml());
+
+    [Fact]
+    public void Input_TextConstraints_ForwardPatternAndLengths() =>
+        Assert.Contains("pattern=\"[a-z]&#x2B;\" maxlength=\"10\" minlength=\"2\"",
+            BsInput<string>(Value: "x", Pattern: "[a-z]+", MaxLength: 10, MinLength: 2).ToHtml());
+
+    [Fact]
+    public void Input_File_ForwardsAcceptCaptureAndMultiple()
+    {
+        var html = BsInput<string>(Value: "", Type: InputType.File, Accept: ".png,.jpg", Capture: "user",
+            Multiple: true).ToHtml();
+        Assert.Contains("type=\"file\"", html);
+        Assert.Contains("multiple accept=\".png,.jpg\" capture=\"user\"", html);
+    }
+
+    [Fact]
+    public void Input_ForwardsListAndInputMode()
+    {
+        var html = BsInput<string>(Value: "", List: "cities", InputMode: "search").ToHtml();
+        Assert.Contains("inputmode=\"search\"", html);
+        Assert.Contains("list=\"cities\"", html);
+    }
+
+    [Fact]
+    public void Textarea_ForwardsColsAndLengthConstraints() =>
+        Assert.Contains("cols=\"40\" maxlength=\"200\" minlength=\"10\"",
+            BsTextarea<string>(Value: "hi", Cols: 40, MaxLength: 200, MinLength: 10).ToHtml());
 
     [Fact]
     public void Check_Switch_RendersFormSwitchAndRole()

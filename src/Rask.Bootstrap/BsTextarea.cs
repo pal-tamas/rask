@@ -10,6 +10,14 @@ public sealed class BsTextarea<T> : BsFormControl<T>
     public int? Rows { get; set; }
     public bool? ReadOnly { get; set; }
 
+    // Sizing + constraint attributes forwarded verbatim to the core Textarea. (The core Textarea's `wrap`
+    // attribute is not surfaced here — the name collides with BsBlock.Wrap; use the core Textarea for it.)
+    public int? Cols { get; set; }
+    public int? MaxLength { get; set; }
+    public int? MinLength { get; set; }
+    public string? Autocomplete { get; set; }
+    public bool? Autofocus { get; set; }
+
     protected override Component? Render()
     {
         var b = Resolve();
@@ -19,7 +27,9 @@ public sealed class BsTextarea<T> : BsFormControl<T>
         var control = Textarea<string>(
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
-            Placeholder: Placeholder, Rows: Rows, Disabled: Disabled, ReadOnly: ReadOnly, Required: Required,
+            Placeholder: Placeholder, Rows: Rows, Cols: Cols, Disabled: Disabled, ReadOnly: ReadOnly,
+            Required: Required, MaxLength: MaxLength, MinLength: MinLength,
+            Autocomplete: Autocomplete, Autofocus: Autofocus,
             Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
             OnInputAsync: Disabled == true ? null : StringChangeHandler(b));
 

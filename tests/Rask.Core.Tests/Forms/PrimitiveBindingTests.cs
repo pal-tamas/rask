@@ -189,6 +189,63 @@ public class PrimitiveBindingTests
     }
 
     [Fact]
+    public async Task GuidProperty_InvalidInput_LeavesPriorValue()
+    {
+        var known = Guid.NewGuid();
+        var p = new IdentityHolder { Token = known };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Token)]);
+        var changeId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change");
+
+        using var doc = JsonDocument.Parse("{\"value\":\"not-a-guid\"}");
+        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        // Unparseable Guid text must NOT zero the field — TrySetTyped returns false, setter never runs.
+        Assert.Equal(known, p.Token);
+    }
+
+    [Fact]
+    public async Task CharProperty_MultiCharInput_LeavesPriorValue()
+    {
+        var p = new IdentityHolder { Letter = 'a' };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Letter)]);
+        var changeId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change");
+
+        // char.TryParse only accepts a single character — a two-char string fails to parse.
+        using var doc = JsonDocument.Parse("{\"value\":\"ab\"}");
+        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.Equal('a', p.Letter);
+    }
+
+    [Fact]
+    public async Task EnumProperty_OnChange_RoundTripsCaseInsensitively()
+    {
+        var p = new IdentityHolder { Level = Priority.Low };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Level)]);
+        var changeId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change");
+
+        // Enum binding goes through Enum.TryParse(ignoreCase: true), so a lower-cased member name binds.
+        using var doc = JsonDocument.Parse("{\"value\":\"high\"}");
+        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.Equal(Priority.High, p.Level);
+    }
+
+    [Fact]
+    public async Task EnumProperty_InvalidInput_LeavesPriorValue()
+    {
+        var p = new IdentityHolder { Level = Priority.High };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Level)]);
+        var changeId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change");
+
+        // A string that is not a member name leaves the model untouched.
+        using var doc = JsonDocument.Parse("{\"value\":\"medium\"}");
+        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.Equal(Priority.High, p.Level);
+    }
+
+    [Fact]
     public async Task NullableNumericProperty_EmptyInput_SetsNull()
     {
         var p = new NumericHolder { OptionalDouble = 9.9 };
@@ -309,5 +366,12 @@ public class PrimitiveBindingTests
     {
         public Guid Token { get; set; }
         public char Letter { get; set; }
+        public Priority Level { get; set; }
+    }
+
+    private enum Priority
+    {
+        Low,
+        High
     }
 }
