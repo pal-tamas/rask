@@ -79,20 +79,12 @@ jobs:
           path: |
             **/BenchmarkDotNet.Artifacts/**
 
-  # Browser journeys via the shared reusable pipeline (mirrors ci.yml). Nightly must not publish unless
-  # every journey is green. Site/Playground shards are ci-only, so they're absent from this host list.
-  e2e:
-    uses: ./.github/workflows/e2e.yml
-    with:
-      hosts: >-
-        ["ServerExampleTests","WasmExampleTests","StandaloneWasmExampleTests","WasmSubPathExampleTests","AuthExampleTests","JwtServerAuthExampleTests","WasmCookieAuthExampleTests","WasmJwtAuthExampleTests"]
-
   # Rask.Native ships iOS/Android platform heads, so its prerelease package is built + packed on macOS
   # with the mobile workloads (-p:RaskNativeHeads=true) and handed to publish-nightly as an artifact.
   pack-native-nightly:
-    needs: [unit, aot-publish, e2e]
+    needs: [unit, aot-publish]
     # Pinned to macos-26 (not the moving macos-latest label) so the Microsoft.iOS workload lands on the
-    # matching Xcode SDK — same reason as native-ios-e2e.yml.
+    # matching Xcode SDK.
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v7
@@ -115,7 +107,7 @@ jobs:
           path: ./artifacts/Rask.Native.*.*nupkg
 
   publish-nightly:
-    needs: [unit, aot-publish, e2e, pack-native-nightly]
+    needs: [unit, aot-publish, pack-native-nightly]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

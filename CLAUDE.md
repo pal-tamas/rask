@@ -17,7 +17,9 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 
 Standing rules: do your best every PR, holding **UX + security + performance** together; prefer
 standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test every feature (E2E
-only when unreachable); E2E for every `samples/` change; benchmark every framework-code change;
+only when unreachable); E2E for every `samples/` change — **E2E runs locally, not in CI**: browser
+journeys via `scripts/run-e2e-local.sh` (enforced by the `.githooks/pre-push` hook), on-device native
+Appium manually (`tests/Rask.Native.Appium.Tests`, needs an emulator/simulator); benchmark every framework-code change;
 **user-facing change → update a sample + docs/README/NUGET.md/llms.txt/template AGENTS.md**; keep
 everything up to date; CHANGELOG `[Unreleased]` per notable change; Conventional Commits
 (commitlint); no `Co-Authored-By`/`Generated-with`. Build is warnings-as-errors + analyzers

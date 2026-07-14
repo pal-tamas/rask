@@ -466,11 +466,11 @@ sandbox, and real background execution — without giving up "the same component
    asserts the showcase rendered with its scoped CSS + Bootstrap; in the **native** context it asserts the
    [native header/tab bar](#native-header--footer) projected to real platform bars and that **tapping a native
    tab navigates the WebView** (the round trip through the bridge into the router, read back from
-   `document.location`). **Android** runs per-PR in the Ubuntu
-   `native-appium` CI job (KVM emulator); **iOS** (XCUITest on a macOS simulator) runs nightly + on-demand
-   in `native-ios-e2e.yml` — kept off the per-PR path because macOS minutes and the Microsoft.iOS↔Xcode SDK
-   coupling make it too costly/fragile to gate every PR, the same nightly cadence MAUI uses for device UI
-   tests. A per-PR `native` job additionally compiles both examples for both TFMs. Appium replaced an earlier
+   `document.location`). The Appium suite runs **locally, before push** (it needs a booted Android
+   emulator / iOS simulator + an Appium server, so it isn't part of CI): boot a device, start
+   `appium`, then `dotnet test tests/Rask.Native.Appium.Tests` (the `Android_*`/`Ios_*` facts skip
+   unless `RASK_APPIUM_*` env is set — see the test's `AppiumEnv`). The per-PR CI `native` job still
+   compiles both examples for both TFMs (the fast breakage gate). Appium replaced an earlier
    headless Playwright-in-Chromium shim, and immediately surfaced a device-only bug the shim had masked
    (the boot shell loads at `/index.native.html`, a path `NativeOriginAssets` now serves).
    *(Native + Server needs no separate suite: in that mode the WebView loads a remote Rask Server and

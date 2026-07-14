@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **E2E moved out of CI to a local pre-push gate.** The browser-journey E2E
+  (`tests/Rask.Examples.E2E.Tests`, Playwright) and the on-device native E2E
+  (`tests/Rask.Native.Appium.Tests`, Appium) no longer run in the CI/nightly/release pipelines. They run
+  locally: `scripts/run-e2e-local.sh` runs the browser journeys (build-once → publish samples → VSTest),
+  and a new `.githooks/pre-push` hook runs that gate on `git push` (enable with
+  `git config core.hooksPath .githooks`; bypass with `git push --no-verify` or `RASK_SKIP_E2E=1`). The
+  on-device native suite is run manually against an emulator/simulator (see `docs/native.md`). CI keeps
+  the unit/integration suite, the deterministic benchmark byte-gates, and the native **compile** gate.
+  Removed the reusable `e2e.yml` and `native-ios-e2e.yml` workflows and the `native-appium` job.
+
 ### Added
 - **Opt-in `--docker` for the web templates.** `dotnet new rask-server`, `rask-wasm`, and
   `rask-wasm-hosted` take a `--docker` flag (default off) that scaffolds a production multi-stage
