@@ -343,6 +343,28 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
         using var body = JsonDocument.Parse(webView.LastFrame.AsMemory());
         Assert.Contains("last=delete", body.RootElement.GetProperty("html").GetString()!);
     }
+
+    [Fact]
+    public async Task ChromeOnlyTap_RepushesChrome_WhenBodyHasNoDiff()
+    {
+        // A bar tap that changes ONLY native chrome (a tab badge) leaves the HTML body identical, so in diff
+        // mode it emits no frame. The chrome must still be re-pushed — regression: the no-frame early return in
+        // DispatchNativeTapAsync used to skip the chrome push, so segmented/menu/badge-only taps did nothing.
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<ChromeOnlyApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: LiveDiffMode.Auto);
+
+        using (var d0 = JsonDocument.Parse(chrome.Pushed[0]))
+        {
+            Assert.False(d0.RootElement.GetProperty("footer").GetProperty("tabs")[0].TryGetProperty("badge", out _));
+        }
+
+        await chrome.TapAsync("h.trailing.0"); // toggles the badge; the body stays "static"
+
+        Assert.Equal(2, chrome.Pushed.Count);
+        using var d1 = JsonDocument.Parse(chrome.LastJson);
+        Assert.Equal("1", d1.RootElement.GetProperty("footer").GetProperty("tabs")[0].GetProperty("badge").GetString());
+    }
 }
 
 internal sealed class HeaderApp : Component
@@ -481,6 +503,22 @@ internal sealed class BadgeTabApp : Component
                 NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/"),
                 NativeTab(Title: "Todos", Icon: NativeIcon.List, To: "/todos", Badge: _count.ToString()),
             ])
+    ];
+}
+
+internal sealed class ChromeOnlyApp : Component
+{
+    private bool _flag;
+
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(Title: "C", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: () => _flag = !_flag)]),
+        NativeWebView()[
+            Doctype(),
+            // The body NEVER changes — only the native badge below does, so a tap emits no HTML diff.
+            Html()[Head()[Title()["t"]], Body()[P()["static"]]]
+        ],
+        NativeTabBar(Tabs: [NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/", Badge: _flag ? "1" : null)])
     ];
 }
 

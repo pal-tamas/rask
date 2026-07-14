@@ -169,6 +169,16 @@ them until tagged releases begin.
   and icon buttons now resolve their drawable (`Resources.GetIdentifier`) and show a real icon (with the
   selected tab highlighted via the tint), matching the iOS SF-Symbol bars; unresolved names still fall back
   to text.
+- **Native bar taps that change only chrome now update the bars.** A bar interaction whose handler changed
+  *only* native chrome — a tab badge, a segmented-control selection, a menu action — left the HTML body
+  identical, so in diff mode it produced no frame and `NativeLiveSession`'s no-frame early return skipped the
+  chrome push, so the bars never updated. The chrome is now re-pushed even when the body has no diff (guarded
+  by a diff-mode `NativeChromeTests` regression). The Android overflow `PopupMenu` is also now held while shown
+  so its managed item-click callback isn't garbage-collected.
+- **Native Android bars are inset for the system bars.** The Android header/footer are drawn edge-to-edge (the
+  colored bars fill behind the status/navigation bars); their content is now padded by the system-bar insets
+  (framework `WindowInsets`, no AndroidX) so the title / segmented control / overflow button clear the status
+  bar and the tab bar clears the navigation bar — parity with the iOS safe-area handling.
 
 ## [0.16.0] - 2026-07-14
 

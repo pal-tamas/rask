@@ -422,14 +422,17 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 try
                 {
                     await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
-                    if (!await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false))
+                    var emitted = await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false);
+                    if (emitted)
                     {
-                        return Array.Empty<byte>();
+                        _htmlBuffers.Commit();
                     }
 
-                    _htmlBuffers.Commit();
+                    // Push chrome even when the body produced no diff: a bar tap can change ONLY native chrome
+                    // (a tab badge, a segmented selection, a menu action) and leave the HTML body identical, which
+                    // emits no frame — but the bars still need the update.
                     await PushChromeIfChangedAsync().ConfigureAwait(false);
-                    return _lastSentBuffer!.WrittenSpan.ToArray();
+                    return emitted ? _lastSentBuffer!.WrittenSpan.ToArray() : Array.Empty<byte>();
                 }
                 finally
                 {

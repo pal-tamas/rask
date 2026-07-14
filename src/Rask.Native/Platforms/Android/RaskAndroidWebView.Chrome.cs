@@ -17,6 +17,9 @@ namespace Rask.Native;
 // container.
 public sealed partial class RaskAndroidWebView
 {
+    // Held while an overflow PopupMenu is showing so its managed MenuItemClick callback isn't GC'd (a local
+    // PopupMenu can be collected after the click handler returns, silently dropping the item taps).
+    private PopupMenu? _menuPopup;
     private LinearLayout? _chromeRoot;
     private LinearLayout? _topBar;
     private LinearLayout? _bottomBar;
@@ -54,7 +57,41 @@ public sealed partial class RaskAndroidWebView
         root.AddView(_webView, new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MatchParent, 0, weight: 1f));
         root.AddView(_bottomBar, MatchWrap());
+
+        // The content is drawn edge-to-edge (the colored bars fill behind the system bars). Inset the header's
+        // top and the footer's bottom by the status-/navigation-bar heights so their content clears the system
+        // bars while the bar background still shows behind them — parity with the iOS safe-area handling. When a
+        // bar is hidden the WebView takes that edge and keeps its own env(safe-area-inset-*) CSS padding, so the
+        // insets are left unconsumed.
+        root.SetOnApplyWindowInsetsListener(new SystemBarInsetListener(_topBar, _bottomBar));
         return root;
+    }
+
+    // Pads the header/footer for the system bars from framework WindowInsets (no AndroidX).
+    private sealed class SystemBarInsetListener(Android.Views.View topBar, Android.Views.View bottomBar)
+        : Java.Lang.Object, Android.Views.View.IOnApplyWindowInsetsListener
+    {
+        public WindowInsets OnApplyWindowInsets(Android.Views.View v, WindowInsets insets)
+        {
+            int top, bottom;
+            if (OperatingSystem.IsAndroidVersionAtLeast(30))
+            {
+                var bars = insets.GetInsets(WindowInsets.Type.SystemBars());
+                top = bars.Top;
+                bottom = bars.Bottom;
+            }
+            else
+            {
+#pragma warning disable CA1422 // SystemWindowInset* is the pre-API-30 path.
+                top = insets.SystemWindowInsetTop;
+                bottom = insets.SystemWindowInsetBottom;
+#pragma warning restore CA1422
+            }
+
+            topBar.SetPadding(topBar.PaddingLeft, top, topBar.PaddingRight, topBar.PaddingBottom);
+            bottomBar.SetPadding(bottomBar.PaddingLeft, bottomBar.PaddingTop, bottomBar.PaddingRight, bottom);
+            return insets;
+        }
     }
 
     private void Apply(NativeChromeDescriptor? descriptor)
@@ -399,6 +436,9 @@ public sealed partial class RaskAndroidWebView
                     Raise($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
                 }
             };
+            // Keep the popup (and thus its managed click callback) alive until it dismisses.
+            popup.DismissEvent += (_, _) => _menuPopup = null;
+            _menuPopup = popup;
             popup.Show();
         };
         return button;
