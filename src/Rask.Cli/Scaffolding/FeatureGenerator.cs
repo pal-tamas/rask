@@ -21,6 +21,7 @@ internal static class FeatureGenerator
         string idType,
         string validation,
         bool useBs,
+        bool useModal,
         string? contextOverride,
         string? pluralOverride,
         string? outputOverride)
@@ -46,16 +47,22 @@ internal static class FeatureGenerator
             ("__VALIDATOR__", FormValidator(entityName, validation)),
         };
 
+        var listTemplate = useModal ? BsModalListTemplate : useBs ? BsListPageTemplate : ListPageTemplate;
         var files = new List<ScaffoldFile>
         {
             new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects)),
             new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields, validation)),
             new(Path.Combine(targetDirectory, entityName + "Configuration.cs"), Apply(ConfigurationTemplate, tokens)),
-            new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(useBs ? BsListPageTemplate : ListPageTemplate, tokens)),
+            new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(listTemplate, tokens)),
             new(Path.Combine(targetDirectory, "Delete" + entityName + ".cs"), Apply(useBs ? BsDeleteTemplate : DeleteTemplate, tokens)),
-            new(Path.Combine(targetDirectory, "Create" + entityName + ".cs"), Apply(useBs ? BsCreateTemplate : CreateTemplate, tokens)),
-            new(Path.Combine(targetDirectory, "Update" + entityName + ".cs"), Apply(useBs ? BsUpdateTemplate : UpdateTemplate, tokens)),
         };
+
+        // --modal puts create + update in a BsModal on the list page; otherwise they are separate pages.
+        if (!useModal)
+        {
+            files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Create" + entityName + ".cs"), Apply(useBs ? BsCreateTemplate : CreateTemplate, tokens)));
+            files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Update" + entityName + ".cs"), Apply(useBs ? BsUpdateTemplate : UpdateTemplate, tokens)));
+        }
 
         // valueobjects mode: one value object per required-string field, each owning its validation.
         foreach (var field in fields.Where(f => IsValueObject(f, useValueObjects)))
@@ -937,6 +944,174 @@ internal static class FeatureGenerator
                     ]
                 ];
             }
+        }
+
+        """;
+
+    // --modal: the list page holds the whole slice (list/get/create/update CQRS) and edits in a BsModal.
+    private const string BsModalListTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Rask.Core.Routing;
+
+        namespace __NS__;
+
+        public sealed record List__PLURAL__Query : IQuery<IReadOnlyList<__ENTITY__>>;
+
+        public sealed class List__PLURAL__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : IQueryHandler<List__PLURAL__Query, IReadOnlyList<__ENTITY__>>
+        {
+            public async Task<IReadOnlyList<__ENTITY__>> HandleAsync(List__PLURAL__Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                return await db.__PLURAL__.AsNoTracking().OrderBy(x => x.Id).ToListAsync(cancellationToken);
+            }
+        }
+
+        public sealed record Get__ENTITY__Query(__IDTYPE__ Id) : IQuery<__ENTITY__?>;
+
+        public sealed class Get__ENTITY__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : IQueryHandler<Get__ENTITY__Query, __ENTITY__?>
+        {
+            public async Task<__ENTITY__?> HandleAsync(Get__ENTITY__Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                return await db.__PLURAL__.AsNoTracking().FirstOrDefaultAsync(x => x.Id == query.Id, cancellationToken);
+            }
+        }
+
+        public sealed record Create__ENTITY__Command(__ENTITY__Request Request) : ICommand<__IDTYPE__>;
+
+        public sealed class Create__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Create__ENTITY__Command, __IDTYPE__>
+        {
+            public async Task<__IDTYPE__> HandleAsync(Create__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                var entity = __ENTITY__.Create(__CREATEARGS__);
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                db.__PLURAL__.Add(entity);
+                await db.SaveChangesAsync(cancellationToken);
+                return entity.Id;
+            }
+        }
+
+        public sealed record Update__ENTITY__Command(__IDTYPE__ Id, __ENTITY__Request Request) : ICommand;
+
+        public sealed class Update__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Update__ENTITY__Command>
+        {
+            public async Task HandleAsync(Update__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var entity = await db.__PLURAL__.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
+                if (entity is null)
+                {
+                    return;
+                }
+
+                entity.Update(__CREATEARGS__);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        [Route("__ROUTE__")]
+        public sealed class __PLURAL__Page(IDispatcher dispatcher) : Component
+        {
+            private IReadOnlyList<__ENTITY__> _items = [];
+            private bool _loaded;
+            private __ENTITY__Request _form = new();
+            private bool _modalOpen;
+            private __IDTYPE__? _editingId;
+
+            protected override Component? Head => Title()["__PLURAL__"];
+
+            protected override async Task OnMountAsync() => await LoadAsync();
+
+            private async Task LoadAsync()
+            {
+                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(), CancellationToken);
+                _loaded = true;
+            }
+
+            private void OpenCreate()
+            {
+                _form = new __ENTITY__Request();
+                _editingId = null;
+                _modalOpen = true;
+            }
+
+            private async Task OpenEditAsync(__IDTYPE__ id)
+            {
+                var entity = await dispatcher.DispatchAsync(new Get__ENTITY__Query(id), CancellationToken);
+                if (entity is null)
+                {
+                    return;
+                }
+
+                _form = new __ENTITY__Request();
+        __COPYTOFORM__
+                _editingId = id;
+                _modalOpen = true;
+            }
+
+            private void CloseModal() => _modalOpen = false;
+
+            private async Task SaveAsync(__ENTITY__Request form)
+            {
+                if (_editingId is null)
+                {
+                    await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
+                }
+                else
+                {
+                    await dispatcher.DispatchAsync(new Update__ENTITY__Command(_editingId.Value, form), CancellationToken);
+                }
+
+                _modalOpen = false;
+                await LoadAsync();
+            }
+
+            protected override Component? Render() =>
+            [
+                Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center), Margin.Bottom(3)))[
+                    H1(Class: "h3 mb-0")["__PLURAL__"],
+                    BsButton(Color: BsColor.Primary, OnClick: OpenCreate)[
+                        BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New __ENTITY__"
+                    ]
+                ],
+                !_loaded
+                    ? Div(Class: Bs.Join(Txt.Muted))["Loading…"]
+                    : _items.Count == 0
+                        ? Div(Class: "alert alert-info")["No __PLURAL__ yet."]
+                        : BsTable(Striped: true, Hover: true, Responsive: true)[
+                            Thead()[
+                                Tr()[
+                                    Th()["#"],
+        __HEADERS__
+                                    Th()[""]
+                                ]
+                            ],
+                            Tbody()[
+                                _items.Select(x => Tr(Key: x.Id)[
+                                    Td()[$"{x.Id}"],
+        __CELLS__
+                                    Td(Class: Bs.Join(Txt.End(), Txt.Nowrap))[
+                                        BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: () => OpenEditAsync(x.Id))[BsIcon(Name: BsIconName.Pencil)],
+                                        Delete__ENTITY__(Id: x.Id, OnDeleted: LoadAsync)
+                                    ]
+                                ])
+                            ]
+                        ],
+                BsModal(Open: _modalOpen, Title: _editingId is null ? "New __ENTITY__" : "Edit __ENTITY__", Centered: true, OnClose: CloseModal)[
+                    Form(_form, OnValidSubmitAsync: SaveAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
+        __VALIDATOR____FORMFIELDS__
+                        Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
+                            BsButton(Color: BsColor.Secondary, Outline: true, OnClick: CloseModal)["Cancel"],
+                            BsButton(Type: "submit", Color: BsColor.Primary)["Save"]
+                        ]
+                    ]
+                ]
+            ];
         }
 
         """;

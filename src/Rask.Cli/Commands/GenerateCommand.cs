@@ -57,6 +57,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Option("id")
             .Option("validation")
             .Flag("bs")
+            .Flag("modal")
             .Flag("force")
             .Flag("dry-run");
 
@@ -98,9 +99,9 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         if (kind != "feature"
             && (parsed.Option("fields") is not null || parsed.Option("context") is not null
                 || parsed.Option("plural") is not null || parsed.Option("id") is not null
-                || parsed.Option("validation") is not null || parsed.HasFlag("bs")))
+                || parsed.Option("validation") is not null || parsed.HasFlag("bs") || parsed.HasFlag("modal")))
         {
-            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, and --bs only apply to 'generate feature'.");
+            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, --bs, and --modal only apply to 'generate feature'.");
             return Task.FromResult(1);
         }
 
@@ -190,7 +191,11 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     return false;
                 }
 
-                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, parsed.HasFlag("bs"), parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
+                // --modal puts create/update in a BsModal on the list page, so it implies --bs.
+                var useModal = parsed.HasFlag("modal");
+                var useBs = useModal || parsed.HasFlag("bs");
+
+                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, useBs, useModal, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
                 return true;
         }
     }

@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -272,10 +272,27 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Modal_mode_puts_crud_in_a_bsmodal_and_drops_the_separate_pages()
+    {
+        var result = Generate(useModal: true);
+
+        // No separate Create/Update page files — they live on the list page.
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) is "CreateProduct.cs" or "UpdateProduct.cs");
+
+        var list = File(result, "ProductsPage.cs");
+        Assert.Contains("BsModal(Open: _modalOpen", list, StringComparison.Ordinal);
+        Assert.Contains("private void OpenCreate()", list, StringComparison.Ordinal);
+        Assert.Contains("private async Task OpenEditAsync(Guid id)", list, StringComparison.Ordinal);
+        // The create + update CQRS lives on the list page now.
+        Assert.Contains("public sealed record CreateProductCommand(ProductRequest Request)", list, StringComparison.Ordinal);
+        Assert.Contains("public sealed record UpdateProductCommand(Guid Id, ProductRequest Request)", list, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", "valueobjects", useBs: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", useBs: false, useModal: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
