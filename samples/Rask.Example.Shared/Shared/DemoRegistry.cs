@@ -136,13 +136,15 @@ public static class DemoRegistry
             ["browser-gesture-bridge"] = () => CodeSample(
                 ["GestureBridgeDemo.cs"],
                 Notes:
-                "GestureTrigger / FullscreenTrigger / EyeDropperTrigger (Rask.Core) are headless like Shareable: "
-                + "they hand your element a data-rask-gesture attribute and the shared client runs the "
-                + "activation-gated API inside the click gesture. That makes normally-WASM-only APIs like "
-                + "fullscreen and the eyedropper reachable on every host, the Server included — where the "
-                + "imperative IFullscreen / IEyeDropper services can't be injected, because a round-trip would "
-                + "lose the transient user activation. Capabilities that return a value (the eyedropper's hex) "
-                + "post it back to the OnColor / OnResult callback.",
+                "The GestureTrigger family (Rask.Core) is headless like Shareable: each trigger hands your "
+                + "element a data-rask-gesture attribute and the shared client runs the activation-gated API "
+                + "inside the click gesture. That makes normally-WASM-only APIs reachable on every host, the "
+                + "Server included — where the imperative IFullscreen / IEyeDropper / … services can't be "
+                + "injected, because a round-trip would lose the transient user activation. Six typed triggers "
+                + "ship: FullscreenTrigger, ScreenOrientationTrigger, EyeDropperTrigger, InstallTrigger, "
+                + "MediaCaptureTrigger, and PictureInPictureTrigger (the last two target a <video> via its "
+                + "ElementRef). Capabilities that return a value (the eyedropper's hex, the install outcome) "
+                + "post it back to the OnColor / OnResult / OnOutcome callback.",
                 Result: GestureBridgeDemo()),
 
             // --- Forms guide: the remaining two-way-binding variants (their standalone /binding page
