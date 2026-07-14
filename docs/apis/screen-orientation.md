@@ -8,9 +8,9 @@
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜
 - **Native backend:** — (WebView JS)
 
-Lock needs fullscreen + activation → WASM-only; Server gesture bridge planned.
+Lock needs fullscreen + transient activation, so the imperative `IScreenOrientation` service is WASM-only. On the **Server** host, use the declarative **`ScreenOrientationTrigger`** component (`ScreenOrientationTrigger(Orientation: "landscape", …)`) — its click locks the orientation inside the gesture. The browser's `screen.orientation.lock` only resolves while the page is fullscreen, so pair it with a `FullscreenTrigger` (or app-controlled fullscreen); off-fullscreen or on desktop the lock is a silent no-op.
 
-> 🟡 On the Server host this is reachable declaratively via the planned gesture bridge, not as an injected service.
+> 🟡 On the Server host, reachable declaratively via `ScreenOrientationTrigger` (a click-gesture component), not as an injected service.
 
 ## See also
 

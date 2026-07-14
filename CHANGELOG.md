@@ -9,12 +9,14 @@ them until tagged releases begin.
 
 ### Added
 - **Gesture bridge — activation-gated browser APIs on the Server host.** New headless `GestureTrigger`
-  (and typed `FullscreenTrigger` / `EyeDropperTrigger`) generalise `Shareable`'s trick: they hand your
-  element a `data-rask-gesture` bundle and the shared client runs the capability **inside the click
-  gesture**, so the browser's transient user activation survives. That makes normally-WASM-only APIs like
-  fullscreen and the eyedropper reachable **declaratively on the Server host** (where a round-tripped
-  service call would lose the activation). Capabilities that return a value post it back to an
-  `OnResult` / `OnColor` callback via a new `[JSInvokable]`. The `__raskFullscreen` / `__raskEyeDropper`
+  and six typed wrappers generalise `Shareable`'s trick: they hand your element a `data-rask-gesture`
+  bundle and the shared client runs the capability **inside the click gesture**, so the browser's transient
+  user activation survives. That makes normally-WASM-only APIs reachable **declaratively on the Server host**
+  (where a round-tripped service call would lose the activation). Ships `FullscreenTrigger`,
+  `ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`, `MediaCaptureTrigger`, and
+  `PictureInPictureTrigger` (the last two target a `<video>` via its `ElementRef`). Capabilities that return
+  a value post it back to an `OnResult` / `OnColor` / `OnOutcome` callback via a new `[JSInvokable]`. The
+  `__raskFullscreen` / `__raskEyeDropper` / `__raskOrientation` / `__raskInstall` / `__raskMedia` / `__raskPip`
   DOM helpers moved from `rask-wasm-api.js` into the shared `rask-api.js` so they ship to Server too.
 - **Native iOS/Android backends for the browser/device APIs, wired with one line.** `Rask.Native` now
   ships native C# implementations of ten interfaces and a platform module that installs them:

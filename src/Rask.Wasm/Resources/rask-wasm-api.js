@@ -68,120 +68,18 @@ window.__raskPwa = window.__raskPwa || {
     }
 };
 
-// PWA install prompt (driven by IInstallPrompt). The browser fires beforeinstallprompt once when the app
-// becomes installable; we preventDefault() and stash the event so C# can replay it from a user gesture
-// (showing a custom "Install" button) instead of the browser's default mini-infobar. Listeners are
-// attached when this helper is first created at boot, so the event isn't missed.
-window.__raskInstall = window.__raskInstall || (() => {
-    let deferred = null;
-    let installed = false;
-    window.addEventListener("beforeinstallprompt", (e) => {
-        e.preventDefault();
-        deferred = e;
-    });
-    window.addEventListener("appinstalled", () => {
-        installed = true;
-        deferred = null;
-    });
-    return {
-        canInstall: () => deferred != null,
-        isInstalled: () => installed
-            || !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
-            || window.navigator.standalone === true,
-        prompt: async () => {
-            if (!deferred) {
-                return "unavailable";
-            }
-            deferred.prompt();
-            let outcome = "dismissed";
-            try {
-                const choice = await deferred.userChoice;
-                outcome = (choice && choice.outcome === "accepted") ? "accepted" : "dismissed";
-            } catch (_) {
-                outcome = "dismissed";
-            }
-            deferred = null;
-            return outcome;
-        }
-    };
-})();
+// __raskInstall / __raskOrientation / __raskMedia / __raskPip moved to Rask.Core/Resources/rask-api.js so
+// they also ship to the Server client — the declarative InstallTrigger / ScreenOrientationTrigger /
+// MediaCaptureTrigger / PictureInPictureTrigger drive them inside the click gesture there (and __raskInstall
+// must self-arm its beforeinstallprompt listener at boot on both transports). The imperative IInstallPrompt /
+// IScreenOrientation / IMediaDevices / IPictureInPicture services stay WASM-only.
 
 // __raskNotify / __raskBadge / __raskWakeLock are transport-agnostic and live in
 // Rask.Core/Resources/rask-pwa.js (spliced into both clients) — they are not duplicated here.
 
-// Screen Orientation (driven by IScreenOrientation). Reading returns the live screen.orientation as a
-// plain { type, angle } object (mapped to the typed OrientationInfo in C#); lock/unlock pass through.
-window.__raskOrientation = window.__raskOrientation || {
-    isSupported: () => "orientation" in screen,
-    get: () => ({ type: screen.orientation.type, angle: screen.orientation.angle }),
-    lock: (type) => screen.orientation.lock(type),
-    unlock: () => { screen.orientation.unlock(); }
-};
-
-// __raskFullscreen moved to Rask.Core/Resources/rask-api.js so it also ships to the Server client (the
-// declarative FullscreenTrigger drives it inside the click gesture there). The imperative IFullscreen
-// service stays WASM-only.
-
-// Media Capture / getUserMedia (driven by IMediaDevices). getUserMedia needs transient activation + a
-// secure context, so this is WASM-only. The live MediaStream can't cross interop, so each is held here
-// under a C#-minted id; the video element is resolved from an ElementRef by the JSON reviver. Stopping a
-// stream stops every track, which releases the camera/mic (and turns off the hardware indicator).
-window.__raskMedia = window.__raskMedia || (() => {
-    const streams = new Map();
-    let nextId = 0;
-    const put = (stream) => {
-        const id = ++nextId;
-        streams.set(id, stream);
-        return id;
-    };
-    const stop = (id) => {
-        const stream = streams.get(id);
-        if (!stream) {
-            return;
-        }
-        stream.getTracks().forEach((t) => t.stop());
-        streams.delete(id);
-    };
-    return {
-        isSupported: () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
-        enumerate: async () => {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            return devices.map((d) => ({deviceId: d.deviceId, kind: d.kind, label: d.label, groupId: d.groupId}));
-        },
-        getUserMedia: async (c) => {
-            const video = c.video
-                ? (c.facingMode ? {facingMode: c.facingMode} : true)
-                : false;
-            const stream = await navigator.mediaDevices.getUserMedia({audio: !!c.audio, video: video});
-            return put(stream);
-        },
-        getDisplayMedia: async () => put(await navigator.mediaDevices.getDisplayMedia({video: true})),
-        attach: (id, video) => {
-            const stream = streams.get(id);
-            if (!stream || !video) {
-                return Promise.resolve();
-            }
-            video.srcObject = stream;
-            video.muted = true;
-            return video.play();
-        },
-        stop: (id) => stop(id)
-    };
-})();
-
-// __raskEyeDropper moved to Rask.Core/Resources/rask-api.js so it also ships to the Server client (the
-// declarative EyeDropperTrigger drives it inside the click gesture there). The imperative IEyeDropper
-// service stays WASM-only.
-
-// Picture-in-Picture (driven by IPictureInPicture). requestPictureInPicture needs transient activation, so
-// this is WASM-only. The element arg is resolved from an ElementRef by the JSON reviver; exit is a no-op
-// when no miniplayer is open.
-window.__raskPip = window.__raskPip || {
-    isSupported: () => !!document.pictureInPictureEnabled,
-    isActive: () => document.pictureInPictureElement != null,
-    request: (el) => el ? el.requestPictureInPicture() : Promise.reject(new Error("no video element")),
-    exit: () => document.pictureInPictureElement ? document.exitPictureInPicture() : Promise.resolve()
-};
+// __raskFullscreen / __raskEyeDropper also moved to Rask.Core/Resources/rask-api.js (same reason — the
+// declarative FullscreenTrigger / EyeDropperTrigger drive them on the Server client). The imperative
+// IFullscreen / IEyeDropper services stay WASM-only.
 
 // Idle Detection (driven by IIdleDetector). Permission needs transient activation and the detector needs
 // the live document, so this is WASM-only. Each watch holds a live IdleDetector + AbortController under the
