@@ -40,15 +40,22 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 - **Versions come from git tags via MinVer** (`vX.Y.Z`); assemblies carry `AssemblyVersion`,
   `FileVersion`, and `InformationalVersion` automatically.
 - **Stable release:** promote `CHANGELOG.md` `[Unreleased]` to a dated section, tag `vX.Y.Z`,
-  push — `release.yml` runs the unit gate + sharded E2E, packs the six NuGets, and publishes to
-  nuget.org + a GitHub release (the `cut-release` skill).
+  push — `release.yml` runs the unit gate, packs the NuGets, and publishes to nuget.org + a GitHub
+  release (the `cut-release` skill). Run the local E2E gate (`scripts/run-e2e-local.sh`) before tagging.
 - **Nightly:** every push to `main` runs `nightly.yml` — unit gate, then packs the MinVer
   prerelease versions and publishes them to nuget.org (prerelease) and GitHub Packages.
 
 ## CI
 
-- `ci.yml` — unit gate + a shared `e2e-build` job whose output a sharded E2E matrix (one host per
-  runner) consumes with `--no-build`, so the solution builds once instead of once per shard.
+- `ci.yml` — unit/integration gate, deterministic benchmark byte-gates, and a native compile gate
+  (both native samples × android/ios). **E2E does not run in CI** (see below).
+- **E2E runs locally, enforced before push.** The browser-journey E2E
+  (`tests/Rask.Examples.E2E.Tests`, Playwright) and the on-device native E2E
+  (`tests/Rask.Native.Appium.Tests`, Appium) were moved out of the CI pipeline. Run the browser gate
+  with `scripts/run-e2e-local.sh`; the `.githooks/pre-push` hook runs it on `git push` (enable hooks
+  with `git config core.hooksPath .githooks`; bypass with `git push --no-verify` or `RASK_SKIP_E2E=1`).
+  The on-device native suite needs an emulator/simulator + Appium — run it manually (see
+  [native.md](native.md)).
 - `commitlint.yml` — Conventional Commits check on PRs.
 - `nightly.yml` — prerelease publish on `main`.
 - `release.yml` — tag-triggered stable publish.

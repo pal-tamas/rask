@@ -126,23 +126,16 @@ jobs:
         run: >-
           dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor --no-build -- mem-footprint
 
-  # Browser journeys, via the shared reusable pipeline: build the E2E graph ONCE, then fan out one shard
-  # per hosting project that runs the prebuilt test assembly directly under VSTest (no per-shard restore,
-  # no MSBuild graph evaluation). See .github/workflows/e2e.yml.
-  e2e:
-    uses: ./.github/workflows/e2e.yml
-    with:
-      hosts: >-
-        ["ServerExampleTests","WasmExampleTests","StandaloneWasmExampleTests","SiteExampleTests","WasmSubPathExampleTests","PlaygroundExampleTests","AuthExampleTests","JwtServerAuthExampleTests","WasmCookieAuthExampleTests","WasmJwtAuthExampleTests"]
-
   # Compile gate for the runnable native showcase examples (samples/Rask.Example.Native [Native + Local]
   # and samples/Rask.Example.Native.Server [Native + Server]). They multi-target net10.0-ios;net10.0-android,
   # so they are kept OUT of Rask.slnx (the Ubuntu jobs have neither workload) and built here on macOS
   # instead. We build every project × TFM — a green build proves the platform heads + the shared
-  # NativeOriginAssets wiring compile. On-device behaviour is verified by the `native-appium` job below.
+  # NativeOriginAssets wiring compile. On-device behaviour (Appium + Playwright browser journeys) is
+  # verified LOCALLY before push — see scripts/run-e2e-local.sh and the pre-push hook (docs/native.md,
+  # CONTRIBUTING.md); the browser + on-device E2E no longer run in CI.
   native:
     # Pinned to macos-26 (not the moving macos-latest label) so the Microsoft.iOS workload lands on the
-    # matching Xcode SDK — same reason as native-ios-e2e.yml.
+    # matching Xcode SDK.
     runs-on: macos-26
     strategy:
       fail-fast: false
@@ -162,117 +155,11 @@ jobs:
         # RaskNativeHeads=true makes Rask.Native build its platform heads. Android does a full build.
         # For iOS we COMPILE-ONLY (Roslyn): the full app's native link needs the exact Xcode/iOS SDK the
         # Microsoft.iOS workload wants, which trails the GitHub runner's Xcode (MT0180). Compile-only still
-        # catches iOS head compile breaks; the full iOS build + on-device XCUITest run happens nightly in
-        # native-ios-e2e.yml (and locally; see docs/native.md).
+        # catches iOS head compile breaks; the full iOS build + the on-device Appium/XCUITest run happen
+        # LOCALLY before push (scripts/run-e2e-local.sh + pre-push hook; see docs/native.md).
         run: |
           if [[ "${{ matrix.tfm }}" == *-ios ]]; then
             dotnet build ${{ matrix.project }} -c Release -f ${{ matrix.tfm }} -p:RaskNativeHeads=true -p:ValidateXcodeVersion=false -p:MinVerSkip=true -t:Compile
           else
             dotnet build ${{ matrix.project }} -c Release -f ${{ matrix.tfm }} -p:RaskNativeHeads=true -p:MinVerSkip=true
           fi
-
-  # On-device native E2E: Appium drives the REAL Native + Local app (samples/Rask.Example.Native) on an
-  # Android emulator, switches into its WebView, and asserts the showcase rendered with its scoped CSS +
-  # Bootstrap (served through NativeOriginAssets) — the device-level replacement for the removed headless
-  # shim. Runs on Ubuntu + KVM (GitHub's reliable path for the Android emulator; the macOS runners time out
-  # booting it). -p:RaskNativeHeads=android builds ONLY the Android head, so the APK builds on Linux with no
-  # iOS workload. The iOS variant (XCUITest + simulator on macOS) runs nightly in native-ios-e2e.yml.
-  native-appium:
-    runs-on: ubuntu-latest
-    # A hung emulator teardown can otherwise stall the job for the 6h default; fail fast instead. Recent
-    # successful runs land at ~17 min (build + boot + Appium test), so 24 leaves headroom while cutting the
-    # wasted wall-clock when the emulator or its teardown wedges.
-    timeout-minutes: 24
-    # The emulator-runner runs each `script` line in a SEPARATE `sh -c`, so shell vars/exports don't
-    # persist across lines. Pass the test's env at the job/step level (process env) instead, so it reaches
-    # `dotnet test` — otherwise the test silently SKIPS (Skip.IfNot) and the job is a false pass.
-    env:
-      RASK_APPIUM_SERVER: http://127.0.0.1:4723
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          # Full history: MinVer must derive the real version. This job RUNS the built APK on-device, and
-          # Rask.Example.Native → Rask.Example.Shared loads a cross-assembly route type through the routes
-          # registry at startup — a MinVer fallback version (MinVerSkip / shallow) breaks that runtime load
-          # (same failure mode as the published Server host). The compile-only `native` job doesn't run the
-          # app, so it stays shallow.
-          fetch-depth: 0
-
-      - name: Enable KVM (hardware acceleration for the emulator)
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - uses: ./.github/actions/setup
-        with:
-          workloads: android
-
-      - name: Build the debug-signed x86_64 showcase APK
-        # Debug is signed with the debug keystore (installable) and its WebView is inspectable, so Appium can
-        # attach to the WEBVIEW context. android-x64 matches the Ubuntu x86_64 emulator; EmbedAssembliesIntoApk
-        # is required because a standalone `adb install` (what Appium does) otherwise launches without Fast
-        # Deployment's synced assemblies. RaskNativeHeads=android builds only Rask.Native's Android head.
-        run: >-
-          dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj
-          -c Debug -f net10.0-android -p:RaskNativeHeads=android
-          -p:RuntimeIdentifier=android-x64 -p:EmbedAssembliesIntoApk=true
-
-      - name: Resolve the built APK path for the test
-        # Publish the absolute APK path to the job env so it survives into the emulator-runner's script
-        # (which can't build up shell vars across its line-per-shell execution).
-        run: |
-          APK=$(find "$PWD/samples/Rask.Example.Native/bin/Debug/net10.0-android/android-x64" -name '*-Signed.apk' | head -1)
-          test -n "$APK" || { echo "No -Signed.apk found"; exit 1; }
-          echo "Resolved APK: $APK"
-          echo "RASK_APPIUM_ANDROID_APP=$APK" >> "$GITHUB_ENV"
-
-      - name: Run the Appium showcase E2E on the emulator
-        # The emulator-runner's own teardown (adb emu kill) hangs on recent emulator images (the gRPC
-        # "stop: Not implemented" quirk) AFTER the test has already passed — CONFIRMED unavoidable here: even
-        # hard-killing qemu + crashpad_handler below doesn't stop the action's teardown from hanging. So the
-        # job's verdict is decoupled from teardown: the test writes an "appium-passed" marker on success, this
-        # step is continue-on-error with its own timeout (so the hung teardown fails only the STEP, not the
-        # job), and the next step passes/fails purely on the marker. The timeout is the ceiling on wasted
-        # hang time: build+boot+test finishes in ~5 min, so 15 comfortably covers a cold boot while cutting
-        # the idle teardown tail (the previous 22 burned ~19 idle min after a green test).
-        id: appium-e2e
-        continue-on-error: true
-        timeout-minutes: 15
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          arch: x86_64
-          target: google_apis
-          disable-animations: true
-          # Each line runs in its own shell — keep independent commands only. RASK_APPIUM_SERVER (job env) and
-          # RASK_APPIUM_ANDROID_APP ($GITHUB_ENV from the previous step) reach `dotnet test` via the process
-          # environment, so no shell vars need to cross lines here.
-          script: |
-            test -n "$RASK_APPIUM_ANDROID_APP" || { echo "RASK_APPIUM_ANDROID_APP not in env — test would skip"; exit 1; }
-            npm install -g appium
-            appium driver install uiautomator2
-            appium --allow-insecure=uiautomator2:chromedriver_autodownload --log appium.log &
-            for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status && break || sleep 2; done
-            dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal" && touch "$GITHUB_WORKSPACE/appium-passed"
-            # Best-effort fast teardown so the action's hang-prone adb-emu-kill finds the emulator already gone.
-            # Kill by EXACT process name via killall — NOT `pkill -f qemu-system`, whose own `sh -c pkill …
-            # qemu-system` command line matches the pattern, so it kills its own shell (exit code null) and
-            # leaves the emulator alive. killall matches argv[0], never itself. crashpad_handler is the
-            # emulator's crash reporter; leaving it alive is what keeps the action hanging per upstream
-            # issues #385/#381, so kill it too.
-            killall -9 qemu-system-x86_64 crashpad_handler 2>/dev/null || true
-
-      - name: Assert the on-device Appium E2E passed
-        # The single source of truth for this job: the marker the test writes only when it passes. Immune to
-        # the emulator-runner teardown hang (which merely fails the continue-on-error step above).
-        run: |
-          test -f appium-passed || { echo "On-device Appium E2E did not pass (the test failed, or the emulator step timed out before the test ran)."; exit 1; }
-          echo "On-device Appium E2E passed."
-
-      - name: Upload Appium log on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: appium-log
-          path: appium.log

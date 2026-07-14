@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Pre-push gate: run the local browser-journey E2E suite before anything leaves the machine.
+#
+# The E2E suites (browser + on-device native) were moved OUT of CI — they run locally instead, and this
+# hook enforces the browser gate on push. Enable it once with:  git config core.hooksPath .githooks
+#
+# Bypass for docs-only or emergency pushes:  git push --no-verify   (or set RASK_SKIP_E2E=1)
+set -euo pipefail
+
+if [ "${RASK_SKIP_E2E:-}" = "1" ]; then
+  echo "pre-push: RASK_SKIP_E2E=1 set — skipping the local E2E gate."
+  exit 0
+fi
+
+root="$(git rev-parse --show-toplevel)"
+
+echo "pre-push: running the local E2E gate (browser journeys)."
+echo "          bypass with 'git push --no-verify' or RASK_SKIP_E2E=1 (e.g. docs-only pushes)."
+
+if ! "$root/scripts/run-e2e-local.sh"; then
+  echo "pre-push: E2E gate FAILED — push aborted. Fix the failing journey, or bypass with --no-verify." >&2
+  exit 1
+fi
