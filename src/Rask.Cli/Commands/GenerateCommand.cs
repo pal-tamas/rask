@@ -4,29 +4,30 @@ namespace Rask.Cli.Commands;
 
 /// <summary>
 /// <c>rask generate</c> — scaffold source into the current project. Locates the owning <c>.csproj</c>,
-/// derives the folder-based namespace, and writes an idiomatic file for the requested artifact
-/// (<c>page</c> or <c>component</c>), refusing to clobber an existing file unless <c>--force</c>.
+/// derives the folder-based namespace, and writes idiomatic files for the requested artifact
+/// (<c>page</c>, <c>component</c>, or a full CRUD <c>feature</c>), refusing to clobber an existing file
+/// unless <c>--force</c>.
 /// </summary>
 internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, string workingDirectory)
     : CliCommand(console)
 {
-    private static readonly string[] Kinds = ["page", "component"];
+    private static readonly string[] Kinds = ["page", "component", "feature"];
 
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly string _workingDirectory = workingDirectory;
 
     public override string Name => "generate";
 
-    public override string Summary => "Scaffold a page or component into the current project.";
+    public override string Summary => "Scaffold a page, component, or CRUD feature into the current project.";
 
     public override string Usage =>
-        "rask generate <page|component> <Name> [--route <path>] [--output <dir>] [--force] [--dry-run]";
+        "rask generate <page|component|feature> <Name> [--fields \"Name:type,...\"] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
 
     public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         if (args.Count == 0)
         {
-            Console.Error.WriteLine($"Specify what to generate: {string.Join(" or ", Kinds)}.");
+            Console.Error.WriteLine($"Specify what to generate: {string.Join(", ", Kinds)}.");
             Console.Error.WriteLine($"Usage: {Usage}");
             return Task.FromResult(1);
         }
@@ -41,6 +42,9 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         var schema = new ArgumentSchema()
             .Option("route", 'r')
             .Option("output", 'o')
+            .Option("fields", 'f')
+            .Option("context", 'c')
+            .Option("plural", 'p')
             .Flag("force")
             .Flag("dry-run");
 
@@ -64,16 +68,34 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         }
 
         var route = parsed.Option("route");
-        if (kind == "component" && route is not null)
+        if (route is not null)
         {
-            Console.Error.WriteLine("--route only applies to 'generate page'.");
+            if (kind != "page")
+            {
+                Console.Error.WriteLine("--route only applies to 'generate page'.");
+                return Task.FromResult(1);
+            }
+
+            if (!Identifiers.IsValidRoutePath(route))
+            {
+                Console.Error.WriteLine($"'{route}' is not a valid route path (no quotes, backslashes, or control characters).");
+                return Task.FromResult(1);
+            }
+        }
+
+        if (kind != "feature" && (parsed.Option("fields") is not null || parsed.Option("context") is not null || parsed.Option("plural") is not null))
+        {
+            Console.Error.WriteLine("--fields, --context, and --plural only apply to 'generate feature'.");
             return Task.FromResult(1);
         }
 
-        if (route is not null && !Identifiers.IsValidRoutePath(route))
+        foreach (var (option, value) in new[] { ("context", parsed.Option("context")), ("plural", parsed.Option("plural")) })
         {
-            Console.Error.WriteLine($"'{route}' is not a valid route path (no quotes, backslashes, or control characters).");
-            return Task.FromResult(1);
+            if (value is not null && !Identifiers.IsValidTypeName(value))
+            {
+                Console.Error.WriteLine($"'{value}' is not a valid C# type name for --{option}.");
+                return Task.FromResult(1);
+            }
         }
 
         var project = ProjectLocator.Locate(_fileSystem, _workingDirectory);
@@ -83,41 +105,111 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return Task.FromResult(1);
         }
 
-        var file = kind switch
+        if (!TryBuild(kind, name, project, parsed, out var result, out var buildError))
         {
-            "page" => PageGenerator.Generate(project, _workingDirectory, name, route, parsed.Option("output")),
-            _ => ComponentGenerator.Generate(project, _workingDirectory, name, parsed.Option("output")),
-        };
+            Console.Error.WriteLine(buildError);
+            return Task.FromResult(1);
+        }
 
-        return Task.FromResult(Write(file, parsed.HasFlag("force"), parsed.HasFlag("dry-run")));
+        return Task.FromResult(Write(result, parsed.HasFlag("force"), parsed.HasFlag("dry-run")));
     }
 
-    private int Write(ScaffoldFile file, bool force, bool dryRun)
+    private bool TryBuild(string kind, string name, ProjectContext project, ParsedArguments parsed, out ScaffoldResult result, out string? error)
     {
-        var display = Path.GetRelativePath(_workingDirectory, file.Path);
+        error = null;
 
-        if (_fileSystem.FileExists(file.Path) && !force)
+        switch (kind)
         {
-            Console.Error.WriteLine($"{display} already exists. Pass --force to overwrite.");
-            return 1;
+            case "page":
+                result = ScaffoldResult.Single(PageGenerator.Generate(project, _workingDirectory, name, parsed.Option("route"), parsed.Option("output")));
+                return true;
+
+            case "component":
+                result = ScaffoldResult.Single(ComponentGenerator.Generate(project, _workingDirectory, name, parsed.Option("output")));
+                return true;
+
+            default: // feature
+                var fieldsSpec = parsed.Option("fields");
+                if (string.IsNullOrWhiteSpace(fieldsSpec))
+                {
+                    result = null!;
+                    error = "'generate feature' needs --fields, e.g. --fields \"Name:string,Price:decimal\".";
+                    return false;
+                }
+
+                if (!FieldSpecParser.TryParse(fieldsSpec, out var fields, out var fieldError))
+                {
+                    result = null!;
+                    error = fieldError;
+                    return false;
+                }
+
+                var collision = fields.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (collision is not null)
+                {
+                    result = null!;
+                    error = $"Field '{collision.Name}' can't share the entity's name '{name}' (a member can't match its type).";
+                    return false;
+                }
+
+                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
+                return true;
+        }
+    }
+
+    private int Write(ScaffoldResult result, bool force, bool dryRun)
+    {
+        if (!force)
+        {
+            var existing = result.Files
+                .Where(f => _fileSystem.FileExists(f.Path))
+                .Select(f => Display(f.Path))
+                .ToArray();
+
+            if (existing.Length > 0)
+            {
+                Console.Error.WriteLine($"Refusing to overwrite existing file(s): {string.Join(", ", existing)}. Pass --force.");
+                return 1;
+            }
         }
 
         if (dryRun)
         {
-            Console.Out.WriteLine($"[dry-run] would write {display}:");
-            Console.Out.WriteLine();
-            Console.Out.WriteLine(file.Content);
+            foreach (var file in result.Files)
+            {
+                Console.Out.WriteLine($"[dry-run] would write {Display(file.Path)}:");
+                Console.Out.WriteLine();
+                Console.Out.WriteLine(file.Content);
+            }
+
+            WriteNotes(result.Notes);
             return 0;
         }
 
-        var directory = Path.GetDirectoryName(file.Path);
-        if (!string.IsNullOrEmpty(directory))
+        foreach (var file in result.Files)
         {
-            _fileSystem.CreateDirectory(directory);
+            var directory = Path.GetDirectoryName(file.Path);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                _fileSystem.CreateDirectory(directory);
+            }
+
+            _fileSystem.WriteAllText(file.Path, file.Content);
+            Console.Out.WriteLine($"Created {Display(file.Path)}");
         }
 
-        _fileSystem.WriteAllText(file.Path, file.Content);
-        Console.Out.WriteLine($"Created {display}");
+        WriteNotes(result.Notes);
         return 0;
     }
+
+    private void WriteNotes(string? notes)
+    {
+        if (!string.IsNullOrEmpty(notes))
+        {
+            Console.Out.WriteLine();
+            Console.Out.WriteLine(notes);
+        }
+    }
+
+    private string Display(string path) => Path.GetRelativePath(_workingDirectory, path);
 }

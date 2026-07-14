@@ -19,6 +19,15 @@ them until tagged releases begin.
   Removed the reusable `e2e.yml` and `native-ios-e2e.yml` workflows and the `native-appium` job.
 
 ### Added
+- **`rask generate feature` — scaffold a CRUD vertical slice.** `rask generate feature <Name>
+  --fields "Name:string,Price:decimal,InStock:bool"` writes a full slice under `Features/<Plural>/`:
+  a POCO entity (an auto `Id` + a property per field), a feature-local `DbContext` (or, with
+  `--context`, a reference to an existing one), and list / create / edit pages wired to EF Core through
+  `IDbContextFactory` — loading in the lifecycle, `AsNoTracking` reads, `ExecuteDeleteAsync`, and `Form<T>`
+  create/edit. Pages navigate with the type-safe generated `Routes.*()` URLs (so the output is clean under
+  RASK033), and the whole slice compiles as-is (verified by building it into the EF Core sample); a printed
+  next-steps note covers the one `AddDbContextFactory` registration and the `dotnet ef` migration. Field
+  types: `string`/`int`/`long`/`decimal`/`double`/`bool`/`DateTime`/`Guid` (plus aliases).
 - **`rask generate` — scaffold pages and components.** The `rask` CLI gains a `generate` command:
   `rask generate page <Name>` writes a routed page `Component` to `Features/<Name>/<Name>Page.cs`
   (`[Route]` + a `Head` title; `--route` for a custom path) and `rask generate component <Name>` writes
