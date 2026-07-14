@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
 
@@ -49,4 +50,45 @@ internal sealed class FakeProcessRunner : IProcessRunner
         _invocations.Enqueue(new ProcessInvocation(fileName, arguments.ToArray(), Captured: true));
         return Task.FromResult(CaptureResult);
     }
+}
+
+/// <summary>An in-memory <see cref="IFileSystem"/> for scaffolding tests — no disk access.</summary>
+internal sealed class FakeFileSystem : IFileSystem
+{
+    private readonly Dictionary<string, string> _files = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _directories = new(StringComparer.Ordinal);
+
+    /// <summary>Files written (via WriteAllText), keyed by normalized absolute path.</summary>
+    public IReadOnlyDictionary<string, string> Files => _files;
+
+    public void Seed(string path, string content = "")
+    {
+        var full = Normalize(path);
+        _files[full] = content;
+        _directories.Add(Normalize(Path.GetDirectoryName(path)!));
+    }
+
+    public bool FileExists(string path) => _files.ContainsKey(Normalize(path));
+
+    public IReadOnlyList<string> ListFiles(string directory, string searchPattern)
+    {
+        var dir = Normalize(directory);
+        var suffix = searchPattern.StartsWith('*') ? searchPattern[1..] : searchPattern;
+        return _files.Keys
+            .Where(f => string.Equals(Normalize(Path.GetDirectoryName(f)!), dir, StringComparison.Ordinal)
+                && f.EndsWith(suffix, StringComparison.Ordinal))
+            .ToArray();
+    }
+
+    public string ReadAllText(string path) => _files[Normalize(path)];
+
+    public void CreateDirectory(string path) => _directories.Add(Normalize(path));
+
+    public void WriteAllText(string path, string content)
+    {
+        _files[Normalize(path)] = content;
+        _directories.Add(Normalize(Path.GetDirectoryName(path)!));
+    }
+
+    private static string Normalize(string path) => Path.GetFullPath(path);
 }

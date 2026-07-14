@@ -5,7 +5,7 @@ public sealed class CliApplicationTests
     private static (StringConsole Console, CliApplication App) Build()
     {
         var console = new StringConsole();
-        return (console, CliApplication.CreateDefault(console, new FakeProcessRunner()));
+        return (console, CliApplication.CreateDefault(console, new FakeProcessRunner(), new FakeFileSystem()));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class CliApplicationTests
     {
         var console = new StringConsole();
         var runner = new FakeProcessRunner();
-        var app = CliApplication.CreateDefault(console, runner);
+        var app = CliApplication.CreateDefault(console, runner, new FakeFileSystem());
 
         var exit = await app.RunAsync(["new", "--help"], CancellationToken.None);
 
@@ -66,7 +66,7 @@ public sealed class CliApplicationTests
     {
         var console = new StringConsole();
         var runner = new FakeProcessRunner();
-        var app = CliApplication.CreateDefault(console, runner);
+        var app = CliApplication.CreateDefault(console, runner, new FakeFileSystem());
 
         // 'rask dev -- --help' must launch the app and forward --help, not print rask's help.
         var exit = await app.RunAsync(["dev", "--", "--help"], CancellationToken.None);

@@ -1,6 +1,7 @@
 using Rask.Cli;
+using Rask.Cli.Scaffolding;
 
-var app = CliApplication.CreateDefault(SystemConsole.Instance, new ProcessRunner());
+var app = CliApplication.CreateDefault(SystemConsole.Instance, new ProcessRunner(), new SystemFileSystem());
 
 using var cts = new CancellationTokenSource();
 
