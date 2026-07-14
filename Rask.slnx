@@ -34,6 +34,7 @@
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
         <Project Path="src/Rask.SQLite/Rask.SQLite.csproj"/>
         <Project Path="src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj"/>
+        <Project Path="src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj"/>
         <Project Path="src/Rask.Templates/Rask.Templates.csproj"/>
         <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj"/>
         <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj"/>
@@ -61,6 +62,7 @@
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Tests/Rask.SQLite.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Litestream.Tests/Rask.SQLite.Litestream.Tests.csproj"/>
+        <Project Path="tests/Rask.SQLite.Snapshots.Tests/Rask.SQLite.Snapshots.Tests.csproj"/>
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj"/>
         <Project Path="tests/Rask.Validation.DataAnnotations.Tests/Rask.Validation.DataAnnotations.Tests.csproj"/>
         <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj"/>

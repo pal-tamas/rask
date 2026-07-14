@@ -44,6 +44,15 @@ them until tagged releases begin.
   backup process exits or crashes it is restarted with capped exponential backoff (`RestartDelay`); a
   failure is logged at Critical and never crashes the app. Depends only on the Microsoft.Extensions
   hosting/DI abstractions and CliWrap. See [docs/sqlite.md](docs/sqlite.md#continuous-backup-with-litestream).
+- **`Rask.SQLite.Snapshots` — scheduled consistent backups, no external binary.** A companion opt-in
+  package that takes point-in-time file snapshots of a live SQLite database on a schedule using SQLite's
+  Online Backup API (never an unsafe file copy), keeps the newest N, and writes them to a directory — or
+  a pluggable `ISqliteSnapshotStore` for object storage. `AddRaskSqliteSnapshots(…)` runs a hosted
+  service on an interval (with optional snapshot-on-startup); inject `ISqliteSnapshotter` to snapshot on
+  demand (e.g. before a migration). Pure `Microsoft.Data.Sqlite` — works on minimal/distroless and
+  Alpine images — plus the Microsoft.Extensions hosting/DI abstractions. Complements
+  `Rask.SQLite.Litestream` (streaming) or stands alone. See
+  [docs/sqlite.md](docs/sqlite.md#scheduled-snapshots).
 
 ## [0.16.0] - 2026-07-14
 
