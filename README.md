@@ -154,6 +154,7 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)               | `services.AddRaskCqrs()` + inject `IDispatcher`             |
 | `Rask.SQLite`                      | any server-side .NET app using SQLite                              | `o.UseRaskSqlite(cs)` (EF Core) or `services.AddRaskSqlite(cs)` |
 | `Rask.SQLite.Litestream`           | server-side SQLite app wanting managed backup                      | `services.AddRaskSqliteLitestream(...)` + `RestoreSqliteFromLitestreamAsync()` |
+| `Rask.SQLite.Snapshots`            | server-side SQLite app wanting scheduled backups                   | `services.AddRaskSqliteSnapshots(...)` (or inject `ISqliteSnapshotter`)       |
 | `Rask.Testing`                     | your `*.Tests` project (references your app)                       | `RaskTest.Render(new MyComponent())` → assert on `.Html`    |
 
 </details>
