@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Core.Authentication;
 using Rask.Cqrs;
 using Rask.Example.Shared.Features;
@@ -47,6 +48,12 @@ public static class ExampleServiceCollectionExtensions
         // decorator hook in action.
         services.AddScoped<CqrsCounterStore>();
         services.AddRaskCqrs(o => o.AddOpenBehavior(typeof(DispatchLogBehavior<,>)));
+
+        // The Todos screen's persistence seam. Transient — a fresh seeded in-memory store per page, so
+        // the Server/WASM showcase keeps its original transient behaviour. The native app registers a
+        // SQLite-backed ITodoStore on its own host (last registration wins), making the same tab durable
+        // on-device. See samples/Rask.Example.Native.
+        services.TryAddTransient<ITodoStore, InMemoryTodoStore>();
         return services;
     }
 }

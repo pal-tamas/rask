@@ -71,6 +71,9 @@
     <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
     <!-- The shared example App + demo services (also flows Rask.Client / Rask.Core). -->
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+    <!-- On-device SQLite for the Todos screen (raw Microsoft.Data.Sqlite path — reflection-free/AOT-safe;
+         brings the native e_sqlite3 for ios/android via SQLitePCLRaw). -->
+    <ProjectReference Include="..\..\src\Rask.SQLite\Rask.SQLite.csproj"/>
   </ItemGroup>
 
   <!-- Each platform head compiles only for its own TFM. -->

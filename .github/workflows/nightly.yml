@@ -142,6 +142,10 @@ jobs:
           dotnet pack src/Rask.Bootstrap/Rask.Bootstrap.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.SQLite/Rask.SQLite.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj -c Release -o ./artifacts
 
       - name: Download Rask.Native package (macOS-built, with heads)
         uses: actions/download-artifact@v7
