@@ -39,12 +39,14 @@ internal static class FeatureGenerator
             ("__CREATEARGS__", RequestArgs(fields, "command.Request")),
             ("__HEADERS__", TableHeaders(fields)), ("__CELLS__", TableCells(fields)),
             ("__FORMFIELDS__", FormFields(fields)), ("__COPYTOFORM__", CopyToForm(fields)),
+            ("__CONFIGPROPS__", ConfigProperties(fields)),
         };
 
         var files = new List<ScaffoldFile>
         {
             new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType)),
             new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields)),
+            new(Path.Combine(targetDirectory, entityName + "Configuration.cs"), Apply(ConfigurationTemplate, tokens)),
             new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(ListPageTemplate, tokens)),
             new(Path.Combine(targetDirectory, "Delete" + entityName + ".cs"), Apply(DeleteTemplate, tokens)),
             new(Path.Combine(targetDirectory, "Create" + entityName + ".cs"), Apply(CreateTemplate, tokens)),
@@ -64,11 +66,6 @@ internal static class FeatureGenerator
     internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType)
     {
         var sb = new StringBuilder();
-        if (fields.Any(f => f.IsString))
-        {
-            sb.Append("using System.ComponentModel.DataAnnotations;\n\n");
-        }
-
         sb.Append("namespace ").Append(ns).Append(";\n\n");
         sb.Append("public sealed class ").Append(entity).Append("\n{\n");
         sb.Append("    private ").Append(entity).Append("() { } // EF Core materialization\n\n");
@@ -79,18 +76,7 @@ internal static class FeatureGenerator
 
         foreach (var field in fields)
         {
-            sb.Append('\n');
-            if (field.IsString)
-            {
-                if (!field.IsNullable)
-                {
-                    sb.Append("    [Required]\n");
-                }
-
-                sb.Append("    [MaxLength(").Append(field.MaxLength!.Value.ToString(CultureInfo.InvariantCulture)).Append(")]\n");
-            }
-
-            sb.Append("    public ").Append(field.PropertyType).Append(' ').Append(field.Name).Append(" { get; private set; }");
+            sb.Append("\n    public ").Append(field.PropertyType).Append(' ').Append(field.Name).Append(" { get; private set; }");
             if (field.Initializer is not null)
             {
                 sb.Append(' ').Append(field.Initializer).Append(';');
@@ -175,6 +161,14 @@ internal static class FeatureGenerator
     private static string CopyToForm(IReadOnlyList<FieldSpec> fields) =>
         string.Join("\n", fields.Select(f => $"                _form.{f.Name} = entity.{f.Name};"));
 
+    // The EF Core mapping for each string column (length + required); other types need no configuration.
+    private static string ConfigProperties(IReadOnlyList<FieldSpec> fields) =>
+        string.Join("\n", fields.Where(f => f.IsString).Select(f =>
+        {
+            var required = f.IsNullable ? "" : ".IsRequired()";
+            return $"        entity.Property(x => x.{f.Name}){required}.HasMaxLength({f.MaxLength!.Value.ToString(CultureInfo.InvariantCulture)});";
+        }));
+
     private static string FormFields(IReadOnlyList<FieldSpec> fields)
     {
         var sb = new StringBuilder();
@@ -216,7 +210,8 @@ internal static class FeatureGenerator
         }
         else
         {
-            steps.Append("       // add the entity to your ").Append(context).Append(": public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();\n");
+            steps.Append("       // in your ").Append(context).Append(": add `public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();`\n");
+            steps.Append("       // and apply the config: modelBuilder.ApplyConfigurationsFromAssembly(typeof(").Append(entity).Append("Configuration).Assembly);\n");
         }
 
         steps.Append("  3. Create the schema (EF Core migrations):\n");
@@ -246,6 +241,28 @@ internal static class FeatureGenerator
         public sealed class __CONTEXT__(DbContextOptions<__CONTEXT__> options) : DbContext(options)
         {
             public DbSet<__ENTITY__> __PLURAL__ => Set<__ENTITY__>();
+
+            protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+                modelBuilder.ApplyConfigurationsFromAssembly(typeof(__CONTEXT__).Assembly);
+        }
+
+        """;
+
+    private const string ConfigurationTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+        namespace __NS__;
+
+        // The EF Core mapping for __ENTITY__ (keeps the domain model free of persistence attributes).
+        public sealed class __ENTITY__Configuration : IEntityTypeConfiguration<__ENTITY__>
+        {
+            public void Configure(EntityTypeBuilder<__ENTITY__> entity)
+            {
+                entity.HasKey(x => x.Id);
+        __CONFIGPROPS__
+            }
         }
 
         """;

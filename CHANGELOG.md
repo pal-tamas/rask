@@ -7,6 +7,12 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`rask generate feature` now emits an EF Core `IEntityTypeConfiguration`.** Each feature gets a
+  `<Entity>Configuration : IEntityTypeConfiguration<<Entity>>` (`HasKey` + `IsRequired()`/`HasMaxLength()`
+  per string field), applied via `ApplyConfigurationsFromAssembly` in the generated `DbContext`. The
+  schema now lives in the configuration, so the entity is a clean, attribute-free domain model.
+
 ### Changed
 - **Git hooks auto-enable on first build.** A `Directory.Build.targets` target points git at `.githooks/`
   (`core.hooksPath`) on the first local `dotnet build`, so a fresh clone gets the `commit-msg` /

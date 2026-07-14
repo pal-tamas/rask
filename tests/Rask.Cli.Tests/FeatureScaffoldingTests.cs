@@ -130,8 +130,8 @@ public sealed class FeatureGeneratorTests
 
         Assert.Equal(
             [
-                "CreateProduct.cs", "DeleteProduct.cs", "Product.cs", "ProductRequest.cs",
-                "ProductsDbContext.cs", "ProductsPage.cs", "UpdateProduct.cs",
+                "CreateProduct.cs", "DeleteProduct.cs", "Product.cs", "ProductConfiguration.cs",
+                "ProductRequest.cs", "ProductsDbContext.cs", "ProductsPage.cs", "UpdateProduct.cs",
             ],
             names);
     }
@@ -154,8 +154,19 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("public static Product Create(string name, decimal price)", entity, StringComparison.Ordinal);
         Assert.Contains("public void Update(string name, decimal price)", entity, StringComparison.Ordinal);
         Assert.Contains("public string Name { get; private set; } = \"\";", entity, StringComparison.Ordinal);
-        Assert.Contains("[MaxLength(200)]", entity, StringComparison.Ordinal);
         Assert.DoesNotContain("{ get; set; }", entity, StringComparison.Ordinal); // all encapsulated
+        Assert.DoesNotContain("DataAnnotations", entity, StringComparison.Ordinal); // schema lives in the EF config
+    }
+
+    [Fact]
+    public void Generates_an_ef_configuration_that_maps_the_schema()
+    {
+        var config = File(Generate(), "ProductConfiguration.cs");
+
+        Assert.Contains("public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>", config, StringComparison.Ordinal);
+        Assert.Contains("entity.HasKey(x => x.Id);", config, StringComparison.Ordinal);
+        Assert.Contains("entity.Property(x => x.Name).IsRequired().HasMaxLength(200);", config, StringComparison.Ordinal);
+        Assert.Contains("ApplyConfigurationsFromAssembly", File(Generate(), "ProductsDbContext.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
