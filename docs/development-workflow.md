@@ -50,9 +50,13 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 - `ci.yml` — the deterministic benchmark byte-gates and a native compile gate (both native samples ×
   android/ios). **Tests do not run in CI** — the unit/integration suite and the E2E suites run locally
   (see below).
-- **Unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the solution and
-  runs every test except the browser E2E. The `.githooks/pre-commit` hook runs `dotnet format
-  --verify-no-changes` then that script whenever a commit stages code (enable hooks with
+- **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
+  solution once, runs `dotnet format whitespace --verify-no-changes`, then every test except the browser
+  E2E. (Whitespace pass, not full `dotnet format`: full format's style/analyzer passes recompile the
+  `Routes.*` source generator through their own workspace and spuriously flag CS1503 in the routing tests;
+  the whitespace pass is compile-independent and reliable. The warnings-as-errors build already enforces
+  error-severity analyzer rules — run full `dotnet format Rask.slnx` before a PR for the style pass.) The
+  `.githooks/pre-commit` hook runs it whenever a commit stages code (enable hooks with
   `git config core.hooksPath .githooks`; bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`).
 - **E2E runs locally, enforced before push.** The browser-journey E2E
   (`tests/Rask.Examples.E2E.Tests`, Playwright) and the on-device native E2E

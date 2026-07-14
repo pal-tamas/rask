@@ -21,17 +21,12 @@ if ! git diff --cached --name-only | grep -qE '^(src/|tests/|benchmarks/|Rask\.s
 fi
 
 root="$(git rev-parse --show-toplevel)"
-cd "$root"
 
-echo "pre-commit: checking formatting (dotnet format --verify-no-changes)."
-echo "            bypass with 'git commit --no-verify' or RASK_SKIP_UNIT=1."
-if ! dotnet format Rask.slnx --verify-no-changes; then
-  echo "pre-commit: formatting check FAILED — run 'dotnet format Rask.slnx', restage, and commit again." >&2
-  exit 1
-fi
-
-echo "pre-commit: running the local unit gate (staged code changes detected)."
+echo "pre-commit: running the local format + unit gate (staged code changes detected)."
+echo "            build -> dotnet format whitespace --verify-no-changes -> tests. bypass with"
+echo "            'git commit --no-verify' or RASK_SKIP_UNIT=1."
 if ! "$root/scripts/run-unit-local.sh"; then
-  echo "pre-commit: unit gate FAILED — commit aborted. Fix the tests, or bypass with --no-verify." >&2
+  echo "pre-commit: format + unit gate FAILED — commit aborted. Fix it (e.g. 'dotnet format whitespace" >&2
+  echo "            Rask.slnx' then restage), or bypass with --no-verify." >&2
   exit 1
 fi
