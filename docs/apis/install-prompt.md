@@ -8,9 +8,9 @@
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜
 - **Native backend:** — (WebView JS)
 
-Needs activation + live document → WASM-only; Server gesture bridge planned (PWA-gated).
+Needs transient activation + a boot-captured event, so the imperative `IInstallPrompt` service is WASM-only. On the **Server** host, use the declarative **`InstallTrigger`** component — its click shows the browser's install prompt inside the gesture and posts the outcome (`"accepted"` / `"dismissed"` / `"unavailable"`) to `OnOutcome`. The app must be installable (a web manifest + service worker over HTTPS — on Server that means `AddRaskPwa`), otherwise the outcome is `"unavailable"`.
 
-> 🟡 On the Server host this is reachable declaratively via the planned gesture bridge, not as an injected service.
+> 🟡 On the Server host, reachable declaratively via `InstallTrigger` (a click-gesture component), not as an injected service.
 
 ## See also
 

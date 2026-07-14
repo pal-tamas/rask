@@ -1344,6 +1344,20 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#io-status")).ToContainTextAsync("out of view", contains);
         await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
         await Expect(Page.Locator("#io-status")).ToContainTextAsync("in view", contains);
+
+        // Gesture bridge (GestureBridgeDemo) — the declarative triggers stamp a data-rask-gesture attribute
+        // that runs an activation-gated API inside the click, so they work on this Server host too. The
+        // gestures themselves need a real display / permission and can't fire headlessly (same ceiling as
+        // fullscreen/eyedropper), so assert the wiring is present, not the effect.
+        var gestureAttr = new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 };
+        await Expect(Page.Locator("#orientation-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("orientation\\.lock"), gestureAttr);
+        await Expect(Page.Locator("#install-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("install\\.prompt"), gestureAttr);
+        await Expect(Page.Locator("#camera-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("media\\.start"), gestureAttr);
+        await Expect(Page.Locator("#pip-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("pip\\.request"), gestureAttr);
     }
 
     protected async Task TestInSessionNotFoundAsync()

@@ -15,6 +15,7 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(GeolocationPosition))]
 [JsonSerializable(typeof(ShareData))]
 [JsonSerializable(typeof(Rask.Core.Components.GesturePayload))]
+[JsonSerializable(typeof(Rask.Core.Components.GestureMediaConstraints))]
 [JsonSerializable(typeof(PushSubscription))]
 [JsonSerializable(typeof(NotificationOptions))]
 [JsonSerializable(typeof(NetworkReading))]
