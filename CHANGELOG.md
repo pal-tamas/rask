@@ -16,7 +16,11 @@ them until tagged releases begin.
   the built-in, dependency-free default validation. Each feature also gets a
   `<Entity>Configuration : IEntityTypeConfiguration<<Entity>>` (`HasKey` + per-string mapping), applied via
   `ApplyConfigurationsFromAssembly` in the generated `DbContext`, so the domain model stays free of
-  persistence attributes.
+  persistence attributes. `--validation dataannotations` or `--validation fluent` opt out of value objects
+  in favour of a plain POCO entity validated by that library — `[Required]`/`[MaxLength]` on the request +
+  a `DataAnnotationsValidator()`, or a generated `<Entity>RequestValidator : AbstractValidator<…>` +
+  `FluentValidationValidator(…)` — wired into the create/edit forms (the respective `Rask.Validation.*`
+  package is added to the printed next-steps).
 
 ### Changed
 - **Git hooks auto-enable on first build.** A `Directory.Build.targets` target points git at `.githooks/`

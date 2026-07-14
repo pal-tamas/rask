@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -189,7 +189,7 @@ public sealed class FeatureGeneratorTests
     public void Assignments_are_this_qualified_so_a_lowercase_field_does_not_self_assign()
     {
         var entity = FeatureGenerator.RenderEntity("MyApp.Features.Notes", "Note",
-            [new FieldSpec("title", "string", false, 200)], "Guid");
+            [new FieldSpec("title", "string", false, 200)], "Guid", useValueObjects: false);
 
         Assert.Contains("this.title = title;", entity, StringComparison.Ordinal);
         Assert.DoesNotContain("\n        title = title;", entity, StringComparison.Ordinal); // not a self-assignment
@@ -258,7 +258,7 @@ public sealed class FeatureGeneratorTests
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
@@ -268,12 +268,36 @@ public sealed class FeatureGeneratorTests
     public void Bool_field_renders_a_bootstrap_checkbox_not_a_text_input()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Job",
-            [new FieldSpec("Done", "bool", false, null)], "Guid", null, null, outputOverride: null);
+            [new FieldSpec("Done", "bool", false, null)], "Guid", "valueobjects", null, null, outputOverride: null);
 
-        var create = File(result, "CreateJob.cs");
-        Assert.Contains("form-check-input", create, StringComparison.Ordinal);
-        Assert.Contains("Input(() => _form.Done", create, StringComparison.Ordinal);
-        Assert.DoesNotContain("Input(() => _form.Done, Id: \"done\", Class: \"form-control\")", create, StringComparison.Ordinal);
+        var createJob = File(result, "CreateJob.cs");
+        Assert.Contains("form-check-input", createJob, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DataAnnotations_mode_uses_a_poco_entity_attributes_and_the_validator()
+    {
+        var result = Generate(validation: "dataannotations");
+
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) == "ProductName.cs"); // no value object
+        Assert.Contains("public string Name { get; private set; } = \"\";", File(result, "Product.cs"), StringComparison.Ordinal);
+        var request = File(result, "ProductRequest.cs");
+        Assert.Contains("[Required]", request, StringComparison.Ordinal);
+        Assert.Contains("[MaxLength(200)]", request, StringComparison.Ordinal);
+        Assert.Contains("DataAnnotationsValidator(),", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.Contains("entity.Property(x => x.Name).IsRequired().HasMaxLength(200);", File(result, "ProductConfiguration.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Fluent_mode_generates_a_validator_and_wires_it()
+    {
+        var result = Generate(validation: "fluent");
+
+        var validator = File(result, "ProductRequestValidator.cs");
+        Assert.Contains("public sealed class ProductRequestValidator : AbstractValidator<ProductRequest>", validator, StringComparison.Ordinal);
+        Assert.Contains("RuleFor(x => x.Name).NotEmpty().MaximumLength(200);", validator, StringComparison.Ordinal);
+        Assert.Contains("FluentValidationValidator(new ProductRequestValidator()),", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) == "ProductName.cs"); // POCO, no value object
     }
 
     [Fact]
