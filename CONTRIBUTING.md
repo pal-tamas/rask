@@ -75,8 +75,17 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
 - **[Conventional Commits](https://www.conventionalcommits.org/)** are required and enforced by
   CI (`commitlint`): `type(scope): subject` with type ∈
   `feat, fix, perf, refactor, docs, test, build, ci, chore, revert`. Enable the local guards with
-  `git config core.hooksPath .githooks` — this installs the `commit-msg` (Conventional Commits) hook
-  **and** the `pre-push` hook that runs the local E2E gate (see below).
+  `git config core.hooksPath .githooks` — this installs the `commit-msg` (Conventional Commits) hook, the
+  `pre-commit` hook that runs the local **unit** gate, and the `pre-push` hook that runs the local **E2E**
+  gate (see below).
+- **Tests run locally, not in CI.** The unit/integration suite and both E2E suites were moved out of the
+  CI pipeline; CI keeps only the deterministic benchmark byte-gates, the native compile gate, commitlint,
+  and CodeQL.
+- **Format + unit tests — `pre-commit`.** The `pre-commit` hook runs `dotnet format --verify-no-changes`
+  and then `scripts/run-unit-local.sh` (build + every test except the browser E2E) when a commit stages
+  code (`src/`, `tests/`, `benchmarks/`, `Rask.slnx`, `Directory.*`); docs-only commits skip it. If the
+  format check fails, run `dotnet format Rask.slnx` and restage. Bypass with `git commit --no-verify` or
+  `RASK_SKIP_UNIT=1`.
 - **E2E runs locally, not in CI.** The browser-journey E2E (`tests/Rask.Examples.E2E.Tests`, Playwright)
   and the on-device native E2E (`tests/Rask.Native.Appium.Tests`, Appium) are not part of the CI
   pipeline. Run the browser gate with `scripts/run-e2e-local.sh` (the `pre-push` hook runs it for you on

@@ -18,24 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  unit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7   # shallow: this job packs nothing
-      - uses: ./.github/actions/setup
-        with:
-          workloads: wasm-tools
-      - name: Restore
-        run: dotnet restore Rask.slnx
-      - name: Build (no WASM bundle)
-        # -p:RaskWasm=false skips the nested WASM publish, so no Rask.Core.dll copy race (no -m:1).
-        # MinVerSkip avoids the history scan the shallow checkout can't satisfy (packs nothing).
-        run: dotnet build Rask.slnx -c Release --no-restore -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true
-      - name: Unit & integration tests
-        run: >-
-          dotnet test Rask.slnx -c Release --no-build
-          --filter "FullyQualifiedName!~Rask.Examples.E2E"
-
   # Prove the opt-in full WASM AOT publish (-p:RaskWasmAot=true) stays clean end-to-end. The
   # Emscripten relink is slow, so it runs nightly only — per-PR AOT-safety is enforced by the trim +
   # AOT Roslyn analysers (IsAotCompatible / EnableAotAnalyzer) that run on every build. The build
@@ -82,7 +64,7 @@ jobs:
   # Rask.Native ships iOS/Android platform heads, so its prerelease package is built + packed on macOS
   # with the mobile workloads (-p:RaskNativeHeads=true) and handed to publish-nightly as an artifact.
   pack-native-nightly:
-    needs: [unit, aot-publish]
+    needs: [aot-publish]
     # Pinned to macos-26 (not the moving macos-latest label) so the Microsoft.iOS workload lands on the
     # matching Xcode SDK.
     runs-on: macos-26
@@ -107,7 +89,7 @@ jobs:
           path: ./artifacts/Rask.Native.*.*nupkg
 
   publish-nightly:
-    needs: [unit, aot-publish, pack-native-nightly]
+    needs: [aot-publish, pack-native-nightly]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
