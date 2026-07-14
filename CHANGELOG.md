@@ -19,6 +19,13 @@ them until tagged releases begin.
   Removed the reusable `e2e.yml` and `native-ios-e2e.yml` workflows and the `native-appium` job.
 
 ### Added
+- **`rask generate` — scaffold pages and components.** The `rask` CLI gains a `generate` command:
+  `rask generate page <Name>` writes a routed page `Component` to `Features/<Name>/<Name>Page.cs`
+  (`[Route]` + a `Head` title; `--route` for a custom path) and `rask generate component <Name>` writes
+  a plain `Component` to `Components/<Name>.cs`. It finds the owning `.csproj` by walking up from the
+  working directory, derives the file's namespace from its folder (the C# convention), refuses to
+  overwrite an existing file without `--force`, and supports `--output` and `--dry-run`. The generated
+  code compiles as-is in any `dotnet new rask-*` project. A `generate feature` CRUD slice is next.
 - **`Rask.Cli` — the `rask` command-line tool.** A new opt-in .NET tool
   (`dotnet tool install -g Rask.Cli`) that gives Rask a short, task-focused CLI over the .NET SDK.
   `rask new <name>` scaffolds a project — it maps a friendly `--template` (`server` (default) / `wasm` /
