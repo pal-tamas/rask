@@ -77,6 +77,18 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public async Task Command_alias_g_resolves_to_generate()
+    {
+        var (console, app) = Build();
+
+        // `rask g` with no artifact reaches GenerateCommand, which asks what to generate.
+        var exit = await app.RunAsync(["g"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Specify what to generate", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Unknown_command_fails_with_usage()
     {
         var (console, app) = Build();

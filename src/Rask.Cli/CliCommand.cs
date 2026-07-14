@@ -13,6 +13,9 @@ internal abstract class CliCommand(IConsole console)
     /// <summary>The verb the user types, e.g. <c>new</c>.</summary>
     public abstract string Name { get; }
 
+    /// <summary>Short aliases that also resolve to this command, e.g. <c>g</c> for <c>generate</c>.</summary>
+    public virtual IReadOnlyList<string> Aliases => [];
+
     /// <summary>A one-line description shown in the top-level help.</summary>
     public abstract string Summary { get; }
 

@@ -89,7 +89,7 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string,Price:decimal"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        foreach (var file in new[] { "Product.cs", "ProductsDbContext.cs", "ProductsPage.cs", "CreateProductPage.cs", "EditProductPage.cs" })
+        foreach (var file in new[] { "Product.cs", "ProductRequest.cs", "ProductsDbContext.cs", "ProductsPage.cs", "CreateProduct.cs", "UpdateProduct.cs", "DeleteProduct.cs" })
         {
             Assert.Contains(fs.Files, f => f.Key.EndsWith(file, StringComparison.Ordinal));
         }
@@ -175,6 +175,41 @@ public sealed class GenerateCommandTests
 
         Assert.Equal(1, exit);
         Assert.Contains("only apply to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Kind_aliases_f_and_c_resolve()
+    {
+        var (_, fs, command) = Build();
+
+        Assert.Equal(0, await command.ExecuteAsync(["f", "Product", "--fields", "Name:string"], CancellationToken.None));
+        Assert.Contains(fs.Files, file => file.Key.EndsWith("CreateProduct.cs", StringComparison.Ordinal));
+
+        Assert.Equal(0, await command.ExecuteAsync(["c", "Widget"], CancellationToken.None));
+        Assert.Contains(fs.Files, file => file.Key.EndsWith("Widget.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Id_type_int_is_honored()
+    {
+        var (_, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--id", "int"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var entity = fs.Files.Single(f => Path.GetFileName(f.Key) == "Product.cs").Value;
+        Assert.Contains("public int Id { get; private set; }", entity, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Invalid_id_type_is_rejected()
+    {
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--id", "ulid"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("--id must be", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]

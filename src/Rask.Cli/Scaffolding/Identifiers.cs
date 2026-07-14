@@ -46,6 +46,18 @@ internal static class Identifiers
         return !ReservedKeywords.Contains(value);
     }
 
+    /// <summary>A camelCase parameter name for a PascalCase field, <c>@</c>-escaped if it lands on a keyword.</summary>
+    public static string ToCamelCase(string name)
+    {
+        if (name.Length == 0)
+        {
+            return name;
+        }
+
+        var camel = char.ToLowerInvariant(name[0]) + name[1..];
+        return ReservedKeywords.Contains(camel) ? "@" + camel : camel;
+    }
+
     /// <summary>
     /// True if <paramref name="route"/> is safe to embed in a <c>[Route("…")]</c> attribute — no quote,
     /// backslash, or control character that would break the string literal.
