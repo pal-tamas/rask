@@ -29,30 +29,45 @@ public sealed class NativeShowcaseApp(RouteState route) : App
     private static readonly string[] Filters = ["All", "Active", "Done"];
     private static readonly string?[] Badges = ["2", "1", "1"]; // matches the two seed todos (1 active, 1 done)
     private int _filter;
+    private bool _todosRead; // toggled from the overflow menu — hides the Todos badge
 
     private bool OnTodos => route.Path.StartsWith("/todos", StringComparison.OrdinalIgnoreCase);
 
-    protected override Component? Render() =>
-    [
-        // On Todos, the header shows the segmented filter in place of the title; elsewhere, the plain brand title.
-        OnTodos
-            ? NativeHeaderBar(
-                Background: Brand, Tint: OnBrand, TitleColor: OnBrand,
-                Segments: Filters, SelectedSegment: _filter, OnSegmentChanged: i => _filter = i)
-            : NativeHeaderBar(Title: "Rask", Background: Brand, Tint: OnBrand, TitleColor: OnBrand),
-        NativeWebView()[base.Render()],
-        NativeTabBar(
-            // Selected tab picks up the brand accent; the rest stay muted (adaptive so dark mode reads well).
-            Tint: Brand,
-            UnselectedTint: NativeColor.Adaptive(NativeColor.Hex("#6B7280"), NativeColor.Hex("#9CA3AF")),
-            Tabs:
-            [
-                // Guides is the site root ("/") now that the Welcome landing page is gone.
-                NativeTab(Title: "Guides", Icon: NativeIcon.Home, To: AppRoutes.GuidesIndexPage()),
-                // The badge tracks the segmented filter on Todos (a static "2" elsewhere) — bind Badge to state.
-                NativeTab(Title: "Todos", Icon: NativeIcon.Custom("checklist", "ic_todo"),
-                    To: AppRoutes.TodosPage(), Badge: OnTodos ? Badges[_filter] : "2"),
-            ])
-        // Selected is omitted — the framework highlights the tab matching the current route.
-    ];
+    protected override Component? Render()
+    {
+        // An overflow menu of secondary actions (shown on every page's header). Selecting an entry re-renders,
+        // demonstrating a native pull-down menu (iOS UIMenu / Android PopupMenu) driving native state.
+        var overflow = NativeMenuButton(Items:
+        [
+            NativeMenuItem(Title: "Mark Todos read", Icon: NativeIcon.List, OnClick: () => _todosRead = true),
+            NativeMenuItem(Title: "Mark Todos unread", Icon: NativeIcon.Star, OnClick: () => _todosRead = false),
+        ]);
+
+        return
+        [
+            // On Todos, the header shows the segmented filter in place of the title; elsewhere, the brand title.
+            // Both carry the overflow menu as a trailing item.
+            OnTodos
+                ? NativeHeaderBar(
+                    Background: Brand, Tint: OnBrand, TitleColor: OnBrand,
+                    Segments: Filters, SelectedSegment: _filter, OnSegmentChanged: i => _filter = i,
+                    Trailing: [overflow])
+                : NativeHeaderBar(Title: "Rask", Background: Brand, Tint: OnBrand, TitleColor: OnBrand,
+                    Trailing: [overflow]),
+            NativeWebView()[base.Render()],
+            NativeTabBar(
+                // Selected tab picks up the brand accent; the rest stay muted (adaptive so dark mode reads well).
+                Tint: Brand,
+                UnselectedTint: NativeColor.Adaptive(NativeColor.Hex("#6B7280"), NativeColor.Hex("#9CA3AF")),
+                Tabs:
+                [
+                    // Guides is the site root ("/") now that the Welcome landing page is gone.
+                    NativeTab(Title: "Guides", Icon: NativeIcon.Home, To: AppRoutes.GuidesIndexPage()),
+                    // The badge tracks the segmented filter on Todos, and the overflow menu can clear it.
+                    NativeTab(Title: "Todos", Icon: NativeIcon.Custom("checklist", "ic_todo"),
+                        To: AppRoutes.TodosPage(), Badge: _todosRead ? null : OnTodos ? Badges[_filter] : "2"),
+                ])
+            // Selected is omitted — the framework highlights the tab matching the current route.
+        ];
+    }
 }

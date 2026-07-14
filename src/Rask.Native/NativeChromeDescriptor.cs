@@ -54,15 +54,30 @@ internal sealed class NativeFooterDescriptor
 
 internal sealed class NativeBarItemDescriptor
 {
-    /// <summary><c>"button"</c> or <c>"back"</c>.</summary>
+    /// <summary><c>"button"</c>, <c>"back"</c>, or <c>"menu"</c> (an overflow pull-down).</summary>
     public string Kind { get; set; } = "button";
 
-    /// <summary>The tap id echoed back in a <c>nativeTap</c> event; null for a display-only / back item.</summary>
+    /// <summary>The tap id echoed back in a <c>nativeTap</c> event; null for a display-only / back / menu item.</summary>
     public string? Id { get; set; }
 
     public string? IosIcon { get; set; }
     public string? AndroidIcon { get; set; }
     public string? Title { get; set; }
+
+    /// <summary>The menu entries for a <c>"menu"</c> item; null otherwise.</summary>
+    public List<NativeMenuItemDescriptor>? Menu { get; set; }
+}
+
+internal sealed class NativeMenuItemDescriptor
+{
+    public string? Title { get; set; }
+    public string? IosIcon { get; set; }
+    public string? AndroidIcon { get; set; }
+
+    /// <summary>The tap id echoed back when this entry is selected; null for a display-only entry.</summary>
+    public string? Id { get; set; }
+
+    public bool Destructive { get; set; }
 }
 
 internal sealed class NativeTabDescriptor

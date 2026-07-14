@@ -361,6 +361,11 @@ internal sealed class RaskChromeContainerView : UIView
             return new UIBarButtonItem(UIBarButtonSystemItem.Cancel) { AccessibilityIdentifier = "rask-native-back" };
         }
 
+        if (string.Equals(item.Kind, "menu", StringComparison.Ordinal))
+        {
+            return BuildMenuButton(item);
+        }
+
         // Address the button by its tap id (falling back to its title) for screen readers + the E2E.
         var button = new UIBarButtonItem { Style = UIBarButtonItemStyle.Plain, AccessibilityIdentifier = item.Id ?? item.Title };
         if (ImageFor(item.IosIcon) is { } image)
@@ -376,6 +381,47 @@ internal sealed class RaskChromeContainerView : UIView
         if (id is not null)
         {
             button.Clicked += (_, _) => _raise?.Invoke($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+        }
+
+        return button;
+    }
+
+    // An overflow button whose primary tap opens a UIMenu pull-down (iOS 14+). Each entry raises the same
+    // nativeTap the session dispatches, so a menu selection re-enters the ordinary handler path.
+    private UIBarButtonItem BuildMenuButton(NativeBarItemDescriptor item)
+    {
+        var entries = item.Menu ?? [];
+        var actions = new UIMenuElement[entries.Count];
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var id = entries[i].Id;
+            var action = UIAction.Create(
+                entries[i].Title ?? string.Empty,
+                ImageFor(entries[i].IosIcon),
+                null,
+                _ =>
+                {
+                    if (id is not null)
+                    {
+                        _raise?.Invoke($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+                    }
+                });
+            if (entries[i].Destructive)
+            {
+                action.Attributes = UIMenuElementAttributes.Destructive;
+            }
+
+            actions[i] = action;
+        }
+
+        var button = new UIBarButtonItem { AccessibilityIdentifier = item.Title, Menu = UIMenu.Create(actions) };
+        if (ImageFor(item.IosIcon) is { } image)
+        {
+            button.Image = image;
+        }
+        else
+        {
+            button.Title = item.Title ?? "More";
         }
 
         return button;

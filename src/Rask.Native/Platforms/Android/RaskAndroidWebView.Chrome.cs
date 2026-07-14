@@ -221,6 +221,11 @@ public sealed partial class RaskAndroidWebView
 
     private Android.Views.View BuildBarButton(NativeBarItemDescriptor item, Color tint)
     {
+        if (string.Equals(item.Kind, "menu", StringComparison.Ordinal))
+        {
+            return BuildMenuButton(item, tint);
+        }
+
         var isBack = string.Equals(item.Kind, "back", StringComparison.Ordinal);
         var resId = isBack ? 0 : ResolveDrawable(item.AndroidIcon);
         Android.Views.View view;
@@ -344,6 +349,60 @@ public sealed partial class RaskAndroidWebView
 
     // A dimmed variant for unselected tabs, so the active tab stands out even when no tints are set.
     private static Color Muted(Color color) => Color.Argb((int)(color.A * 0.6), color.R, color.G, color.B);
+
+    // An overflow button (⋮ or a resolved icon) whose tap opens a framework PopupMenu (no AndroidX). Each entry
+    // raises the same nativeTap the session dispatches, so selecting one re-enters the ordinary handler path.
+    private Android.Views.View BuildMenuButton(NativeBarItemDescriptor item, Color tint)
+    {
+        var resId = ResolveDrawable(item.AndroidIcon);
+        Android.Views.View button;
+        if (resId != 0)
+        {
+            var imageButton = new ImageButton(_context);
+            imageButton.SetImageResource(resId);
+            imageButton.SetBackgroundColor(Color.Transparent);
+            imageButton.SetColorFilter(tint);
+            imageButton.ContentDescription = item.Title;
+            button = imageButton;
+        }
+        else
+        {
+            var textButton = new Button(_context) { Text = "⋮", ContentDescription = item.Title }; // ⋮
+            textButton.SetTextColor(tint);
+            button = textButton;
+        }
+
+        var entries = item.Menu ?? [];
+        button.Click += (_, _) =>
+        {
+            var popup = new PopupMenu(_context, button);
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var added = popup.Menu?.Add(0, i, i, entries[i].Title);
+                var iconRes = ResolveDrawable(entries[i].AndroidIcon);
+                if (iconRes != 0)
+                {
+                    added?.SetIcon(iconRes);
+                }
+            }
+
+            if (OperatingSystem.IsAndroidVersionAtLeast(29))
+            {
+                popup.SetForceShowIcon(true); // otherwise PopupMenu hides item icons by default
+            }
+
+            popup.MenuItemClick += (_, e) =>
+            {
+                var idx = e.Item?.ItemId ?? -1;
+                if (idx >= 0 && idx < entries.Count && entries[idx].Id is { } id)
+                {
+                    Raise($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+                }
+            };
+            popup.Show();
+        };
+        return button;
+    }
 
     // Set an explicit bar background from a color token, or clear it (null background ⇒ the theme default shows).
     private void ApplyBarBackground(LinearLayout bar, string? token)

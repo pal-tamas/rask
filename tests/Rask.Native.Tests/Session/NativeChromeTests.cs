@@ -311,6 +311,38 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
         using var doc = JsonDocument.Parse(chrome.LastJson);
         Assert.Equal(2, doc.RootElement.GetProperty("header").GetProperty("selectedSegment").GetInt32());
     }
+
+    [Fact]
+    public async Task Menu_SerializesEntriesIconsAndIds()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<MenuApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        var menuButton = doc.RootElement.GetProperty("header").GetProperty("trailing")[0];
+        Assert.Equal("menu", menuButton.GetProperty("kind").GetString());
+        Assert.Equal("ellipsis", menuButton.GetProperty("iosIcon").GetString()); // default NativeIcon.More
+        var entries = menuButton.GetProperty("menu");
+        Assert.Equal("Refresh", entries[0].GetProperty("title").GetString());
+        Assert.Equal("h.trailing.0.menu.0", entries[0].GetProperty("id").GetString());
+        Assert.False(entries[0].GetProperty("destructive").GetBoolean()); // not destructive
+        Assert.True(entries[1].GetProperty("destructive").GetBoolean());
+        Assert.Equal("h.trailing.0.menu.1", entries[1].GetProperty("id").GetString());
+    }
+
+    [Fact]
+    public async Task MenuItemTap_InvokesOnClick_AndRerenders()
+    {
+        var chrome = new FakeNativeChrome();
+        var (_, webView, _) = await NewSessionAsync<MenuApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        await chrome.TapAsync("h.trailing.0.menu.1"); // "Delete"
+
+        using var body = JsonDocument.Parse(webView.LastFrame.AsMemory());
+        Assert.Contains("last=delete", body.RootElement.GetProperty("html").GetString()!);
+    }
 }
 
 internal sealed class HeaderApp : Component
@@ -449,6 +481,29 @@ internal sealed class BadgeTabApp : Component
                 NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/"),
                 NativeTab(Title: "Todos", Icon: NativeIcon.List, To: "/todos", Badge: _count.ToString()),
             ])
+    ];
+}
+
+internal sealed class MenuApp : Component
+{
+    private string _last = "none";
+
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(
+            Title: "M",
+            Trailing:
+            [
+                NativeMenuButton(Items:
+                [
+                    NativeMenuItem(Title: "Refresh", Icon: NativeIcon.Search, OnClick: () => _last = "refresh"),
+                    NativeMenuItem(Title: "Delete", Destructive: true, OnClick: () => _last = "delete"),
+                ]),
+            ]),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()[$"last={_last}"]]]
+        ]
     ];
 }
 

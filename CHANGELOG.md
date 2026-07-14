@@ -156,6 +156,12 @@ them until tagged releases begin.
   AndroidX). Controlled via `SelectedSegment` + `OnSegmentChanged(int)` (runs on the render thread and
   re-renders, reusing the `nativeTap` dispatch). Unit-tested in `NativeChromeTests`; the showcase shows an
   All/Active/Done filter on the Todos page that drives the Todos tab badge.
+- **Native overflow menu.** A `NativeMenuButton` bar item (header `Leading`/`Trailing` or a toolbar's `Items`)
+  opens a native pull-down of `NativeMenuItem`s — an iOS `UIMenu` on a `UIBarButtonItem`, an Android
+  `PopupMenu` (framework, no AndroidX) — for secondary actions. Each entry has a `Title`, optional `Icon`,
+  `OnClick`, and optional `Destructive` (iOS red); selections re-enter the `nativeTap` dispatch so `OnClick`
+  runs on the render thread and re-renders. Defaults to a "⋯" (`NativeIcon.More`) glyph. Unit-tested in
+  `NativeChromeTests`; the showcase adds an overflow menu to the header.
 
 ### Fixed
 - **Native Android bars now render icons.** The Android chrome head rendered tabs and bar buttons as

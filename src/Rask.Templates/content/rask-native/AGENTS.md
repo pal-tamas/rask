@@ -50,7 +50,8 @@ https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/nati
   Build bars from `NativeBarButton` / `NativeTab` / `NativeBackButton` and type-safe `NativeIcon`s. A
   `NativeTab` also takes an optional `Badge` string (unread count) → `UITabBarItem.BadgeValue` / icon overlay.
   `NativeHeaderBar` takes optional `Segments` (shown in place of the title) → a `UISegmentedControl` / button
-  row, controlled via `SelectedSegment` + `OnSegmentChanged(int)`.
+  row, controlled via `SelectedSegment` + `OnSegmentChanged(int)`. A `NativeMenuButton` bar item (with
+  `NativeMenuItem` entries) opens a native overflow pull-down → `UIMenu` (iOS) / `PopupMenu` (Android).
 - **Style the bars** with `NativeColor` (the color sibling of `NativeIcon`: `Hex` / `Rgba` / `Adaptive(light,
   dark)` / `System`) — set `Background` / `Tint` / `TitleColor` per bar (`NativeTabBar` also `UnselectedTint`),
   or register an app-wide `NativeTheme` on `host.Services`. Per-bar wins, then the theme, then the platform

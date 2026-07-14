@@ -282,6 +282,41 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 // The head wires a back item to the platform's own back affordance — no server round-trip.
                 return new NativeBarItemDescriptor { Kind = "back" };
 
+            case NativeMenuButton menu:
+                var menuIcon = menu.Icon ?? NativeIcon.More;
+                var menuDto = new NativeBarItemDescriptor
+                {
+                    Kind = "menu",
+                    IosIcon = menuIcon.IosSymbol,
+                    AndroidIcon = menuIcon.AndroidResource,
+                    Title = menu.Title ?? "More",
+                };
+                if (menu.Items is { Count: > 0 } entries)
+                {
+                    menuDto.Menu = new List<NativeMenuItemDescriptor>(entries.Count);
+                    for (var i = 0; i < entries.Count; i++)
+                    {
+                        var entry = entries[i];
+                        string? entryId = null;
+                        if (entry.OnClick is { } entryClick)
+                        {
+                            entryId = id + ".menu." + i;
+                            handlers[entryId] = entryClick;
+                        }
+
+                        menuDto.Menu.Add(new NativeMenuItemDescriptor
+                        {
+                            Title = entry.Title,
+                            IosIcon = entry.Icon?.IosSymbol,
+                            AndroidIcon = entry.Icon?.AndroidResource,
+                            Id = entryId,
+                            Destructive = entry.Destructive == true,
+                        });
+                    }
+                }
+
+                return menuDto;
+
             case NativeBarButton button:
                 string? tapId = null;
                 if (button.OnClick is { } onClick)
