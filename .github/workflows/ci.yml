@@ -311,7 +311,9 @@ jobs:
   # instead. We build every project × TFM — a green build proves the platform heads + the shared
   # NativeOriginAssets wiring compile. On-device behaviour is verified by the `native-appium` job below.
   native:
-    runs-on: macos-latest
+    # Pinned to macos-26 (not the moving macos-latest label) so the Microsoft.iOS workload lands on the
+    # matching Xcode SDK — same reason as native-ios-e2e.yml.
+    runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
