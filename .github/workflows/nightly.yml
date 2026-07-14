@@ -168,7 +168,9 @@ jobs:
   # with the mobile workloads (-p:RaskNativeHeads=true) and handed to publish-nightly as an artifact.
   pack-native-nightly:
     needs: [unit, aot-publish, e2e]
-    runs-on: macos-latest
+    # Pinned to macos-26 (not the moving macos-latest label) so the Microsoft.iOS workload lands on the
+    # matching Xcode SDK — same reason as native-ios-e2e.yml.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v7
         with:
@@ -225,7 +227,7 @@ jobs:
           dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release -o ./artifacts
 
       - name: Download Rask.Native package (macOS-built, with heads)
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: native-nupkgs
           path: ./artifacts
