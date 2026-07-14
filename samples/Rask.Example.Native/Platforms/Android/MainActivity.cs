@@ -2,7 +2,6 @@ using Android.App;
 using Android.OS;
 using Android.Webkit;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Client.Browser;
 using Rask.Example.Shared;
 using Rask.Native;
 
@@ -44,9 +43,11 @@ public class MainActivity : Activity
         var host = NativeAppHost.CreateDefault();
         host.Services.AddExampleServices(_ => new Uri(RaskAndroidWebView.DefaultOrigin));
 
-        // Native device backend: hand IShare to the Android OS share sheet (ACTION_SEND chooser). Register
-        // native backends on host.Services BEFORE RunLocalAsync — the last registration wins.
-        host.Services.AddSingleton<IShare>(_ => new NativeShare(this));
+        // Native device backends: the Android platform module wires IShare (ACTION_SEND chooser),
+        // IGeolocation (LocationManager), IClipboard, IVibration, IWakeLock, and INetworkInfo to their native
+        // C# impls. The framework resolves each over the JS-backed default (native-first); everything else
+        // falls back to the WebView's JS. Call UsePlatform before RunLocalAsync.
+        host.UsePlatform(new AndroidPlatform(this));
 
         // Native header/footer chrome: the same RaskAndroidWebView instance is the INativeChrome backend.
         host.Services.AddSingleton<INativeChrome>(webView);
