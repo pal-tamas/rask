@@ -9,6 +9,7 @@ interactive app. Want the pitch and a quick demo first? See the project [README]
 | Guide | What it covers |
 |-------|----------------|
 | [Getting started](getting-started.md) | Prerequisites, scaffold an app, a tour of the generated files, your first component, interactivity, routing, and troubleshooting. |
+| [The `rask` CLI](cli.md) | The optional `Rask.Cli` .NET tool: `rask new` (scaffold), `rask dev` (hot-reload run), `rask info` — a thin wrapper over the .NET SDK. |
 | [Live playground](playground.md) | Write Rask C# in the browser with IntelliSense, as-you-type diagnostics, and a gallery of examples, then see it compile & render live (Roslyn in WebAssembly) — how it works, the entry-point convention, and its limitations. |
 | [Best practices](best-practices.md) | Production patterns and common pitfalls across component design, state, forms, data access, security, accessibility, performance and testing — each linking to the deep dive. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |

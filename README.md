@@ -134,6 +134,18 @@ Add `--auth` for a cookie/JWT-wired starter, `--pwa` (WASM) for an installable o
 `--docker` (the three web templates) for a production multi-stage Dockerfile — see
 [docs/deployment.md](docs/deployment.md).
 
+### Or use the `rask` CLI
+
+The optional [`Rask.Cli`](docs/cli.md) .NET tool wraps the SDK with shorter, Rask-aware commands:
+
+```bash
+dotnet tool install -g Rask.Cli
+
+rask new MyApp --auth --docker      # scaffold (installs the templates on demand)
+cd MyApp && rask dev                # run with hot reload (dotnet watch)
+rask info                           # CLI / SDK / template / OS report
+```
+
 ### Add packages to an existing project
 
 Pick one host package per project, then add opt-in packages as needed:
