@@ -16,4 +16,24 @@
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets') "/>
 
+  <!--
+    Auto-enable the repo's git hooks (pre-commit: dotnet format + unit; pre-push: browser E2E) so a fresh
+    clone picks them up on first build — no manual `git config core.hooksPath .githooks`. The hook contents
+    live in .githooks/; this only points git at them. Idempotent (git config is a no-op if already set) and
+    best-effort (ContinueOnError). Skipped in CI (GitHub sets CI=true) and during IDE design-time builds,
+    and only runs inside a git working copy (.git present — a directory in the main clone, a file in a
+    worktree), so a restored/consumed package never triggers it. Hooks stay advisory: bypass any with
+    the git no-verify flag, RASK_SKIP_UNIT=1, or RASK_SKIP_E2E=1. See CONTRIBUTING.md.
+  -->
+  <Target Name="RaskConfigureGitHooks" BeforeTargets="Build"
+          Condition=" '$(CI)' != 'true' And '$(DesignTimeBuild)' != 'true'
+                      And Exists('$(MSBuildThisFileDirectory).githooks')
+                      And Exists('$(MSBuildThisFileDirectory).git') ">
+    <Exec Command="git config core.hooksPath .githooks"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ContinueOnError="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low" />
+  </Target>
+
 </Project>
