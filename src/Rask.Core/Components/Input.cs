@@ -58,6 +58,16 @@ public sealed class Input<T> : Element, IFormControl<T>
     public int? Width { get; set; }
     public int? Height { get; set; }
 
+    // Mobile / accessibility hints. InputMode picks the on-screen keyboard (numeric/decimal/email/…),
+    // EnterKeyHint labels its action key (done/go/search/…), Spellcheck toggles the enumerated
+    // spellcheck attribute ("true"/"false"), Capture asks a file input for the camera/mic ("user"/
+    // "environment"), and Dirname submits the field's text direction alongside its value.
+    public string? InputMode { get; set; }
+    public string? EnterKeyHint { get; set; }
+    public bool? Spellcheck { get; set; }
+    public string? Capture { get; set; }
+    public string? Dirname { get; set; }
+
     // DOM event handlers in the legacy declaration order so positional factory calls keep working.
     // OnChange/OnChangeAsync are the IFormControl<T> controlled callbacks (typed T); OnInput/OnFiles are the
     // string/file DOM handlers, not part of the interface.
@@ -209,6 +219,11 @@ public sealed class Input<T> : Element, IFormControl<T>
             AppendAttr(sb, "accept", Accept);
         }
 
+        if (Capture is not null)
+        {
+            AppendAttr(sb, "capture", Capture);
+        }
+
         if (Alt is not null)
         {
             AppendAttr(sb, "alt", Alt);
@@ -217,6 +232,26 @@ public sealed class Input<T> : Element, IFormControl<T>
         if (Autocomplete is not null)
         {
             AppendAttr(sb, "autocomplete", Autocomplete);
+        }
+
+        if (InputMode is not null)
+        {
+            AppendAttr(sb, "inputmode", InputMode);
+        }
+
+        if (EnterKeyHint is not null)
+        {
+            AppendAttr(sb, "enterkeyhint", EnterKeyHint);
+        }
+
+        if (Spellcheck is not null)
+        {
+            AppendAttr(sb, "spellcheck", Spellcheck.Value ? "true" : "false");
+        }
+
+        if (Dirname is not null)
+        {
+            AppendAttr(sb, "dirname", Dirname);
         }
 
         if (Autofocus is true)

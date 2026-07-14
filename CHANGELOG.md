@@ -26,6 +26,15 @@ them until tagged releases begin.
   `nginx:alpine` with a bundled `nginx.conf` (SPA fallback, `application/wasm` MIME, `gzip_static`).
   New `docs/deployment.md` covers containerizing each template (TLS-at-proxy, WebSocket upgrade,
   sub-paths) and why `rask-native` (a mobile app) isn't containerized.
+- **Full HTML-attribute passthrough on the Bootstrap `BsInput`/`BsTextarea`.** `BsInput` now forwards
+  `Min`/`Max`/`Step`/`Pattern`/`MaxLength`/`MinLength`/`List`/`Autofocus` (constraints & affordances),
+  `Accept`/`Capture`/`Multiple` (file inputs), and `InputMode`/`EnterKeyHint`/`Spellcheck` (mobile-keyboard
+  & a11y hints) to the core `Input`; `BsTextarea` forwards `Cols`/`MaxLength`/`MinLength`/`Autocomplete`/
+  `Autofocus`. Previously a Bootstrap number/date/range/file field could not set any of these. (The HTML
+  `size` attribute stays unexposed on `BsInput` — the base `Size` is Bootstrap control sizing.)
+- **New mobile / accessibility attributes on the core `Input`.** `InputMode` (on-screen keyboard),
+  `EnterKeyHint` (action-key label), `Spellcheck` (the enumerated `spellcheck="true|false"`), `Capture`
+  (camera/mic for file inputs), and `Dirname` (submit text direction) join the `<input>` surface.
 - **Gesture bridge — activation-gated browser APIs on the Server host.** New headless `GestureTrigger`
   and six typed wrappers generalise `Shareable`'s trick: they hand your element a `data-rask-gesture`
   bundle and the shared client runs the capability **inside the click gesture**, so the browser's transient

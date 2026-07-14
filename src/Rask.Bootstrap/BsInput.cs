@@ -13,6 +13,25 @@ public sealed class BsInput<T> : BsFormControl<T>
     public bool? ReadOnly { get; set; }
     public string? Autocomplete { get; set; }
 
+    // Constraint + input-affordance attributes forwarded verbatim to the core Input, so a Bootstrap
+    // number/date/range input can set Min/Max/Step, a text field a Pattern/MaxLength/MinLength, a file
+    // field Accept/Capture/Multiple, and any field the mobile-keyboard hints. (The HTML `size` attribute is
+    // not exposed — the base `Size` is Bootstrap's control sizing, which is the far more common intent.)
+    public string? Min { get; set; }
+    public string? Max { get; set; }
+    public string? Step { get; set; }
+    public string? Pattern { get; set; }
+    public int? MaxLength { get; set; }
+    public int? MinLength { get; set; }
+    public bool? Autofocus { get; set; }
+    public string? List { get; set; }
+    public string? Accept { get; set; }
+    public string? Capture { get; set; }
+    public bool? Multiple { get; set; }
+    public string? InputMode { get; set; }
+    public string? EnterKeyHint { get; set; }
+    public bool? Spellcheck { get; set; }
+
     protected override Component? Render()
     {
         var b = Resolve();
@@ -28,7 +47,10 @@ public sealed class BsInput<T> : BsFormControl<T>
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
             Placeholder: placeholder, Disabled: Disabled, ReadOnly: ReadOnly, Required: Required,
-            Autocomplete: Autocomplete, Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
+            Min: Min, Max: Max, Step: Step, Pattern: Pattern, MaxLength: MaxLength, MinLength: MinLength,
+            Multiple: Multiple, Accept: Accept, Capture: Capture, List: List, Autofocus: Autofocus,
+            Autocomplete: Autocomplete, InputMode: InputMode, EnterKeyHint: EnterKeyHint, Spellcheck: Spellcheck,
+            Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
             OnInputAsync: Disabled == true ? null : StringChangeHandler(b));
 
         return Field(controlId, b, control);
