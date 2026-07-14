@@ -10,8 +10,10 @@ namespace Rask.Native;
 ///     The Android platform module. Pass it to <see cref="NativeAppHost.UsePlatform" /> and the host wires
 ///     these native C# backends for the browser/device API interfaces — <c>IShare</c> (ACTION_SEND chooser),
 ///     <c>IGeolocation</c> (LocationManager), <c>IClipboard</c> (ClipboardManager), <c>IVibration</c>
-///     (Vibrator), <c>IWakeLock</c> (FLAG_KEEP_SCREEN_ON), and <c>INetworkInfo</c> (ConnectivityManager) — so
-///     injecting any of them resolves the native implementation and every other interface falls back to the
+///     (Vibrator), <c>IWakeLock</c> (FLAG_KEEP_SCREEN_ON), <c>INetworkInfo</c> (ConnectivityManager),
+///     <c>ISpeechSynthesis</c> (TextToSpeech), <c>IScreenInfo</c> (DisplayMetrics), and
+///     <c>IDeviceOrientation</c>/<c>IDeviceMotion</c> (SensorManager) — so injecting any of them resolves the
+///     native implementation and every other interface falls back to the
 ///     WebView's JS. The app writes one line (<c>host.UsePlatform(new AndroidPlatform(this))</c>) instead of
 ///     registering each backend by hand. Geolocation needs <c>ACCESS_FINE_LOCATION</c> and network info needs
 ///     <c>ACCESS_NETWORK_STATE</c> in the manifest.
@@ -30,5 +32,9 @@ public sealed class AndroidPlatform(Activity activity) : INativePlatform
         services.TryAddSingleton<IVibration>(_ => new NativeVibration(activity));
         services.TryAddSingleton<IWakeLock>(_ => new NativeWakeLock(activity));
         services.TryAddSingleton<INetworkInfo>(_ => new NativeNetworkInfo(activity));
+        services.TryAddSingleton<ISpeechSynthesis>(_ => new NativeSpeechSynthesis(activity));
+        services.TryAddSingleton<IScreenInfo>(_ => new NativeScreenInfo(activity));
+        services.TryAddSingleton<IDeviceOrientation>(_ => new NativeDeviceOrientation(activity));
+        services.TryAddSingleton<IDeviceMotion>(_ => new NativeDeviceMotion(activity));
     }
 }
