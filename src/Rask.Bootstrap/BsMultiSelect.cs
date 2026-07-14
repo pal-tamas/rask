@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 using Rask.Core.Live;
@@ -43,6 +44,11 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     private bool _open;
     private string? _filter;
 
+    // A per-instance suffix so two id-less multiselects still emit unique list/label ids for the
+    // combobox aria-controls / aria-labelledby wiring (mirrors BsSelectBase).
+    private static int _seq;
+    private readonly int _instanceId = System.Threading.Interlocked.Increment(ref _seq);
+
     protected override Component? Render()
     {
         ArgumentNullException.ThrowIfNull(Options);
@@ -73,6 +79,18 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         {
             selected = Value;
         }
+
+        // Stable ids for the combobox aria wiring: aria-controls → the listbox menu, aria-labelledby → the
+        // visible label (the box is a <div role="combobox">, not a labelable element, so <label for> is void),
+        // and aria-describedby → the error feedback. Reading GetValidationMessages here auto-latches the
+        // render-cache opt-out (see BsFormControl), so a message added during submit repaints the box's
+        // aria-invalid instead of being served stale.
+        var prefix = Id ?? acc?.PropertyName ?? "bsms" + _instanceId.ToString(CultureInfo.InvariantCulture);
+        var listId = prefix + "-list";
+        var labelId = Label is not null ? prefix + "-label" : null;
+        IReadOnlyList<string> messages = bound && ctx is not null ? ctx.GetValidationMessages(fid) : [];
+        var invalid = messages.Count > 0;
+        var errorId = invalid ? prefix + "-error" : null;
 
         Component LabelOf(TItem item) =>
             OptionLabel is not null ? OptionLabel(item) : item?.ToString() ?? string.Empty;
@@ -150,18 +168,37 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             }
         }
 
+        var boxAria = new Dictionary<string, string?>
+        {
+            ["haspopup"] = "listbox",
+            ["expanded"] = _open ? "true" : "false",
+            ["controls"] = listId,
+        };
+        if (labelId is not null)
+        {
+            boxAria["labelledby"] = labelId;
+        }
+
+        if (invalid)
+        {
+            boxAria["invalid"] = "true";
+            boxAria["describedby"] = errorId;
+        }
+
         var boxDiv = Div(
             Class: BsClass.Join("form-select", Sizing.HAuto, Display.Flex(), Flex.Wrap(),
-                Flex.Align(BsAlign.Center), Flex.Gap(1), disabled ? "disabled pe-none" : null),
+                Flex.Align(BsAlign.Center), Flex.Gap(1), invalid ? "is-invalid" : null,
+                disabled ? "disabled pe-none" : null),
             Data: BsPopover.Anchor,
             Role: "combobox",
             TabIndex: disabled ? null : 0,
+            Aria: boxAria,
             OnClick: disabled ? null : () => { _open = !_open; if (!_open) { _filter = null; } },
             OnKeyDown: disabled ? null : OnBoxKeyDown)[box];
 
         var labelNode = Label is null
             ? null
-            : Rask.Core.Components.Generated.Label(Class: floating ? null : "form-label")[Label];
+            : Rask.Core.Components.Generated.Label(Id: labelId, Class: floating ? null : "form-label")[Label];
 
         var children = new List<Component?>();
         if (labelNode is not null && !floating)
@@ -176,7 +213,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             ? Div(Class: BsClass.Join("form-floating bs-floating", hasChips ? "bs-floating-filled" : null,
                 Position.Relative))[boxDiv, labelNode]
             : boxDiv);
-        children.Add(Div(Class: _open
+        children.Add(Div(Id: listId, Role: "listbox", Class: _open
             ? BsClass.Join("dropdown-menu show", Display.Block(), Sizing.W(100))
             : "dropdown-menu")[rows]);
 
@@ -188,10 +225,14 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
                 OnClick: () => { _open = false; _filter = null; }));
         }
 
-        if (bound)
+        // The error is a role="alert" live region carrying the id the box's aria-describedby points at, so a
+        // screen reader announces it on submit/blur associated with — not detached from — the control. Read
+        // directly from the messages resolved above (which latched the cache opt-out) rather than via a
+        // headless ValidationMessage, so the error id and the box's aria-describedby stay in lockstep.
+        if (invalid)
         {
-            children.Add(ValidationMessage(Bind!,
-                msgs => Div(Class: BsClass.Join("invalid-feedback", Display.Block()))[msgs[0]]));
+            children.Add(Div(Id: errorId, Class: BsClass.Join("invalid-feedback", Display.Block()),
+                Role: "alert")[messages[0]]);
         }
 
         return Div(Class: BsClass.Join("dropdown", Class), Id: Id, Data: BsPopover.Wrapper)[children];

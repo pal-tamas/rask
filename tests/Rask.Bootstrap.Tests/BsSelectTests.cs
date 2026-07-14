@@ -34,14 +34,17 @@ public class BsSelectTests
     public void Select_CustomPlaceholderAndLabel_LabelSitsAboveTheBox()
     {
         var html = BsSelect<string>(Options: [], Value: null, Label: "Plan", Placeholder: "Pick one", Id: "p").ToHtml();
-        Assert.Contains("<label class=\"form-label\" for=\"p\">Plan</label>", html);
+        // The combobox is a <div role="combobox"> (not labelable), so the label is associated by id via the
+        // box's aria-labelledby rather than a void <label for> pointing at the div.
+        Assert.Contains("<label id=\"p-label\" class=\"form-label\">Plan</label>", html);
+        Assert.Contains("aria-labelledby=\"p-label\"", html);
         Assert.Contains("<span class=\"text-secondary\">Pick one</span>", html);
     }
 
     [Fact]
     public void Select_Required_AppendsAsteriskToLabel() =>
         Assert.Contains(
-            "<label class=\"form-label\" for=\"s\">Plan<span class=\"text-danger ms-1\">*</span></label>",
+            "<label id=\"s-label\" class=\"form-label\">Plan<span class=\"text-danger ms-1\">*</span></label>",
             BsSelect<string>(Options: [], Value: null, Label: "Plan", Required: true, Id: "s").ToHtml());
 
     [Fact]
@@ -51,7 +54,8 @@ public class BsSelectTests
         // the wrapper is .form-floating.bs-floating, and .bs-floating-filled is absent.
         var html = BsSelect<string>(Options: [], Value: null, Label: "Plan", Floating: true, Id: "s").ToHtml();
         Assert.Contains("<div class=\"form-floating bs-floating position-relative\">", html);
-        Assert.Contains("aria-controls=\"s-list\"></div><label for=\"s\">Plan</label>", html);
+        Assert.Contains(
+            "aria-controls=\"s-list\" aria-labelledby=\"s-label\"></div><label id=\"s-label\">Plan</label>", html);
     }
 
     [Fact]

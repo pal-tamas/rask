@@ -27,6 +27,11 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
     public Func<TValue, Component>? OptionLabel { get; set; }
     public string? Name { get; set; }
 
+    // The group's accessible name. When set, the radios are wrapped in a <fieldset> named by a <legend>
+    // (the correct grouping semantics + accessible name for a set of related radios); when null, the bare
+    // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
+    public string? Label { get; set; }
+
     // Extra wrapper classes per item, e.g. "form-check-inline".
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
@@ -64,6 +69,16 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
         var groupName = Name ?? acc?.PropertyName ?? "radio-group";
         var wrapperClass = BsClass.Join("form-check", ItemClass);
 
+        // Reading GetValidationMessages here latches the render-cache opt-out (see BsFormControl) so the group
+        // repaints its aria-invalid + feedback when a rule fails on submit, instead of serving a stale cache.
+        // The error is a role="alert" live region carrying a stable id the radios point at via aria-describedby.
+        IReadOnlyList<string> messages = bound && ctx is not null ? ctx.GetValidationMessages(fid) : [];
+        var invalid = messages.Count > 0;
+        var errorId = invalid ? groupName + "-error" : null;
+        var optionAria = invalid
+            ? new Dictionary<string, string?> { ["invalid"] = "true", ["describedby"] = errorId }
+            : null;
+
         var children = new List<Component>();
         var index = 0;
         foreach (var option in Options)
@@ -77,15 +92,23 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
                 Input<string>(
                     InputType.Radio, groupName, BindingHelpers.FormatValue(option),
                     Checked: isChecked, Disabled: Disabled, Class: "form-check-input", Id: optionId,
+                    Aria: optionAria,
                     OnChangeAsync: disabled ? null : _ => SelectAsync(acc, ctx, fid, optionValue)),
                 Rask.Core.Components.Generated.Label(Class: "form-check-label", For: optionId)[label]
             ]);
             index++;
         }
 
-        if (bound)
+        if (invalid)
         {
-            children.Add(ValidationMessage(Bind!, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]]));
+            children.Add(Div(Id: errorId, Class: "invalid-feedback d-block", Role: "alert")[messages[0]]);
+        }
+
+        if (Label is not null)
+        {
+            var content = new List<Component> { Legend(Class: "form-label fs-6")[Label] };
+            content.AddRange(children);
+            return Fieldset(Disabled: Disabled, Class: "border-0 p-0 m-0")[content];
         }
 
         return [.. children];

@@ -148,6 +148,17 @@ them until tagged releases begin.
   version — a fallback version otherwise breaks the routes registry's cross-assembly load at startup. No
   gate changed — same tests, filters, warnings-as-errors build, and byte-regression benchmark gate.
 
+### Fixed
+- **Accessible names + validation semantics for the Bootstrap group/combobox form controls.** `BsSelect`
+  (custom combobox) and `BsMultiSelect` named their visible label with a `<label for>` pointing at a
+  `<div role="combobox">` — void, since a div is not a labelable element — so the control had no accessible
+  name; both now associate the label via `aria-labelledby`, and `BsMultiSelect` gained the
+  `aria-haspopup`/`aria-expanded`/`aria-controls` (+ `aria-invalid`/`aria-describedby`) contract `BsSelect`
+  already had. `BsRadioGroup`/`BsCheckboxGroup` gained an optional `Label` that wraps the options in a
+  `<fieldset>` named by a `<legend>` (the correct group semantics + accessible name), and their invalid
+  feedback is now a `role="alert"` live region carrying an id the option inputs reference via
+  `aria-describedby` (with `aria-invalid` on each) — matching the `BsFormControl` field contract.
+
 ### Documentation
 - **Browser/device API capability matrix + per-API reference pages.** New
   [`docs/browser-capabilities.md`](docs/browser-capabilities.md) is a single table of all 43 wrappers
