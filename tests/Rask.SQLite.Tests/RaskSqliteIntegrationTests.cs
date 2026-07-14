@@ -1,13 +1,13 @@
 using System.Globalization;
 using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.SQLite.Tests;
 
-// Integration tests against a real SQLite database file: they prove the pragmas actually take effect
-// on a live connection — journal_mode really is WAL, foreign_keys really is enforced, the busy_timeout
-// really is set — through both the raw-ADO factory and the Entity Framework Core interceptor.
+// Integration tests against a real SQLite database file: they prove the pragmas actually take effect on
+// a live connection — journal_mode really is WAL, foreign_keys really is enforced, the busy_timeout
+// really is set — through the raw-ADO factory. (The EF Core interceptor is covered in
+// Rask.SQLite.EntityFrameworkCore.Tests.)
 public sealed class RaskSqliteIntegrationTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-sqlite-test-{Guid.NewGuid():N}.db");
@@ -28,40 +28,6 @@ public sealed class RaskSqliteIntegrationTests : IDisposable
         Assert.Equal("2000", ReadPragma(connection, "cache_size"));
     }
 
-    [Fact]
-    public async Task Ef_interceptor_reports_the_configured_pragmas_on_open()
-    {
-        var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}")
-            .Options;
-
-        await using var context = new ProbeDbContext(options);
-        await context.Database.OpenConnectionAsync();
-        var connection = (SqliteConnection)context.Database.GetDbConnection();
-
-        Assert.Equal("wal", ReadPragma(connection, "journal_mode"));
-        Assert.Equal("1", ReadPragma(connection, "foreign_keys"));
-        Assert.Equal("5000", ReadPragma(connection, "busy_timeout"));
-
-        await context.Database.CloseConnectionAsync();
-    }
-
-    [Fact]
-    public async Task Ef_interceptor_honors_pragma_overrides()
-    {
-        var options = new DbContextOptionsBuilder<ProbeDbContext>()
-            .UseRaskSqlite($"Data Source={_dbPath}", p => p.BusyTimeout = TimeSpan.FromSeconds(12))
-            .Options;
-
-        await using var context = new ProbeDbContext(options);
-        await context.Database.OpenConnectionAsync();
-        var connection = (SqliteConnection)context.Database.GetDbConnection();
-
-        Assert.Equal("12000", ReadPragma(connection, "busy_timeout"));
-
-        await context.Database.CloseConnectionAsync();
-    }
-
     private static string ReadPragma(SqliteConnection connection, string name)
     {
         using var command = connection.CreateCommand();
@@ -79,15 +45,5 @@ public sealed class RaskSqliteIntegrationTests : IDisposable
                 File.Delete(path);
             }
         }
-    }
-
-    private sealed class ProbeDbContext(DbContextOptions<ProbeDbContext> options) : DbContext(options)
-    {
-        public DbSet<ProbeRow> Rows => Set<ProbeRow>();
-    }
-
-    private sealed class ProbeRow
-    {
-        public int Id { get; set; }
     }
 }

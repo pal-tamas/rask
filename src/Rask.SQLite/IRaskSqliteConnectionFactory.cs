@@ -4,9 +4,8 @@ namespace Rask.SQLite;
 
 /// <summary>
 /// Hands out <see cref="SqliteConnection"/>s that apply the configured production pragmas on every
-/// open — the raw-ADO.NET counterpart to
-/// <see cref="RaskSqliteDbContextOptionsExtensions.UseRaskSqlite(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder, string, Action{SqlitePragmaOptions}?)"/>
-/// for code that talks to SQLite without Entity Framework Core. Register it with
+/// open — the raw-ADO.NET counterpart to <c>UseRaskSqlite</c> (in the <c>Rask.SQLite.EntityFrameworkCore</c>
+/// package) for code that talks to SQLite without Entity Framework Core. Register it with
 /// <see cref="SqliteServiceCollectionExtensions.AddRaskSqlite"/>.
 /// </summary>
 public interface IRaskSqliteConnectionFactory

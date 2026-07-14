@@ -4,37 +4,43 @@ SQLite's stock configuration is tuned for a single embedded process, not a web a
 connection uses the rollback journal (not WAL), does **not** enforce foreign keys, has **no**
 `busy_timeout`, and fsyncs on every commit — so the moment two requests write at once you get
 `database is locked`, and a bad delete silently orphans rows. Ruby on Rails 8 fixed this by applying
-a tuned pragma set to every connection. **`Rask.SQLite`** brings that same set to .NET: swap
-`UseSqlite` for `UseRaskSqlite` and you get correct, concurrent, production-ready SQLite by default.
+a tuned pragma set to every connection. **`Rask.SQLite`** brings that same set to .NET, applied to
+every connection you open, so you get correct, concurrent, production-ready SQLite by default.
 
 The runnable reference is [`samples/Rask.Example.Sqlite`](../samples/Rask.Example.Sqlite).
 
-> Standalone: `Rask.SQLite` depends only on `Microsoft.Data.Sqlite` and
-> `Microsoft.EntityFrameworkCore.Sqlite`. You do **not** need the rest of Rask to use it. Like all
-> SQLite access it is a **server-side** story — keep it behind the server, not in a trimmed WASM client
-> (see [data-access.md](data-access.md)).
+> Two packages: **`Rask.SQLite`** is the pragma engine — it depends only on `Microsoft.Data.Sqlite`, is
+> reflection-free, and so works server-side, on mobile, and under trimming/AOT.
+> **`Rask.SQLite.EntityFrameworkCore`** adds the one-line `UseRaskSqlite(...)` for EF Core (and pulls in
+> `Microsoft.EntityFrameworkCore.Sqlite`). Neither needs the rest of Rask.
 
 ## Install & wire it up
+
+### Raw ADO.NET — `Rask.SQLite`
 
 ```bash
 dotnet add package Rask.SQLite
 ```
-
-With Entity Framework Core, `UseRaskSqlite` is a drop-in replacement for `UseSqlite` — it configures
-the provider *and* registers the pragma interceptor:
-
-```csharp
-builder.Services.AddDbContextFactory<AppDb>(o =>
-    o.UseRaskSqlite($"Data Source={dbPath}"));
-```
-
-For raw ADO.NET (no EF Core), register the connection factory and open connections through it:
 
 ```csharp
 builder.Services.AddRaskSqlite($"Data Source={dbPath}");
 
 // inject IRaskSqliteConnectionFactory, then:
 await using var connection = await factory.CreateOpenAsync(ct);   // pragmas already applied
+```
+
+### Entity Framework Core — `Rask.SQLite.EntityFrameworkCore`
+
+```bash
+dotnet add package Rask.SQLite.EntityFrameworkCore
+```
+
+`UseRaskSqlite` is a drop-in replacement for `UseSqlite` — it configures the provider *and* registers
+the pragma interceptor:
+
+```csharp
+builder.Services.AddDbContextFactory<AppDb>(o =>
+    o.UseRaskSqlite($"Data Source={dbPath}"));
 ```
 
 ## The defaults
@@ -199,6 +205,64 @@ All three packages run in a container — with the same care the platform sectio
   `PATH`. Restore-on-boot then rehydrates the DB when a fresh container starts.
 - **Single writer.** Don't scale the service to multiple replicas writing the same database
   (`docker compose --scale`, K8s `replicas > 1`) — run one instance.
+
+## SQLite on mobile (Rask.Native)
+
+A [`Rask.Native`](native.md) app runs your C# **natively on the device**, so it can talk to SQLite
+directly — and `Rask.SQLite`'s pragmas (WAL, `foreign_keys`, `busy_timeout`) all apply on the device's
+real sandbox filesystem. Two things make the **base `Rask.SQLite` package** the right choice here:
+
+- **Reflection-free → AOT-safe.** iOS device builds are fully ahead-of-time compiled, and EF Core's
+  `Expression.Compile` crashes there unless you force the Mono interpreter. The raw `AddRaskSqlite`
+  path uses only `Microsoft.Data.Sqlite` — no `Expression.Compile`, no reflection — so it just works.
+- **Lean.** No Entity Framework Core in the app bundle. (If you do want EF Core on device, add
+  `Rask.SQLite.EntityFrameworkCore` and set `<MtouchInterpreter>-all</MtouchInterpreter>` for iOS.)
+
+Register it in the platform head, pointing the database at the app sandbox, **before** `RunLocalAsync`:
+
+```csharp
+// Platforms/iOS/AppDelegate.cs or Platforms/Android/MainActivity.cs
+var dbPath = Path.Combine(
+    System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
+    "app.db");
+host.Services.AddRaskSqlite($"Data Source={dbPath}");
+host.Services.AddSingleton<IMyStore, SqliteMyStore>();   // your data service over IRaskSqliteConnectionFactory
+
+_app = await host.RunLocalAsync<MyApp>(webView);
+```
+
+The runnable reference is `samples/Rask.Example.Native`, whose **Todos** tab is backed by a
+`SqliteTodoStore` on device: the same shared page uses a transient in-memory store on Server/WASM and
+the SQLite store on mobile, so adding a todo, killing the app, and relaunching shows it persisted.
+
+> Backup on mobile: use a snapshot (SQLite's Online Backup API) into the sandbox or shared storage —
+> **not** Litestream, which spawns a child process (impossible on iOS). WAL still works on-device;
+> `Environment.SpecialFolder.LocalApplicationData` maps to the app sandbox (iOS `Library/`, Android
+> `filesDir`), which is local storage, so the locking WAL needs is fine.
+
+## SQLite in the browser? (WASM)
+
+`Rask.SQLite` is a **server- and mobile-side** package, and deliberately so. Its whole value is the
+production pragma set — WAL, `busy_timeout`, `synchronous` — which tames **concurrent** access to a
+file database. A browser (WebAssembly) app has none of that: it's single-threaded, there's no real
+filesystem, and **WAL doesn't work** there, so the pragmas that make this package worthwhile don't
+apply. Running `Microsoft.Data.Sqlite` in the browser also means compiling and linking a WASM build of
+`e_sqlite3` (a native relink at publish) for a database that lives in memory and is lost on reload
+unless you serialize the whole file out by hand — a lot of moving parts for little gain.
+
+For client-side storage in a Rask WASM app, reach for what the browser already gives you and Rask
+already wraps:
+
+- **Key/value** — `IBrowserStorage` (localStorage/sessionStorage, ~5 MB) or `IIndexedDb` (hundreds of
+  MB, async), both in `Rask.Core.Browser`. See [browser-apis.md](browser-apis.md).
+- **A real client-side SQL database** — use the JavaScript
+  [`sqlite-wasm`](https://sqlite.org/wasm/) + OPFS (Origin Private File System) stack in a Web Worker.
+  That's a different engine from `Microsoft.Data.Sqlite`, purpose-built for the browser, and it owns
+  the durable-persistence story (OPFS sync access handles) that `Rask.SQLite` intentionally does not
+  try to reinvent.
+
+Keep SQLite behind the server (or on device with `Rask.Native`), and let the WASM client talk to it
+through an API or the browser storage APIs above.
 
 ## Testing
 

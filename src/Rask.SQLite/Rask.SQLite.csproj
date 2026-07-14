@@ -8,10 +8,10 @@
 
     <PackageId>Rask.SQLite</PackageId>
     <Title>Rask.SQLite — Rails-style production SQLite pragmas</Title>
-    <Description>Applies the Ruby on Rails 8 production SQLite pragma set — WAL journal, `synchronous=NORMAL`, `foreign_keys=ON`, a `busy_timeout`, a shared `mmap_size` and a capped `journal_size_limit` — to every SQLite connection, so a .NET app gets correct, concurrent, production-ready SQLite by default instead of the locking-prone stock configuration. One-line `UseRaskSqlite(...)` for Entity Framework Core, an `IRaskSqliteConnectionFactory` for raw ADO.NET, and full per-pragma override. The pragmas are re-applied on every pooled connection open (the per-connection ones must be), not once at startup. Standalone: no dependency on the rest of Rask.</Description>
+    <Description>Applies the Ruby on Rails 8 production SQLite pragma set — WAL journal, `synchronous=NORMAL`, `foreign_keys=ON`, a `busy_timeout`, a shared `mmap_size` and a capped `journal_size_limit` — to every SQLite connection, so a .NET app gets correct, concurrent, production-ready SQLite by default instead of the locking-prone stock configuration. Register `AddRaskSqlite(...)` and open connections through the `IRaskSqliteConnectionFactory`; the pragmas are re-applied on every pooled connection open (the per-connection ones must be), not once at startup, and every pragma is overridable. Depends only on Microsoft.Data.Sqlite — reflection-free, so it is fine under trimming/AOT and on mobile. For Entity Framework Core's one-line `UseRaskSqlite(...)`, add the companion package Rask.SQLite.EntityFrameworkCore.</Description>
     <!-- Override the framework default tags (web/component/wasm) — Rask.SQLite is a standalone,
          host-agnostic data-layer helper with no web/UI coupling. -->
-    <PackageTags>sqlite pragma wal rails production concurrency busy-timeout entity-framework-core ado-net dotnet net10</PackageTags>
+    <PackageTags>sqlite pragma wal rails production concurrency busy-timeout ado-net trimming aot dotnet net10</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -24,7 +24,11 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
     <PackageReference Include="Microsoft.Data.Sqlite"/>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+  </ItemGroup>
+
+  <!-- The EF Core companion shares SqlitePragmaOptions.Validate() (internal). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore"/>
   </ItemGroup>
 
 </Project>
