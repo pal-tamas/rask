@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask generate feature` now adds the required NuGet packages automatically.** After writing the
+  slice it runs `dotnet add package` for EF Core + SQLite and `Rask.Cqrs` (plus `Rask.Bootstrap` with
+  `--bs`, and the validation library with `--validation dataannotations`/`fluent`) so the code compiles
+  without a manual reference step; pass `--no-restore` to skip. A failed add degrades to a warning — the
+  files are written and the packages are still listed in the printed next-steps.
+- **`rask generate feature --tests` scaffolds xunit tests for the slice.** A sibling `<Project>.Tests`
+  project gets a domain test (`Create`/`Update` set every property; each value object rejects a blank
+  value and accepts a valid one) and, when the `DbContext` is generated, a persistence test that
+  round-trips the entity through a real SQLite file (proving the configuration + value-object converters).
 - **`rask generate feature --bs` scaffolds with Rask.Bootstrap; without it the pages are plain HTML.**
   By default the generated pages are now plain, unstyled semantic HTML (no CSS classes at all), so they
   compile and work in any project regardless of its stylesheet. The `--bs` flag renders the pages with

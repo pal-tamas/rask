@@ -98,6 +98,56 @@ public sealed class GenerateCommandTests
     }
 
     [Fact]
+    public async Task Feature_adds_the_required_nuget_packages_automatically()
+    {
+        var (_, _, process, command) = BuildWithProcess();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string,Price:decimal", "--bs"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var adds = process.Invocations
+            .Where(i => i.Arguments is ["add", "package", _])
+            .Select(i => i.Arguments[2])
+            .ToArray();
+        Assert.Equal(
+            ["Microsoft.EntityFrameworkCore.Sqlite", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Bootstrap"],
+            adds);
+    }
+
+    [Fact]
+    public async Task Feature_no_restore_skips_package_adds()
+    {
+        var (console, _, process, command) = BuildWithProcess();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--no-restore"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain(process.Invocations, i => i.Arguments.Count > 0 && i.Arguments[0] == "add");
+        Assert.Contains("Skipped adding packages", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Feature_dry_run_adds_no_packages()
+    {
+        var (_, _, process, command) = BuildWithProcess();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--dry-run"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(process.Invocations);
+    }
+
+    [Fact]
+    public async Task Page_generation_adds_no_packages()
+    {
+        var (_, _, process, command) = BuildWithProcess();
+
+        await command.ExecuteAsync(["page", "Products"], CancellationToken.None);
+
+        Assert.Empty(process.Invocations);
+    }
+
+    [Fact]
     public async Task Feature_without_fields_fails()
     {
         var (console, fs, command) = Build();
@@ -274,7 +324,7 @@ public sealed class GenerateCommandTests
     {
         var console = new StringConsole();
         var fs = new FakeFileSystem(); // no csproj seeded
-        var command = new GenerateCommand(console, fs, ProjectDir);
+        var command = new GenerateCommand(console, fs, new FakeProcessRunner(), ProjectDir);
 
         var exit = await command.ExecuteAsync(["component", "PriceTag"], CancellationToken.None);
 
@@ -284,9 +334,16 @@ public sealed class GenerateCommandTests
 
     private static (StringConsole Console, FakeFileSystem Fs, GenerateCommand Command) Build()
     {
+        var (console, fs, _, command) = BuildWithProcess();
+        return (console, fs, command);
+    }
+
+    private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Process, GenerateCommand Command) BuildWithProcess()
+    {
         var console = new StringConsole();
         var fs = new FakeFileSystem();
+        var process = new FakeProcessRunner();
         fs.Seed("/proj/MyApp.csproj", "<Project></Project>");
-        return (console, fs, new GenerateCommand(console, fs, ProjectDir));
+        return (console, fs, process, new GenerateCommand(console, fs, process, ProjectDir));
     }
 }

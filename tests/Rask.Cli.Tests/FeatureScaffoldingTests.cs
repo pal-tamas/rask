@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useTests = false, string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useTests, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -289,10 +289,50 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Tests_flag_emits_domain_and_persistence_tests_in_a_sibling_test_project()
+    {
+        var result = Generate(useTests: true);
+
+        // A domain test (pure Create/Update + value-object validation) and a SQLite round-trip test,
+        // both under a sibling <Project>.Tests project mirroring the feature folder.
+        var domain = result.Files.Single(f => Path.GetFileName(f.Path) == "ProductTests.cs");
+        var persistence = result.Files.Single(f => Path.GetFileName(f.Path) == "ProductsPersistenceTests.cs");
+        Assert.Equal(Path.GetFullPath("/proj.Tests/Features/Products"), Path.GetFullPath(Path.GetDirectoryName(domain.Path)!));
+
+        Assert.Contains("namespace MyApp.Tests.Features.Products;", domain.Content, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Products;", domain.Content, StringComparison.Ordinal);
+        Assert.Contains("var entity = Product.Create(\"Sample\", 10.25m);", domain.Content, StringComparison.Ordinal);
+        Assert.Contains("entity.Update(\"Updated\", 20.50m);", domain.Content, StringComparison.Ordinal);
+        Assert.Contains("Assert.Equal(\"Sample\", entity.Name.Value);", domain.Content, StringComparison.Ordinal);
+        Assert.Contains("Assert.Equal(10.25m, entity.Price);", domain.Content, StringComparison.Ordinal);
+        Assert.Contains("Assert.Empty(ProductName.Validate(\"Sample\"));", domain.Content, StringComparison.Ordinal);
+
+        Assert.Contains("public sealed class ProductsPersistenceTests : IDisposable", persistence.Content, StringComparison.Ordinal);
+        Assert.Contains(".UseSqlite($\"Data Source={_dbPath}\")", persistence.Content, StringComparison.Ordinal);
+        Assert.Contains("var entity = await db.Products.SingleAsync();", persistence.Content, StringComparison.Ordinal);
+        Assert.Contains("Assert.Equal(\"Sample\", entity.Name.Value);", persistence.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Tests_flag_skips_persistence_test_when_reusing_an_existing_context()
+    {
+        var result = Generate(useTests: true, context: "AppDbContext");
+
+        Assert.Contains(result.Files, f => Path.GetFileName(f.Path) == "ProductTests.cs");
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) == "ProductsPersistenceTests.cs");
+    }
+
+    [Fact]
+    public void Without_tests_flag_no_test_files_are_generated()
+    {
+        Assert.DoesNotContain(Generate().Files, f => Path.GetFileName(f.Path).EndsWith("Tests.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", "valueobjects", useBs: false, useModal: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
@@ -341,12 +381,24 @@ public sealed class FeatureGeneratorTests
     [Fact]
     public void Default_next_steps_register_cqrs_the_context_and_the_ef_design_package()
     {
-        var notes = Generate().Notes!;
+        var result = Generate();
+        var notes = result.Notes!;
 
         Assert.Contains("AddRaskCqrs();", notes, StringComparison.Ordinal);
         Assert.Contains("AddDbContextFactory<ProductsDbContext>", notes, StringComparison.Ordinal);
-        Assert.Contains("Microsoft.EntityFrameworkCore.Design", notes, StringComparison.Ordinal);
         Assert.Contains("dotnet ef migrations add AddProduct", notes, StringComparison.Ordinal);
+        // The packages are added to the project automatically (not just printed).
+        Assert.Equal(
+            ["Microsoft.EntityFrameworkCore.Sqlite", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs"],
+            result.Packages);
+    }
+
+    [Fact]
+    public void Feature_packages_include_bootstrap_and_the_validation_library()
+    {
+        Assert.Contains("Rask.Bootstrap", Generate(useBs: true).Packages);
+        Assert.Contains("Rask.Validation.DataAnnotations", Generate(validation: "dataannotations").Packages);
+        Assert.Contains("Rask.Validation.FluentValidation", Generate(validation: "fluent").Packages);
     }
 
     [Fact]
