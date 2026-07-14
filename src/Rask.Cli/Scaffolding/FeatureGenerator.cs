@@ -118,7 +118,7 @@ internal static class FeatureGenerator
     private static string WrapPrimitive(string entity, FieldSpec f)
     {
         var param = Identifiers.ToCamelCase(f.Name);
-        return IsValueObject(f) ? $"{ValueObjectName(entity, f)}.From({param})" : param;
+        return IsValueObject(f) ? $"{ValueObjectName(entity, f)}.Create({param})" : param;
     }
 
     internal static string RenderValueObject(string ns, string entity, FieldSpec f)
@@ -181,10 +181,15 @@ internal static class FeatureGenerator
     private static string ConfigProperties(string entity, IReadOnlyList<FieldSpec> fields) =>
         string.Join("\n", fields.Where(f => f.IsString).Select(f =>
         {
+            if (IsValueObject(f))
+            {
+                // Length comes from the value object's own MaxLength — a single source of truth.
+                var vo = ValueObjectName(entity, f);
+                return $"        entity.Property(x => x.{f.Name}).HasConversion(v => v.Value, s => {vo}.Create(s)).HasMaxLength({vo}.MaxLength);";
+            }
+
             var len = f.MaxLength!.Value.ToString(CultureInfo.InvariantCulture);
-            return IsValueObject(f)
-                ? $"        entity.Property(x => x.{f.Name}).HasConversion(v => v.Value, s => {ValueObjectName(entity, f)}.From(s)).HasMaxLength({len});"
-                : $"        entity.Property(x => x.{f.Name}).HasMaxLength({len});";
+            return $"        entity.Property(x => x.{f.Name}).HasMaxLength({len});";
         }));
 
     private static string FormFields(string entity, IReadOnlyList<FieldSpec> fields)
@@ -273,7 +278,7 @@ internal static class FeatureGenerator
         namespace __NS__;
 
         // Value object for __FIELD__ — the validation rule lives here and is reused by the form
-        // (Input(..., Validate: __VO__.Validate)) and by From.
+        // (Input(..., Validate: __VO__.Validate)) and by Create.
         public readonly record struct __VO__
         {
             public const int MaxLength = __MAX__;
@@ -294,7 +299,7 @@ internal static class FeatureGenerator
                 }
             }
 
-            public static __VO__ From(string value)
+            public static __VO__ Create(string value)
             {
                 var errors = Validate(value).ToList();
                 if (errors.Count > 0)

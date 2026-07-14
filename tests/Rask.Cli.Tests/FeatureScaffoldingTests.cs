@@ -151,10 +151,10 @@ public sealed class FeatureGeneratorTests
         var entity = File(Generate(), "Product.cs");
 
         Assert.Contains("public Guid Id { get; private set; } = Guid.NewGuid();", entity, StringComparison.Ordinal);
-        // Create/Update take primitives; the required string becomes a value object, wrapped via From.
-        Assert.Contains("public static Product Create(string name, decimal price) => new(ProductName.From(name), price);", entity, StringComparison.Ordinal);
+        // Create/Update take primitives; the required string becomes a value object, wrapped via Create.
+        Assert.Contains("public static Product Create(string name, decimal price) => new(ProductName.Create(name), price);", entity, StringComparison.Ordinal);
         Assert.Contains("public ProductName Name { get; private set; }", entity, StringComparison.Ordinal);
-        Assert.Contains("this.Name = ProductName.From(name);", entity, StringComparison.Ordinal);
+        Assert.Contains("this.Name = ProductName.Create(name);", entity, StringComparison.Ordinal);
         Assert.DoesNotContain("{ get; set; }", entity, StringComparison.Ordinal); // all encapsulated
         Assert.DoesNotContain("DataAnnotations", entity, StringComparison.Ordinal); // schema lives in the EF config
     }
@@ -168,7 +168,7 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("public readonly record struct ProductName", vo, StringComparison.Ordinal);
         Assert.Contains("public const int MaxLength = 200;", vo, StringComparison.Ordinal);
         Assert.Contains("public static IEnumerable<string> Validate(string value)", vo, StringComparison.Ordinal);
-        Assert.Contains("public static ProductName From(string value)", vo, StringComparison.Ordinal);
+        Assert.Contains("public static ProductName Create(string value)", vo, StringComparison.Ordinal);
         // The form wires the value object's Validate into the bound input.
         Assert.Contains("Input(() => _form.Name, Validate: ProductName.Validate", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
     }
@@ -181,7 +181,7 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>", config, StringComparison.Ordinal);
         Assert.Contains("entity.HasKey(x => x.Id);", config, StringComparison.Ordinal);
         // The value object maps through its converter.
-        Assert.Contains("entity.Property(x => x.Name).HasConversion(v => v.Value, s => ProductName.From(s)).HasMaxLength(200);", config, StringComparison.Ordinal);
+        Assert.Contains("entity.Property(x => x.Name).HasConversion(v => v.Value, s => ProductName.Create(s)).HasMaxLength(ProductName.MaxLength);", config, StringComparison.Ordinal);
         Assert.Contains("ApplyConfigurationsFromAssembly", File(Generate(), "ProductsDbContext.cs"), StringComparison.Ordinal);
     }
 
