@@ -22,6 +22,12 @@ Apply the matching playbook automatically:
 7. Open a PR (`type(scope): subject`, Conventional Commits — enforced by commitlint); delete the
    branch after squash-merge.
 
+## CI hygiene (`.github/workflows/`)
+Keep the annotation panel clean. Pin macOS jobs to an explicit image (`macos-26`), never the moving
+`macos-latest` label — the mobile jobs need the Xcode SDK the Microsoft.iOS workload auto-tracks. Keep
+`actions/*-artifact` (and other JS actions) on the current major so they run on the supported Node
+runtime, not a deprecated one.
+
 ## Principles
 Do your best on every PR. Hold UX, security, and performance together. Don't reinvent the wheel —
 use the BCL/framework. Automate what you can. Ask only when genuinely blocked.
