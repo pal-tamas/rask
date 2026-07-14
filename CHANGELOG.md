@@ -19,6 +19,16 @@ them until tagged releases begin.
   Removed the reusable `e2e.yml` and `native-ios-e2e.yml` workflows and the `native-appium` job.
 
 ### Added
+- **`Rask.Cli` — the `rask` command-line tool.** A new opt-in .NET tool
+  (`dotnet tool install -g Rask.Cli`) that gives Rask a short, task-focused CLI over the .NET SDK.
+  `rask new <name>` scaffolds a project — it maps a friendly `--template` (`server` (default) / `wasm` /
+  `wasm-hosted` / `native`) to the matching `dotnet new` template, forwards only the feature flags that
+  template supports (`--auth` / `--pwa` / `--cqrs` / `--docker`, rejecting unsupported combinations with
+  guidance instead of passing them through), and installs `Rask.Templates` on demand. `rask dev` runs the
+  app with C# Hot Reload (`dotnet watch run`; `--no-hot-reload` for a plain run, app args after `--`).
+  `rask info` reports the CLI / .NET SDK / template / OS environment. The tool is dependency-free (pure
+  BCL over `dotnet`) and its command surface is unit-tested through an injectable process-runner seam.
+  See [docs/cli.md](docs/cli.md). First step of the CLI roadmap (`generate` / `db` / `deploy` to follow).
 - **Opt-in `--docker` for the web templates.** `dotnet new rask-server`, `rask-wasm`, and
   `rask-wasm-hosted` take a `--docker` flag (default off) that scaffolds a production multi-stage
   `Dockerfile` + `.dockerignore`. The two Kestrel templates build on the .NET SDK image and run on

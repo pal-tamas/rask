@@ -48,7 +48,7 @@ https://github.com/pal-tamas/rask/tree/main/docs
 
 ## Build & run
 ```bash
-dotnet run        # then open the printed URL
+dotnet run        # then open the printed URL  (or: rask dev — hot reload, via `dotnet tool install -g Rask.Cli`)
 dotnet test       # if the project has tests
 ```
 - **Unit-testing components:** add `Rask.Testing` to your test project, then `RaskTest.Render(new MyComponent())` and drive it via `.ClickAsync()`/`.InputAsync()`/`.SubmitAsync()`, asserting on `.Html` — no browser or server. See docs/testing.md.
