@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -255,10 +255,27 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Bs_mode_uses_rask_bootstrap_components_and_utility_classes()
+    {
+        var result = Generate(useBs: true);
+
+        var create = File(result, "CreateProduct.cs");
+        Assert.Contains("BsCard(Class: Bs.Join(Shadow.Sm", create, StringComparison.Ordinal);
+        Assert.Contains("BsInput(() => _form.Name, Validate: ProductName.Validate, Id: \"name\", Label: \"Name\")", create, StringComparison.Ordinal);
+        Assert.Contains("BsButton(Type: \"submit\", Color: BsColor.Primary)", create, StringComparison.Ordinal);
+        Assert.Contains("Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3))", create, StringComparison.Ordinal);
+
+        var list = File(result, "ProductsPage.cs");
+        Assert.Contains("BsTable(Striped: true, Hover: true, Responsive: true)", list, StringComparison.Ordinal);
+        Assert.Contains("BsButton(Color: BsColor.Primary", list, StringComparison.Ordinal);
+        Assert.Contains("BsIcon(Name: BsIconName.PlusLg", list, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", "valueobjects", contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", useBs: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
@@ -268,7 +285,7 @@ public sealed class FeatureGeneratorTests
     public void Bool_field_renders_a_bootstrap_checkbox_not_a_text_input()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Job",
-            [new FieldSpec("Done", "bool", false, null)], "Guid", "valueobjects", null, null, outputOverride: null);
+            [new FieldSpec("Done", "bool", false, null)], "Guid", "valueobjects", useBs: false, null, null, outputOverride: null);
 
         var createJob = File(result, "CreateJob.cs");
         Assert.Contains("form-check-input", createJob, StringComparison.Ordinal);

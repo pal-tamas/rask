@@ -56,6 +56,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Option("plural", 'p')
             .Option("id")
             .Option("validation")
+            .Flag("bs")
             .Flag("force")
             .Flag("dry-run");
 
@@ -97,9 +98,9 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         if (kind != "feature"
             && (parsed.Option("fields") is not null || parsed.Option("context") is not null
                 || parsed.Option("plural") is not null || parsed.Option("id") is not null
-                || parsed.Option("validation") is not null))
+                || parsed.Option("validation") is not null || parsed.HasFlag("bs")))
         {
-            Console.Error.WriteLine("--fields, --context, --plural, --id, and --validation only apply to 'generate feature'.");
+            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, and --bs only apply to 'generate feature'.");
             return Task.FromResult(1);
         }
 
@@ -189,7 +190,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     return false;
                 }
 
-                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
+                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, parsed.HasFlag("bs"), parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
                 return true;
         }
     }

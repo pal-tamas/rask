@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask generate feature --bs` scaffolds with Rask.Bootstrap.** The `--bs` flag renders the generated
+  pages with `Bs*` components — `BsCard`/`BsCardBody`, `BsTable`, `BsButton`, `BsIcon`, and the bound
+  `BsInput`/`BsCheck` form controls (which carry their own label + validation feedback) — and lays them
+  out with typed `Bs.Join(...)` utility classes (`Display.Flex()`, `Flex.Gap(3)`, `Shadow.Sm`, …) instead
+  of raw class strings. Value-object / DataAnnotations / Fluent validation all compose with it. The
+  printed next-steps add `Rask.Bootstrap` + a reminder to link `BootstrapStyles()`.
 - **`rask generate feature` now emits value objects + an EF Core `IEntityTypeConfiguration`.** Each
   required (non-nullable) string field becomes a value object — a `readonly record struct <Entity><Field>`
   that owns its validation (`Validate` + `From`, a `MaxLength` const), reused by the form via
