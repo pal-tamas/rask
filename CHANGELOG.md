@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Central registration for the typed browser/device APIs, with native-first resolution.** The
+  interface → implementation map for the 43 browser wrappers, previously hand-duplicated across the
+  Server, WASM, and Native hosts, now lives in one place per assembly: `AddCoreBrowserApis` (the 31
+  transport-agnostic wrappers, in `Rask.Core.Browser`), `AddClientBrowserApis` (the in-process `IShare`,
+  in `Rask.Client.Browser`), and `AddWasmBrowserApis` (the 11 WASM-only wrappers, in `Rask.Wasm.Browser`).
+  Each host calls the tiers it can serve at its own lifetime (Server `Scoped`, WASM/Native `Singleton`).
+  Every registration uses `TryAdd`, so the JS-backed wrapper is now a **fallback**: a native backend — or
+  an explicit app registration — made first wins, and the framework resolves the best implementation per
+  host with no app-head wiring. Registrations use compile-time `typeof` only (reflection-free, trim-safe).
+- **`NativeAppHost.UsePlatform(INativePlatform)`** — a native platform module (iOS/Android) contributes
+  native C# backends for the browser/device interfaces; the host applies them before the JS fallbacks in
+  `RunLocalAsync`, so any interface a platform backs natively wins and the rest fall back to the WebView.
+
+### Changed
+- **Consistent one-file-per-API layout.** Every browser/device wrapper now lives in an `I{Api}.cs` file
+  holding the interface, its implementation, and its DTOs together (e.g. `Clipboard.cs` folded into
+  `IClipboard.cs`; `Geolocation.cs`/`GeolocationOptions.cs`/`GeolocationPosition.cs` into `IGeolocation.cs`;
+  the WASM wrappers renamed `Fullscreen.cs` → `IFullscreen.cs`, …). No public API or namespace changed.
+
 ## [0.16.0] - 2026-07-14
 
 ### Added
