@@ -356,6 +356,10 @@ protected override Component? Render() =>
   controlled: bind `SelectedSegment` to state and handle `OnSegmentChanged(int)` (which runs on the render
   thread and re-renders, like any callback). Use it for a small mode/sub-section switch:
   `NativeHeaderBar(Segments: ["All", "Active", "Done"], SelectedSegment: filter, OnSegmentChanged: i => filter = i)`.
+- **Back button** — a `NativeBackButton` in the header's `Leading` slot pops the WebView history (like the
+  hardware Back button) — the platform back chevron on iOS, a "‹" on Android. Compose it on a drill-down page
+  (e.g. a detail route) to return to the previous screen; the initial route replaces the boot shell URL in
+  history so Back from the first navigation lands on the app's first screen, not the shell.
 - **Overflow menu** — a `NativeMenuButton` is a bar item (header `Leading`/`Trailing` or a toolbar's `Items`)
   that opens a native pull-down of `NativeMenuItem`s — an iOS `UIMenu` on a `UIBarButtonItem`, an Android
   `PopupMenu` — for secondary actions. It defaults to a "⋯" (ellipsis) icon; each entry has a `Title`, an

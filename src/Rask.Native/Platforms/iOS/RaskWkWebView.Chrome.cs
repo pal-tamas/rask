@@ -357,8 +357,15 @@ internal sealed class RaskChromeContainerView : UIView
     {
         if (string.Equals(item.Kind, "back", StringComparison.Ordinal))
         {
-            // A plain back chevron — a navigation host provides the actual pop; emit nothing extra here.
-            return new UIBarButtonItem(UIBarButtonSystemItem.Cancel) { AccessibilityIdentifier = "rask-native-back" };
+            // A back chevron that pops the WebView history (like hardware Back) via a "back" event.
+            var backItem = new UIBarButtonItem
+            {
+                Style = UIBarButtonItemStyle.Plain,
+                Image = UIImage.GetSystemImage("chevron.backward"),
+                AccessibilityIdentifier = "rask-native-back",
+            };
+            backItem.Clicked += (_, _) => _raise?.Invoke("""{"type":"back"}""");
+            return backItem;
         }
 
         if (string.Equals(item.Kind, "menu", StringComparison.Ordinal))

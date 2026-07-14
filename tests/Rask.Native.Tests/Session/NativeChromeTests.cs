@@ -365,6 +365,44 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
         using var d1 = JsonDocument.Parse(chrome.LastJson);
         Assert.Equal("1", d1.RootElement.GetProperty("footer").GetProperty("tabs")[0].GetProperty("badge").GetString());
     }
+
+    [Fact]
+    public async Task BackButton_SerializesAsBackKind()
+    {
+        var chrome = new FakeNativeChrome();
+        _ = await NewSessionAsync<BackApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(chrome.Pushed[0]);
+        Assert.Equal("back", doc.RootElement.GetProperty("header").GetProperty("leading").GetProperty("kind").GetString());
+    }
+
+    [Fact]
+    public async Task InitialRender_ReplacesBootUrlWithAppRoute()
+    {
+        // The first frame seeds history with a REPLACE of the app's initial route so it supersedes the boot
+        // shell URL (/index.native.html) — otherwise Back from the first navigation lands on that 404 page.
+        var (_, _, initial) = await NewSessionAsync<BackApp>(diffMode: DiffMode);
+
+        using var doc = JsonDocument.Parse(initial.AsMemory());
+        var history = doc.RootElement.GetProperty("history");
+        Assert.Equal("replace", history.GetProperty("action").GetString());
+        Assert.Equal("/", history.GetProperty("url").GetString());
+    }
+
+    [Fact]
+    public async Task BackButton_PopsWebViewHistory()
+    {
+        // A native back tap pops the WebView history (window.history.back()) — the client's popstate then
+        // re-enters the router as a navigate, so back reuses the existing history plumbing.
+        var chrome = new FakeNativeChrome();
+        var (_, webView, _) = await NewSessionAsync<BackApp>(
+            configure: s => s.AddSingleton<INativeChrome>(chrome), diffMode: DiffMode);
+
+        await chrome.BackAsync();
+
+        Assert.Contains(webView.Evaluated, js => js.Contains("history.back", StringComparison.Ordinal));
+    }
 }
 
 internal sealed class HeaderApp : Component
@@ -503,6 +541,18 @@ internal sealed class BadgeTabApp : Component
                 NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/"),
                 NativeTab(Title: "Todos", Icon: NativeIcon.List, To: "/todos", Badge: _count.ToString()),
             ])
+    ];
+}
+
+internal sealed class BackApp : Component
+{
+    protected override Component? Render() =>
+    [
+        NativeHeaderBar(Title: "Detail", Leading: NativeBackButton()),
+        NativeWebView()[
+            Doctype(),
+            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
+        ]
     ];
 }
 

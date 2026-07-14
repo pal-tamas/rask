@@ -156,6 +156,10 @@ them until tagged releases begin.
   AndroidX). Controlled via `SelectedSegment` + `OnSegmentChanged(int)` (runs on the render thread and
   re-renders, reusing the `nativeTap` dispatch). Unit-tested in `NativeChromeTests`; the showcase shows an
   All/Active/Done filter on the Todos page that drives the Todos tab badge.
+- **Native back button.** `NativeBackButton` (header `Leading`) now works — tapping it pops the WebView
+  history like the hardware Back button (the platform back chevron on iOS, "‹" on Android), re-entering the
+  router via the existing `popstate` → `navigate` path. Previously it rendered but did nothing. The showcase
+  shows it on a drill-down guide page. Unit-tested in `NativeChromeTests`.
 - **Native overflow menu.** A `NativeMenuButton` bar item (header `Leading`/`Trailing` or a toolbar's `Items`)
   opens a native pull-down of `NativeMenuItem`s — an iOS `UIMenu` on a `UIBarButtonItem`, an Android
   `PopupMenu` (framework, no AndroidX) — for secondary actions. Each entry has a `Title`, optional `Icon`,
@@ -175,6 +179,10 @@ them until tagged releases begin.
   chrome push, so the bars never updated. The chrome is now re-pushed even when the body has no diff (guarded
   by a diff-mode `NativeChromeTests` regression). The Android overflow `PopupMenu` is also now held while shown
   so its managed item-click callback isn't garbage-collected.
+- **Native Back no longer lands on the boot shell.** The first native render now seeds WebView history with a
+  *replace* of the app's initial route, so it supersedes the boot shell URL (`/index.native.html`). Previously
+  the initial render emitted no history, so Back from the first navigation (a `NativeBackButton` or hardware
+  Back) popped to `/index.native.html` — a 404 "Page not found". Guarded by a `NativeChromeTests` case.
 - **Native Android bars are inset for the system bars.** The Android header/footer are drawn edge-to-edge (the
   colored bars fill behind the status/navigation bars); their content is now padded by the system-bar insets
   (framework `WindowInsets`, no AndroidX) so the title / segmented control / overflow button clear the status

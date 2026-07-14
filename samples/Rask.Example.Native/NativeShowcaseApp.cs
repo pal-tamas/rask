@@ -33,6 +33,10 @@ public sealed class NativeShowcaseApp(RouteState route) : App
 
     private bool OnTodos => route.Path.StartsWith("/todos", StringComparison.OrdinalIgnoreCase);
 
+    // A guide detail page (/guides/{slug}) is a drill-down from the Guides index, so its header gets a native
+    // back button that pops history back to the index (like hardware Back).
+    private bool OnGuideDetail => route.Path.StartsWith("/guides/", StringComparison.OrdinalIgnoreCase);
+
     protected override Component? Render()
     {
         // An overflow menu of secondary actions (shown on every page's header). Selecting an entry re-renders,
@@ -45,14 +49,15 @@ public sealed class NativeShowcaseApp(RouteState route) : App
 
         return
         [
-            // On Todos, the header shows the segmented filter in place of the title; elsewhere, the brand title.
-            // Both carry the overflow menu as a trailing item.
+            // On Todos, the header shows the segmented filter in place of the title; elsewhere, the brand title
+            // (with a back button when on a drill-down guide page). Both carry the overflow menu as a trailing item.
             OnTodos
                 ? NativeHeaderBar(
                     Background: Brand, Tint: OnBrand, TitleColor: OnBrand,
                     Segments: Filters, SelectedSegment: _filter, OnSegmentChanged: i => _filter = i,
                     Trailing: [overflow])
                 : NativeHeaderBar(Title: "Rask", Background: Brand, Tint: OnBrand, TitleColor: OnBrand,
+                    Leading: OnGuideDetail ? NativeBackButton() : null,
                     Trailing: [overflow]),
             NativeWebView()[base.Render()],
             NativeTabBar(

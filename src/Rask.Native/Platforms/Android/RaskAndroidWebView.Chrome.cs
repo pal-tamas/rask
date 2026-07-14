@@ -289,6 +289,13 @@ public sealed partial class RaskAndroidWebView
             view = button;
         }
 
+        if (isBack)
+        {
+            // A back button pops the WebView history (like hardware Back) via a "back" event.
+            view.Click += (_, _) => Raise("""{"type":"back"}""");
+            return view;
+        }
+
         var id = item.Id;
         if (id is not null)
         {

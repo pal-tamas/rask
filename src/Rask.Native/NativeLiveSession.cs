@@ -360,6 +360,14 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     }
 
     /// <summary>
+    ///     Handle a native back affordance (<c>{"type":"back"}</c>, from a <c>NativeBackButton</c>): pop the
+    ///     WebView's own history, exactly like the hardware Back button. The client's <c>popstate</c> listener
+    ///     then sends a <c>navigate</c> to the now-current (previous) route, which re-enters the router — so back
+    ///     reuses the existing history plumbing rather than a parallel server-side stack.
+    /// </summary>
+    public ValueTask GoBackAsync() => _webView.EvaluateJavaScriptAsync("window.history.back()");
+
+    /// <summary>
     ///     Handle a bar-button tap (<c>{"type":"nativeTap","id":"…"}</c>): look up the button's <c>OnClick</c>,
     ///     invoke it (its factory wrapper re-renders the owner), then render + emit + push exactly like
     ///     <see cref="DispatchAsync" />. Returns the sent frame bytes (the test seam). A tab tap arrives as a
@@ -534,7 +542,11 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         await _renderLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            // Seed WebView history with the initial route as a REPLACE so it supersedes the boot shell URL
+            // (/index.native.html) — otherwise Back from the first navigation (or hardware Back) lands on that
+            // 404-ing shell path instead of the app's first screen.
+            var initialPath = Services.GetRequiredService<RouteState>().Path;
+            await BuildPayloadAsync(initialPath, replace: true).ConfigureAwait(false);
             if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 return Array.Empty<byte>();
