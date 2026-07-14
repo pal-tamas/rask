@@ -37,6 +37,15 @@ public class InputTests
         Assert.Equal($"<input type=\"{html}\" />", Input<string>(type).ToHtml());
 
     [Fact]
+    public void Render_HonorsCallerAriaRoleAndTabIndex() =>
+        // Global attributes come through Element in the canonical slot order (role, tabindex, aria-*) BEFORE
+        // the tag-specific `type` — a caller can wire an accessible name / role onto a bare input.
+        Assert.Equal(
+            "<input role=\"switch\" tabindex=\"0\" aria-label=\"volume\" type=\"range\" />",
+            Input<string>(InputType.Range, Role: "switch", TabIndex: 0,
+                Aria: new Dictionary<string, string?> { ["label"] = "volume" }).ToHtml());
+
+    [Fact]
     public void Render_SpellcheckFalse_EmitsEnumeratedValue() =>
         // spellcheck is an enumerated attribute, not a boolean-presence one — false must render explicitly.
         Assert.Equal("<input spellcheck=\"false\" />", Input<string>(Spellcheck: false).ToHtml());

@@ -65,6 +65,34 @@ public class BsCheckboxGroupTests
     }
 
     [Fact]
+    public async Task CheckboxGroup_Bound_TogglesCollectionMembership()
+    {
+        // End-to-end through the control's ToggleAsync: unchecking option "a" removes it from the bound
+        // collection; re-checking it adds it back (checkbox change handlers report the box's "true"/"false").
+        var model = new TagModel { Tags = { "a" } };
+        var view = new StubComponent(() => Form(model)[
+            BsCheckboxGroup(() => model.Tags, ["a", "b"], Name: "tags")
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+        var aChangeId = Markup.Attr(html, "data-rask-on-change")!; // first checkbox = option "a"
+
+        using (var off = JsonDocument.Parse("{\"value\":\"false\"}"))
+        {
+            await view.TryInvokeHandlerAsync(aChangeId, off.RootElement);
+        }
+
+        Assert.Empty(model.Tags);
+
+        using (var on = JsonDocument.Parse("{\"value\":\"true\"}"))
+        {
+            await view.TryInvokeHandlerAsync(aChangeId, on.RootElement);
+        }
+
+        Assert.Equal(new[] { "a" }, model.Tags);
+    }
+
+    [Fact]
     public void CheckboxGroup_NeitherBindNorValue_Throws() =>
         Assert.Throws<InvalidOperationException>(() => BsCheckboxGroup(Options: ["a"]).ToHtml());
 
