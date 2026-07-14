@@ -6,10 +6,13 @@ shape right yourself. Each is a thin, awaitable layer over the same unified
 [`IJSRuntime`](js-interop.md#calling-js-from-c-ijsruntime), so it works the same way whether your
 app runs on the **Server** (WebSocket) or **WASM** (`JSImport`/`JSExport`) transport.
 
-This page is the **map of the whole surface**. For the deeper "why" — user activation, the
-transport seam, element refs — see [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis);
-for the mobile/PWA angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in
-the **Browser APIs** section of the [showcase](https://pal-tamas.github.io/rask/demo/).
+This page is the **map of the whole surface**. For an at-a-glance view of *where each API works*
+(Web / PWA / Native, and which have a native backend), see the
+[**capability matrix**](browser-capabilities.md) — it links to a dedicated reference page per API
+under [`docs/apis/`](apis/). For the deeper "why" — user activation, the transport seam, element
+refs — see [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis); for the mobile/PWA
+angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in the **Browser APIs**
+section of the [showcase](https://pal-tamas.github.io/rask/demo/).
 
 ## Three homes, one rule
 
@@ -86,6 +89,15 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
 | `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
 | `IGamepad` | Gamepad API | Connected controllers — sticks / triggers / buttons (browser games) | **subscription** |
+| `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription`); send from the backend with [`Rask.WebPush`](pwa.md#sending-from-your-backend-raskwebpush) | one-shot |
+| `INotifications` | Notifications API | Show a local notification from the page | one-shot |
+| `IBadge` | Badging API | Set/clear a count on the installed app icon | one-shot |
+| `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | one-shot |
+
+The last four are **PWA** APIs but transport-agnostic (`IJSRuntime`-backed, no transient activation), so they
+register on Server too — their JS helpers just ship on the Server client only under `AddRaskPwa` (see
+[pwa.md](pwa.md)). On Native, several Shared APIs resolve to a **native C# backend** instead of the WebView —
+see the [capability matrix](browser-capabilities.md) and the [Native guide](native.md#native-device-backends).
 
 ## Sharing — declarative (all hosts) vs imperative (in-process)
 
@@ -122,10 +134,6 @@ provides — the installed-PWA instance / live document, or a browser-only devic
 | Service | Wraps | What it does | Why WASM-only |
 | --- | --- | --- | --- |
 | `IFullscreen` | Fullscreen API | Present an element/page fullscreen | transient activation |
-| `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription`); send from the backend with [`Rask.WebPush`](pwa.md#sending-from-your-backend-raskwebpush) | service worker + installed PWA |
-| `INotifications` | Notifications API | Show a local notification from the page | permission needs a live gesture |
-| `IBadge` | Badging API | Set/clear a count on the installed app icon | installed-PWA instance |
-| `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | tied to the live document |
 | `IScreenOrientation` | Screen Orientation API | Read / lock orientation (lock needs fullscreen) | live document |
 | `IInstallPrompt` | `beforeinstallprompt` | Custom "Install app" button: capture + replay the deferred prompt | live document + activation |
 | `IMediaDevices` | `getUserMedia` / `getDisplayMedia` | Capture camera / mic / screen into a `<video>` (calls, capture) | transient activation + secure context |

@@ -7,6 +7,13 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Documentation
+- **Browser/device API capability matrix + per-API reference pages.** New
+  [`docs/browser-capabilities.md`](docs/browser-capabilities.md) is a single table of all 43 wrappers
+  showing where each works (Web / PWA / Native) and which have a native iOS/Android backend, linking to a
+  dedicated reference page per API under `docs/apis/`. Reconciled the stale WASM-only classification of
+  `IWebPush`/`INotifications`/`IBadge`/`IWakeLock` (they are transport-agnostic and register on Server).
+
 ### Added
 - **Native iOS/Android backends for the browser/device APIs, wired with one line.** `Rask.Native` now
   ships native C# implementations of ten interfaces and a platform module that installs them:
