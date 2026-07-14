@@ -7,8 +7,10 @@ namespace Rask.SQLite.Litestream;
 public sealed class LitestreamOptions
 {
     /// <summary>
-    /// Path to the <c>litestream</c> executable. Defaults to <c>"litestream"</c> (resolved from
-    /// <c>PATH</c>); set an absolute path if it lives somewhere else (e.g. <c>/usr/local/bin/litestream</c>).
+    /// Path to the <c>litestream</c> executable. Defaults to <c>"litestream"</c>, which resolves to the
+    /// binary the package drops next to your app at build time (see <c>RaskLitestreamDownload</c>), then
+    /// falls back to a <c>PATH</c> lookup. Set an absolute path to use a specific binary
+    /// (e.g. <c>/usr/local/bin/litestream</c>).
     /// </summary>
     public string ExecutablePath { get; set; } = "litestream";
 

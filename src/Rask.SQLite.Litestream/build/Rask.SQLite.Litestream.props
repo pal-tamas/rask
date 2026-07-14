@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+    Consumer-facing knobs for the litestream binary that Rask.SQLite.Litestream downloads at build.
+    Override any of these in your project (or with -p:) — e.g. set RaskLitestreamDownload=false in an
+    air-gapped build and provide your own binary via LitestreamOptions.ExecutablePath.
+  -->
+  <PropertyGroup>
+    <!-- Master switch. When false, nothing is downloaded and no binary is copied to the output. -->
+    <RaskLitestreamDownload Condition="'$(RaskLitestreamDownload)' == ''">true</RaskLitestreamDownload>
+
+    <!-- The litestream release to fetch (no leading 'v'). Change this AND supply the matching SHA-256
+         via RaskLitestreamSha256 to pin a different version; otherwise the checksum verification for the
+         default version below is used. -->
+    <RaskLitestreamVersion Condition="'$(RaskLitestreamVersion)' == ''">0.5.14</RaskLitestreamVersion>
+
+    <!-- Where releases are downloaded from (override for a mirror). -->
+    <RaskLitestreamReleaseBaseUrl Condition="'$(RaskLitestreamReleaseBaseUrl)' == ''">https://github.com/benbjohnson/litestream/releases/download</RaskLitestreamReleaseBaseUrl>
+
+    <!-- Optional: pin the SHA-256 yourself (required when RaskLitestreamVersion is changed from the
+         default, since the built-in checksums only cover that version). -->
+    <RaskLitestreamSha256 Condition="'$(RaskLitestreamSha256)' == ''"></RaskLitestreamSha256>
+  </PropertyGroup>
+
+</Project>

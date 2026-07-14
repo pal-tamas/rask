@@ -1,0 +1,117 @@
+<Project>
+
+  <!--
+    Downloads the litestream binary for the target runtime at build/publish time and copies it next to
+    the app, so a Rask.SQLite.Litestream consumer needs no separate install. The binary is fetched once
+    into a per-user cache (~/.rask/litestream/<version>/<rid>), SHA-256-verified against the pinned
+    checksum, and reused by later builds. Disable with RaskLitestreamDownload=false (then supply your own
+    litestream via LitestreamOptions.ExecutablePath). See build/Rask.SQLite.Litestream.props for knobs.
+  -->
+
+  <Target Name="_RaskResolveLitestreamAsset" Condition="'$(RaskLitestreamDownload)' == 'true'">
+    <PropertyGroup>
+      <!-- Target RID, or the build host when building portable (no RID). -->
+      <_RaskLsRid>$(RuntimeIdentifier)</_RaskLsRid>
+      <_RaskLsHostArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</_RaskLsHostArch>
+      <_RaskLsRid Condition="'$(_RaskLsRid)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">linux-$(_RaskLsHostArch)</_RaskLsRid>
+      <_RaskLsRid Condition="'$(_RaskLsRid)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">osx-$(_RaskLsHostArch)</_RaskLsRid>
+      <_RaskLsRid Condition="'$(_RaskLsRid)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">win-$(_RaskLsHostArch)</_RaskLsRid>
+
+      <!-- Map the RID to litestream's os/arch tokens. -->
+      <_RaskLsOs Condition="$(_RaskLsRid.StartsWith('linux'))">linux</_RaskLsOs>
+      <_RaskLsOs Condition="$(_RaskLsRid.StartsWith('osx'))">darwin</_RaskLsOs>
+      <_RaskLsOs Condition="$(_RaskLsRid.StartsWith('win'))">windows</_RaskLsOs>
+
+      <_RaskLsArch Condition="$(_RaskLsRid.EndsWith('arm64'))">arm64</_RaskLsArch>
+      <_RaskLsArch Condition="$(_RaskLsRid.EndsWith('x64'))">x86_64</_RaskLsArch>
+      <_RaskLsArch Condition="$(_RaskLsRid.EndsWith('arm')) and !$(_RaskLsRid.EndsWith('arm64'))">armv7</_RaskLsArch>
+
+      <_RaskLsIsZip>false</_RaskLsIsZip>
+      <_RaskLsIsZip Condition="'$(_RaskLsOs)' == 'windows'">true</_RaskLsIsZip>
+      <_RaskLsExt>.tar.gz</_RaskLsExt>
+      <_RaskLsExt Condition="'$(_RaskLsIsZip)' == 'true'">.zip</_RaskLsExt>
+      <_RaskLsExeSuffix Condition="'$(_RaskLsOs)' == 'windows'">.exe</_RaskLsExeSuffix>
+
+      <!-- Which os/arch combos litestream actually ships. -->
+      <_RaskLsSupported>false</_RaskLsSupported>
+      <_RaskLsSupported Condition="'$(_RaskLsOs)' == 'linux' and ('$(_RaskLsArch)' == 'x86_64' or '$(_RaskLsArch)' == 'arm64' or '$(_RaskLsArch)' == 'armv7')">true</_RaskLsSupported>
+      <_RaskLsSupported Condition="'$(_RaskLsOs)' == 'darwin' and ('$(_RaskLsArch)' == 'x86_64' or '$(_RaskLsArch)' == 'arm64')">true</_RaskLsSupported>
+      <_RaskLsSupported Condition="'$(_RaskLsOs)' == 'windows' and ('$(_RaskLsArch)' == 'x86_64' or '$(_RaskLsArch)' == 'arm64')">true</_RaskLsSupported>
+
+      <_RaskLsAsset>litestream-$(RaskLitestreamVersion)-$(_RaskLsOs)-$(_RaskLsArch)$(_RaskLsExt)</_RaskLsAsset>
+      <_RaskLsUrl>$(RaskLitestreamReleaseBaseUrl)/v$(RaskLitestreamVersion)/$(_RaskLsAsset)</_RaskLsUrl>
+
+      <_RaskLsHome Condition="$([MSBuild]::IsOSPlatform('Windows'))">$([System.Environment]::GetEnvironmentVariable('USERPROFILE'))</_RaskLsHome>
+      <_RaskLsHome Condition="!$([MSBuild]::IsOSPlatform('Windows'))">$([System.Environment]::GetEnvironmentVariable('HOME'))</_RaskLsHome>
+      <_RaskLsCacheDir>$([System.IO.Path]::Combine('$(_RaskLsHome)', '.rask', 'litestream', '$(RaskLitestreamVersion)', '$(_RaskLsRid)'))$([System.IO.Path]::DirectorySeparatorChar)</_RaskLsCacheDir>
+      <_RaskLsArchivePath>$(_RaskLsCacheDir)$(_RaskLsAsset)</_RaskLsArchivePath>
+      <_RaskLsBinary>$(_RaskLsCacheDir)litestream$(_RaskLsExeSuffix)</_RaskLsBinary>
+
+      <!-- Pinned SHA-256s for the default version. A user-supplied RaskLitestreamSha256 always wins. -->
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.14' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'linux-x86_64'">32083dd2af13840b273c538360b828368d7b82bbaa2c641106052dc7814ed956</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.14' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'linux-arm64'">b49b3d01fb0a8b4d426ee613c080fba44acae0551587dc43525dcd93eee64b4f</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.14' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'linux-armv7'">2e4410f6fa03f4d86ea77fbe5443587239ec4907c68166d2a9d48e680e0dd52a</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.14' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'darwin-x86_64'">7432fc0a8c796c6a86f57d13a771d01795c3ea90da124c37e5af501cd08db0e4</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.14' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'darwin-arm64'">d4a1f810387d66264e4c9b0c3a29aa3d5dff2d6f53cb4c55ec093594d2ef94c3</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.14' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'windows-x86_64'">3fbbecb41e41fb03869551ba141835981e93a86805501cc73ee51eac62d92793</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.14' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'windows-arm64'">ded574465f77a5b703bf06800e20079b2c02a016f26925b59543abdd5ca02ed0</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamSha256)' != ''">$(RaskLitestreamSha256)</_RaskLsSha>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_RaskDownloadLitestream"
+          Condition="'$(RaskLitestreamDownload)' == 'true' and '$(DesignTimeBuild)' != 'true'"
+          DependsOnTargets="_RaskResolveLitestreamAsset"
+          BeforeTargets="AssignTargetPaths">
+
+    <Warning Condition="'$(_RaskLsSupported)' != 'true'"
+             Text="Rask.SQLite.Litestream: litestream ships no binary for runtime '$(_RaskLsRid)'. Install litestream and set LitestreamOptions.ExecutablePath, or set RaskLitestreamDownload=false." />
+
+    <MakeDir Condition="'$(_RaskLsSupported)' == 'true'" Directories="$(_RaskLsCacheDir)" />
+
+    <DownloadFile Condition="'$(_RaskLsSupported)' == 'true' and !Exists('$(_RaskLsBinary)')"
+                  SourceUrl="$(_RaskLsUrl)"
+                  DestinationFolder="$(_RaskLsCacheDir)"
+                  DestinationFileName="$(_RaskLsAsset)"
+                  SkipUnchangedFiles="true" />
+
+    <GetFileHash Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsSha)' != '' and !Exists('$(_RaskLsBinary)')"
+                 Files="$(_RaskLsArchivePath)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_RaskLsActualSha" />
+    </GetFileHash>
+    <Error Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsSha)' != '' and !Exists('$(_RaskLsBinary)') and '$(_RaskLsActualSha.ToLowerInvariant())' != '$(_RaskLsSha.ToLowerInvariant())'"
+           Text="Rask.SQLite.Litestream: checksum mismatch for $(_RaskLsAsset). Expected $(_RaskLsSha), got $(_RaskLsActualSha). The download may be corrupt or tampered with." />
+    <Warning Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsSha)' == '' and !Exists('$(_RaskLsBinary)')"
+             Text="Rask.SQLite.Litestream: no pinned checksum for litestream $(RaskLitestreamVersion) on $(_RaskLsRid); set RaskLitestreamSha256 to verify the download." />
+
+    <!-- Extract the binary (litestream / litestream.exe) into the cache. -->
+    <Exec Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsIsZip)' != 'true' and !Exists('$(_RaskLsBinary)')"
+          Command="tar -xzf &quot;$(_RaskLsArchivePath)&quot; -C &quot;$(_RaskLsCacheDir)&quot;" />
+    <Unzip Condition="'$(_RaskLsSupported)' == 'true' and '$(_RaskLsIsZip)' == 'true' and !Exists('$(_RaskLsBinary)')"
+           SourceFiles="$(_RaskLsArchivePath)" DestinationFolder="$(_RaskLsCacheDir)" />
+
+    <!-- Copy it next to the app on build and publish. -->
+    <ItemGroup Condition="'$(_RaskLsSupported)' == 'true' and Exists('$(_RaskLsBinary)')">
+      <None Include="$(_RaskLsBinary)">
+        <Link>litestream$(_RaskLsExeSuffix)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <Visible>false</Visible>
+      </None>
+    </ItemGroup>
+  </Target>
+
+  <!-- MSBuild's copy doesn't carry the Unix exec bit, so restore it on the copied binary. -->
+  <Target Name="_RaskChmodLitestreamBuild"
+          AfterTargets="Build"
+          Condition="'$(RaskLitestreamDownload)' == 'true' and !$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Condition="Exists('$(TargetDir)litestream')" Command="chmod +x &quot;$(TargetDir)litestream&quot;" />
+  </Target>
+
+  <Target Name="_RaskChmodLitestreamPublish"
+          AfterTargets="Publish"
+          Condition="'$(RaskLitestreamDownload)' == 'true' and !$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Condition="Exists('$(PublishDir)litestream')" Command="chmod +x &quot;$(PublishDir)litestream&quot;" />
+  </Target>
+
+</Project>
