@@ -64,7 +64,7 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 |----------|-------|-------------------|
 | `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
 | `component <Name>` | `Components/<Name>.cs` — a plain `Component` | `<Name>` in `<Root>.Components` |
-| `feature <Name> --fields …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id), an EF `IEntityTypeConfiguration`, a `DbContext`, **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
+| `feature <Name> --fields …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id) with **value objects** for required strings (built-in validation), an EF `IEntityTypeConfiguration`, a `DbContext`, **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
 
 | Option | Meaning |
 |--------|---------|

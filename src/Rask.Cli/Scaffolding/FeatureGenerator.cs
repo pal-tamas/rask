@@ -38,8 +38,8 @@ internal static class FeatureGenerator
             ("__ROUTE__", route), ("__IDTYPE__", idType), ("__IDCONSTRAINT__", idConstraint),
             ("__CREATEARGS__", RequestArgs(fields, "command.Request")),
             ("__HEADERS__", TableHeaders(fields)), ("__CELLS__", TableCells(fields)),
-            ("__FORMFIELDS__", FormFields(fields)), ("__COPYTOFORM__", CopyToForm(fields)),
-            ("__CONFIGPROPS__", ConfigProperties(fields)),
+            ("__FORMFIELDS__", FormFields(entityName, fields)), ("__COPYTOFORM__", CopyToForm(fields)),
+            ("__CONFIGPROPS__", ConfigProperties(entityName, fields)),
         };
 
         var files = new List<ScaffoldFile>
@@ -53,6 +53,14 @@ internal static class FeatureGenerator
             new(Path.Combine(targetDirectory, "Update" + entityName + ".cs"), Apply(UpdateTemplate, tokens)),
         };
 
+        // One value object per required-string field, each owning its validation.
+        foreach (var field in fields.Where(IsValueObject))
+        {
+            files.Add(new ScaffoldFile(
+                Path.Combine(targetDirectory, ValueObjectName(entityName, field) + ".cs"),
+                RenderValueObject(ns, entityName, field)));
+        }
+
         if (generateContext)
         {
             files.Insert(2, new ScaffoldFile(Path.Combine(targetDirectory, context + ".cs"), Apply(DbContextTemplate, tokens)));
@@ -63,21 +71,33 @@ internal static class FeatureGenerator
 
     // ---- entity + shared request (StringBuilder — per-field attributes make raw strings awkward) ----
 
+    // A required (non-nullable) string field is modelled as a value object that owns its own validation
+    // (built-in, dependency-free). Optional strings and other types stay primitive.
+    private static bool IsValueObject(FieldSpec f) => f.IsString && !f.IsNullable;
+
+    private static string ValueObjectName(string entity, FieldSpec f) => entity + f.Name;
+
+    private static string EntityPropertyType(string entity, FieldSpec f) =>
+        IsValueObject(f) ? ValueObjectName(entity, f) : f.PropertyType;
+
     internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType)
     {
         var sb = new StringBuilder();
         sb.Append("namespace ").Append(ns).Append(";\n\n");
         sb.Append("public sealed class ").Append(entity).Append("\n{\n");
         sb.Append("    private ").Append(entity).Append("() { } // EF Core materialization\n\n");
-        sb.Append("    private ").Append(entity).Append('(').Append(ParamList(fields)).Append(")\n    {\n");
+
+        // The ctor takes the value-object types; Create/Update take primitives and wrap them via From.
+        var ctorParams = string.Join(", ", fields.Select(f => $"{EntityPropertyType(entity, f)} {Identifiers.ToCamelCase(f.Name)}"));
+        sb.Append("    private ").Append(entity).Append('(').Append(ctorParams).Append(")\n    {\n");
         sb.Append(Assignments(fields, "        ")).Append("\n    }\n\n");
         sb.Append("    public ").Append(idType).Append(" Id { get; private set; }");
         sb.Append(idType == "Guid" ? " = Guid.NewGuid();\n" : "\n");
 
         foreach (var field in fields)
         {
-            sb.Append("\n    public ").Append(field.PropertyType).Append(' ').Append(field.Name).Append(" { get; private set; }");
-            if (field.Initializer is not null)
+            sb.Append("\n    public ").Append(EntityPropertyType(entity, field)).Append(' ').Append(field.Name).Append(" { get; private set; }");
+            if (field.Initializer is not null && !IsValueObject(field))
             {
                 sb.Append(' ').Append(field.Initializer).Append(';');
             }
@@ -85,41 +105,41 @@ internal static class FeatureGenerator
             sb.Append('\n');
         }
 
-        sb.Append("\n    public static ").Append(entity).Append(" Create(").Append(ParamList(fields)).Append(") => new(").Append(ArgList(fields)).Append(");\n\n");
-        sb.Append("    public void Update(").Append(ParamList(fields)).Append(")\n    {\n").Append(Assignments(fields, "        ")).Append("\n    }\n}\n");
+        var createParams = string.Join(", ", fields.Select(f => $"{f.PropertyType} {Identifiers.ToCamelCase(f.Name)}"));
+        var createArgs = string.Join(", ", fields.Select(f => WrapPrimitive(entity, f)));
+        sb.Append("\n    public static ").Append(entity).Append(" Create(").Append(createParams).Append(") => new(").Append(createArgs).Append(");\n\n");
+
+        sb.Append("    public void Update(").Append(createParams).Append(")\n    {\n");
+        sb.Append(string.Join("\n", fields.Select(f => $"        this.{f.Name} = {WrapPrimitive(entity, f)};"))).Append("\n    }\n}\n");
         return sb.ToString();
+    }
+
+    // Wrap a primitive parameter into its value object where the field has one, else pass it through.
+    private static string WrapPrimitive(string entity, FieldSpec f)
+    {
+        var param = Identifiers.ToCamelCase(f.Name);
+        return IsValueObject(f) ? $"{ValueObjectName(entity, f)}.From({param})" : param;
+    }
+
+    internal static string RenderValueObject(string ns, string entity, FieldSpec f)
+    {
+        var name = ValueObjectName(entity, f);
+        var max = f.MaxLength!.Value.ToString(CultureInfo.InvariantCulture);
+        return Apply(ValueObjectTemplate,
+        [
+            ("__NS__", ns), ("__VO__", name), ("__FIELD__", f.Name), ("__MAX__", max),
+        ]);
     }
 
     private static string RenderRequest(string ns, string entity, IReadOnlyList<FieldSpec> fields)
     {
         var sb = new StringBuilder();
-        if (fields.Any(f => f.IsString))
-        {
-            sb.Append("using System.ComponentModel.DataAnnotations;\n\n");
-        }
-
         sb.Append("namespace ").Append(ns).Append(";\n\n");
         sb.Append("// The shared form model for the create + edit slices; maps onto ").Append(entity).Append(".Create/Update.\n");
-        sb.Append("// The forms bind this, so the validation attributes live here (a DataAnnotations validator reads them).\n");
+        sb.Append("// Validation lives on the value objects and runs in the form via Input(..., Validate: ...).\n");
         sb.Append("public sealed class ").Append(entity).Append("Request\n{\n");
-        var first = true;
         foreach (var field in fields)
         {
-            if (field.IsString)
-            {
-                if (!first)
-                {
-                    sb.Append('\n');
-                }
-
-                if (!field.IsNullable)
-                {
-                    sb.Append("    [Required]\n");
-                }
-
-                sb.Append("    [MaxLength(").Append(field.MaxLength!.Value.ToString(CultureInfo.InvariantCulture)).Append(")]\n");
-            }
-
             sb.Append("    public ").Append(field.PropertyType).Append(' ').Append(field.Name).Append(" { get; set; }");
             if (field.Initializer is not null)
             {
@@ -127,7 +147,6 @@ internal static class FeatureGenerator
             }
 
             sb.Append('\n');
-            first = false;
         }
 
         sb.Append("}\n");
@@ -135,12 +154,6 @@ internal static class FeatureGenerator
     }
 
     // ---- per-field fragment builders ----
-
-    private static string ParamList(IReadOnlyList<FieldSpec> fields) =>
-        string.Join(", ", fields.Select(f => $"{f.PropertyType} {Identifiers.ToCamelCase(f.Name)}"));
-
-    private static string ArgList(IReadOnlyList<FieldSpec> fields) =>
-        string.Join(", ", fields.Select(f => Identifiers.ToCamelCase(f.Name)));
 
     private static string Assignments(IReadOnlyList<FieldSpec> fields, string indent) =>
         // `this.` disambiguates the property from an identically-cased parameter (e.g. a lowercase
@@ -154,27 +167,34 @@ internal static class FeatureGenerator
         string.Join("\n", fields.Select(f => $"                            Th()[\"{f.Name}\"],"));
 
     private static string TableCells(IReadOnlyList<FieldSpec> fields) =>
-        string.Join("\n", fields.Select(f => f.IsString
-            ? $"                            Td()[x.{f.Name}],"
-            : $"                            Td()[$\"{{x.{f.Name}}}\"],"));
-
-    private static string CopyToForm(IReadOnlyList<FieldSpec> fields) =>
-        string.Join("\n", fields.Select(f => $"                _form.{f.Name} = entity.{f.Name};"));
-
-    // The EF Core mapping for each string column (length + required); other types need no configuration.
-    private static string ConfigProperties(IReadOnlyList<FieldSpec> fields) =>
-        string.Join("\n", fields.Where(f => f.IsString).Select(f =>
+        string.Join("\n", fields.Select(f =>
         {
-            var required = f.IsNullable ? "" : ".IsRequired()";
-            return $"        entity.Property(x => x.{f.Name}){required}.HasMaxLength({f.MaxLength!.Value.ToString(CultureInfo.InvariantCulture)});";
+            var access = IsValueObject(f) ? $"x.{f.Name}.Value" : f.IsString ? $"x.{f.Name}" : $"$\"{{x.{f.Name}}}\"";
+            return $"                            Td()[{access}],";
         }));
 
-    private static string FormFields(IReadOnlyList<FieldSpec> fields)
+    private static string CopyToForm(IReadOnlyList<FieldSpec> fields) =>
+        string.Join("\n", fields.Select(f => $"                _form.{f.Name} = entity.{f.Name}{(IsValueObject(f) ? ".Value" : "")};"));
+
+    // The EF Core mapping per string column: a value object maps through its converter; an optional
+    // string just gets a length. Other types need no configuration.
+    private static string ConfigProperties(string entity, IReadOnlyList<FieldSpec> fields) =>
+        string.Join("\n", fields.Where(f => f.IsString).Select(f =>
+        {
+            var len = f.MaxLength!.Value.ToString(CultureInfo.InvariantCulture);
+            return IsValueObject(f)
+                ? $"        entity.Property(x => x.{f.Name}).HasConversion(v => v.Value, s => {ValueObjectName(entity, f)}.From(s)).HasMaxLength({len});"
+                : $"        entity.Property(x => x.{f.Name}).HasMaxLength({len});";
+        }));
+
+    private static string FormFields(string entity, IReadOnlyList<FieldSpec> fields)
     {
         var sb = new StringBuilder();
         foreach (var field in fields)
         {
             var id = field.Name.ToLowerInvariant();
+            // A value-object field wires its built-in Validate into the bound input.
+            var validate = IsValueObject(field) ? $", Validate: {ValueObjectName(entity, field)}.Validate" : "";
             if (field.CsType == "bool")
             {
                 sb.Append("                    Div(Class: \"form-check\")[\n")
@@ -186,7 +206,7 @@ internal static class FeatureGenerator
             {
                 sb.Append("                    Div()[\n")
                     .Append("                        Label(\"").Append(id).Append("\", Class: \"form-label small mb-1\")[\"").Append(field.Name).Append("\"],\n")
-                    .Append("                        Input(() => _form.").Append(field.Name).Append(", Id: \"").Append(id).Append("\", Class: \"form-control\")\n")
+                    .Append("                        Input(() => _form.").Append(field.Name).Append(validate).Append(", Id: \"").Append(id).Append("\", Class: \"form-control\")\n")
                     .Append("                    ],\n");
             }
         }
@@ -244,6 +264,48 @@ internal static class FeatureGenerator
 
             protected override void OnModelCreating(ModelBuilder modelBuilder) =>
                 modelBuilder.ApplyConfigurationsFromAssembly(typeof(__CONTEXT__).Assembly);
+        }
+
+        """;
+
+    private const string ValueObjectTemplate =
+        """
+        namespace __NS__;
+
+        // Value object for __FIELD__ — the validation rule lives here and is reused by the form
+        // (Input(..., Validate: __VO__.Validate)) and by From.
+        public readonly record struct __VO__
+        {
+            public const int MaxLength = __MAX__;
+
+            public string Value { get; }
+
+            private __VO__(string value) => Value = value;
+
+            public static IEnumerable<string> Validate(string value)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    yield return "__FIELD__ is required.";
+                }
+                else if (value.Trim().Length > MaxLength)
+                {
+                    yield return $"__FIELD__ must be {MaxLength} characters or fewer.";
+                }
+            }
+
+            public static __VO__ From(string value)
+            {
+                var errors = Validate(value).ToList();
+                if (errors.Count > 0)
+                {
+                    throw new ArgumentException(string.Join(" ", errors), nameof(value));
+                }
+
+                return new __VO__(value.Trim());
+            }
+
+            public override string ToString() => Value;
         }
 
         """;

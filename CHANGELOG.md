@@ -8,10 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
-- **`rask generate feature` now emits an EF Core `IEntityTypeConfiguration`.** Each feature gets a
-  `<Entity>Configuration : IEntityTypeConfiguration<<Entity>>` (`HasKey` + `IsRequired()`/`HasMaxLength()`
-  per string field), applied via `ApplyConfigurationsFromAssembly` in the generated `DbContext`. The
-  schema now lives in the configuration, so the entity is a clean, attribute-free domain model.
+- **`rask generate feature` now emits value objects + an EF Core `IEntityTypeConfiguration`.** Each
+  required (non-nullable) string field becomes a value object — a `readonly record struct <Entity><Field>`
+  that owns its validation (`Validate` + `From`, a `MaxLength` const), reused by the form via
+  `Input(…, Validate: <Entity><Field>.Validate)` and mapped to its column with `HasConversion`. The
+  entity holds the value-object type; `Create`/`Update` take primitives and wrap them via `From`. This is
+  the built-in, dependency-free default validation. Each feature also gets a
+  `<Entity>Configuration : IEntityTypeConfiguration<<Entity>>` (`HasKey` + per-string mapping), applied via
+  `ApplyConfigurationsFromAssembly` in the generated `DbContext`, so the domain model stays free of
+  persistence attributes.
 
 ### Changed
 - **Git hooks auto-enable on first build.** A `Directory.Build.targets` target points git at `.githooks/`

@@ -131,7 +131,7 @@ public sealed class FeatureGeneratorTests
         Assert.Equal(
             [
                 "CreateProduct.cs", "DeleteProduct.cs", "Product.cs", "ProductConfiguration.cs",
-                "ProductRequest.cs", "ProductsDbContext.cs", "ProductsPage.cs", "UpdateProduct.cs",
+                "ProductName.cs", "ProductRequest.cs", "ProductsDbContext.cs", "ProductsPage.cs", "UpdateProduct.cs",
             ],
             names);
     }
@@ -151,11 +151,26 @@ public sealed class FeatureGeneratorTests
         var entity = File(Generate(), "Product.cs");
 
         Assert.Contains("public Guid Id { get; private set; } = Guid.NewGuid();", entity, StringComparison.Ordinal);
-        Assert.Contains("public static Product Create(string name, decimal price)", entity, StringComparison.Ordinal);
-        Assert.Contains("public void Update(string name, decimal price)", entity, StringComparison.Ordinal);
-        Assert.Contains("public string Name { get; private set; } = \"\";", entity, StringComparison.Ordinal);
+        // Create/Update take primitives; the required string becomes a value object, wrapped via From.
+        Assert.Contains("public static Product Create(string name, decimal price) => new(ProductName.From(name), price);", entity, StringComparison.Ordinal);
+        Assert.Contains("public ProductName Name { get; private set; }", entity, StringComparison.Ordinal);
+        Assert.Contains("this.Name = ProductName.From(name);", entity, StringComparison.Ordinal);
         Assert.DoesNotContain("{ get; set; }", entity, StringComparison.Ordinal); // all encapsulated
         Assert.DoesNotContain("DataAnnotations", entity, StringComparison.Ordinal); // schema lives in the EF config
+    }
+
+    [Fact]
+    public void Required_string_becomes_a_value_object_with_built_in_validation()
+    {
+        var result = Generate();
+
+        var vo = File(result, "ProductName.cs");
+        Assert.Contains("public readonly record struct ProductName", vo, StringComparison.Ordinal);
+        Assert.Contains("public const int MaxLength = 200;", vo, StringComparison.Ordinal);
+        Assert.Contains("public static IEnumerable<string> Validate(string value)", vo, StringComparison.Ordinal);
+        Assert.Contains("public static ProductName From(string value)", vo, StringComparison.Ordinal);
+        // The form wires the value object's Validate into the bound input.
+        Assert.Contains("Input(() => _form.Name, Validate: ProductName.Validate", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -165,7 +180,8 @@ public sealed class FeatureGeneratorTests
 
         Assert.Contains("public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>", config, StringComparison.Ordinal);
         Assert.Contains("entity.HasKey(x => x.Id);", config, StringComparison.Ordinal);
-        Assert.Contains("entity.Property(x => x.Name).IsRequired().HasMaxLength(200);", config, StringComparison.Ordinal);
+        // The value object maps through its converter.
+        Assert.Contains("entity.Property(x => x.Name).HasConversion(v => v.Value, s => ProductName.From(s)).HasMaxLength(200);", config, StringComparison.Ordinal);
         Assert.Contains("ApplyConfigurationsFromAssembly", File(Generate(), "ProductsDbContext.cs"), StringComparison.Ordinal);
     }
 
@@ -192,13 +208,13 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
-    public void Request_is_shared_and_carries_the_validation_attributes()
+    public void Request_is_a_shared_plain_form_model()
     {
         var request = File(Generate(), "ProductRequest.cs");
 
         Assert.Contains("public sealed class ProductRequest", request, StringComparison.Ordinal);
-        Assert.Contains("[Required]", request, StringComparison.Ordinal);
-        Assert.Contains("[MaxLength(200)]", request, StringComparison.Ordinal);
+        Assert.Contains("public string Name { get; set; } = \"\";", request, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Required]", request, StringComparison.Ordinal); // validation lives on the value object
         // Both slices bind the same shared request — no Create/Update-specific request types.
         Assert.Contains("CreateProductCommand(ProductRequest Request)", File(Generate(), "CreateProduct.cs"), StringComparison.Ordinal);
         Assert.Contains("UpdateProductCommand(Guid Id, ProductRequest Request)", File(Generate(), "UpdateProduct.cs"), StringComparison.Ordinal);
