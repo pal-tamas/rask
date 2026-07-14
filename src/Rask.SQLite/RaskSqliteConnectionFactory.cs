@@ -13,13 +13,19 @@ internal sealed class RaskSqliteConnectionFactory : IRaskSqliteConnectionFactory
 {
     private readonly string _connectionString;
     private readonly SqlitePragmaOptions _options;
+    private readonly SqliteBusyRetryOptions _retry;
 
-    public RaskSqliteConnectionFactory(string connectionString, SqlitePragmaOptions options)
+    public RaskSqliteConnectionFactory(
+        string connectionString,
+        SqlitePragmaOptions options,
+        SqliteBusyRetryOptions retry)
     {
         ArgumentException.ThrowIfNullOrEmpty(connectionString);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(retry);
         _connectionString = connectionString;
         _options = options;
+        _retry = retry;
     }
 
     public SqliteConnection Create()
@@ -41,6 +47,35 @@ internal sealed class RaskSqliteConnectionFactory : IRaskSqliteConnectionFactory
         var connection = Create();
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
         return connection;
+    }
+
+    public async Task<T> ExecuteInImmediateTransactionAsync<T>(
+        Func<SqliteConnection, CancellationToken, Task<T>> work,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(work);
+
+        var connection = await CreateOpenAsync(cancellationToken).ConfigureAwait(false);
+        await using (connection.ConfigureAwait(false))
+        {
+            return await connection
+                .ExecuteInImmediateTransactionAsync(_retry, work, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    public Task ExecuteInImmediateTransactionAsync(
+        Func<SqliteConnection, CancellationToken, Task> work,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(work);
+        return ExecuteInImmediateTransactionAsync(
+            async (connection, ct) =>
+            {
+                await work(connection, ct).ConfigureAwait(false);
+                return (object?)null;
+            },
+            cancellationToken);
     }
 
     private void OnStateChange(object sender, StateChangeEventArgs e)

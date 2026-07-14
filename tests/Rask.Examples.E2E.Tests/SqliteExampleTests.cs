@@ -48,4 +48,17 @@ public sealed class SqliteExampleTests(SqliteExampleAppFixture app, PlaywrightFi
         await Assertions.Expect(result).ToBeVisibleAsync();
         await Assertions.Expect(result).ToContainTextAsync("25 of 25 writers committed");
     }
+
+    [Fact]
+    public async Task Concurrent_immediate_writers_all_commit()
+    {
+        await _page.GotoAsync("/");
+
+        await _page.ClickAsync("button:has-text('IMMEDIATE writers')");
+
+        // The BEGIN IMMEDIATE + non-blocking fair-interval retry commits every writer — 25 of 25.
+        var result = _page.Locator(".alert-success:has-text('IMMEDIATE')");
+        await Assertions.Expect(result).ToBeVisibleAsync();
+        await Assertions.Expect(result).ToContainTextAsync("25 of 25 IMMEDIATE writers committed");
+    }
 }
