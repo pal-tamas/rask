@@ -25,6 +25,12 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Make the client an installable, offline PWA: adds a web app manifest + icon and registers Rask's default service worker (offline app-shell cache + Web Push) from index.html."
+    },
+    "docker": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Add a multi-stage Dockerfile + .dockerignore to containerize the solution (build both projects, run the Host on the aspnet:10.0 runtime)."
     }
   },
   "sources": [
@@ -37,6 +43,10 @@
         {
           "condition": "(!pwa)",
           "exclude": [ "**/wwwroot/icon.svg" ]
+        },
+        {
+          "condition": "(!docker)",
+          "exclude": [ "Dockerfile", ".dockerignore" ]
         }
       ]
     }

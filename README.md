@@ -130,7 +130,9 @@ dotnet new rask-native       -n MyApp    # native iOS + Android app (WebView hyb
 cd MyApp && dotnet run                    # that's it (native: dotnet build -t:Run -f net10.0-android)
 ```
 
-Add `--auth` for a cookie/JWT-wired starter, or `--pwa` (WASM) for an installable offline app.
+Add `--auth` for a cookie/JWT-wired starter, `--pwa` (WASM) for an installable offline app, or
+`--docker` (the three web templates) for a production multi-stage Dockerfile — see
+[docs/deployment.md](docs/deployment.md).
 
 ### Add packages to an existing project
 

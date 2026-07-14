@@ -36,4 +36,18 @@ the `Rask.Cqrs` package reference, and the `AddRaskCqrs()` call in `Program.cs`.
 discovered at build time (source-generated, reflection-free — trim/AOT-safe). Without `--cqrs`
 those files and wiring are omitted. See [docs/cqrs.md](https://github.com/pal-tamas/rask/blob/main/docs/cqrs.md).
 
+## Docker
+
+Scaffolded with `--docker`: a multi-stage `Dockerfile` (+ `.dockerignore`) that builds on the .NET
+SDK image and runs on `aspnet:10.0` (non-root, port **8080**).
+
+```bash
+docker build -t myapp .
+docker run --rm -p 8080:8080 myapp
+```
+
+`UseHttpsRedirection()` no-ops in the container (no HTTPS port configured) — terminate TLS at your
+reverse proxy and forward plain HTTP (and the WebSocket `Upgrade`) to 8080. See
+[docs/deployment.md](https://github.com/pal-tamas/rask/blob/main/docs/deployment.md).
+
 Next steps: the [Rask docs](https://github.com/pal-tamas/rask/tree/main/docs).

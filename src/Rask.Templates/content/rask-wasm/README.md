@@ -35,4 +35,18 @@ files are omitted.
 
 > Want the client and its API in one solution instead? Use the `rask-wasm-hosted` template.
 
+## Docker
+
+Scaffolded with `--docker`: a multi-stage `Dockerfile` (+ `.dockerignore` + `nginx.conf`) that
+publishes the WASM bundle, then serves the static output from a tiny `nginx:alpine` image.
+
+```bash
+docker build -t myapp .
+docker run --rm -p 8080:80 myapp
+```
+
+The bundled `nginx.conf` sets the SPA fallback, the `application/wasm` MIME the runtime needs, and
+`gzip_static` to serve the baked `*.gz` assets. See
+[docs/deployment.md](https://github.com/pal-tamas/rask/blob/main/docs/deployment.md).
+
 Next steps: the [Rask docs](https://github.com/pal-tamas/rask/tree/main/docs).
