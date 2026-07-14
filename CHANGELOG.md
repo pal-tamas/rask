@@ -169,6 +169,13 @@ them until tagged releases begin.
   `aria-describedby` (with `aria-invalid` on each) — matching the `BsFormControl` field contract.
 
 ### Documentation
+- **Forms guide: full input-type set, file inputs, and the new form-control surface.**
+  [`docs/forms.md`](docs/forms.md) now enumerates every `InputType` (and flags the string-only family
+  as [RASK025](docs/diagnostics.md#rask025)), documents file inputs (`OnFiles`/`Accept`/`Capture`/
+  `Multiple`) with a cross-link to [http-and-files.md](docs/http-and-files.md), and lists the mobile/a11y
+  input attributes. [`docs/bootstrap-forms.md`](docs/bootstrap-forms.md) documents the `BsInput`/
+  `BsTextarea` attribute passthrough and the accessible-group `Label`. The `FormControls` radio/checkbox
+  samples showcase the named-group `<fieldset>`/`<legend>`.
 - **Browser/device API capability matrix + per-API reference pages.** New
   [`docs/browser-capabilities.md`](docs/browser-capabilities.md) is a single table of all 43 wrappers
   showing where each works (Web / PWA / Native) and which have a native iOS/Android backend, linking to a

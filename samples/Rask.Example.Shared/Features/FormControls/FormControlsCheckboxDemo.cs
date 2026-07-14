@@ -28,8 +28,10 @@ public sealed class FormControlsCheckboxDemo : Component
             Div(Class: "col-md-6", Id: "fc-checkbox-bound")[
                 Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
+                    // Label: names the group — the options render inside a <fieldset>/<legend> for the
+                    // correct accessible grouping semantics.
                     BsCheckboxGroup(() => _model.Interests, AllInterests, Name: "fc-checkbox-b",
-                        ItemClass: "form-check-inline")
+                        Label: "Interests", ItemClass: "form-check-inline")
                 ],
                 P(Class: "small text-secondary mb-0", Id: "fc-checkbox-bound-out")[
                     "Interests: ",
