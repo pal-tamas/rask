@@ -298,12 +298,15 @@ The shipped native backends (both platforms):
 | `IScreenInfo` | `UIScreen` | `DisplayMetrics` |
 | `IDeviceOrientation` | CoreMotion (`CMMotionManager`) | `SensorManager` (rotation vector) |
 | `IDeviceMotion` | CoreMotion (`CMMotionManager`) | `SensorManager` (accelerometer + gyroscope) |
+| `INotifications` | `UNUserNotificationCenter` | `NotificationManager` (+ channel) |
+| `IBadge` | `UNUserNotificationCenter.SetBadgeCount` | badge notification (`setNumber`) |
 
 So `await geolocation.GetCurrentPositionAsync()` returns a native fix (real permission prompt +
 `CLLocationManager` / `LocationManager` accuracy) instead of `navigator.geolocation`, `clipboard.WriteTextAsync`
-hits `UIPasteboard` / `ClipboardManager` (no WebView gesture gate), and so on. Geolocation and network info
-need platform permissions — add `ACCESS_FINE_LOCATION` / `ACCESS_NETWORK_STATE` (Android) and
-`NSLocationWhenInUseUsageDescription` (iOS), and the head requests the location runtime grant.
+hits `UIPasteboard` / `ClipboardManager` (no WebView gesture gate), `notifications.ShowAsync(...)` raises a real
+OS notification where a WebView has no `Notification` API at all, and so on. Some backends need platform
+permissions — add `ACCESS_FINE_LOCATION` / `ACCESS_NETWORK_STATE` / `POST_NOTIFICATIONS` (Android) and
+`NSLocationWhenInUseUsageDescription` (iOS), and the head requests the location and notification runtime grants.
 
 The **declarative** `Shareable` still reaches the native share sheet through the **capability bridge**: the
 native client advertises `window.__raskNative.capabilities` and an `invoke(name, data)` that posts a

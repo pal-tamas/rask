@@ -354,6 +354,13 @@ The push pattern above, one element at a time.
 
 <!-- demo:browser-broadcast-channel -->
 
+**`INotifications` + `IBadge`** — raise a local notification and set the app-icon badge from the page. In the
+[native shell](native.md) these resolve to real OS backends (UNUserNotificationCenter / NotificationManager and
+the native app-icon badge) that a WebView cannot provide; on Server/WASM they use the browser's Notifications
+and Badging APIs (a badge only shows on an installed PWA). On iOS the badge is numeric-only.
+
+<!-- demo:browser-notifications -->
+
 **`Shareable`** *(`Rask.Core` — all hosts)* — headless share: hand *your* element the `data-rask-share`
 attribute and its click opens the OS share sheet, on every host including Server (the shared client fires
 `navigator.share` in the click gesture, so the activation survives), upgrading to a native backend in the

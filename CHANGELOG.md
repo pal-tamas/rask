@@ -47,6 +47,14 @@ them until tagged releases begin.
   `IShare` (already native) — instead of the WebView's JS, which is often gesture-gated or absent on the
   platform. Everything else falls back to the WebView automatically. The `rask-native` sample uses the new
   modules (and adds the location / network-state / vibrate permissions).
+- **Native `INotifications` + `IBadge` backends — real OS notifications and app-icon badges on device.**
+  `ApplePlatform` / `AndroidPlatform` now also wire `INotifications` → `UNUserNotificationCenter` /
+  `NotificationManager` and `IBadge` → `UNUserNotificationCenter.SetBadgeCount` / a silent badge
+  notification — two APIs a WebView fundamentally can't deliver (`WKWebView` has no `Notification`
+  constructor; `navigator.setAppBadge` never touches a native app's icon). Injecting the ordinary
+  interface resolves the native backend on device; permission is the real OS prompt. Android 33+ needs the
+  `POST_NOTIFICATIONS` permission (declared in the sample/template manifests and requested up front by the
+  activity). A new co-mounted **Notifications + Badge** showcase demo exercises both.
 - **Central registration for the typed browser/device APIs, with native-first resolution.** The
   interface → implementation map for the 43 browser wrappers, previously hand-duplicated across the
   Server, WASM, and Native hosts, now lives in one place per assembly: `AddCoreBrowserApis` (the 31

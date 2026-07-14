@@ -1,4 +1,5 @@
 using Android.App;
+using Android.Content.PM;
 using Android.OS;
 using Android.Webkit;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,14 @@ public class MainActivity : Activity
         // Make the WebView inspectable so the Appium on-device E2E can attach to its WEBVIEW context. This
         // is a showcase, not a shipping app; a real app would gate this on Debug (or omit it).
         WebView.SetWebContentsDebuggingEnabled(true);
+
+        // NativeNotifications (wired by AndroidPlatform) needs the POST_NOTIFICATIONS runtime grant on API 33+
+        // — request it up front so a later ShowAsync posts (declared in AndroidManifest.xml).
+        if (OperatingSystem.IsAndroidVersionAtLeast(33) &&
+            CheckSelfPermission(Android.Manifest.Permission.PostNotifications) != Permission.Granted)
+        {
+            RequestPermissions([Android.Manifest.Permission.PostNotifications], 101);
+        }
 
         var webView = new RaskAndroidWebView(this);
         // Use ChromeView (the container with the native header/footer bars) instead of the bare WebView, so the
@@ -74,6 +83,13 @@ public class MainActivity : Activity
 
         _app = await host.RunLocalAsync<NativeShowcaseApp>(webView);
         webView.LoadShell();
+    }
+
+    // Forward runtime-permission results so NativeNotifications' RequestPermissionAsync can await the grant.
+    public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
+    {
+        NativePermissions.OnResult(requestCode, grantResults);
+        base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     protected override void OnDestroy()

@@ -26,6 +26,14 @@ public class MainActivity : Activity
             RequestPermissions([Android.Manifest.Permission.AccessFineLocation], 100);
         }
 
+        // NativeNotifications (registered below) needs the POST_NOTIFICATIONS runtime grant on API 33+ —
+        // request it up front so a later ShowAsync posts (declare POST_NOTIFICATIONS in AndroidManifest.xml).
+        if (OperatingSystem.IsAndroidVersionAtLeast(33) &&
+            CheckSelfPermission(Android.Manifest.Permission.PostNotifications) != Permission.Granted)
+        {
+            RequestPermissions([Android.Manifest.Permission.PostNotifications], 101);
+        }
+
         _webView = new RaskAndroidWebView(this);
         // Host ChromeView (the container that lays the native header/footer bars around the WebView) rather
         // than the bare WebView, so the App's composed NativeHeaderBar/NativeTabBar become real top/bottom bars.
@@ -46,10 +54,19 @@ public class MainActivity : Activity
         // docs/native.md "Native device backends".
         host.Services.AddSingleton<IShare>(_ => new NativeShare(this));                  // OS share sheet
         host.Services.AddSingleton<IGeolocation>(_ => new NativeGeolocation(this));       // LocationManager
+        host.Services.AddSingleton<INotifications>(_ => new NativeNotifications(this));   // NotificationManager
+        host.Services.AddSingleton<IBadge>(_ => new NativeBadge(this));                   // app badge notification
         host.Services.AddSingleton<INativeChrome>(webView);                              // native header/footer bars
         // host.Services.AddSingleton<IMyService, MyService>();   // register app services here
         _app = await host.RunLocalAsync<App>(webView);
         webView.LoadShell();
+    }
+
+    // Forward runtime-permission results so NativeNotifications' RequestPermissionAsync can await the grant.
+    public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
+    {
+        NativePermissions.OnResult(requestCode, grantResults);
+        base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     protected override void OnDestroy()

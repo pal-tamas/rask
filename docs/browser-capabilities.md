@@ -39,8 +39,8 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`IMutationObserver`](apis/mutation-observer.md) | ✅ | ✅ | ✅ | — |
 | [`IGamepad`](apis/gamepad.md) | ✅ | ✅ | ✅ | — |
 | [`IWebPush`](apis/web-push.md) | ✅ | ✅ | ✅ | — |
-| [`INotifications`](apis/notifications.md) | ✅ | ✅ | ✅ | — |
-| [`IBadge`](apis/badge.md) | ✅ | ✅ | ✅ | — |
+| [`INotifications`](apis/notifications.md) | ✅ | ✅ | ✅&nbsp;★ | UNUserNotificationCenter / NotificationManager |
+| [`IBadge`](apis/badge.md) | ✅ | ✅ | ✅&nbsp;★ | SetBadgeCount / badge notification |
 | [`IWakeLock`](apis/wake-lock.md) | ✅ | ✅ | ✅&nbsp;★ | IdleTimerDisabled / FLAG_KEEP_SCREEN_ON |
 | [`IShare`](apis/share.md) | 🟡 | ✅ | ✅&nbsp;★ | UIActivityViewController / ACTION_SEND |
 | [`IFullscreen`](apis/fullscreen.md) | 🟡 | ✅ | ⬜ | — |

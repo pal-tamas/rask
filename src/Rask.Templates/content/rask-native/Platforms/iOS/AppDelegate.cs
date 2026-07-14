@@ -39,6 +39,8 @@ public class AppDelegate : UIApplicationDelegate
         // docs/native.md "Native device backends".
         host.Services.AddSingleton<IShare>(_ => new NativeShare(() => Window?.RootViewController));  // share sheet
         host.Services.AddSingleton<IGeolocation>(_ => new NativeGeolocation());                     // CoreLocation
+        host.Services.AddSingleton<INotifications>(_ => new NativeNotifications());                 // UNUserNotificationCenter
+        host.Services.AddSingleton<IBadge>(_ => new NativeBadge());                                 // app-icon badge
         host.Services.AddSingleton<INativeChrome>(webView);                                         // native header/footer bars
         // host.Services.AddSingleton<IMyService, MyService>();   // register app services here
         _app = await host.RunLocalAsync<App>(webView);
