@@ -5,7 +5,7 @@ namespace Rask.Cli.Tests;
 
 public sealed class NewCommandTests
 {
-    private const string Installed = "These templates matched: rask-server, rask-wasm…";
+    private const string WorkingDirectory = "/proj";
 
     [Fact]
     public void BuildDotnetNewArguments_composes_name_output_and_flags()
@@ -29,39 +29,78 @@ public sealed class NewCommandTests
         Assert.Equal(["new", "rask-wasm", "--name", "Spa"], args);
     }
 
+    [Theory]
+    [InlineData("0.17.0", "0.17.0")]      // a published stable pins exactly
+    [InlineData("1.2.3", "1.2.3")]
+    [InlineData("0.18.0-alpha.0.5", "0.17.0")] // a dev/CI prerelease isn't on NuGet → fall back
+    [InlineData("0.0.0", "0.17.0")]       // the no-version sentinel → fall back
+    [InlineData("", "0.17.0")]
+    public void ResolvePackageVersion_falls_back_for_unpublishable_versions(string cliVersion, string expected) =>
+        Assert.Equal(expected, NewCommand.ResolvePackageVersion(cliVersion));
+
     [Fact]
-    public async Task Runs_dotnet_new_with_the_resolved_template_when_templates_installed()
+    public async Task Server_template_is_generated_directly_without_dotnet_new()
     {
-        var (console, runner, command) = Build();
-        runner.CaptureResult = new ProcessResult(0, Installed, string.Empty);
+        var (console, fs, runner, command) = Build();
 
         var exit = await command.ExecuteAsync(["MyApp", "--template", "server", "--auth"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        // No install step: only the create ran.
+        Assert.Empty(console.ErrorText);
+        // Files are written directly under ./MyApp.
+        Assert.True(fs.FileExists("/proj/MyApp/MyApp.csproj"));
+        Assert.True(fs.FileExists("/proj/MyApp/Program.cs"));
+        Assert.True(fs.FileExists("/proj/MyApp/Auth/CredentialStore.cs")); // --auth
+        // It restores, and never shells to `dotnet new` / installs Rask.Templates.
+        Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
+    }
+
+    [Fact]
+    public async Task Server_generation_refuses_to_overwrite_an_existing_project()
+    {
+        var (console, fs, runner, command) = Build();
+        fs.Seed("/proj/MyApp/MyApp.csproj", "<Project/>");
+
+        var exit = await command.ExecuteAsync(["MyApp"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("already exists", console.ErrorText, StringComparison.Ordinal);
+        Assert.Empty(runner.Invocations);
+    }
+
+    [Fact]
+    public async Task Non_ported_template_still_delegates_to_dotnet_new_when_installed()
+    {
+        var (console, _, runner, command) = Build();
+        runner.CaptureResult = new ProcessResult(0, "These templates matched: rask-server, rask-wasm…", string.Empty);
+
+        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
         Assert.DoesNotContain(runner.Invocations, i => !i.Captured && i.Arguments.Contains("install"));
-        Assert.Equal(["new", "rask-server", "--name", "MyApp", "--auth"], runner.LastRun!.Arguments);
+        Assert.Equal(["new", "rask-wasm", "--name", "Spa"], runner.LastRun!.Arguments);
         Assert.Empty(console.ErrorText);
     }
 
     [Fact]
-    public async Task Installs_templates_first_when_missing()
+    public async Task Non_ported_template_installs_templates_first_when_missing()
     {
-        var (_, runner, command) = Build();
+        var (_, _, runner, command) = Build();
         runner.CaptureResult = new ProcessResult(0, "No templates installed.", string.Empty);
 
-        var exit = await command.ExecuteAsync(["MyApp"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var runs = runner.Invocations.Where(i => !i.Captured).ToArray();
         Assert.Equal(["new", "install", "Rask.Templates"], runs[0].Arguments);
-        Assert.Equal(["new", "rask-server", "--name", "MyApp"], runs[1].Arguments);
+        Assert.Equal(["new", "rask-wasm", "--name", "Spa"], runs[1].Arguments);
     }
 
     [Fact]
     public async Task Missing_name_fails_without_running_dotnet()
     {
-        var (console, runner, command) = Build();
+        var (console, _, runner, command) = Build();
 
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
@@ -73,7 +112,7 @@ public sealed class NewCommandTests
     [Fact]
     public async Task Unknown_template_fails()
     {
-        var (console, runner, command) = Build();
+        var (console, _, runner, command) = Build();
 
         var exit = await command.ExecuteAsync(["MyApp", "--template", "svelte"], CancellationToken.None);
 
@@ -85,7 +124,7 @@ public sealed class NewCommandTests
     [Fact]
     public async Task Unsupported_flag_for_template_fails_with_guidance()
     {
-        var (console, runner, command) = Build();
+        var (console, _, runner, command) = Build();
 
         var exit = await command.ExecuteAsync(["MyApp", "--template", "wasm", "--cqrs"], CancellationToken.None);
 
@@ -97,7 +136,7 @@ public sealed class NewCommandTests
     [Fact]
     public async Task Unknown_option_fails()
     {
-        var (console, runner, command) = Build();
+        var (console, _, runner, command) = Build();
 
         var exit = await command.ExecuteAsync(["MyApp", "--frobnicate"], CancellationToken.None);
 
@@ -106,10 +145,11 @@ public sealed class NewCommandTests
         Assert.Contains("--frobnicate", console.ErrorText, StringComparison.Ordinal);
     }
 
-    private static (StringConsole Console, FakeProcessRunner Runner, NewCommand Command) Build()
+    private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Runner, NewCommand Command) Build()
     {
         var console = new StringConsole();
+        var fs = new FakeFileSystem();
         var runner = new FakeProcessRunner();
-        return (console, runner, new NewCommand(console, runner));
+        return (console, fs, runner, new NewCommand(console, fs, runner, WorkingDirectory));
     }
 }

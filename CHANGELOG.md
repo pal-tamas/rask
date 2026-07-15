@@ -16,6 +16,12 @@ them until tagged releases begin.
   at-least-once behaviour and is unchanged.
 
 ### Changed
+- **`rask new` generates the `server` template itself — no `dotnet new` / Rask.Templates.** The CLI is now the
+  scaffolding authority: `rask new <name>` writes the project's files directly, bakes the `Rask.*` package
+  references at the CLI's own version (falling back to the latest published stable for local/dev CLI builds),
+  and runs `dotnet restore` so the output builds immediately. Every feature-flag combination (`--auth`,
+  `--pwa`, `--cqrs`, `--docker`) is covered by a build-the-output test. The other templates (`wasm`,
+  `wasm-hosted`, `native`) still go through `dotnet new` until their generators land in follow-ups.
 - **`rask generate feature` takes its fields positionally.** Write
   `rask generate feature Product Name:string Price:decimal` instead of
   `--fields "Name:string,Price:decimal"`. The legacy `--fields` form still works (you just can't combine the
