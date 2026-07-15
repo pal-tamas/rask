@@ -731,9 +731,15 @@ public abstract partial class SharedSmokeTests
         // identity (and any focus or scroll inside it) on every fetch.
         await Expect(demo.Locator(".position-relative")).ToHaveCountAsync(1);
 
-        // Paging awaits too, and lands on a disjoint slice.
+        // Paging awaits too, and lands on a disjoint slice. Wait out the whole fetch — overlay in, overlay
+        // out — before reading the rows. Neither shortcut works here, and both fail in opposite directions:
+        // "overlay is gone" is already true in the instant before the fetch starts, and "the pager says 2" is
+        // true from the MID-AWAIT render onwards, while the rows are still the previous page's. The overlay's
+        // two edges are the only signal that brackets the fetch itself.
         var pageOne = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
-        await demo.Locator(".pagination .page-item:not(.disabled) button").Last.ClickAsync();
+        await demo.Locator(".pagination li:has(button:text-is('2')) button").ClickAsync();
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
         await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
 

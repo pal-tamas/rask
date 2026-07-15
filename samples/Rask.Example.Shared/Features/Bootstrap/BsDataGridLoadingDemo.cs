@@ -79,11 +79,15 @@ public sealed class BsDataGridLoadingDemo : Component
                     },
                 ])];
 
-    // Set Loading, await, clear it. The two re-renders around the await are what the user sees as the spinner.
+    // Set Loading, await, clear it — and note there is no StateHasChanged anywhere.
+    //
+    // Rask renders this component twice for free: once when the await actually yields (which is what paints
+    // the spinner) and once when the handler returns (which clears it). Neither needs asking for.
     private async Task ReloadAsync()
     {
         _loading = true;
-        await Task.Delay(600);
+
+        await Task.Delay(600); // stands in for CountAsync/ToListAsync
 
         var (rows, total) = Fetch(_page, _sort, _sortDescending);
         _rows = rows;

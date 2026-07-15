@@ -1134,6 +1134,30 @@ public abstract class Component
         }, (c, rerender), TaskContinuationOptions.ExecuteSynchronously);
     }
 
+    // Marks this component dirty WITHOUT requesting a render, for the window of an async callback.
+    //
+    // AutoCallback calls it before awaiting a parent-supplied async delegate, which is what lets the
+    // component show an intermediate state — a spinner around a fetch — with no StateHasChanged of its own.
+    // The mid-await render (Component.InvokeWithRenderingAsync, driven by HandlerSyncContext when the user's
+    // task actually yields) walks the tree and serves any clean component from the render cache; without this
+    // the owner is still clean at that moment, so its `_loading = true` is invisible and the spinner only
+    // "appears" after the fetch it was meant to cover.
+    //
+    // This mirrors what the DOM-handler path already does verbatim (TryInvokeHandlerAsync: "Set BEFORE
+    // running so intermediate renders inside an async handler already see the owner as dirty"). The two paths
+    // disagreeing is the bug: an async Button(OnClickAsync:) could paint mid-flight but the identical
+    // BsDataGrid(OnSortChangeAsync:) could not.
+    //
+    // Deliberately not StateHasChanged(): that would also RequestRenderAsync, firing an extra render before
+    // the user's code has run. Only the flag is wanted — the render is already coming.
+    internal void MarkDirtyForAsyncHandler()
+    {
+        if (!Live.IsUnmounted)
+        {
+            Live.StateDirty = true;
+        }
+    }
+
     public void StateHasChanged()
     {
         if (Live.IsUnmounted)

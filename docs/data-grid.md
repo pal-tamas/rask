@@ -374,11 +374,15 @@ it clears.
 ```csharp
 private async Task ReloadAsync()
 {
-    _loading = true;                       // re-renders: spinner on, controls inert
+    _loading = true;
     (_rows, _total) = await FetchAsync(_page, _sort);
-    _loading = false;                      // re-renders: spinner off
+    _loading = false;
 }
 ```
+
+**No `StateHasChanged` anywhere** — that is the point. Rask renders your component twice for free here: once
+when the `await` actually yields, which is what paints the spinner, and once when the handler returns, which
+clears it.
 
 <!-- demo:data-grid-loading -->
 
