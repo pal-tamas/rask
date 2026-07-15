@@ -32,6 +32,18 @@ public static class KeyForwardScope
     public static void Clear() => _pending = null;
 
     /// <summary>
+    ///     Read the pending forwarded key WITHOUT consuming it.
+    ///     <para>
+    ///         The clean-subtree frame cache needs this. A cached subtree's frames have whatever key its
+    ///         first element consumed baked into them — which may be an ancestor's forwarded key, not its
+    ///         own — so the snapshot has to record what was in effect when it was captured and refuse to
+    ///         replay under a different one. <see cref="Consume" /> can't answer that question because
+    ///         asking would steal the key from the element that should adopt it.
+    ///     </para>
+    /// </summary>
+    internal static string? Peek() => _pending;
+
+    /// <summary>
     ///     Return the pending forwarded key (or <c>null</c>) and clear the slot, so exactly one
     ///     element adopts it. Called by every element's attribute-writing path.
     /// </summary>

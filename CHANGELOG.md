@@ -7,10 +7,66 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **Live sessions now size their buffers to the page instead of pre-renting a fixed block — a small-page
+  session costs ~4.6x less memory.** A session used to rent ~33 KB of `char` buffers, ~20 KB of frame
+  buffers and ~8 KB of payload buffers up front, before knowing whether its page was 300 bytes or
+  300 KB — most of what an idle session cost. All of them now rent on first use, at the size the page
+  actually needs. Pages large enough to outgrow the old defaults re-rented anyway, so they are
+  unaffected; small pages get several times denser. Measured with `session-footprint`: an empty-shell
+  session drops **74 KB → 16 KB** (~14,500 → ~65,000 sessions/GiB) and a small page **98 KB → 51 KB**
+  (~10,900 → ~20,600); a 200-row grid is unchanged. The wire format is byte-identical (the
+  `payload-bytes` gate passes unchanged), diff-path allocation is byte-identical across every
+  `FrameDifferBenchmarks` row, and session create→dispose allocation is marginally *lower*.
+  The one public-API detail: `FrameWriter`'s default `initialCapacity` is now `16` rather than `256` —
+  pass an explicit capacity when you build a short-lived writer whose frame count you already know.
+- **Keyed subtrees are now eligible for the clean-subtree cache, making updates to keyed lists ~15%
+  faster.** A component carrying a `Key` was excluded from the cache outright, because a `Key` is a
+  reconciliation identity rather than a reactive prop — it can change without dirtying the component,
+  and replaying a snapshot would then emit a stale `data-rask-key`. The snapshot now records the
+  identity it was captured under and declines to replay under a different one, so keyed subtrees cache
+  like any other. On a 1,000-row keyed list this is **−13% allocation and −15% time per update** (the
+  element path re-walks the graph and re-stringifies every key on every render; a replay does neither).
+  It costs ~4% more retained memory on such a page — a per-row snapshot runs slightly larger than the
+  small element graph it releases — which is a deliberate trade: the ceiling moves a little, every
+  interaction gets cheaper.
+- **Handler-bearing subtrees are now cached too, making updates to interactive grids ~24% cheaper.** The
+  last exclusion from the clean-subtree cache was any subtree containing an event handler — which is the
+  shape most real data grids take (a keyed row with a button), so the pages with the most elements to
+  release were releasing none. Handler ids are positional and reissued from zero every root render, so a
+  replay used to be unsound twice over: it never re-registered its handlers (leaving the id absent from
+  the freshly-cleared map — a dead button) and never advanced the counter (shifting every later sibling's
+  ids into collisions). The snapshot now records the handler run and the counter value it was captured
+  at; a replay re-registers the run and advances the counter, reproducing exactly what the walk did, and
+  declines when the counter no longer lines up. On a 1,000-row interactive grid: **−23.6% allocation and
+  −28% time per update** (200-row: −18.7% / −30.4%), for ~2.7% more retained memory.
+  As part of this the cache's `LiveState` fields collapse into a single reference to a side object, so
+  only components that actually cache pay for the state — an empty-shell session gets *smaller*
+  (16,370 → 16,090 B) despite the added handler bookkeeping.
+
+### Fixed
+- **A clean child could replay a stale forwarded `data-rask-key`.** A keyless component's first element
+  adopts a keyed ancestor's forwarded key and bakes it into its cached frame snapshot. Nothing dirties
+  that child when the ancestor's key changes, so it would re-emit the old identity and the diff would
+  reconcile the subtree against the wrong sibling — moving the wrong DOM. The snapshot now records the
+  forwarded key it was captured under and falls back to a walk when it no longer matches.
+
 ### Added
 - **`rask generate feature --fields` supports `date`, `time`, and `datetime`.** `date` maps to `DateOnly`,
   `time` to `TimeOnly`, and `datetime` to `DateTime` (the bound form inputs auto-render as `type="date"` /
   `type="time"`, and EF Core maps them to SQLite). Previously `date` was an alias for `DateTime`.
+- **Live-session capacity benchmarks — "how many sessions fit in 1 GB?"** Two new reports in
+  `benchmarks/Rask.Benchmarks`. `session-footprint` measures what one live session retains, sweeping
+  page size and separating a GET-minted session whose socket never arrived from a connected one whose
+  buffers have reached their high-water mark. `session-churn` soaks sessions under sustained updates
+  and churns create→dispose cycles to prove the footprint converges and that nothing survives teardown
+  (it doesn't: 500 cycles leave a constant 16 KB residue, and 100 sessions over 200 updates each hold
+  flat to the byte). [`docs/configuration.md`](docs/configuration.md#sizing-maxsessions-for-a-memory-budget)
+  turns the numbers into guidance for sizing `MaxSessions`, which defaults to uncapped and previously
+  had no way to size it. Headline: session cost is driven by **page size, not user count** — ~65,000
+  sessions/GiB on a trivial page vs ~150 on a 1,000-row grid. `session-churn` also reports the
+  per-interaction cost (allocation + time per update), so a change that trades retained memory against
+  update cost can be read against both.
 
 ## [0.17.0] - 2026-07-15
 

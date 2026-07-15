@@ -138,7 +138,19 @@ public sealed class FrameWriter
 {
     private RenderFrame[] _buffer;
 
-    public FrameWriter(int initialCapacity = 256) =>
+    /// <summary>
+    ///     The default starts small and lets <c>Reserve</c>'s doubling find the page's real size.
+    ///     <para>
+    ///         A live session retains two of these for its whole life (the diff baseline and the render in
+    ///         flight), so the initial capacity is not scratch space — it is paid per concurrent user. The
+    ///         old 256-frame default rented ~10 KB per writer, ~20 KB per session, before knowing whether
+    ///         the page had ten nodes or ten thousand. Growth is amortized doubling, and the buffer is
+    ///         reused across renders once it reaches the high-water mark, so a large page pays a handful of
+    ///         grow-and-copy steps on its first render only and nothing thereafter. Pass an explicit
+    ///         capacity when the frame count is known up front and the writer is short-lived.
+    ///     </para>
+    /// </summary>
+    public FrameWriter(int initialCapacity = 16) =>
         _buffer = ArrayPool<RenderFrame>.Shared.Rent(Math.Max(16, initialCapacity));
 
     /// <summary>Total frames emitted so far.</summary>

@@ -212,6 +212,21 @@ public sealed class LiveRenderContext : IDisposable
         // owner association is what lets the post-handler dirty-mark land on the right node.
         _root.RegisterHandler(handler, CurrentParent);
 
+    // Handler ids and their map live on the root; the clean-subtree frame cache needs to read the
+    // counter and re-establish a skipped walk's registrations, and only this context knows the root.
+    // See Component.CachedSubtree.Handlers.
+
+    /// <summary>The next handler id this render will issue.</summary>
+    internal int PeekNextHandlerId => _root.NextHandlerIdInternal;
+
+    /// <summary>Snapshot the handler run registered since <paramref name="startId" /> (null if empty).</summary>
+    internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(int startId) =>
+        _root.CaptureHandlerRun(startId);
+
+    /// <summary>Re-register a captured run and advance the counter past it, as the skipped walk would.</summary>
+    internal void ReplayHandlerRun(int startId, (Component Owner, Delegate Handler)[] run) =>
+        _root.ReplayHandlerRun(startId, run);
+
     public T GetOrCreate<T>(Func<IServiceProvider, T> factory) where T : Component
     {
         var parent = CurrentParent;
