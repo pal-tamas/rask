@@ -33,7 +33,9 @@ public sealed class FieldSpecParserTests
     [InlineData("text", "string")]
     [InlineData("number", "int")]
     [InlineData("money", "decimal")]
-    [InlineData("date", "DateTime")]
+    [InlineData("date", "DateOnly")]
+    [InlineData("time", "TimeOnly")]
+    [InlineData("datetime", "DateTime")]
     [InlineData("guid", "Guid")]
     public void Maps_type_aliases(string alias, string csType)
     {
