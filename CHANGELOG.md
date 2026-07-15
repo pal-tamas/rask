@@ -77,6 +77,15 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **`BsTable` gained `MaxHeight`, `StickyHeader` and `Aria`.** `MaxHeight` (any CSS length) bounds the
+  table's scroll container so a long table scrolls in its own box instead of running down the page, and
+  `StickyHeader` freezes the header row while the body scrolls under it — the pair a list screen has always
+  had to hand-roll. They go together: a sticky header sticks to its nearest scroll container, so without
+  `MaxHeight` there is nothing to stick to. `MaxHeight` implies the wrapper even when `Responsive` is off,
+  since a height with no scroll container would only clip. `Aria` passes ARIA attributes through to the
+  `<table>` itself, which is what lets a caller mark it `aria-busy` while refetching without the wrapper
+  enclosing — and so deferring — any live region rendered beside it. All three are appended and optional, so
+  no existing call site moves. `BsDataGrid<T>` forwards them.
 - **`rask generate feature --fields` supports `date`, `time`, and `datetime`.** `date` maps to `DateOnly`,
   `time` to `TimeOnly`, and `datetime` to `DateTime` (the bound form inputs auto-render as `type="date"` /
   `type="time"`, and EF Core maps them to SQLite). Previously `date` was an alias for `DateTime`.
