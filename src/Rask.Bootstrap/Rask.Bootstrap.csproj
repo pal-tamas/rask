@@ -30,6 +30,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Bootstrap.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- PrivateAssets="all" keeps the (unpublished) Rask.Core "package" out of the nuspec
          dependency list. Unlike the host packages (Rask.Server/Rask.Wasm), we deliberately do
          NOT re-pack Rask.Core.dll here: Rask.Bootstrap is always consumed alongside a host,

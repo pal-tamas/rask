@@ -8,6 +8,30 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`BsDataGrid<T>` gained server-side paging/sorting and URL-owned state.** `Page`/`OnPageChange` and
+  `Sort`+`SortDescending`/`OnSortChange` let the **caller** own the page and sort: the grid renders what it is
+  given and reports what the user clicked rather than moving itself. Put those in `[QueryParam]` properties and
+  the grid's state lives in the URL — shareable, bookmarkable, and replayed by browser back/forward for free.
+  For large sets, `Data` now also accepts an **`IQueryable<T>`** — pass a `DbSet` and the grid orders it by each
+  column's new `SortBy` expression, counts it and materialises only the current page, so `ORDER BY`/`COUNT`/
+  `LIMIT` happen in the database (server hosts only: it runs the query in-process, synchronously, and needs a
+  `DbContext` that outlives the render; a WASM app throws with the fix in the message). Or pass one
+  already-fetched page plus **`TotalCount`** and await `CountAsync`/`ToListAsync` yourself — `OnSortChangeAsync`
+  and `OnPageChangeAsync` are awaited by the grid, so async data needs no async machinery inside the component.
+  A lazy `Data` sequence is now materialised once rather than re-enumerated for each of the count, sort and
+  footer passes. The showcase's data table
+  ([`/table`](https://github.com/pal-tamas/rask/blob/main/samples/Rask.Example.Shared/Features/Table/TablePage.cs))
+  is now built this way and dropped ~120 lines of hand-rolled table, sort-header and pagination markup.
+- **`BsDataGrid<T>` is now documented, demoed and accessible.** The grid — typed `BsColumn<T>` columns bound
+  straight to the row type, click-to-sort headers, client-side paging, per-column footer totals computed over
+  every row, custom cell `Template`s, an `Empty` placeholder and master-detail rows via `ExpandedContent` —
+  has shipped for a while but was effectively undiscoverable: absent from the component table, no guide, no
+  demo, and no coverage beyond a static-markup check. It now has a [Data grid](docs/data-grid.md) guide with
+  three live demos, and its sort/page/expand transitions are unit-tested for the first time. New
+  accessibility: `scope="col"` on every header, `aria-sort` on sortable headers, and an accessible name plus
+  `aria-expanded`/`aria-controls` on the master-detail expander. `Id`/`Class` now reach the `<table>` —
+  `BsDataGrid` derives from `BsBlock` like every other `Bs*` component, so it gains the passthrough it was
+  missing. Closes [#372](https://github.com/pal-tamas/rask/issues/372).
 - **New `Rask.Outbox` package + `rask generate feature --outbox` — a transactional outbox.** Domain events
   marked `IOutboxEvent` are written to an `OutboxMessage` table in the **same transaction** as the change
   that raised them (atomic; never written for a rolled-back change), and a hosted `OutboxProcessor` polls
@@ -85,6 +109,16 @@ them until tagged releases begin.
   a `DataAnnotationsValidator()`, or a generated `<Entity>RequestValidator : AbstractValidator<…>` +
   `FluentValidationValidator(…)` — wired into the create/edit forms (the respective `Rask.Validation.*`
   package is added to the printed next-steps).
+
+### Fixed
+- **A `BsDataGrid` inside a `<form>` submitted the form on every sort click.** The sortable-header control is
+  a `<button>` with no explicit `type`, and HTML defaults that to `submit`. It is now `type="button"`.
+- **`BsDataGrid`'s pager could render a negative range.** `BsPageItem`'s `Disabled` only adds a CSS class, so
+  the "previous" control stayed clickable on the first page and the page index underflowed to `-1`, rendering
+  `-1-0 / 3`. Page changes are now clamped to the available range.
+- **`docs/bootstrap-cards.md` described `BsBlock` as "the layout primitive".** It is the abstract base class
+  of every `Bs*` component, has no factory, and is not something app code constructs — the claim is removed
+  rather than reworded.
 
 ### Changed
 - **Git hooks auto-enable on first build.** A `Directory.Build.targets` target points git at `.githooks/`

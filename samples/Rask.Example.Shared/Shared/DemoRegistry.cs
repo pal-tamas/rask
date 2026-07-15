@@ -276,6 +276,18 @@ public static class DemoRegistry
             ["bootstrap-pickers"] = () => CodeSample(["BsPickersDemo.cs"], Result: BsPickersDemo()),
             ["bootstrap-utilities"] = () => CodeSample(["BsUtilitiesDemo.cs"], Result: BsUtilitiesDemo()),
 
+            // --- Data grid guide (docs/data-grid.md). Three separate grids rather than one kitchen sink, so
+            //     each demo stays readable and each has its own id for the browser tests to target. ---
+            ["data-grid"] = () => CodeSample(["BsDataGridDemo.cs"], Result: BsDataGridDemo()),
+            ["data-grid-detail"] = () => CodeSample(
+                ["BsDataGridDetailDemo.cs"],
+                Notes: "Expanding a row inserts a keyed detail <tr> after it, so the live diff reconciles it "
+                       + "as an in-place insert: other open rows keep their state. RowKey is what ties "
+                       + "expansion to the row rather than to its position — sort with a row open and it "
+                       + "follows.",
+                Result: BsDataGridDetailDemo()),
+            ["data-grid-empty"] = () => CodeSample(["BsDataGridEmptyDemo.cs"], Result: BsDataGridEmptyDemo()),
+
             // --- Elements & the DSL guide: primitives, tag factories, universal props, SVG, and the
             //     HTML element catalog (their standalone example pages folded into docs/elements.md).
             //     Each demo already lived in its own *Demo.cs. ---

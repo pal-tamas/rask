@@ -37,6 +37,8 @@ public static class GuideCatalog
             "bi-hand-index", "Bootstrap"),
         new("bootstrap-cards", "Cards, lists & tables",
             "BsCard, BsListGroup, BsPlaceholder, BsTable, BsPagination, BsBreadcrumb.", "bi-card-heading", "Bootstrap"),
+        new("data-grid", "Data grid",
+            "BsDataGrid — typed columns, sorting, paging, footer totals, master-detail.", "bi-table", "Bootstrap"),
         new("bootstrap-feedback", "Alerts, spinners & progress", "BsAlert, BsSpinner, BsProgress.",
             "bi-exclamation-triangle", "Bootstrap"),
         new("bootstrap-icons", "Icons", "The typed BsIcon over every Bootstrap Icons glyph.",
