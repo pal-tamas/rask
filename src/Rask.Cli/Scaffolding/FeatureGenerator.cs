@@ -22,6 +22,7 @@ internal static class FeatureGenerator
         string validation,
         bool useBs,
         bool useModal,
+        bool useTests,
         string? contextOverride,
         string? pluralOverride,
         string? outputOverride)
@@ -85,7 +86,31 @@ internal static class FeatureGenerator
             files.Insert(2, new ScaffoldFile(Path.Combine(targetDirectory, context + ".cs"), Apply(DbContextTemplate, tokens)));
         }
 
-        return new ScaffoldResult(files, RenderNextSteps(context, entityName, plural, route, generateContext, validation, useBs));
+        // --tests: a sibling <Project>.Tests project gets a domain test (Create/Update + value-object
+        // validation) and, when we own the DbContext, a SQLite round-trip persistence test.
+        if (useTests)
+        {
+            var trimmed = project.ProjectDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var testProjectDir = Path.Combine(Path.GetDirectoryName(trimmed) ?? trimmed, Path.GetFileName(trimmed) + ".Tests");
+            var testDirectory = Path.Combine(testProjectDir, "Features", plural);
+            var testNamespace = project.RootNamespace + ".Tests.Features." + plural;
+
+            files.Add(new ScaffoldFile(
+                Path.Combine(testDirectory, entityName + "Tests.cs"),
+                RenderDomainTests(testNamespace, ns, entityName, fields, useValueObjects)));
+
+            if (generateContext)
+            {
+                files.Add(new ScaffoldFile(
+                    Path.Combine(testDirectory, plural + "PersistenceTests.cs"),
+                    RenderPersistenceTests(testNamespace, ns, entityName, plural, context, idType, fields, useValueObjects)));
+            }
+        }
+
+        return new ScaffoldResult(files, RenderNextSteps(context, entityName, plural, route, generateContext, validation, useBs, useTests))
+        {
+            Packages = FeaturePackages(validation, useBs),
+        };
     }
 
     // The form-level validator component wired at the top of the create/edit forms (empty for the
@@ -214,6 +239,119 @@ internal static class FeatureGenerator
         return sb.ToString();
     }
 
+    // ---- generated tests (xunit): domain (pure) + persistence (SQLite round-trip) ----
+
+    // Pure domain tests: Create sets every property, Update overwrites them, and each value object
+    // rejects a blank value / accepts a valid one. No DB, no browser.
+    private static string RenderDomainTests(string testNs, string featureNs, string entity, IReadOnlyList<FieldSpec> fields, bool useValueObjects)
+    {
+        var sb = new StringBuilder();
+        sb.Append("using ").Append(featureNs).Append(";\n\n");
+        sb.Append("namespace ").Append(testNs).Append(";\n\n");
+        sb.Append("public sealed class ").Append(entity).Append("Tests\n{\n");
+
+        sb.Append("    [Fact]\n");
+        sb.Append("    public void Create_sets_every_property()\n    {\n");
+        sb.Append("        var entity = ").Append(entity).Append(".Create(").Append(SampleArgs(fields, second: false)).Append(");\n\n");
+        sb.Append(SampleAsserts("entity", fields, useValueObjects, second: false, indent: "        ")).Append("\n    }\n\n");
+
+        sb.Append("    [Fact]\n");
+        sb.Append("    public void Update_overwrites_every_property()\n    {\n");
+        sb.Append("        var entity = ").Append(entity).Append(".Create(").Append(SampleArgs(fields, second: false)).Append(");\n\n");
+        sb.Append("        entity.Update(").Append(SampleArgs(fields, second: true)).Append(");\n\n");
+        sb.Append(SampleAsserts("entity", fields, useValueObjects, second: true, indent: "        ")).Append("\n    }\n");
+
+        foreach (var field in fields.Where(f => IsValueObject(f, useValueObjects)))
+        {
+            var vo = ValueObjectName(entity, field);
+            sb.Append("\n    [Fact]\n");
+            sb.Append("    public void ").Append(vo).Append("_rejects_a_blank_value() => Assert.NotEmpty(").Append(vo).Append(".Validate(\"   \"));\n");
+            sb.Append("\n    [Fact]\n");
+            sb.Append("    public void ").Append(vo).Append("_accepts_a_valid_value() => Assert.Empty(").Append(vo).Append(".Validate(\"").Append(SampleString(field, second: false)).Append("\"));\n");
+        }
+
+        sb.Append("}\n");
+        return sb.ToString();
+    }
+
+    // Persistence test: the entity round-trips through a real SQLite file, proving the configuration's
+    // columns + value-object converters persist and rehydrate.
+    private static string RenderPersistenceTests(string testNs, string featureNs, string entity, string plural, string context, string idType, IReadOnlyList<FieldSpec> fields, bool useValueObjects)
+    {
+        var sb = new StringBuilder();
+        sb.Append("using Microsoft.EntityFrameworkCore;\n");
+        sb.Append("using ").Append(featureNs).Append(";\n\n");
+        sb.Append("namespace ").Append(testNs).Append(";\n\n");
+        sb.Append("public sealed class ").Append(plural).Append("PersistenceTests : IDisposable\n{\n");
+        sb.Append("    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $\"rask-test-{Guid.NewGuid():N}.db\");\n\n");
+        sb.Append("    private ").Append(context).Append(" NewContext()\n    {\n");
+        sb.Append("        var options = new DbContextOptionsBuilder<").Append(context).Append(">()\n");
+        sb.Append("            .UseSqlite($\"Data Source={_dbPath}\")\n");
+        sb.Append("            .Options;\n");
+        sb.Append("        return new ").Append(context).Append("(options);\n    }\n\n");
+
+        sb.Append("    [Fact]\n");
+        sb.Append("    public async Task ").Append(entity).Append("_round_trips_through_sqlite()\n    {\n");
+        sb.Append("        ").Append(idType).Append(" id;\n");
+        sb.Append("        await using (var db = NewContext())\n        {\n");
+        sb.Append("            await db.Database.EnsureCreatedAsync();\n");
+        sb.Append("            var entity = ").Append(entity).Append(".Create(").Append(SampleArgs(fields, second: false)).Append(");\n");
+        sb.Append("            db.").Append(plural).Append(".Add(entity);\n");
+        sb.Append("            await db.SaveChangesAsync();\n");
+        sb.Append("            id = entity.Id;\n        }\n\n");
+        sb.Append("        await using (var db = NewContext())\n        {\n");
+        sb.Append("            var entity = await db.").Append(plural).Append(".SingleAsync();\n");
+        sb.Append("            Assert.Equal(id, entity.Id);\n");
+        sb.Append(SampleAsserts("entity", fields, useValueObjects, second: false, indent: "            ")).Append("\n        }\n    }\n\n");
+
+        sb.Append("    public void Dispose()\n    {\n");
+        sb.Append("        if (File.Exists(_dbPath))\n        {\n");
+        sb.Append("            File.Delete(_dbPath);\n        }\n    }\n}\n");
+        return sb.ToString();
+    }
+
+    // The Create/Update argument list — one sample literal per field (the `second` set differs so an
+    // Update visibly changes every value).
+    private static string SampleArgs(IReadOnlyList<FieldSpec> fields, bool second) =>
+        string.Join(", ", fields.Select(f => SampleLiteral(f, second)));
+
+    // One assertion per field: value objects expose the primitive through `.Value`. Booleans use
+    // Assert.True/False (xUnit2004 forbids Assert.Equal on a bool).
+    private static string SampleAsserts(string entityVar, IReadOnlyList<FieldSpec> fields, bool useValueObjects, bool second, string indent) =>
+        string.Join("\n", fields.Select(f =>
+        {
+            var access = IsValueObject(f, useValueObjects) ? $"{entityVar}.{f.Name}.Value" : $"{entityVar}.{f.Name}";
+            if (f.CsType == "bool")
+            {
+                // The `first` sample is true, the `second` (update) sample is false.
+                return $"{indent}Assert.{(second ? "False" : "True")}({access});";
+            }
+
+            return $"{indent}Assert.Equal({SampleLiteral(f, second)}, {access});";
+        }));
+
+    // A deterministic sample value per field type (two sets so create ≠ update); the string fits the
+    // field's max length so value-object construction never rejects it.
+    private static string SampleLiteral(FieldSpec f, bool second) => f.CsType switch
+    {
+        "string" => "\"" + SampleString(f, second) + "\"",
+        "int" => second ? "2" : "1",
+        "long" => second ? "2L" : "1L",
+        "decimal" => second ? "20.50m" : "10.25m",
+        "double" => second ? "2.5d" : "1.5d",
+        "bool" => second ? "false" : "true",
+        "DateTime" => second ? "new DateTime(2025, 6, 15)" : "new DateTime(2024, 1, 1)",
+        "Guid" => second ? "Guid.Parse(\"22222222-2222-2222-2222-222222222222\")" : "Guid.Parse(\"11111111-1111-1111-1111-111111111111\")",
+        _ => "default",
+    };
+
+    // A sample string for a field, trimmed to its max length so a value object's own validation accepts it.
+    private static string SampleString(FieldSpec f, bool second)
+    {
+        var value = second ? "Updated" : "Sample";
+        return f.MaxLength is int max && value.Length > max ? value[..max] : value;
+    }
+
     // ---- per-field fragment builders ----
 
     private static string Assignments(IReadOnlyList<FieldSpec> fields, string indent) =>
@@ -283,26 +421,56 @@ internal static class FeatureGenerator
         return sb.ToString().TrimEnd('\n');
     }
 
-    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs)
+    // The NuGet packages the generated slice references — the command adds these to the project.
+    private static IReadOnlyList<string> FeaturePackages(string validation, bool useBs)
     {
-        var steps = new StringBuilder();
-        steps.Append("Next steps:\n");
-        steps.Append("  1. Reference EF Core + SQLite and Rask.Cqrs if the project doesn't already:\n");
-        steps.Append("       dotnet add package Microsoft.EntityFrameworkCore.Sqlite\n");
-        steps.Append("       dotnet add package Microsoft.EntityFrameworkCore.Design\n");
-        steps.Append("       dotnet add package Rask.Cqrs\n");
+        var packages = new List<string>
+        {
+            "Microsoft.EntityFrameworkCore.Sqlite",
+            "Microsoft.EntityFrameworkCore.Design",
+            "Rask.Cqrs",
+        };
+
         if (useBs)
         {
-            steps.Append("       dotnet add package Rask.Bootstrap   # and link BootstrapStyles() in your Head\n");
+            packages.Add("Rask.Bootstrap");
         }
 
         if (validation == "dataannotations")
         {
-            steps.Append("       dotnet add package Rask.Validation.DataAnnotations\n");
+            packages.Add("Rask.Validation.DataAnnotations");
         }
         else if (validation == "fluent")
         {
-            steps.Append("       dotnet add package Rask.Validation.FluentValidation\n");
+            packages.Add("Rask.Validation.FluentValidation");
+        }
+
+        return packages;
+    }
+
+    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests)
+    {
+        var steps = new StringBuilder();
+        steps.Append("Next steps:\n");
+        steps.Append("  1. The required packages were added for you (EF Core + SQLite, Rask.Cqrs");
+        if (useBs)
+        {
+            steps.Append(", Rask.Bootstrap");
+        }
+
+        if (validation == "dataannotations")
+        {
+            steps.Append(", Rask.Validation.DataAnnotations");
+        }
+        else if (validation == "fluent")
+        {
+            steps.Append(", Rask.Validation.FluentValidation");
+        }
+
+        steps.Append(").\n");
+        if (useBs)
+        {
+            steps.Append("     Link BootstrapStyles() in your Head.\n");
         }
 
         steps.Append("  2. Register services in Program.cs:\n");
@@ -320,6 +488,18 @@ internal static class FeatureGenerator
         steps.Append("  3. Create the schema (EF Core migrations):\n");
         steps.Append("       dotnet ef migrations add Add").Append(entity).Append(" && dotnet ef database update\n");
         steps.Append("  4. Run the app and browse to ").Append(route).Append('.');
+        if (generatedTests)
+        {
+            steps.Append("\n  5. The generated tests live in a sibling <Project>.Tests project — it needs xunit,\n");
+            steps.Append("     Microsoft.NET.Test.Sdk");
+            if (generatedContext)
+            {
+                steps.Append(" + Microsoft.EntityFrameworkCore.Sqlite");
+            }
+
+            steps.Append(", and a project reference to this app. Then: dotnet test");
+        }
+
         return steps.ToString();
     }
 

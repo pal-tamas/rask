@@ -25,7 +25,7 @@ internal sealed class CliApplication
         [
             new NewCommand(console, process),
             new DevCommand(console, process),
-            new GenerateCommand(console, fileSystem, Environment.CurrentDirectory),
+            new GenerateCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new InfoCommand(console, process),
         ]);
 
