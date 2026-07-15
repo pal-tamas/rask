@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **`rask generate feature` takes its fields positionally.** Write
+  `rask generate feature Product Name:string Price:decimal` instead of
+  `--fields "Name:string,Price:decimal"`. The legacy `--fields` form still works (you just can't combine the
+  two), so existing scripts keep running. Quote specs with `?` or `(…)` so your shell doesn't expand them
+  (`'Note:string?(500)'`). Extra positional arguments on `generate page`/`component` — which have no fields —
+  are now an error instead of being silently ignored.
 - **Live sessions now size their buffers to the page instead of pre-renting a fixed block — a small-page
   session costs ~4.6x less memory.** A session used to rent ~33 KB of `char` buffers, ~20 KB of frame
   buffers and ~8 KB of payload buffers up front, before knowing whether its page was 300 bytes or

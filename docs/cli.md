@@ -52,8 +52,8 @@ rask generate component PriceTag -o Widgets  # into a chosen folder
 rask generate page Orders --dry-run          # print what would be written, write nothing
 
 # A full CQRS + EF Core CRUD vertical slice
-rask generate feature Product --fields "Name:string,Price:decimal,InStock:bool,Note:string?(500)"
-rask g f Order --fields "Total:decimal" --id long   # short aliases: g = generate, f = feature
+rask generate feature Product Name:string Price:decimal InStock:bool 'Note:string?(500)'
+rask g f Order Total:decimal --id long   # short aliases: g = generate, f = feature
 ```
 
 `rask generate` writes idiomatic files into the current project. It finds the owning `.csproj` by
@@ -64,11 +64,12 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 |----------|-------|-------------------|
 | `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
 | `component <Name>` | `Components/<Name>.cs` — a plain `Component` | `<Name>` in `<Root>.Components` |
-| `feature <Name> --fields …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id) with **value objects** for required strings (built-in validation), an EF `IEntityTypeConfiguration`, a `DbContext`, **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
+| `feature <Name> <field:type> …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id) with **value objects** for required strings (built-in validation), an EF `IEntityTypeConfiguration`, a `DbContext`, **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
 
 | Option | Meaning |
 |--------|---------|
-| `--fields`, `-f` | `feature` only: the entity's fields as `Name:type,…`. Types: `string`, `int`, `long`, `decimal`, `double`, `bool`, `date` (→ `DateOnly`), `time` (→ `TimeOnly`), `datetime` (→ `DateTime`), `Guid` (aliases like `text`/`number`/`money` too). A field is optional with a trailing `?` (`Note:string?`); strings get a default max length, overridable with `Name:string(100)`. An `Id` is added automatically. |
+| `<field:type> …` (positional) | `feature` only: the entity's fields, given **positionally** after the name — `rask g f Product Name:string Price:decimal`. Types: `string`, `int`, `long`, `decimal`, `double`, `bool`, `date` (→ `DateOnly`), `time` (→ `TimeOnly`), `datetime` (→ `DateTime`), `Guid` (aliases like `text`/`number`/`money` too). A field is optional with a trailing `?` (`Note:string?`); strings get a default max length, overridable with `Name:string(100)`. Quote specs containing `?` or `(…)` so your shell doesn't expand them (`'Note:string?(500)'`). An `Id` is added automatically. |
+| `--fields`, `-f` | `feature` only: the legacy comma-joined form of the fields above — `--fields "Name:string,Price:decimal"`. Equivalent to the positional args; you can't use both at once. |
 | `--id` | `feature` only: the entity's key type — `guid` (default), `int`, or `long`. |
 | `--modal` | `feature` only (implies `--bs`): create + update happen in a `BsModal` on the list page, instead of separate create/edit pages. |
 | `--bs` | `feature` only: render the pages with Rask.Bootstrap `Bs*` components (`BsCard`/`BsTable`/`BsButton`/`BsInput`/`BsCheck`/`BsIcon`) + `Bs.Join(...)` utility classes instead of raw core + Bootstrap class strings. |

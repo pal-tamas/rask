@@ -23,7 +23,7 @@ rask new MyApp --template wasm --pwa
 # Scaffold a routed page, a component, or a full CRUD feature
 rask generate page Products
 rask generate component PriceTag
-rask generate feature Product --fields "Name:string,Price:decimal"
+rask generate feature Product Name:string Price:decimal
 
 # Run it with hot reload (dotnet watch)
 rask dev
@@ -38,7 +38,7 @@ rask info
 |---|---|
 | `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted\|native`), forwarding `--auth` / `--pwa` / `--cqrs` / `--docker`. Installs `Rask.Templates` on demand. |
 | `rask generate <page\|component> <Name>` | Scaffold a routed page or a component into the current project (folder-based namespace, no-overwrite, `--dry-run`). |
-| `rask generate feature <Name> --fields …` | Scaffold a full CQRS + EF Core CRUD vertical slice — encapsulated entity (`Create`/`Update`, Guid id), `DbContext`, commands/queries + handlers, and pages that dispatch via `IDispatcher`. Aliases: `rask g f`. |
+| `rask generate feature <Name> <field:type> …` | Scaffold a full CQRS + EF Core CRUD vertical slice — encapsulated entity (`Create`/`Update`, Guid id), `DbContext`, commands/queries + handlers, and pages that dispatch via `IDispatcher`. Aliases: `rask g f`. |
 | `rask dev` | Run the app with C# Hot Reload (`dotnet watch run`); `--no-hot-reload` for a plain run. Args after `--` reach the app. |
 | `rask info` | Report the CLI version, .NET SDK version, template status, and OS. |
 

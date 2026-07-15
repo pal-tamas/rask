@@ -52,7 +52,7 @@ public sealed class Counter : Component
 
 ```bash
 rask new Shop                                             # scaffold the app
-rask generate feature Product --fields "Name:string,Price:decimal"   # a full CQRS + EF Core CRUD slice
+rask generate feature Product Name:string Price:decimal   # a full CQRS + EF Core CRUD slice
 rask dev                                                  # run it with hot reload
 ```
 
@@ -96,7 +96,7 @@ box — no PaaS, no glue, no second language to context-switch into.
 
 - **One codebase, every surface.** The *same* component runs server-rendered over a WebSocket, client-side on
   WebAssembly, or as a native iOS/Android app. Pick the host per project; write the UI once.
-- **Batteries, not a menu.** `rask new` scaffolds the app, `rask generate feature Product --fields "…"` emits a full
+- **Batteries, not a menu.** `rask new` scaffolds the app, `rask generate feature Product Name:string Price:decimal` emits a full
   **CQRS + EF Core vertical slice** (encapsulated entity, value objects, validation, list/create/edit pages, tests),
   and `rask dev` hot-reloads it. **[The CLI is the front door →](docs/cli.md)**
 - **SQLite is the production database.** Correct, concurrent, continuously-backed-up SQLite by default — WAL,

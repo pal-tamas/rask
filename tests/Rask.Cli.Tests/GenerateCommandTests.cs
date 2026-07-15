@@ -156,7 +156,46 @@ public sealed class GenerateCommandTests
 
         Assert.Equal(1, exit);
         Assert.Empty(fs.Files.Where(f => f.Key.EndsWith("Product.cs", StringComparison.Ordinal)).ToArray());
-        Assert.Contains("needs --fields", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("needs fields", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Feature_takes_fields_positionally()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string", "Price:decimal"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(console.ErrorText);
+        // Same output as the --fields form: entity + create command scaffolded with both fields.
+        Assert.Contains(fs.Files, f => f.Key.EndsWith("CreateProduct.cs", StringComparison.Ordinal));
+        var entity = fs.Files.Single(f => f.Key.EndsWith($"{Path.DirectorySeparatorChar}Product.cs", StringComparison.Ordinal)).Value;
+        Assert.Contains("Name", entity, StringComparison.Ordinal);
+        Assert.Contains("Price", entity, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Positional_fields_and_fields_option_together_are_rejected()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string", "--fields", "Price:decimal"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("CreateProduct.cs", StringComparison.Ordinal));
+        Assert.Contains("not both", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Extra_positional_on_a_page_is_rejected()
+    {
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["page", "Home", "Name:string"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Unexpected argument 'Name:string'", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]

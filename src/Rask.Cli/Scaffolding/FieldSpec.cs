@@ -17,7 +17,7 @@ internal sealed record FieldSpec(string Name, string CsType, bool IsNullable, in
 }
 
 /// <summary>
-/// Parses the <c>--fields "Name:string,Price:decimal,Note:string?(500)"</c> spec into
+/// Parses the comma-joined field spec (<c>Name:string,Price:decimal,Note:string?(500)</c>) into
 /// <see cref="FieldSpec"/>s. A type may carry a trailing <c>?</c> (optional/nullable) and, for strings,
 /// a <c>(length)</c>. Only types the Rask form binder and EF/SQLite both handle are accepted, so the
 /// generated entity and its bound inputs compile.
@@ -74,7 +74,7 @@ internal static class FieldSpecParser
 
             if (name.Equals("Id", StringComparison.OrdinalIgnoreCase))
             {
-                error = "'Id' is added automatically — omit it from --fields.";
+                error = "'Id' is added automatically — omit it from the fields.";
                 return false;
             }
 
@@ -94,7 +94,7 @@ internal static class FieldSpecParser
 
         if (parsed.Count == 0)
         {
-            error = "At least one field is required, e.g. --fields \"Name:string,Price:decimal\".";
+            error = "At least one field is required, e.g. rask generate feature Product Name:string Price:decimal.";
             return false;
         }
 
