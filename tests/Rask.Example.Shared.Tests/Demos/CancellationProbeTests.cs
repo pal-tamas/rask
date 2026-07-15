@@ -10,16 +10,15 @@ public sealed class CancellationProbeTests
     public async Task OnMountAsync_LogsCancelledOnUnmount_ThroughRegisterCallback()
     {
         var log = new LifecycleLog();
-        var host = new LiveHost(
-            () => CancellationProbe(log.Add, 1),
+        var mounted = true;
+        var page = RaskTest.Render(
+            () => mounted ? CancellationProbe(log.Add, 1) : null,
             TestServices.Default());
-
-        host.RenderAsLiveRoot();
         // Wait until the probe is in the "running" state (its post-StateHasChanged render).
-        await WaitFor.True(() => host.RenderAsLiveRoot().Contains("running"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => page.Render().Contains("running"), TimeSpan.FromSeconds(2));
 
-        host.Mounted = false;
-        host.RenderAsLiveRoot();
+        mounted = false;
+        page.Render();
 
         await WaitFor.True(() => log.Contains("cancelled"), TimeSpan.FromSeconds(2));
         Assert.Contains(log.Snapshot(), e => e.Contains("#1 cancelled"));
@@ -29,15 +28,14 @@ public sealed class CancellationProbeTests
     public async Task OnMountAsync_DoubleObservation_LogsOnceViaInterlocked()
     {
         var log = new LifecycleLog();
-        var host = new LiveHost(
-            () => CancellationProbe(log.Add, 9),
+        var mounted = true;
+        var page = RaskTest.Render(
+            () => mounted ? CancellationProbe(log.Add, 9) : null,
             TestServices.Default());
+        await WaitFor.True(() => page.Render().Contains("running"), TimeSpan.FromSeconds(2));
 
-        host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.RenderAsLiveRoot().Contains("running"), TimeSpan.FromSeconds(2));
-
-        host.Mounted = false;
-        host.RenderAsLiveRoot();
+        mounted = false;
+        page.Render();
         await WaitFor.True(() => log.Contains("cancelled"), TimeSpan.FromSeconds(2));
 
         // Even if both the Register callback and the polling loop observe cancellation,

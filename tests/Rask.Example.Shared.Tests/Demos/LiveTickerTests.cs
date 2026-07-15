@@ -6,7 +6,7 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-// Each test drives the component through its parent wrapper (LiveHost), so the
+// Each test drives the component through RaskTest.Render's forwarding root, so the
 // real framework — render-walk, lifecycle dispatch, prop diff, unmount — is what
 // fires the hooks. LiveTicker uses no JavaScript: the price feed is fully synthetic
 // (see LiveTicker.PollOnceAsync) and the chart is a server-rendered SVG (Sparkline)
@@ -32,16 +32,14 @@ public sealed class LiveTickerTests
     public async Task OnMountAsync_PopulatesHistoryFromSyntheticFeed()
     {
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(symbol, 30);
-
-        host.RenderAsLiveRoot();
+        var (page, log, mounted) = BuildHost(symbol, 30);
         await WaitFor.True(
-            () => PointCount(host.RenderAsLiveRoot()) >= 1,
+            () => PointCount(page.Render()) >= 1,
             Settle,
             "the synthetic feed never populated the history");
 
-        Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnMount:"));
-        var html = host.RenderAsLiveRoot();
+        Assert.Contains(log.Snapshot(), l => l.Contains("OnMount:"));
+        var html = page.Render();
         Assert.True(PointCount(html) >= 1);
         // The chart is a server-rendered SVG, drawn straight from the rolling buffer.
         Assert.Contains("<svg", html);
@@ -51,34 +49,30 @@ public sealed class LiveTickerTests
     public async Task OnPropsChanged_LogsSymbolSwitch()
     {
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(symbol, 30);
-
-        host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("OnPropsChangedAsync"), Settle);
+        var (page, log, mounted) = BuildHost(symbol, 30);
+        await WaitFor.True(() => log.Contains("OnPropsChangedAsync"), Settle);
 
         symbol.Value = "ETH";
-        host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("Symbol BTC → ETH"), Settle);
+        page.Render();
+        await WaitFor.True(() => log.Contains("Symbol BTC → ETH"), Settle);
 
-        Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnPropsChanged: Symbol BTC → ETH"));
-        Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnPropsChangedAsync: switched to ETH"));
+        Assert.Contains(log.Snapshot(), l => l.Contains("OnPropsChanged: Symbol BTC → ETH"));
+        Assert.Contains(log.Snapshot(), l => l.Contains("OnPropsChangedAsync: switched to ETH"));
     }
 
     [Fact]
     public async Task OnUnmount_FiresOnRemovalFromTree()
     {
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(symbol, 30);
+        var (page, log, mounted) = BuildHost(symbol, 30);
+        await WaitFor.True(() => log.Contains("OnMountAsync"), Settle);
 
-        host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("OnMountAsync"), Settle);
+        mounted.Value = false;
+        page.Render();
+        await WaitFor.True(() => log.Contains("OnUnmountAsync: flushed"), Settle);
 
-        host.Mounted = false;
-        host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("OnUnmountAsync: flushed"), Settle);
-
-        Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnUnmount: stopping"));
-        Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnUnmountAsync: flushed"));
+        Assert.Contains(log.Snapshot(), l => l.Contains("OnUnmount: stopping"));
+        Assert.Contains(log.Snapshot(), l => l.Contains("OnUnmountAsync: flushed"));
     }
 
     // The poll loop is linked to the lifetime CancellationToken, so unmount cancels it.
@@ -88,18 +82,16 @@ public sealed class LiveTickerTests
     public async Task PollLoop_StopsAfterUnmount()
     {
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(symbol, 30);
-
-        host.RenderAsLiveRoot();
+        var (page, log, mounted) = BuildHost(symbol, 30);
         await WaitFor.True(
-            () => PointCount(host.RenderAsLiveRoot()) >= 1, Settle,
+            () => PointCount(page.Render()) >= 1, Settle,
             "the poll loop never produced a tick");
 
-        host.Mounted = false;
-        host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("OnUnmountAsync: flushed"), Settle);
+        mounted.Value = false;
+        page.Render();
+        await WaitFor.True(() => log.Contains("OnUnmountAsync: flushed"), Settle);
         await WaitFor.True(
-            () => host.Log.Contains("poll loop cancelled"), Settle,
+            () => log.Contains("poll loop cancelled"), Settle,
             "the poll loop did not stop after unmount");
     }
 
@@ -113,23 +105,21 @@ public sealed class LiveTickerTests
     {
         var symbol = new Box<string>("BTC");
         var counter = 0;
-        var host = BuildHost(symbol, 1, _ => 10_000m + counter++);
-
-        host.RenderAsLiveRoot();
+        var (page, log, mounted) = BuildHost(symbol, 1, _ => 10_000m + counter++);
         await WaitFor.True(
-            () => PointCount(host.RenderAsLiveRoot()) >= 60, FillToCapacity,
+            () => PointCount(page.Render()) >= 60, FillToCapacity,
             "the history never filled to capacity");
 
-        Assert.Equal(60, PointCount(host.RenderAsLiveRoot()));
+        Assert.Equal(60, PointCount(page.Render()));
 
         // Prove the loop keeps ticking past capacity (the current/last price climbs with
         // the increasing feed) yet the count stays pinned at 60 — the oldest rolled off.
-        var price = PriceFromHtml(host.RenderAsLiveRoot());
+        var price = PriceFromHtml(page.Render());
         await WaitFor.True(
-            () => PriceFromHtml(host.RenderAsLiveRoot()) > price + 5m, Settle,
+            () => PriceFromHtml(page.Render()) > price + 5m, Settle,
             "the poll loop stopped ticking after reaching capacity");
 
-        Assert.Equal(60, PointCount(host.RenderAsLiveRoot()));
+        Assert.Equal(60, PointCount(page.Render()));
     }
 
     // PollOnceAsync captures the symbol before its simulated latency and drops the
@@ -143,21 +133,19 @@ public sealed class LiveTickerTests
         // Large interval ⇒ steady-state polling is gated; the symbol switch is what
         // drives the next poll (via the wake). The first BTC poll parks in the 50 ms
         // simulated-latency Task.Delay while we flip the symbol underneath it.
-        var host = BuildHost(symbol, 5000);
-
-        host.RenderAsLiveRoot();
+        var (page, log, mounted) = BuildHost(symbol, 5000);
         // The flip lands within microseconds — well inside the 50 ms in-flight window,
         // which is the determinism margin for this race.
         symbol.Value = "ETH";
-        host.RenderAsLiveRoot();
+        page.Render();
 
         await WaitFor.True(
-            () => PointCount(host.RenderAsLiveRoot()) >= 1, Settle,
+            () => PointCount(page.Render()) >= 1, Settle,
             "the symbol switch did not wake the poll loop");
 
         // The only price that landed is ETH-magnitude (seed ≈2 500); a stale
         // BTC-magnitude price (≈70 000) would prove the mid-flight result leaked through.
-        var price = PriceFromHtml(host.RenderAsLiveRoot());
+        var price = PriceFromHtml(page.Render());
         Assert.True(price < 10_000m, $"a stale BTC-magnitude price ({price}) leaked into ETH's history");
     }
 
@@ -169,21 +157,19 @@ public sealed class LiveTickerTests
         var symbol = new Box<string>("BTC");
         // Large interval: without the wake the next poll wouldn't run for 5 s. The
         // assertion is that switching symbols polls the new asset well inside that.
-        var host = BuildHost(symbol, 5000);
-
-        host.RenderAsLiveRoot();
+        var (page, log, mounted) = BuildHost(symbol, 5000);
         await WaitFor.True(
-            () => PointCount(host.RenderAsLiveRoot()) >= 1, Settle,
+            () => PointCount(page.Render()) >= 1, Settle,
             "first poll never ran");
 
         symbol.Value = "ETH";
-        host.RenderAsLiveRoot();
+        page.Render();
 
         // An ETH-magnitude price lands far sooner than the 5 s interval would allow.
         await WaitFor.True(
             () =>
             {
-                var html = host.RenderAsLiveRoot();
+                var html = page.Render();
                 return PointCount(html) >= 1 && PriceFromHtml(html) < 10_000m;
             },
             Settle,
@@ -196,17 +182,16 @@ public sealed class LiveTickerTests
     public async Task PollLoop_FeedFailure_SurfacesErrorAlert()
     {
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(
+        var (page, _, _) = BuildHost(
             symbol, 30,
             _ => throw new InvalidOperationException("feed offline"));
 
-        host.RenderAsLiveRoot();
         await WaitFor.True(
-            () => host.RenderAsLiveRoot().Contains("Feed error: feed offline"),
+            () => page.Render().Contains("Feed error: feed offline"),
             Settle,
             "a throwing price source never surfaced the #ticker-error alert");
 
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
         Assert.Contains("ticker-error", html);
         Assert.Contains("Feed error: feed offline", html);
     }
@@ -227,15 +212,17 @@ public sealed class LiveTickerTests
         Assert.Equal(2, Regex.Matches(html, "ticker-chart-container").Count);
     }
 
-    private static LiveHost BuildHost(
+    private static (RenderedComponent Page, LifecycleLog Log, Box<bool> Mounted) BuildHost(
         Box<string> symbol, int interval, Func<string, decimal>? priceSource = null)
     {
-        LiveHost? host = null;
-        host = new LiveHost(
-            () => LiveTicker(
-                symbol.Value, interval, host!.Log.Add, priceSource),
+        var log = new LifecycleLog();
+        var mounted = new Box<bool>(true);
+        var page = RaskTest.Render(
+            () => mounted.Value
+                ? LiveTicker(symbol.Value, interval, log.Add, priceSource)
+                : null,
             LiveHost.Services());
-        return host;
+        return (page, log, mounted);
     }
 
     // "<n>/60 pts" in the header reflects _history.Count.

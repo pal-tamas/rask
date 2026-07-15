@@ -19,6 +19,15 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Changed
+- **The lifecycle demo suites drive mount/unmount through `Rask.Testing`.** The five suites that assert on
+  lifecycle hooks (`LiveTicker`, `LifecycleProbe`, `CancellationProbe`, `DisposableTimerProbe`, `MetricsView`)
+  now render with `RaskTest.Render`, and unmount by having their factory return `null` instead of flipping a
+  flag on a test-only host wrapper. This confirms in a real suite what the package documents: a `null` factory
+  result drives a generated-factory child through its full unmount path — `OnUnmount`, `OnUnmountAsync`,
+  subscription teardown and cancellation all fire. Test-only; 22 tests before and after, and the suites still
+  catch a component that forgets to unsubscribe on unmount.
+  `LiveTickerTests` loses a self-referencing `LiveHost? host = null; host = new LiveHost(… host!.Log.Add …)`
+  knot that existed only because its lifecycle log lived on the host wrapper — the test owns the log now.
 - **The showcase demo suites drop their copy-pasted markup helpers for `Rask.Testing`.** Five files each kept
   their own `Empty()` / `Json()` / `ClickIds()` / `HandlerIds()` — the same helpers, written five times, over
   the same markup. `InvokeAsync`'s `"{}"` payload default deletes every `Empty()` outright, and
