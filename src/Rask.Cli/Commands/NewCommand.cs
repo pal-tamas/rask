@@ -4,10 +4,10 @@ using Rask.Cli.Templates;
 namespace Rask.Cli.Commands;
 
 /// <summary>
-/// <c>rask new</c> — scaffold a Rask project. The CLI is the scaffolding authority: the <c>server</c> template
-/// is generated directly (files written + package refs baked at the CLI's own version + <c>dotnet restore</c>),
-/// with no <c>dotnet new</c> / Rask.Templates dependency. Templates not yet ported (<c>wasm</c>/<c>wasm-hosted</c>/
-/// <c>native</c>) still delegate to <c>dotnet new</c> until their generators land.
+/// <c>rask new</c> — scaffold a Rask project. The CLI is the scaffolding authority: the <c>server</c>,
+/// <c>wasm</c> and <c>native</c> templates are generated directly (files written + package refs baked at the
+/// CLI's own version + <c>dotnet restore</c>), with no <c>dotnet new</c> / Rask.Templates dependency. The one
+/// remaining template (<c>wasm-hosted</c>) still delegates to <c>dotnet new</c> until its generator lands.
 /// </summary>
 internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
@@ -29,7 +29,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     public override string Summary => "Create a new Rask project from a template.";
 
     public override string Usage =>
-        "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--docker] [--output <dir>]";
+        "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--docker] [--host local|server] [--output <dir>]";
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -37,6 +37,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("template", 't')
             .Option("output", 'o')
             .Option("name", 'n')
+            .Option("host")
             .Flag("auth")
             .Flag("pwa")
             .Flag("cqrs")
@@ -76,17 +77,55 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return 1;
         }
 
-        // Ported templates are generated directly by the CLI. The rest still go through dotnet new +
-        // Rask.Templates until their generators land.
+        // --host only applies to the native template (which mode to scaffold). Reject it elsewhere so a
+        // misplaced flag is a clear error rather than silently ignored.
+        var host = parsed.Option("host");
+        if (host is not null && template.Key != "native")
+        {
+            Console.Error.WriteLine($"Template '{template.Key}' does not support --host. It applies only to the native template (--host local|server).");
+            return 1;
+        }
+
+        // Native is generated directly, but with its own shape: a --host choice (local|server), a single
+        // package, and no feature flags.
+        if (template.Key == "native")
+        {
+            host ??= "local";
+            if (host is not ("local" or "server"))
+            {
+                Console.Error.WriteLine($"Invalid --host '{host}'. The native template supports: local, server.");
+                return 1;
+            }
+
+            return await GenerateDirectAsync(
+                template, name, parsed.Option("output"),
+                (dir, version) => ProjectGenerator.GenerateNative(dir, name, host, version),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        // The remaining ported web templates are generated directly by the CLI; wasm-hosted still goes through
+        // dotnet new + Rask.Templates until its generator lands.
         if (template.Key is "server" or "wasm")
         {
-            return await GenerateDirectAsync(template, name, parsed.Option("output"), requestedFlags, cancellationToken).ConfigureAwait(false);
+            return await GenerateDirectAsync(
+                template, name, parsed.Option("output"),
+                (dir, version) =>
+                {
+                    bool auth = requestedFlags.Contains("auth"), pwa = requestedFlags.Contains("pwa"),
+                        cqrs = requestedFlags.Contains("cqrs"), docker = requestedFlags.Contains("docker");
+                    return template.Key == "wasm"
+                        ? ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version)
+                        : ProjectGenerator.GenerateServer(dir, name, auth, pwa, cqrs, docker, version);
+                },
+                cancellationToken).ConfigureAwait(false);
         }
 
         return await DelegateToDotnetNewAsync(template, name, parsed.Option("output"), requestedFlags, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<int> GenerateDirectAsync(TemplateInfo template, string name, string? output, IReadOnlyList<string> flags, CancellationToken cancellationToken)
+    private async Task<int> GenerateDirectAsync(
+        TemplateInfo template, string name, string? output,
+        Func<string, string, ScaffoldResult> build, CancellationToken cancellationToken)
     {
         // rask new MyApp → ./MyApp/ ; --output overrides the destination directory.
         var targetDirectory = Scaffold.TargetDirectory(_workingDirectory, output, name);
@@ -98,12 +137,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         var version = ResolvePackageVersion(CliMetadata.Version);
-        bool auth = flags.Contains("auth"), pwa = flags.Contains("pwa"), cqrs = flags.Contains("cqrs"), docker = flags.Contains("docker");
-        var result = template.Key switch
-        {
-            "wasm" => ProjectGenerator.GenerateWasm(targetDirectory, name, auth, pwa, docker, version),
-            _ => ProjectGenerator.GenerateServer(targetDirectory, name, auth, pwa, cqrs, docker, version),
-        };
+        var result = build(targetDirectory, version);
 
         Console.Out.WriteLine($"Creating {template.DisplayName} '{name}'…");
         foreach (var file in result.Files)

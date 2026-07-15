@@ -260,4 +260,111 @@ public sealed class ProjectGeneratorTests
             yield return [(mask & 1) != 0, (mask & 2) != 0, (mask & 4) != 0];
         }
     }
+
+    // ---- native template ----
+
+    // Files both native hosts always emit.
+    private static readonly string[] NativeShared =
+    [
+        "App.csproj", "Platforms/Android/AndroidManifest.xml", "Platforms/iOS/Info.plist",
+        "Platforms/iOS/Main.cs", "README.md", "AGENTS.md",
+    ];
+
+    // The local-only shared component code + in-process platform heads.
+    private static readonly string[] NativeLocalOnly =
+    [
+        "App.cs", "HomePage.cs", "Counter.cs",
+        "Platforms/iOS/AppDelegate.cs", "Platforms/iOS/NativeGeolocation.cs",
+        "Platforms/Android/MainActivity.cs", "Platforms/Android/NativeGeolocation.cs",
+    ];
+
+    // The server-only thin-shell platform heads.
+    private static readonly string[] NativeServerOnly =
+    [
+        "Platforms/iOS/ServerAppDelegate.cs", "Platforms/Android/ServerActivity.cs",
+    ];
+
+    private static Dictionary<string, string> GenerateNative(string host) =>
+        Index(ProjectGenerator.GenerateNative(Root, "App", host, Version));
+
+    [Fact]
+    public void Native_local_emits_the_shared_and_local_files_and_the_native_package()
+    {
+        var result = ProjectGenerator.GenerateNative(Root, "App", "local", Version);
+        var files = Index(result);
+
+        foreach (var expected in NativeShared.Concat(NativeLocalOnly))
+        {
+            Assert.True(files.ContainsKey(expected), $"expected {expected} to be generated");
+        }
+
+        // The server-host heads never appear in a local app.
+        foreach (var serverOnly in NativeServerOnly)
+        {
+            Assert.DoesNotContain(serverOnly, files.Keys);
+        }
+
+        Assert.Equal(["Rask.Native"], result.Packages);
+        // Multi-targets the two native TFMs.
+        Assert.Contains("<TargetFrameworks>net10.0-ios;net10.0-android</TargetFrameworks>", files["App.csproj"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Native_server_emits_the_server_heads_and_omits_the_local_files()
+    {
+        var files = GenerateNative("server");
+
+        foreach (var expected in NativeShared.Concat(NativeServerOnly))
+        {
+            Assert.True(files.ContainsKey(expected), $"expected {expected} to be generated");
+        }
+
+        // None of the local-only component code / heads leak into the thin server shell.
+        foreach (var localOnly in NativeLocalOnly)
+        {
+            Assert.DoesNotContain(localOnly, files.Keys);
+        }
+    }
+
+    [Fact]
+    public void Native_info_plist_carries_the_location_key_only_for_local()
+    {
+        var local = GenerateNative("local");
+        var server = GenerateNative("server");
+
+        Assert.Contains("NSLocationWhenInUseUsageDescription", local["Platforms/iOS/Info.plist"], StringComparison.Ordinal);
+        Assert.DoesNotContain("NSLocationWhenInUseUsageDescription", server["Platforms/iOS/Info.plist"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Native_conditional_markers_are_resolved_away_in_both_hosts()
+    {
+        foreach (var host in new[] { "local", "server" })
+        {
+            var files = GenerateNative(host);
+            foreach (var (path, content) in files)
+            {
+                Assert.DoesNotContain("#if", content, StringComparison.Ordinal);
+                Assert.DoesNotContain("#endif", content, StringComparison.Ordinal);
+                Assert.DoesNotContain("(IsLocal)", content, StringComparison.Ordinal);
+                _ = path;
+            }
+        }
+    }
+
+    [Fact]
+    public void Native_replaces_the_placeholder_namespace_everywhere_for_both_hosts()
+    {
+        foreach (var host in new[] { "local", "server" })
+        {
+            var files = GenerateNative(host);
+            foreach (var (path, content) in files)
+            {
+                Assert.DoesNotContain("Company.RaskNative", content, StringComparison.Ordinal);
+                Assert.DoesNotContain("Company.RaskServer", content, StringComparison.Ordinal);
+                Assert.DoesNotContain("Company.RaskNative", path, StringComparison.Ordinal);
+                Assert.DoesNotContain("Company.RaskServer", path, StringComparison.Ordinal);
+            }
+        }
+    }
 }
