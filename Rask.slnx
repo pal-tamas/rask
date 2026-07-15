@@ -1,5 +1,6 @@
 <Solution>
     <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Rask.Benchmarks.Sqlite/Rask.Benchmarks.Sqlite.csproj"/>
         <Project Path="benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj"/>
         <Project Path="benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj"/>
     </Folder>

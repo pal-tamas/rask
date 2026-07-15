@@ -56,10 +56,21 @@ public sealed class RaskSqliteExecutionStrategy : ExecutionStrategy
     }
 
     /// <inheritdoc/>
+    protected override void OnFirstExecution()
+    {
+        base.OnFirstExecution();
+
+        // EF hands one DbContext a single strategy instance for its whole lifetime, so the clock must be
+        // released at the start of every operation. Without this, a context that outlives Timeout carries the
+        // first contention's start timestamp into its next SaveChanges and gives up without a single retry.
+        _started = false;
+    }
+
+    /// <inheritdoc/>
     protected override TimeSpan? GetNextDelay(Exception lastException)
     {
-        // Start the clock on the first contention, then poll at the constant fair interval until the
-        // total wait reaches Timeout (returning null tells the base strategy to give up).
+        // Start the clock on this operation's first contention, then poll at the constant fair interval until
+        // the total wait reaches Timeout (returning null tells the base strategy to give up).
         if (!_started)
         {
             _started = true;
