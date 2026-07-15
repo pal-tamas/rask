@@ -22,6 +22,7 @@ internal static class FeatureGenerator
         string validation,
         bool useBs,
         bool useModal,
+        bool useSoftDelete,
         bool useTests,
         string? contextOverride,
         string? pluralOverride,
@@ -46,12 +47,20 @@ internal static class FeatureGenerator
             ("__FORMFIELDS__", FormFields(entityName, fields, useValueObjects, useBs)), ("__COPYTOFORM__", CopyToForm(fields, useValueObjects)),
             ("__CONFIGPROPS__", ConfigProperties(entityName, fields, useValueObjects)),
             ("__VALIDATOR__", FormValidator(entityName, validation)),
+            ("__DELETEBODY__", DeleteHandlerBody(plural)),
+            ("__ERRORALERT__", ErrorAlert(useBs)),
+            ("__LISTQUERY__", ListQuery(plural, entityName, context, useSoftDelete)),
+            ("__LISTLOADARG__", useSoftDelete ? "_showDeleted" : ""),
+            ("__LISTSTATE__", ListState(useSoftDelete)),
+            ("__LISTMETHODS__", ListToggleMethod(useSoftDelete)),
+            ("__TOGGLEBUTTON__", ToggleButton(useBs, useSoftDelete)),
+            ("__ROWACTIONS__", RowActions(entityName, useBs, useModal, useSoftDelete)),
         };
 
         var listTemplate = useModal ? BsModalListTemplate : useBs ? BsListPageTemplate : ListPageTemplate;
         var files = new List<ScaffoldFile>
         {
-            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects)),
+            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete)),
             new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields, validation)),
             new(Path.Combine(targetDirectory, entityName + "Configuration.cs"), Apply(ConfigurationTemplate, tokens)),
             new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(listTemplate, tokens)),
@@ -63,6 +72,12 @@ internal static class FeatureGenerator
         {
             files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Create" + entityName + ".cs"), Apply(useBs ? BsCreateTemplate : CreateTemplate, tokens)));
             files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Update" + entityName + ".cs"), Apply(useBs ? BsUpdateTemplate : UpdateTemplate, tokens)));
+        }
+
+        // --soft-delete adds a reusable Restore button + command (the list shows it on soft-deleted rows).
+        if (useSoftDelete)
+        {
+            files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Restore" + entityName + ".cs"), Apply(useBs ? BsRestoreTemplate : RestoreTemplate, tokens)));
         }
 
         // valueobjects mode: one value object per required-string field, each owning its validation.
@@ -122,6 +137,105 @@ internal static class FeatureGenerator
         _ => "",
     };
 
+    // The inline error banner rendered above a mutation form (as a conditional child; null when there's no
+    // error). Bootstrap gets a BsAlert; plain HTML gets a semantic role="alert" div.
+    private static string ErrorAlert(bool useBs) => useBs
+        ? "_error is null ? null : BsAlert(Color: BsColor.Danger)[_error],"
+        : "_error is null ? null : Div(Role: \"alert\")[_error],";
+
+    // The delete command handler body. Always load + Remove + SaveChanges (never set-based ExecuteDelete),
+    // so every delete flows through Rask.Data's interceptors: a --soft-delete entity is rewritten to a
+    // DeletedAt stamp, audit/version columns update, and domain events fire — all of which ExecuteDelete
+    // would bypass.
+    private static string DeleteHandlerBody(string plural) =>
+        $"        var entity = await db.{plural}.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);\n"
+            + "        if (entity is null)\n"
+            + "        {\n"
+            + "            return;\n"
+            + "        }\n\n"
+            + $"        db.{plural}.Remove(entity);\n"
+            + "        await db.SaveChangesAsync(cancellationToken);";
+
+    // The List query record + handler. With --soft-delete it takes an IncludeDeleted flag that lifts the
+    // global "DeletedAt == null" query filter (IgnoreQueryFilters) so the list can show deleted rows.
+    private static string ListQuery(string plural, string entity, string context, bool useSoftDelete) => useSoftDelete
+        ? $$"""
+        public sealed record List{{plural}}Query(bool IncludeDeleted = false) : IQuery<IReadOnlyList<{{entity}}>>;
+
+        public sealed class List{{plural}}QueryHandler(IDbContextFactory<{{context}}> dbContextFactory)
+            : IQueryHandler<List{{plural}}Query, IReadOnlyList<{{entity}}>>
+        {
+            public async Task<IReadOnlyList<{{entity}}>> HandleAsync(List{{plural}}Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var items = db.{{plural}}.AsNoTracking();
+                if (query.IncludeDeleted)
+                {
+                    items = items.IgnoreQueryFilters();
+                }
+
+                return await items.OrderBy(x => x.Id).ToListAsync(cancellationToken);
+            }
+        }
+        """
+        : $$"""
+        public sealed record List{{plural}}Query : IQuery<IReadOnlyList<{{entity}}>>;
+
+        public sealed class List{{plural}}QueryHandler(IDbContextFactory<{{context}}> dbContextFactory)
+            : IQueryHandler<List{{plural}}Query, IReadOnlyList<{{entity}}>>
+        {
+            public async Task<IReadOnlyList<{{entity}}>> HandleAsync(List{{plural}}Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                return await db.{{plural}}.AsNoTracking().OrderBy(x => x.Id).ToListAsync(cancellationToken);
+            }
+        }
+        """;
+
+    // The per-row action cell contents on the list page. With --soft-delete each live row shows edit + delete;
+    // a soft-deleted row (DeletedAt set) shows Restore instead (null children drop out).
+    private static string RowActions(string entity, bool useBs, bool useModal, bool useSoftDelete)
+    {
+        var edit = useModal
+            ? $"BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: () => OpenEditAsync(x.Id))[BsIcon(Name: BsIconName.Pencil)]"
+            : useBs
+                ? $"BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => navigator.NavigateTo(Routes.Update{entity}(x.Id)))[BsIcon(Name: BsIconName.Pencil)]"
+                : $"NavLink(Routes.Update{entity}(x.Id))[\"Edit\"]";
+        var delete = $"Delete{entity}(Id: x.Id, OnDeleted: LoadAsync)";
+
+        // The continuation indent below matches the generated Td()[ … ] cell (32 spaces).
+        if (!useSoftDelete)
+        {
+            return $"{edit},\n                                {delete}";
+        }
+
+        var restore = $"Restore{entity}(Id: x.Id, OnRestored: LoadAsync)";
+        return $"x.DeletedAt is null ? {edit} : null,\n"
+            + $"                                x.DeletedAt is null ? (Component){delete} : {restore}";
+    }
+
+    // The "Show deleted" toggle rendered in the list header (only with --soft-delete). ToggleDeletedAsync flips
+    // the flag and reloads; the button label reflects the current state.
+    private static string ToggleButton(bool useBs, bool useSoftDelete)
+    {
+        if (!useSoftDelete)
+        {
+            return "";
+        }
+
+        return useBs
+            ? "BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: ToggleDeletedAsync)[_showDeleted ? \"Hide deleted\" : \"Show deleted\"],"
+            : "Button(\"button\", OnClickAsync: ToggleDeletedAsync)[_showDeleted ? \"Hide deleted\" : \"Show deleted\"],";
+    }
+
+    // The _showDeleted field + ToggleDeletedAsync method injected into the list component (only --soft-delete),
+    // at generated indentation (fields 4 spaces, method body 8).
+    private static string ListState(bool useSoftDelete) => useSoftDelete ? "\n    private bool _showDeleted;" : "";
+
+    private static string ListToggleMethod(bool useSoftDelete) => useSoftDelete
+        ? "\n    private async Task ToggleDeletedAsync()\n    {\n        _showDeleted = !_showDeleted;\n        await LoadAsync();\n    }\n"
+        : "";
+
     // FluentValidation RuleFor lines for the string fields (NotEmpty for required, MaximumLength for all).
     private static string FluentRules(IReadOnlyList<FieldSpec> fields) =>
         string.Join("\n", fields.Where(f => f.IsString).Select(f =>
@@ -142,19 +256,38 @@ internal static class FeatureGenerator
     private static string EntityPropertyType(string entity, FieldSpec f, bool useValueObjects) =>
         IsValueObject(f, useValueObjects) ? ValueObjectName(entity, f) : f.PropertyType;
 
-    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects)
+    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects, bool useSoftDelete)
     {
         var sb = new StringBuilder();
         sb.Append("namespace ").Append(ns).Append(";\n\n");
-        sb.Append("public sealed class ").Append(entity).Append("\n{\n");
+
+        // Every aggregate inherits AggregateRoot<TId> (Id + CreatedAt/UpdatedAt audit stamps + a
+        // domain-events buffer, from Rask.Data). --soft-delete opts into ISoftDeletable (adds DeletedAt).
+        var bases = "AggregateRoot<" + idType + ">";
+        if (useSoftDelete)
+        {
+            bases += ", ISoftDeletable";
+        }
+
+        sb.Append("public sealed class ").Append(entity).Append(" : ").Append(bases).Append("\n{\n");
         sb.Append("    private ").Append(entity).Append("() { } // EF Core materialization\n\n");
 
         // The ctor takes the value-object types; Create/Update take primitives and wrap them via Create.
         var ctorParams = string.Join(", ", fields.Select(f => $"{EntityPropertyType(entity, f, useValueObjects)} {Identifiers.ToCamelCase(f.Name)}"));
         sb.Append("    private ").Append(entity).Append('(').Append(ctorParams).Append(")\n    {\n");
-        sb.Append(Assignments(fields, "        ")).Append("\n    }\n\n");
-        sb.Append("    public ").Append(idType).Append(" Id { get; private set; }");
-        sb.Append(idType == "Guid" ? " = Guid.NewGuid();\n" : "\n");
+        if (idType == "Guid")
+        {
+            // int/long ids are database-generated; a Guid id is assigned up front (Id is on the base).
+            sb.Append("        Id = Guid.NewGuid();\n");
+        }
+
+        sb.Append(Assignments(fields, "        ")).Append("\n    }\n");
+
+        if (useSoftDelete)
+        {
+            sb.Append("\n    public DateTime? DeletedAt { get; private set; }\n");
+            sb.Append("\n    public void Restore() => DeletedAt = null;\n");
+        }
 
         foreach (var field in fields)
         {
@@ -429,6 +562,7 @@ internal static class FeatureGenerator
             "Microsoft.EntityFrameworkCore.Sqlite",
             "Microsoft.EntityFrameworkCore.Design",
             "Rask.Cqrs",
+            "Rask.Data", // the AggregateRoot<TId> base + interceptors every generated entity inherits
         };
 
         if (useBs)
@@ -467,7 +601,7 @@ internal static class FeatureGenerator
             steps.Append(", Rask.Validation.FluentValidation");
         }
 
-        steps.Append(").\n");
+        steps.Append(", Rask.Data").Append(").\n");
         if (useBs)
         {
             steps.Append("     Link BootstrapStyles() in your Head.\n");
@@ -475,14 +609,18 @@ internal static class FeatureGenerator
 
         steps.Append("  2. Register services in Program.cs:\n");
         steps.Append("       builder.Services.AddRaskCqrs();\n");
+        steps.Append("       builder.Services.AddRaskData();\n");
         if (generatedContext)
         {
-            steps.Append("       builder.Services.AddDbContextFactory<").Append(context).Append(">(o => o.UseSqlite(\"Data Source=app.db\"));\n");
+            steps.Append("       builder.Services.AddDbContextFactory<").Append(context).Append(">((sp, o) => o\n");
+            steps.Append("           .UseSqlite(\"Data Source=app.db\")\n");
+            steps.Append("           .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));\n");
         }
         else
         {
-            steps.Append("       // in your ").Append(context).Append(": add `public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();`\n");
-            steps.Append("       // and apply the config: modelBuilder.ApplyConfigurationsFromAssembly(typeof(").Append(entity).Append("Configuration).Assembly);\n");
+            steps.Append("       // in your ").Append(context).Append(": add `public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();`,\n");
+            steps.Append("       // call modelBuilder.ApplyConfigurationsFromAssembly(...) + modelBuilder.ApplyRaskConventions() in OnModelCreating,\n");
+            steps.Append("       // and add .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()) where you register it.\n");
         }
 
         steps.Append("  3. Create the schema (EF Core migrations):\n");
@@ -525,8 +663,11 @@ internal static class FeatureGenerator
         {
             public DbSet<__ENTITY__> __PLURAL__ => Set<__ENTITY__>();
 
-            protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+            protected override void OnModelCreating(ModelBuilder modelBuilder)
+            {
                 modelBuilder.ApplyConfigurationsFromAssembly(typeof(__CONTEXT__).Assembly);
+                modelBuilder.ApplyRaskConventions();
+            }
         }
 
         """;
@@ -615,23 +756,13 @@ internal static class FeatureGenerator
 
         namespace __NS__;
 
-        public sealed record List__PLURAL__Query : IQuery<IReadOnlyList<__ENTITY__>>;
-
-        public sealed class List__PLURAL__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
-            : IQueryHandler<List__PLURAL__Query, IReadOnlyList<__ENTITY__>>
-        {
-            public async Task<IReadOnlyList<__ENTITY__>> HandleAsync(List__PLURAL__Query query, CancellationToken cancellationToken)
-            {
-                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-                return await db.__PLURAL__.AsNoTracking().OrderBy(x => x.Id).ToListAsync(cancellationToken);
-            }
-        }
+        __LISTQUERY__
 
         [Route("__ROUTE__")]
         public sealed class __PLURAL__Page(IDispatcher dispatcher) : Component
         {
             private IReadOnlyList<__ENTITY__> _items = [];
-            private bool _loaded;
+            private bool _loaded;__LISTSTATE__
 
             protected override Component? Head => Title()["__PLURAL__"];
 
@@ -639,14 +770,15 @@ internal static class FeatureGenerator
 
             private async Task LoadAsync()
             {
-                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(), CancellationToken);
+                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(__LISTLOADARG__), CancellationToken);
                 _loaded = true;
-            }
+            }__LISTMETHODS__
 
             protected override Component? Render() =>
             [
                 Div()[
                     H1()["__PLURAL__"],
+                    __TOGGLEBUTTON__
                     NavLink(Routes.Create__ENTITY__())["New __ENTITY__"]
                 ],
                 !_loaded
@@ -666,8 +798,7 @@ internal static class FeatureGenerator
                                     Td()[$"{x.Id}"],
         __CELLS__
                                     Td()[
-                                        NavLink(Routes.Update__ENTITY__(x.Id))["Edit"],
-                                        Delete__ENTITY__(Id: x.Id, OnDeleted: LoadAsync)
+                                        __ROWACTIONS__
                                     ]
                                 ])
                             ]
@@ -691,7 +822,7 @@ internal static class FeatureGenerator
             public async Task HandleAsync(Delete__ENTITY__Command command, CancellationToken cancellationToken)
             {
                 await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-                await db.__PLURAL__.Where(x => x.Id == command.Id).ExecuteDeleteAsync(cancellationToken);
+        __DELETEBODY__
             }
         }
 
@@ -714,6 +845,102 @@ internal static class FeatureGenerator
 
             protected override Component? Render() =>
                 Button("button", OnClickAsync: DeleteAsync)["Delete"];
+        }
+
+        """;
+
+    // --soft-delete: restore a soft-deleted row. Loads with IgnoreQueryFilters (the row is hidden by the
+    // global filter), clears DeletedAt via the entity's Restore(), and saves.
+    private const string RestoreTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+
+        namespace __NS__;
+
+        public sealed record Restore__ENTITY__Command(__IDTYPE__ Id) : ICommand;
+
+        public sealed class Restore__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Restore__ENTITY__Command>
+        {
+            public async Task HandleAsync(Restore__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var entity = await db.__PLURAL__.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
+                if (entity is null)
+                {
+                    return;
+                }
+
+                entity.Restore();
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        // A reusable restore button: dispatches the restore command, then invokes OnRestored so the caller
+        // (the list page) can refresh.
+        public sealed class Restore__ENTITY__(IDispatcher dispatcher) : Component
+        {
+            public __IDTYPE__ Id { get; set; }
+
+            public Func<Task>? OnRestored { get; set; }
+
+            private async Task RestoreAsync()
+            {
+                await dispatcher.DispatchAsync(new Restore__ENTITY__Command(Id), CancellationToken);
+                if (OnRestored is not null)
+                {
+                    await OnRestored();
+                }
+            }
+
+            protected override Component? Render() =>
+                Button("button", OnClickAsync: RestoreAsync)["Restore"];
+        }
+
+        """;
+
+    private const string BsRestoreTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+
+        namespace __NS__;
+
+        public sealed record Restore__ENTITY__Command(__IDTYPE__ Id) : ICommand;
+
+        public sealed class Restore__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Restore__ENTITY__Command>
+        {
+            public async Task HandleAsync(Restore__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var entity = await db.__PLURAL__.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
+                if (entity is null)
+                {
+                    return;
+                }
+
+                entity.Restore();
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        public sealed class Restore__ENTITY__(IDispatcher dispatcher) : Component
+        {
+            public __IDTYPE__ Id { get; set; }
+
+            public Func<Task>? OnRestored { get; set; }
+
+            private async Task RestoreAsync()
+            {
+                await dispatcher.DispatchAsync(new Restore__ENTITY__Command(Id), CancellationToken);
+                if (OnRestored is not null)
+                {
+                    await OnRestored();
+                }
+            }
+
+            protected override Component? Render() =>
+                BsButton(Color: BsColor.Success, Outline: true, Size: BsSize.Sm, OnClickAsync: RestoreAsync)[BsIcon(Name: BsIconName.ArrowCounterclockwise)];
         }
 
         """;
@@ -744,19 +971,28 @@ internal static class FeatureGenerator
         public sealed class Create__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
         {
             private readonly __ENTITY__Request _form = new();
+            private string? _error;
 
             protected override Component? Head => Title()["New __ENTITY__"];
 
             private async Task SubmitAsync(__ENTITY__Request form)
             {
-                await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
-                navigator.NavigateTo(Routes.__PLURAL__Page());
+                try
+                {
+                    await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
+                    navigator.NavigateTo(Routes.__PLURAL__Page());
+                }
+                catch (Exception)
+                {
+                    _error = "Something went wrong — please try again.";
+                }
             }
 
             protected override Component? Render() =>
                 Div()[
                     Div()[
                         H1()["New __ENTITY__"],
+                        __ERRORALERT__
                         Form(_form, OnValidSubmitAsync: SubmitAsync)[
         __VALIDATOR____FORMFIELDS__
                             Div()[
@@ -814,6 +1050,7 @@ internal static class FeatureGenerator
             private readonly __ENTITY__Request _form = new();
             private bool _loaded;
             private bool _found;
+            private string? _error;
 
             [RouteParam] public __IDTYPE__ Id { get; set; }
 
@@ -834,8 +1071,15 @@ internal static class FeatureGenerator
 
             private async Task SubmitAsync(__ENTITY__Request form)
             {
-                await dispatcher.DispatchAsync(new Update__ENTITY__Command(Id, form), CancellationToken);
-                navigator.NavigateTo(Routes.__PLURAL__Page());
+                try
+                {
+                    await dispatcher.DispatchAsync(new Update__ENTITY__Command(Id, form), CancellationToken);
+                    navigator.NavigateTo(Routes.__PLURAL__Page());
+                }
+                catch (Exception)
+                {
+                    _error = "Something went wrong — please try again.";
+                }
             }
 
             protected override Component? Render()
@@ -853,6 +1097,7 @@ internal static class FeatureGenerator
                 return Div()[
                     Div()[
                         H1()["Edit __ENTITY__"],
+                        __ERRORALERT__
                         Form(_form, OnValidSubmitAsync: SubmitAsync)[
         __VALIDATOR____FORMFIELDS__
                             Div()[
@@ -876,23 +1121,13 @@ internal static class FeatureGenerator
 
         namespace __NS__;
 
-        public sealed record List__PLURAL__Query : IQuery<IReadOnlyList<__ENTITY__>>;
-
-        public sealed class List__PLURAL__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
-            : IQueryHandler<List__PLURAL__Query, IReadOnlyList<__ENTITY__>>
-        {
-            public async Task<IReadOnlyList<__ENTITY__>> HandleAsync(List__PLURAL__Query query, CancellationToken cancellationToken)
-            {
-                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-                return await db.__PLURAL__.AsNoTracking().OrderBy(x => x.Id).ToListAsync(cancellationToken);
-            }
-        }
+        __LISTQUERY__
 
         [Route("__ROUTE__")]
         public sealed class __PLURAL__Page(IDispatcher dispatcher, Navigator navigator) : Component
         {
             private IReadOnlyList<__ENTITY__> _items = [];
-            private bool _loaded;
+            private bool _loaded;__LISTSTATE__
 
             protected override Component? Head => Title()["__PLURAL__"];
 
@@ -900,16 +1135,19 @@ internal static class FeatureGenerator
 
             private async Task LoadAsync()
             {
-                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(), CancellationToken);
+                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(__LISTLOADARG__), CancellationToken);
                 _loaded = true;
-            }
+            }__LISTMETHODS__
 
             protected override Component? Render() =>
             [
                 Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center), Margin.Bottom(3)))[
                     H1(Class: "h3 mb-0")["__PLURAL__"],
-                    BsButton(Color: BsColor.Primary, OnClick: () => navigator.NavigateTo(Routes.Create__ENTITY__()))[
-                        BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New __ENTITY__"
+                    Div(Class: Bs.Join(Display.Flex(), Flex.Gap(2)))[
+                        __TOGGLEBUTTON__
+                        BsButton(Color: BsColor.Primary, OnClick: () => navigator.NavigateTo(Routes.Create__ENTITY__()))[
+                            BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New __ENTITY__"
+                        ]
                     ]
                 ],
                 !_loaded
@@ -929,8 +1167,7 @@ internal static class FeatureGenerator
                                     Td()[$"{x.Id}"],
         __CELLS__
                                     Td(Class: Bs.Join(Txt.End(), Txt.Nowrap))[
-                                        BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => navigator.NavigateTo(Routes.Update__ENTITY__(x.Id)))[BsIcon(Name: BsIconName.Pencil)],
-                                        Delete__ENTITY__(Id: x.Id, OnDeleted: LoadAsync)
+                                        __ROWACTIONS__
                                     ]
                                 ])
                             ]
@@ -954,7 +1191,7 @@ internal static class FeatureGenerator
             public async Task HandleAsync(Delete__ENTITY__Command command, CancellationToken cancellationToken)
             {
                 await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-                await db.__PLURAL__.Where(x => x.Id == command.Id).ExecuteDeleteAsync(cancellationToken);
+        __DELETEBODY__
             }
         }
 
@@ -1005,19 +1242,28 @@ internal static class FeatureGenerator
         public sealed class Create__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
         {
             private readonly __ENTITY__Request _form = new();
+            private string? _error;
 
             protected override Component? Head => Title()["New __ENTITY__"];
 
             private async Task SubmitAsync(__ENTITY__Request form)
             {
-                await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
-                navigator.NavigateTo(Routes.__PLURAL__Page());
+                try
+                {
+                    await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
+                    navigator.NavigateTo(Routes.__PLURAL__Page());
+                }
+                catch (Exception)
+                {
+                    _error = "Something went wrong — please try again.";
+                }
             }
 
             protected override Component? Render() =>
                 BsCard(Class: Bs.Join(Shadow.Sm, Border.None, "mx-auto"))[
                     BsCardBody()[
                         H1(Class: "h4 mb-3")["New __ENTITY__"],
+                        __ERRORALERT__
                         Form(_form, OnValidSubmitAsync: SubmitAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
         __VALIDATOR____FORMFIELDS__
                             Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
@@ -1075,6 +1321,7 @@ internal static class FeatureGenerator
             private readonly __ENTITY__Request _form = new();
             private bool _loaded;
             private bool _found;
+            private string? _error;
 
             [RouteParam] public __IDTYPE__ Id { get; set; }
 
@@ -1095,8 +1342,15 @@ internal static class FeatureGenerator
 
             private async Task SubmitAsync(__ENTITY__Request form)
             {
-                await dispatcher.DispatchAsync(new Update__ENTITY__Command(Id, form), CancellationToken);
-                navigator.NavigateTo(Routes.__PLURAL__Page());
+                try
+                {
+                    await dispatcher.DispatchAsync(new Update__ENTITY__Command(Id, form), CancellationToken);
+                    navigator.NavigateTo(Routes.__PLURAL__Page());
+                }
+                catch (Exception)
+                {
+                    _error = "Something went wrong — please try again.";
+                }
             }
 
             protected override Component? Render()
@@ -1114,6 +1368,7 @@ internal static class FeatureGenerator
                 return BsCard(Class: Bs.Join(Shadow.Sm, Border.None, "mx-auto"))[
                     BsCardBody()[
                         H1(Class: "h4 mb-3")["Edit __ENTITY__"],
+                        __ERRORALERT__
                         Form(_form, OnValidSubmitAsync: SubmitAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
         __VALIDATOR____FORMFIELDS__
                             Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
@@ -1136,17 +1391,7 @@ internal static class FeatureGenerator
 
         namespace __NS__;
 
-        public sealed record List__PLURAL__Query : IQuery<IReadOnlyList<__ENTITY__>>;
-
-        public sealed class List__PLURAL__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
-            : IQueryHandler<List__PLURAL__Query, IReadOnlyList<__ENTITY__>>
-        {
-            public async Task<IReadOnlyList<__ENTITY__>> HandleAsync(List__PLURAL__Query query, CancellationToken cancellationToken)
-            {
-                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-                return await db.__PLURAL__.AsNoTracking().OrderBy(x => x.Id).ToListAsync(cancellationToken);
-            }
-        }
+        __LISTQUERY__
 
         public sealed record Get__ENTITY__Query(__IDTYPE__ Id) : IQuery<__ENTITY__?>;
 
@@ -1198,10 +1443,11 @@ internal static class FeatureGenerator
         public sealed class __PLURAL__Page(IDispatcher dispatcher) : Component
         {
             private IReadOnlyList<__ENTITY__> _items = [];
-            private bool _loaded;
+            private bool _loaded;__LISTSTATE__
             private __ENTITY__Request _form = new();
             private bool _modalOpen;
             private __IDTYPE__? _editingId;
+            private string? _error;
 
             protected override Component? Head => Title()["__PLURAL__"];
 
@@ -1209,14 +1455,15 @@ internal static class FeatureGenerator
 
             private async Task LoadAsync()
             {
-                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(), CancellationToken);
+                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(__LISTLOADARG__), CancellationToken);
                 _loaded = true;
-            }
+            }__LISTMETHODS__
 
             private void OpenCreate()
             {
                 _form = new __ENTITY__Request();
                 _editingId = null;
+                _error = null;
                 _modalOpen = true;
             }
 
@@ -1231,6 +1478,7 @@ internal static class FeatureGenerator
                 _form = new __ENTITY__Request();
         __COPYTOFORM__
                 _editingId = id;
+                _error = null;
                 _modalOpen = true;
             }
 
@@ -1238,25 +1486,35 @@ internal static class FeatureGenerator
 
             private async Task SaveAsync(__ENTITY__Request form)
             {
-                if (_editingId is null)
+                try
                 {
-                    await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
-                }
-                else
-                {
-                    await dispatcher.DispatchAsync(new Update__ENTITY__Command(_editingId.Value, form), CancellationToken);
-                }
+                    if (_editingId is null)
+                    {
+                        await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
+                    }
+                    else
+                    {
+                        await dispatcher.DispatchAsync(new Update__ENTITY__Command(_editingId.Value, form), CancellationToken);
+                    }
 
-                _modalOpen = false;
-                await LoadAsync();
+                    _modalOpen = false;
+                    await LoadAsync();
+                }
+                catch (Exception)
+                {
+                    _error = "Something went wrong — please try again.";
+                }
             }
 
             protected override Component? Render() =>
             [
                 Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center), Margin.Bottom(3)))[
                     H1(Class: "h3 mb-0")["__PLURAL__"],
-                    BsButton(Color: BsColor.Primary, OnClick: OpenCreate)[
-                        BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New __ENTITY__"
+                    Div(Class: Bs.Join(Display.Flex(), Flex.Gap(2)))[
+                        __TOGGLEBUTTON__
+                        BsButton(Color: BsColor.Primary, OnClick: OpenCreate)[
+                            BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New __ENTITY__"
+                        ]
                     ]
                 ],
                 !_loaded
@@ -1276,13 +1534,13 @@ internal static class FeatureGenerator
                                     Td()[$"{x.Id}"],
         __CELLS__
                                     Td(Class: Bs.Join(Txt.End(), Txt.Nowrap))[
-                                        BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: () => OpenEditAsync(x.Id))[BsIcon(Name: BsIconName.Pencil)],
-                                        Delete__ENTITY__(Id: x.Id, OnDeleted: LoadAsync)
+                                        __ROWACTIONS__
                                     ]
                                 ])
                             ]
                         ],
                 BsModal(Open: _modalOpen, Title: _editingId is null ? "New __ENTITY__" : "Edit __ENTITY__", Centered: true, OnClose: CloseModal)[
+                    __ERRORALERT__
                     Form(_form, OnValidSubmitAsync: SaveAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
         __VALIDATOR____FORMFIELDS__
                         Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[

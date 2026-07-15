@@ -73,6 +73,7 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 | `--modal` | `feature` only (implies `--bs`): create + update happen in a `BsModal` on the list page, instead of separate create/edit pages. |
 | `--bs` | `feature` only: render the pages with Rask.Bootstrap `Bs*` components (`BsCard`/`BsTable`/`BsButton`/`BsInput`/`BsCheck`/`BsIcon`) + `Bs.Join(...)` utility classes instead of raw core + Bootstrap class strings. |
 | `--validation` | `feature` only: `valueobjects` (default — required strings become value objects with built-in, dependency-free validation), `dataannotations` (POCO + `[Required]`/`[MaxLength]` + `DataAnnotationsValidator`), or `fluent` (POCO + a generated `AbstractValidator` + `FluentValidationValidator`). |
+| `--soft-delete` | `feature` only: the entity implements `ISoftDeletable` (a `DeletedAt` stamp) so `Delete` becomes a soft delete (via `Rask.Data`'s interceptor + a global query filter), and the list page gains a "Show deleted" toggle + a `Restore` action for deleted rows. |
 | `--tests` | `feature` only: also emit xunit tests in a sibling `<Project>.Tests` project — a domain test (`Create`/`Update` + value-object validation) and, when the `DbContext` is generated, a SQLite round-trip persistence test. |
 | `--no-restore` | `feature` only: don't add the NuGet packages automatically (just print them). |
 | `--context`, `-c` | `feature` only: reference an existing `DbContext` by name instead of generating a feature-local one (then add a `DbSet` to it). |
@@ -84,11 +85,13 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 
 The generated code compiles as-is in any `dotnet new rask-*` project — the factory methods and the
 `Component` base come from Rask's implicit usings, and pages navigate with the type-safe generated
-`Routes.*()` URLs. A generated `feature` needs **EF Core + `Rask.Cqrs`** referenced, so `rask generate`
-**adds those packages to the project for you** (`dotnet add package` for EF Core + SQLite, `Rask.Cqrs`,
-and — with `--bs`/`--validation` — `Rask.Bootstrap` / the validation library; pass `--no-restore` to
-skip). It then prints the DI registration (`AddRaskCqrs()` + `AddDbContextFactory`) and the `dotnet ef`
-migration to run before it works.
+`Routes.*()` URLs. Every generated entity inherits [`Rask.Data`](data.md)'s `AggregateRoot<TId>` (Id +
+audit stamps + a domain-events buffer), so a generated `feature` needs **EF Core + `Rask.Cqrs` +
+`Rask.Data`** referenced — `rask generate` **adds those packages to the project for you**
+(`dotnet add package` for EF Core + SQLite, `Rask.Cqrs`, `Rask.Data`, and — with `--bs`/`--validation` —
+`Rask.Bootstrap` / the validation library; pass `--no-restore` to skip). It then prints the DI
+registration (`AddRaskCqrs()` + `AddRaskData()` + `AddDbContextFactory` with the interceptors) and the
+`dotnet ef` migration to run before it works.
 
 Every command has short aliases: `rask g` = `rask generate`, and `g f` / `g c` / `g p` scaffold a
 feature / component / page.
