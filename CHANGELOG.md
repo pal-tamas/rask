@@ -7,6 +7,14 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Flaky `Rask.Outbox` test: `The_processor_drains_the_outbox_and_publishes_events`.** It waited for the
+  in-process handler to run and then asserted on the *persisted* `ProcessedAt`, but the drain publishes the
+  whole batch first and only writes `ProcessedAt` in a single end-of-batch `SaveChangesAsync` — so the
+  assertion raced that write and lost whenever the disk was busy. It now waits on `ProcessedAt` itself (which
+  implies the publish already happened). Test-only: the processor's ordering is the documented
+  at-least-once behaviour and is unchanged.
+
 ### Changed
 - **Live sessions now size their buffers to the page instead of pre-renting a fixed block — a small-page
   session costs ~4.6x less memory.** A session used to rent ~33 KB of `char` buffers, ~20 KB of frame

@@ -115,7 +115,18 @@ public sealed class OutboxTests : IDisposable
         await processor.StartAsync(CancellationToken.None);
         try
         {
-            await WaitUntilAsync(() => _recorder.Events.Any(e => e.Id == id), TimeSpan.FromSeconds(10));
+            // Wait for the LAST thing the drain does, not the first. It publishes the whole batch (which is
+            // what fills the recorder) and only then persists ProcessedAt, in a single end-of-batch
+            // SaveChangesAsync — so waiting on the recorder and then asserting on ProcessedAt races that
+            // save, and loses whenever the write is slow. Waiting on ProcessedAt implies the publish already
+            // happened, so it covers both assertions below.
+            await WaitUntilAsync(
+                async () =>
+                {
+                    await using var poll = NewContext();
+                    return await poll.Set<OutboxMessage>().AnyAsync(m => m.ProcessedAt != null);
+                },
+                TimeSpan.FromSeconds(10));
         }
         finally
         {
@@ -128,10 +139,12 @@ public sealed class OutboxTests : IDisposable
         Assert.NotNull((await read.Set<OutboxMessage>().SingleAsync()).ProcessedAt); // marked processed
     }
 
-    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
+    // The condition is async so it can poll the database — the only place the drain's completion is
+    // observable — rather than an in-process side effect that runs earlier.
+    private static async Task WaitUntilAsync(Func<Task<bool>> condition, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
-        while (!condition())
+        while (!await condition())
         {
             if (DateTime.UtcNow > deadline)
             {
