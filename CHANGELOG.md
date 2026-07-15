@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **The `rask` CLI and the `Rask.Data` / `Rask.Outbox` / `Rask.Testing` packages are now published.** All four
+  were packable but missing from the release + nightly pack lists, so `dotnet tool install -g Rask.Cli` failed
+  ("Rask.Cli is not found in NuGet feeds") and the packages that `rask generate feature --events`/`--outbox` and
+  `--tests` add to a project couldn't be restored from nuget.org. They now pack and push alongside the rest.
 - **Flaky `Rask.Outbox` test: `The_processor_drains_the_outbox_and_publishes_events`.** It waited for the
   in-process handler to run and then asserted on the *persisted* `ProcessedAt`, but the drain publishes the
   whole batch first and only writes `ProcessedAt` in a single end-of-batch `SaveChangesAsync` — so the
