@@ -20,6 +20,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- TestJSRuntime implements IJSRuntime. A real dependency rather than bloat: Rask.Core already
+         references Microsoft.JSInterop (so components can ctor-inject IJSRuntime), which puts this
+         abstractions-only package in every consumer's graph transitively already. -->
+    <PackageReference Include="Microsoft.JSInterop"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- PrivateAssets="all" keeps the (unpublished, IsPackable=false) Rask.Core "package" out of the
          nuspec: Rask.Testing is consumed alongside a host that already bundles Rask.Core.dll, so it
          resolves transitively — same pattern as Rask.Bootstrap. Core still resolves at compile time

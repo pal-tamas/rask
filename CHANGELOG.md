@@ -161,6 +161,16 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **`Rask.Testing`: ships `TestJSRuntime` and `RaskTest.EditContextProbe`.** A component that injects
+  `IJSRuntime` was untestable without hand-writing a fake — so everyone wrote the same one (Rask itself had
+  four near-identical copies). `TestJSRuntime` records every call (`Calls` in invocation order, `ArgsFor(id)`,
+  `CallCount(id)`) and returns what you configure (`SetResponse`/`SetException`); an unconfigured call returns
+  `default`, matching a real absent value. It records and replays — nothing more. Adds a `Microsoft.JSInterop`
+  dependency, which every consumer already has transitively via `Rask.Core`.
+  `RaskTest.EditContextProbe(capture)`, placed inside a `Form`'s children, hands a test the form's
+  `EditContext` — the only way to assert validation state (`GetValidationMessages`, `IsModified`,
+  `IsValidating`), which never reaches the markup. It's a factory method rather than a constructible type
+  because RASK014 makes `new` on a component an error, including on types Rask ships.
 - **`Rask.Testing`: `RenderedComponent<T>.Instance` and a non-throwing `TryInvokeAsync`.**
   `RaskTest.Render(component)` now returns a `RenderedComponent<T>` whose `Instance` is the object you passed
   in, so a test can assert the component's own state instead of parsing it back out of the markup. The

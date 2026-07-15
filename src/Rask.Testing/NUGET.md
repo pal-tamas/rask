@@ -44,6 +44,12 @@ public async Task Clicking_increments()
   than throwing, so you can assert a handler is gone.
 - **`.Instance`** — the component object you passed in, for asserting its state directly.
 - **`.Render()`** — re-render after mutating external state the component reads.
+- **`TestJSRuntime`** — an `IJSRuntime` that records calls and returns canned values, for components that
+  inject `IJSRuntime`. Register it in the provider, then assert with `.ArgsFor(id)` / `.Calls` /
+  `.CallCount(id)`; configure with `.SetResponse(id, value)` / `.SetException(id, ex)`.
+- **`RaskTest.EditContextProbe(capture)`** — placed inside a `Form`'s children, hands you the form's
+  `EditContext` so you can assert validation state (`GetValidationMessages`, `IsModified`, `IsValidating`)
+  that never appears in the markup.
 
 ## Install
 
