@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **The `Rask.Wasm` package never declared its `Microsoft.JSInterop` dependency.** The runtime uses JSInterop
+  directly (`WasmJSRuntime`, `WasmLiveSession`, the typed `Browser/*` wrappers), but it only ever arrived
+  transitively through the `PrivateAssets="all"` `Rask.Core` reference — which deliberately keeps Core out of the
+  nuspec — and the WASM track has no `Microsoft.AspNetCore.App` framework reference to supply it instead. It is now
+  surfaced at the package boundary like `Microsoft.AspNetCore.Authorization` already was, so consumers restore it.
 - **The `rask` CLI and the `Rask.Data` / `Rask.Outbox` / `Rask.Testing` packages are now published.** All four
   were packable but missing from the release + nightly pack lists, so `dotnet tool install -g Rask.Cli` failed
   ("Rask.Cli is not found in NuGet feeds") and the packages that `rask generate feature --events`/`--outbox` and
