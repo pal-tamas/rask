@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useEvents = false, bool useTests = false, string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useSoftDelete, useConcurrency, useEvents, useTests, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useEvents = false, bool useOutbox = false, bool useTests = false, string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useSoftDelete, useConcurrency, useEvents, useOutbox, useTests, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -407,6 +407,31 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Outbox_makes_events_ioutboxevent_wires_the_table_and_adds_the_package()
+    {
+        var result = Generate(useOutbox: true);
+
+        // --outbox raises events (like --events) but they implement IOutboxEvent for durable delivery.
+        Assert.Contains("public sealed record ProductCreated(Guid Id) : IOutboxEvent;", File(result, "ProductEvents.cs"), StringComparison.Ordinal);
+        Assert.Contains("entity.Raise(new ProductCreated(entity.Id));", File(result, "Product.cs"), StringComparison.Ordinal);
+
+        // The DbContext maps the outbox table; the package + DI wiring are in the next-steps.
+        Assert.Contains("modelBuilder.AddRaskOutbox();", File(result, "ProductsDbContext.cs"), StringComparison.Ordinal);
+        Assert.Contains("Rask.Outbox", result.Packages);
+        Assert.Contains("AddRaskOutbox<ProductsDbContext>();", result.Notes!, StringComparison.Ordinal);
+        Assert.Contains("DispatchDomainEventsInProcess = false", result.Notes!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Without_outbox_no_outbox_wiring()
+    {
+        var result = Generate(useEvents: true);
+        Assert.DoesNotContain("IOutboxEvent", File(result, "ProductEvents.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("AddRaskOutbox", File(result, "ProductsDbContext.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Outbox", result.Packages);
+    }
+
+    [Fact]
     public void Mutation_pages_handle_errors_gracefully_with_an_inline_alert()
     {
         var create = File(Generate(), "CreateProduct.cs");
@@ -462,7 +487,7 @@ public sealed class FeatureGeneratorTests
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useSoftDelete: false, useConcurrency: false, useEvents: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useSoftDelete: false, useConcurrency: false, useEvents: false, useOutbox: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
