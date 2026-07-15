@@ -37,6 +37,9 @@ public async Task Clicking_increments()
   event payload like `"{\"value\":\"hi\"}"` for an input) and re-render; returns the new `Html`.
 - **`.HandlerId(domEvent)`** — the handler id wired to `"click"`/`"input"`/`"change"`/`"submit"`/…
 - **`.Attr(name)`** — the first `name="…"` attribute value in the current `Html`.
+- **`.HandlerIds(domEvent)`** / **`.Attrs(name)`** — every match, in document order. Index these to target
+  one of several same-event elements: `await page.InvokeAsync(page.HandlerIds("click")[1])`.
+- **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string.
 - **`.Render()`** — re-render after mutating external state the component reads.
 
 ## Install
