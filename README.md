@@ -5,7 +5,7 @@
   <img alt="Rask" src="assets/rask-logo.svg" width="300">
 </picture>
 
-### Live apps in C#. One codebase — server-rendered over WebSockets, client-side in the browser via WebAssembly, or a native iOS/Android app.
+### The .NET One Person Framework — build, run, and ship a whole product solo, in C#, on one server.
 
 [![NuGet Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=Rask.Server)](https://www.nuget.org/packages/Rask.Server)
 [![NuGet Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=Rask.Wasm)](https://www.nuget.org/packages/Rask.Wasm)
@@ -21,9 +21,14 @@
 
 ---
 
-Write components as plain C# classes. Return a tree of HTML from `Render()`. **No `.razor`, no JSX, no JavaScript to
-write** — and the *same* component code runs server-rendered with live WebSocket updates or fully client-side on
-WebAssembly.
+**Rask is the .NET One Person Framework: one developer builds, runs, and ships a complete product — UI, data,
+auth, background work, deployment — from a single C# codebase on one server, with SQLite as the production
+database.** No PaaS, no assembled stack of services, no second language.
+
+It starts with the UI — write components as plain C# classes that return a tree of HTML from `Render()`, **no
+`.razor`, no JSX, no JavaScript to write** — and the *same* component runs server-rendered over a WebSocket,
+client-side on WebAssembly, or as a native iOS/Android app. Then come the batteries: a `rask` CLI that scaffolds a
+full CRUD vertical slice in one command, production-grade SQLite, auth, and one-command Docker deploy.
 
 ```csharp
 [Route("/counter")]
@@ -42,6 +47,16 @@ public sealed class Counter : Component
 
 <sub>☝️ A complete, live, interactive component — routing, state, and event handling in a single C# class.
 **[See it running, and dozens more, in the live demo ↗](https://pal-tamas.github.io/rask/demo/)**</sub>
+
+**Ship a whole feature in one command:**
+
+```bash
+rask new Shop                                             # scaffold the app
+rask generate feature Product --fields "Name:string,Price:decimal"   # a full CQRS + EF Core CRUD slice
+rask dev                                                  # run it with hot reload
+```
+
+**[📖 Read the doctrine → The .NET One Person Framework](docs/one-person-framework.md)**
 
 ---
 
@@ -74,18 +89,30 @@ Server/WASM samples: `samples/Rask.Example.Native` (in-process) and `samples/Ras
 
 ## ✨ Why Rask
 
-I've spent 15+ years building full-stack .NET apps, and the front end always meant a second world — another language,
-type system, and build chain, with a serialization seam in the middle. Blazor answers part of that, but `.razor` puts
-markup and code back in one file with its own templating dialect. So Rask is built around a single conviction: **a
-component is just a C# class that returns a tree.** No `.razor`, no JSX, no template language — `Div(...)[Span(...), "hi"]`
-is plain, refactor-safe, IDE-native C#, and the *same* component runs server-rendered over a WebSocket or fully
-client-side on WebAssembly. One codebase; pick the host per project.
+Building a product used to mean assembling a stack: a frontend framework in another language, a backend, a managed
+database, a queue, a cache, a blob store, a deploy pipeline — each rented, glued, and maintained. Rask collapses that
+into **one C# codebase on one server**. A single developer scaffolds a feature, stores it in SQLite, and ships it to a
+box — no PaaS, no glue, no second language to context-switch into.
 
-It also treats the network as the real bottleneck: after first paint, a state change ships a minimal diff — a counter
-tick on a 24 KB page goes out as **~41 bytes**, not 24 KB. Rask ships **fewer bytes on the wire than Blazor on *every*
-scenario** in the head-to-head suite (typically 2–5×, up to **56×**), allocates **~40× less per update**, and — because
-a pure-element page keeps a compact frame snapshot instead of an object-per-element graph — even holds a **~30% leaner
-*retained* tree per mounted page**, the one axis Blazor used to lead. **Rask now leads on every measured axis.**
+- **One codebase, every surface.** The *same* component runs server-rendered over a WebSocket, client-side on
+  WebAssembly, or as a native iOS/Android app. Pick the host per project; write the UI once.
+- **Batteries, not a menu.** `rask new` scaffolds the app, `rask generate feature Product --fields "…"` emits a full
+  **CQRS + EF Core vertical slice** (encapsulated entity, value objects, validation, list/create/edit pages, tests),
+  and `rask dev` hot-reloads it. **[The CLI is the front door →](docs/cli.md)**
+- **SQLite is the production database.** Correct, concurrent, continuously-backed-up SQLite by default — WAL,
+  busy-timeout, streaming replication — one file, one server, no managed DB to rent.
+  **[Why one server, no PaaS →](docs/sqlite.md)**
+- **It's the .NET One Person Framework.** **[Read the doctrine →](docs/one-person-framework.md)**
+
+### Why it's serious: the UI reach + the numbers
+
+A component is just a C# class that returns a tree — `Div(...)[Span(...), "hi"]` is plain, refactor-safe, IDE-native
+C#, no `.razor`, no template language. And Rask treats the network as the real bottleneck: after first paint, a state
+change ships a minimal diff — a counter tick on a 24 KB page goes out as **~41 bytes**, not 24 KB. Rask ships **fewer
+bytes on the wire than Blazor on *every* scenario** in the head-to-head suite (typically 2–5×, up to **56×**),
+allocates **~40× less per update**, and — because a pure-element page keeps a compact frame snapshot instead of an
+object-per-element graph — even holds a **~30% leaner *retained* tree per mounted page**, the one axis Blazor used to
+lead. **Rask leads on every measured axis.**
 
 | Per-render axis | Rask | Blazor | Rask advantage |
 |---|---:|---:|---|
