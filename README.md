@@ -192,6 +192,7 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.WebPush`                     | any backend (Server app or a WASM PWA's ASP.NET host)              | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
 | `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)               | `services.AddRaskCqrs()` + inject `IDispatcher`             |
 | `Rask.Data`                        | an EF Core app wanting a DDD base entity + interceptors           | `class X : AggregateRoot<Guid>` + `services.AddRaskData()` + `modelBuilder.ApplyRaskConventions()` |
+| `Rask.Outbox`                      | an EF Core app wanting durable domain-event delivery             | `record E(...) : IOutboxEvent` + `services.AddRaskOutbox<Ctx>()` + `modelBuilder.AddRaskOutbox()` |
 | `Rask.SQLite`                      | any .NET app using SQLite (server, mobile, trimmed/AOT)            | `services.AddRaskSqlite(cs)` + inject `IRaskSqliteConnectionFactory` (incl. non-blocking `ExecuteInImmediateTransactionAsync`) |
 | `Rask.SQLite.EntityFrameworkCore`  | an EF Core app that wants the pragmas (+ opt-in busy retry)        | `o.UseRaskSqlite(cs)` on the `DbContextOptionsBuilder`       |
 | `Rask.SQLite.Litestream`           | server-side SQLite app wanting managed backup                      | `services.AddRaskSqliteLitestream(...)` + `RestoreSqliteFromLitestreamAsync()` |

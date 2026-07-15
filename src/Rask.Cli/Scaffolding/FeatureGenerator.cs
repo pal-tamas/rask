@@ -25,11 +25,15 @@ internal static class FeatureGenerator
         bool useSoftDelete,
         bool useConcurrency,
         bool useEvents,
+        bool useOutbox,
         bool useTests,
         string? contextOverride,
         string? pluralOverride,
         string? outputOverride)
     {
+        // Both flags raise domain events on the aggregate; --outbox additionally routes them through the
+        // durable outbox (the events then implement IOutboxEvent). Either flag turns the event machinery on.
+        var useDomainEvents = useEvents || useOutbox;
         var plural = pluralOverride ?? Pluralizer.Pluralize(entityName);
         var route = Identifiers.ToRoutePath(plural);
         var idConstraint = idType == "Guid" ? "guid" : idType;
@@ -49,7 +53,8 @@ internal static class FeatureGenerator
             ("__FORMFIELDS__", FormFields(entityName, fields, useValueObjects, useBs, useConcurrency)), ("__COPYTOFORM__", CopyToForm(fields, useValueObjects, useConcurrency)),
             ("__CONFIGPROPS__", ConfigProperties(entityName, fields, useValueObjects)),
             ("__VALIDATOR__", FormValidator(entityName, validation)),
-            ("__DELETEBODY__", DeleteHandlerBody(plural, useEvents)),
+            ("__DELETEBODY__", DeleteHandlerBody(plural, useDomainEvents)),
+            ("__OUTBOXMODEL__", useOutbox ? "\n                modelBuilder.AddRaskOutbox();" : ""),
             ("__ERRORALERT__", ErrorAlert(useBs)),
             ("__LISTQUERY__", ListQuery(plural, entityName, context, useSoftDelete)),
             ("__LISTLOADARG__", useSoftDelete ? "_showDeleted" : ""),
@@ -64,7 +69,7 @@ internal static class FeatureGenerator
         var listTemplate = useModal ? BsModalListTemplate : useBs ? BsListPageTemplate : ListPageTemplate;
         var files = new List<ScaffoldFile>
         {
-            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete, useConcurrency, useEvents)),
+            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete, useConcurrency, useDomainEvents)),
             new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields, validation, useConcurrency)),
             new(Path.Combine(targetDirectory, entityName + "Configuration.cs"), Apply(ConfigurationTemplate, tokens)),
             new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(listTemplate, tokens)),
@@ -84,11 +89,11 @@ internal static class FeatureGenerator
             files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Restore" + entityName + ".cs"), Apply(useBs ? BsRestoreTemplate : RestoreTemplate, tokens)));
         }
 
-        // --events: typed domain-event records (INotification) + a sample handler stub. The aggregate raises
-        // them; Rask.Data's DomainEventInterceptor publishes them in-process after the change commits.
-        if (useEvents)
+        // --events / --outbox: typed domain-event records + a sample handler stub. The aggregate raises them;
+        // --events publishes in-process (Rask.Data), --outbox routes them through the durable outbox.
+        if (useDomainEvents)
         {
-            files.Add(new ScaffoldFile(Path.Combine(targetDirectory, entityName + "Events.cs"), RenderEvents(ns, entityName, idType)));
+            files.Add(new ScaffoldFile(Path.Combine(targetDirectory, entityName + "Events.cs"), RenderEvents(ns, entityName, idType, useOutbox)));
             files.Add(new ScaffoldFile(Path.Combine(targetDirectory, entityName + "CreatedHandler.cs"), Apply(EventHandlerTemplate, tokens)));
         }
 
@@ -134,9 +139,9 @@ internal static class FeatureGenerator
             }
         }
 
-        return new ScaffoldResult(files, RenderNextSteps(context, entityName, plural, route, generateContext, validation, useBs, useTests))
+        return new ScaffoldResult(files, RenderNextSteps(context, entityName, plural, route, generateContext, validation, useBs, useTests, useOutbox))
         {
-            Packages = FeaturePackages(validation, useBs),
+            Packages = FeaturePackages(validation, useBs, useOutbox),
         };
     }
 
@@ -360,12 +365,16 @@ internal static class FeatureGenerator
         return sb.ToString();
     }
 
-    // --events: the typed domain-event records (Id-only payload; INotification from Rask.Cqrs).
-    private static string RenderEvents(string ns, string entity, string idType) =>
-        $"namespace {ns};\n\n"
-        + $"public sealed record {entity}Created({idType} Id) : INotification;\n\n"
-        + $"public sealed record {entity}Updated({idType} Id) : INotification;\n\n"
-        + $"public sealed record {entity}Deleted({idType} Id) : INotification;\n";
+    // The typed domain-event records (Id-only payload). With --outbox they implement IOutboxEvent (durable
+    // delivery); otherwise plain INotification (in-process). Both are Rask.Cqrs notifications either way.
+    private static string RenderEvents(string ns, string entity, string idType, bool useOutbox)
+    {
+        var marker = useOutbox ? "IOutboxEvent" : "INotification";
+        return $"namespace {ns};\n\n"
+            + $"public sealed record {entity}Created({idType} Id) : {marker};\n\n"
+            + $"public sealed record {entity}Updated({idType} Id) : {marker};\n\n"
+            + $"public sealed record {entity}Deleted({idType} Id) : {marker};\n";
+    }
 
     // Wrap a primitive parameter into its value object where the field has one, else pass it through.
     private static string WrapPrimitive(string entity, FieldSpec f, bool useValueObjects)
@@ -646,7 +655,7 @@ internal static class FeatureGenerator
     }
 
     // The NuGet packages the generated slice references — the command adds these to the project.
-    private static IReadOnlyList<string> FeaturePackages(string validation, bool useBs)
+    private static IReadOnlyList<string> FeaturePackages(string validation, bool useBs, bool useOutbox)
     {
         var packages = new List<string>
         {
@@ -655,6 +664,11 @@ internal static class FeatureGenerator
             "Rask.Cqrs",
             "Rask.Data", // the AggregateRoot<TId> base + interceptors every generated entity inherits
         };
+
+        if (useOutbox)
+        {
+            packages.Add("Rask.Outbox");
+        }
 
         if (useBs)
         {
@@ -673,11 +687,16 @@ internal static class FeatureGenerator
         return packages;
     }
 
-    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests)
+    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests, bool useOutbox)
     {
         var steps = new StringBuilder();
         steps.Append("Next steps:\n");
         steps.Append("  1. The required packages were added for you (EF Core + SQLite, Rask.Cqrs");
+        if (useOutbox)
+        {
+            steps.Append(", Rask.Outbox");
+        }
+
         if (useBs)
         {
             steps.Append(", Rask.Bootstrap");
@@ -700,7 +719,16 @@ internal static class FeatureGenerator
 
         steps.Append("  2. Register services in Program.cs:\n");
         steps.Append("       builder.Services.AddRaskCqrs();\n");
-        steps.Append("       builder.Services.AddRaskData();\n");
+        if (useOutbox)
+        {
+            // The outbox owns delivery — disable Rask.Data's in-process publisher to avoid double-dispatch.
+            steps.Append("       builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);\n");
+            steps.Append("       builder.Services.AddRaskOutbox<").Append(context).Append(">();\n");
+        }
+        else
+        {
+            steps.Append("       builder.Services.AddRaskData();\n");
+        }
         if (generatedContext)
         {
             steps.Append("       builder.Services.AddDbContextFactory<").Append(context).Append(">((sp, o) => o\n");
@@ -757,7 +785,7 @@ internal static class FeatureGenerator
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
                 modelBuilder.ApplyConfigurationsFromAssembly(typeof(__CONTEXT__).Assembly);
-                modelBuilder.ApplyRaskConventions();
+                modelBuilder.ApplyRaskConventions();__OUTBOXMODEL__
             }
         }
 

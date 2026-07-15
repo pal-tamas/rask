@@ -30,6 +30,8 @@
         <Project Path="src/Rask.Cqrs/Rask.Cqrs.csproj"/>
         <Project Path="src/Rask.Cqrs.Generators/Rask.Cqrs.Generators.csproj"/>
         <Project Path="src/Rask.Data/Rask.Data.csproj"/>
+        <Project Path="src/Rask.Outbox/Rask.Outbox.csproj"/>
+        <Project Path="src/Rask.Outbox.Generators/Rask.Outbox.Generators.csproj"/>
         <Project Path="src/Rask.Generators/Rask.Generators.csproj"/>
         <Project Path="src/Rask.Generators.CodeFixes/Rask.Generators.CodeFixes.csproj"/>
         <Project Path="src/Rask.Native/Rask.Native.csproj"/>
@@ -55,6 +57,7 @@
         <Project Path="tests/Rask.Cqrs.Tests/Rask.Cqrs.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Generators.Tests/Rask.Cqrs.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Data.Tests/Rask.Data.Tests.csproj"/>
+        <Project Path="tests/Rask.Outbox.Tests/Rask.Outbox.Tests.csproj"/>
         <Project Path="tests/Rask.Example.EfCore.Tests/Rask.Example.EfCore.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Playground.Tests/Rask.Example.Playground.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Server.Tests/Rask.Example.Server.Tests.csproj"/>

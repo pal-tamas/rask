@@ -15,6 +15,7 @@ service to operate.
 | **CRUD scaffolder** | ✅ | [`rask generate feature`](cli.md) — CQRS + EF Core vertical slice, value objects, validation, pages, tests. |
 | **CQRS / mediator** | ✅ | [`Rask.Cqrs`](cqrs.md) — source-generated, reflection-free. |
 | **Data layer** | ✅ | [`Rask.Data`](data-access.md) — `AggregateRoot<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
+| **Transactional outbox** | ✅ | [`Rask.Outbox`](outbox.md) — durable, crash-safe domain-event delivery on the app's own database. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **Auth** | ✅ | [`authentication.md`](authentication.md) — cookie login/session in the templates. |
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
@@ -29,13 +30,6 @@ broker, no Redis, no separate infrastructure for a hello-world. Ordered by lever
 Durable, recurring background work stored in the app's database, run by a hosted worker. At-least-once with
 retries/backoff. The worker polls the jobs table (SQLite is single-writer, so claiming is poll +
 sequential-write, not row-locking — WAL + a busy-timeout keep reads flowing during writes).
-
-### Transactional outbox
-Domain events persisted in the **same transaction** as the aggregate change that raised them — so an event
-is never lost and never fires for a change that rolled back (strict atomicity, because the outbox table
-lives in the same database). A background processor drains unprocessed rows and publishes them. `Rask.Data`
-already raises and buffers domain events; the outbox is the durable delivery path (the in-process
-publisher is the fast, non-durable alternative). See the `--events` / `--outbox` scaffolder flags.
 
 ### Transactional email
 Send email from the backend, with the outbox pattern for reliable delivery, and Rask components rendered to

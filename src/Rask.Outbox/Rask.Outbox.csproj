@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Outbox</PackageId>
+    <Title>Rask.Outbox — transactional outbox on your database</Title>
+    <Description>A transactional outbox for Rask.Data aggregates: domain events marked `IOutboxEvent` are written to an `OutboxMessage` table in the **same transaction** as the change that raised them (so an event is never lost and never fires for a rolled-back change), then a background `OutboxProcessor` polls the table and publishes them through Rask.Cqrs — at-least-once, crash-safe delivery, all on the app's own database (no broker, no Redis). A source generator registers each event type for reflection-free lookup. Server-side; pairs with Rask.Data.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — a standalone server-side outbox. -->
+    <PackageTags>outbox transactional-outbox domain-events messaging entity-framework-core efcore background-service sqlite dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
+  </ItemGroup>
+
+  <!-- The registration source generator is referenced as an analyzer (no runtime assembly reference). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Outbox.Generators\Rask.Outbox.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Outbox;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+  <!-- Pack the source generator into analyzers/dotnet/cs/ so NuGet consumers run it. -->
+  <ItemGroup>
+    <None Include="..\Rask.Outbox.Generators\bin\$(Configuration)\netstandard2.0\Rask.Outbox.Generators.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+  </ItemGroup>
+
+</Project>

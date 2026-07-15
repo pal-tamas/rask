@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **New `Rask.Outbox` package + `rask generate feature --outbox` — a transactional outbox.** Domain events
+  marked `IOutboxEvent` are written to an `OutboxMessage` table in the **same transaction** as the change
+  that raised them (atomic; never written for a rolled-back change), and a hosted `OutboxProcessor` polls
+  the table and publishes them through `Rask.Cqrs` — at-least-once, crash-safe, on the app's own database
+  (no broker). A source generator registers each event type for reflection-free rehydration. `--outbox`
+  makes the generated events `IOutboxEvent`, maps the table in the `DbContext`, adds `Rask.Outbox`, and
+  wires `AddRaskOutbox<Ctx>()` (disabling the in-process publisher so events aren't delivered twice). See
+  `docs/outbox.md`.
 - **`rask generate feature --events` emits typed domain events.** The slice gains `<Entity>Created`/
   `Updated`/`Deleted` records (`INotification`) that the aggregate raises on create/update/delete, plus a
   sample `INotificationHandler` stub — published in-process after the change commits by `Rask.Data`'s
