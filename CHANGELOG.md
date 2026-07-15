@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask generate feature --events` emits typed domain events.** The slice gains `<Entity>Created`/
+  `Updated`/`Deleted` records (`INotification`) that the aggregate raises on create/update/delete, plus a
+  sample `INotificationHandler` stub — published in-process after the change commits by `Rask.Data`'s
+  `DomainEventInterceptor` (auto-registered by `AddRaskCqrs()`). Composes with the other flags.
+- **`Rask.Data`'s `DomainEventInterceptor` now collects events in `SavingChanges` and publishes in
+  `SavedChanges`.** Previously it collected after the save, which lost a hard-deleted entity's events (a
+  deleted entity is detached once the save completes). It now drains events while entities are still
+  tracked, publishes them post-commit, and discards them if the save fails.
 - **`rask generate feature --concurrency` adds optimistic-concurrency protection.** The entity implements
   `IVersioned` (an `int Version` token that `ApplyRaskConventions` marks as the EF concurrency token and
   the auditing interceptor bumps on every update). The edit form round-trips the original `Version` through

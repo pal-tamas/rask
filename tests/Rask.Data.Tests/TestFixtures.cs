@@ -26,11 +26,15 @@ public sealed class Widget : AggregateRoot<Guid>, ISoftDeletable, IVersioned
         Name = name;
         Raise(new WidgetRenamed(Id));
     }
+
+    public void MarkDeleted() => Raise(new WidgetDeleted(Id));
 }
 
 public sealed record WidgetCreated(Guid Id) : INotification;
 
 public sealed record WidgetRenamed(Guid Id) : INotification;
+
+public sealed record WidgetDeleted(Guid Id) : INotification;
 
 // Records every published domain event so a test can assert the interceptor fired.
 public sealed class EventRecorder
@@ -69,6 +73,15 @@ public sealed class WidgetCreatedHandler(EventRecorder recorder) : INotification
 public sealed class WidgetRenamedHandler(EventRecorder recorder) : INotificationHandler<WidgetRenamed>
 {
     public Task HandleAsync(WidgetRenamed notification, CancellationToken cancellationToken)
+    {
+        recorder.Add(notification);
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class WidgetDeletedHandler(EventRecorder recorder) : INotificationHandler<WidgetDeleted>
+{
+    public Task HandleAsync(WidgetDeleted notification, CancellationToken cancellationToken)
     {
         recorder.Add(notification);
         return Task.CompletedTask;
