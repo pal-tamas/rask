@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-07-15
+
 ### Added
 - **`BsDataGrid<T>` gained server-side paging/sorting and URL-owned state.** `Page`/`OnPageChange` and
   `Sort`+`SortDescending`/`OnSortChange` let the **caller** own the page and sort: the grid renders what it is
