@@ -135,7 +135,7 @@ public class BsDataGridApiCompatTests
         Assert.Equal(
             [
                 "Children", "Class", "Columns", "Data", "Empty", "ExpandedContent", "Hover", "Id", "Key",
-                "MaxHeight", "OnPageChange", "OnPageChangeAsync", "OnRowClick", "OnRowClickAsync",
+                "Loading", "MaxHeight", "OnPageChange", "OnPageChangeAsync", "OnRowClick", "OnRowClickAsync",
                 "OnSortChange", "OnSortChangeAsync", "Page", "PageSize", "Responsive", "RowClass", "RowKey",
                 "Small", "Sort", "SortDescending", "StickyHeader", "Striped", "TotalCount",
             ],

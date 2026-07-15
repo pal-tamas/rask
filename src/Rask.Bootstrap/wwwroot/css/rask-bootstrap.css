@@ -103,6 +103,22 @@
   box-shadow: inset 0 -1px 0 var(--bs-border-color);
 }
 
+/* BsDataGrid(Loading: true) — the busy overlay, covering the grid inside its position-relative wrapper.
+   It sits over the table AND the pager, so a mouse cannot reach either while a fetch is in flight (the
+   keyboard is handled with aria-disabled plus a guard in the handlers, since covering pixels does nothing
+   for a Tab key).
+
+   The tint is rgba(--bs-body-bg-rgb) rather than a .bg-body/.opacity-* pair, because opacity on the
+   container would fade the spinner inside it too. --bs-body-bg-rgb tracks the light/dark theme. */
+.bs-grid-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--bs-body-bg-rgb), 0.65);
+}
+
 /* BsDataGrid(OnRowClick:) — the pointer affordance for a clickable row. Bootstrap 5.3 ships no cursor
    utility, so it lives here. It is applied per-CELL rather than to the <tr>, matching where the handler
    actually goes: the cells of RowClickable columns. A template cell holding a link or a button is not

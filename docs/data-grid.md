@@ -217,6 +217,9 @@ Handled for you, and worth knowing about:
 - `OnRowClick` adds **no** `role`/`tabindex` to the row, because faking a button there would cost the row its
   semantics. It is a pointer shortcut for an action that must also have a real control — see
   [row clicks](#a-clickable-row-is-not-an-accessible-control).
+- While `Loading`, the table is `aria-busy` and the sort/pager controls are `aria-disabled` (not `disabled`,
+  which would drop focus to `<body>`). The spinner's `role="status"` live region sits *outside* the
+  `aria-busy` table — inside it, the announcement would be deferred until busy cleared, i.e. never.
 
 ## Server-side paging & sorting
 
@@ -308,6 +311,47 @@ see only the slice you passed, so compute whole-set totals in your query.
 
 Combine it with a controlled `Page`/`Sort` (next section) and the state can live in the URL too.
 
+## Loading state
+
+Server-side paging means a click awaits a round-trip. `Loading` is how the grid says so: set it around your
+fetch and it dims the table behind a spinner, marks it `aria-busy`, and ignores further sort/page clicks until
+it clears.
+
+```csharp
+private async Task ReloadAsync()
+{
+    _loading = true;                       // re-renders: spinner on, controls inert
+    (_rows, _total) = await FetchAsync(_page, _sort);
+    _loading = false;                      // re-renders: spinner off
+}
+```
+
+<!-- demo:data-grid-loading -->
+
+`Loading` is deliberately **`bool?`**, and the three states differ:
+
+| Value | Meaning |
+|---|---|
+| `null` (default) | The grid isn't using the feature. Markup is exactly as it always was. |
+| `false` | In use, idle. |
+| `true` | Fetching. |
+
+That distinction is not fussiness. Once the feature is in use the grid renders a `position-relative` wrapper,
+and it renders it in **both** states so it never appears or disappears under the table — which keeps the
+table's DOM identity, and with it **focus and scroll position**, across a refetch. A grid that never sets
+`Loading` gets no wrapper at all.
+
+Two details worth knowing:
+
+- **The empty state is suppressed while loading.** A fetch in flight is not "no results", so the first load
+  doesn't flash the placeholder before the rows land.
+- **Controls get `aria-disabled`, not `disabled`.** A real `disabled` attribute drops focus to `<body>` — it
+  would throw away the user's keyboard position on every page click. They stay focusable and announce as
+  disabled, and the handlers guard for real.
+
+`Loading` does nothing for an `IQueryable` `Data`: that query runs synchronously inside the render, so there
+is no moment at which the grid is both mounted and waiting.
+
 ## Putting the state in the URL
 
 By default the grid owns its page and sort. Set `Page` (with `OnPageChange`) and/or `Sort`+`SortDescending`
@@ -368,6 +412,7 @@ renders only the visible window instead.
 | `OnRowClick` / `OnRowClickAsync` | `null` | The row the user clicked; the async form is awaited. Fires from `RowClickable` cells only. |
 | `StickyHeader` | `null` | Freezes the header row. Needs `MaxHeight`. |
 | `MaxHeight` | `null` | Bounds the table's scroll container (any CSS length). Pager stays outside. |
+| `Loading` | `null` | `null` = feature unused; `false` = idle; `true` = fetching (spinner, `aria-busy`, clicks ignored). |
 | `TotalCount` | `null` | Rows behind `Data`. Set = `Data` is one already-sorted, already-paged slice. |
 | `Page` | `null` | Controlled 0-based page. Null = the grid owns it. |
 | `OnPageChange` / `OnPageChangeAsync` | `null` | The page the user asked for; the async form is awaited. |

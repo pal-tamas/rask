@@ -25,6 +25,19 @@ internal static class BsGridAria
 
     internal static IReadOnlyDictionary<string, string?> Sort(bool sorted, bool descending) =>
         !sorted ? SortNone : descending ? SortDescending : SortAscending;
+
+    // aria-busy marks the table as refetching. It goes on the TABLE rather than on a wrapper enclosing the
+    // spinner: role="status" (which BsSpinner renders) is an aria-live region, and a live region inside an
+    // aria-busy subtree has its announcement deferred until busy clears — by which point the spinner is gone
+    // and the load was never announced at all.
+    internal static readonly IReadOnlyDictionary<string, string?> Busy =
+        new Dictionary<string, string?> { ["busy"] = "true" };
+
+    // aria-disabled, not the disabled attribute: a real `disabled` drops focus to <body>, which would throw
+    // away the user's keyboard position every time a sort or page click starts a fetch. This keeps the control
+    // focusable and announced while the handler guards make it inert.
+    internal static readonly IReadOnlyDictionary<string, string?> Disabled =
+        new Dictionary<string, string?> { ["disabled"] = "true" };
 }
 
 // One column of a BsDataGrid<T>. Value gives the cell text (ToString'd); Template overrides it with a
@@ -264,7 +277,35 @@ public sealed class BsDataGrid<T> : BsBlock
     /// </summary>
     public string? MaxHeight { get; set; }
 
+    /// <summary>
+    ///     Whether a fetch is in flight. Set it around your <see cref="OnPageChangeAsync" /> /
+    ///     <see cref="OnSortChangeAsync" /> work and the grid dims the table behind a spinner, marks it
+    ///     <c>aria-busy</c>, and ignores further sort/page clicks until it clears.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         It is deliberately <b>nullable</b>, and the three states differ: <c>null</c> (the default) means
+    ///         the grid isn't using the feature at all and renders exactly as it always did; <c>false</c> means
+    ///         it is in use and idle; <c>true</c> means loading. The distinction is what lets a grid that never
+    ///         sets it keep byte-identical markup, while a grid that does gets a wrapper that stays put across
+    ///         the flip rather than appearing and disappearing under the table.
+    ///     </para>
+    ///     <para>
+    ///         The empty state is suppressed while loading — a fetch in flight is not "no results", and the
+    ///         first load would otherwise flash the placeholder before the rows land.
+    ///     </para>
+    ///     <para>
+    ///         It does nothing for an <see cref="IQueryable" /> <see cref="Data" />: that query runs
+    ///         synchronously inside the render, so there is no moment at which the grid is both mounted and
+    ///         waiting.
+    ///     </para>
+    /// </remarks>
+    public bool? Loading { get; set; }
+
     private bool Expandable => ExpandedContent is not null;
+
+    // True only while a fetch is actually in flight. Guards read this; the wrapper keys off `Loading is null`.
+    private bool Busy => Loading is true;
 
     // Controlled: the caller owns the page/sort (typically from the URL), and the grid only reports intent.
     // Uncontrolled: the grid owns them. The two are independent — you can control the sort and not the page.
@@ -311,6 +352,14 @@ public sealed class BsDataGrid<T> : BsBlock
 
     private async Task ToggleSortAsync(int column)
     {
+        // The overlay covers the table, but only for a mouse: a keyboard user can still Tab to a header and
+        // press Enter. aria-disabled says so; this is what makes it true, and stops a second fetch racing the
+        // one already in flight.
+        if (Busy)
+        {
+            return;
+        }
+
         // Clicking the sorted column flips it; a different column starts ascending.
         var descending = CurrentSortColumn == column && !CurrentSortDescending;
 
@@ -363,6 +412,13 @@ public sealed class BsDataGrid<T> : BsBlock
     // be guarded here. Without the clamp, prev on page 0 underflows and the summary renders "-1-0 / 3".
     private async Task GoToPageAsync(int page, int pageCount)
     {
+        // Same as ToggleSortAsync: BsPageItem's Disabled is CSS-only and the overlay only stops the mouse, so
+        // the guard is what actually prevents a second page fetch while one is in flight.
+        if (Busy)
+        {
+            return;
+        }
+
         var target = Math.Clamp(page, 0, Math.Max(0, pageCount - 1));
         if (target == CurrentPage)
         {
@@ -389,26 +445,48 @@ public sealed class BsDataGrid<T> : BsBlock
             : TotalCount is { } t ? Sliced(t)
             : Local(columns);
 
-        if (total == 0 && Empty is not null)
+        // A fetch in flight is not "no results": without this guard the first load flashes the placeholder
+        // before the rows land, and every refetch of an empty filter blinks it back.
+        if (total == 0 && Empty is not null && !Busy)
         {
-            return Empty;
+            return Wrap(Empty, null);
         }
 
         var hasFooter = columns.Any(c => c.HasFooter);
 
         var table = BsTable(Id: Id, Striped: Striped, Hover: Hover, Small: Small, Responsive: Responsive,
-            StickyHeader: StickyHeader, MaxHeight: MaxHeight, Class: Class)[
+            StickyHeader: StickyHeader, MaxHeight: MaxHeight, Class: Class,
+            Aria: Busy ? BsGridAria.Busy : null)[
             Thead()[Tr()[HeaderCells(columns)]],
             Tbody()[BodyRows(columns, pageRows)],
             hasFooter ? Tfoot()[Tr()[FooterCells(columns, footerRows)]] : null
         ];
 
-        return
-        [
-            table,
-            PageSize > 0 && pageCount > 1 ? Pager(pageCount, total) : null
-        ];
+        return Wrap(table, PageSize > 0 && pageCount > 1 ? Pager(pageCount, total) : null);
     }
+
+    // Loading is null -> the grid never opted in, so return exactly what it always returned: a bare
+    // [content, pager] fragment. Byte-identical markup for every grid that doesn't use the feature.
+    //
+    // Loading is set -> a position-relative wrapper for the overlay to anchor to. It is rendered for BOTH
+    // true and false and never comes or goes, which is load-bearing: FrameDiffer matches sibling Elements by
+    // TAG NAME alone, so a wrapper that appeared only while loading would leave the differ pairing this
+    // <div> against whatever <div> already sat at the slot and morphing one into the other. Keeping it
+    // present also preserves the table's DOM identity — and with it focus and scroll position — across a
+    // refetch, which is the whole point of showing a spinner instead of replacing the grid.
+    //
+    // The overlay is appended LAST, after the pager, for the same reason: at the tail it is a pure insert the
+    // differ ships as a cheap trusted op, rather than a new element wedged between two existing <div>s.
+    // Being position:absolute, its DOM order has no bearing on where it paints.
+    private Component Wrap(Component? content, Component? pager) =>
+        Loading is null
+            ? [content, pager]
+            : Div(Class: Position.Relative)[content, pager, Busy ? Overlay() : null];
+
+    // The spinner sits OUTSIDE the aria-busy table (it is a sibling, not a child) so its role="status" live
+    // region can actually announce. See BsGridAria.Busy.
+    private static Component Overlay() =>
+        Div(Class: "bs-grid-overlay")[BsSpinner(Color: BsColor.Primary)];
 
     // Runs the query: ORDER BY the sorted column's SortBy, COUNT the whole set, and materialise one page.
     // Two round-trips, cached per (query, sort, page) so only a real change pays for them.
@@ -551,6 +629,7 @@ public sealed class BsDataGrid<T> : BsBlock
                 Button(
                     Type: "button",
                     Class: Bs.Join("btn btn-sm btn-link text-decoration-none", Padding.All(0), Font.Semibold),
+                    Aria: Busy ? BsGridAria.Disabled : null,
                     OnClickAsync: () => ToggleSortAsync(index))[column.Title, caret]
             ];
         }
@@ -656,7 +735,9 @@ public sealed class BsDataGrid<T> : BsBlock
 
     private IEnumerable<Component> PageItems(int pageCount)
     {
-        yield return BsPageItem(Key: "prev", Disabled: CurrentPage == 0,
+        // While loading every item is disabled, not just the edges: the pager is what the user just clicked,
+        // so it is where a "wait" has to be visible. BsPageItem renders aria-disabled from this.
+        yield return BsPageItem(Key: "prev", Disabled: Busy || CurrentPage == 0,
             OnClickAsync: () => GoToPageAsync(CurrentPage - 1, pageCount))[BsIcon(Name: BsIconName.ChevronLeft)];
 
         // A small sliding window around the current page keeps the pager compact for many pages.
@@ -667,11 +748,11 @@ public sealed class BsDataGrid<T> : BsBlock
         for (var p = start; p <= end; p++)
         {
             var target = p;
-            yield return BsPageItem(Key: p, Active: p == CurrentPage,
+            yield return BsPageItem(Key: p, Active: p == CurrentPage, Disabled: Busy,
                 OnClickAsync: () => GoToPageAsync(target, pageCount))[(p + 1).ToString()];
         }
 
-        yield return BsPageItem(Key: "next", Disabled: CurrentPage == pageCount - 1,
+        yield return BsPageItem(Key: "next", Disabled: Busy || CurrentPage == pageCount - 1,
             OnClickAsync: () => GoToPageAsync(CurrentPage + 1, pageCount))[BsIcon(Name: BsIconName.ChevronRight)];
     }
 

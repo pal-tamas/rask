@@ -77,6 +77,21 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **`BsDataGrid<T>` gained a `Loading` state.** v0.17.0 shipped `OnPageChangeAsync`/`OnSortChangeAsync`, so a
+  click could await a database round-trip with no feedback at all and nothing stopping a second click. Set
+  `Loading` around the fetch and the grid dims the table behind a spinner, marks it `aria-busy`, and ignores
+  further sort/page clicks until it clears. The empty state is suppressed while loading — a fetch in flight is
+  not "no results", and the first load would otherwise flash the placeholder before the rows land.
+  It is `bool?` on purpose: `null` means the grid isn't using the feature and its markup is unchanged, while
+  `false`/`true` mean in-use-idle and fetching. Once in use the grid renders a `position-relative` wrapper in
+  **both** states so it never appears or disappears under the table — the live diff matches sibling elements by
+  tag name, so a wrapper that came and went would be paired against whatever element sat at its slot. Keeping
+  it also preserves the table's DOM identity, and with it focus and scroll position, across a refetch. For the
+  same reason the overlay is appended after the pager rather than between the two.
+  `aria-busy` goes on the `<table>`, not the wrapper, and the spinner stays outside it: `BsSpinner` renders
+  `role="status"`, and a live region inside an `aria-busy` subtree has its announcement deferred until busy
+  clears — by which point the spinner is gone and the load was never announced. Controls get `aria-disabled`
+  rather than `disabled`, which would drop focus to `<body>` mid-fetch; the handlers guard for real.
 - **`BsDataGrid<T>` gained row clicks, conditional row styling and a sticky header.** `OnRowClick` /
   `OnRowClickAsync` raise the clicked row, `RowClass` computes a row's classes from the row itself (the
   overdue invoice, the cancelled order), and `StickyHeader` + `MaxHeight` forward to `BsTable` so a long grid
@@ -118,6 +133,15 @@ them until tagged releases begin.
   sessions/GiB on a trivial page vs ~150 on a 1,000-row grid. `session-churn` also reports the
   per-interaction cost (allocation + time per update), so a change that trades retained memory against
   update cost can be read against both.
+
+### Fixed
+- **`BsPageItem(Disabled: true)` now says it is disabled.** It only added the `.disabled` class, which greys
+  the item and sets `pointer-events: none` — that stops a mouse and nothing else, so a "disabled" page link
+  stayed focusable, announced as enabled, and still fired on Enter. The control now carries
+  `aria-disabled="true"` (Bootstrap's own documented markup for a disabled page link), on the link/button that
+  actually takes focus rather than on the `<li>`. Deliberately `aria-disabled` rather than the `disabled`
+  attribute, which would drop focus to `<body>` the moment a page click starts a fetch; callers still guard
+  their handlers, which is what `BsDataGrid`'s pager has always done.
 
 ## [0.17.0] - 2026-07-15
 

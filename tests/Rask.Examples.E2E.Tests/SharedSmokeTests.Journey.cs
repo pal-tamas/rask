@@ -630,7 +630,57 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
 
         await WalkDataGridRowsAsync();
+        await WalkDataGridLoadingAsync();
         await WalkDataGridStickyAsync();
+    }
+
+    // The busy state over a real transport. The unit tests pin the markup of each state; what only a browser
+    // shows is the round trip — spinner appears, controls go inert, rows are replaced, spinner goes.
+    private async Task WalkDataGridLoadingAsync()
+    {
+        var grid = Page.Locator("#bs-grid-loading");
+        var demo = Page.Locator("#grid-loading-demo");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Idle: in use (Loading: false) so the wrapper is there, but no overlay and no aria-busy.
+        await Expect(demo.Locator(".position-relative")).ToHaveCountAsync(1);
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0);
+        await Expect(grid).Not.ToHaveAttributeAsync("aria-busy", "true");
+
+        var firstBefore = await grid.Locator("tbody tr td:nth-child(1)").First.InnerTextAsync();
+
+        // Sorting awaits a 600ms fetch, so the overlay is observable. The demo's Loading flips true, the grid
+        // re-renders, and only then does the await complete.
+        await grid.Locator("th:has-text('City') button").ClickAsync();
+
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(grid).ToHaveAttributeAsync("aria-busy", "true");
+        // aria-disabled, not disabled: the control must stay focusable while it says it is inert.
+        await Expect(grid.Locator("th:has-text('City') button")).ToHaveAttributeAsync("aria-disabled", "true");
+        await Expect(demo.Locator(".pagination .page-item:not(.disabled)")).ToHaveCountAsync(0);
+
+        // ...and it clears, leaving the rows sorted.
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(grid).Not.ToHaveAttributeAsync("aria-busy", "true");
+
+        var sorted = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        Assert.Equal(sorted.OrderBy(x => x, StringComparer.Ordinal), sorted);
+        Assert.NotEqual(firstBefore, sorted[0]);
+
+        // The wrapper survived the whole flip — it must never be torn down, or the table would lose its DOM
+        // identity (and any focus or scroll inside it) on every fetch.
+        await Expect(demo.Locator(".position-relative")).ToHaveCountAsync(1);
+
+        // Paging awaits too, and lands on a disjoint slice.
+        var pageOne = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        await demo.Locator(".pagination .page-item:not(.disabled) button").Last.ClickAsync();
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        var pageTwo = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        Assert.Empty(pageOne.Intersect(pageTwo));
     }
 
     // Row clicks and conditional row styling. The unit tests prove which cells carry the handler; only a real

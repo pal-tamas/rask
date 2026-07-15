@@ -296,6 +296,16 @@ public static class DemoRegistry
                        + "way. A clickable row is a pointer shortcut, so the button stays the real, "
                        + "keyboard-reachable control.",
                 Result: BsDataGridRowDemo()),
+            ["data-grid-loading"] = () => CodeSample(
+                ["BsDataGridLoadingDemo.cs"],
+                Notes: "Loading is bool?, and the three states differ: null means the grid isn't using the "
+                       + "feature and renders exactly as before; false means in use and idle; true means "
+                       + "fetching. That distinction lets the position-relative wrapper stay put across the "
+                       + "flip instead of appearing under the table — the live diff matches sibling elements "
+                       + "by tag name, so a wrapper that came and went would be paired with whatever div sat "
+                       + "at its slot. aria-busy goes on the table and the spinner outside it, because a "
+                       + "role=status live region inside an aria-busy subtree never announces.",
+                Result: BsDataGridLoadingDemo()),
             ["data-grid-sticky"] = () => CodeSample(
                 ["BsDataGridStickyDemo.cs"],
                 Notes: "StickyHeader needs MaxHeight: a sticky header sticks to its nearest scroll container, "
