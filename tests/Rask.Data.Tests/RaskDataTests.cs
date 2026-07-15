@@ -125,6 +125,30 @@ public sealed class RaskDataTests : IDisposable
         Assert.Empty(widget.DomainEvents); // interceptor cleared them
     }
 
+    [Fact]
+    public async Task Domain_events_from_a_hard_delete_are_published()
+    {
+        Guid id;
+        await using (var db = NewContext())
+        {
+            var widget = Widget.Create("to-delete");
+            db.Widgets.Add(widget);
+            await db.SaveChangesAsync();
+            id = widget.Id;
+        }
+
+        await using (var db = NewContext())
+        {
+            var widget = await db.Widgets.SingleAsync(x => x.Id == id);
+            widget.MarkDeleted();      // event raised before the row is physically removed
+            db.Widgets.Remove(widget);
+            await db.SaveChangesAsync();
+        }
+
+        // Collected in SavingChanges (while still tracked), so the delete doesn't lose the event.
+        Assert.Contains(_recorder.Events, e => e is WidgetDeleted deleted && deleted.Id == id);
+    }
+
     public void Dispose()
     {
         _provider.Dispose();
