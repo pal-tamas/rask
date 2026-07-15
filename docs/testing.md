@@ -125,14 +125,18 @@ The rest of this guide covers `Rask`'s own in-repo test helpers (`Rask.TestSuppo
 
 ## 1. The test stack
 
-Tests run on **xUnit**. The `Rask.TestSupport` project (`tests/Rask.TestSupport/`) collects the
-helpers that render components and pull values out of the output:
+Tests run on **xUnit**. The `Rask.TestSupport` project (`tests/Rask.TestSupport/`) builds on
+`Rask.Testing` and adds only what the shipped package deliberately doesn't have — helpers that call
+`Assert` (the package is test-framework-agnostic and stays so), and helpers below the HTML +
+handler-dispatch seam it covers. Plain attribute lookups are `Markup.Attr(html, name)` from
+`Rask.Testing` itself; there is one scanner, and it's the shipped one.
 
 - **`RenderHarness`** — `Render<T>(component, services)` begins a `LiveRenderContext`, resolves the
   component, and fires `NotifyParameters`; `EmptyServices()` builds an empty `IServiceProvider` for
-  components that need no registrations.
-- **`Markup`** — string helpers over rendered HTML / live payloads: `Attr(html, name)` (or
-  `RequireAttr`), `SessionId`, `FirstHandlerId`.
+  components that need no registrations. (`RaskTest`'s default provider resolves *nothing*, by design,
+  so the package takes no DI dependency — these are different tools, not duplicates.)
+- **`MarkupAssert`** — the asserting/live-payload lookups: `RequireAttr`, `SessionId`,
+  `FirstHandlerId(html)` and `FirstHandlerId(byte[] jsonPayload)`.
 - **`Stubs`** — `StubComponent` (a live-render root that forwards to the component under test, which
   often can't itself be a root) and `ContextCapture` (captures the ambient `EditContext` during
   render so a test can assert against what a form/validator pushed).

@@ -34,7 +34,7 @@ public class RevokedAuthDispatchTests
         var getResp = await host.Http.SendAsync(getReq);
         Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
         var html = await getResp.Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(html);
+        var sessionId = MarkupAssert.SessionId(html);
         var handlerId = ExtractHandlerId(html, "bump");
 
         // Carry the auth cookie onto the WS upgrade so the socket attaches as alice.

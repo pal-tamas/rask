@@ -34,7 +34,7 @@ public class HelloMessageTests
         // mount behaviour with WASM's (which has no analogous GET→hello handoff phase).
         using var host = RaskTestHost.Create<TestApp>();
         var initial = await host.Http.GetAsync("/start");
-        var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -52,7 +52,7 @@ public class HelloMessageTests
         // async OnMountAsync continuation that completed before the WS attached), the
         // hello-time render must emit so the browser picks up the post-GET state.
         using var host = RaskTestHost.Create<MountAsyncApp>();
-        var sessionId = Markup.SessionId(await host.Http.GetStringAsync("/start"));
+        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
 
         // Let MountAsyncApp's OnMountAsync await complete before opening the socket.
         // The continuation calls StateHasChanged with no socket attached, setting the
@@ -81,7 +81,7 @@ public class HelloMessageTests
         // socket's browser tab reliably gets the current state, even when the HTML
         // matches the seeded GET-time baseline byte-for-byte.
         using var host = RaskTestHost.Create<TestApp>();
-        var sessionId = Markup.SessionId(await host.Http.GetStringAsync("/start"));
+        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
 
         var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId });

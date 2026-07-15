@@ -42,7 +42,7 @@ public class HandlerOrderingTests
 
         using var host = RaskTestHost.Create<OrderedDispatchApp>(diffMode: LiveDiffMode.DisabledFull);
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerIds = ExtractAllHandlerIds(initialHtml);
         Assert.Equal(10, handlerIds.Count);
 
@@ -95,7 +95,7 @@ public class HandlerOrderingTests
 
         using var host = RaskTestHost.Create<OrderedDispatchApp>(diffMode: LiveDiffMode.DisabledFull);
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerIds = ExtractAllHandlerIds(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);

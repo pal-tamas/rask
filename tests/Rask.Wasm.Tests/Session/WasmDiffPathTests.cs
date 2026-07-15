@@ -29,7 +29,7 @@ public class WasmDiffPathTests() : ResettingTestBase(LiveDiffMode.Forced)
                 + Encoding.UTF8.GetString(initial));
         }
 
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
         Assert.NotNull(handlerId);
         // Surface the actual handlerId in the failure if subsequent dispatches return
         // empty — helps distinguish "unknown handler id" from "byte-dedup'd payload".

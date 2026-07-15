@@ -22,7 +22,7 @@ public class NativeDiffPathTests() : ResettingTestBase(LiveDiffMode.Auto)
                 "the first frame should be full-HTML, not a diff");
         }
 
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
         await webView.PostAsync($$"""{"id":"{{handlerId}}","type":"click"}""");
 
         using var doc = JsonDocument.Parse(webView.LastFrame.AsMemory());

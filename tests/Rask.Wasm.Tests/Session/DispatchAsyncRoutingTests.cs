@@ -89,7 +89,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
         var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
 
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
         var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
         Assert.NotEmpty(result);
@@ -115,7 +115,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
 
         var tasks = Enumerable.Range(0, 5)
             .Select(_ => session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}""")))
@@ -139,7 +139,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
         var (session, _) = NewSession<ThrowingStubApp>(diffMode: DiffMode);
 
         var initial = await session.InitialRenderAsync();
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
 
         var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}"}"""));
 

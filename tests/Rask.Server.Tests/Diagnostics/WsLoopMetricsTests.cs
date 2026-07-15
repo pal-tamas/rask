@@ -10,8 +10,8 @@ public class WsLoopMetricsTests
     {
         using var host = RaskTestHost.Create<TestApp>();
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(initialHtml);
-        var handlerId = Markup.FirstHandlerId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
+        var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
         // Scope the capture to this host's metrics instance so parallel tests can't leak in.
         using var capture = MeterCapture.For(host.Store.Metrics!.Meter);

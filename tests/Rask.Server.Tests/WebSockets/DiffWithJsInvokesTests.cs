@@ -17,8 +17,8 @@ public class DiffWithJsInvokesTests
         using var host = RaskTestHost.Create<JsInvokeBindingApp>();
         var initial = await host.Http.GetAsync("/");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(initialHtml);
-        var inputId = Markup.RequireAttr(initialHtml, "data-rask-on-input");
+        var sessionId = MarkupAssert.SessionId(initialHtml);
+        var inputId = MarkupAssert.RequireAttr(initialHtml, "data-rask-on-input");
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });

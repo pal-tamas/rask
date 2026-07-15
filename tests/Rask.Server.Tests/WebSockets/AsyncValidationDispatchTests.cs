@@ -20,7 +20,7 @@ public class AsyncValidationDispatchTests
         using var host = RaskTestHost.Create<AsyncValidationApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
         var inputId = Markup.Attr(initialHtml, "data-rask-on-input");
         var changeId = Markup.Attr(initialHtml, "data-rask-on-change");
         Assert.NotNull(inputId);

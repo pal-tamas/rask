@@ -20,7 +20,7 @@ public class DownloadTokenPullTests : ResettingTestBase
         var (session, _) = NewSessionWithDownloadOnClick("manifest.bin", bytes, "application/octet-stream");
 
         var initial = await session.InitialRenderAsync();
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
 
         var payload =
             await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
@@ -41,7 +41,7 @@ public class DownloadTokenPullTests : ResettingTestBase
         var (session, _) = NewSessionWithDownloadOnClick("a.bin", bytes, null);
 
         var initial = await session.InitialRenderAsync();
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
         var payload =
             await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
         var token = ExtractToken(payload);

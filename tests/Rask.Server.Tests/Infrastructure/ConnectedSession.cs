@@ -46,7 +46,7 @@ internal sealed class ConnectedSession : IAsyncDisposable
     {
         var host = RaskTestHost.Create<TApp>(diffMode: diffMode);
         var initial = await host.Http.GetAsync("/start");
-        var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));

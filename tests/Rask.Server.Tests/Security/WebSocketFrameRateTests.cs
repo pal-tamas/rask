@@ -58,7 +58,7 @@ public class WebSocketFrameRateTests
         // default cap round-trip fine and leave the socket open.
         using var host = RaskTestHost.Create<TestApp>();
         var get = await host.Http.GetAsync("/");
-        var sessionId = Markup.SessionId(await get.Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await get.Content.ReadAsStringAsync());
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });

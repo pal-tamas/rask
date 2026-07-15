@@ -21,7 +21,7 @@ public class AuthDeferredNavDispatchTests
         using var host = CreateHost();
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
         var signInHandlerId = ExtractHandlerId(initialHtml, "sign-in");
 
         // The destination page has not mounted yet — only the anonymous /start page is live.

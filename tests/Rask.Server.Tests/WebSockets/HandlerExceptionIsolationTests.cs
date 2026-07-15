@@ -24,7 +24,7 @@ public class HandlerExceptionIsolationTests
     {
         using var host = RaskTestHost.Create<ThrowingHandlerApp>(diffMode: LiveDiffMode.DisabledFull);
         var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(html);
+        var sessionId = MarkupAssert.SessionId(html);
         var boom = HandlerIdFor(html, "boom");
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -50,7 +50,7 @@ public class HandlerExceptionIsolationTests
         {
             using var host = RaskTestHost.Create<GatedCounterApp>(diffMode: LiveDiffMode.DisabledFull);
             var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
-            var sessionId = Markup.SessionId(html);
+            var sessionId = MarkupAssert.SessionId(html);
             var hang = HandlerIdFor(html, "hang");
             var bump = HandlerIdFor(html, "bump");
 
