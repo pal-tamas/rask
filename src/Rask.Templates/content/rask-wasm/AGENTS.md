@@ -1,6 +1,6 @@
 # AGENTS.md — building this app with an AI assistant
 
-This is a **Rask** app (a C# component framework for .NET 10). This file tells AI coding
+This is a **Rask** app. Rask is the .NET One Person Framework (a full-stack C# framework for .NET 10). This file tells AI coding
 assistants the conventions so generated code compiles and runs. Full docs:
 https://github.com/pal-tamas/rask/tree/main/docs
 

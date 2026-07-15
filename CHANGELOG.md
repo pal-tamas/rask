@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Rask is now positioned as "the .NET One Person Framework".** A new [doctrine doc](docs/one-person-framework.md)
+  and [roadmap](docs/roadmap.md) frame Rask as a full-stack, solo-developer framework — one C# codebase, one
+  server, SQLite as the production database — with the UI reach (Server/WASM/native) and the lean runtime as
+  supporting proof. The README hero, getting-started intro, docs index, `llms.txt`, and the template `AGENTS.md`
+  files lead with this identity.
 - **New `Rask.Data` package — a DDD base entity + EF Core interceptors.** A provider-agnostic data layer
   for Entity Framework Core apps: an `AggregateRoot<TId>` base (Id, `CreatedAt`/`UpdatedAt` audit stamps,
   and a domain-events buffer), opt-in marker interfaces (`ISoftDeletable`, `IVersioned`), and three
@@ -15,7 +20,7 @@ them until tagged releases begin.
   `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication** through
   `Rask.Cqrs`. `modelBuilder.ApplyRaskConventions()` wires the query filter + optimistic-concurrency token,
   and `AddRaskData()` registers the interceptors. This is the foundation the `rask generate feature`
-  scaffolder's upcoming `--soft-delete`/`--concurrency`/`--events` output builds on. See `docs/data.md`.
+  scaffolder's `--soft-delete`/`--concurrency`/`--events` output builds on. See `docs/data.md`.
 - **`rask generate feature` now adds the required NuGet packages automatically.** After writing the
   slice it runs `dotnet add package` for EF Core + SQLite and `Rask.Cqrs` (plus `Rask.Bootstrap` with
   `--bs`, and the validation library with `--validation dataannotations`/`fluent`) so the code compiles

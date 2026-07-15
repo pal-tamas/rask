@@ -1,8 +1,10 @@
 # Getting started with Rask
 
-Rask lets you build web UIs as plain C# classes — no `.razor`, no JSX, no JavaScript to write. A
-component is a class that returns a tree of HTML from `Render()`, and the *same* component runs either
-server-rendered (live updates over a WebSocket) or fully client-side in the browser on WebAssembly.
+Rask is **the .NET One Person Framework** — one developer builds, runs, and ships a whole product solo, in
+C#, on one server ([read the doctrine](one-person-framework.md)). It starts with the UI: you build it as
+plain C# classes — no `.razor`, no JSX, no JavaScript to write. A component is a class that returns a tree
+of HTML from `Render()`, and the *same* component runs either server-rendered (live updates over a
+WebSocket) or fully client-side in the browser on WebAssembly.
 
 This is a zero-to-running tutorial for someone new to Rask. By the end you'll have an app on screen,
 you'll understand the files the template gave you, and you'll have written your own component, an event
@@ -70,7 +72,7 @@ above three working pages: a welcome card, a counter you can click, and a weathe
 > **Edit-and-refresh with `dotnet watch`.** Run `dotnet watch` instead of `dotnet run` for a live
 > inner loop: edit a component's `Render()` (or its scoped `.css`/`.js`) and save, and **C# Hot Reload**
 > applies the change to the running app and Rask re-renders the open session in place — no manual rebuild
-> or browser refresh. It's the closest a compiled framework gets to Rails' no-build loop.
+> or browser refresh — about as close to a no-build inner loop as a compiled framework gets.
 
 > **First build is slower, and the IDE may look broken — that's expected.** The first build is when
 > Rask's source generators run. Until then your IDE may flag `HomePage()`, `Counter()`, or
@@ -336,7 +338,17 @@ The snags you're most likely to hit on a fresh project (the README has a
 
 ## Next steps
 
-You now have a running, routed, interactive app. Where to go for the next thing you need:
+You now have a running, routed, interactive app. From here, the One-Person-Framework path takes it to a
+shipped product:
+
+1. **Scaffold a feature** → [`rask generate feature`](cli.md) emits a full CQRS + EF Core CRUD vertical
+   slice (entity, value objects, validation, list/create/edit pages, tests) in one command.
+2. **Make SQLite production-ready** → [Why one server, no PaaS](sqlite.md) — WAL, busy-timeout, and
+   continuous backup so one SQLite file is your production database.
+3. **Ship to one server** → a `--docker` template emits a production Dockerfile; deploy the whole app to
+   one box.
+
+Read **[the doctrine](one-person-framework.md)** for the why. Reference guides for the next thing you need:
 
 - **Build a form** → [forms](forms.md) — `Form<T>`, `Input(Bind: ...)`, validation.
 - **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Navigator`.
