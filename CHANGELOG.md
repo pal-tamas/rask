@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **New `Rask.Data` package — a DDD base entity + EF Core interceptors.** A provider-agnostic data layer
+  for Entity Framework Core apps: an `AggregateRoot<TId>` base (Id, `CreatedAt`/`UpdatedAt` audit stamps,
+  and a domain-events buffer), opt-in marker interfaces (`ISoftDeletable`, `IVersioned`), and three
+  `ISaveChangesInterceptor`s — auditing timestamps, **transparent soft delete** (a `Remove` becomes a
+  `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication** through
+  `Rask.Cqrs`. `modelBuilder.ApplyRaskConventions()` wires the query filter + optimistic-concurrency token,
+  and `AddRaskData()` registers the interceptors. This is the foundation the `rask generate feature`
+  scaffolder's upcoming `--soft-delete`/`--concurrency`/`--events` output builds on. See `docs/data.md`.
 - **`rask generate feature` now adds the required NuGet packages automatically.** After writing the
   slice it runs `dotnet add package` for EF Core + SQLite and `Rask.Cqrs` (plus `Rask.Bootstrap` with
   `--bs`, and the validation library with `--validation dataannotations`/`fluent`) so the code compiles
