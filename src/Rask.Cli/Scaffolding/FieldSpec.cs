@@ -42,7 +42,8 @@ internal static class FieldSpecParser
         ["bool"] = "bool",
         ["boolean"] = "bool",
         ["datetime"] = "DateTime",
-        ["date"] = "DateTime",
+        ["date"] = "DateOnly",
+        ["time"] = "TimeOnly",
         ["guid"] = "Guid",
     };
 
