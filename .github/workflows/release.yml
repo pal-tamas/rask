@@ -106,6 +106,18 @@ jobs:
       - name: Pack Rask.SQLite.Snapshots
         run: dotnet pack src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Data
+        run: dotnet pack src/Rask.Data/Rask.Data.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.Outbox
+        run: dotnet pack src/Rask.Outbox/Rask.Outbox.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.Testing
+        run: dotnet pack src/Rask.Testing/Rask.Testing.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.Cli (the `rask` dotnet tool)
+        run: dotnet pack src/Rask.Cli/Rask.Cli.csproj -c Release --no-build -o ./artifacts
+
       - name: Upload packages
         uses: actions/upload-artifact@v7
         with:
