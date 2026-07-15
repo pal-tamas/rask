@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -255,23 +255,61 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Bs_mode_uses_rask_bootstrap_components_and_utility_classes()
+    {
+        var result = Generate(useBs: true);
+
+        var create = File(result, "CreateProduct.cs");
+        Assert.Contains("BsCard(Class: Bs.Join(Shadow.Sm", create, StringComparison.Ordinal);
+        Assert.Contains("BsInput(() => _form.Name, Validate: ProductName.Validate, Id: \"name\", Label: \"Name\")", create, StringComparison.Ordinal);
+        Assert.Contains("BsButton(Type: \"submit\", Color: BsColor.Primary)", create, StringComparison.Ordinal);
+        Assert.Contains("Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3))", create, StringComparison.Ordinal);
+
+        var list = File(result, "ProductsPage.cs");
+        Assert.Contains("BsTable(Striped: true, Hover: true, Responsive: true)", list, StringComparison.Ordinal);
+        Assert.Contains("BsButton(Color: BsColor.Primary", list, StringComparison.Ordinal);
+        Assert.Contains("BsIcon(Name: BsIconName.PlusLg", list, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Modal_mode_puts_crud_in_a_bsmodal_and_drops_the_separate_pages()
+    {
+        var result = Generate(useModal: true);
+
+        // No separate Create/Update page files — they live on the list page.
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) is "CreateProduct.cs" or "UpdateProduct.cs");
+
+        var list = File(result, "ProductsPage.cs");
+        Assert.Contains("BsModal(Open: _modalOpen", list, StringComparison.Ordinal);
+        Assert.Contains("private void OpenCreate()", list, StringComparison.Ordinal);
+        Assert.Contains("private async Task OpenEditAsync(Guid id)", list, StringComparison.Ordinal);
+        // The create + update CQRS lives on the list page now.
+        Assert.Contains("public sealed record CreateProductCommand(ProductRequest Request)", list, StringComparison.Ordinal);
+        Assert.Contains("public sealed record UpdateProductCommand(Guid Id, ProductRequest Request)", list, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", "valueobjects", contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", useBs: false, useModal: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Bool_field_renders_a_bootstrap_checkbox_not_a_text_input()
+    public void Without_bs_pages_are_plain_unstyled_html()
     {
-        var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Job",
-            [new FieldSpec("Done", "bool", false, null)], "Guid", "valueobjects", null, null, outputOverride: null);
+        var result = Generate(); // core (no --bs)
 
-        var createJob = File(result, "CreateJob.cs");
-        Assert.Contains("form-check-input", createJob, StringComparison.Ordinal);
+        foreach (var file in new[] { "ProductsPage.cs", "CreateProduct.cs", "UpdateProduct.cs", "DeleteProduct.cs" })
+        {
+            Assert.DoesNotContain("Class:", File(result, file), StringComparison.Ordinal); // no styling / classes at all
+        }
+
+        // A field is just a label + bound Input, no framework classes.
+        Assert.Contains("Input(() => _form.Price, Id: \"price\")", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
