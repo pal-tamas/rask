@@ -628,6 +628,73 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#grid-filter-clear").ClickAsync();
         await Expect(emptyGrid).ToHaveCountAsync(1,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        await WalkDataGridRowsAsync();
+        await WalkDataGridStickyAsync();
+    }
+
+    // Row clicks and conditional row styling. The unit tests prove which cells carry the handler; only a real
+    // browser proves the consequence of that choice — that a click on the row body opens the row, while the
+    // button inside a template cell still fires its OWN handler rather than being cancelled by an ancestor.
+    private async Task WalkDataGridRowsAsync()
+    {
+        var grid = Page.Locator("#bs-grid-row");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // === RowClass — the overdue invoices are tinted from their own data, the current ones are not. ===
+        await Expect(grid.Locator("tbody tr.table-warning")).ToHaveCountAsync(1);
+        await Expect(grid.Locator("tbody tr.table-danger")).ToHaveCountAsync(1);
+
+        // === Row click — clicking a Value cell reports its row. ===
+        await Expect(Page.Locator("#grid-row-opened")).ToHaveCountAsync(0);
+        await grid.Locator("tbody tr:nth-child(2) td.bs-grid-click").First.ClickAsync();
+        await Expect(Page.Locator("#grid-row-opened")).ToHaveTextAsync("Opened INV-1042",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // === The Open button still works. This is the regression that matters: the button lives in a Template
+        //     cell, which is NOT row-clickable, so no ancestor handler cancels its click. Were the row click
+        //     attached to the <tr> instead, this button would be dead and nothing would say so. ===
+        await grid.Locator("#open-INV-1044").ClickAsync();
+        await Expect(Page.Locator("#grid-row-opened")).ToHaveTextAsync("Opened INV-1044",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // The button's cell never carries a handler of its own.
+        await Expect(grid.Locator("tbody tr:first-child td:last-child")).Not.ToHaveClassAsync(
+            new System.Text.RegularExpressions.Regex("bs-grid-click"));
+    }
+
+    // The sticky header, which is only observable in a real layout: the assertion is that the header stays put
+    // in the viewport while the rows scroll under it inside the bounded container.
+    private async Task WalkDataGridStickyAsync()
+    {
+        var grid = Page.Locator("#bs-grid-sticky");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        await Expect(grid).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("bs-table-sticky"));
+
+        var header = grid.Locator("thead th").First;
+        var box = grid.Locator("xpath=..");  // the .table-responsive wrapper MaxHeight bounds
+
+        var headerBefore = await header.BoundingBoxAsync();
+        var firstRowBefore = await grid.Locator("tbody tr").First.BoundingBoxAsync();
+
+        // Scroll the container, not the page: the header sticks to its nearest scroll container, which is
+        // exactly what MaxHeight created.
+        await box.EvaluateAsync("el => el.scrollTop = 200");
+        await Page.WaitForTimeoutAsync(250);
+
+        var headerAfter = await header.BoundingBoxAsync();
+        var firstRowAfter = await grid.Locator("tbody tr").First.BoundingBoxAsync();
+
+        Assert.NotNull(headerBefore);
+        Assert.NotNull(headerAfter);
+        Assert.NotNull(firstRowBefore);
+        Assert.NotNull(firstRowAfter);
+
+        // The rows moved up; the header did not move at all. Without position:sticky both would have moved.
+        Assert.True(firstRowAfter!.Y < firstRowBefore!.Y - 100,
+            $"rows should have scrolled up, but went {firstRowBefore.Y} -> {firstRowAfter.Y}");
+        Assert.True(Math.Abs(headerAfter!.Y - headerBefore!.Y) < 2,
+            $"the header should have stayed put, but went {headerBefore.Y} -> {headerAfter.Y}");
     }
 
     protected async Task WalkUserComponentsGuideAsync()

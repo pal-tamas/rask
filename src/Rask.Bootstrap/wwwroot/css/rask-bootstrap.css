@@ -103,6 +103,14 @@
   box-shadow: inset 0 -1px 0 var(--bs-border-color);
 }
 
+/* BsDataGrid(OnRowClick:) — the pointer affordance for a clickable row. Bootstrap 5.3 ships no cursor
+   utility, so it lives here. It is applied per-CELL rather than to the <tr>, matching where the handler
+   actually goes: the cells of RowClickable columns. A template cell holding a link or a button is not
+   row-clickable, and correctly keeps its own cursor. */
+.bs-grid-click {
+  cursor: pointer;
+}
+
 /* Date/time pickers (BsDatePicker/BsTimePicker/BsDateTimePicker). The popover is a plain
    .dropdown-menu we position with live-diff state (no Popper); these rules only style the calendar
    grid and time columns. All colours use Bootstrap CSS variables, so light/dark themes track

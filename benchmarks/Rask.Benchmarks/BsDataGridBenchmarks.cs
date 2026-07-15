@@ -1,0 +1,71 @@
+using BenchmarkDotNet.Attributes;
+using Rask.Bootstrap;
+using Rask.Core;
+using BS = Rask.Bootstrap.Generated;
+
+namespace Rask.Benchmarks;
+
+// BsDataGrid<T>'s live-render path. The grid is the framework's most render-heavy component and the one apps
+// push the most rows through, so it gets the same before/after Allocated scrutiny as the Core hot paths —
+// every feature added to it multiplies across rows × columns.
+//
+// RenderAsLiveRoot (not ToHtml) is the function under test: only the live path registers handlers, and
+// handler registration is exactly what the per-cell features cost.
+//
+// The pairs are deliberate. Each "…Plain" benchmark is the baseline for the feature benchmark beside it, so a
+// feature's true cost is one subtraction rather than a comparison against a different tree.
+[MemoryDiagnoser]
+public class BsDataGridBenchmarks
+{
+    private sealed record Product(string Name, string Category, int Stock, decimal Price, string Sku);
+
+    private static readonly List<Product> Rows = Build(100);
+
+    private static List<Product> Build(int n)
+    {
+        var rows = new List<Product>(n);
+        for (var i = 0; i < n; i++)
+        {
+            rows.Add(new Product($"Product {i}", $"Cat {i % 7}", i % 50, 10m + i, $"SKU-{i:D4}"));
+        }
+
+        return rows;
+    }
+
+    // Five Value columns: plain encoded text, the cheapest possible cell, so the deltas below are the
+    // feature's cost rather than the cells'.
+    private static BsColumn<Product>[] Columns() =>
+    [
+        new BsColumn<Product> { Title = "Name", Value = p => p.Name, Sortable = true },
+        new BsColumn<Product> { Title = "Category", Value = p => p.Category, Sortable = true },
+        new BsColumn<Product> { Title = "SKU", Value = p => p.Sku },
+        new BsColumn<Product> { Title = "Stock", Value = p => p.Stock },
+        new BsColumn<Product> { Title = "Price", Value = p => p.Price },
+    ];
+
+    // A grid nobody has opted into anything on: the floor, and the marker that the added features stay free
+    // when unused. 100 rows unpaged — the shape that hurts most.
+    [Benchmark(Baseline = true)]
+    public string Grid100_Plain() =>
+        BS.BsDataGrid(Data: Rows, Columns: Columns(), RowKey: p => p.Name).RenderAsLiveRoot();
+
+    // The same grid with a row click. The delta against Grid100_Plain is the honest price of OnRowClick:
+    // one handler id per CLICKABLE CELL (5 per row here, so ~500), not one per row. The row's callback
+    // closure itself is built once per row and shared across its cells.
+    [Benchmark]
+    public string Grid100_RowClick() =>
+        BS.BsDataGrid(Data: Rows, Columns: Columns(), RowKey: p => p.Name, OnRowClick: _ => { })
+            .RenderAsLiveRoot();
+
+    // RowClass runs a delegate per row and joins a class. Cheap by design; measured so it stays that way.
+    [Benchmark]
+    public string Grid100_RowClass() =>
+        BS.BsDataGrid(Data: Rows, Columns: Columns(), RowKey: p => p.Name,
+            RowClass: p => p.Stock == 0 ? "table-warning" : null).RenderAsLiveRoot();
+
+    // The paged shape most list screens actually render: 20 of 100. Sorting/paging still walk the whole set
+    // to count and slice, so this is not simply a fifth of the unpaged cost.
+    [Benchmark]
+    public string Grid100_Paged20() =>
+        BS.BsDataGrid(Data: Rows, Columns: Columns(), RowKey: p => p.Name, PageSize: 20).RenderAsLiveRoot();
+}

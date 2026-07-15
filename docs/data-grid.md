@@ -117,11 +117,93 @@ across a sort or a page change. Without it, rows are keyed by index and expansio
 
 <!-- demo:data-grid-detail -->
 
+## Row styling & row clicks
+
+`RowClass` computes extra classes for a row from the row itself — the hook for the overdue invoice, the
+cancelled order:
+
+```csharp
+BsDataGrid(Data: invoices, RowKey: i => i.Number,
+    RowClass: i => i.DaysOverdue switch { 0 => null, < 30 => "table-warning", _ => "table-danger" },
+    Columns: [...])
+```
+
+`OnRowClick` (and its awaited twin `OnRowClickAsync`) raises the row the user clicked:
+
+```csharp
+BsDataGrid(Data: invoices, RowKey: i => i.Number, OnRowClick: i => Open(i.Number), Columns: [...])
+```
+
+<!-- demo:data-grid-row -->
+
+### Which cells the click reaches — and why it matters
+
+The handler goes on the **cells** of the columns whose `RowClickable` resolves true, never on the `<tr>`. By
+default that means **`Value` columns are clickable and `Template` columns are not**, and that asymmetry is a
+safety rule rather than a style choice.
+
+Rask's client cancels the default action of every click it dispatches. So under a click handler, a checkbox
+never fires `change`, an `<a href>` never navigates, and a bare `<button>` (which defaults to `type=submit`)
+swallows the click instead. **Every one of those failures is silent.** A `Value` cell is plain encoded text and
+can never contain any of them, so it is always safe; a `Template` cell is exactly where you put a link or a
+button, so it opts out by default.
+
+Override it per column when you know better:
+
+```csharp
+// A non-interactive template (a badge, an icon) — safe to make clickable.
+new BsColumn<Invoice> { Title = "Status", Template = StatusBadge, RowClickable = true }
+
+// A Value column carved out of the row click.
+new BsColumn<Invoice> { Title = "Ref", Value = i => i.Ref, RowClickable = false }
+```
+
+The leading expander and selection cells never get the handler, so their controls always work.
+
+### A clickable row is not an accessible control
+
+**Never make the row click the only way to reach an action.** A `<tr>` cannot be made keyboard-operable
+without either a fake `role="button"` — which destroys the row semantics a screen reader depends on — or a
+tabindex on every row, which buries the real controls. So the grid deliberately does neither.
+
+Put a real link or button in a column (a `Template` column, so it keeps its own click) and let the row click
+duplicate it, exactly as the demo above does. Pointer users get the shortcut; everyone else gets the button.
+
+### What it costs
+
+`OnRowClick` registers a handler per *clickable cell*, so it scales with rows × columns rather than rows. On a
+100-row × 5-column **unpaged** grid that is 500 handlers — measured at **+45% allocation and roughly double the
+render time** versus the same grid without it (`BsDataGridBenchmarks`).
+
+That is the price of the per-cell design, and it is why the row's callback closure is built once per row and
+shared across its cells rather than minted per cell. Two ways to keep it small, both worth taking:
+
+- **Page the grid.** `PageSize: 20` renders a fifth of the rows and a fifth of the handlers — and is ~0.28× the
+  allocation of the unpaged grid before you even add the row click.
+- **Set `RowClickable = false`** on columns that don't need to respond.
+
+`RowClass` is free — it costs one delegate call per row and allocates nothing measurable.
+
 ## Density & styling
 
 `Striped`, `Hover` (both on by default), `Small` and `Responsive` (on by default, wrapping the table in a
 `.table-responsive` scroll container) map to Bootstrap's table classes. `Id` and `Class` land on the `<table>`,
 and `Class` is joined last so it wins the cascade.
+
+### Scrolling & sticky headers
+
+`MaxHeight` (any CSS length) makes the table scroll in its own box instead of running down the page, and
+`StickyHeader` freezes the header row while the body scrolls under it. The pager stays outside the scroll box.
+
+```csharp
+BsDataGrid(Data: readings, MaxHeight: "280px", StickyHeader: true, Columns: [...])
+```
+
+**`StickyHeader` needs `MaxHeight`.** A sticky header sticks to its nearest scroll container, so with nothing
+bounding the height there is nothing to stick to and the header scrolls away with the page. Set both, or
+neither.
+
+<!-- demo:data-grid-sticky -->
 
 ## Accessibility
 
@@ -132,6 +214,9 @@ Handled for you, and worth knowing about:
   — so sorting is keyboard-operable (Tab, then Enter or Space) with no extra work.
 - The expander toggle has an accessible name and `aria-expanded`, plus `aria-controls` pointing at its detail
   row while open.
+- `OnRowClick` adds **no** `role`/`tabindex` to the row, because faking a button there would cost the row its
+  semantics. It is a pointer shortcut for an action that must also have a real control — see
+  [row clicks](#a-clickable-row-is-not-an-accessible-control).
 
 ## Server-side paging & sorting
 
@@ -279,6 +364,10 @@ renders only the visible window instead.
 | `Striped` / `Hover` | `true` | Bootstrap table styling. |
 | `Small` | `false` | `.table-sm`. |
 | `Responsive` | `true` | Wraps the table in `.table-responsive`. |
+| `RowClass` | `null` | Extra classes for a row, computed from it. Data rows only. |
+| `OnRowClick` / `OnRowClickAsync` | `null` | The row the user clicked; the async form is awaited. Fires from `RowClickable` cells only. |
+| `StickyHeader` | `null` | Freezes the header row. Needs `MaxHeight`. |
+| `MaxHeight` | `null` | Bounds the table's scroll container (any CSS length). Pager stays outside. |
 | `TotalCount` | `null` | Rows behind `Data`. Set = `Data` is one already-sorted, already-paged slice. |
 | `Page` | `null` | Controlled 0-based page. Null = the grid owns it. |
 | `OnPageChange` / `OnPageChangeAsync` | `null` | The page the user asked for; the async form is awaited. |
@@ -289,4 +378,4 @@ renders only the visible window instead.
 
 `BsColumn<T>`: `Title`, `Value`, `Template`, `Sortable`, `SortKey` (in-memory ordering), `SortField` (names the
 column in `OnSortChange`), `SortBy` (the `ORDER BY` expression when `Data` is an `IQueryable`), `Class`,
-`Footer`, `FooterTemplate`.
+`Footer`, `FooterTemplate`, `RowClickable` (null = auto: `Value` columns yes, `Template` columns no).

@@ -57,7 +57,22 @@ public sealed class BsColumn<T>
     public Func<IReadOnlyList<T>, object?>? Footer { get; init; }
     public Func<IReadOnlyList<T>, Component>? FooterTemplate { get; init; }
 
+    // Whether BsDataGrid.OnRowClick fires from this column's cells. Null (the default) means AUTO: a Value
+    // column is clickable, a Template column is not — and that asymmetry is a safety rule, not a style.
+    //
+    // The grid attaches the row-click handler to the cells, and the client cancels the default action of any
+    // click it dispatches (rask.js: e.preventDefault() runs for every resolved target). Under a handler, a
+    // checkbox never fires `change`, an <a href> never navigates, and a bare <button> — which defaults to
+    // type=submit — swallows the click instead. Every one of those failures is silent.
+    //
+    // A Value cell is plain encoded text and can never contain any of them, so it is always safe. A Template
+    // cell is exactly where an author puts a link or a button, so it opts out by default. Set true to make a
+    // non-interactive template (a badge, an icon) clickable anyway, or false to carve a Value column out.
+    public bool? RowClickable { get; init; }
+
     internal bool HasFooter => Footer is not null || FooterTemplate is not null;
+
+    internal bool IsRowClickable => RowClickable ?? Template is null;
 
     internal IComparable? Sort(T row) =>
         SortKey is not null ? SortKey(row) : Value?.Invoke(row) as IComparable;
@@ -200,6 +215,55 @@ public sealed class BsDataGrid<T> : BsBlock
     /// </summary>
     public CallbackAsync<DataGridSort>? OnSortChangeAsync { get; set; }
 
+    /// <summary>
+    ///     Extra CSS classes for a row, computed from it — the hook for conditional row styling (a red
+    ///     overdue invoice, a muted cancelled order). Return null for no extra class. Applies to data rows
+    ///     only, not to a master-detail row.
+    /// </summary>
+    public Func<T, string?>? RowClass { get; set; }
+
+    /// <summary>
+    ///     Raised with the row the user clicked — the "click the row to open it" idiom.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The handler is attached to the row's <b>cells</b>, not to the <c>&lt;tr&gt;</c>, and only to
+    ///         those whose column is <see cref="BsColumn{T}.RowClickable" /> (by default: the
+    ///         <see cref="BsColumn{T}.Value" /> columns, not the <see cref="BsColumn{T}.Template" /> ones).
+    ///         That is what keeps a link, a button or a checkbox inside a template cell working — see
+    ///         <see cref="BsColumn{T}.RowClickable" /> for why a handler above one would silently break it.
+    ///     </para>
+    ///     <para>
+    ///         <b>A clickable row is a pointer convenience, not an accessible control.</b> A
+    ///         <c>&lt;tr&gt;</c> cannot be made keyboard-operable without either a fake
+    ///         <c>role="button"</c> — which destroys the row semantics a screen reader needs — or a tabindex
+    ///         on every row, which buries the real controls. So the row click must never be the only way to
+    ///         reach the action: put a real link or button in a column too (with
+    ///         <c>RowClickable = false</c>) and let the row click duplicate it.
+    ///     </para>
+    ///     <para>
+    ///         It costs one handler per clickable cell, so it scales with rows × columns rather than rows.
+    ///     </para>
+    /// </remarks>
+    public Callback<T>? OnRowClick { get; set; }
+
+    /// <summary>The awaited form of <see cref="OnRowClick" />.</summary>
+    public CallbackAsync<T>? OnRowClickAsync { get; set; }
+
+    /// <summary>
+    ///     Freezes the header row while the body scrolls under it. Needs <see cref="MaxHeight" />: a sticky
+    ///     header sticks to its nearest scroll container, and without a bounded height there is nothing to
+    ///     stick to.
+    /// </summary>
+    public bool? StickyHeader { get; set; }
+
+    /// <summary>
+    ///     Bounds the table's height (any CSS length: <c>"400px"</c>, <c>"60vh"</c>) so it scrolls in its own
+    ///     box rather than running down the page. Pair it with <see cref="StickyHeader" />. The pager stays
+    ///     outside the scroll box.
+    /// </summary>
+    public string? MaxHeight { get; set; }
+
     private bool Expandable => ExpandedContent is not null;
 
     // Controlled: the caller owns the page/sort (typically from the URL), and the grid only reports intent.
@@ -333,7 +397,7 @@ public sealed class BsDataGrid<T> : BsBlock
         var hasFooter = columns.Any(c => c.HasFooter);
 
         var table = BsTable(Id: Id, Striped: Striped, Hover: Hover, Small: Small, Responsive: Responsive,
-            Class: Class)[
+            StickyHeader: StickyHeader, MaxHeight: MaxHeight, Class: Class)[
             Thead()[Tr()[HeaderCells(columns)]],
             Tbody()[BodyRows(columns, pageRows)],
             hasFooter ? Tfoot()[Tr()[FooterCells(columns, footerRows)]] : null
@@ -498,7 +562,7 @@ public sealed class BsDataGrid<T> : BsBlock
         {
             var row = pageRows[r];
             var key = RowKey?.Invoke(row) ?? r;
-            yield return Tr(Key: key)[Cells(columns, row, key, r)];
+            yield return Tr(Key: key, Class: RowClass?.Invoke(row))[Cells(columns, row, key, r)];
 
             if (!Expandable || !_expanded.Contains(key))
             {
@@ -522,11 +586,28 @@ public sealed class BsDataGrid<T> : BsBlock
             yield return Td()[ExpanderButton(key, index)];
         }
 
+        // Built once and shared by every clickable cell in this row. The callback is per-row, so minting a
+        // delegate per cell would multiply the closure allocations by the column count for no benefit —
+        // the handler *id* is still per element, which is why OnRowClick scales rows × columns.
+        var click = RowClickHandler(row);
+
         for (var c = 0; c < columns.Count; c++)
         {
-            yield return Td(Class: columns[c].Class)[columns[c].Cell(row)];
+            var column = columns[c];
+            var clickable = click is not null && column.IsRowClickable;
+
+            yield return Td(
+                Class: BsClass.Join(column.Class, clickable ? "bs-grid-click" : null),
+                OnClickAsync: clickable ? click : null)[column.Cell(row)];
         }
     }
+
+    // Null when the grid has no row-click wired, which is what keeps every cell handler-free (and the markup
+    // byte-identical) for the grids that don't use the feature.
+    private CallbackAsync? RowClickHandler(T row) =>
+        OnRowClick is null && OnRowClickAsync is null
+            ? null
+            : () => Raise(OnRowClick, OnRowClickAsync, row);
 
     // aria-expanded plus a name make the icon-only toggle usable with a screen reader; aria-controls points at
     // the detail row, but only while it is open — ARIA must not reference an id that is not in the document.

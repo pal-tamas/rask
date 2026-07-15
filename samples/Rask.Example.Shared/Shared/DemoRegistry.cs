@@ -287,6 +287,21 @@ public static class DemoRegistry
                        + "follows.",
                 Result: BsDataGridDetailDemo()),
             ["data-grid-empty"] = () => CodeSample(["BsDataGridEmptyDemo.cs"], Result: BsDataGridEmptyDemo()),
+            ["data-grid-row"] = () => CodeSample(
+                ["BsDataGridRowDemo.cs"],
+                Notes: "OnRowClick is attached to the cells of the RowClickable columns — by default the Value "
+                       + "columns, never the Template ones. That is what keeps the Open button alive: the "
+                       + "client cancels the default action of every click it dispatches, so a handler above "
+                       + "the button would swallow its click, and a link or checkbox would go dead the same "
+                       + "way. A clickable row is a pointer shortcut, so the button stays the real, "
+                       + "keyboard-reachable control.",
+                Result: BsDataGridRowDemo()),
+            ["data-grid-sticky"] = () => CodeSample(
+                ["BsDataGridStickyDemo.cs"],
+                Notes: "StickyHeader needs MaxHeight: a sticky header sticks to its nearest scroll container, "
+                       + "so without a bounded height there is nothing to stick to and it scrolls away with "
+                       + "the page.",
+                Result: BsDataGridStickyDemo()),
 
             // --- Elements & the DSL guide: primitives, tag factories, universal props, SVG, and the
             //     HTML element catalog (their standalone example pages folded into docs/elements.md).

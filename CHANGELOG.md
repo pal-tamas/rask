@@ -77,6 +77,23 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **`BsDataGrid<T>` gained row clicks, conditional row styling and a sticky header.** `OnRowClick` /
+  `OnRowClickAsync` raise the clicked row, `RowClass` computes a row's classes from the row itself (the
+  overdue invoice, the cancelled order), and `StickyHeader` + `MaxHeight` forward to `BsTable` so a long grid
+  scrolls in its own box under a frozen header, with the pager outside it.
+  The row click is attached to the **cells** of `RowClickable` columns rather than to the `<tr>`, and
+  `BsColumn<T>.RowClickable` defaults to auto: `Value` columns are clickable, `Template` columns are not. That
+  is a safety rule, not a style. Rask's client cancels the default action of every click it dispatches, so
+  under a handler a checkbox never fires `change`, an `<a href>` never navigates, and a bare `<button>`
+  swallows the click instead — all silently. A `Value` cell is plain encoded text and can never hold any of
+  them; a `Template` cell is exactly where they live, so it opts out unless you set `RowClickable = true`.
+  The grid deliberately adds no `role`/`tabindex` to the row: faking a button on a `<tr>` would destroy the
+  row semantics screen readers depend on. A clickable row is a pointer shortcut, so the action needs a real
+  control too — the demo pairs it with a button, which is also what proves the cells rule in the browser.
+  The per-cell design has a real price, now measured rather than guessed: on a 100-row × 5-column unpaged grid
+  `OnRowClick` is 500 handlers, **+45% allocation and ~2× render time** (new `BsDataGridBenchmarks`, which
+  gives the grid's render path the same before/after scrutiny as the Core hot paths). Paging it cuts both
+  roughly in proportion, and `RowClickable = false` trims further. `RowClass` is free.
 - **`BsTable` gained `MaxHeight`, `StickyHeader` and `Aria`.** `MaxHeight` (any CSS length) bounds the
   table's scroll container so a long table scrolls in its own box instead of running down the page, and
   `StickyHeader` freezes the header row while the body scrolls under it — the pair a list screen has always
