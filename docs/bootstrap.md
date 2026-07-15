@@ -53,6 +53,7 @@ Each component group has its own page. Every interactive component is **controll
 |---|---|
 | **[Buttons & badges](bootstrap-buttons.md)** | `BsButton` `BsButtonGroup` `BsBadge` `BsCloseButton` |
 | **[Cards, lists & tables](bootstrap-cards.md)** | `BsCard` (+`BsCardHeader/Body/Footer/Title/Subtitle/Text/Image`) `BsListGroup`(+item) `BsPlaceholder` `BsTable` `BsPagination`(+`BsPageItem`) `BsBreadcrumb`(+item) |
+| **[Data grid](data-grid.md)** | `BsDataGrid<T>`(+`BsColumn<T>`) — typed columns, sorting, paging, footer totals, master-detail |
 | **[Alerts, spinners & progress](bootstrap-feedback.md)** | `BsAlert` `BsSpinner` `BsProgress` |
 | **[Icons](bootstrap-icons.md)** | `BsIcon` — typed over every Bootstrap Icons glyph via `BsIconName` |
 | **[Navbar & nav](bootstrap-navigation.md)** | `BsNavbar` `BsNavbarBrand` `BsNav` `BsNavItem` (SPA-routed, auto-active) |

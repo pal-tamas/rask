@@ -9,6 +9,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <!-- The grid slice (ProductGridPage) uses BsDataGrid. The rest of this sample stays plain Core
+         components over the Bootstrap CSS the shell links from a CDN. -->
+    <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
+    <!-- UseRaskSqlite: the production SQLite pragmas (WAL, foreign_keys, busy_timeout) on every connection. -->
+    <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
@@ -16,6 +21,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Bs* types and their generated factories, matching how a consuming app gets them. -->
+    <Using Include="Rask.Bootstrap"/>
+    <Using Include="Rask.Bootstrap.Generated" Static="true"/>
   </ItemGroup>
 
   <!-- The ASP.NET Web SDK requires a wwwroot to exist even when there are no static files. -->

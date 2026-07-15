@@ -51,6 +51,7 @@ its own page:
 | [Bootstrap](bootstrap.md) | Setup (`BootstrapStyles()`), color modes, the typed enums, the component map, and versioning. |
 | [Buttons & badges](bootstrap-buttons.md) | `BsButton`, `BsButtonGroup`, `BsBadge`, `BsCloseButton`. |
 | [Cards, lists & tables](bootstrap-cards.md) | `BsCard` (+ parts), `BsListGroup`, `BsPlaceholder`, `BsTable`, `BsPagination`, `BsBreadcrumb`. |
+| [Data grid](data-grid.md) | `BsDataGrid<T>` (+`BsColumn<T>`) — typed columns, sorting, paging, footer totals, master-detail. |
 | [Alerts, spinners & progress](bootstrap-feedback.md) | `BsAlert` (dismissible), `BsSpinner`, `BsProgress`. |
 | [Icons](bootstrap-icons.md) | The typed `BsIcon` over every Bootstrap Icons glyph (`BsIconName`). |
 | [Navbar & nav](bootstrap-navigation.md) | `BsNavbar`/`BsNavbarBrand`/`BsNav`/`BsNavItem` — SPA-routed, auto-active, zero-JS. |
