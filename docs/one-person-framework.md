@@ -45,6 +45,12 @@ hop to a database tier, no separate cache or queue service — because everythin
 SQLite database. When you outgrow one box, the door to a client-server database is open; most solo products
 never need to walk through it.
 
+That is measured, not asserted: on one laptop, one file sustains **~99,000 operations/second of realistic
+90/10 read-write traffic at a p99 of 10 ms**, and with WAL a writer hammering the same file costs concurrent
+readers under half their throughput — the same reads without WAL collapse to roughly 1% of it. The full
+load-test tables, including where the defaults *don't* save you, are in
+**[Load-test numbers](sqlite.md#load-test-numbers)**.
+
 The full reasoning — why WAL, why a busy-timeout, why single-writer is fine for a web app, and how the
 continuous backup works — is in **[Why one server, no PaaS](sqlite.md)**.
 

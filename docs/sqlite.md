@@ -145,6 +145,104 @@ Microsoft.Data.Sqlite's own command timeout so the async strategy owns the waiti
   lock on its first statement). For a **read-then-write** transaction, wrap it in
   `BeginImmediate` (and, as with any retrying strategy, inside `IExecutionStrategy.ExecuteAsync`).
 
+## Load-test numbers
+
+Everything above is a claim. This section is the evidence: a load harness
+(`benchmarks/Rask.Benchmarks.Sqlite`) drives sustained concurrent load against a real database file and
+reports throughput, tail latency and error counts. Numbers below are one machine (Apple M4, .NET 10, SSD),
+15s per level. Your absolute numbers will differ; the *relationships* are the point, and they are all measured
+in the same process on the same box in the same run.
+
+> **How to read these.** The harness is closed-loop — each virtual user (VU) keeps one operation in flight —
+> so latency is service time under N concurrent clients. Reproduce any row with
+> `dotnet run -c Release --project benchmarks/Rask.Benchmarks.Sqlite -- all`.
+
+### Writes: who waits, and how badly
+
+One `INSERT` per operation, all four write paths against one WAL database.
+
+| VUs | path | ops/s | p50 | p99 | **max** |
+|----:|------|------:|----:|----:|--------:|
+| 1 | `ExecuteInImmediateTransactionAsync` | 74,145 | 0.01 ms | 0.02 ms | 30 ms |
+| 1 | `BEGIN IMMEDIATE` + `busy_timeout` | 93,800 | 0.01 ms | 0.02 ms | 32 ms |
+| 32 | `ExecuteInImmediateTransactionAsync` | 68,958 | 0.01 ms | 16 ms | **174 ms** |
+| 32 | `BEGIN IMMEDIATE` + `busy_timeout` | 18,186 | 0.03 ms | 0.05 ms | **15,937 ms** |
+| 128 | `ExecuteInImmediateTransactionAsync` | 43,441 | 0.01 ms | 68 ms | **408 ms** |
+| 128 | `BEGIN IMMEDIATE` + `busy_timeout` | 16,772 | 0.03 ms | 0.68 ms | **15,837 ms** |
+
+Two honest results here, and neither is "the new thing wins everywhere":
+
+- **Uncontended, the native path is faster** (94k vs 74k ops/s). Taking the lock through the raw handle and
+  running a managed retry loop is not free. If you have exactly one writer, you are paying ~21% for
+  insurance.
+- **Contended, the native path's *median* still looks great** — its p50 and p99 beat the non-blocking path,
+  because most writers take the lock immediately. The distribution is **bimodal**: the ones that don't get
+  stuck behind a thread-blocking wait for nearly **16 seconds**. The non-blocking path trades a worse p99 for
+  a worst case that stays bounded (174 ms at 32 VUs, 408 ms at 128) — a **~92× better max** — while also
+  sustaining ~3.8× its throughput at 32 VUs.
+
+That is the trade the fair-interval retry actually makes: **not more throughput, a bounded tail** — plus the
+freed thread, which a database-only benchmark cannot show but a web server feels (see
+`SqliteConcurrencyStressTests`, where 400 writers complete on an 8-thread pool). If your p99 matters more
+than your p99.9 and you never starve threads, `busy_timeout` alone is defensible. If a 15-second request is
+unacceptable, it is not.
+
+### Readers really do not block the writer
+
+The headline WAL claim, with the control it needs — the same reads in `DELETE` (rollback-journal) mode, which
+is what SQLite does if you don't set `journal_mode`:
+
+| readers | journal | writer? | ops/s | p99 |
+|--------:|---------|---------|------:|----:|
+| 32 | WAL | no | 535,877 | 0.34 ms |
+| 32 | WAL | **yes** | **283,936** | **1.17 ms** |
+| 32 | DELETE | **yes** | **2,989** | **236 ms** |
+| 128 | WAL | no | 460,200 | 4.39 ms |
+| 128 | WAL | **yes** | **393,744** | **4.91 ms** |
+| 128 | DELETE | **yes** | **2,553** | **1,039 ms** |
+
+With WAL, a writer hammering the same file costs readers ~47% of throughput at 32 readers (and only ~14% at
+128), leaving p99 near the idle baseline. Without it, the same readers collapse to **~1%** of their WAL
+throughput with a p99 two to three orders of magnitude worse — readers and the writer take turns excluding
+each other. This one pragma is worth **~95×** on read throughput under a concurrent writer at 32 readers,
+and **~154×** at 128.
+
+### Realistic web traffic: ~90% reads, 10% writes
+
+10,000 seeded rows, a list page (`ORDER BY created_at DESC LIMIT 20`) plus a row fetch for reads, an insert
+for writes:
+
+| VUs | path | ops/s | p50 | p99 |
+|----:|------|------:|----:|----:|
+| 32 | raw ADO | **99,054** | 0.02 ms | 10 ms |
+| 32 | EF Core | **26,273** | 0.09 ms | 0.86 ms |
+| 128 | raw ADO | 52,765 | 0.09 ms | 65 ms |
+| 128 | EF Core | 32,610 | 0.19 ms | 151 ms |
+
+**One process, one file, one disk: ~99k operations/second of realistic mixed traffic at a p99 of 10 ms**, or
+~26k/second through EF Core. For scale, that is far past what a single application server will ask of it —
+which is the point: SQLite is not the bottleneck you should be designing around.
+
+> One caveat reported rather than buried: a single earlier run of the EF mixed arm escaped `SQLITE_BUSY`
+> twice in ~542,000 operations (0.0004%), inside a 15-second run whose retry budget was 30 seconds — so the
+> retry did not time out, it never engaged. It has not recurred in ~2.1M further operations and is **not
+> root-caused**; the raw path shows nothing equivalent. What was ruled out (each with a regression test) is
+> in the harness [baselines README](../benchmarks/Rask.Benchmarks.Sqlite/Baselines/README.md).
+
+### Under a sustained soak
+
+32 VUs of mixed traffic for 90 seconds, sampled per 10-second window:
+
+- **The WAL sawtooths and stays small.** It peaked at ~24 MiB against a ~27 MiB database, and latency stayed
+  flat. SQLite auto-checkpoints at ~1,000 pages (~4 MB), so `journal_size_limit`'s 64 MiB cap **never
+  engages** in a healthy database. It is insurance, not a working limit.
+- **A single leaked read transaction is what actually kills you.** Hold one `BEGIN; SELECT …;` open for the
+  run and the WAL grows to **3.16 GB in 90 seconds** — against a 0.5 MiB database. A reader pins the WAL's
+  oldest needed frame, checkpointing cannot reclaim, and **`journal_size_limit` does not stop it**: that
+  limit truncates the WAL *after* a checkpoint, so it cannot cap growth while a checkpoint can't run. This is
+  correct SQLite behaviour, and the reason a long-running report or a forgotten transaction is a disk-space
+  incident. It truncates back the moment the reader commits.
+
 ## Continuous backup with Litestream
 
 WAL mode (now on by default) is exactly what [Litestream](https://litestream.io) needs to
@@ -388,6 +486,15 @@ Assert.Equal("wal", cmd.ExecuteScalar());
 
 See `tests/Rask.SQLite.Tests` for the unit + integration coverage, and
 `tests/Rask.Examples.E2E.Tests/SqliteExampleTests.cs` for the end-to-end concurrent-writes check.
+
+For load rather than correctness, `benchmarks/Rask.Benchmarks.Sqlite` drives sustained concurrent traffic and
+reports throughput, tail latency and error counts (the numbers in
+[Load-test numbers](#load-test-numbers) above). Its `check` mode is a regression gate over invariants and
+same-run ratios — never absolute milliseconds, which are unusable on shared hardware:
+
+```bash
+scripts/run-sqlite-load-local.sh          # the gate; run it for any change under src/Rask.SQLite*
+```
 
 ## Run the sample
 

@@ -53,6 +53,16 @@ jobs:
         run: |
           dotnet run -c Release --project benchmarks/Rask.Benchmarks -p:MinVerSkip=true -- --filter '*' --job short || true
           dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -p:MinVerSkip=true -- --filter '*' --job short || true
+      # The SQLite load gate: Tier 1 only (--ci), i.e. the invariants and same-run ratios that hold on any
+      # hardware — a shared runner cannot be held to absolute latency. Best-effort like the rest of this job;
+      # the CSV artifact is the deliverable. See LoadGate.cs for what this catches and what it does not.
+      - name: SQLite load gate + report
+        run: |
+          mkdir -p benchmarks/Rask.Benchmarks.Sqlite/Results
+          dotnet run -c Release --project benchmarks/Rask.Benchmarks.Sqlite -p:MinVerSkip=true -- check --ci || true
+          dotnet run -c Release --project benchmarks/Rask.Benchmarks.Sqlite -p:MinVerSkip=true -- all \
+            --vus 1,32,128 --duration 20 \
+            --out benchmarks/Rask.Benchmarks.Sqlite/Results/sqlite-load.csv || true
       - name: Upload benchmark results
         if: always()
         uses: actions/upload-artifact@v7
@@ -60,6 +70,7 @@ jobs:
           name: benchmark-results
           path: |
             **/BenchmarkDotNet.Artifacts/**
+            benchmarks/Rask.Benchmarks.Sqlite/Results/*.csv
 
   # Rask.Native ships iOS/Android platform heads, so its prerelease package is built + packed on macOS
   # with the mobile workloads (-p:RaskNativeHeads=true) and handed to publish-nightly as an artifact.
