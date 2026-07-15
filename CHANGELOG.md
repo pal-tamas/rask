@@ -18,6 +18,11 @@ them until tagged releases begin.
   assertion raced that write and lost whenever the disk was busy. It now waits on `ProcessedAt` itself (which
   implies the publish already happened). Test-only: the processor's ordering is the documented
   at-least-once behaviour and is unchanged.
+- **A clean child could replay a stale forwarded `data-rask-key`.** A keyless component's first element
+  adopts a keyed ancestor's forwarded key and bakes it into its cached frame snapshot. Nothing dirties
+  that child when the ancestor's key changes, so it would re-emit the old identity and the diff would
+  reconcile the subtree against the wrong sibling — moving the wrong DOM. The snapshot now records the
+  forwarded key it was captured under and falls back to a walk when it no longer matches.
 
 ### Changed
 - **`rask new` generates the `server`, `wasm` and `native` templates itself — no `dotnet new` / Rask.Templates.**
@@ -70,13 +75,6 @@ them until tagged releases begin.
   As part of this the cache's `LiveState` fields collapse into a single reference to a side object, so
   only components that actually cache pay for the state — an empty-shell session gets *smaller*
   (16,370 → 16,090 B) despite the added handler bookkeeping.
-
-### Fixed
-- **A clean child could replay a stale forwarded `data-rask-key`.** A keyless component's first element
-  adopts a keyed ancestor's forwarded key and bakes it into its cached frame snapshot. Nothing dirties
-  that child when the ancestor's key changes, so it would re-emit the old identity and the diff would
-  reconcile the subtree against the wrong sibling — moving the wrong DOM. The snapshot now records the
-  forwarded key it was captured under and falls back to a walk when it no longer matches.
 
 ### Added
 - **`rask generate feature --fields` supports `date`, `time`, and `datetime`.** `date` maps to `DateOnly`,
