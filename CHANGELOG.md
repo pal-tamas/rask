@@ -110,6 +110,14 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **Showcase: a Gantt chart wrapping a real third-party JS library** ([#394](https://github.com/pal-tamas/rask/issues/394)).
+  `samples/Rask.Example.Shared/Features/Gantt` wraps [frappe-gantt](https://github.com/frappe/gantt) (MIT,
+  vendored) as an ordinary Rask component — typed `GanttTask`/`GanttHoliday`/`GanttViewMode` props in, plain
+  C# delegates out for click / drag / progress — and is embedded in the **JavaScript interop** guide, whose
+  third-party section now covers the whole recipe: give the library a childless leaf to own, mount in
+  `OnRenderedAsync`, tag the nodes it creates `data-rask-managed` so a full-HTML frame's morph can't delete
+  them, and route its callbacks back through a static `[JSInvokable]` keyed by an id. Showcase + docs only —
+  no framework or package change (`Rask.Bootstrap` stays JavaScript-free).
 - **`rask generate feature --fields` supports `date`, `time`, and `datetime`.** `date` maps to `DateOnly`,
   `time` to `TimeOnly`, and `datetime` to `DateTime` (the bound form inputs auto-render as `type="date"` /
   `type="time"`, and EF Core maps them to SQLite). Previously `date` was an alias for `DateTime`.

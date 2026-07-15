@@ -85,17 +85,24 @@
   </ItemGroup>
 
   <!-- Bundle the showcase static assets into the app so the WebView interceptor + the in-process HttpClient
-       serve them offline: this project's wwwroot (global.css / img / data) at the asset root, and the
-       Rask.Bootstrap package assets under _content/Rask.Bootstrap/. -->
+       serve them offline: this project's wwwroot (global.css / img / data) at the asset root, the
+       Rask.Bootstrap package assets under _content/Rask.Bootstrap/, and the shared showcase's vendored
+       third-party libs (frappe-gantt) under _content/Rask.Example.Shared/. The latter two are static web
+       assets everywhere else, but this project sets StaticWebAssetsEnabled=false — so each referenced
+       wwwroot has to be mirrored by hand at the URL the SDK would otherwise have given it. -->
   <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
     <AndroidAsset Include="wwwroot\**\*" Link="Assets\%(RecursiveDir)%(Filename)%(Extension)"/>
     <AndroidAsset Include="..\..\src\Rask.Bootstrap\wwwroot\**\*"
                   Link="Assets\_content\Rask.Bootstrap\%(RecursiveDir)%(Filename)%(Extension)"/>
+    <AndroidAsset Include="..\Rask.Example.Shared\wwwroot\**\*"
+                  Link="Assets\_content\Rask.Example.Shared\%(RecursiveDir)%(Filename)%(Extension)"/>
   </ItemGroup>
   <ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
     <BundleResource Include="wwwroot\**\*" Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)"/>
     <BundleResource Include="..\..\src\Rask.Bootstrap\wwwroot\**\*"
                     Link="wwwroot\_content\Rask.Bootstrap\%(RecursiveDir)%(Filename)%(Extension)"/>
+    <BundleResource Include="..\Rask.Example.Shared\wwwroot\**\*"
+                    Link="wwwroot\_content\Rask.Example.Shared\%(RecursiveDir)%(Filename)%(Extension)"/>
   </ItemGroup>
 
 </Project>
