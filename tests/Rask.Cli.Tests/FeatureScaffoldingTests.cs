@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useTests = false, string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useSoftDelete, useTests, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useTests = false, string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useSoftDelete, useConcurrency, useTests, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -191,7 +191,7 @@ public sealed class FeatureGeneratorTests
     public void Assignments_are_this_qualified_so_a_lowercase_field_does_not_self_assign()
     {
         var entity = FeatureGenerator.RenderEntity("MyApp.Features.Notes", "Note",
-            [new FieldSpec("title", "string", false, 200)], "Guid", useValueObjects: false, useSoftDelete: false);
+            [new FieldSpec("title", "string", false, 200)], "Guid", useValueObjects: false, useSoftDelete: false, useConcurrency: false);
 
         Assert.Contains("this.title = title;", entity, StringComparison.Ordinal);
         Assert.DoesNotContain("\n        title = title;", entity, StringComparison.Ordinal); // not a self-assignment
@@ -348,6 +348,37 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Concurrency_adds_a_version_token_that_round_trips_and_conflicts_gracefully()
+    {
+        var result = Generate(useConcurrency: true);
+
+        // The entity opts into IVersioned; ApplyRaskConventions marks Version the concurrency token.
+        var entity = File(result, "Product.cs");
+        Assert.Contains("public sealed class Product : AggregateRoot<Guid>, IVersioned", entity, StringComparison.Ordinal);
+        Assert.Contains("public int Version { get; private set; }", entity, StringComparison.Ordinal);
+
+        // The request + edit form round-trip the original Version through a hidden field.
+        Assert.Contains("public int Version { get; set; }", File(result, "ProductRequest.cs"), StringComparison.Ordinal);
+        var update = File(result, "UpdateProduct.cs");
+        Assert.Contains("Input(() => _form.Version, Type: InputType.Hidden)", update, StringComparison.Ordinal);
+        Assert.Contains("_form.Version = entity.Version;", update, StringComparison.Ordinal);
+
+        // The Update handler sets the original value; a conflict is caught + shown inline (not a raw error page).
+        Assert.Contains("db.Entry(entity).Property(x => x.Version).OriginalValue = command.Request.Version;", update, StringComparison.Ordinal);
+        Assert.Contains("catch (DbUpdateConcurrencyException)", update, StringComparison.Ordinal);
+        Assert.Contains("This record changed since you opened it", update, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Without_concurrency_there_is_no_version_token()
+    {
+        var result = Generate();
+        Assert.DoesNotContain("IVersioned", File(result, "Product.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("Version", File(result, "ProductRequest.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("DbUpdateConcurrencyException", File(result, "UpdateProduct.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Mutation_pages_handle_errors_gracefully_with_an_inline_alert()
     {
         var create = File(Generate(), "CreateProduct.cs");
@@ -403,7 +434,7 @@ public sealed class FeatureGeneratorTests
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useSoftDelete: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useSoftDelete: false, useConcurrency: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
