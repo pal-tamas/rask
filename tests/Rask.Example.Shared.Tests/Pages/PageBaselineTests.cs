@@ -16,8 +16,7 @@ public sealed class PageBaselineTests
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
     {
         var routeState = new RouteState { Path = path };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.NotNull(pageType);
         // <title> now carries data-rask-key="tag:title" so the morph reconciles it by
@@ -47,8 +46,7 @@ public sealed class PageBaselineTests
     public void UnmatchedRoute_RendersNotFoundPage()
     {
         var routeState = new RouteState { Path = "/__no_such_route" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
         Assert.Contains("Page not found", html);
     }
 }

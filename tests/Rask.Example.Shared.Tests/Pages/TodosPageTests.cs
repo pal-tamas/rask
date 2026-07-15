@@ -12,8 +12,7 @@ public sealed class TodosPageTests
     public void Route_TodosList_RendersSeededItems()
     {
         var routeState = new RouteState { Path = "/todos" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.Contains("Read the Rask README", html);
         Assert.Contains("Wire up a feature toggle", html);
@@ -24,8 +23,7 @@ public sealed class TodosPageTests
     public void Route_TodosNew_OpensDialogInAddMode()
     {
         var routeState = new RouteState { Path = "/todos/new" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.Contains(">Add todo<", html);
         Assert.Contains("todo-title", html);

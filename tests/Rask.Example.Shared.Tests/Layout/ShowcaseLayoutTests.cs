@@ -15,8 +15,7 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_EmitsNavbarOffcanvasAndBrand()
     {
         var routeState = new RouteState { Path = "/" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         // The 5.3 dark navbar uses bg-dark + data-bs-theme (not the deprecated .navbar-dark).
         Assert.Contains("navbar", html);
@@ -32,8 +31,7 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_GroupsLinks_UnderGroupToggles()
     {
         var routeState = new RouteState { Path = "/" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         // Each group renders a collapsible toggle whose label is the group name. Guides-first, so the
         // guide category groups lead (Overview + Core + Bootstrap + …); the surviving Examples group is Apps.
@@ -55,8 +53,7 @@ public sealed class ShowcaseLayoutTests
         // visible on landing, while the demoted Examples groups stay collapsed so the ~90-item list isn't
         // dumped at once. The five guide groups (Overview + the four categories) are open.
         var routeState = new RouteState { Path = "/" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         var open = Regex.Matches(html, "class=\"collapse show\"").Count;
         var closed = Regex.Matches(html, "class=\"collapse\"").Count;
@@ -70,8 +67,7 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_RootPath_MarksAtLeastOneNavLinkActive()
     {
         var routeState = new RouteState { Path = "/" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.Contains("side-nav-link active", html);
     }
@@ -147,17 +143,18 @@ public sealed class ShowcaseLayoutTests
         // same RouteState. The layout's active-link computation must reflect the new
         // path — which requires its Render() to re-execute after the path change.
         var routeState = new RouteState { Path = "/" };
-        var app = new Shared.App();
         var services = TestServices.Default(routeState: routeState);
+        // One handle across both frames: the same App instance has to re-render after the path change.
+        var page = RaskTest.Render(new Shared.App(), services);
 
-        var htmlAtRoot = app.RenderAsLiveRoot(services);
+        var htmlAtRoot = page.Html;
         // The "All guides" link to "/" (the site root now the Welcome page is gone) is the active one
         // when the path is "/" — it carries the bi-book icon.
         Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-book",
             CollapseWhitespace(htmlAtRoot));
 
         routeState.Path = "/todos";
-        var htmlAtTodos = app.RenderAsLiveRoot(services);
+        var htmlAtTodos = page.Render();
         // After nav, the active link should be the Todos one (bi-check2-square icon).
         Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-check2-square",
             CollapseWhitespace(htmlAtTodos));

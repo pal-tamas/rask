@@ -14,7 +14,7 @@ public sealed class DownloadPageTests
         // Render DownloadDemo directly — its standalone /download page was folded into
         // docs/http-and-files.md, where the demo is embedded as a live sample.
         var nav = new Navigator(new RouteState { Path = "/" }, new CapturingDownloadSink());
-        var html = new DownloadDemo(nav).RenderAsLiveRoot(TestServices.Default());
+        var html = RaskTest.Render(new DownloadDemo(nav), TestServices.Default()).Html;
 
         Assert.Contains("download-report", html);
         Assert.Contains("Generated 0 time(s)", html);
