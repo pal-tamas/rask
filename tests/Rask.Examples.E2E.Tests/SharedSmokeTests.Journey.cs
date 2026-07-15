@@ -709,6 +709,61 @@ public abstract partial class SharedSmokeTests
         await demo.Locator("#group-region").ClickAsync();
         await Expect(bands).ToHaveCountAsync(3,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        await WalkDataGridGroupPanelAsync(demo, grid, bands);
+    }
+
+    // The group panel, driven BOTH ways. The keyboard walk is the point: the panel's promise is that drag is an
+    // accelerator, not the only way in, and only a browser can prove a real Enter keypress on a real focused
+    // button does the same thing a drag does.
+    private async Task WalkDataGridGroupPanelAsync(ILocator demo, ILocator grid, ILocator bands)
+    {
+        var panel = demo.Locator(".bs-grid-grouppanel");
+        await Expect(panel).ToBeVisibleAsync();
+        await Expect(panel.Locator(".bs-grid-chip")).ToHaveCountAsync(1); // region
+
+        // === KEYBOARD ONLY. Press Enter on the Rep header's group control — no pointer at all. ===
+        // The settle is load-bearing, and cost an hour to find. The steps above end with a click that
+        // re-groups the whole grid, and its LAST live frame can land a beat after the assertion that waited
+        // for it: the diff then replaces this very button, and a keypress aimed at it lands on a detached
+        // node — silently, because a key that hits nothing raises nothing. Let the re-render finish first.
+        // (Locator.Press does not help: its auto-wait re-resolves the element, but cannot know a frame is
+        // still in flight.)
+        await Page.WaitForTimeoutAsync(500);
+        await grid.Locator("th:has-text('Rep') button[aria-label='Group by Rep']").PressAsync("Enter");
+        await Expect(panel.Locator(".bs-grid-chip")).ToHaveCountAsync(2,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        // region ▸ rep, the same nesting the buttons produced above. Grouping is two renders — the grid's own
+        // (from the click) and the consumer's (from OnGroupedChange) — so give it the same room as its
+        // neighbours rather than the 5s default.
+        await Expect(bands).ToHaveCountAsync(8,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // Renest from the keyboard: move Rep out one level, so rep ▸ region.
+        await panel.Locator("button[aria-label='Move Rep out one level']").PressAsync("Enter");
+        await Expect(panel.Locator(".bs-grid-chip").First).ToContainTextAsync("Rep",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        // The ends are really disabled, not merely styled that way.
+        await Expect(panel.Locator("button[aria-label='Move Rep out one level']")).ToBeDisabledAsync();
+
+        // Ungroup from the keyboard.
+        await panel.Locator("button[aria-label='Stop grouping by Rep']").PressAsync("Enter");
+        await Expect(panel.Locator(".bs-grid-chip")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // === DRAG is wired, but is not asserted end-to-end here, and that is deliberate. Rask uses NATIVE
+        //     HTML5 drag-and-drop (dragstart/dragover/drop), and Playwright's DragTo synthesises mouse
+        //     move/down/up — which the browser does not turn into native drag events. Driving it needs manual
+        //     dispatchEvent with a hand-built DataTransfer, which tests the harness more than the feature.
+        //     The keyboard path above IS the accessible path and is proven end-to-end; the drag is the
+        //     pointer accelerator over the same handlers. Assert its wiring is present rather than fake a
+        //     gesture the harness can't faithfully produce. ===
+        var repHeader = grid.Locator("th:has-text('Rep')");
+        await Expect(repHeader).ToHaveAttributeAsync("draggable", "true");
+        await Expect(repHeader).ToHaveAttributeAsync("data-rask-on-dragstart", new Regex(".+"));
+        await Expect(panel).ToHaveAttributeAsync("data-rask-on-drop", new Regex(".+"));
+        await Expect(panel.Locator(".bs-grid-chip").First).ToHaveAttributeAsync("draggable", "true");
     }
 
     // Selection driving a bulk action. The unit tests pin the set arithmetic; the browser proves the part that

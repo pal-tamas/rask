@@ -241,6 +241,33 @@
   vertical-align: middle;
 }
 
+/* BsDataGrid(GroupPanel: true) — the group panel and its chips. The dashed well reads as a drop target
+   without needing a hover state to explain itself, and keeps its height when empty so the grid doesn't jump
+   as the last chip leaves. */
+.bs-grid-grouppanel {
+  min-height: 2.5rem;
+  padding: 0.375rem 0.625rem;
+  border: 1px dashed var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  flex-wrap: wrap;
+}
+.bs-grid-chip {
+  cursor: grab;
+  /* The chip's own buttons must not inherit the grab cursor — they are click targets, not drag handles. */
+  user-select: none;
+}
+.bs-grid-chip:active {
+  cursor: grabbing;
+}
+.bs-grid-chip .btn {
+  cursor: pointer;
+}
+/* A groupable header is a drag source; say so on hover rather than only in the panel's hint text. */
+.bs-grid-grouppanel ~ .table-responsive th[draggable="true"],
+.bs-grid-grouppanel ~ table th[draggable="true"] {
+  cursor: grab;
+}
+
 /* BsDataGrid(Loading: true) — the busy overlay, covering the grid inside its position-relative wrapper.
    It sits over the table AND the pager, so a mouse cannot reach either while a fetch is in flight (the
    keyboard is handled with aria-disabled plus a guard in the handlers, since covering pixels does nothing

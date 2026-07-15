@@ -215,6 +215,10 @@ public sealed class BsDataGrid<T> : BsBlock
     // Collapsed bands, keyed by their composite VALUE path ("FruitApple"), never by index: a band's
     // position changes with every sort and page, and collapse must follow the band rather than the slot.
     private readonly HashSet<string> _collapsed = [];
+
+    // The field currently being dragged in the group panel. The whole state a group drag needs — the dragged
+    // identity rides here rather than in the event payload, which is why the client's messages stay {id,type}.
+    private string? _dragField;
     private int _page;
     private int _sortColumn = -1;
     private bool _sortDescending;
@@ -478,6 +482,18 @@ public sealed class BsDataGrid<T> : BsBlock
     /// </remarks>
     public bool? GroupSubtotals { get; set; }
 
+    /// <summary>
+    ///     Renders a panel above the grid holding a chip per group level, and a "group by" control on every
+    ///     <see cref="BsColumn{T}.Groupable" /> header — so the user can group, renest and ungroup.
+    /// </summary>
+    /// <remarks>
+    ///     Every action has a real <c>&lt;button&gt;</c>: the chips carry ungroup and move-in/move-out, and the
+    ///     headers carry group-by. Dragging a header into the panel, reordering the chips and dragging one out
+    ///     do the same things faster for a mouse. That ordering is deliberate — drag is an accelerator, and a
+    ///     feature whose primary action is drag-only cannot be reached by keyboard at all.
+    /// </remarks>
+    public bool? GroupPanel { get; set; }
+
     private bool Expandable => ExpandedContent is not null;
 
     // Same three-way opt-in Sort uses, and for the same reason: Grouped = null legitimately means "ungrouped"
@@ -726,6 +742,134 @@ public sealed class BsDataGrid<T> : BsBlock
         }
     }
 
+    // --- Group panel -----------------------------------------------------------------------------------
+    //
+    // Drag state is the grid's own field rather than the DragDrop primitive. DragDrop renders no DOM and takes
+    // a Body delegate, so using it would mean wrapping the grid's own output in it — and it sets
+    // BypassRenderCache => true (it reads mutable drag state the framework cannot see through props), which
+    // would re-execute the whole table's subtree on every render for the sake of a panel. One nullable string
+    // is the whole state a group drag needs: the field being dragged. The client already does the hard parts —
+    // preventDefault on dragover (which is what marks a drop target) and deduping the hover round-trip to one
+    // message per element (rask-events.js).
+
+    private Task GroupByAsync(string field)
+    {
+        var next = CurrentGrouped.ToList();
+        if (!next.Remove(field))
+        {
+            next.Add(field);
+        }
+
+        return SetGroupedAsync(next);
+    }
+
+    private Task UngroupAsync(string field)
+    {
+        var next = CurrentGrouped.ToList();
+        next.Remove(field);
+        return SetGroupedAsync(next);
+    }
+
+    // Moves a level in or out one place. Nesting order is the grouping's meaning — region/rep and rep/region
+    // are different reports — so it needs to be reachable without a mouse.
+    private Task MoveGroupAsync(string field, int delta)
+    {
+        var next = CurrentGrouped.ToList();
+        var from = next.IndexOf(field);
+        var to = from + delta;
+        if (from < 0 || to < 0 || to >= next.Count)
+        {
+            return Task.CompletedTask;
+        }
+
+        next.RemoveAt(from);
+        next.Insert(to, field);
+        return SetGroupedAsync(next);
+    }
+
+    // Dropping ON a chip inserts before it; dropping on the panel's empty space appends.
+    private Task DropOnAsync(string? target)
+    {
+        var field = _dragField;
+        _dragField = null;
+        if (field is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var next = CurrentGrouped.ToList();
+        next.Remove(field);
+
+        var at = target is null ? next.Count : next.IndexOf(target);
+        next.Insert(at < 0 ? next.Count : at, field);
+        return SetGroupedAsync(next);
+    }
+
+    // Dropping anywhere that is not the panel removes the level — the "drag it out to ungroup" gesture.
+    private Task DropOutsideAsync()
+    {
+        var field = _dragField;
+        _dragField = null;
+        return field is null || !CurrentGrouped.Contains(field) ? Task.CompletedTask : UngroupAsync(field);
+    }
+
+    private Component GroupPanelRow(IReadOnlyList<BsColumn<T>> columns)
+    {
+        var grouped = GroupColumns(columns);
+
+        return Div(
+            Id: Id is null ? null : $"{Id}-grouppanel",
+            Class: Bs.Join("bs-grid-grouppanel", Display.Flex(), Flex.Align(BsAlign.Center), "gap-2",
+                Margin.Bottom(2)),
+            // The drop target for "group by this" and for reordering. OnDragOver is what the client turns into
+            // preventDefault, and without it the browser rejects the drop outright.
+            OnDragOver: () => { },
+            OnDropAsync: () => DropOnAsync(null))[GroupPanelItems(grouped)];
+    }
+
+    private IEnumerable<Component?> GroupPanelItems(List<BsColumn<T>> grouped)
+    {
+        yield return Span(Class: Bs.Join(Txt.Color(BsColor.Secondary), Font.Small))[
+            grouped.Count == 0 ? "Drag a column here to group by it" : "Grouped by"];
+
+        foreach (var column in grouped)
+        {
+            yield return GroupChip(column, grouped);
+        }
+    }
+
+    private Component GroupChip(BsColumn<T> column, List<BsColumn<T>> grouped)
+    {
+        var field = column.FieldName!;
+        var at = grouped.IndexOf(column);
+
+        return Div(
+            Key: $"chip:{field}",
+            Class: Bs.Join("bs-grid-chip", Display.Flex(), Flex.Align(BsAlign.Center), "gap-1",
+                "badge text-bg-secondary"),
+            Draggable: true,
+            OnDragStart: () => _dragField = field,
+            OnDragEnd: () => _dragField = null,
+            OnDragOver: () => { },
+            OnDropAsync: () => DropOnAsync(field))[
+            Span()[column.Title],
+            ChipButton(BsIconName.ChevronLeft, $"Move {column.Title} out one level", at == 0,
+                () => MoveGroupAsync(field, -1)),
+            ChipButton(BsIconName.ChevronRight, $"Move {column.Title} in one level", at == grouped.Count - 1,
+                () => MoveGroupAsync(field, 1)),
+            ChipButton(BsIconName.X, $"Stop grouping by {column.Title}", false, () => UngroupAsync(field))
+        ];
+    }
+
+    // A real <button> per action — this is what makes the panel keyboard-operable rather than drag-only.
+    private static Component ChipButton(BsIconName icon, string label, bool disabled, Func<Task> onClick) =>
+        Button(
+            Type: "button",
+            Class: Bs.Join("btn btn-sm btn-link text-reset text-decoration-none", Padding.All(0), "lh-1"),
+            Disabled: disabled ? true : null,
+            Aria: new Dictionary<string, string?> { ["label"] = label },
+            OnClickAsync: () => onClick())[BsIcon(Name: icon)];
+
     // BsPageItem's Disabled only adds a CSS class — the button stays clickable — so the pager's edges have to
     // be guarded here. Without the clamp, prev on page 0 underflows and the summary renders "-1-0 / 3".
     private async Task GoToPageAsync(int page, int pageCount)
@@ -767,7 +911,9 @@ public sealed class BsDataGrid<T> : BsBlock
         // before the rows land, and every refetch of an empty filter blinks it back.
         if (total == 0 && Empty is not null && !Busy)
         {
-            return Wrap(Empty, null);
+            // The panel stays with the empty state: it is how the user got here (grouped down to nothing) and
+            // how they get back out.
+            return Wrap(GroupPanel is true ? GroupPanelRow(columns) : null, Empty, null);
         }
 
         var hasFooter = columns.Any(c => c.HasFooter);
@@ -785,7 +931,8 @@ public sealed class BsDataGrid<T> : BsBlock
             hasFooter ? Tfoot()[Tr()[FooterCells(columns, footerRows)]] : null
         ];
 
-        return Wrap(table, PageSize > 0 && pageCount > 1 ? Pager(pageCount, total) : null);
+        return Wrap(GroupPanel is true ? GroupPanelRow(columns) : null, table,
+            PageSize > 0 && pageCount > 1 ? Pager(pageCount, total) : null);
     }
 
     // Loading is null -> the grid never opted in, so return exactly what it always returned: a bare
@@ -801,10 +948,10 @@ public sealed class BsDataGrid<T> : BsBlock
     // The overlay is appended LAST, after the pager, for the same reason: at the tail it is a pure insert the
     // differ ships as a cheap trusted op, rather than a new element wedged between two existing <div>s.
     // Being position:absolute, its DOM order has no bearing on where it paints.
-    private Component Wrap(Component? content, Component? pager) =>
+    private Component Wrap(Component? panel, Component? content, Component? pager) =>
         Loading is null
-            ? [content, pager]
-            : Div(Class: Position.Relative)[content, pager, Busy ? Overlay() : null];
+            ? [panel, content, pager]
+            : Div(Class: Position.Relative)[panel, content, pager, Busy ? Overlay() : null];
 
     // The spinner sits OUTSIDE the aria-busy table (it is a sibling, not a child) so its role="status" live
     // region can actually announce. See BsGridAria.Busy.
@@ -1057,6 +1204,12 @@ public sealed class BsDataGrid<T> : BsBlock
         {
             var column = columns[i];
 
+            // The panel's other half: the keyboard route to grouping. Dragging the header does the same thing
+            // for a mouse, so the header is a drag SOURCE too — the field rides the grid's own drag state.
+            var canGroup = GroupPanel is true && column.Groupable && column.FieldName is not null;
+            var groupBtn = canGroup ? GroupByButton(column) : null;
+            var drag = canGroup ? column.FieldName : null;
+
             // A sort the grid cannot actually perform must not advertise a control: a controlled sort is
             // reported by a name (SortField, or the one read off Field), and a Query is ordered by an
             // expression (SortBy, or Field itself). Missing either, the header stays plain.
@@ -1064,7 +1217,10 @@ public sealed class BsDataGrid<T> : BsBlock
                 || (SortControlled && column.SortToken is null)
                 || (Data is IQueryable<T> && column.OrderBy is null))
             {
-                yield return Th(Class: column.Class, Scope: "col")[column.Title];
+                yield return Th(Class: column.Class, Scope: "col",
+                    Draggable: drag is not null ? true : null,
+                    OnDragStart: drag is not null ? () => _dragField = drag : null,
+                    OnDragEnd: drag is not null ? () => _dragField = null : null)[column.Title, groupBtn];
                 continue;
             }
 
@@ -1078,14 +1234,38 @@ public sealed class BsDataGrid<T> : BsBlock
             // aria-sort advertises the direction to screen readers. The control is a real <button>, so
             // keyboard focus and Enter/Space work with no JS — but Type must be explicit, because <button>
             // defaults to type=submit and a grid inside a <form> would otherwise submit it on every sort.
-            yield return Th(Class: column.Class, Scope: "col", Aria: BsGridAria.Sort(sorted, CurrentSortDescending))[
+            yield return Th(Class: column.Class, Scope: "col", Aria: BsGridAria.Sort(sorted, CurrentSortDescending),
+                Draggable: drag is not null ? true : null,
+                OnDragStart: drag is not null ? () => _dragField = drag : null,
+                OnDragEnd: drag is not null ? () => _dragField = null : null)[
                 Button(
                     Type: "button",
                     Class: Bs.Join("btn btn-sm btn-link text-decoration-none", Padding.All(0), Font.Semibold),
                     Aria: Busy ? BsGridAria.Disabled : null,
-                    OnClickAsync: () => ToggleSortAsync(index))[column.Title, caret]
+                    OnClickAsync: () => ToggleSortAsync(index))[column.Title, caret],
+                groupBtn
             ];
         }
+    }
+
+    // Toggles this column in and out of the grouping. A separate control from the sort button on purpose: the
+    // header's click already means "sort", and overloading it would make grouping unreachable on a column that
+    // is sortable — or sorting unreachable on one that is groupable.
+    private Component GroupByButton(BsColumn<T> column)
+    {
+        var field = column.FieldName!;
+        var on = CurrentGrouped.Contains(field);
+
+        return Button(
+            Type: "button",
+            Class: Bs.Join("btn btn-sm btn-link text-decoration-none", Padding.All(0), Margin.Start(1),
+                on ? Txt.Color(BsColor.Primary) : Txt.Color(BsColor.Secondary)),
+            Aria: new Dictionary<string, string?>
+            {
+                ["pressed"] = on ? "true" : "false",
+                ["label"] = on ? $"Stop grouping by {column.Title}" : $"Group by {column.Title}",
+            },
+            OnClickAsync: () => GroupByAsync(field))[BsIcon(Name: BsIconName.Diagram3)];
     }
 
     private IEnumerable<Component> BodyRows(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows,

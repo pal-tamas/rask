@@ -1,6 +1,7 @@
 namespace Rask.Example.Shared.Features;
 
-// Grouping: rows banded by a column's value, nested two deep, collapsible, with a subtotal per band.
+// Grouping: rows banded by a column's value, nested, collapsible, with a subtotal per band — and a panel to
+// drive it.
 //
 // Field is what names a column — Field = s => s.Region reads the member and calls this column "region". That
 // token is what Grouped carries and what a URL would (?group=region,rep). Value could never supply it: it is
@@ -9,6 +10,10 @@ namespace Rask.Example.Shared.Features;
 // The source list below is deliberately NOT ordered by region. It doesn't need to be: a band is a run of
 // consecutive rows, so the grid orders by the group keys first and only then by whatever column the user
 // sorted. Click "Amount" and the rows re-sort INSIDE each band, never across them.
+//
+// GroupPanel adds the chips and the per-header group control. Drag a header into the panel, drag the chips to
+// renest, drag one out to ungroup — and every one of those is also a real button, so the whole thing works
+// from the keyboard alone. Tab to a header's group control and press Enter.
 public sealed class BsDataGridGroupDemo : Component
 {
     private sealed record Deal(string Account, string Region, string Rep, decimal Amount);
@@ -45,6 +50,7 @@ public sealed class BsDataGridGroupDemo : Component
                 RowKey: d => d.Account,
                 Grouped: _grouped,
                 OnGroupedChange: g => _grouped = [.. g],
+                GroupPanel: true,
                 GroupCollapsible: true,
                 GroupSubtotals: true,
                 Columns:

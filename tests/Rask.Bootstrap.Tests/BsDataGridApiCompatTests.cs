@@ -135,7 +135,8 @@ public class BsDataGridApiCompatTests
         Assert.Equal(
             [
                 "Children", "Class", "Columns", "Data", "Empty", "ExpandedContent", "GroupCollapsible",
-                "GroupSubtotals", "Grouped", "Hover", "Id", "Key", "Loading", "MaxHeight", "OnGroupedChange",
+                "GroupPanel", "GroupSubtotals", "Grouped", "Hover", "Id", "Key", "Loading", "MaxHeight",
+                "OnGroupedChange",
                 "OnGroupedChangeAsync", "OnPageChange", "OnPageChangeAsync", "OnRowClick", "OnRowClickAsync",
                 "OnSelectionChange", "OnSelectionChangeAsync", "OnSortChange", "OnSortChangeAsync", "Page",
                 "PageSize", "Responsive", "RowClass", "RowKey", "Selectable", "SelectedKeys", "Small", "Sort",

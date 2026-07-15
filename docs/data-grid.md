@@ -172,6 +172,26 @@ follows the band through a sort or a page change rather than staying at a positi
 that band's rows — one hook, not two. Like the grand footer under `TotalCount`/`IQueryable`, a subtotal only
 sees **the rows on this page**.
 
+### The group panel
+
+`GroupPanel: true` renders a chip per group level above the grid and a group control on every `Groupable`
+header, so the user can group, renest and ungroup:
+
+```csharp
+BsDataGrid(Data: deals, GroupPanel: true, Grouped: _grouped,
+    OnGroupedChange: g => _grouped = [.. g], Columns: [...])
+```
+
+Drag a header into the panel to group by it, drag the chips to renest, drag one out to ungroup.
+
+**Every one of those is also a real `<button>`** — the chips carry ungroup and move in/out, and each groupable
+header carries group-by. So the whole feature works from the keyboard alone, and drag is only an accelerator.
+That ordering is deliberate: a feature whose primary action is drag-only cannot be reached by keyboard at all,
+which would fail WCAG 2.1.1 for the thing the panel exists to do.
+
+The edge buttons are `disabled` at the ends rather than being no-ops that look live, and the group control
+carries `aria-pressed` so its state is announced.
+
 ### What it costs
 
 Grouping re-orders the set and boxes one key per row per level to find the runs: about **+5% render
@@ -533,6 +553,7 @@ renders only the visible window instead.
 | `OnGroupedChange` / `OnGroupedChangeAsync` | `null` | The grouping the user asked for; the async form is awaited. |
 | `GroupCollapsible` | `null` | Band headers become toggles. |
 | `GroupSubtotals` | `null` | A subtotal row per innermost band, reusing each column's `Footer`. Page-scoped. |
+| `GroupPanel` | `null` | Chips + per-header group controls. Drag or keyboard — every gesture has a button. |
 | `Selectable` | `null` | Adds the leading checkbox column. Implied by `SelectedKeys`/`OnSelectionChange`. Set `RowKey` with it. |
 | `SelectedKeys` | `null` | Controlled selection (`RowKey` values). Null = the grid owns it. |
 | `OnSelectionChange` / `OnSelectionChangeAsync` | `null` | The full set of selected keys after a click; the async form is awaited. |
