@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Data</PackageId>
+    <Title>Rask.Data — DDD base entity + EF Core interceptors</Title>
+    <Description>A tiny, provider-agnostic data layer for Entity Framework Core apps: an `AggregateRoot&lt;TId&gt;` base (Id, CreatedAt/UpdatedAt audit stamps, and a domain-events collection) plus opt-in marker interfaces (`ISoftDeletable`, `IVersioned`) driven by three `ISaveChangesInterceptor`s — auditing timestamps, transparent soft delete (rewrites a hard delete to a `DeletedAt` stamp behind a global query filter), and after-commit domain-event publication through Rask.Cqrs. `modelBuilder.ApplyRaskConventions()` wires the query filter + optimistic-concurrency token automatically. The base of the `rask generate feature` scaffolder's soft-delete/concurrency/events output.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — a standalone EF Core data helper. -->
+    <PackageTags>ddd aggregate-root entity-framework-core efcore interceptor soft-delete concurrency domain-events dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Data;` to downstream consumers (mirrors Rask.Cqrs). -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>
