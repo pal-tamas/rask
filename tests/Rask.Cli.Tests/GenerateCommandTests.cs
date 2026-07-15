@@ -110,7 +110,7 @@ public sealed class GenerateCommandTests
             .Select(i => i.Arguments[2])
             .ToArray();
         Assert.Equal(
-            ["Microsoft.EntityFrameworkCore.Sqlite", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Bootstrap"],
+            ["Microsoft.EntityFrameworkCore.Sqlite", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data", "Rask.Bootstrap"],
             adds);
     }
 
@@ -248,7 +248,7 @@ public sealed class GenerateCommandTests
 
         Assert.Equal(0, exit);
         var entity = fs.Files.Single(f => Path.GetFileName(f.Key) == "Product.cs").Value;
-        Assert.Contains("public int Id { get; private set; }", entity, StringComparison.Ordinal);
+        Assert.Contains("public sealed class Product : AggregateRoot<int>", entity, StringComparison.Ordinal);
     }
 
     [Fact]

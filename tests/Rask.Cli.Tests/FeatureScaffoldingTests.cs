@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useTests = false, string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useTests, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useTests = false, string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useSoftDelete, useTests, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -150,7 +150,9 @@ public sealed class FeatureGeneratorTests
     {
         var entity = File(Generate(), "Product.cs");
 
-        Assert.Contains("public Guid Id { get; private set; } = Guid.NewGuid();", entity, StringComparison.Ordinal);
+        // Id (and the audit stamps + domain-events buffer) come from the Rask.Data base; a Guid is assigned up front.
+        Assert.Contains("public sealed class Product : AggregateRoot<Guid>", entity, StringComparison.Ordinal);
+        Assert.Contains("Id = Guid.NewGuid();", entity, StringComparison.Ordinal);
         // Create/Update take primitives; the required string becomes a value object, wrapped via Create.
         Assert.Contains("public static Product Create(string name, decimal price) => new(ProductName.Create(name), price);", entity, StringComparison.Ordinal);
         Assert.Contains("public ProductName Name { get; private set; }", entity, StringComparison.Ordinal);
@@ -189,20 +191,21 @@ public sealed class FeatureGeneratorTests
     public void Assignments_are_this_qualified_so_a_lowercase_field_does_not_self_assign()
     {
         var entity = FeatureGenerator.RenderEntity("MyApp.Features.Notes", "Note",
-            [new FieldSpec("title", "string", false, 200)], "Guid", useValueObjects: false);
+            [new FieldSpec("title", "string", false, 200)], "Guid", useValueObjects: false, useSoftDelete: false);
 
         Assert.Contains("this.title = title;", entity, StringComparison.Ordinal);
         Assert.DoesNotContain("\n        title = title;", entity, StringComparison.Ordinal); // not a self-assignment
     }
 
     [Theory]
-    [InlineData("int", "public int Id { get; private set; }", "{id:int}")]
-    [InlineData("long", "public long Id { get; private set; }", "{id:long}")]
-    public void Id_type_is_configurable(string idType, string idProp, string routeConstraint)
+    [InlineData("int", "AggregateRoot<int>", "{id:int}")]
+    [InlineData("long", "AggregateRoot<long>", "{id:long}")]
+    public void Id_type_is_configurable(string idType, string baseType, string routeConstraint)
     {
         var result = Generate(idType);
 
-        Assert.Contains(idProp, File(result, "Product.cs"), StringComparison.Ordinal);
+        // Id lives on the base; an int/long id is database-generated (no Guid.NewGuid()).
+        Assert.Contains("public sealed class Product : " + baseType, File(result, "Product.cs"), StringComparison.Ordinal);
         Assert.DoesNotContain("Guid.NewGuid()", File(result, "Product.cs"), StringComparison.Ordinal);
         Assert.Contains(routeConstraint, File(result, "UpdateProduct.cs"), StringComparison.Ordinal);
     }
@@ -289,6 +292,74 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Every_generated_entity_inherits_the_rask_data_base()
+    {
+        var entity = File(Generate(), "Product.cs");
+        Assert.Contains("public sealed class Product : AggregateRoot<Guid>", entity, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Delete_always_loads_and_removes_so_interceptors_fire()
+    {
+        // ExecuteDelete would bypass SaveChanges + the soft-delete/audit/event interceptors.
+        var delete = File(Generate(), "DeleteProduct.cs");
+        Assert.Contains("db.Products.Remove(entity);", delete, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExecuteDeleteAsync", delete, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Soft_delete_makes_the_entity_ISoftDeletable_and_generates_restore_plus_toggle()
+    {
+        var result = Generate(useSoftDelete: true);
+
+        var entity = File(result, "Product.cs");
+        Assert.Contains("public sealed class Product : AggregateRoot<Guid>, ISoftDeletable", entity, StringComparison.Ordinal);
+        Assert.Contains("public DateTime? DeletedAt { get; private set; }", entity, StringComparison.Ordinal);
+        Assert.Contains("public void Restore() => DeletedAt = null;", entity, StringComparison.Ordinal);
+
+        // A reusable Restore button + command, mirroring Delete.
+        var restore = File(result, "RestoreProduct.cs");
+        Assert.Contains("public sealed record RestoreProductCommand(Guid Id) : ICommand;", restore, StringComparison.Ordinal);
+        Assert.Contains("IgnoreQueryFilters()", restore, StringComparison.Ordinal);
+        Assert.Contains("entity.Restore();", restore, StringComparison.Ordinal);
+
+        // The list page can show + restore deleted rows via a toggle.
+        var list = File(result, "ProductsPage.cs");
+        Assert.Contains("public sealed record ListProductsQuery(bool IncludeDeleted = false)", list, StringComparison.Ordinal);
+        Assert.Contains("items = items.IgnoreQueryFilters();", list, StringComparison.Ordinal);
+        Assert.Contains("private async Task ToggleDeletedAsync()", list, StringComparison.Ordinal);
+        Assert.Contains("_showDeleted ? \"Hide deleted\" : \"Show deleted\"", list, StringComparison.Ordinal);
+        Assert.Contains("x.DeletedAt is null ? (Component)DeleteProduct(Id: x.Id, OnDeleted: LoadAsync) : RestoreProduct(Id: x.Id, OnRestored: LoadAsync)", list, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Without_soft_delete_there_is_no_restore_file_or_deletedat()
+    {
+        var result = Generate();
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) == "RestoreProduct.cs");
+        Assert.DoesNotContain("DeletedAt", File(result, "Product.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("_showDeleted", File(result, "ProductsPage.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_generated_dbcontext_applies_rask_conventions()
+    {
+        Assert.Contains("modelBuilder.ApplyRaskConventions();", File(Generate(), "ProductsDbContext.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Mutation_pages_handle_errors_gracefully_with_an_inline_alert()
+    {
+        var create = File(Generate(), "CreateProduct.cs");
+        Assert.Contains("private string? _error;", create, StringComparison.Ordinal);
+        Assert.Contains("catch (Exception)", create, StringComparison.Ordinal);
+        Assert.Contains("_error = \"Something went wrong", create, StringComparison.Ordinal);
+        // Plain HTML uses a semantic role="alert"; --bs uses BsAlert.
+        Assert.Contains("_error is null ? null : Div(Role: \"alert\")[_error]", create, StringComparison.Ordinal);
+        Assert.Contains("_error is null ? null : BsAlert(Color: BsColor.Danger)[_error]", File(Generate(useBs: true), "CreateProduct.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Tests_flag_emits_domain_and_persistence_tests_in_a_sibling_test_project()
     {
         var result = Generate(useTests: true);
@@ -332,7 +403,7 @@ public sealed class FeatureGeneratorTests
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useSoftDelete: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);
@@ -389,7 +460,7 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("dotnet ef migrations add AddProduct", notes, StringComparison.Ordinal);
         // The packages are added to the project automatically (not just printed).
         Assert.Equal(
-            ["Microsoft.EntityFrameworkCore.Sqlite", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs"],
+            ["Microsoft.EntityFrameworkCore.Sqlite", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data"],
             result.Packages);
     }
 
