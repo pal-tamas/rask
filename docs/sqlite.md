@@ -334,6 +334,47 @@ already wraps:
 Keep SQLite behind the server (or on device with `Rask.Native`), and let the WASM client talk to it
 through an API or the browser storage APIs above.
 
+## Limitations & when to outgrow SQLite
+
+SQLite is a genuine production database for a single-server app — but it isn't a client-server database,
+and being honest about the boundaries is part of the pitch. Each of these is demonstrated by a test in
+[`tests/Rask.SQLite.Limitations.Tests`](../tests/Rask.SQLite.Limitations.Tests) so the behavior is pinned,
+not just asserted in prose.
+
+- **One writer at a time.** A write transaction holds the database's single write lock; WAL lets readers
+  keep reading *during* a write, but writes serialize. That's plenty for the vast majority of apps — but a
+  very write-heavy or highly-concurrent-write workload eventually hits this ceiling. A second
+  `BEGIN IMMEDIATE` while another is open gets `SQLITE_BUSY` (which the [transaction helpers](#transactions-begin-immediate--a-non-blocking-fair-interval-retry)
+  above wait out); there is no `SELECT … FOR UPDATE SKIP LOCKED`.
+- **One machine.** The database is a local file — you cannot scale *writes* across servers. Litestream is
+  continuous backup / disaster-recovery + read-replica restore, **not** multi-primary replication. Needing
+  several app servers that all write, or managed HA failover, is the boundary.
+- **Local disk only.** Never put the database on a network filesystem (NFS/CIFS/SMB) — SQLite's file
+  locking is unreliable there and can corrupt the file, and WAL needs real shared memory. Use local disk or
+  a single-attach block/named volume, one writer process.
+- **Dynamic typing.** SQLite uses *type affinity*, not strict types: it will happily store the text
+  `"lots"` in an `INTEGER` column. EF Core's model gives you type safety in C#, but the store itself won't
+  enforce it if something writes to it directly.
+- **No native `decimal` or `DateTimeOffset`.** Storage classes are `INTEGER`/`REAL`/`TEXT`/`BLOB`/`NULL`
+  only. To preserve precision, **EF Core stores a `decimal` as `TEXT`** (not `REAL`, which would round —
+  `0.1 + 0.2 ≠ 0.3`). The value round-trips exactly, but a TEXT column doesn't sort or aggregate
+  *numerically* in SQL, so server-side `ORDER BY` / `Sum` / `Average` on a decimal is unreliable (EF Core
+  warns). For money, store integer minor units instead (the EF Core sample's `Money` value object stores
+  cents) — it sorts and sums correctly. EF Core likewise maps `DateTime`/`DateOnly`/`TimeOnly`/`Guid` to
+  `TEXT` — mind text-sort ordering.
+- **Limited `ALTER TABLE`.** SQLite can add/rename/drop columns but not, say, change a column's type or
+  constraints in place — EF Core migrations rebuild the table (create → copy → drop → rename) for those,
+  which is slower and briefly locks the table.
+- **No server-side surface.** It's an in-process library, not a server: no network endpoint, no
+  users/roles/`GRANT`, no stored procedures, no `LISTEN/NOTIFY`. Access control and connection management
+  are the app's job.
+
+**Outgrowing it is cheap.** Because Rask's data layer is EF Core, moving to a client-server database
+(e.g. PostgreSQL) when you genuinely need multi-writer scale-out or managed HA is largely a provider +
+connection-string change — the [`Rask.Data`](data.md) aggregates, [`Rask.Cqrs`](cqrs.md) handlers, and the
+generated slices are provider-agnostic. SQLite gets you far enough that most single-person products never
+make the switch.
+
 ## Testing
 
 The pragmas are easy to assert against a real database file — open a connection through the factory

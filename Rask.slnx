@@ -70,6 +70,7 @@
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Tests/Rask.SQLite.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.EntityFrameworkCore.Tests/Rask.SQLite.EntityFrameworkCore.Tests.csproj"/>
+        <Project Path="tests/Rask.SQLite.Limitations.Tests/Rask.SQLite.Limitations.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Litestream.Tests/Rask.SQLite.Litestream.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Snapshots.Tests/Rask.SQLite.Snapshots.Tests.csproj"/>
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj"/>
