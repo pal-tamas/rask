@@ -12,13 +12,13 @@ public class FormBindingTests
     public void BoundInput_RendersValueFromGetter_AndAutoNamesField()
     {
         var p = new Person { Name = "Ada", Age = 30 };
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Name),
             Input(() => p.Age),
             Input(() => p.Subscribed)
         ]);
 
-        var html = view.RenderAsLiveRoot();
+        var html = page.Html;
 
         Assert.Contains("name=\"Name\"", html);
         Assert.Contains("value=\"Ada\"", html);
@@ -32,16 +32,14 @@ public class FormBindingTests
     public async Task OnInput_UpdatesBoundStringField_DuringInputEvent()
     {
         var p = new Person { Name = "Ada", Age = 30 };
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Name)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var inputId = Markup.Attr(html, "data-rask-on-input");
+        var inputId = page.HandlerId("input");
         Assert.NotNull(inputId);
 
-        using var doc = JsonDocument.Parse("{\"value\":\"Bea\"}");
-        var ok = await view.TryInvokeHandlerAsync(inputId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(inputId!, "{\"value\":\"Bea\"}");
 
         Assert.True(ok);
         Assert.Equal("Bea", p.Name);
@@ -51,16 +49,14 @@ public class FormBindingTests
     public async Task OnChange_UpdatesNumericBoundField_AndMarksTouched()
     {
         var p = new Person { Name = "Ada", Age = 30 };
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Age)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
 
-        using var doc = JsonDocument.Parse("{\"value\":\"42\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(changeId!, "{\"value\":\"42\"}");
 
         Assert.True(ok);
         Assert.Equal(42, p.Age);
@@ -73,7 +69,7 @@ public class FormBindingTests
         var validCalled = 0;
         var invalidCalled = 0;
 
-        var view = new StubComponent(() => Form<Person>(
+        var page = RaskTest.Render(() => Form<Person>(
             p,
             OnValidSubmit: _ => validCalled++,
             OnInvalidSubmit: _ => invalidCalled++,
@@ -81,11 +77,8 @@ public class FormBindingTests
                 string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>())[
             Input(() => p.Name), Input(() => p.Age)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var submitId = Markup.Attr(html, "data-rask-on-submit");
-        using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
-        await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
+        await page.SubmitAsync("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
 
         Assert.Equal(0, validCalled);
         Assert.Equal(1, invalidCalled);
@@ -101,7 +94,7 @@ public class FormBindingTests
         var p = new Person { Name = "Ada", Age = 30 };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form<Person>(
+        var page = RaskTest.Render(() => Form<Person>(
             p,
             async (m, ct) =>
             {
@@ -112,9 +105,8 @@ public class FormBindingTests
                     : Array.Empty<string>();
             })[
             Input(() => p.Name),
-            new ContextCapture(c => captured = c)
+            RaskTest.EditContextProbe(c => captured = c)
         ]);
-        var html = view.RenderAsLiveRoot();
         Assert.NotNull(captured);
 
         // Force the name to be blank so the async rule produces a message.
@@ -131,14 +123,11 @@ public class FormBindingTests
         var p = new Person { Name = "Ada", Age = 30 };
         Person? captured = null;
 
-        var view = new StubComponent(() => Form(
+        var page = RaskTest.Render(() => Form(
             p,
             (Callback<Person>)(m => captured = m))[Input(() => p.Name), Input(() => p.Age)]);
-        var html = view.RenderAsLiveRoot();
 
-        var submitId = Markup.Attr(html, "data-rask-on-submit");
-        using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
-        await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
+        await page.SubmitAsync("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
         Assert.Same(p, captured);
         Assert.Equal("Ada", captured!.Name);
@@ -150,11 +139,11 @@ public class FormBindingTests
         var p = new Person { Name = "", Age = 30 };
         var captures = new List<EditContext>();
 
-        var view = new StubComponent(() => Form(p)[
-            new ContextCapture(captures.Add)
+        // Render() renders once itself, so one more call is the second frame.
+        var page = RaskTest.Render(() => Form(p)[
+            RaskTest.EditContextProbe(captures.Add)
         ]);
-        view.RenderAsLiveRoot();
-        view.RenderAsLiveRoot();
+        page.Render();
 
         Assert.Equal(2, captures.Count);
         Assert.Same(captures[0], captures[1]);
@@ -164,9 +153,9 @@ public class FormBindingTests
     public void BoundInput_NullableInt_RendersEmptyValue_WhenNull()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = null };
-        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.OptionalAge)]);
 
-        var html = view.RenderAsLiveRoot();
+        var html = page.Html;
 
         Assert.Contains("name=\"OptionalAge\"", html);
         Assert.Contains("type=\"number\"", html);
@@ -177,9 +166,9 @@ public class FormBindingTests
     public void BoundInput_NullableInt_RendersFormattedValue_WhenSet()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.OptionalAge)]);
 
-        var html = view.RenderAsLiveRoot();
+        var html = page.Html;
 
         Assert.Contains("value=\"7\"", html);
     }
@@ -188,9 +177,9 @@ public class FormBindingTests
     public void BoundInput_NullableDecimal_FormatsInvariantCulture()
     {
         var p = new Person { Name = "Ada", Age = 30, Price = 19.95m };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Price)]);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Price)]);
 
-        var html = view.RenderAsLiveRoot();
+        var html = page.Html;
 
         Assert.Contains("type=\"number\"", html);
         Assert.Contains("value=\"19.95\"", html);
@@ -200,9 +189,9 @@ public class FormBindingTests
     public void BoundInput_NullableDateTime_RendersIsoFormat_WhenSet()
     {
         var p = new Person { Name = "Ada", Age = 30, StartedAt = new DateTime(2025, 5, 14, 9, 30, 0) };
-        var view = new StubComponent(() => Form(p)[Input(() => p.StartedAt)]);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.StartedAt)]);
 
-        var html = view.RenderAsLiveRoot();
+        var html = page.Html;
 
         Assert.Contains("type=\"datetime-local\"", html);
         Assert.Contains("value=\"2025-05-14T09:30\"", html);
@@ -212,9 +201,9 @@ public class FormBindingTests
     public void BoundInput_NullableDateOnly_RendersIsoDate_WhenSet()
     {
         var p = new Person { Name = "Ada", Age = 30, Birthday = new DateOnly(1990, 1, 2) };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Birthday)]);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Birthday)]);
 
-        var html = view.RenderAsLiveRoot();
+        var html = page.Html;
 
         Assert.Contains("type=\"date\"", html);
         Assert.Contains("value=\"1990-01-02\"", html);
@@ -224,14 +213,12 @@ public class FormBindingTests
     public async Task OnChange_NullableInt_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.OptionalAge)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
 
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(changeId!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.OptionalAge);
@@ -241,12 +228,9 @@ public class FormBindingTests
     public async Task OnChange_NullableInt_ValidValue_SetsTypedValue()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = null };
-        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.OptionalAge)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"42\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"42\"}");
 
         Assert.True(ok);
         Assert.Equal(42, p.OptionalAge);
@@ -256,12 +240,9 @@ public class FormBindingTests
     public async Task OnChange_NullableInt_InvalidValue_LeavesPropertyUnchanged()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.OptionalAge)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"not-a-number\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"not-a-number\"}");
 
         // Handler still completes (TouchAndValidateHandler always runs validation after the
         // optional set), but the property retains its prior value because TrySetTyped failed.
@@ -273,12 +254,9 @@ public class FormBindingTests
     public async Task OnChange_NullableDecimal_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, Price = 19.95m };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Price)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Price)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.Price);
@@ -288,12 +266,9 @@ public class FormBindingTests
     public async Task OnChange_NullableDateTime_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, StartedAt = new DateTime(2025, 5, 14, 9, 30, 0) };
-        var view = new StubComponent(() => Form(p)[Input(() => p.StartedAt)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.StartedAt)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.StartedAt);
@@ -303,12 +278,9 @@ public class FormBindingTests
     public async Task OnChange_NullableDateOnly_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, Birthday = new DateOnly(1990, 1, 2) };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Birthday)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Birthday)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.Birthday);
@@ -318,12 +290,9 @@ public class FormBindingTests
     public async Task OnChange_NullableDecimal_ValidValue_SetsTypedValue()
     {
         var p = new Person { Name = "Ada", Age = 30, Price = null };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Price)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Price)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"12.5\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"12.5\"}");
 
         Assert.True(ok);
         Assert.Equal(12.5m, p.Price);
@@ -333,12 +302,9 @@ public class FormBindingTests
     public async Task OnChange_NullableDateTime_ValidIso_SetsTypedValue()
     {
         var p = new Person { Name = "Ada", Age = 30, StartedAt = null };
-        var view = new StubComponent(() => Form(p)[Input(() => p.StartedAt)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.StartedAt)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"2025-05-14T09:30\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"2025-05-14T09:30\"}");
 
         Assert.True(ok);
         Assert.Equal(new DateTime(2025, 5, 14, 9, 30, 0), p.StartedAt);
@@ -348,12 +314,9 @@ public class FormBindingTests
     public async Task OnChange_NullableDateOnly_ValidIso_SetsTypedValue()
     {
         var p = new Person { Name = "Ada", Age = 30, Birthday = null };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Birthday)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Birthday)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"1990-01-02\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"1990-01-02\"}");
 
         Assert.True(ok);
         Assert.Equal(new DateOnly(1990, 1, 2), p.Birthday);
@@ -363,12 +326,9 @@ public class FormBindingTests
     public async Task OnChange_NullableEnum_ValidValue_ParsesEnum()
     {
         var p = new Person { Name = "Ada", Age = 30, Status = null };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Status)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Status)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"Active\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"Active\"}");
 
         Assert.True(ok);
         Assert.Equal(PersonStatus.Active, p.Status);
@@ -378,12 +338,9 @@ public class FormBindingTests
     public async Task OnChange_NullableEnum_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, Status = PersonStatus.Active };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Status)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Status)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.Status);
@@ -396,12 +353,9 @@ public class FormBindingTests
         // so the user can clear a number/date/enum input. The sibling nullable test above
         // (OnChange_NullableInt_EmptyString_SetsPropertyToNull) pins the null path for `int?`.
         var p = new Person { Name = "Ada", Age = 30 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Age)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Age)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal(0, p.Age);
@@ -411,12 +365,9 @@ public class FormBindingTests
     public async Task OnChange_NonNullableDecimal_EmptyString_SetsDefault()
     {
         var p = new Person { Name = "Ada", Age = 30, Salary = 5000m };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Salary)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Salary)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal(0m, p.Salary);
@@ -426,12 +377,9 @@ public class FormBindingTests
     public async Task OnChange_NonNullableDateOnly_EmptyString_SetsDefault()
     {
         var p = new Person { Name = "Ada", Age = 30, HireDate = new DateOnly(2020, 6, 1) };
-        var view = new StubComponent(() => Form(p)[Input(() => p.HireDate)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.HireDate)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal(default, p.HireDate);
@@ -441,12 +389,9 @@ public class FormBindingTests
     public async Task OnChange_NonNullableEnum_EmptyString_SetsDefault()
     {
         var p = new Person { Name = "Ada", Age = 30, CurrentStatus = PersonStatus.Inactive };
-        var view = new StubComponent(() => Form(p)[Input(() => p.CurrentStatus)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.CurrentStatus)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal(default, p.CurrentStatus);
@@ -459,14 +404,12 @@ public class FormBindingTests
         // PropertyInfo via NullabilityInfoContext and treats empty input as null. The
         // sibling test below pins the inverse for non-nullable `string`.
         var p = new Person { Name = "Ada", Age = 30, Nickname = "Bea" };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Nickname)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Nickname)]);
 
-        var inputId = Markup.Attr(html, "data-rask-on-input");
+        var inputId = page.HandlerId("input");
         Assert.NotNull(inputId);
 
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(inputId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(inputId!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.Nickname);
@@ -480,14 +423,12 @@ public class FormBindingTests
         // for the annotation, so the empty→null shortcut is skipped and the value flows
         // through RouteValueParser, which returns "" verbatim.
         var p = new Person { Name = "Ada", Age = 30 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Name)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Name)]);
 
-        var inputId = Markup.Attr(html, "data-rask-on-input");
+        var inputId = page.HandlerId("input");
         Assert.NotNull(inputId);
 
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        var ok = await view.TryInvokeHandlerAsync(inputId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(inputId!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal("", p.Name);
@@ -504,18 +445,17 @@ public class FormBindingTests
         // recover — once drifted it kept inverting, which is the "checkbox sticks after a
         // few clicks" bug once clicks ship diffs (no checked re-base) instead of full HTML.
         var p = new Person { Name = "Ada", Age = 30, AcceptedTerms = null };
-        var view = new StubComponent(() => Form(p)[Input(() => p.AcceptedTerms)]);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.AcceptedTerms)]);
 
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var html = page.Html;
+        var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
 
         async Task SendAsync(string value)
         {
-            html = view.RenderAsLiveRoot();
+            html = page.Render();
             changeId = Markup.Attr(html, "data-rask-on-change");
-            using var doc = JsonDocument.Parse($"{{\"value\":\"{value}\"}}");
-            await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+            await page.InvokeAsync(changeId!, $"{{\"value\":\"{value}\"}}");
         }
 
         await SendAsync("true");

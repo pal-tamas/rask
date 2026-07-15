@@ -70,15 +70,13 @@ public class PrimitiveBindingTests
         // comma-decimal locale ("3,14") and a period-decimal raw value ("3.14"), only the
         // invariant parser produces 3.14f. Asserting the round-trip pins both sides.
         var p = new NumericHolder { F = 1.5f };
-        var view = new StubComponent(() => Form(p)[Input(() => p.F)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.F)]);
+        var html = page.Html;
 
         Assert.Contains("type=\"number\"", html);
         Assert.Contains("value=\"1.5\"", html);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"3.14\"}");
-        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"3.14\"}");
 
         Assert.True(ok);
         Assert.Equal(3.14f, p.F, 0.0001f);
@@ -88,12 +86,9 @@ public class PrimitiveBindingTests
     public async Task DoubleProperty_OnChange_ParsesScientificNotation()
     {
         var p = new NumericHolder { D = 0d };
-        var view = new StubComponent(() => Form(p)[Input(() => p.D)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.D)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"6.022e23\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        await page.ChangeAsync("{\"value\":\"6.022e23\"}");
 
         Assert.Equal(6.022e23, p.D, 1e20);
     }
@@ -102,12 +97,9 @@ public class PrimitiveBindingTests
     public async Task DecimalProperty_OnChange_PreservesPrecision()
     {
         var p = new NumericHolder { M = 0m };
-        var view = new StubComponent(() => Form(p)[Input(() => p.M)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.M)]);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse("{\"value\":\"12345.6789\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        await page.ChangeAsync("{\"value\":\"12345.6789\"}");
 
         Assert.Equal(12345.6789m, p.M);
     }
@@ -119,12 +111,11 @@ public class PrimitiveBindingTests
     public async Task ByteProperty_OnChange_RoundTrips(string raw, byte expected)
     {
         var p = new NumericHolder { B = 1 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.B)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.B)]);
+        var html = page.Html;
         var changeId = Markup.Attr(html, "data-rask-on-change");
 
-        using var doc = JsonDocument.Parse($"{{\"value\":\"{raw}\"}}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        await page.InvokeAsync(changeId!, $"{{\"value\":\"{raw}\"}}");
 
         Assert.Equal(expected, p.B);
     }
@@ -135,12 +126,8 @@ public class PrimitiveBindingTests
         // Specific to ulong: long.MaxValue + 1 must round-trip. If we accidentally routed
         // through long.TryParse this would fail.
         var p = new NumericHolder { Ul = 0ul };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Ul)]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-
-        using var doc = JsonDocument.Parse("{\"value\":\"9223372036854775808\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Ul)]);
+        await page.ChangeAsync("{\"value\":\"9223372036854775808\"}");
 
         Assert.Equal(9223372036854775808ul, p.Ul);
     }
@@ -149,12 +136,8 @@ public class PrimitiveBindingTests
     public async Task HalfProperty_OnChange_RoundTrips()
     {
         var p = new NumericHolder { H = (Half)0 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.H)]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-
-        using var doc = JsonDocument.Parse("{\"value\":\"2.5\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.H)]);
+        await page.ChangeAsync("{\"value\":\"2.5\"}");
 
         Assert.Equal((Half)2.5, p.H);
     }
@@ -163,13 +146,12 @@ public class PrimitiveBindingTests
     public async Task GuidProperty_OnChange_RoundTrips()
     {
         var p = new IdentityHolder { Token = Guid.Empty };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Token)]);
-        var html = view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Token)]);
+        var html = page.Html;
         var changeId = Markup.Attr(html, "data-rask-on-change");
 
         var fresh = Guid.NewGuid();
-        using var doc = JsonDocument.Parse($"{{\"value\":\"{fresh}\"}}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        await page.InvokeAsync(changeId!, $"{{\"value\":\"{fresh}\"}}");
 
         Assert.Equal(fresh, p.Token);
     }
@@ -178,12 +160,8 @@ public class PrimitiveBindingTests
     public async Task CharProperty_OnChange_AcceptsSingleCharacter()
     {
         var p = new IdentityHolder { Letter = 'a' };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Letter)]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-
-        using var doc = JsonDocument.Parse("{\"value\":\"Z\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Letter)]);
+        await page.ChangeAsync("{\"value\":\"Z\"}");
 
         Assert.Equal('Z', p.Letter);
     }
@@ -193,11 +171,9 @@ public class PrimitiveBindingTests
     {
         var known = Guid.NewGuid();
         var p = new IdentityHolder { Token = known };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Token)]);
-        var changeId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change");
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Token)]);
 
-        using var doc = JsonDocument.Parse("{\"value\":\"not-a-guid\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        await page.ChangeAsync("{\"value\":\"not-a-guid\"}");
 
         // Unparseable Guid text must NOT zero the field — TrySetTyped returns false, setter never runs.
         Assert.Equal(known, p.Token);
@@ -207,12 +183,11 @@ public class PrimitiveBindingTests
     public async Task CharProperty_MultiCharInput_LeavesPriorValue()
     {
         var p = new IdentityHolder { Letter = 'a' };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Letter)]);
-        var changeId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change");
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Letter)]);
+        var changeId = page.HandlerId("change");
 
         // char.TryParse only accepts a single character — a two-char string fails to parse.
-        using var doc = JsonDocument.Parse("{\"value\":\"ab\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"ab\"}");
 
         Assert.Equal('a', p.Letter);
     }
@@ -221,12 +196,11 @@ public class PrimitiveBindingTests
     public async Task EnumProperty_OnChange_RoundTripsCaseInsensitively()
     {
         var p = new IdentityHolder { Level = Priority.Low };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Level)]);
-        var changeId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change");
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Level)]);
+        var changeId = page.HandlerId("change");
 
         // Enum binding goes through Enum.TryParse(ignoreCase: true), so a lower-cased member name binds.
-        using var doc = JsonDocument.Parse("{\"value\":\"high\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"high\"}");
 
         Assert.Equal(Priority.High, p.Level);
     }
@@ -235,12 +209,11 @@ public class PrimitiveBindingTests
     public async Task EnumProperty_InvalidInput_LeavesPriorValue()
     {
         var p = new IdentityHolder { Level = Priority.High };
-        var view = new StubComponent(() => Form(p)[Input(() => p.Level)]);
-        var changeId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change");
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.Level)]);
+        var changeId = page.HandlerId("change");
 
         // A string that is not a member name leaves the model untouched.
-        using var doc = JsonDocument.Parse("{\"value\":\"medium\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"medium\"}");
 
         Assert.Equal(Priority.High, p.Level);
     }
@@ -249,12 +222,8 @@ public class PrimitiveBindingTests
     public async Task NullableNumericProperty_EmptyInput_SetsNull()
     {
         var p = new NumericHolder { OptionalDouble = 9.9 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalDouble)]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.OptionalDouble)]);
+        await page.ChangeAsync("{\"value\":\"\"}");
 
         Assert.Null(p.OptionalDouble);
     }
@@ -263,12 +232,8 @@ public class PrimitiveBindingTests
     public async Task NumericProperty_InvalidInput_LeavesPriorValue()
     {
         var p = new NumericHolder { D = 1.5 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.D)]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-
-        using var doc = JsonDocument.Parse("{\"value\":\"not-a-number\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.D)]);
+        await page.ChangeAsync("{\"value\":\"not-a-number\"}");
 
         // Invalid input (non-empty, unparseable) must NOT silently zero the field — TrySetTyped
         // returns false and the setter is never called. The empty-input case is a separate
@@ -280,12 +245,8 @@ public class PrimitiveBindingTests
     public async Task NumericProperty_EmptyInput_SetsDefault()
     {
         var p = new NumericHolder { D = 1.5 };
-        var view = new StubComponent(() => Form(p)[Input(() => p.D)]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change");
-
-        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        var page = RaskTest.Render(() => Form(p)[Input(() => p.D)]);
+        await page.ChangeAsync("{\"value\":\"\"}");
 
         // Empty input on a non-nullable value type clears to default(T) so the user can
         // actually empty the field. Without this, the next render snaps the input back to

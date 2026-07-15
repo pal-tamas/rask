@@ -19,16 +19,11 @@ public class AfterBindTests
         var m = new TextModel { Name = "" };
         var observed = new List<string>();
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Input(() => m.Name, v => observed.Add(v))
         ]);
-        var html = view.RenderAsLiveRoot();
-        var inputId = Markup.Attr(html, "data-rask-on-input")!;
-
-        using var k1 = JsonDocument.Parse("{\"value\":\"A\"}");
-        await view.TryInvokeHandlerAsync(inputId, k1.RootElement);
-        using var k2 = JsonDocument.Parse("{\"value\":\"Ad\"}");
-        await view.TryInvokeHandlerAsync(inputId, k2.RootElement);
+        await page.InputAsync("{\"value\":\"A\"}");
+        await page.InputAsync("{\"value\":\"Ad\"}");
 
         Assert.Equal(new[] { "A", "Ad" }, observed);
         Assert.Equal("Ad", m.Name);
@@ -40,14 +35,10 @@ public class AfterBindTests
         var m = new NumberModel();
         int? captured = null;
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Input(() => m.Age, v => captured = v)
         ]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-
-        using var change = JsonDocument.Parse("{\"value\":\"42\"}");
-        await view.TryInvokeHandlerAsync(changeId, change.RootElement);
+        await page.ChangeAsync("{\"value\":\"42\"}");
 
         Assert.Equal(42, captured);
         Assert.Equal(42, m.Age);
@@ -59,14 +50,10 @@ public class AfterBindTests
         var m = new NumberModel { Age = 7 };
         var fired = false;
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Input(() => m.Age, _ => fired = true)
         ]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-
-        using var change = JsonDocument.Parse("{\"value\":\"not-a-number\"}");
-        await view.TryInvokeHandlerAsync(changeId, change.RootElement);
+        await page.ChangeAsync("{\"value\":\"not-a-number\"}");
 
         Assert.False(fired);
         Assert.Equal(7, m.Age); // unchanged — TrySetTyped rejected it
@@ -81,7 +68,7 @@ public class AfterBindTests
         var gate = new TaskCompletionSource();
         var order = new List<string>();
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Input(() => m.Age,
                 _ =>
                 {
@@ -95,11 +82,10 @@ public class AfterBindTests
                     order.Add("afterBindAsync:end");
                 })
         ]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
+        var changeId = page.HandlerId("change");
 
-        using var change = JsonDocument.Parse("{\"value\":\"42\"}");
-        var pending = view.TryInvokeHandlerAsync(changeId, change.RootElement);
+        // Held un-awaited: the gate below keeps the async handler mid-flight.
+        var pending = page.InvokeAsync(changeId!, "{\"value\":\"42\"}");
 
         // Spin until the async handler reaches the gate. The dispatcher does an extra
         // Task.Yield inside InvokeWithRenderingAsync, so a single Task.Yield here may not
@@ -124,7 +110,7 @@ public class AfterBindTests
         var order = new List<string>();
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Input(() => m.Age,
                 _ =>
                 {
@@ -137,13 +123,9 @@ public class AfterBindTests
                     // The field must already be marked modified at this point.
                     Assert.True(captured!.IsModified(new FieldIdentifier(m, nameof(NumberModel.Age))));
                 }),
-            new ContextCapture(c => captured = c)
+            RaskTest.EditContextProbe(c => captured = c)
         ]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-
-        using var change = JsonDocument.Parse("{\"value\":\"9\"}");
-        await view.TryInvokeHandlerAsync(changeId, change.RootElement);
+        await page.ChangeAsync("{\"value\":\"9\"}");
 
         Assert.Equal(new[] { "afterBind", "validate" }, order);
     }
@@ -154,7 +136,7 @@ public class AfterBindTests
         var m = new TextModel { Name = "" };
         var order = new List<string>();
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Input(() => m.Name,
                 _ => order.Add("sync"),
                 async _ =>
@@ -163,11 +145,7 @@ public class AfterBindTests
                     order.Add("async");
                 })
         ]);
-        var html = view.RenderAsLiveRoot();
-        var inputId = Markup.Attr(html, "data-rask-on-input")!;
-
-        using var k = JsonDocument.Parse("{\"value\":\"x\"}");
-        await view.TryInvokeHandlerAsync(inputId, k.RootElement);
+        await page.InputAsync("{\"value\":\"x\"}");
 
         Assert.Equal(new[] { "sync", "async" }, order);
     }
@@ -178,17 +156,13 @@ public class AfterBindTests
         var m = new ColorModel { Favorite = Color.Red };
         Color? captured = null;
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Select(() => m.Favorite, v => captured = v)[
                 Option(nameof(Color.Red))["Red"],
                 Option(nameof(Color.Blue))["Blue"]
             ]
         ]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-
-        using var change = JsonDocument.Parse("{\"value\":\"Blue\"}");
-        await view.TryInvokeHandlerAsync(changeId, change.RootElement);
+        await page.ChangeAsync("{\"value\":\"Blue\"}");
 
         Assert.Equal(Color.Blue, captured);
         Assert.Equal(Color.Blue, m.Favorite);
@@ -201,7 +175,7 @@ public class AfterBindTests
         var m = new RegionModel();
         List<string>? cities = null;
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Select(() => m.Country, AfterBindAsync: async c =>
             {
                 await Task.Yield();
@@ -211,11 +185,7 @@ public class AfterBindTests
                 Option("DE")["DE"]
             ]
         ]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-
-        using var pick = JsonDocument.Parse("{\"value\":\"US\"}");
-        await view.TryInvokeHandlerAsync(changeId, pick.RootElement);
+        await page.ChangeAsync("{\"value\":\"US\"}");
 
         Assert.NotNull(cities);
         Assert.Equal(new[] { "NYC", "LA" }, cities!);
@@ -228,14 +198,10 @@ public class AfterBindTests
         var m = new TextModel { Name = "" };
         string? captured = null;
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Textarea(() => m.Name, v => captured = v)
         ]);
-        var html = view.RenderAsLiveRoot();
-        var inputId = Markup.Attr(html, "data-rask-on-input")!;
-
-        using var k = JsonDocument.Parse("{\"value\":\"hello\"}");
-        await view.TryInvokeHandlerAsync(inputId, k.RootElement);
+        await page.InputAsync("{\"value\":\"hello\"}");
 
         Assert.Equal("hello", captured);
         Assert.Equal("hello", m.Name);
@@ -247,16 +213,14 @@ public class AfterBindTests
         var m = new FlagModel { Enabled = false };
         bool? captured = null;
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Input(() => m.Enabled, v => captured = v)
         ]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
+        var changeId = page.HandlerId("change");
 
         // Checking the box: the client reports the post-toggle checked state ("true").
         // BoolSetHandler sets the model to it and AfterBind sees the new value.
-        using var click = JsonDocument.Parse("{\"value\":\"true\"}");
-        await view.TryInvokeHandlerAsync(changeId, click.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"true\"}");
 
         Assert.True(captured);
         Assert.True(m.Enabled);
@@ -272,15 +236,11 @@ public class AfterBindTests
         var m = new TextModel { Name = "x" };
         var fires = 0;
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Input(() => m.Name, _ => fires++)
         ]);
-        var html = view.RenderAsLiveRoot();
-        var inputId = Markup.Attr(html, "data-rask-on-input")!;
-
-        using var same = JsonDocument.Parse("{\"value\":\"x\"}");
-        await view.TryInvokeHandlerAsync(inputId, same.RootElement);
-        await view.TryInvokeHandlerAsync(inputId, same.RootElement);
+        await page.InputAsync("{\"value\":\"x\"}");
+        await page.InputAsync("{\"value\":\"x\"}");
 
         Assert.Equal(2, fires);
     }
