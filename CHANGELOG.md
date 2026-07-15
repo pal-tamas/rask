@@ -19,6 +19,13 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Fixed
+- **Flaky E2E: `JwtServerAuthExampleTests.Journey_JwtLogin_AdminRoundTrip_ThenNonAdmin`.** It asserted the JWT
+  isn't JS-readable with `DoesNotContain("eyJ", stored)`, but `stored` is a Data Protection ciphertext — so
+  `eyJ` turning up *somewhere* inside its base64url bytes is pure chance (~1 run in 900), and it duly failed on
+  a blob that was never a JWT. A raw JWT is identified by *starting* with the base64url `eyJ` header, so the
+  assertion now checks `StartsWith` (matching the `WasmJwtAuthExampleTests` sibling, which had it right).
+  Test-only; the property it guards is unchanged, and it still fails — naming the leaked token — when the
+  sample is mutated to store the raw JWT.
 - **The `Rask.Wasm` package never declared its `Microsoft.JSInterop` dependency.** The runtime uses JSInterop
   directly (`WasmJSRuntime`, `WasmLiveSession`, the typed `Browser/*` wrappers), but it only ever arrived
   transitively through the `PrivateAssets="all"` `Rask.Core` reference — which deliberately keeps Core out of the
