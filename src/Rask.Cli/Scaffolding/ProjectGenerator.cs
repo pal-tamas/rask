@@ -684,12 +684,22 @@ internal static class ProjectGenerator
         {
             protected override Component? Render() =>
                 Div(Class: "welcome-card")[
-                    H1(Class: "welcome-title")["Hello, Rask!"],
-                    P(Class: "welcome-lead")["Welcome to your new app."],
+                    H1(Class: "welcome-title")["Hello, Rask! 👋"],
+                    P(Class: "welcome-lead")["Your app is ready. Scaffold the rest with the rask CLI:"],
+                    Ul(Class: "welcome-cheatsheet")[
+                        Li()[Code()["rask generate feature Product Name:string Price:decimal"], " — a full CRUD slice (entity, pages, tests)"],
+                        Li()[Code()["rask generate page About"], " — a routed page"],
+                        Li()[Code()["rask generate component Card"], " — a reusable component"],
+                        Li()[Code()["rask dev"], " — run with hot reload"]
+                    ],
                     P(Class: "welcome-hint")[
-                        "This card is styled by a sibling ",
+                        "Edit this page in ",
+                        Code()["HomePage.cs"],
+                        " — styled by the auto-scoped ",
                         Code()["HomePage.css"],
-                        " file — selectors are auto-scoped to this component."
+                        ". Full guides at ",
+                        A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
+                        "."
                     ]
                 ];
         }
@@ -721,13 +731,21 @@ internal static class ProjectGenerator
             color: #374151;
         }
 
+        .welcome-cheatsheet {
+            margin: 0 0 1rem;
+            padding-left: 1.1rem;
+            font-size: 0.95rem;
+            line-height: 1.75;
+            color: #374151;
+        }
+
         .welcome-hint {
             margin: 0;
             font-size: 0.9rem;
             color: #6b7280;
         }
 
-        .welcome-hint code {
+        .welcome-card code {
             background: #f3f4f6;
             padding: 0.1rem 0.35rem;
             border-radius: 4px;
@@ -1755,10 +1773,16 @@ internal static class ProjectGenerator
         public sealed class HomePage : Component
         {
             protected override Component? Render() =>
-                Div()[
-                    H1()["Hello, Rask — natively!"],
+                Div(Style: "padding:1rem;font-family:system-ui,-apple-system,sans-serif")[
+                    H1()["Hello, Rask — natively! 👋"],
                     P()["This is a native iOS/Android app. The same C# component code runs here as on the "
                         + "server and in the browser — it's just packaged for the App Store / Play Store."],
+                    P()["Scaffold the rest with the rask CLI:"],
+                    Ul()[
+                        Li()[Code()["rask generate feature Product Name:string Price:decimal"], " — a full CRUD slice"],
+                        Li()[Code()["rask generate page About"], " — a routed page"],
+                        Li()[Code()["rask generate component Card"], " — a reusable component"]
+                    ],
                     P()["Open Counter to see live, in-process state updates over the native WebView bridge."]
                 ];
         }
