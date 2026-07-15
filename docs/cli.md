@@ -70,6 +70,8 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 |--------|---------|
 | `--fields`, `-f` | `feature` only: the entity's fields as `Name:type,…`. Types: `string`, `int`, `long`, `decimal`, `double`, `bool`, `DateTime`, `Guid` (aliases like `text`/`number`/`money`/`date` too). A field is optional with a trailing `?` (`Note:string?`); strings get a default max length, overridable with `Name:string(100)`. An `Id` is added automatically. |
 | `--id` | `feature` only: the entity's key type — `guid` (default), `int`, or `long`. |
+| `--modal` | `feature` only (implies `--bs`): create + update happen in a `BsModal` on the list page, instead of separate create/edit pages. |
+| `--bs` | `feature` only: render the pages with Rask.Bootstrap `Bs*` components (`BsCard`/`BsTable`/`BsButton`/`BsInput`/`BsCheck`/`BsIcon`) + `Bs.Join(...)` utility classes instead of raw core + Bootstrap class strings. |
 | `--validation` | `feature` only: `valueobjects` (default — required strings become value objects with built-in, dependency-free validation), `dataannotations` (POCO + `[Required]`/`[MaxLength]` + `DataAnnotationsValidator`), or `fluent` (POCO + a generated `AbstractValidator` + `FluentValidationValidator`). |
 | `--context`, `-c` | `feature` only: reference an existing `DbContext` by name instead of generating a feature-local one (then add a `DbSet` to it). |
 | `--plural`, `-p` | `feature` only: the plural used for the folder, DbSet, list page, and route. Give the entity a **singular** name (`Product`) and this defaults to a simple pluralization (`Products`); override it when that guess is wrong (`--plural People`). |

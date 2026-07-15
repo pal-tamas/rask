@@ -20,6 +20,8 @@ internal static class FeatureGenerator
         IReadOnlyList<FieldSpec> fields,
         string idType,
         string validation,
+        bool useBs,
+        bool useModal,
         string? contextOverride,
         string? pluralOverride,
         string? outputOverride)
@@ -40,21 +42,27 @@ internal static class FeatureGenerator
             ("__ROUTE__", route), ("__IDTYPE__", idType), ("__IDCONSTRAINT__", idConstraint),
             ("__CREATEARGS__", RequestArgs(fields, "command.Request")),
             ("__HEADERS__", TableHeaders(fields)), ("__CELLS__", TableCells(fields, useValueObjects)),
-            ("__FORMFIELDS__", FormFields(entityName, fields, useValueObjects)), ("__COPYTOFORM__", CopyToForm(fields, useValueObjects)),
+            ("__FORMFIELDS__", FormFields(entityName, fields, useValueObjects, useBs)), ("__COPYTOFORM__", CopyToForm(fields, useValueObjects)),
             ("__CONFIGPROPS__", ConfigProperties(entityName, fields, useValueObjects)),
             ("__VALIDATOR__", FormValidator(entityName, validation)),
         };
 
+        var listTemplate = useModal ? BsModalListTemplate : useBs ? BsListPageTemplate : ListPageTemplate;
         var files = new List<ScaffoldFile>
         {
             new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects)),
             new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields, validation)),
             new(Path.Combine(targetDirectory, entityName + "Configuration.cs"), Apply(ConfigurationTemplate, tokens)),
-            new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(ListPageTemplate, tokens)),
-            new(Path.Combine(targetDirectory, "Delete" + entityName + ".cs"), Apply(DeleteTemplate, tokens)),
-            new(Path.Combine(targetDirectory, "Create" + entityName + ".cs"), Apply(CreateTemplate, tokens)),
-            new(Path.Combine(targetDirectory, "Update" + entityName + ".cs"), Apply(UpdateTemplate, tokens)),
+            new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(listTemplate, tokens)),
+            new(Path.Combine(targetDirectory, "Delete" + entityName + ".cs"), Apply(useBs ? BsDeleteTemplate : DeleteTemplate, tokens)),
         };
+
+        // --modal puts create + update in a BsModal on the list page; otherwise they are separate pages.
+        if (!useModal)
+        {
+            files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Create" + entityName + ".cs"), Apply(useBs ? BsCreateTemplate : CreateTemplate, tokens)));
+            files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Update" + entityName + ".cs"), Apply(useBs ? BsUpdateTemplate : UpdateTemplate, tokens)));
+        }
 
         // valueobjects mode: one value object per required-string field, each owning its validation.
         foreach (var field in fields.Where(f => IsValueObject(f, useValueObjects)))
@@ -77,7 +85,7 @@ internal static class FeatureGenerator
             files.Insert(2, new ScaffoldFile(Path.Combine(targetDirectory, context + ".cs"), Apply(DbContextTemplate, tokens)));
         }
 
-        return new ScaffoldResult(files, RenderNextSteps(context, entityName, plural, route, generateContext, validation));
+        return new ScaffoldResult(files, RenderNextSteps(context, entityName, plural, route, generateContext, validation, useBs));
     }
 
     // The form-level validator component wired at the top of the create/edit forms (empty for the
@@ -246,7 +254,7 @@ internal static class FeatureGenerator
             return $"        entity.Property(x => x.{f.Name}){required}.HasMaxLength({len});";
         }));
 
-    private static string FormFields(string entity, IReadOnlyList<FieldSpec> fields, bool useValueObjects)
+    private static string FormFields(string entity, IReadOnlyList<FieldSpec> fields, bool useValueObjects, bool useBs)
     {
         var sb = new StringBuilder();
         foreach (var field in fields)
@@ -255,18 +263,19 @@ internal static class FeatureGenerator
             // A value-object field wires its built-in Validate into the bound input; the dataannotations /
             // fluent modes validate through the form-level validator component instead.
             var validate = IsValueObject(field, useValueObjects) ? $", Validate: {ValueObjectName(entity, field)}.Validate" : "";
-            if (field.CsType == "bool")
+            if (useBs)
             {
-                sb.Append("                    Div(Class: \"form-check\")[\n")
-                    .Append("                        Input(() => _form.").Append(field.Name).Append(", Id: \"").Append(id).Append("\", Class: \"form-check-input\"),\n")
-                    .Append("                        Label(\"").Append(id).Append("\", Class: \"form-check-label\")[\"").Append(field.Name).Append("\"]\n")
-                    .Append("                    ],\n");
+                // Bs form controls render their own label + input + validation feedback.
+                var control = field.CsType == "bool" ? "BsCheck" : "BsInput";
+                sb.Append("                    ").Append(control).Append("(() => _form.").Append(field.Name).Append(validate)
+                    .Append(", Id: \"").Append(id).Append("\", Label: \"").Append(field.Name).Append("\"),\n");
             }
             else
             {
+                // Plain, unstyled HTML: a label + the bound input (a bool renders as a checkbox).
                 sb.Append("                    Div()[\n")
-                    .Append("                        Label(\"").Append(id).Append("\", Class: \"form-label small mb-1\")[\"").Append(field.Name).Append("\"],\n")
-                    .Append("                        Input(() => _form.").Append(field.Name).Append(validate).Append(", Id: \"").Append(id).Append("\", Class: \"form-control\")\n")
+                    .Append("                        Label(\"").Append(id).Append("\")[\"").Append(field.Name).Append("\"],\n")
+                    .Append("                        Input(() => _form.").Append(field.Name).Append(validate).Append(", Id: \"").Append(id).Append("\")\n")
                     .Append("                    ],\n");
             }
         }
@@ -274,7 +283,7 @@ internal static class FeatureGenerator
         return sb.ToString().TrimEnd('\n');
     }
 
-    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation)
+    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs)
     {
         var steps = new StringBuilder();
         steps.Append("Next steps:\n");
@@ -282,6 +291,11 @@ internal static class FeatureGenerator
         steps.Append("       dotnet add package Microsoft.EntityFrameworkCore.Sqlite\n");
         steps.Append("       dotnet add package Microsoft.EntityFrameworkCore.Design\n");
         steps.Append("       dotnet add package Rask.Cqrs\n");
+        if (useBs)
+        {
+            steps.Append("       dotnet add package Rask.Bootstrap   # and link BootstrapStyles() in your Head\n");
+        }
+
         if (validation == "dataannotations")
         {
             steps.Append("       dotnet add package Rask.Validation.DataAnnotations\n");
@@ -451,15 +465,15 @@ internal static class FeatureGenerator
 
             protected override Component? Render() =>
             [
-                Div(Class: "d-flex justify-content-between align-items-center mb-3")[
-                    H1(Class: "h3 mb-0")["__PLURAL__"],
-                    NavLink(Routes.Create__ENTITY__(), Class: "btn btn-primary")["New __ENTITY__"]
+                Div()[
+                    H1()["__PLURAL__"],
+                    NavLink(Routes.Create__ENTITY__())["New __ENTITY__"]
                 ],
                 !_loaded
-                    ? Div(Class: "text-secondary")["Loading…"]
+                    ? Div()["Loading…"]
                     : _items.Count == 0
-                        ? Div(Class: "alert alert-info")["No __PLURAL__ yet."]
-                        : Table(Class: "table table-striped align-middle")[
+                        ? Div()["No __PLURAL__ yet."]
+                        : Table()[
                             Thead()[
                                 Tr()[
                                     Th()["#"],
@@ -471,8 +485,8 @@ internal static class FeatureGenerator
                                 _items.Select(x => Tr(Key: x.Id)[
                                     Td()[$"{x.Id}"],
         __CELLS__
-                                    Td(Class: "text-end text-nowrap")[
-                                        NavLink(Routes.Update__ENTITY__(x.Id), Class: "btn btn-outline-secondary btn-sm me-1")["Edit"],
+                                    Td()[
+                                        NavLink(Routes.Update__ENTITY__(x.Id))["Edit"],
                                         Delete__ENTITY__(Id: x.Id, OnDeleted: LoadAsync)
                                     ]
                                 ])
@@ -519,7 +533,7 @@ internal static class FeatureGenerator
             }
 
             protected override Component? Render() =>
-                Button("button", Class: "btn btn-outline-danger btn-sm", OnClickAsync: DeleteAsync)["Delete"];
+                Button("button", OnClickAsync: DeleteAsync)["Delete"];
         }
 
         """;
@@ -560,14 +574,14 @@ internal static class FeatureGenerator
             }
 
             protected override Component? Render() =>
-                Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
-                    Div(Class: "card-body")[
-                        H1(Class: "h4 mb-3")["New __ENTITY__"],
-                        Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
+                Div()[
+                    Div()[
+                        H1()["New __ENTITY__"],
+                        Form(_form, OnValidSubmitAsync: SubmitAsync)[
         __VALIDATOR____FORMFIELDS__
-                            Div(Class: "d-flex justify-content-end gap-2 pt-2")[
-                                NavLink(Routes.__PLURAL__Page(), Class: "btn btn-outline-secondary")["Cancel"],
-                                Button("submit", Class: "btn btn-primary")["Save"]
+                            Div()[
+                                NavLink(Routes.__PLURAL__Page())["Cancel"],
+                                Button("submit")["Save"]
                             ]
                         ]
                     ]
@@ -648,7 +662,268 @@ internal static class FeatureGenerator
             {
                 if (!_loaded)
                 {
-                    return Div(Class: "text-secondary")["Loading…"];
+                    return Div()["Loading…"];
+                }
+
+                if (!_found)
+                {
+                    return Div()["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
+                }
+
+                return Div()[
+                    Div()[
+                        H1()["Edit __ENTITY__"],
+                        Form(_form, OnValidSubmitAsync: SubmitAsync)[
+        __VALIDATOR____FORMFIELDS__
+                            Div()[
+                                NavLink(Routes.__PLURAL__Page())["Cancel"],
+                                Button("submit")["Save changes"]
+                            ]
+                        ]
+                    ]
+                ];
+            }
+        }
+
+        """;
+
+    // ---- Bs (Rask.Bootstrap) variants: same CQRS, Bs components + Bs.Join utility classes in the render ----
+
+    private const string BsListPageTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Rask.Core.Routing;
+
+        namespace __NS__;
+
+        public sealed record List__PLURAL__Query : IQuery<IReadOnlyList<__ENTITY__>>;
+
+        public sealed class List__PLURAL__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : IQueryHandler<List__PLURAL__Query, IReadOnlyList<__ENTITY__>>
+        {
+            public async Task<IReadOnlyList<__ENTITY__>> HandleAsync(List__PLURAL__Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                return await db.__PLURAL__.AsNoTracking().OrderBy(x => x.Id).ToListAsync(cancellationToken);
+            }
+        }
+
+        [Route("__ROUTE__")]
+        public sealed class __PLURAL__Page(IDispatcher dispatcher, Navigator navigator) : Component
+        {
+            private IReadOnlyList<__ENTITY__> _items = [];
+            private bool _loaded;
+
+            protected override Component? Head => Title()["__PLURAL__"];
+
+            protected override async Task OnMountAsync() => await LoadAsync();
+
+            private async Task LoadAsync()
+            {
+                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(), CancellationToken);
+                _loaded = true;
+            }
+
+            protected override Component? Render() =>
+            [
+                Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center), Margin.Bottom(3)))[
+                    H1(Class: "h3 mb-0")["__PLURAL__"],
+                    BsButton(Color: BsColor.Primary, OnClick: () => navigator.NavigateTo(Routes.Create__ENTITY__()))[
+                        BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New __ENTITY__"
+                    ]
+                ],
+                !_loaded
+                    ? Div(Class: Bs.Join(Txt.Muted))["Loading…"]
+                    : _items.Count == 0
+                        ? Div(Class: "alert alert-info")["No __PLURAL__ yet."]
+                        : BsTable(Striped: true, Hover: true, Responsive: true)[
+                            Thead()[
+                                Tr()[
+                                    Th()["#"],
+        __HEADERS__
+                                    Th()[""]
+                                ]
+                            ],
+                            Tbody()[
+                                _items.Select(x => Tr(Key: x.Id)[
+                                    Td()[$"{x.Id}"],
+        __CELLS__
+                                    Td(Class: Bs.Join(Txt.End(), Txt.Nowrap))[
+                                        BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => navigator.NavigateTo(Routes.Update__ENTITY__(x.Id)))[BsIcon(Name: BsIconName.Pencil)],
+                                        Delete__ENTITY__(Id: x.Id, OnDeleted: LoadAsync)
+                                    ]
+                                ])
+                            ]
+                        ]
+            ];
+        }
+
+        """;
+
+    private const string BsDeleteTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+
+        namespace __NS__;
+
+        public sealed record Delete__ENTITY__Command(__IDTYPE__ Id) : ICommand;
+
+        public sealed class Delete__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Delete__ENTITY__Command>
+        {
+            public async Task HandleAsync(Delete__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                await db.__PLURAL__.Where(x => x.Id == command.Id).ExecuteDeleteAsync(cancellationToken);
+            }
+        }
+
+        public sealed class Delete__ENTITY__(IDispatcher dispatcher) : Component
+        {
+            public __IDTYPE__ Id { get; set; }
+
+            public Func<Task>? OnDeleted { get; set; }
+
+            private async Task DeleteAsync()
+            {
+                await dispatcher.DispatchAsync(new Delete__ENTITY__Command(Id), CancellationToken);
+                if (OnDeleted is not null)
+                {
+                    await OnDeleted();
+                }
+            }
+
+            protected override Component? Render() =>
+                BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClickAsync: DeleteAsync)[BsIcon(Name: BsIconName.Trash)];
+        }
+
+        """;
+
+    private const string BsCreateTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Rask.Core.Routing;
+
+        namespace __NS__;
+
+        public sealed record Create__ENTITY__Command(__ENTITY__Request Request) : ICommand<__IDTYPE__>;
+
+        public sealed class Create__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Create__ENTITY__Command, __IDTYPE__>
+        {
+            public async Task<__IDTYPE__> HandleAsync(Create__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                var entity = __ENTITY__.Create(__CREATEARGS__);
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                db.__PLURAL__.Add(entity);
+                await db.SaveChangesAsync(cancellationToken);
+                return entity.Id;
+            }
+        }
+
+        [Route("__ROUTE__/new")]
+        public sealed class Create__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
+        {
+            private readonly __ENTITY__Request _form = new();
+
+            protected override Component? Head => Title()["New __ENTITY__"];
+
+            private async Task SubmitAsync(__ENTITY__Request form)
+            {
+                await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
+                navigator.NavigateTo(Routes.__PLURAL__Page());
+            }
+
+            protected override Component? Render() =>
+                BsCard(Class: Bs.Join(Shadow.Sm, Border.None, "mx-auto"))[
+                    BsCardBody()[
+                        H1(Class: "h4 mb-3")["New __ENTITY__"],
+                        Form(_form, OnValidSubmitAsync: SubmitAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
+        __VALIDATOR____FORMFIELDS__
+                            Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
+                                BsButton(Color: BsColor.Secondary, Outline: true, OnClick: () => navigator.NavigateTo(Routes.__PLURAL__Page()))["Cancel"],
+                                BsButton(Type: "submit", Color: BsColor.Primary)["Save"]
+                            ]
+                        ]
+                    ]
+                ];
+        }
+
+        """;
+
+    private const string BsUpdateTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Rask.Core.Routing;
+
+        namespace __NS__;
+
+        public sealed record Get__ENTITY__Query(__IDTYPE__ Id) : IQuery<__ENTITY__?>;
+
+        public sealed class Get__ENTITY__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : IQueryHandler<Get__ENTITY__Query, __ENTITY__?>
+        {
+            public async Task<__ENTITY__?> HandleAsync(Get__ENTITY__Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                return await db.__PLURAL__.AsNoTracking().FirstOrDefaultAsync(x => x.Id == query.Id, cancellationToken);
+            }
+        }
+
+        public sealed record Update__ENTITY__Command(__IDTYPE__ Id, __ENTITY__Request Request) : ICommand;
+
+        public sealed class Update__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Update__ENTITY__Command>
+        {
+            public async Task HandleAsync(Update__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var entity = await db.__PLURAL__.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
+                if (entity is null)
+                {
+                    return;
+                }
+
+                entity.Update(__CREATEARGS__);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        [Route("__ROUTE__/{id:__IDCONSTRAINT__}/edit")]
+        public sealed class Update__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
+        {
+            private readonly __ENTITY__Request _form = new();
+            private bool _loaded;
+            private bool _found;
+
+            [RouteParam] public __IDTYPE__ Id { get; set; }
+
+            protected override Component? Head => Title()["Edit __ENTITY__"];
+
+            protected override async Task OnPropsChangedAsync()
+            {
+                _loaded = false;
+                var entity = await dispatcher.DispatchAsync(new Get__ENTITY__Query(Id), CancellationToken);
+                _found = entity is not null;
+                if (entity is not null)
+                {
+        __COPYTOFORM__
+                }
+
+                _loaded = true;
+            }
+
+            private async Task SubmitAsync(__ENTITY__Request form)
+            {
+                await dispatcher.DispatchAsync(new Update__ENTITY__Command(Id, form), CancellationToken);
+                navigator.NavigateTo(Routes.__PLURAL__Page());
+            }
+
+            protected override Component? Render()
+            {
+                if (!_loaded)
+                {
+                    return Div(Class: Bs.Join(Txt.Muted))["Loading…"];
                 }
 
                 if (!_found)
@@ -656,19 +931,187 @@ internal static class FeatureGenerator
                     return Div(Class: "alert alert-warning")["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
                 }
 
-                return Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
-                    Div(Class: "card-body")[
+                return BsCard(Class: Bs.Join(Shadow.Sm, Border.None, "mx-auto"))[
+                    BsCardBody()[
                         H1(Class: "h4 mb-3")["Edit __ENTITY__"],
-                        Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
+                        Form(_form, OnValidSubmitAsync: SubmitAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
         __VALIDATOR____FORMFIELDS__
-                            Div(Class: "d-flex justify-content-end gap-2 pt-2")[
-                                NavLink(Routes.__PLURAL__Page(), Class: "btn btn-outline-secondary")["Cancel"],
-                                Button("submit", Class: "btn btn-primary")["Save changes"]
+                            Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
+                                BsButton(Color: BsColor.Secondary, Outline: true, OnClick: () => navigator.NavigateTo(Routes.__PLURAL__Page()))["Cancel"],
+                                BsButton(Type: "submit", Color: BsColor.Primary)["Save changes"]
                             ]
                         ]
                     ]
                 ];
             }
+        }
+
+        """;
+
+    // --modal: the list page holds the whole slice (list/get/create/update CQRS) and edits in a BsModal.
+    private const string BsModalListTemplate =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Rask.Core.Routing;
+
+        namespace __NS__;
+
+        public sealed record List__PLURAL__Query : IQuery<IReadOnlyList<__ENTITY__>>;
+
+        public sealed class List__PLURAL__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : IQueryHandler<List__PLURAL__Query, IReadOnlyList<__ENTITY__>>
+        {
+            public async Task<IReadOnlyList<__ENTITY__>> HandleAsync(List__PLURAL__Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                return await db.__PLURAL__.AsNoTracking().OrderBy(x => x.Id).ToListAsync(cancellationToken);
+            }
+        }
+
+        public sealed record Get__ENTITY__Query(__IDTYPE__ Id) : IQuery<__ENTITY__?>;
+
+        public sealed class Get__ENTITY__QueryHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : IQueryHandler<Get__ENTITY__Query, __ENTITY__?>
+        {
+            public async Task<__ENTITY__?> HandleAsync(Get__ENTITY__Query query, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                return await db.__PLURAL__.AsNoTracking().FirstOrDefaultAsync(x => x.Id == query.Id, cancellationToken);
+            }
+        }
+
+        public sealed record Create__ENTITY__Command(__ENTITY__Request Request) : ICommand<__IDTYPE__>;
+
+        public sealed class Create__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Create__ENTITY__Command, __IDTYPE__>
+        {
+            public async Task<__IDTYPE__> HandleAsync(Create__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                var entity = __ENTITY__.Create(__CREATEARGS__);
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                db.__PLURAL__.Add(entity);
+                await db.SaveChangesAsync(cancellationToken);
+                return entity.Id;
+            }
+        }
+
+        public sealed record Update__ENTITY__Command(__IDTYPE__ Id, __ENTITY__Request Request) : ICommand;
+
+        public sealed class Update__ENTITY__CommandHandler(IDbContextFactory<__CONTEXT__> dbContextFactory)
+            : ICommandHandler<Update__ENTITY__Command>
+        {
+            public async Task HandleAsync(Update__ENTITY__Command command, CancellationToken cancellationToken)
+            {
+                await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var entity = await db.__PLURAL__.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
+                if (entity is null)
+                {
+                    return;
+                }
+
+                entity.Update(__CREATEARGS__);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        [Route("__ROUTE__")]
+        public sealed class __PLURAL__Page(IDispatcher dispatcher) : Component
+        {
+            private IReadOnlyList<__ENTITY__> _items = [];
+            private bool _loaded;
+            private __ENTITY__Request _form = new();
+            private bool _modalOpen;
+            private __IDTYPE__? _editingId;
+
+            protected override Component? Head => Title()["__PLURAL__"];
+
+            protected override async Task OnMountAsync() => await LoadAsync();
+
+            private async Task LoadAsync()
+            {
+                _items = await dispatcher.DispatchAsync(new List__PLURAL__Query(), CancellationToken);
+                _loaded = true;
+            }
+
+            private void OpenCreate()
+            {
+                _form = new __ENTITY__Request();
+                _editingId = null;
+                _modalOpen = true;
+            }
+
+            private async Task OpenEditAsync(__IDTYPE__ id)
+            {
+                var entity = await dispatcher.DispatchAsync(new Get__ENTITY__Query(id), CancellationToken);
+                if (entity is null)
+                {
+                    return;
+                }
+
+                _form = new __ENTITY__Request();
+        __COPYTOFORM__
+                _editingId = id;
+                _modalOpen = true;
+            }
+
+            private void CloseModal() => _modalOpen = false;
+
+            private async Task SaveAsync(__ENTITY__Request form)
+            {
+                if (_editingId is null)
+                {
+                    await dispatcher.DispatchAsync(new Create__ENTITY__Command(form), CancellationToken);
+                }
+                else
+                {
+                    await dispatcher.DispatchAsync(new Update__ENTITY__Command(_editingId.Value, form), CancellationToken);
+                }
+
+                _modalOpen = false;
+                await LoadAsync();
+            }
+
+            protected override Component? Render() =>
+            [
+                Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center), Margin.Bottom(3)))[
+                    H1(Class: "h3 mb-0")["__PLURAL__"],
+                    BsButton(Color: BsColor.Primary, OnClick: OpenCreate)[
+                        BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New __ENTITY__"
+                    ]
+                ],
+                !_loaded
+                    ? Div(Class: Bs.Join(Txt.Muted))["Loading…"]
+                    : _items.Count == 0
+                        ? Div(Class: "alert alert-info")["No __PLURAL__ yet."]
+                        : BsTable(Striped: true, Hover: true, Responsive: true)[
+                            Thead()[
+                                Tr()[
+                                    Th()["#"],
+        __HEADERS__
+                                    Th()[""]
+                                ]
+                            ],
+                            Tbody()[
+                                _items.Select(x => Tr(Key: x.Id)[
+                                    Td()[$"{x.Id}"],
+        __CELLS__
+                                    Td(Class: Bs.Join(Txt.End(), Txt.Nowrap))[
+                                        BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: () => OpenEditAsync(x.Id))[BsIcon(Name: BsIconName.Pencil)],
+                                        Delete__ENTITY__(Id: x.Id, OnDeleted: LoadAsync)
+                                    ]
+                                ])
+                            ]
+                        ],
+                BsModal(Open: _modalOpen, Title: _editingId is null ? "New __ENTITY__" : "Edit __ENTITY__", Centered: true, OnClose: CloseModal)[
+                    Form(_form, OnValidSubmitAsync: SaveAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
+        __VALIDATOR____FORMFIELDS__
+                        Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
+                            BsButton(Color: BsColor.Secondary, Outline: true, OnClick: CloseModal)["Cancel"],
+                            BsButton(Type: "submit", Color: BsColor.Primary)["Save"]
+                        ]
+                    ]
+                ]
+            ];
         }
 
         """;
