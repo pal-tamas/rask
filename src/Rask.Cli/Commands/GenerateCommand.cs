@@ -31,7 +31,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     public override string Summary => "Scaffold a page, component, or CRUD feature into the current project.";
 
     public override string Usage =>
-        "rask generate <page|component|feature> <Name> [--fields \"Name:type,...\"] [--id guid|int|long] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
+        "rask generate <page|component|feature> <Name> [<field:type> ...] [--id guid|int|long] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -113,6 +113,14 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return 1;
         }
 
+        // Positional field specs (Name:type) are how 'generate feature' takes its fields; a page/component
+        // has no fields, so extra positionals there are a mistake, not silently ignored.
+        if (kind != "feature" && parsed.Positionals.Count > 1)
+        {
+            Console.Error.WriteLine($"Unexpected argument '{parsed.Positionals[1]}'. Positional field specs (Name:type) only apply to 'generate feature'.");
+            return 1;
+        }
+
         foreach (var (option, value) in new[] { ("context", parsed.Option("context")), ("plural", parsed.Option("plural")) })
         {
             if (value is not null && !Identifiers.IsValidTypeName(value))
@@ -182,11 +190,23 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 return true;
 
             default: // feature
-                var fieldsSpec = parsed.Option("fields");
+                // Fields are positional: `generate feature Product Name:string Price:decimal`. The legacy
+                // `--fields "Name:string,Price:decimal"` form still works, but not both at once.
+                var positionalFields = parsed.Positionals.Skip(1).ToArray();
+                var fieldsOption = parsed.Option("fields");
+                if (positionalFields.Length > 0 && fieldsOption is not null)
+                {
+                    result = null!;
+                    error = "Specify fields positionally (e.g. Name:string Price:decimal) or with --fields, not both.";
+                    return false;
+                }
+
+                // Positional tokens use the same grammar as one --fields entry, so join them and reuse the parser.
+                var fieldsSpec = positionalFields.Length > 0 ? string.Join(",", positionalFields) : fieldsOption;
                 if (string.IsNullOrWhiteSpace(fieldsSpec))
                 {
                     result = null!;
-                    error = "'generate feature' needs --fields, e.g. --fields \"Name:string,Price:decimal\".";
+                    error = "'generate feature' needs fields, e.g. rask generate feature Product Name:string Price:decimal.";
                     return false;
                 }
 
