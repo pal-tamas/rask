@@ -7,6 +7,14 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Flaky `Rask.Outbox` test: `The_processor_drains_the_outbox_and_publishes_events`.** It waited for the
+  in-process handler to run and then asserted on the *persisted* `ProcessedAt`, but the drain publishes the
+  whole batch first and only writes `ProcessedAt` in a single end-of-batch `SaveChangesAsync` — so the
+  assertion raced that write and lost whenever the disk was busy. It now waits on `ProcessedAt` itself (which
+  implies the publish already happened). Test-only: the processor's ordering is the documented
+  at-least-once behaviour and is unchanged.
+
 ### Changed
 - **`rask generate feature` takes its fields positionally.** Write
   `rask generate feature Product Name:string Price:decimal` instead of
