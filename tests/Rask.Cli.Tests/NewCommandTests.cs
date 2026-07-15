@@ -57,6 +57,22 @@ public sealed class NewCommandTests
     }
 
     [Fact]
+    public async Task Wasm_template_is_generated_directly_without_dotnet_new()
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm", "--pwa"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(console.ErrorText);
+        Assert.True(fs.FileExists("/proj/Spa/Spa.csproj"));
+        Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html"));
+        Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg")); // --pwa
+        Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
+    }
+
+    [Fact]
     public async Task Server_generation_refuses_to_overwrite_an_existing_project()
     {
         var (console, fs, runner, command) = Build();
@@ -75,11 +91,11 @@ public sealed class NewCommandTests
         var (console, _, runner, command) = Build();
         runner.CaptureResult = new ProcessResult(0, "These templates matched: rask-server, rask-wasm…", string.Empty);
 
-        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MobileApp", "--template", "native"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.DoesNotContain(runner.Invocations, i => !i.Captured && i.Arguments.Contains("install"));
-        Assert.Equal(["new", "rask-wasm", "--name", "Spa"], runner.LastRun!.Arguments);
+        Assert.Equal(["new", "rask-native", "--name", "MobileApp"], runner.LastRun!.Arguments);
         Assert.Empty(console.ErrorText);
     }
 
@@ -89,12 +105,12 @@ public sealed class NewCommandTests
         var (_, _, runner, command) = Build();
         runner.CaptureResult = new ProcessResult(0, "No templates installed.", string.Empty);
 
-        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MobileApp", "--template", "native"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var runs = runner.Invocations.Where(i => !i.Captured).ToArray();
         Assert.Equal(["new", "install", "Rask.Templates"], runs[0].Arguments);
-        Assert.Equal(["new", "rask-wasm", "--name", "Spa"], runs[1].Arguments);
+        Assert.Equal(["new", "rask-native", "--name", "MobileApp"], runs[1].Arguments);
     }
 
     [Fact]
