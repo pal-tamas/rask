@@ -23,6 +23,7 @@ internal static class FeatureGenerator
         bool useBs,
         bool useModal,
         bool useSoftDelete,
+        bool useConcurrency,
         bool useTests,
         string? contextOverride,
         string? pluralOverride,
@@ -44,7 +45,7 @@ internal static class FeatureGenerator
             ("__ROUTE__", route), ("__IDTYPE__", idType), ("__IDCONSTRAINT__", idConstraint),
             ("__CREATEARGS__", RequestArgs(fields, "command.Request")),
             ("__HEADERS__", TableHeaders(fields)), ("__CELLS__", TableCells(fields, useValueObjects)),
-            ("__FORMFIELDS__", FormFields(entityName, fields, useValueObjects, useBs)), ("__COPYTOFORM__", CopyToForm(fields, useValueObjects)),
+            ("__FORMFIELDS__", FormFields(entityName, fields, useValueObjects, useBs, useConcurrency)), ("__COPYTOFORM__", CopyToForm(fields, useValueObjects, useConcurrency)),
             ("__CONFIGPROPS__", ConfigProperties(entityName, fields, useValueObjects)),
             ("__VALIDATOR__", FormValidator(entityName, validation)),
             ("__DELETEBODY__", DeleteHandlerBody(plural)),
@@ -55,13 +56,15 @@ internal static class FeatureGenerator
             ("__LISTMETHODS__", ListToggleMethod(useSoftDelete)),
             ("__TOGGLEBUTTON__", ToggleButton(useBs, useSoftDelete)),
             ("__ROWACTIONS__", RowActions(entityName, useBs, useModal, useSoftDelete)),
+            ("__VERSIONORIGINAL__", useConcurrency ? "db.Entry(entity).Property(x => x.Version).OriginalValue = command.Request.Version;\n                " : ""),
+            ("__CONCURRENCYCATCH__", ConcurrencyCatch(useConcurrency)),
         };
 
         var listTemplate = useModal ? BsModalListTemplate : useBs ? BsListPageTemplate : ListPageTemplate;
         var files = new List<ScaffoldFile>
         {
-            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete)),
-            new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields, validation)),
+            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete, useConcurrency)),
+            new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields, validation, useConcurrency)),
             new(Path.Combine(targetDirectory, entityName + "Configuration.cs"), Apply(ConfigurationTemplate, tokens)),
             new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(listTemplate, tokens)),
             new(Path.Combine(targetDirectory, "Delete" + entityName + ".cs"), Apply(useBs ? BsDeleteTemplate : DeleteTemplate, tokens)),
@@ -256,17 +259,23 @@ internal static class FeatureGenerator
     private static string EntityPropertyType(string entity, FieldSpec f, bool useValueObjects) =>
         IsValueObject(f, useValueObjects) ? ValueObjectName(entity, f) : f.PropertyType;
 
-    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects, bool useSoftDelete)
+    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects, bool useSoftDelete, bool useConcurrency)
     {
         var sb = new StringBuilder();
         sb.Append("namespace ").Append(ns).Append(";\n\n");
 
         // Every aggregate inherits AggregateRoot<TId> (Id + CreatedAt/UpdatedAt audit stamps + a
-        // domain-events buffer, from Rask.Data). --soft-delete opts into ISoftDeletable (adds DeletedAt).
+        // domain-events buffer, from Rask.Data). --soft-delete opts into ISoftDeletable (adds DeletedAt);
+        // --concurrency opts into IVersioned (adds an optimistic-concurrency Version token).
         var bases = "AggregateRoot<" + idType + ">";
         if (useSoftDelete)
         {
             bases += ", ISoftDeletable";
+        }
+
+        if (useConcurrency)
+        {
+            bases += ", IVersioned";
         }
 
         sb.Append("public sealed class ").Append(entity).Append(" : ").Append(bases).Append("\n{\n");
@@ -287,6 +296,13 @@ internal static class FeatureGenerator
         {
             sb.Append("\n    public DateTime? DeletedAt { get; private set; }\n");
             sb.Append("\n    public void Restore() => DeletedAt = null;\n");
+        }
+
+        if (useConcurrency)
+        {
+            // The optimistic-concurrency token; ApplyRaskConventions marks it IsConcurrencyToken and the
+            // AuditingInterceptor bumps it on every update.
+            sb.Append("\n    public int Version { get; private set; }\n");
         }
 
         foreach (var field in fields)
@@ -326,7 +342,7 @@ internal static class FeatureGenerator
         ]);
     }
 
-    private static string RenderRequest(string ns, string entity, IReadOnlyList<FieldSpec> fields, string validation)
+    private static string RenderRequest(string ns, string entity, IReadOnlyList<FieldSpec> fields, string validation, bool useConcurrency)
     {
         // In --validation dataannotations mode the DataAnnotationsValidator reads attributes off this
         // request, so emit them here. Other modes validate elsewhere (value objects / a fluent validator).
@@ -366,6 +382,13 @@ internal static class FeatureGenerator
 
             sb.Append('\n');
             first = false;
+        }
+
+        if (useConcurrency)
+        {
+            // The optimistic-concurrency token round-trips through the edit form (a hidden field) so the
+            // Update handler can detect a change made since the form was loaded.
+            sb.Append("\n    public int Version { get; set; }\n");
         }
 
         sb.Append("}\n");
@@ -505,8 +528,27 @@ internal static class FeatureGenerator
             return $"                            Td()[{access}],";
         }));
 
-    private static string CopyToForm(IReadOnlyList<FieldSpec> fields, bool useValueObjects) =>
-        string.Join("\n", fields.Select(f => $"                _form.{f.Name} = entity.{f.Name}{(IsValueObject(f, useValueObjects) ? ".Value" : "")};"));
+    private static string CopyToForm(IReadOnlyList<FieldSpec> fields, bool useValueObjects, bool useConcurrency)
+    {
+        var lines = fields.Select(f => $"                _form.{f.Name} = entity.{f.Name}{(IsValueObject(f, useValueObjects) ? ".Value" : "")};").ToList();
+        if (useConcurrency)
+        {
+            // Carry the loaded Version so the Update handler can use it as the concurrency original value.
+            lines.Add("                _form.Version = entity.Version;");
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    // The catch clause that turns a concurrency conflict into a friendly inline message on the edit page,
+    // sitting before the generic catch. Empty without --concurrency.
+    private static string ConcurrencyCatch(bool useConcurrency) => useConcurrency
+        ? "catch (DbUpdateConcurrencyException)\n"
+            + "                {\n"
+            + "                    _error = \"This record changed since you opened it — reload and reapply your edits.\";\n"
+            + "                }\n"
+            + "                "
+        : "";
 
     // The EF Core mapping per string column: a value object maps through its converter; a primitive
     // string gets IsRequired()/HasMaxLength(). Other types need no configuration.
@@ -525,9 +567,16 @@ internal static class FeatureGenerator
             return $"        entity.Property(x => x.{f.Name}){required}.HasMaxLength({len});";
         }));
 
-    private static string FormFields(string entity, IReadOnlyList<FieldSpec> fields, bool useValueObjects, bool useBs)
+    private static string FormFields(string entity, IReadOnlyList<FieldSpec> fields, bool useValueObjects, bool useBs, bool useConcurrency)
     {
         var sb = new StringBuilder();
+        if (useConcurrency)
+        {
+            // A hidden input round-trips the optimistic-concurrency token through the form (create submits 0,
+            // which the create handler ignores; edit submits the loaded value).
+            sb.Append("                    Input(() => _form.Version, Type: InputType.Hidden),\n");
+        }
+
         foreach (var field in fields)
         {
             var id = field.Name.ToLowerInvariant();
@@ -1039,7 +1088,7 @@ internal static class FeatureGenerator
                     return;
                 }
 
-                entity.Update(__CREATEARGS__);
+                __VERSIONORIGINAL__entity.Update(__CREATEARGS__);
                 await db.SaveChangesAsync(cancellationToken);
             }
         }
@@ -1076,7 +1125,7 @@ internal static class FeatureGenerator
                     await dispatcher.DispatchAsync(new Update__ENTITY__Command(Id, form), CancellationToken);
                     navigator.NavigateTo(Routes.__PLURAL__Page());
                 }
-                catch (Exception)
+                __CONCURRENCYCATCH__catch (Exception)
                 {
                     _error = "Something went wrong — please try again.";
                 }
@@ -1310,7 +1359,7 @@ internal static class FeatureGenerator
                     return;
                 }
 
-                entity.Update(__CREATEARGS__);
+                __VERSIONORIGINAL__entity.Update(__CREATEARGS__);
                 await db.SaveChangesAsync(cancellationToken);
             }
         }
@@ -1347,7 +1396,7 @@ internal static class FeatureGenerator
                     await dispatcher.DispatchAsync(new Update__ENTITY__Command(Id, form), CancellationToken);
                     navigator.NavigateTo(Routes.__PLURAL__Page());
                 }
-                catch (Exception)
+                __CONCURRENCYCATCH__catch (Exception)
                 {
                     _error = "Something went wrong — please try again.";
                 }
@@ -1434,7 +1483,7 @@ internal static class FeatureGenerator
                     return;
                 }
 
-                entity.Update(__CREATEARGS__);
+                __VERSIONORIGINAL__entity.Update(__CREATEARGS__);
                 await db.SaveChangesAsync(cancellationToken);
             }
         }
@@ -1500,7 +1549,7 @@ internal static class FeatureGenerator
                     _modalOpen = false;
                     await LoadAsync();
                 }
-                catch (Exception)
+                __CONCURRENCYCATCH__catch (Exception)
                 {
                     _error = "Something went wrong — please try again.";
                 }

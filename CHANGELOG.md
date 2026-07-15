@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask generate feature --concurrency` adds optimistic-concurrency protection.** The entity implements
+  `IVersioned` (an `int Version` token that `ApplyRaskConventions` marks as the EF concurrency token and
+  the auditing interceptor bumps on every update). The edit form round-trips the original `Version` through
+  a hidden field, the update handler applies it as the tracked original value, and a resulting
+  `DbUpdateConcurrencyException` is **caught and shown as an inline "this record changed — reload" message**
+  rather than a raw error page. Composes with `--soft-delete`/`--bs`/`--modal`.
 - **`rask generate feature` entities inherit `Rask.Data`'s `AggregateRoot<TId>`, and `--soft-delete` is
   new.** Every generated entity now inherits the base (Id + audit stamps + a domain-events buffer), the
   generated `DbContext` calls `modelBuilder.ApplyRaskConventions()`, and the delete handler always
