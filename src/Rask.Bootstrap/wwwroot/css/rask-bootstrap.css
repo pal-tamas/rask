@@ -2,6 +2,131 @@
    the bundled Bootstrap by BootstrapStyles(). Keep this minimal: only fixes that a consumer would
    otherwise have to re-add in every app. */
 
+/* ===========================================================================================
+   Brand theming — make --bs-primary actually mean it.
+
+   Bootstrap 5.3 themes MOST of a component through CSS variables (.pagination derives its colours
+   from var(--bs-link-color), var(--bs-body-bg), …) but bakes the literal primary hex #0d6efd into
+   the one part that matters most: the active/checked/selected state. Two sweeps of the bundled
+   bootstrap.min.css find it in two forms:
+
+     * custom properties — .btn-primary, .btn-outline-primary, .pagination, .list-group, .progress,
+       .dropdown-menu(-dark), .nav-pills, .accordion, .btn-close;
+     * plain declarations — .form-check-input:checked, and the focus ring on every form control.
+
+   So an app that sets --bs-primary gets a brand-coloured surface with Bootstrap-blue active pages,
+   blue checked checkboxes, blue progress bars and blue focus rings. The only workaround was to
+   re-declare each component's variables by hand, in every app, with literal hexes — which is what
+   the showcase used to do for buttons only, leaving everything else blue.
+
+   Re-point them at the runtime var instead, so theming --bs-primary is enough. This is the same fix
+   .bs-cal-cell.active and .bs-time-item.active below already carry for the dropdown's baked-hex
+   active blue; it is layered after Bootstrap and matches its specificity, so it wins.
+
+   Shades/tints follow Bootstrap's own ladder (hover = shade 15%, active = shade 20%, active border
+   = 25%, focus border = tint 50%) via color-mix, so they track any --bs-primary. Override any of
+   these four vars to hand-pick a shade. --bs-primary-rgb must be set alongside --bs-primary for the
+   focus rings (Bootstrap's own convention).
+   =========================================================================================== */
+:root {
+  --rask-primary-hover: color-mix(in srgb, var(--bs-primary) 85%, #000);
+  --rask-primary-active: color-mix(in srgb, var(--bs-primary) 80%, #000);
+  --rask-primary-active-border: color-mix(in srgb, var(--bs-primary) 75%, #000);
+  --rask-primary-focus-border: color-mix(in srgb, var(--bs-primary) 50%, #fff);
+  --rask-primary-focus-ring: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: var(--rask-primary-hover);
+  --bs-btn-hover-border-color: var(--rask-primary-active);
+  --bs-btn-active-bg: var(--rask-primary-active);
+  --bs-btn-active-border-color: var(--rask-primary-active-border);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+  --bs-btn-disabled-bg: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: var(--bs-primary);
+  --bs-btn-hover-border-color: var(--bs-primary);
+  --bs-btn-active-bg: var(--bs-primary);
+  --bs-btn-active-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+  --bs-btn-disabled-color: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+}
+
+/* The active page — the one everything else in .pagination already themed around. */
+.pagination {
+  --bs-pagination-active-bg: var(--bs-primary);
+  --bs-pagination-active-border-color: var(--bs-primary);
+  --bs-pagination-focus-box-shadow: var(--rask-primary-focus-ring);
+}
+
+.list-group {
+  --bs-list-group-active-bg: var(--bs-primary);
+  --bs-list-group-active-border-color: var(--bs-primary);
+}
+
+.progress,
+.progress-stacked {
+  --bs-progress-bar-bg: var(--bs-primary);
+}
+
+.dropdown-menu {
+  --bs-dropdown-link-active-bg: var(--bs-primary);
+}
+
+.nav-pills {
+  --bs-nav-pills-link-active-bg: var(--bs-primary);
+}
+
+.accordion {
+  --bs-accordion-btn-focus-box-shadow: var(--rask-primary-focus-ring);
+}
+
+.btn-close {
+  --bs-btn-close-focus-shadow: var(--rask-primary-focus-ring);
+}
+
+/* Form controls bake the hex as PLAIN declarations rather than variables, so unlike everything
+   above they cannot be re-pointed by setting a var — they need real rule overrides at matching
+   specificity. This is the set that shows up as a blue checkbox in a purple app (including
+   BsDataGrid's selection column) and a blue focus ring on every input. */
+.form-check-input:checked,
+.form-check-input[type="checkbox"]:indeterminate {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--rask-primary-focus-border);
+  box-shadow: var(--rask-primary-focus-ring);
+}
+
+.form-range::-webkit-slider-thumb {
+  background-color: var(--bs-primary);
+}
+.form-range::-moz-range-thumb {
+  background-color: var(--bs-primary);
+}
+.form-range:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 1px #fff, var(--rask-primary-focus-ring);
+}
+.form-range:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 1px #fff, var(--rask-primary-focus-ring);
+}
+
+.nav-link:focus-visible {
+  box-shadow: var(--rask-primary-focus-ring);
+}
+
 /* Dropdown menu alignment without Popper. Bootstrap 5.3 gates the .dropdown-menu-end / -start
    alignment on a [data-bs-popper] attribute that only Popper's JS sets, so on a Rask (Popper-less)
    dropdown those classes are inert — BsDropdown(AlignEnd: true) has no effect and a menu anchored to a

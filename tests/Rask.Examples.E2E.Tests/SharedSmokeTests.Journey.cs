@@ -583,6 +583,18 @@ public abstract partial class SharedSmokeTests
         Assert.Empty(page2.Intersect(page1));
         Assert.Equal(footer, await grid.Locator("tfoot td").Last.InnerTextAsync());
 
+        // The active page is the app's brand primary, not Bootstrap's blue. Bootstrap derives every OTHER
+        // pagination colour from a CSS variable but bakes the literal hex #0d6efd into --bs-pagination-
+        // active-bg, so an app that themes --bs-primary used to get a purple surface with a blue active page.
+        // rask-bootstrap.css re-points it at the runtime var; only a real browser resolves that cascade, so
+        // the assertion lives here. The showcase's --bs-primary is #7C3AED.
+        // ToHaveCSS, not a one-shot getComputedStyle: .page-link transitions background-color over .15s, so
+        // reading it the instant the class lands samples the fade (a near-white part-way colour that differs
+        // run to run). This retries until it settles.
+        await Expect(demo.Locator(".pagination li.active .page-link").First)
+            .ToHaveCSSAsync("background-color", "rgb(124, 58, 237)",
+                new LocatorAssertionsToHaveCSSOptions { Timeout = 15_000 });
+
         // Sorting returns to page 1 — otherwise the user lands mid-way through a list they just re-ordered.
         await grid.Locator("th:has-text('Product') button").First.ClickAsync();
         await Expect(demo.Locator(".pagination li:has(button:text-is('1'))")).ToHaveClassAsync(

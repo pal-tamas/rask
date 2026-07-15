@@ -92,6 +92,23 @@ them until tagged releases begin.
   ("Select Espresso Machine") rather than twenty identical "Select row"s, which read as one control repeated.
 
 ### Fixed
+- **`--bs-primary` now actually themes the Bootstrap components.** Bootstrap 5.3 derives most of a component's
+  colours from CSS variables (`.pagination` reads `var(--bs-link-color)`, `var(--bs-body-bg)`, …) but bakes the
+  literal hex `#0d6efd` into the part that matters most — the active/checked/selected state. So an app that set
+  `--bs-primary` got a brand-coloured surface with a **Bootstrap-blue active page**, blue progress bars, blue
+  checked checkboxes (including `BsDataGrid`'s new selection column) and blue focus rings on every input. The
+  only workaround was to re-declare each component's variables by hand, with literal hexes, in every app.
+  Swept the bundled stylesheet and re-pointed all of it at the runtime variable, in two forms: the custom
+  properties on `.btn-primary`, `.btn-outline-primary`, `.pagination`, `.list-group`, `.progress`,
+  `.dropdown-menu`, `.nav-pills`, `.accordion` and `.btn-close`; and the **plain declarations** — which no
+  variable could reach and so needed real rule overrides — on `.form-check-input:checked`, the focus ring of
+  `.form-control`/`.form-select`/`.form-check-input`, `.form-range`'s thumb, and `.nav-link:focus-visible`.
+  Shades and tints follow Bootstrap's own ladder (hover = shade 15%, active = 20%, active border = 25%, focus
+  border = tint 50%) via `color-mix`, so they track any `--bs-primary`; override `--rask-primary-hover`,
+  `--rask-primary-active`, `--rask-primary-active-border` or `--rask-primary-focus-border` to hand-pick one.
+  Set `--bs-primary-rgb` alongside `--bs-primary` for the focus rings, which is Bootstrap's own convention.
+  The showcase samples accordingly **drop their hand-patched `.btn-primary`/`.btn-outline-primary` blocks** —
+  seven copies of the same literal-hex workaround, now unnecessary.
 - **A controlled form control whose `OnChange` captured a local silently stopped re-rendering its consumer.**
   `IFormControl<T>.ControlledChangeHandler` resolved the component to notify with a bare
   `Target as Component`. A handler that captures a local *alongside* `this` — `OnChange: v => Rename(i, v)`

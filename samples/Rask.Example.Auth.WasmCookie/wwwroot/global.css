@@ -12,17 +12,6 @@
     --rask-accent-soft: #f1ebfd;
 }
 
-.btn-primary {
-    --bs-btn-bg: #7C3AED;
-    --bs-btn-border-color: #7C3AED;
-    --bs-btn-hover-bg: #6D28D9;
-    --bs-btn-hover-border-color: #6D28D9;
-    --bs-btn-active-bg: #512BD4;
-    --bs-btn-active-border-color: #512BD4;
-    --bs-btn-disabled-bg: #7C3AED;
-    --bs-btn-disabled-border-color: #7C3AED;
-}
-
 a {
     color: var(--rask-accent);
 }
