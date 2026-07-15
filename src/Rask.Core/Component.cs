@@ -851,9 +851,9 @@ public abstract class Component
     // The clean test mirrors RenderForLive's short-circuit: no prop/state change, no cache bypass, and
     // no ambient-state read. A dirty component falls through so its fresh Render() runs; if it stays
     // eligible afterwards it re-caches, otherwise it reverts to the element path transparently.
-    internal bool TryReplayCleanSubtree(StringBuilder sb, FrameWriter frames)
+    internal bool TryReplayCleanSubtree(StringBuilder sb, FrameWriter frames, LiveRenderContext? liveCtx)
     {
-        var cached = _live?.CachedFrames;
+        var cached = _live?.Cached;
         if (cached is null
             || Live.PropsDirty || Live.StateDirty
             || BypassRenderCache || _readsAmbientState)
@@ -861,10 +861,54 @@ public abstract class Component
             return false;
         }
 
+        // Handler ids are positional and reissued from zero on every root render, so the ids baked into
+        // this span are only the ids a walk would issue now if the counter has arrived back at exactly
+        // the value it held when we captured. It hasn't when anything upstream changed how many handlers
+        // it registers, and replaying then would emit ids that collide with a sibling's. Fall through to
+        // a walk, which reissues correct ids and re-captures under them.
+        //
+        // A miss is not free — we released the Element graph at capture, so the walk re-runs Render() —
+        // but it is exactly what every render costs today, and it only happens when an upstream handler
+        // count actually moves.
+        if (cached.Handlers is { } handlers)
+        {
+            if (liveCtx is null || liveCtx.PeekNextHandlerId != cached.HandlerStartId)
+            {
+                return false;
+            }
+
+            liveCtx.ReplayHandlerRun(cached.HandlerStartId, handlers);
+        }
+
+        // The captured frames carry a baked-in data-rask-key: this component's own Key forwarded onto
+        // its first element, or a keyed ancestor's that our first element adopted. Neither dirties us
+        // when it changes — Key is a reconciliation identity, excluded from the propsChanged fold (see
+        // ComponentFactoryGenerator), and an ancestor's key was never our prop at all — so a clean
+        // component can be sitting on a snapshot whose identity has since gone stale. Replaying it would
+        // emit the wrong key and the diff would match this subtree against the wrong sibling, moving the
+        // wrong DOM. Fall through to a walk instead: it re-emits under the current key and re-caches.
+        //
+        // The expression is the identity a walk would emit right now — our own Key when we have one (the
+        // serializer arms it, overwriting whatever an ancestor forwarded), else the ancestor's key still
+        // pending in the slot. Compared by object rather than by the stringified key: KeyString
+        // allocates for a value key (int, Guid) and this runs per keyed node per render, which is
+        // exactly the per-update allocation this cache exists to avoid. Object equality is conservative
+        // — a Key that changes identity but stringifies the same merely costs a walk — which is the safe
+        // direction to be wrong in.
+        if (!Equals(Key ?? (object?)KeyForwardScope.Peek(), cached.KeyIdentity))
+        {
+            return false;
+        }
+
         // Re-emit the HTML and re-write the full frame stream (with fresh offsets) into the active
         // writer in one pass — the replayed frames are identical to a fresh walk's, so the diff sees
         // no change, and no Element object graph is touched.
-        HtmlSerializer.ReplayLeanFrames(cached.AsSpan(0, Live.CachedFrameCount), sb, frames);
+        HtmlSerializer.ReplayLeanFrames(cached.Frames.AsSpan(0, cached.FrameCount), sb, frames);
+
+        // Leave the forward slot exactly as a walk would have: empty. A walk either armed our own key
+        // and cleared it in its finally, or let our first element consume an ancestor's. Replaying skips
+        // both, so an ancestor's key would otherwise stay armed and leak onto the next sibling element.
+        KeyForwardScope.Clear();
         return true;
     }
 
@@ -877,22 +921,51 @@ public abstract class Component
     //     parent's frames would skip its re-render and show stale content — <paramref name="hadNested" />),
     //   * no event handlers (Rask reissues handler ids positionally each render, so a baked-in id in a
     //     replayed span could collide with a sibling's — deferred to a stable-id follow-up),
-    //   * no Key (reconciliation identity can change without a re-render), no indexer Children, no Head
-    //     contribution (would be dropped on replay), not collecting native chrome, and cache-eligible
-    //     (no bypass / ambient-state read) — everything that would make a frame replay diverge from a walk.
+    //   * no indexer Children, no Head contribution (would be dropped on replay), not collecting native
+    //     chrome, and cache-eligible (no bypass / ambient-state read) — everything that would make a
+    //     frame replay diverge from a walk.
+    //
+    // A Key does NOT disqualify, though it used to. The key baked into the span (this component's own,
+    // or an ancestor's forwarded onto our first element) can change while we stay clean — Key is a
+    // reconciliation identity, excluded from the propsChanged fold (see ComponentFactoryGenerator) — so
+    // rather than refusing to cache keyed subtrees at all, the snapshot records the identity it was
+    // captured under and TryReplayCleanSubtree refuses a replay when it no longer matches.
+    //
+    // The trade is deliberate and measured, and it is NOT a memory win: caching keyed rows costs ~4%
+    // MORE retained memory (a per-row snapshot runs bigger than the small Element graph it releases,
+    // ~+266 B/row at 1,000 rows — this cache pays off in bytes when one component snapshots many nodes,
+    // not when many components each snapshot a few). It buys a cheaper UPDATE, which is what a user
+    // actually feels: the element path re-walks the graph and re-stringifies every Key on every render
+    // (a value key allocates — see Component.KeyString), while a replay does neither. On a 1,000-row
+    // keyed list that is ~13% less allocation and ~15% less time PER UPDATE, i.e. less GC pressure on
+    // every interaction, for a one-off 4% on the retained ceiling. Numbers from the `session-churn`
+    // update-cost pass and `session-footprint` (benchmarks/Rask.Benchmarks).
+    //
+    // <paramref name="forwardedKeyAtCapture" /> is the ambient forwarded key read BEFORE the walk (only
+    // meaningful when this component has no Key of its own; ours would overwrite the slot). A KEYLESS
+    // component's first element adopts an ancestor's forwarded key, baking someone else's identity into
+    // our span — not covered by our own-Key check, and stale-replaying it was a live bug.
+    //
+    // Event handlers no longer disqualify either. They used to, because ids are positional and reissued
+    // from zero every root render (RenderAsLiveRootCore clears the map): a replay skips the walk, so it
+    // would neither re-register its handlers — leaving the id absent from the freshly-cleared map, i.e.
+    // a dead button — nor advance the counter, shifting every later sibling's ids into collisions. So
+    // the snapshot records the handler run instead (<paramref name="handlerStartId" /> is the counter
+    // read BEFORE the walk), and a replay re-registers it and advances the counter by its length,
+    // reproducing exactly what the walk did. TryReplayCleanSubtree refuses when the counter no longer
+    // lines up.
     internal void TryCacheCleanSubtree(
-        FrameWriter frames, int frameStart, bool hadNested, bool collectsNativeChrome)
+        FrameWriter frames, int frameStart, bool hadNested, bool collectsNativeChrome,
+        string? forwardedKeyAtCapture, int handlerStartId, LiveRenderContext? liveCtx)
     {
         var count = frames.Count - frameStart;
         if (hadNested
-            || Key is not null
             || Children is not null
             || BypassRenderCache
             || _readsAmbientState
             || HeadInternal is not null
             || collectsNativeChrome
-            || count <= 0
-            || SpanHasHandler(frames.WrittenSpan.Slice(frameStart, count)))
+            || count <= 0)
         {
             // This component just walked (first render or a dirty re-render) into something we won't
             // cache — a nested component, a handler, nothing, etc. Any PRIOR snapshot (e.g. this
@@ -902,8 +975,7 @@ public abstract class Component
             // RenderForLive this walk) stays intact.
             if (_live is not null)
             {
-                _live.CachedFrames = null;
-                _live.CachedFrameCount = 0;
+                _live.Cached = null;
             }
 
             return;
@@ -914,8 +986,9 @@ public abstract class Component
         // Reuse the existing snapshot array when it still fits, so a component that re-renders every
         // frame (e.g. a stateful counter page) re-captures with ZERO allocation — only a fresh or grown
         // subtree allocates. Without this the per-update allocation win regresses by the snapshot size.
-        var snapshot = _live!.CachedFrames;
-        if (snapshot is null || snapshot.Length < count)
+        var cached = _live!.Cached ??= new CachedSubtree();
+        var snapshot = cached.Frames;
+        if (snapshot.Length < count)
         {
             snapshot = new LeanFrame[count];
         }
@@ -935,30 +1008,21 @@ public abstract class Component
             };
         }
 
-        Live.CachedFrames = snapshot;
-        Live.CachedFrameCount = count;
+        cached.Frames = snapshot;
+        cached.FrameCount = count;
+        // Record the identity this span was captured under so a later replay can prove it is still the
+        // right one.
+        // Same expression as the replay check, but against the forwarded key as it was BEFORE the walk:
+        // by now our first element has consumed it, so the live slot no longer holds it.
+        cached.KeyIdentity = Key ?? (object?)forwardedKeyAtCapture;
+        // Snapshot the handler run this walk registered (empty run → null, so a handler-free subtree
+        // pays nothing and its replay skips the counter check entirely).
+        cached.HandlerStartId = handlerStartId;
+        cached.Handlers = liveCtx?.CaptureHandlerRun(handlerStartId);
         // Drop the Element object graph: a clean re-render now replays the frame span above.
         Live.CachedRenderResult = null;
     }
 
-    // A subtree carries an event handler when any attribute frame is a data-rask-on-* hook. Handler ids
-    // are reissued positionally each render, so a replayed span's baked-in id could collide with a
-    // sibling's — such a subtree keeps the element-walk path rather than being frame-cached.
-    private static bool SpanHasHandler(ReadOnlySpan<RenderFrame> span)
-    {
-        for (var i = 0; i < span.Length; i++)
-        {
-            ref readonly var f = ref span[i];
-            if (f.Kind == RenderFrameKind.Attribute
-                && f.Name is { } n
-                && n.StartsWith("data-rask-on-", StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     internal T GetOrCreateChild<T>(
         Func<IServiceProvider, T> factory,
@@ -1096,7 +1160,7 @@ public abstract class Component
     // Test hooks for the Phase B clean-subtree frame cache: whether this component's rendered
     // subtree was cached as frames, and whether it still retains its Element object graph. A cached
     // component has the first true and the second false (the graph was released).
-    internal bool IsCleanSubtreeCachedForTest => _live?.CachedFrames is not null;
+    internal bool IsCleanSubtreeCachedForTest => _live?.Cached is not null;
     internal bool RetainsElementGraphForTest => _live?.CachedRenderResult is not null;
 
     public Task StateHasChangedAsync()
@@ -1128,8 +1192,7 @@ public abstract class Component
         }
 
         Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
-        var n = Live.NextHandlerId++;
-        var id = n < _smallHandlerIds.Length ? _smallHandlerIds[n] : CreateLargeHandlerId(n);
+        var id = HandlerId(Live.NextHandlerId++);
         Live.Handlers[id] = (owner, handler);
         return id;
     }
@@ -1157,6 +1220,63 @@ public abstract class Component
             ? new string(buf[..(1 + written)])
             : "h" + n;
     }
+
+    // ---- Clean-subtree handler round-trip (root-scoped; see CachedSubtree.Handlers) ----------------
+    //
+    // These exist so a replayed subtree can reproduce the walk's effect on handler state. They are only
+    // ever called on the live-render ROOT (LiveRenderContext holds it), which is where the id counter
+    // and the map live.
+
+    /// <summary>The next handler id this render will issue — the replay's staleness check.</summary>
+    internal int NextHandlerIdInternal => Live.NextHandlerId;
+
+    /// <summary>
+    ///     The (owner, delegate) pairs registered from <paramref name="startId" /> to the current
+    ///     counter, in id order, or <c>null</c> for an empty run. The ids of one subtree's walk are
+    ///     contiguous — a cached subtree contains no nested user component, so nothing interleaves its
+    ///     own registrations — which is what lets the run be described by a start and a length.
+    /// </summary>
+    internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(int startId)
+    {
+        var count = Live.NextHandlerId - startId;
+        if (count <= 0 || Live.Handlers is not { } map)
+        {
+            return null;
+        }
+
+        var run = new (Component, Delegate)[count];
+        for (var i = 0; i < count; i++)
+        {
+            if (!map.TryGetValue(HandlerId(startId + i), out var entry))
+            {
+                // The run isn't what we assumed it was; caching it would risk a dead handler on replay.
+                return null;
+            }
+
+            run[i] = entry;
+        }
+
+        return run;
+    }
+
+    /// <summary>
+    ///     Re-register a captured run under the ids it was captured with and advance the counter past it,
+    ///     leaving the root's handler state exactly as the skipped walk would have.
+    /// </summary>
+    internal void ReplayHandlerRun(int startId, (Component Owner, Delegate Handler)[] run)
+    {
+        var map = Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
+        for (var i = 0; i < run.Length; i++)
+        {
+            map[HandlerId(startId + i)] = run[i];
+        }
+
+        Live.NextHandlerId = startId + run.Length;
+    }
+
+    // The id for counter value n. Shared by issue / capture / replay so all three agree by construction.
+    private static string HandlerId(int n) =>
+        n < _smallHandlerIds.Length ? _smallHandlerIds[n] : CreateLargeHandlerId(n);
 
     internal ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload)
         => TryInvokeHandlerAsync(id, payload, null);
@@ -1847,6 +1967,56 @@ public abstract class Component
         FileListReader.ResolveBackend()?.Release(files);
     }
 
+    /// <summary>
+    ///     Everything a clean-subtree snapshot needs, hung off <see cref="LiveState.Cached" /> so only
+    ///     the components that actually cache pay for it — see the note on that field.
+    ///     <para>
+    ///         Held instead of the Element object graph: on capture the subtree's frames are leaned down
+    ///         into <see cref="Frames" /> and <c>CachedRenderResult</c> is released, so a clean re-render
+    ///         replays from here and never touches an element again. Everything else on this object exists
+    ///         to prove the snapshot is still valid to replay — identity and handler wiring that a walk
+    ///         would have re-established and a replay must reproduce exactly.
+    ///     </para>
+    /// </summary>
+    private sealed class CachedSubtree
+    {
+        /// <summary>
+        ///     The leaned-down frame span. <c>Frames.Length</c> may exceed <see cref="FrameCount" /> — the
+        ///     array is reused across captures so a component that re-renders every frame re-captures with
+        ///     zero allocation. <c>LeanFrame</c> (~24 B) rather than <c>RenderFrame</c> (~40 B): a held
+        ///     snapshot never needs the per-render HTML offsets or the diff-only component ref, both of
+        ///     which replay regenerates.
+        /// </summary>
+        public LeanFrame[] Frames = [];
+
+        public int FrameCount;
+
+        /// <summary>
+        ///     The <c>data-rask-key</c> identity baked into <see cref="Frames" />: the component's own
+        ///     Key, or — when it has none — the ancestor-forwarded key its first element adopted. One
+        ///     slot, because only one can ever reach our elements (an own Key overwrites the forwarded
+        ///     one). Either can change without dirtying the component, so the replay re-checks it.
+        /// </summary>
+        public object? KeyIdentity;
+
+        /// <summary>
+        ///     The subtree's event handlers in the order the walk registered them, or <c>null</c> when it
+        ///     has none. Ids are NOT stored: the walk issues them from a contiguous counter run starting
+        ///     at <see cref="HandlerStartId" />, so id <c>i</c> is recomputable — one less reference per
+        ///     entry. Retaining the delegates is not new retention: the released Element graph held these
+        ///     very instances.
+        /// </summary>
+        public (Component Owner, Delegate Handler)[]? Handlers;
+
+        /// <summary>
+        ///     The root's handler counter as it stood when <see cref="Frames" /> were captured, i.e. the
+        ///     first id this subtree baked in. Handler ids are positional and reissued from zero every
+        ///     root render, so a replay is only sound when the counter has arrived back at this exact
+        ///     value — otherwise the baked ids are not the ones a walk would now issue.
+        /// </summary>
+        public int HandlerStartId;
+    }
+
     // The hoisted state — class so it stays out-of-band from each Component instance.
     // Field grouping mirrors the prior layout for readability of the diff.
     private sealed class LiveState
@@ -1860,15 +2030,12 @@ public abstract class Component
         public CancellationTokenSource? LifetimeCts;
         public Component? CachedRenderResult;
 
-        // Phase B clean-subtree frame cache. When a user component's rendered subtree is pure
-        // elements/text (no nested user components, no event handlers), we retain its RenderFrame
-        // span here and RELEASE CachedRenderResult, so the (large) Element object graph is collectible
-        // — a clean re-render replays these frames (+ EmitFromFrames) instead of re-walking elements.
-        // CachedFrames.Length may exceed CachedFrameCount (the array is a reused snapshot). It holds
-        // LeanFrames (~24 B) rather than full RenderFrames (~40 B) — a held snapshot never needs the
-        // per-render HTML offsets or the diff-only component ref, which replay regenerates.
-        public LeanFrame[]? CachedFrames;
-        public int CachedFrameCount;
+        // Phase B clean-subtree frame cache — see CachedSubtree. ONE reference, not the handful of
+        // fields the snapshot actually needs: LiveState is allocated per node on a mounted page, so
+        // every field here costs ~8 B on every node of every live session (measured: ~56 KB per field
+        // on a 1,000-row page). Hanging the state off a side object moves that cost onto the
+        // components that actually cache, and leaves the rest paying a single null reference.
+        public CachedSubtree? Cached;
         public int ChildPositions;
         public Dictionary<(Type, int), Component>? Children;
         public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;

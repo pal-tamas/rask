@@ -16,7 +16,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 {
     // Pooled across the session lifetime; ResetWrittenCount between frames keeps the rented backing
     // array hot. Non-readonly: TryEmitFrameAsync swaps it with the previous-frame buffer for zero-copy dedup.
-    protected ArrayBufferWriter<byte> _writeBuffer = new(4096);
+    //
+    // Sized on demand rather than pre-sized: this is retained per session, and the first payload grows it
+    // to the page's real size regardless, so a fixed pre-size only ever mattered for pages small enough
+    // not to need it — while costing every concurrent session, including the ones that never send a frame.
+    protected ArrayBufferWriter<byte> _writeBuffer = new();
 
     // The buffer holding the last frame we sent — the double-buffer dedup baseline. TryEmitFrameAsync
     // swaps it with _writeBuffer after each send, so neither the baseline nor the emit copies a byte[].
@@ -202,7 +206,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
         await SendFrameAsync(_writeBuffer.WrittenMemory).ConfigureAwait(false);
 
-        (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>(4096));
+        (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>());
         return true;
     }
 

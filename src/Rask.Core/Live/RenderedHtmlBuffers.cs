@@ -28,10 +28,23 @@ internal sealed class RenderedHtmlBuffers : IDisposable
     private int _curLen;
     private int _prevLen;
 
-    public RenderedHtmlBuffers(int initialCapacity = 8 * 1024)
+    /// <summary>
+    ///     Starts with no buffers at all: the first <see cref="CopyFrom" /> / <see cref="SeedPrevious" />
+    ///     rents each one at the size the page actually needs.
+    ///     <para>
+    ///         These are per-session and live as long as the session does, so pre-renting a fixed size is
+    ///         not free the way a scratch buffer would be — it is paid once per concurrent user. The
+    ///         previous 8 KB-char default rented ~33 KB per session before knowing anything about the page,
+    ///         which was most of the ~56 KB an idle session cost even when its page was 292 bytes. Pages
+    ///         over 8 K chars re-rented anyway, so the pre-rent only ever helped pages small enough not to
+    ///         need it. Renting on first use costs one extra rent for a small page — once, at session
+    ///         start — and nothing at all for a large one.
+    ///     </para>
+    /// </summary>
+    public RenderedHtmlBuffers()
     {
-        _cur = ArrayPool<char>.Shared.Rent(initialCapacity);
-        _prev = ArrayPool<char>.Shared.Rent(initialCapacity);
+        _cur = Array.Empty<char>();
+        _prev = Array.Empty<char>();
     }
 
     /// <summary>True once at least one render has been committed as the baseline.</summary>
@@ -87,8 +100,18 @@ internal sealed class RenderedHtmlBuffers : IDisposable
 
     public void Dispose()
     {
-        ArrayPool<char>.Shared.Return(_cur);
-        ArrayPool<char>.Shared.Return(_prev);
+        // A session disposed before its first render still holds the zero-length sentinels, which must
+        // not be handed to the pool.
+        if (_cur.Length > 0)
+        {
+            ArrayPool<char>.Shared.Return(_cur);
+        }
+
+        if (_prev.Length > 0)
+        {
+            ArrayPool<char>.Shared.Return(_prev);
+        }
+
         _cur = _prev = Array.Empty<char>();
         _curLen = _prevLen = 0;
     }
@@ -100,7 +123,13 @@ internal sealed class RenderedHtmlBuffers : IDisposable
             return;
         }
 
-        ArrayPool<char>.Shared.Return(buffer);
+        // Skip the return on the first grow: the buffer is still the zero-length sentinel the ctor
+        // installed, which never came from the pool.
+        if (buffer.Length > 0)
+        {
+            ArrayPool<char>.Shared.Return(buffer);
+        }
+
         buffer = ArrayPool<char>.Shared.Rent(needed);
     }
 }

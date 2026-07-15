@@ -46,7 +46,7 @@ Applied to both the Server and WASM runtimes.
 | --- | --- | --- |
 | `DiffMode` | `Auto` | Wire payload shape — `Auto` ships a diff when smaller, `DisabledFull` always full HTML, `Forced` always a diff. |
 | `PathBase` | `""` | URL prefix so two Rask apps share one origin (e.g. `/appA`). |
-| `MaxSessions` | `0` (uncapped) | Hard cap on concurrent live sessions; a GET past the cap gets `503` + `Retry-After`. Pairs with the [health check](observability.md#health-checks). |
+| `MaxSessions` | `0` (uncapped) | Hard cap on concurrent live sessions; a GET past the cap gets `503` + `Retry-After`. Pairs with the [health check](observability.md#health-checks). See [sizing it for a memory budget](#sizing-maxsessions-for-a-memory-budget). |
 | `MinifyScopedAssets` | `null` (auto) | Minify the scoped-CSS bundle (strip comments + insignificant whitespace) before it's hashed and served. `null` = **auto**: on outside `Development`, off in `Development` (so hot-reloaded CSS stays readable) — resolved by `UseRask` from `IHostEnvironment`. Set `true`/`false` to force it. Minifying before hashing keeps the digest, immutable URL, and brotli/gzip caches all keyed off the minified bytes. Conservative: only the CSS bundle is minified (JS is served as-is), and only whitespace around `{ } ; ,` is stripped, so combinators and `calc()` are untouched. |
 
 ## Server-host-only options — `RaskServerOptions` (`configureServer`)
@@ -100,6 +100,63 @@ overlay handles the user-facing side automatically — nothing to configure:
 ```csharp
 builder.Services.Configure<RaskUploadOptions>(o => o.MaxFileSize = 10 * 1024 * 1024);
 ```
+
+## Sizing `MaxSessions` for a memory budget
+
+`MaxSessions` defaults to `0` (uncapped), which is only safe when something else bounds who can reach
+the app. Every session pins a component tree, a DI scope, and several buffers, so an uncapped host
+facing untrusted traffic can be pushed into memory exhaustion. To set the cap you need to know what a
+session costs — measure it with the capacity report:
+
+```bash
+dotnet run -c Release --project benchmarks/Rask.Benchmarks -- session-footprint
+```
+
+Measured on the framework's own data-table page (Apple M4, .NET 10, Server GC, 200 sessions per row):
+
+| Page | Page HTML | Unconnected | Connected | Sessions per GiB |
+| --- | ---: | ---: | ---: | ---: |
+| Empty shell | 292 B | 11 KB | 16 KB | ~66,000 |
+| 5-row table | 1 KB | 35 KB | 52 KB | ~20,300 |
+| 200-row grid | 29 KB | 1.01 MB | 1.39 MB | ~735 |
+| 1,000-row grid | 147 KB | 5.3 MB | 7.0 MB | ~146 |
+
+**Page size, not user count, is what moves this** — the same host holds ~66,000 sessions of a trivial
+page or ~146 of a big grid, a ~450× swing. Sessions are cheap until the page isn't. A session retains
+roughly:
+
+- **two rendered-HTML buffers** — the current render plus the last-applied baseline, used for
+  dedup and the head-compare. They're `char` arrays, so a page costs ~**4 bytes of RAM per HTML
+  character** across the pair, and they're rented from a pool that rounds up to a power of two.
+- **two frame buffers** (~40 B per node, when the diff codec is on — it is by default) and **two
+  payload buffers**.
+- **the component tree.** Usually the largest term on a big page. A subtree is compacted — its element
+  graph released in favour of a frame snapshot — unless it contains a nested component, so most rows
+  hold a compact snapshot rather than a graph of objects.
+
+Every one of these is rented at the size the page turns out to need, then grows to a high-water mark
+and is reused, so per-session cost converges. Cost is a function of your largest page, not of uptime.
+
+These are steady-state figures, and steady state is what a session settles into: a soak of 100 sessions
+over 200 updates each holds flat to the byte, and 500 create-and-dispose cycles leave under 100 bytes
+behind.
+
+To pick a number: take the RAM you'll give the process, subtract the app's own baseline, and divide by
+the connected cost of your **largest** page — then leave headroom, because `MaxSessions` also counts
+sessions created by a bare `GET` whose WebSocket never arrived (they hold a slot for
+`UnconnectedSessionGracePeriod`, 10 s), and because a rejected user gets a `503`.
+
+```csharp
+// ~2 GiB of session budget for an app whose heaviest page measures ~1.34 MB connected.
+builder.Services.AddRask(live => live.MaxSessions = 1200);
+```
+
+Two caveats before you trust the table. These are **framework floors** — they exclude the WebSocket
+transport (Kestrel adds ~32 KB of per-connection buffers) and, more importantly, your own scoped
+services: one `DbContext` per session can dwarf everything above. And they're measured on one page
+shape. Run the report against your own budget rather than quoting these numbers, and pair the cap with
+the [live-session health check](observability.md#health-checks) so an orchestrator sheds load before
+the host starts refusing sessions.
 
 ## A note on limits and reverse proxies
 

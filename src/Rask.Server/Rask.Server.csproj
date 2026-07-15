@@ -30,6 +30,13 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
+    <!--
+      The session-footprint / session-churn capacity reports construct real LiveSessions to measure
+      per-session retained memory. LiveSession, LiveSessionStore.Create and RenderInitialRoot are all
+      internal, and measuring through the public HTTP/WebSocket surface would fold Kestrel's own
+      per-connection buffers into the per-session number.
+    -->
+    <InternalsVisibleTo Include="Rask.Benchmarks"/>
   </ItemGroup>
 
   <!--
