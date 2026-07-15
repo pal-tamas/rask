@@ -60,6 +60,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Flag("bs")
             .Flag("modal")
             .Flag("soft-delete")
+            .Flag("concurrency")
             .Flag("tests")
             .Flag("no-restore")
             .Flag("force")
@@ -104,9 +105,9 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             && (parsed.Option("fields") is not null || parsed.Option("context") is not null
                 || parsed.Option("plural") is not null || parsed.Option("id") is not null
                 || parsed.Option("validation") is not null || parsed.HasFlag("bs") || parsed.HasFlag("modal")
-                || parsed.HasFlag("soft-delete") || parsed.HasFlag("tests")))
+                || parsed.HasFlag("soft-delete") || parsed.HasFlag("concurrency") || parsed.HasFlag("tests")))
         {
-            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, --bs, --modal, --soft-delete, and --tests only apply to 'generate feature'.");
+            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, --bs, --modal, --soft-delete, --concurrency, and --tests only apply to 'generate feature'.");
             return 1;
         }
 
@@ -229,7 +230,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 var useModal = parsed.HasFlag("modal");
                 var useBs = useModal || parsed.HasFlag("bs");
 
-                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, useBs, useModal, parsed.HasFlag("soft-delete"), parsed.HasFlag("tests"), parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
+                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, useBs, useModal, parsed.HasFlag("soft-delete"), parsed.HasFlag("concurrency"), parsed.HasFlag("tests"), parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
                 return true;
         }
     }
