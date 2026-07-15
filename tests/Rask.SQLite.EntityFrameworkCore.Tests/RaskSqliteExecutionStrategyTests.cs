@@ -92,6 +92,50 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
         Assert.True(HasBusy(exception), $"expected SQLITE_BUSY in the exception chain, got {exception}");
     }
 
+    [Fact]
+    public async Task A_long_lived_context_still_retries_a_later_contention()
+    {
+        // The strategy starts its clock on the first contention. EF hands one DbContext a single
+        // IExecutionStrategy instance (StateManagerDependencies takes it directly), so a context that lives
+        // longer than Timeout must not inherit the first contention's clock — otherwise its next SaveChanges
+        // gives up without a single retry. A long-lived context is the norm (a scoped context per request
+        // outlives Timeout easily under load), so this is the realistic shape, not a corner case.
+        var options = new DbContextOptionsBuilder<ProbeDbContext>()
+            .UseRaskSqlite(ConnectionString, configureRetry: r => r.Timeout = TimeSpan.FromSeconds(2))
+            .Options;
+
+        await using var context = new ProbeDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+
+        // Each contention must outlast Microsoft.Data.Sqlite's own ~1s blocking retry (CommandTimeout(1)),
+        // or the driver absorbs the wait and the strategy never sees SQLITE_BUSY at all.
+        await ContendedSaveAsync(context, TimeSpan.FromMilliseconds(1500));
+
+        // Idle past Timeout, measured from that first contention.
+        await Task.Delay(TimeSpan.FromMilliseconds(2500));
+
+        // The clock must have reset with this SaveChanges — the lock frees well inside Timeout.
+        await ContendedSaveAsync(context, TimeSpan.FromMilliseconds(1500));
+
+        Assert.Equal(2, await context.Rows.CountAsync());
+    }
+
+    private async Task ContendedSaveAsync(ProbeDbContext context, TimeSpan hold)
+    {
+        await using var holder = new SqliteConnection(ConnectionString);
+        await holder.OpenAsync();
+        var holderTx = holder.BeginImmediate();
+        var release = Task.Run(async () =>
+        {
+            await Task.Delay(hold);
+            holderTx.Commit();
+        });
+
+        context.Rows.Add(new ProbeRow());
+        await context.SaveChangesAsync();
+        await release;
+    }
+
     private static bool HasBusy(Exception exception)
     {
         for (Exception? current = exception; current is not null; current = current.InnerException)

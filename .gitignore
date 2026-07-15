@@ -118,3 +118,6 @@ Rask.Example.Wasm.Host/wwwroot/
 # build (see CopyTaskAssemblyToRaskWasmBuild). Its MVID/timestamp/PDB-hash differ per
 # build environment, so committing it made it perpetually dirty in git.
 src/Rask.Wasm/build/Rask.Wasm.Tasks.dll
+
+# Ad-hoc SQLite load-harness runs (the committed reference lives in Baselines/).
+benchmarks/Rask.Benchmarks.Sqlite/Results/

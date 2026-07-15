@@ -211,6 +211,26 @@ them until tagged releases begin.
   Removed the reusable `e2e.yml` and `native-ios-e2e.yml` workflows and the `native-appium` job.
 
 ### Added
+- **A load harness for the SQLite packages (`benchmarks/Rask.Benchmarks.Sqlite`), and the numbers it
+  produced are now in [`docs/sqlite.md`](docs/sqlite.md#load-test-numbers).** It drives sustained concurrent
+  traffic and reports throughput, tail latency and error rates — which BenchmarkDotNet, measuring a burst's
+  mean, cannot. Four workloads: write contention across all four write paths, read-under-write (with a
+  rollback-journal control arm), realistic ~90/10 web traffic, and a soak. `check` is a regression gate over
+  invariants and same-run ratios rather than absolute milliseconds, which are too noisy to gate on;
+  `scripts/run-sqlite-load-local.sh` runs it locally and nightly runs it best-effort. Headlines: ~99k
+  mixed ops/s at p99 10 ms on one file; WAL is worth ~95-154× read throughput under a concurrent writer; the
+  non-blocking retry's payoff is a **bounded worst case** (~92× better max: 174 ms vs ~16 s); and
+  `journal_size_limit` cannot cap WAL growth while a leaked read transaction pins it (3.16 GB in 90s).
+
+### Fixed
+- **`Rask.SQLite.EntityFrameworkCore`: a long-lived `DbContext` stopped retrying contended writes.**
+  `RaskSqliteExecutionStrategy` started its retry clock on the first contention and never released it, and
+  EF Core hands one `DbContext` a single strategy instance for its whole lifetime. Once `Timeout` of
+  wall-clock had passed since that first contention, every later `SaveChanges` on the same context gave up
+  with `database is locked` **without a single retry** — the failure got *more* likely the longer a context
+  lived. The strategy now resets its clock in `OnFirstExecution`, so each operation gets the full `Timeout`.
+
+### Added
 - **`rask generate feature` — scaffold a CQRS + EF Core CRUD vertical slice.** `rask generate feature
   <Name> --fields "Name:string,Price:decimal,InStock:bool,Note:string?(500)"` writes a full slice under
   `Features/<Plural>/`:
