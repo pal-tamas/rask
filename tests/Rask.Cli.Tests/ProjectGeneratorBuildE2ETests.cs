@@ -61,6 +61,53 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
+    // wasm build-affecting flags are auth/pwa (docker only adds files) → 2² = 4 combinations.
+    public static IEnumerable<object[]> WasmBuildAffectingCombinations()
+    {
+        for (var mask = 0; mask < 4; mask++)
+        {
+            yield return [(mask & 1) != 0, (mask & 2) != 0];
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(WasmBuildAffectingCombinations))]
+    public async Task Generated_wasm_project_builds(bool auth, bool pwa)
+    {
+        if (Environment.GetEnvironmentVariable("RASK_CLI_BUILD_E2E") != "1")
+        {
+            return; // opt-in: this restores + builds, needing the SDK and network.
+        }
+
+        var name = $"WE2E{(auth ? "A" : "")}{(pwa ? "P" : "")}";
+        if (name == "WE2E")
+        {
+            name = "WE2ENone";
+        }
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var version = NewCommand.ResolvePackageVersion(cliVersion: "0.0.0");
+            var result = ProjectGenerator.GenerateWasm(projectDir, name, auth, pwa, docker: false, version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            var exit = await RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
+            Assert.True(exit == 0, $"[auth={auth},pwa={pwa}] generated wasm project failed to build.");
+        }
+        finally
+        {
+            TryDeleteDirectory(temp);
+        }
+    }
+
     private static async Task<int> RunDotnet(string arguments)
     {
         var psi = new ProcessStartInfo("dotnet", arguments)
