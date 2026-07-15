@@ -117,6 +117,69 @@ across a sort or a page change. Without it, rows are keyed by index and expansio
 
 <!-- demo:data-grid-detail -->
 
+## Grouping
+
+Band rows by a column's value. Name the column with `Field`, mark it `Groupable`, and list the fields to group
+by — outermost first:
+
+```csharp
+new BsColumn<Deal> { Title = "Region", Value = d => d.Region, Field = d => d.Region, Groupable = true }
+...
+BsDataGrid(Data: deals, Grouped: ["region", "rep"], OnGroupedChange: g => _grouped = [.. g],
+    GroupCollapsible: true, GroupSubtotals: true, Columns: [...])
+```
+
+<!-- demo:data-grid-group -->
+
+### `Field` names the column
+
+`Field = d => d.Region` calls the column `"region"` — the token `Grouped` carries, `OnSortChange` reports, and
+a URL serialises (`?group=region,rep`). It is an **expression**, so the name is read off the member and cannot
+drift from the property it describes.
+
+`Value` could never supply it: it is a `Func<T, object?>`, and a compiled delegate carries no member name.
+
+One `Field` also feeds the rest — it names a controlled sort (`SortField` still wins where set) and doubles as
+the `ORDER BY` for an `IQueryable` (`SortBy` still wins). Name a column once.
+
+### Bands are runs, and the grid keeps them whole
+
+A band is a run of **consecutive** rows sharing the key. That only works if the rows arrive ordered by the
+group keys — so the grid orders them:
+
+| Mode | Who orders | Result |
+|---|---|---|
+| list (in memory) | **the grid** | Bands are always whole. |
+| `IQueryable` | **the grid** | The group columns lead the `ORDER BY`, so bands are whole within the page. |
+| `TotalCount` slice | **you** | The grid never holds the set. Order by these fields in your query. |
+
+Your sort then applies **within** each band — "group by region, sort by amount" means what it looks like. A
+groupable column needs an expression to order by under `IQueryable`; without one it is skipped, the same rule
+`Sortable` already follows there.
+
+Under the two server-side modes a band can still **split across a page boundary**: the grid only holds one
+page, and paging cuts wherever it cuts.
+
+`Grouped` is URL input, so unknown or non-`Groupable` field names are ignored rather than thrown — a stale
+`?group=deleteMe` renders an ungrouped grid.
+
+### Collapsing and subtotals
+
+`GroupCollapsible` makes each band header a toggle. Collapse state is keyed by the band's **value path**, so it
+follows the band through a sort or a page change rather than staying at a position.
+
+`GroupSubtotals` adds a subtotal row per innermost band, reusing each column's `Footer`/`FooterTemplate` over
+that band's rows — one hook, not two. Like the grand footer under `TotalCount`/`IQueryable`, a subtotal only
+sees **the rows on this page**.
+
+### What it costs
+
+Grouping re-orders the set and boxes one key per row per level to find the runs: about **+5% render
+allocation** for one level over 100 rows, **+19%** for two (`BsDataGridBenchmarks`).
+
+**Don't group by a near-unique column.** Grouping 100 rows by a unique SKU is 100 bands — one header per row —
+and measured **+87%**. Group by the low-cardinality things (region, status, month); that is what a band is for.
+
 ## Selection
 
 `Selectable` adds a leading checkbox column so rows can be picked for a bulk action. The grid tracks the
@@ -466,6 +529,10 @@ renders only the visible window instead.
 | `Striped` / `Hover` | `true` | Bootstrap table styling. |
 | `Small` | `false` | `.table-sm`. |
 | `Responsive` | `true` | Wraps the table in `.table-responsive`. |
+| `Grouped` | `null` | The `Field` names to band by, outermost first. URL-serialisable. |
+| `OnGroupedChange` / `OnGroupedChangeAsync` | `null` | The grouping the user asked for; the async form is awaited. |
+| `GroupCollapsible` | `null` | Band headers become toggles. |
+| `GroupSubtotals` | `null` | A subtotal row per innermost band, reusing each column's `Footer`. Page-scoped. |
 | `Selectable` | `null` | Adds the leading checkbox column. Implied by `SelectedKeys`/`OnSelectionChange`. Set `RowKey` with it. |
 | `SelectedKeys` | `null` | Controlled selection (`RowKey` values). Null = the grid owns it. |
 | `OnSelectionChange` / `OnSelectionChangeAsync` | `null` | The full set of selected keys after a click; the async form is awaited. |
@@ -482,6 +549,11 @@ renders only the visible window instead.
 | `OnSortChange` / `OnSortChangeAsync` | `null` | The sort the user asked for (`DataGridSort`); the async form is awaited. |
 | `Id` / `Class` | `null` | Applied to the `<table>`. |
 
-`BsColumn<T>`: `Title`, `Value`, `Template`, `Sortable`, `SortKey` (in-memory ordering), `SortField` (names the
-column in `OnSortChange`), `SortBy` (the `ORDER BY` expression when `Data` is an `IQueryable`), `Class`,
-`Footer`, `FooterTemplate`, `RowClickable` (null = auto: `Value` columns yes, `Template` columns no).
+`BsColumn<T>`: `Title`, `Value`, `Template`, `Class`, `Footer`, `FooterTemplate`, `RowClickable` (null = auto:
+`Value` columns yes, `Template` columns no).
+
+**Naming a column:** `Field` (an expression — names the column from the member, and doubles as the `ORDER BY`),
+`Groupable`, `GroupKey` (band coarser than the cell), `GroupHeader` (custom band header).
+
+**Sorting:** `Sortable`, `SortKey` (in-memory ordering), `SortField` (overrides the name in `OnSortChange`),
+`SortBy` (overrides the `ORDER BY` expression under `IQueryable`).

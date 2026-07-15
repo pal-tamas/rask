@@ -296,6 +296,16 @@ public static class DemoRegistry
                        + "way. A clickable row is a pointer shortcut, so the button stays the real, "
                        + "keyboard-reachable control.",
                 Result: BsDataGridRowDemo()),
+            ["data-grid-group"] = () => CodeSample(
+                ["BsDataGridGroupDemo.cs"],
+                Notes: "Field names the column by reading the member off the expression (Field = d => d.Region "
+                       + "-> \"region\"), which is what Grouped carries and what a URL would. Value could not: "
+                       + "a compiled Func has no member name. The source list is not ordered by region — a "
+                       + "band is a run of CONSECUTIVE rows, so the grid orders by the group keys first and "
+                       + "the user's sort applies inside each band. Click Amount and watch the rows re-sort "
+                       + "within the bands rather than scattering them. Subtotals reuse each column's Footer "
+                       + "delegate over the band's rows, and see only the rows on this page.",
+                Result: BsDataGridGroupDemo()),
             ["data-grid-selection"] = () => CodeSample(
                 ["BsDataGridSelectionDemo.cs"],
                 Notes: "Selection is tracked by RowKey, not by position, so it follows a row through a sort "

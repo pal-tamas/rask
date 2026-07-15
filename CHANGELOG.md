@@ -77,6 +77,27 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **`BsDataGrid<T>` gained grouping.** Rows band by a column's value — nested, collapsible, with a subtotal per
+  band — via `Grouped` / `OnGroupedChange` and `Groupable` columns, plus `GroupCollapsible` and
+  `GroupSubtotals`. Controlled and uncontrolled follow `Sort`'s three-way opt-in.
+  **`BsColumn<T>.Field` names a column, once.** `Field = d => d.Region` calls it `"region"` — the token
+  `Grouped` carries, `OnSortChange` reports, and a URL serialises (`?group=region,rep`). It is an expression,
+  so the name is read off the member and cannot drift from the property; `Value` could never supply it, being a
+  compiled `Func` with no member name to read. One `Field` also doubles as the `ORDER BY` under `IQueryable`.
+  `SortField` and `SortBy` still win where set, so nothing existing moves.
+  A band is a run of **consecutive** rows, so the grid **orders by the group keys itself** wherever it owns the
+  order — in memory, and by prepending them to an `IQueryable`'s `ORDER BY` — and the user's sort then applies
+  *within* each band. Under a `TotalCount` slice it never holds the set and cannot: order by those fields in
+  your query, which is exactly what `OnGroupedChange` hands you. `Grouped` is URL input, so unknown or
+  non-`Groupable` names are ignored rather than thrown.
+  Collapse is keyed by the band's **value path**, never an index, so it follows the band across a sort or page.
+  Subtotals reuse each column's `Footer`/`FooterTemplate` over the band's rows — one hook, not two — and, like
+  the grand footer in the server-side modes, see only the rows on this page. The band toggle carries
+  `aria-expanded` but deliberately no `aria-controls`: it governs a run of sibling `<tr>`s with no element to
+  point at, and honouring the id-list would mean minting an id for every row in every band.
+  Measured (`BsDataGridBenchmarks`): **+5%** render allocation for one level over 100 rows, **+19%** for two.
+  Grouping by a near-unique column is one band per row and costs **+87%** — group by the low-cardinality
+  things, which is what a band is for.
 - **`BsDataGrid<T>` gained row selection.** `Selectable` adds a leading checkbox column, and
   `OnSelectionChange` / `OnSelectionChangeAsync` report the selection so a toolbar can drive a bulk action;
   `SelectedKeys` takes control of it the same way `Page` and `Sort` do for paging and sorting. Unlike `Sort`,

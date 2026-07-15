@@ -90,8 +90,8 @@ public class BsDataGridApiCompatTests
 
         Assert.Equal(
             [
-                "Class", "Footer", "FooterTemplate", "RowClickable", "SortBy", "SortField", "SortKey",
-                "Sortable", "Template", "Title", "Value",
+                "Class", "Field", "Footer", "FooterTemplate", "GroupHeader", "GroupKey", "Groupable",
+                "RowClickable", "SortBy", "SortField", "SortKey", "Sortable", "Template", "Title", "Value",
             ],
             actual);
     }
@@ -134,8 +134,9 @@ public class BsDataGridApiCompatTests
 
         Assert.Equal(
             [
-                "Children", "Class", "Columns", "Data", "Empty", "ExpandedContent", "Hover", "Id", "Key",
-                "Loading", "MaxHeight", "OnPageChange", "OnPageChangeAsync", "OnRowClick", "OnRowClickAsync",
+                "Children", "Class", "Columns", "Data", "Empty", "ExpandedContent", "GroupCollapsible",
+                "GroupSubtotals", "Grouped", "Hover", "Id", "Key", "Loading", "MaxHeight", "OnGroupedChange",
+                "OnGroupedChangeAsync", "OnPageChange", "OnPageChangeAsync", "OnRowClick", "OnRowClickAsync",
                 "OnSelectionChange", "OnSelectionChangeAsync", "OnSortChange", "OnSortChangeAsync", "Page",
                 "PageSize", "Responsive", "RowClass", "RowKey", "Selectable", "SelectedKeys", "Small", "Sort",
                 "SortDescending", "StickyHeader", "Striped", "TotalCount",

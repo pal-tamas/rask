@@ -91,9 +91,91 @@ public sealed class BsColumn<T>
     // non-interactive template (a badge, an icon) clickable anyway, or false to carve a Value column out.
     public bool? RowClickable { get; init; }
 
+    /// <summary>
+    ///     The column's stable identity: <c>Field = p => p.Category</c> names this column <c>"category"</c>.
+    ///     That token is what <see cref="BsDataGrid{T}.OnSortChange" /> / <see cref="BsDataGrid{T}.OnGroupedChange" />
+    ///     report and what belongs in a URL, and the same tree doubles as the store's <c>ORDER BY</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         An expression rather than a string because the name is <b>read off the member</b>, so it cannot
+    ///         drift from the property it describes. <see cref="Value" /> could never supply it: it is a
+    ///         <c>Func&lt;T, object?&gt;</c> — a compiled delegate carries no member name.
+    ///     </para>
+    ///     <para>
+    ///         Only the member name is read; the expression is never compiled, so it costs nothing per render.
+    ///         Set <see cref="SortField" /> or <see cref="SortBy" /> to override either derived use.
+    ///     </para>
+    /// </remarks>
+    public Expression<Func<T, object?>>? Field { get; init; }
+
+    /// <summary>Makes this column offer a "group by" control. Needs <see cref="Field" /> (or nothing to name it).</summary>
+    public bool Groupable { get; init; }
+
+    /// <summary>
+    ///     The value rows are banded by when grouped, defaulting to <see cref="Value" />. Set it when the band
+    ///     should be coarser than the cell — group orders by month, show the full date.
+    /// </summary>
+    public Func<T, object?>? GroupKey { get; init; }
+
+    /// <summary>
+    ///     Renders the band header's content from the band's key and its rows on this page. Defaults to
+    ///     "{Title}: {key} ({n})".
+    /// </summary>
+    public Func<object?, IReadOnlyList<T>, Component>? GroupHeader { get; init; }
+
     internal bool HasFooter => Footer is not null || FooterTemplate is not null;
 
     internal bool IsRowClickable => RowClickable ?? Template is null;
+
+    // The member name off Field, camelCased ("Category" -> "category") so it reads as a URL token. Computed
+    // once per column instance: columns are usually rebuilt each render, but the walk is a couple of casts —
+    // no Compile, so nothing here is a per-render or AOT cost.
+    private string? _name;
+    private bool _named;
+
+    internal string? FieldName
+    {
+        get
+        {
+            if (_named)
+            {
+                return _name;
+            }
+
+            _named = true;
+            var body = Field?.Body;
+
+            // p => p.Category against an object? return type is lowered to Convert(p.Category, object), so the
+            // boxing conversion has to come off before the member is visible. Same unwrap ExpressionAccessor
+            // does for a bound field.
+            if (body is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } u)
+            {
+                body = u.Operand;
+            }
+
+            if (body is MemberExpression m)
+            {
+                var n = m.Member.Name;
+                _name = char.IsUpper(n[0]) ? char.ToLowerInvariant(n[0]) + n[1..] : n;
+            }
+
+            return _name;
+        }
+    }
+
+    // Field is the single source, but the older explicit properties still win where they are set: SortField
+    // is shipped API that callers already pass to OnSortChange, and SortBy may deliberately order by
+    // something other than the column's own member (a related entity, a computed key).
+    internal string? SortToken => SortField ?? FieldName;
+
+    internal Expression<Func<T, object?>>? OrderBy => SortBy ?? Field;
+
+    internal object? Group(T row) => GroupKey is not null ? GroupKey(row) : Value?.Invoke(row);
+
+    // Ordering key for a band. Banding compares keys by equality, but the rows have to ARRIVE grouped, and
+    // that ordering needs an IComparable — the same shape Sort() uses for a sorted column.
+    internal IComparable? GroupSort(T row) => Group(row) as IComparable;
 
     internal IComparable? Sort(T row) =>
         SortKey is not null ? SortKey(row) : Value?.Invoke(row) as IComparable;
@@ -126,13 +208,24 @@ public sealed class BsDataGrid<T> : BsBlock
     // accumulates across pages: picking three rows on page 1 and two on page 2 is five selected rows, which is
     // the whole point of a bulk action.
     private readonly HashSet<object> _selected = [];
+
+    // Uncontrolled grouping, outermost first.
+    private readonly List<string> _grouped = [];
+
+    // Collapsed bands, keyed by their composite VALUE path ("FruitApple"), never by index: a band's
+    // position changes with every sort and page, and collapse must follow the band rather than the slot.
+    private readonly HashSet<string> _collapsed = [];
     private int _page;
     private int _sortColumn = -1;
     private bool _sortDescending;
 
     // Query mode: the last materialised page, keyed by what produced it. Render runs on every re-render, and
     // without this an unrelated one (expanding a detail row) would re-issue two SQL round-trips.
-    private ((IQueryable<T> Query, Expression<Func<T, object?>>? SortBy, int Page, bool Desc, int Size) Key,
+    // Grouped is part of the key, not an afterthought: it changes the ORDER BY, so a cache hit across a
+    // regroup would band the page by the new fields while the rows were still ordered by the old ones —
+    // producing repeated bands from a query that was never re-run.
+    private ((IQueryable<T> Query, Expression<Func<T, object?>>? SortBy, int Page, bool Desc, int Size,
+        string Grouped) Key,
         IReadOnlyList<T> Rows, int Total, int PageCount)? _queryCache;
 
     /// <summary>
@@ -351,7 +444,48 @@ public sealed class BsDataGrid<T> : BsBlock
     /// <summary>The awaited form of <see cref="OnSelectionChange" />.</summary>
     public CallbackAsync<IReadOnlyList<object>>? OnSelectionChangeAsync { get; set; }
 
+    /// <summary>
+    ///     The columns to band rows by, outermost first, named by <see cref="BsColumn{T}.Field" /> — so this is
+    ///     URL-serialisable (<c>?group=category,supplier</c>). Set it to take control of grouping the same way
+    ///     <see cref="Sort" /> does for sorting; leave it null and the grid owns its own.
+    /// </summary>
+    /// <remarks>
+    ///     A band is a run of <b>consecutive</b> rows sharing the key, so the rows must arrive ordered by it.
+    ///     The grid guarantees that wherever it owns the ordering — in memory, and in an
+    ///     <see cref="IQueryable" /> (it prepends the group columns to the <c>ORDER BY</c>). Under
+    ///     <see cref="TotalCount" /> it never sees the whole set and cannot: order by these fields in your own
+    ///     query, which is exactly what <see cref="OnGroupedChange" /> hands you.
+    /// </remarks>
+    public IReadOnlyList<string>? Grouped { get; set; }
+
+    /// <summary>Raised with the group fields the user asked for, outermost first.</summary>
+    public Callback<IReadOnlyList<string>>? OnGroupedChange { get; set; }
+
+    /// <summary>The awaited form of <see cref="OnGroupedChange" />.</summary>
+    public CallbackAsync<IReadOnlyList<string>>? OnGroupedChangeAsync { get; set; }
+
+    /// <summary>Lets a band header collapse its rows. Zero-JS, like the master-detail expander.</summary>
+    public bool? GroupCollapsible { get; set; }
+
+    /// <summary>
+    ///     Renders a subtotal row at the end of each band, reusing each column's
+    ///     <see cref="BsColumn{T}.Footer" />/<see cref="BsColumn{T}.FooterTemplate" /> over that band's rows.
+    /// </summary>
+    /// <remarks>
+    ///     A subtotal only ever sums the rows <b>on this page</b> — exactly as the grand footer already does
+    ///     under <see cref="TotalCount" /> or an <see cref="IQueryable" />, and for the same reason: the page
+    ///     is all the grid holds.
+    /// </remarks>
+    public bool? GroupSubtotals { get; set; }
+
     private bool Expandable => ExpandedContent is not null;
+
+    // Same three-way opt-in Sort uses, and for the same reason: Grouped = null legitimately means "ungrouped"
+    // and cannot be told apart from "not using controlled grouping", so any of the three opts in.
+    private bool GroupControlled =>
+        Grouped is not null || OnGroupedChange is not null || OnGroupedChangeAsync is not null;
+
+    private IReadOnlyList<string> CurrentGrouped => GroupControlled ? Grouped ?? [] : _grouped;
 
     // Any of the four opts in: Selectable for a grid that owns its selection, the other three for a caller
     // that owns it. Mirrors how SortControlled reads its three.
@@ -401,7 +535,7 @@ public sealed class BsDataGrid<T> : BsBlock
             var columns = Columns ?? [];
             for (var i = 0; i < columns.Count; i++)
             {
-                if (columns[i].SortField == Sort)
+                if (columns[i].SortToken == Sort)
                 {
                     return i;
                 }
@@ -431,7 +565,7 @@ public sealed class BsDataGrid<T> : BsBlock
             // The caller owns the sort: report it and let them re-render us with the new props. Resetting the
             // page is their job too — they own it — so OnSortChange carries only the sort.
             var columns = Columns ?? [];
-            var field = column >= 0 && column < columns.Count ? columns[column].SortField : null;
+            var field = column >= 0 && column < columns.Count ? columns[column].SortToken : null;
             await Raise(OnSortChange, OnSortChangeAsync, new DataGridSort(field, descending));
             return;
         }
@@ -534,6 +668,64 @@ public sealed class BsDataGrid<T> : BsBlock
         }
     }
 
+    // The grouped columns, outermost first. Resolves the field tokens against the columns and silently drops
+    // anything that cannot band — an unknown token (a stale URL), a column that isn't Groupable, or one with
+    // no name. A URL is user input: ?group=deleteMe must render an ungrouped grid, not throw.
+    private List<BsColumn<T>> GroupColumns(IReadOnlyList<BsColumn<T>> columns)
+    {
+        var grouped = CurrentGrouped;
+        var result = new List<BsColumn<T>>(grouped.Count);
+        foreach (var token in grouped)
+        {
+            foreach (var column in columns)
+            {
+                if (column.Groupable && column.FieldName == token && !result.Contains(column))
+                {
+                    result.Add(column);
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private Task SetGroupedAsync(IReadOnlyList<string> next)
+    {
+        if (!GroupControlled)
+        {
+            _grouped.Clear();
+            _grouped.AddRange(next);
+            // Collapse state is keyed by band values, which the new grouping invalidates wholesale: the old
+            // paths address bands that no longer exist, and a stale one could collide with a new band's path.
+            _collapsed.Clear();
+        }
+
+        return Raise(OnGroupedChange, OnGroupedChangeAsync, next);
+    }
+
+    // The band's identity: its key path from the outermost level in. Uses a unit separator so two levels
+    // cannot be confused with one ("a" + "b|c" vs "a|b" + "c"), which would let unrelated bands share a
+    // collapse entry.
+    private static string BandPath(IReadOnlyList<object?> keys, int depth)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (var i = 0; i <= depth; i++)
+        {
+            sb.Append(keys[i]).Append('');
+        }
+
+        return sb.ToString();
+    }
+
+    private void ToggleBand(string path)
+    {
+        if (!_collapsed.Add(path))
+        {
+            _collapsed.Remove(path);
+        }
+    }
+
     // BsPageItem's Disabled only adds a CSS class — the button stays clickable — so the pager's edges have to
     // be guarded here. Without the clamp, prev on page 0 underflows and the summary renders "-1-0 / 3".
     private async Task GoToPageAsync(int page, int pageCount)
@@ -627,9 +819,10 @@ public sealed class BsDataGrid<T> : BsBlock
         EnsureQueryHost(HostEngine);
 
         var sortColumn = CurrentSortColumn;
-        var sortBy = sortColumn >= 0 && sortColumn < columns.Count ? columns[sortColumn].SortBy : null;
+        var sortBy = sortColumn >= 0 && sortColumn < columns.Count ? columns[sortColumn].OrderBy : null;
+        var groups = GroupColumns(columns);
         var page = Math.Max(0, CurrentPage);
-        var key = (query, sortBy, page, CurrentSortDescending, PageSize);
+        var key = (query, sortBy, page, CurrentSortDescending, PageSize, string.Join(',', CurrentGrouped));
 
         if (_queryCache is { } cached && cached.Key == key)
         {
@@ -640,17 +833,38 @@ public sealed class BsDataGrid<T> : BsBlock
         // trimming or AOT hazard. The boxing convert in the expression is a no-op that providers see through.
         // Unsorted, the caller's own ordering stands — which is why an IQueryable Data wants to arrive
         // ordered: Skip/Take over an unordered query is undefined in SQL. A sort replaces it, not adds to it.
-        var ordered = sortBy is null
-            ? query
-            : CurrentSortDescending
-                ? query.OrderByDescending(sortBy)
-                : query.OrderBy(sortBy);
+        //
+        // The GROUP columns lead the ORDER BY, because a band is a run of consecutive rows: without ordering by
+        // them first the store would interleave the categories and the same band would repeat down the page.
+        // The user's sort then applies WITHIN each band, which is what makes "group by category, sort by price"
+        // mean what it looks like. A groupable column needs an expression to order by here — the same rule
+        // Sortable already follows in this mode — so one without is skipped rather than silently dropping the
+        // ordering the bands depend on.
+        IOrderedQueryable<T>? ordered = null;
+        foreach (var g in groups)
+        {
+            if (g.OrderBy is not { } expr)
+            {
+                continue;
+            }
+
+            ordered = ordered is null ? query.OrderBy(expr) : ordered.ThenBy(expr);
+        }
+
+        if (sortBy is not null)
+        {
+            ordered = ordered is null
+                ? CurrentSortDescending ? query.OrderByDescending(sortBy) : query.OrderBy(sortBy)
+                : CurrentSortDescending ? ordered.ThenByDescending(sortBy) : ordered.ThenBy(sortBy);
+        }
+
+        IQueryable<T> source = ordered ?? query;
 
         var total = query.Count();
         var pageCount = PageSize > 0 ? Math.Max(1, (total + PageSize - 1) / PageSize) : 1;
         page = Math.Min(page, pageCount - 1);
 
-        var rows = (PageSize > 0 ? ordered.Skip(page * PageSize).Take(PageSize) : ordered).ToList();
+        var rows = (PageSize > 0 ? source.Skip(page * PageSize).Take(PageSize) : source).ToList();
 
         _queryCache = (key, rows, total, pageCount);
         return (rows, rows, total, pageCount);
@@ -700,12 +914,31 @@ public sealed class BsDataGrid<T> : BsBlock
 
         IEnumerable<T> view = data;
         var sortColumn = CurrentSortColumn;
-        if (sortColumn >= 0 && sortColumn < columns.Count && columns[sortColumn].Sortable)
+        var sorted = sortColumn >= 0 && sortColumn < columns.Count && columns[sortColumn].Sortable
+            ? columns[sortColumn]
+            : null;
+
+        // The GROUP keys lead, then the user's sort applies WITHIN each band. Here the grid holds every row, so
+        // it can guarantee whole bands outright: a band is a run of consecutive rows, and ordering by the group
+        // keys first is what makes the runs contiguous instead of scattering each category down the page.
+        // Sorting first and banding after would fragment every band — which is why this is not "sort, then
+        // group" but one composed ordering.
+        IOrderedEnumerable<T>? ordered = null;
+        foreach (var g in GroupColumns(columns))
         {
-            var column = columns[sortColumn];
-            view = CurrentSortDescending
-                ? data.OrderByDescending(column.Sort)
-                : data.OrderBy(column.Sort);
+            ordered = ordered is null ? data.OrderBy(g.GroupSort) : ordered.ThenBy(g.GroupSort);
+        }
+
+        if (sorted is not null)
+        {
+            ordered = ordered is null
+                ? CurrentSortDescending ? data.OrderByDescending(sorted.Sort) : data.OrderBy(sorted.Sort)
+                : CurrentSortDescending ? ordered.ThenByDescending(sorted.Sort) : ordered.ThenBy(sorted.Sort);
+        }
+
+        if (ordered is not null)
+        {
+            view = ordered;
         }
 
         var rows = view as IReadOnlyList<T> ?? view.ToList();
@@ -723,6 +956,66 @@ public sealed class BsDataGrid<T> : BsBlock
 
         // Footers summarise the whole set, not the visible page, so they read `data` rather than pageRows.
         return (pageRows, data, rows.Count, pageCount);
+    }
+
+    // The band header: one full-width cell in the same <tbody> as the rows. .table-group-divider draws the
+    // rule Bootstrap already ships for exactly this.
+    //
+    // A collapsible band's toggle carries aria-expanded but deliberately NO aria-controls. The content it
+    // controls is a run of sibling <tr>s with no wrapper element to point at, and aria-controls takes an id
+    // LIST — so honouring it would mean minting and emitting an id for every row in every band. aria-expanded
+    // alone is a valid disclosure pattern; this is the price of banding inside one <tbody>.
+    private Component BandHeaderRow(IReadOnlyList<BsColumn<T>> columns, BsColumn<T> column, object? key,
+        IReadOnlyList<T> band, int level, string path, bool collapsed)
+    {
+        Component content = column.GroupHeader is { } header
+            ? header(key, band)
+            : [
+                Span(Class: Font.Semibold)[$"{column.Title}: {key}"],
+                Span(Class: Bs.Join(Txt.Color(BsColor.Secondary), Margin.Start(2), Font.Small))[
+                    $"({band.Count})"],
+            ];
+
+        var label = GroupCollapsible is true
+            ? BsButton(
+                Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Class: Margin.End(2),
+                Aria: new Dictionary<string, string?>
+                {
+                    ["expanded"] = collapsed ? "false" : "true",
+                    ["label"] = $"Toggle {column.Title} {key}",
+                },
+                OnClick: () => ToggleBand(path))[
+                BsIcon(Name: collapsed ? BsIconName.ChevronRight : BsIconName.ChevronDown)]
+            : null;
+
+        // Nested bands indent so the hierarchy is visible; level 0 sits flush.
+        return Tr(Key: $"band:{path}", Class: "table-group-divider")[
+            Td(Colspan: columns.Count + LeadingCells,
+                Class: level > 0 ? Padding.Start(level * 3 + 2) : null)[label, content]
+        ];
+    }
+
+    // Reuses each column's Footer/FooterTemplate over the band's rows: those delegates already take an
+    // IReadOnlyList<T>, so a subtotal is the same delegate over a narrower set — one shape to learn, and a
+    // column that totals in the footer totals per band for free.
+    private Component SubtotalRow(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> band, int level,
+        string path) =>
+        Tr(Key: $"sub:{path}", Class: "table-light")[SubtotalCells(columns, band, level)];
+
+    private IEnumerable<Component> SubtotalCells(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> band,
+        int level)
+    {
+        for (var i = 0; i < LeadingCells; i++)
+        {
+            yield return Td()[""];
+        }
+
+        for (var c = 0; c < columns.Count; c++)
+        {
+            var column = columns[c];
+            yield return Td(Class: Bs.Join(column.Class, Font.Semibold))[
+                c == 0 && !column.HasFooter ? "Subtotal" : column.FooterCell(band)];
+        }
     }
 
     // A row's key. RowKey is what makes selection and expansion track the ROW; without one this is the row's
@@ -765,10 +1058,11 @@ public sealed class BsDataGrid<T> : BsBlock
             var column = columns[i];
 
             // A sort the grid cannot actually perform must not advertise a control: a controlled sort is
-            // reported by SortField, and a Query is ordered by SortBy. Missing either, the header stays plain.
+            // reported by a name (SortField, or the one read off Field), and a Query is ordered by an
+            // expression (SortBy, or Field itself). Missing either, the header stays plain.
             if (!column.Sortable
-                || (SortControlled && column.SortField is null)
-                || (Data is IQueryable<T> && column.SortBy is null))
+                || (SortControlled && column.SortToken is null)
+                || (Data is IQueryable<T> && column.OrderBy is null))
             {
                 yield return Th(Class: column.Class, Scope: "col")[column.Title];
                 continue;
@@ -797,7 +1091,92 @@ public sealed class BsDataGrid<T> : BsBlock
     private IEnumerable<Component> BodyRows(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows,
         HashSet<object>? selected)
     {
-        for (var r = 0; r < pageRows.Count; r++)
+        var groups = GroupColumns(columns);
+        return groups.Count == 0
+            ? PlainRows(columns, pageRows, selected, 0, pageRows.Count)
+            : BandRows(columns, pageRows, selected, groups, 0, 0, pageRows.Count);
+    }
+
+    // Bands one level of the page, then recurses. A band is a RUN of consecutive rows sharing the key at this
+    // level — which is sound only because Local/Queried ordered by the group keys first (see there). Rows
+    // arriving unordered would simply produce repeated bands: visible and self-explaining, never silent.
+    //
+    // Nesting falls out of the recursion: each band at level N re-bands its own slice by level N+1, and the
+    // deepest level renders the rows themselves.
+    private IEnumerable<Component> BandRows(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows,
+        HashSet<object>? selected, List<BsColumn<T>> groups, int level, int start, int end)
+    {
+        var column = groups[level];
+        var i = start;
+        while (i < end)
+        {
+            var key = column.Group(pageRows[i]);
+
+            // Extend the run while the key holds. Equals, not ==: the keys are boxed object?, where == would
+            // compare references and band every string separately.
+            var runEnd = i + 1;
+            while (runEnd < end && Equals(column.Group(pageRows[runEnd]), key))
+            {
+                runEnd++;
+            }
+
+            var path = BandPath(pageRows[i], groups, level);
+            var band = Slice(pageRows, i, runEnd);
+            var collapsed = _collapsed.Contains(path);
+
+            yield return BandHeaderRow(columns, column, key, band, level, path, collapsed);
+
+            if (!collapsed)
+            {
+                var inner = level + 1 < groups.Count
+                    ? BandRows(columns, pageRows, selected, groups, level + 1, i, runEnd)
+                    : PlainRows(columns, pageRows, selected, i, runEnd);
+
+                foreach (var row in inner)
+                {
+                    yield return row;
+                }
+
+                // Subtotals sit at the END of the band, where a running total belongs, and only at the deepest
+                // level: one per innermost band rather than a cascade of identical rows at every level.
+                if (GroupSubtotals is true && level + 1 == groups.Count && columns.Any(c => c.HasFooter))
+                {
+                    yield return SubtotalRow(columns, band, level, path);
+                }
+            }
+
+            i = runEnd;
+        }
+    }
+
+    // A window over the page without copying it per band — the band's rows are contiguous by construction, and
+    // Footer/GroupHeader only read them.
+    private static IReadOnlyList<T> Slice(IReadOnlyList<T> rows, int start, int end)
+    {
+        var band = new T[end - start];
+        for (var i = 0; i < band.Length; i++)
+        {
+            band[i] = rows[start + i];
+        }
+
+        return band;
+    }
+
+    private string BandPath(T row, List<BsColumn<T>> groups, int level)
+    {
+        var keys = new object?[level + 1];
+        for (var i = 0; i <= level; i++)
+        {
+            keys[i] = groups[i].Group(row);
+        }
+
+        return BandPath(keys, level);
+    }
+
+    private IEnumerable<Component> PlainRows(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows,
+        HashSet<object>? selected, int start, int end)
+    {
+        for (var r = start; r < end; r++)
         {
             var row = pageRows[r];
             var key = KeyOf(row, r);

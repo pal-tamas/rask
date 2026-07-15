@@ -17,7 +17,8 @@ namespace Rask.Benchmarks;
 [MemoryDiagnoser]
 public class BsDataGridBenchmarks
 {
-    private sealed record Product(string Name, string Category, int Stock, decimal Price, string Sku);
+    private sealed record Product(string Name, string Category, int Stock, decimal Price, string Sku,
+        string Supplier);
 
     private static readonly List<Product> Rows = Build(100);
 
@@ -26,7 +27,11 @@ public class BsDataGridBenchmarks
         var rows = new List<Product>(n);
         for (var i = 0; i < n; i++)
         {
-            rows.Add(new Product($"Product {i}", $"Cat {i % 7}", i % 50, 10m + i, $"SKU-{i:D4}"));
+            // Category (7) and Supplier (3) are deliberately LOW cardinality — the shape people group by.
+            // Grouping by a unique column (Sku) is a different measurement: one band per row, so the band
+            // headers dominate and the number reports cardinality rather than the cost of a nesting level.
+            rows.Add(new Product($"Product {i}", $"Cat {i % 7}", i % 50, 10m + i, $"SKU-{i:D4}",
+                $"Supplier {i % 3}"));
         }
 
         return rows;
@@ -85,4 +90,33 @@ public class BsDataGridBenchmarks
 
     private static readonly IReadOnlyList<object> SelectedHalf =
         Rows.Where((_, i) => i % 2 == 0).Select(p => (object)p.Name).ToList();
+
+    // Grouping re-orders the whole set (group keys first, user sort within) and boxes a key per row per level
+    // to detect the band runs. 7 categories over 100 rows.
+    [Benchmark]
+    public string Grid100_Grouped() =>
+        BS.BsDataGrid(Data: Rows, Columns: GroupableColumns(), RowKey: p => p.Name,
+            Grouped: ["category"], OnGroupedChange: _ => { }).RenderAsLiveRoot();
+
+    // Two levels: the second re-bands inside each band, so the key boxing doubles. The delta against
+    // Grid100_Grouped is what a nesting level actually costs.
+    [Benchmark]
+    public string Grid100_GroupedNested() =>
+        BS.BsDataGrid(Data: Rows, Columns: GroupableColumns(), RowKey: p => p.Name,
+            Grouped: ["category", "supplier"], OnGroupedChange: _ => { }).RenderAsLiveRoot();
+
+    private static BsColumn<Product>[] GroupableColumns() =>
+    [
+        new BsColumn<Product> { Title = "Name", Value = p => p.Name, Field = p => p.Name, Sortable = true },
+        new BsColumn<Product>
+        {
+            Title = "Category", Value = p => p.Category, Field = p => p.Category, Groupable = true,
+        },
+        new BsColumn<Product>
+        {
+            Title = "Supplier", Value = p => p.Supplier, Field = p => p.Supplier, Groupable = true,
+        },
+        new BsColumn<Product> { Title = "Stock", Value = p => p.Stock },
+        new BsColumn<Product> { Title = "Price", Value = p => p.Price },
+    ];
 }

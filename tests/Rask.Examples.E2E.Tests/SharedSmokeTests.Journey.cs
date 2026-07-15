@@ -641,10 +641,74 @@ public abstract partial class SharedSmokeTests
         await Expect(emptyGrid).ToHaveCountAsync(1,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
 
+        await WalkDataGridGroupAsync();
         await WalkDataGridSelectionAsync();
         await WalkDataGridRowsAsync();
         await WalkDataGridLoadingAsync();
         await WalkDataGridStickyAsync();
+    }
+
+    // Grouping. The unit tests pin the banding; the browser proves the ordering guarantee survives the real
+    // live morph — re-banding and re-sorting rewrite the <tbody> wholesale, which is exactly where a diff bug
+    // would hide.
+    private async Task WalkDataGridGroupAsync()
+    {
+        var demo = Page.Locator("#grid-group-demo");
+        var grid = Page.Locator("#bs-grid-group");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // === One level. The demo's source list is NOT ordered by region, so each region appearing exactly
+        //     once is the ordering guarantee doing its job. ===
+        var bands = grid.Locator("tbody tr.table-group-divider");
+        await Expect(bands).ToHaveCountAsync(3); // AMER, APAC, EMEA
+        await Expect(bands.First).ToContainTextAsync("Region: AMER");
+
+        // === The user's sort applies WITHIN a band, never across it. Sorting by Account keeps three bands. ===
+        await grid.Locator("th:has-text('Account') button").ClickAsync();
+        await Expect(grid.Locator("th:has-text('Account')")).ToHaveAttributeAsync("aria-sort", "ascending",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await Expect(bands).ToHaveCountAsync(3);
+
+        var emeaAccounts = await grid.Locator("tbody tr:not(.table-group-divider):not(.table-light) td:nth-child(1)")
+            .AllInnerTextsAsync();
+        Assert.NotEmpty(emeaAccounts);
+
+        // === Subtotals — one per band, plus the grand total in <tfoot>. ===
+        await Expect(grid.Locator("tbody tr.table-light")).ToHaveCountAsync(3);
+        await Expect(grid.Locator("tfoot")).ToBeVisibleAsync();
+
+        // === Collapse — keyed by the band's value, so it survives the re-render. ===
+        var firstToggle = grid.Locator("tbody tr.table-group-divider button[aria-expanded]").First;
+        await Expect(firstToggle).ToHaveAttributeAsync("aria-expanded", "true");
+        var rowsBefore = await grid.Locator("tbody tr:not(.table-group-divider):not(.table-light)").CountAsync();
+        await firstToggle.ClickAsync();
+        await Expect(firstToggle).ToHaveAttributeAsync("aria-expanded", "false",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await Expect(grid.Locator("tbody tr:not(.table-group-divider):not(.table-light)"))
+            .Not.ToHaveCountAsync(rowsBefore);
+        await Expect(bands).ToHaveCountAsync(3); // the band header stays; only its rows go
+
+        await firstToggle.ClickAsync();
+        await Expect(firstToggle).ToHaveAttributeAsync("aria-expanded", "true",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+
+        // === Nesting — region ▸ rep: more bands, and the outer ones still appear once each. ===
+        // 3 region bands + 5 region/rep bands (EMEA has Ana and Dee, AMER has Bo and Ana, APAC only Cy).
+        await demo.Locator("#group-nested").ClickAsync();
+        await Expect(bands).ToHaveCountAsync(8,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(grid.Locator("tbody tr.table-group-divider:has-text('Region:')")).ToHaveCountAsync(3);
+
+        // === Ungrouped — every band goes, the rows stay. ===
+        await demo.Locator("#group-none").ClickAsync();
+        await Expect(bands).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(grid.Locator("tbody tr")).ToHaveCountAsync(9);
+        await Expect(grid.Locator("tbody tr.table-light")).ToHaveCountAsync(0);
+
+        await demo.Locator("#group-region").ClickAsync();
+        await Expect(bands).ToHaveCountAsync(3,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
     }
 
     // Selection driving a bulk action. The unit tests pin the set arithmetic; the browser proves the part that
