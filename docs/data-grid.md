@@ -117,6 +117,57 @@ across a sort or a page change. Without it, rows are keyed by index and expansio
 
 <!-- demo:data-grid-detail -->
 
+## Selection
+
+`Selectable` adds a leading checkbox column so rows can be picked for a bulk action. The grid tracks the
+selection and reports it through `OnSelectionChange`:
+
+```csharp
+BsDataGrid(Data: tasks, Selectable: true, RowKey: t => t.Id,
+    OnSelectionChange: keys => _selected = keys,
+    Columns: [...])
+```
+
+<!-- demo:data-grid-selection -->
+
+**Set `RowKey`.** Selection is tracked by key, so it follows a row through a sort and accumulates across pages
+— pick three on page 1 and two on page 2 and you have five. Without a `RowKey` the grid falls back to the row
+index, and the selection would follow the third *position* rather than the row you picked.
+
+### It reports keys, not rows
+
+`OnSelectionChange` hands you the **full set of selected keys** after every click — not a delta, and not rows.
+Under `TotalCount` or an `IQueryable` the grid only ever holds the current page, so it cannot turn a key from a
+page you have left back into a row. Map them yourself:
+
+```csharp
+var ids = _selected.Cast<int>().ToHashSet();
+await db.Tasks.Where(t => ids.Contains(t.Id)).ExecuteDeleteAsync();
+```
+
+**Re-check them server-side.** A key can name a row that has since been deleted, or one this user may not
+touch. The grid is reporting what was clicked, not granting permission.
+
+### Select-all covers the page
+
+The header checkbox reads *"select all rows on this page"*, because the page is all the grid holds — next to a
+pager, "select all" would be a lie. Rows picked on other pages are left alone.
+
+It has **no indeterminate state**: `indeterminate` is a JavaScript-only DOM property, and this grid renders
+without any. The box is checked when every row on the page is selected, and unchecked otherwise.
+
+### Controlled selection
+
+Pass `SelectedKeys` to own it yourself — the same shape `Page` and `Sort` use. The grid then renders the
+selection you give it and only reports clicks:
+
+```csharp
+BsDataGrid(Data: page, SelectedKeys: _selected, OnSelectionChange: k => _selected = k, ...)
+```
+
+Unlike `Sort`, "is it set?" is a sound signal here: an empty list is a perfectly good controlled selection
+meaning *nothing picked*, so `null` unambiguously means the grid owns it.
+
 ## Row styling & row clicks
 
 `RowClass` computes extra classes for a row from the row itself — the hook for the overdue invoice, the
@@ -214,6 +265,9 @@ Handled for you, and worth knowing about:
   — so sorting is keyboard-operable (Tab, then Enter or Space) with no extra work.
 - The expander toggle has an accessible name and `aria-expanded`, plus `aria-controls` pointing at its detail
   row while open.
+- A selection checkbox has no visible label, so it is named from its row's first `Value` column ("Select
+  Espresso Machine") rather than twenty identical "Select row"s, which read as one control repeated. The
+  header's says *"select all rows on this page"* — see [selection](#select-all-covers-the-page).
 - `OnRowClick` adds **no** `role`/`tabindex` to the row, because faking a button there would cost the row its
   semantics. It is a pointer shortcut for an action that must also have a real control — see
   [row clicks](#a-clickable-row-is-not-an-accessible-control).
@@ -408,6 +462,9 @@ renders only the visible window instead.
 | `Striped` / `Hover` | `true` | Bootstrap table styling. |
 | `Small` | `false` | `.table-sm`. |
 | `Responsive` | `true` | Wraps the table in `.table-responsive`. |
+| `Selectable` | `null` | Adds the leading checkbox column. Implied by `SelectedKeys`/`OnSelectionChange`. Set `RowKey` with it. |
+| `SelectedKeys` | `null` | Controlled selection (`RowKey` values). Null = the grid owns it. |
+| `OnSelectionChange` / `OnSelectionChangeAsync` | `null` | The full set of selected keys after a click; the async form is awaited. |
 | `RowClass` | `null` | Extra classes for a row, computed from it. Data rows only. |
 | `OnRowClick` / `OnRowClickAsync` | `null` | The row the user clicked; the async form is awaited. Fires from `RowClickable` cells only. |
 | `StickyHeader` | `null` | Freezes the header row. Needs `MaxHeight`. |

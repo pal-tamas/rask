@@ -38,6 +38,14 @@ internal static class BsGridAria
     // focusable and announced while the handler guards make it inert.
     internal static readonly IReadOnlyDictionary<string, string?> Disabled =
         new Dictionary<string, string?> { ["disabled"] = "true" };
+
+    // "Select all" would be a lie wherever a pager is: the grid holds one page and can only name its keys.
+    internal static readonly IReadOnlyDictionary<string, string?> SelectPage =
+        new Dictionary<string, string?> { ["label"] = "Select all rows on this page" };
+
+    // The fallback name for a row checkbox, used only when no column has text to borrow.
+    internal static readonly IReadOnlyDictionary<string, string?> SelectRow =
+        new Dictionary<string, string?> { ["label"] = "Select row" };
 }
 
 // One column of a BsDataGrid<T>. Value gives the cell text (ToString'd); Template overrides it with a
@@ -113,6 +121,11 @@ public sealed class BsDataGrid<T> : BsBlock
 {
     private readonly HashSet<object> _expanded = [];
     private readonly int _instanceId = BsInstanceId.Next();
+
+    // Uncontrolled selection. It is keyed, not indexed, so it survives sorting and paging — and it deliberately
+    // accumulates across pages: picking three rows on page 1 and two on page 2 is five selected rows, which is
+    // the whole point of a bulk action.
+    private readonly HashSet<object> _selected = [];
     private int _page;
     private int _sortColumn = -1;
     private bool _sortDescending;
@@ -302,7 +315,57 @@ public sealed class BsDataGrid<T> : BsBlock
     /// </remarks>
     public bool? Loading { get; set; }
 
+    /// <summary>
+    ///     Adds a leading checkbox column so rows can be picked for a bulk action. Implied by
+    ///     <see cref="SelectedKeys" /> / <see cref="OnSelectionChange" />, so it is only needed for a grid
+    ///     that keeps its own selection.
+    /// </summary>
+    /// <remarks>
+    ///     <b>Set <see cref="RowKey" /> with it.</b> Selection is tracked by key, and without one the grid
+    ///     falls back to the row index — so the selection would follow the third *position* across a sort or a
+    ///     page change rather than the row you picked. RASK033 flags this at the call site.
+    /// </remarks>
+    public bool? Selectable { get; set; }
+
+    /// <summary>
+    ///     The selected rows' <see cref="RowKey" /> values. Set it to take control of the selection the same
+    ///     way <see cref="Page" /> does for paging — the grid then renders the selection you give it and
+    ///     reports clicks through <see cref="OnSelectionChange" /> instead of tracking its own. Leave it null
+    ///     and the grid owns the selection.
+    /// </summary>
+    public IReadOnlyList<object>? SelectedKeys { get; set; }
+
+    /// <summary>
+    ///     Raised with the full set of selected keys after a click — not a delta.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         It reports <b>keys, not rows</b>. Under <see cref="TotalCount" /> or an <see cref="IQueryable" />
+    ///         the grid only ever holds the current page, so it cannot turn a key from a page you have left
+    ///         back into a row. Map them yourself — and <b>re-check them server-side</b>: a key can name a row
+    ///         that has since been deleted or that this user may not touch.
+    ///     </para>
+    /// </remarks>
+    public Callback<IReadOnlyList<object>>? OnSelectionChange { get; set; }
+
+    /// <summary>The awaited form of <see cref="OnSelectionChange" />.</summary>
+    public CallbackAsync<IReadOnlyList<object>>? OnSelectionChangeAsync { get; set; }
+
     private bool Expandable => ExpandedContent is not null;
+
+    // Any of the four opts in: Selectable for a grid that owns its selection, the other three for a caller
+    // that owns it. Mirrors how SortControlled reads its three.
+    private bool SelectionEnabled =>
+        Selectable is true || SelectedKeys is not null || OnSelectionChange is not null
+        || OnSelectionChangeAsync is not null;
+
+    // Unlike Sort, "is it set?" is a sound signal here: an empty list is a perfectly good controlled selection
+    // meaning "nothing picked", so null is unambiguous — the caller isn't controlling it.
+    private bool SelectionControlled => SelectedKeys is not null;
+
+    // The checkbox column, then the expander. Both HeaderCells/Cells/FooterCells and the detail row's colspan
+    // read this — three call sites plus the colspan, which is exactly where a leading column goes wrong.
+    private int LeadingCells => (SelectionEnabled ? 1 : 0) + (Expandable ? 1 : 0);
 
     // True only while a fetch is actually in flight. Guards read this; the wrapper keys off `Loading is null`.
     private bool Busy => Loading is true;
@@ -400,6 +463,69 @@ public sealed class BsDataGrid<T> : BsBlock
         return async is not null ? async.Invoke(arg) : Task.CompletedTask;
     }
 
+    // The current selection as a set. Built once per render and threaded through the cells: a controlled
+    // SelectedKeys is a list, and testing every page row against it with Contains would be O(page × selected)
+    // on EVERY render — a 100-row page over a 10k select-all is a million comparisons to draw a checkbox.
+    private HashSet<object> SelectionSet() =>
+        SelectedKeys is null ? _selected : new HashSet<object>(SelectedKeys);
+
+    // Takes the checkbox's reported state rather than flipping the current one. The client sends a checkbox's
+    // actual `checked` ("true"/"false") precisely so the server can be self-correcting; a blind toggle would
+    // drift from the DOM the moment a re-render lagged a click.
+    private Task SetSelectedAsync(HashSet<object> selected, object key, bool on)
+    {
+        var next = new HashSet<object>(selected);
+        if (on)
+        {
+            next.Add(key);
+        }
+        else
+        {
+            next.Remove(key);
+        }
+
+        return CommitSelectionAsync(next);
+    }
+
+    // Select-all covers THIS PAGE, because the page is all the grid holds: under TotalCount or an IQueryable it
+    // has never seen the other rows and could not name their keys. Rows already picked on other pages are
+    // untouched — that is what makes a selection survive paging.
+    private Task SetPageSelectionAsync(HashSet<object> selected, IReadOnlyList<object> pageKeys, bool on)
+    {
+        var next = new HashSet<object>(selected);
+        foreach (var key in pageKeys)
+        {
+            if (on)
+            {
+                next.Add(key);
+            }
+            else
+            {
+                next.Remove(key);
+            }
+        }
+
+        return CommitSelectionAsync(next);
+    }
+
+    // pageKeys.Count > 0 is not redundant: All() over an empty page is vacuously true, which would render the
+    // select-all box checked over nothing.
+    private static bool AllSelected(HashSet<object> selected, IReadOnlyList<object> pageKeys) =>
+        pageKeys.Count > 0 && pageKeys.All(selected.Contains);
+
+    private Task CommitSelectionAsync(HashSet<object> next)
+    {
+        // Controlled: the caller owns it, so only report. Uncontrolled: keep it and report for good measure,
+        // so a grid can track its own selection and still tell a toolbar about it.
+        if (!SelectionControlled)
+        {
+            _selected.Clear();
+            _selected.UnionWith(next);
+        }
+
+        return Raise(OnSelectionChange, OnSelectionChangeAsync, (IReadOnlyList<object>)next.ToList());
+    }
+
     private void ToggleExpand(object key)
     {
         if (!_expanded.Add(key))
@@ -454,11 +580,16 @@ public sealed class BsDataGrid<T> : BsBlock
 
         var hasFooter = columns.Any(c => c.HasFooter);
 
+        // Built once per render and threaded down, rather than rebuilt per row. The page's keys come with it:
+        // the select-all box needs them, and computing a key is a user delegate call per row.
+        var selected = SelectionEnabled ? SelectionSet() : null;
+        var pageKeys = selected is null ? [] : PageKeys(pageRows);
+
         var table = BsTable(Id: Id, Striped: Striped, Hover: Hover, Small: Small, Responsive: Responsive,
             StickyHeader: StickyHeader, MaxHeight: MaxHeight, Class: Class,
             Aria: Busy ? BsGridAria.Busy : null)[
-            Thead()[Tr()[HeaderCells(columns)]],
-            Tbody()[BodyRows(columns, pageRows)],
+            Thead()[Tr()[HeaderCells(columns, selected, pageKeys)]],
+            Tbody()[BodyRows(columns, pageRows, selected)],
             hasFooter ? Tfoot()[Tr()[FooterCells(columns, footerRows)]] : null
         ];
 
@@ -594,8 +725,36 @@ public sealed class BsDataGrid<T> : BsBlock
         return (pageRows, data, rows.Count, pageCount);
     }
 
-    private IEnumerable<Component> HeaderCells(IReadOnlyList<BsColumn<T>> columns)
+    // A row's key. RowKey is what makes selection and expansion track the ROW; without one this is the row's
+    // index on the page, which is why RASK033 asks for a RowKey as soon as either feature is on.
+    private object KeyOf(T row, int index) => RowKey?.Invoke(row) ?? index;
+
+    private IReadOnlyList<object> PageKeys(IReadOnlyList<T> pageRows)
     {
+        var keys = new object[pageRows.Count];
+        for (var i = 0; i < pageRows.Count; i++)
+        {
+            keys[i] = KeyOf(pageRows[i], i);
+        }
+
+        return keys;
+    }
+
+    private IEnumerable<Component> HeaderCells(IReadOnlyList<BsColumn<T>> columns, HashSet<object>? selected,
+        IReadOnlyList<object> pageKeys)
+    {
+        if (selected is not null)
+        {
+            yield return Th(Class: "bs-grid-check", Scope: "col")[
+                // "Select all" would be a lie next to a pager: the grid can only reach this page. The client
+                // reports the box's real `checked` as "true"/"false" rather than a toggle signal, so the
+                // server stays self-correcting even if a re-render lags a click.
+                SelectBox(AllSelected(selected, pageKeys), BsGridAria.SelectPage,
+                    Busy || pageKeys.Count == 0,
+                    raw => SetPageSelectionAsync(selected, pageKeys, raw == "true"))
+            ];
+        }
+
         if (Expandable)
         {
             yield return Th(Scope: "col")[""];
@@ -635,13 +794,19 @@ public sealed class BsDataGrid<T> : BsBlock
         }
     }
 
-    private IEnumerable<Component> BodyRows(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows)
+    private IEnumerable<Component> BodyRows(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows,
+        HashSet<object>? selected)
     {
         for (var r = 0; r < pageRows.Count; r++)
         {
             var row = pageRows[r];
-            var key = RowKey?.Invoke(row) ?? r;
-            yield return Tr(Key: key, Class: RowClass?.Invoke(row))[Cells(columns, row, key, r)];
+            var key = KeyOf(row, r);
+            var isSelected = selected?.Contains(key) is true;
+
+            // table-active is joined with the caller's RowClass rather than replacing it, so a row can be both
+            // overdue and selected.
+            yield return Tr(Key: key, Class: BsClass.Join(RowClass?.Invoke(row), isSelected ? "table-active" : null))[
+                Cells(columns, row, key, r, selected, isSelected)];
 
             if (!Expandable || !_expanded.Contains(key))
             {
@@ -652,14 +817,26 @@ public sealed class BsDataGrid<T> : BsBlock
             if (detail is not null)
             {
                 yield return Tr(Key: $"{key}:detail", Id: DetailId(r))[
-                    Td(Colspan: columns.Count + 1)[detail]
+                    Td(Colspan: columns.Count + LeadingCells)[detail]
                 ];
             }
         }
     }
 
-    private IEnumerable<Component> Cells(IReadOnlyList<BsColumn<T>> columns, T row, object key, int index)
+    private IEnumerable<Component> Cells(IReadOnlyList<BsColumn<T>> columns, T row, object key, int index,
+        HashSet<object>? selected, bool isSelected)
     {
+        if (selected is not null)
+        {
+            // The checkbox has no visible label, so aria-label is its only accessible name. It names the ROW
+            // (via the first Value column where there is one), because twenty identical "Select row"s in a
+            // list read as one control repeated rather than twenty distinct ones.
+            yield return Td(Class: "bs-grid-check")[
+                SelectBox(isSelected, SelectRowAria(columns, row), Busy,
+                    raw => SetSelectedAsync(selected, key, raw == "true"))
+            ];
+        }
+
         if (Expandable)
         {
             yield return Td()[ExpanderButton(key, index)];
@@ -707,8 +884,59 @@ public sealed class BsDataGrid<T> : BsBlock
             BsIcon(Name: expanded ? BsIconName.ChevronDown : BsIconName.ChevronRight)];
     }
 
+    // The bare selection checkbox.
+    //
+    // Deliberately the core Input rather than BsCheck, which is the Bs primitive this library reaches for
+    // everywhere else. BsCheck is a *form field*: it renders a .form-check wrapper sized for a label, resolves
+    // a binding context, and registers as a child component. A selection box is none of those things — it has
+    // no label, no binding and no validation — so all of that would be paid 101 times on a 100-row grid to
+    // then be undone in CSS (the wrapper's label padding would push the box off-centre in the cell).
+    // Measured: BsCheck cost +82% render allocation over a plain grid, the raw input a fraction of that.
+    // Everything BsCheck would have contributed here is one class name.
+    // onChange is built by the CALLER, not from a Func wrapped here, and that is load-bearing. The handler's
+    // owner — the component dirty-marked after it runs — is resolved by unwrapping the closure's captured
+    // `this` (DelegateOwner.Resolve). A lambda created inside this static helper would capture only its
+    // parameter, so its display class has no captured `this`, the grid would never be found, and the
+    // selection would change without anything re-rendering. Built at the call site it captures the grid, and
+    // the owner resolves. (BsCheck sidesteps this with an explicit consumer.StateHasChanged(); a raw Element
+    // has no such machinery — see the remarks on IFormControl.ControlledChangeHandler.)
+    private static Component SelectBox(bool selected, IReadOnlyDictionary<string, string?> aria, bool disabled,
+        CallbackAsync<string> onChange) =>
+        Input<string>(
+            Type: InputType.Checkbox,
+            Class: "form-check-input",
+            Checked: selected,
+            // A real `disabled`, not aria-disabled: unlike the sort/pager controls (kept focusable so a fetch
+            // doesn't throw away the user's keyboard position), a box that cannot be changed shouldn't be
+            // reachable at all.
+            Disabled: disabled ? true : null,
+            Aria: aria,
+            OnChangeAsync: onChange);
+
+    // Names the row's checkbox from its first Value column ("Select Espresso Machine"). Falls back to a plain
+    // label when every column is a Template and there is no text to borrow.
+    private static IReadOnlyDictionary<string, string?> SelectRowAria(IReadOnlyList<BsColumn<T>> columns, T row)
+    {
+        foreach (var column in columns)
+        {
+            if (column.Value?.Invoke(row)?.ToString() is { Length: > 0 } label)
+            {
+                return new Dictionary<string, string?> { ["label"] = $"Select {label}" };
+            }
+        }
+
+        return BsGridAria.SelectRow;
+    }
+
     private IEnumerable<Component> FooterCells(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> data)
     {
+        // The easy miss: the footer needs a leading cell for EVERY leading column, or every <tfoot> cell is
+        // off by one and the totals sit under the wrong headers.
+        if (SelectionEnabled)
+        {
+            yield return Td()[""];
+        }
+
         if (Expandable)
         {
             yield return Td()[""];

@@ -37,6 +37,11 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
     public bool? Inline { get; set; }
     public bool? Reverse { get; set; }
 
+    // ARIA passthrough onto the <input>, merged with the validation aria-* this control builds itself. The
+    // same shape BsButton/BsTable expose. It exists for the label-less checkbox: a bare check in a table cell
+    // or toolbar has no visible Label to name it, so aria-label is the only accessible name available.
+    public IReadOnlyDictionary<string, string?>? Aria { get; set; }
+
     protected override Component? Render()
     {
         ExpressionAccessor.Accessor? acc = null;
@@ -70,7 +75,11 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
         // aria-invalid marks the failed state programmatically; aria-describedby ties the input to its
         // role="alert" feedback so a screen reader announces the error with the checkbox. Same shared
         // BsClass.FieldAria builder the other Bs form controls use.
-        var aria = BsClass.FieldAria(invalid, errorId);
+        //
+        // The caller's Aria is the base and the validation state is layered on top, so this control's own
+        // aria-invalid/aria-describedby win on their keys — a caller cannot accidentally claim the field is
+        // valid — while everything else (aria-label on a label-less check) passes through untouched.
+        var aria = Merge(Aria, BsClass.FieldAria(invalid, errorId));
 
         var input = Input<string>(
             Type: InputType.Checkbox,
@@ -96,5 +105,29 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
                 ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-check-label")[Label]
                 : null,
             invalid ? Div(Id: errorId, Class: "invalid-feedback d-block", Role: "alert")[messages[0]] : null];
+    }
+
+    // Neither, either or both may be present, and the common case is neither — so return null rather than an
+    // empty dictionary, which would emit no attributes but still cost an allocation on every check in a form.
+    private static IReadOnlyDictionary<string, string?>? Merge(
+        IReadOnlyDictionary<string, string?>? caller, IReadOnlyDictionary<string, string?>? field)
+    {
+        if (caller is null)
+        {
+            return field;
+        }
+
+        if (field is null)
+        {
+            return caller;
+        }
+
+        var merged = new Dictionary<string, string?>(caller, StringComparer.Ordinal);
+        foreach (var (key, value) in field)
+        {
+            merged[key] = value;
+        }
+
+        return merged;
     }
 }

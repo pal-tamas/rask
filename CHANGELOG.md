@@ -77,6 +77,31 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **`BsDataGrid<T>` gained row selection.** `Selectable` adds a leading checkbox column, and
+  `OnSelectionChange` / `OnSelectionChangeAsync` report the selection so a toolbar can drive a bulk action;
+  `SelectedKeys` takes control of it the same way `Page` and `Sort` do for paging and sorting. Unlike `Sort`,
+  "is it set?" is a sound signal here — an empty list is a valid controlled selection meaning *nothing picked*
+  — so `null` unambiguously means the grid owns it.
+  Selection is tracked **by `RowKey`**, so it follows a row through a sort and accumulates across pages (three
+  on page 1 and two on page 2 is five). It reports **keys, not rows**: under `TotalCount` or an `IQueryable`
+  the grid only ever holds the current page and cannot turn a key from a page you have left back into a row.
+  Re-check reported keys server-side — a key can name a row since deleted, or one this user may not touch.
+  Select-all covers **this page**, and says so (`"Select all rows on this page"`), because the page is all the
+  grid holds; next to a pager, "select all" would be a lie. It has no indeterminate state — `indeterminate` is
+  a JavaScript-only DOM property and this grid renders without any. Row checkboxes are named from their row
+  ("Select Espresso Machine") rather than twenty identical "Select row"s, which read as one control repeated.
+
+### Fixed
+- **A controlled form control whose `OnChange` captured a local silently stopped re-rendering its consumer.**
+  `IFormControl<T>.ControlledChangeHandler` resolved the component to notify with a bare
+  `Target as Component`. A handler that captures a local *alongside* `this` — `OnChange: v => Rename(i, v)`
+  inside a loop, or a data grid's per-row checkbox — is lowered by Roslyn to a compiler display class, so that
+  cast returned null and nothing was notified. When the control was also rendered inside a wrapper component
+  (the shape every composite table produces: the cells are built by one component and handed to another), the
+  fallback owner was the wrapper, so the component whose state actually changed stayed render-cached showing
+  stale values, with no error. It now resolves the consumer through `DelegateOwner`, the same
+  unwrap-the-captured-`this` rule `RegisterHandler` and `AutoCallback` already applied — and which refuses to
+  resolve to an `Element`, so it cannot regress to dirty-marking the control itself.
 - **`BsDataGrid<T>` gained a `Loading` state.** v0.17.0 shipped `OnPageChangeAsync`/`OnSortChangeAsync`, so a
   click could await a database round-trip with no feedback at all and nothing stopping a second click. Set
   `Loading` around the fetch and the grid dims the table behind a spinner, marks it `aria-busy`, and ignores

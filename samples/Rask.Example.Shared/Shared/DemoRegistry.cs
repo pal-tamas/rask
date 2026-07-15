@@ -296,6 +296,16 @@ public static class DemoRegistry
                        + "way. A clickable row is a pointer shortcut, so the button stays the real, "
                        + "keyboard-reachable control.",
                 Result: BsDataGridRowDemo()),
+            ["data-grid-selection"] = () => CodeSample(
+                ["BsDataGridSelectionDemo.cs"],
+                Notes: "Selection is tracked by RowKey, not by position, so it follows a row through a sort "
+                       + "and accumulates across pages — pick a row, sort, page, and it stays picked. "
+                       + "OnSelectionChange reports the full set of KEYS after every click, not a delta and "
+                       + "not rows: under TotalCount or an IQueryable the grid only ever holds the current "
+                       + "page, so it cannot turn a key from a page you have left back into a row. The "
+                       + "header checkbox says 'select all rows on this page' because the page is all it can "
+                       + "reach.",
+                Result: BsDataGridSelectionDemo()),
             ["data-grid-loading"] = () => CodeSample(
                 ["BsDataGridLoadingDemo.cs"],
                 Notes: "Loading is bool?, and the three states differ: null means the grid isn't using the "

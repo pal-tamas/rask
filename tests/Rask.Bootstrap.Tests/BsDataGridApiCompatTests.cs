@@ -136,8 +136,9 @@ public class BsDataGridApiCompatTests
             [
                 "Children", "Class", "Columns", "Data", "Empty", "ExpandedContent", "Hover", "Id", "Key",
                 "Loading", "MaxHeight", "OnPageChange", "OnPageChangeAsync", "OnRowClick", "OnRowClickAsync",
-                "OnSortChange", "OnSortChangeAsync", "Page", "PageSize", "Responsive", "RowClass", "RowKey",
-                "Small", "Sort", "SortDescending", "StickyHeader", "Striped", "TotalCount",
+                "OnSelectionChange", "OnSelectionChangeAsync", "OnSortChange", "OnSortChangeAsync", "Page",
+                "PageSize", "Responsive", "RowClass", "RowKey", "Selectable", "SelectedKeys", "Small", "Sort",
+                "SortDescending", "StickyHeader", "Striped", "TotalCount",
             ],
             actual);
     }

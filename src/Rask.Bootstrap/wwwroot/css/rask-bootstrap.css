@@ -103,6 +103,19 @@
   box-shadow: inset 0 -1px 0 var(--bs-border-color);
 }
 
+/* BsDataGrid(Selectable: true) — the leading checkbox column. Sized to its content so it doesn't take width
+   from the real data. The box is a bare .form-check-input with no .form-check wrapper (it has no label to make
+   room for), and Bootstrap's margin-top on it exists to align against label text — in a cell it just pushes
+   the box down, so centre it on the row instead. */
+.bs-grid-check {
+  width: 1px;
+  white-space: nowrap;
+}
+.bs-grid-check .form-check-input {
+  margin-top: 0;
+  vertical-align: middle;
+}
+
 /* BsDataGrid(Loading: true) — the busy overlay, covering the grid inside its position-relative wrapper.
    It sits over the table AND the pager, so a mouse cannot reach either while a fetch is in flight (the
    keyboard is handled with aria-disabled plus a guard in the handlers, since covering pixels does nothing

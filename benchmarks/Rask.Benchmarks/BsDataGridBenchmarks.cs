@@ -68,4 +68,21 @@ public class BsDataGridBenchmarks
     [Benchmark]
     public string Grid100_Paged20() =>
         BS.BsDataGrid(Data: Rows, Columns: Columns(), RowKey: p => p.Name, PageSize: 20).RenderAsLiveRoot();
+
+    // Selection adds ONE cell per row (not one per column, unlike OnRowClick) plus the select-all box, so the
+    // delta against Grid100_Plain should stay roughly linear in rows.
+    [Benchmark]
+    public string Grid100_Selectable() =>
+        BS.BsDataGrid(Data: Rows, Columns: Columns(), RowKey: p => p.Name, Selectable: true).RenderAsLiveRoot();
+
+    // Controlled selection with half the rows picked. This is the one that would show a regression if the
+    // selection were tested with a LINQ Contains over the key list instead of a HashSet built once per render:
+    // that is O(rows × selected) per render, and it would grow quadratically here rather than linearly.
+    [Benchmark]
+    public string Grid100_Selected50() =>
+        BS.BsDataGrid(Data: Rows, Columns: Columns(), RowKey: p => p.Name,
+            SelectedKeys: SelectedHalf, OnSelectionChange: _ => { }).RenderAsLiveRoot();
+
+    private static readonly IReadOnlyList<object> SelectedHalf =
+        Rows.Where((_, i) => i % 2 == 0).Select(p => (object)p.Name).ToList();
 }

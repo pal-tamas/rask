@@ -629,9 +629,67 @@ public abstract partial class SharedSmokeTests
         await Expect(emptyGrid).ToHaveCountAsync(1,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
 
+        await WalkDataGridSelectionAsync();
         await WalkDataGridRowsAsync();
         await WalkDataGridLoadingAsync();
         await WalkDataGridStickyAsync();
+    }
+
+    // Selection driving a bulk action. The unit tests pin the set arithmetic; the browser proves the part that
+    // only a real transport shows — that ticking a checkbox re-renders the grid's OWNER (the toolbar count
+    // lives outside the grid), which is exactly what the consumer-resolution fix underneath this is about.
+    private async Task WalkDataGridSelectionAsync()
+    {
+        var grid = Page.Locator("#bs-grid-selection");
+        var archive = Page.Locator("#grid-bulk-archive");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Nothing selected: the bulk action is disabled and says so.
+        await Expect(archive).ToHaveTextAsync("Archive 0 selected");
+        await Expect(archive).ToBeDisabledAsync();
+
+        var boxes = grid.Locator("tbody .form-check-input");
+        await Expect(boxes).ToHaveCountAsync(6);
+
+        // Tick two rows — the count outside the grid tracks, and the rows mark themselves.
+        await boxes.Nth(0).CheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 1 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await boxes.Nth(2).CheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 2 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(grid.Locator("tbody tr.table-active")).ToHaveCountAsync(2);
+        await Expect(archive).ToBeEnabledAsync();
+
+        // Selection is keyed, so it follows the rows through a sort rather than staying at those positions.
+        var pickedBefore = await grid.Locator("tbody tr.table-active td:nth-child(2)").AllInnerTextsAsync();
+        await grid.Locator("th:has-text('Task') button").ClickAsync();
+        await Expect(grid.Locator("th[aria-sort='ascending']")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        var pickedAfter = await grid.Locator("tbody tr.table-active td:nth-child(2)").AllInnerTextsAsync();
+        Assert.Equal(pickedBefore.OrderBy(x => x, StringComparer.Ordinal),
+            pickedAfter.OrderBy(x => x, StringComparer.Ordinal));
+
+        // Select-all covers the page, and its accessible name says exactly that.
+        var all = grid.Locator("thead .form-check-input");
+        await Expect(all).ToHaveAttributeAsync("aria-label", "Select all rows on this page");
+        await all.CheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 6 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        await all.UncheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 0 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // The bulk action consumes the reported keys.
+        await boxes.Nth(0).CheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 1 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await archive.ClickAsync();
+        await Expect(grid.Locator("tbody tr")).ToHaveCountAsync(5,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#grid-bulk-done")).ToHaveTextAsync("Archived 1.");
     }
 
     // The busy state over a real transport. The unit tests pin the markup of each state; what only a browser
