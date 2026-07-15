@@ -86,16 +86,75 @@ public sealed class NewCommandTests
     }
 
     [Fact]
+    public async Task Native_template_is_generated_directly_without_dotnet_new()
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MobileApp", "--template", "native", "--host", "server"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(console.ErrorText);
+        // Files are written directly under ./MobileApp — the server-host heads, not the local ones.
+        Assert.True(fs.FileExists("/proj/MobileApp/MobileApp.csproj"));
+        Assert.True(fs.FileExists("/proj/MobileApp/Platforms/iOS/ServerAppDelegate.cs"));
+        Assert.True(fs.FileExists("/proj/MobileApp/Platforms/Android/ServerActivity.cs"));
+        Assert.False(fs.FileExists("/proj/MobileApp/App.cs")); // local-only
+        // It restores, and never shells to `dotnet new` / installs Rask.Templates.
+        Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
+    }
+
+    [Fact]
+    public async Task Native_defaults_to_the_local_host()
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MobileApp", "--template", "native"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(console.ErrorText);
+        Assert.True(fs.FileExists("/proj/MobileApp/App.cs"));                         // local shared component
+        Assert.True(fs.FileExists("/proj/MobileApp/Platforms/iOS/AppDelegate.cs"));   // local head
+        Assert.False(fs.FileExists("/proj/MobileApp/Platforms/iOS/ServerAppDelegate.cs"));
+        Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
+    }
+
+    [Fact]
+    public async Task Native_rejects_an_invalid_host()
+    {
+        var (console, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MobileApp", "--template", "native", "--host", "cloud"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("Invalid --host 'cloud'", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Host_option_is_rejected_for_non_native_templates()
+    {
+        var (console, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "server", "--host", "local"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("does not support --host", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Non_ported_template_still_delegates_to_dotnet_new_when_installed()
     {
         var (console, _, runner, command) = Build();
         runner.CaptureResult = new ProcessResult(0, "These templates matched: rask-server, rask-wasm…", string.Empty);
 
-        var exit = await command.ExecuteAsync(["MobileApp", "--template", "native"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["HostedApp", "--template", "wasm-hosted"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.DoesNotContain(runner.Invocations, i => !i.Captured && i.Arguments.Contains("install"));
-        Assert.Equal(["new", "rask-native", "--name", "MobileApp"], runner.LastRun!.Arguments);
+        Assert.Equal(["new", "rask-wasm-hosted", "--name", "HostedApp"], runner.LastRun!.Arguments);
         Assert.Empty(console.ErrorText);
     }
 
@@ -105,12 +164,12 @@ public sealed class NewCommandTests
         var (_, _, runner, command) = Build();
         runner.CaptureResult = new ProcessResult(0, "No templates installed.", string.Empty);
 
-        var exit = await command.ExecuteAsync(["MobileApp", "--template", "native"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["HostedApp", "--template", "wasm-hosted"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var runs = runner.Invocations.Where(i => !i.Captured).ToArray();
         Assert.Equal(["new", "install", "Rask.Templates"], runs[0].Arguments);
-        Assert.Equal(["new", "rask-native", "--name", "MobileApp"], runs[1].Arguments);
+        Assert.Equal(["new", "rask-wasm-hosted", "--name", "HostedApp"], runs[1].Arguments);
     }
 
     [Fact]
