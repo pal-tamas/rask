@@ -160,10 +160,104 @@ public sealed class ProjectGeneratorTests
         bool auth = false, bool pwa = false, bool cqrs = false, bool docker = false)
     {
         var result = ProjectGenerator.GenerateServer(Root, "App", auth, pwa, cqrs, docker, Version);
-        var files = result.Files.ToDictionary(
+        return (Index(result), result);
+    }
+
+    private static Dictionary<string, string> Index(ScaffoldResult result) =>
+        result.Files.ToDictionary(
             f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
             f => f.Content,
             StringComparer.Ordinal);
-        return (files, result);
+
+    // ---- wasm template ----
+
+    private static readonly string[] WasmAlwaysPresent =
+    [
+        "App.csproj", "Program.cs", "App.cs", "HomePage.cs", "HomePage.css", "Counter.cs",
+        "Weather.cs", "WeatherForecast.cs", "LocalWeatherForecastService.cs",
+        "wwwroot/index.html", "runtimeconfig.template.json", "README.md", "AGENTS.md",
+    ];
+
+    [Fact]
+    public void Wasm_base_emits_core_files_and_the_wasm_packages()
+    {
+        var result = ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: false, Version);
+        var files = Index(result);
+
+        foreach (var expected in WasmAlwaysPresent)
+        {
+            Assert.True(files.ContainsKey(expected), $"expected {expected} to be generated");
+        }
+
+        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
+        Assert.Contains("Microsoft.NET.Sdk.WebAssembly", files["App.csproj"], StringComparison.Ordinal);
+        // A standalone SPA never carries the auth/pwa/docker opt-ins by default.
+        Assert.DoesNotContain("Auth/Auth.cs", files.Keys);
+        Assert.DoesNotContain("wwwroot/icon.svg", files.Keys);
+        Assert.DoesNotContain("Dockerfile", files.Keys);
+    }
+
+    [Fact]
+    public void Wasm_auth_adds_the_jwt_files_and_the_framework_package_refs()
+    {
+        var on = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: true, pwa: false, docker: false, Version));
+        Assert.True(on.ContainsKey("Auth/Auth.cs"));
+        Assert.True(on.ContainsKey("Auth/LoginPage.cs"));
+        Assert.True(on.ContainsKey("Auth/MembersPage.cs"));
+        // WASM has no Microsoft.AspNetCore.App framework ref, so the JWT scaffold pins these directly.
+        Assert.Contains("<PackageReference Include=\"Microsoft.JSInterop\"", on["App.csproj"], StringComparison.Ordinal);
+        Assert.Contains("<PackageReference Include=\"Microsoft.AspNetCore.Authorization\"", on["App.csproj"], StringComparison.Ordinal);
+
+        var off = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: false, Version));
+        Assert.DoesNotContain("Auth/Auth.cs", off.Keys);
+        Assert.DoesNotContain("<PackageReference Include=\"Microsoft.JSInterop\"", off["App.csproj"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Wasm_pwa_and_docker_toggle_their_files()
+    {
+        var pwa = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: true, docker: false, Version));
+        Assert.True(pwa.ContainsKey("wwwroot/icon.svg"));
+        Assert.Contains("serviceWorker", pwa["wwwroot/index.html"], StringComparison.Ordinal);
+
+        var noPwa = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: false, Version));
+        Assert.DoesNotContain("serviceWorker", noPwa["wwwroot/index.html"], StringComparison.Ordinal);
+
+        var docker = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: true, Version));
+        Assert.True(docker.ContainsKey("Dockerfile"));
+        Assert.True(docker.ContainsKey("nginx.conf"));
+        Assert.True(docker.ContainsKey(".dockerignore"));
+    }
+
+    [Theory]
+    [MemberData(nameof(WasmFlagCombinations))]
+    public void Every_wasm_flag_combination_holds_the_invariants(bool auth, bool pwa, bool docker)
+    {
+        var result = ProjectGenerator.GenerateWasm(Root, "App", auth, pwa, docker, Version);
+        var files = Index(result);
+
+        foreach (var expected in WasmAlwaysPresent)
+        {
+            Assert.True(files.ContainsKey(expected), $"[{auth},{pwa},{docker}] missing {expected}");
+        }
+
+        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
+        Assert.Equal(auth, files.ContainsKey("Auth/Auth.cs"));
+        Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
+        Assert.Equal(docker, files.ContainsKey("Dockerfile"));
+
+        foreach (var content in files.Values)
+        {
+            Assert.DoesNotContain("Company.RaskServer", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("Company.RaskWasm", content, StringComparison.Ordinal);
+        }
+    }
+
+    public static IEnumerable<object[]> WasmFlagCombinations()
+    {
+        for (var mask = 0; mask < 8; mask++)
+        {
+            yield return [(mask & 1) != 0, (mask & 2) != 0, (mask & 4) != 0];
+        }
     }
 }

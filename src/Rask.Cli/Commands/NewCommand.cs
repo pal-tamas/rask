@@ -76,17 +76,17 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return 1;
         }
 
-        // The server template is generated directly by the CLI. Other templates are ported incrementally;
-        // until then they still go through dotnet new + Rask.Templates.
-        if (template.Key == "server")
+        // Ported templates are generated directly by the CLI. The rest still go through dotnet new +
+        // Rask.Templates until their generators land.
+        if (template.Key is "server" or "wasm")
         {
-            return await GenerateServerAsync(name, parsed.Option("output"), requestedFlags, cancellationToken).ConfigureAwait(false);
+            return await GenerateDirectAsync(template, name, parsed.Option("output"), requestedFlags, cancellationToken).ConfigureAwait(false);
         }
 
         return await DelegateToDotnetNewAsync(template, name, parsed.Option("output"), requestedFlags, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<int> GenerateServerAsync(string name, string? output, IReadOnlyList<string> flags, CancellationToken cancellationToken)
+    private async Task<int> GenerateDirectAsync(TemplateInfo template, string name, string? output, IReadOnlyList<string> flags, CancellationToken cancellationToken)
     {
         // rask new MyApp → ./MyApp/ ; --output overrides the destination directory.
         var targetDirectory = Scaffold.TargetDirectory(_workingDirectory, output, name);
@@ -98,15 +98,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         var version = ResolvePackageVersion(CliMetadata.Version);
-        var result = ProjectGenerator.GenerateServer(
-            targetDirectory, name,
-            auth: flags.Contains("auth"),
-            pwa: flags.Contains("pwa"),
-            cqrs: flags.Contains("cqrs"),
-            docker: flags.Contains("docker"),
-            version);
+        bool auth = flags.Contains("auth"), pwa = flags.Contains("pwa"), cqrs = flags.Contains("cqrs"), docker = flags.Contains("docker");
+        var result = template.Key switch
+        {
+            "wasm" => ProjectGenerator.GenerateWasm(targetDirectory, name, auth, pwa, docker, version),
+            _ => ProjectGenerator.GenerateServer(targetDirectory, name, auth, pwa, cqrs, docker, version),
+        };
 
-        Console.Out.WriteLine($"Creating Rask server app '{name}'…");
+        Console.Out.WriteLine($"Creating {template.DisplayName} '{name}'…");
         foreach (var file in result.Files)
         {
             var directory = Path.GetDirectoryName(file.Path);
