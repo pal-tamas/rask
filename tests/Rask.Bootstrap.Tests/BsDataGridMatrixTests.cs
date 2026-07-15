@@ -42,9 +42,6 @@ public class BsDataGridMatrixTests
         },
     ];
 
-    private static string[] ClickHandlers(string html) =>
-        Regex.Matches(html, "data-rask-on-click=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToArray();
-
     private static string[] BodyCells(string html, int column)
     {
         var body = Regex.Match(html, "<tbody>(.*?)</tbody>", RegexOptions.Singleline).Groups[1].Value;
@@ -78,7 +75,7 @@ public class BsDataGridMatrixTests
             Data: All.AsQueryable(), Columns: Columns(), PageSize: 5,
             Sort: null, OnSortChange: s => asked.Add(s))));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]);
 
         Assert.Equal(new DataGridSort("name", false), Assert.Single(asked));
         // The caller owns the sort and hasn't changed it, so the query's own order stands.
@@ -126,7 +123,7 @@ public class BsDataGridMatrixTests
             Id: "g", Data: All.AsQueryable(), Columns: Columns(), PageSize: 2,
             RowKey: r => r.Id, ExpandedContent: r => Div()[$"detail-{r.Name}"])));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[2]); // first row's expander
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]); // first row's expander
 
         Assert.Contains("<div>detail-Banana</div>", html);
         Assert.Contains("aria-expanded=\"true\"", html);
@@ -164,7 +161,7 @@ public class BsDataGridMatrixTests
         var host = RaskTest.Render(new QueryFilterHost());
         Assert.Equal(5, BodyCells(host.Html, 0).Length);
 
-        var html = await host.InvokeAsync(ClickHandlers(host.Html)[0]); // flip the filter
+        var html = await host.InvokeAsync(host.HandlerIds("click")[0]); // flip the filter
 
         Assert.Equal(["Date", "Elderberry"], BodyCells(html, 0)); // 9, 7
     }
@@ -282,8 +279,8 @@ public class BsDataGridMatrixTests
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
             Id: "g", Data: All, Columns: Columns(), ExpandedContent: r => Div()[$"detail-{r.Name}"])));
 
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[2]);            // open row 0 (Banana)
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]); // sort by Name -> Apple is row 0
+        await grid.InvokeAsync(grid.HandlerIds("click")[2]);            // open row 0 (Banana)
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]); // sort by Name -> Apple is row 0
 
         Assert.Contains("<div>detail-Apple</div>", html);   // the position stayed open...
         Assert.DoesNotContain("<div>detail-Banana</div>", html); // ...not the row

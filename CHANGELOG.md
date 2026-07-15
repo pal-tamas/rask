@@ -19,6 +19,11 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Changed
+- **The `BsDataGrid` suites drive their clicks through `Rask.Testing`'s public API.** They were the proof that
+  the package's first-match-only helpers weren't enough: each of the four files carried its own copy of a
+  `Regex` that scraped handler ids out of the markup. They now use `grid.HandlerIds("click")[n]` (and
+  `Markup.Attrs` for markup held as a string), and the duplicated helper is gone. Test-only; no assertion in
+  the diff changed, and the suite still catches a deliberately broken sort.
 - **Rask's own test helpers build on `Rask.Testing` instead of duplicating it.** `Rask.TestSupport`'s
   `Markup.Attr` was a character-for-character copy of the package's scanner — two implementations of one
   algorithm, already at risk of drifting apart. The duplicate is deleted: `Markup.Attr`/`Attrs` now come from
