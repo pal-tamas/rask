@@ -19,6 +19,16 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Changed
+- **The validation suites are the first to run on nothing but the shipped package.**
+  `Rask.Validation.{DataAnnotations,FluentValidation}.Tests` now use `RaskTest.Render` + `EditContextProbe`
+  instead of `StubComponent`/`RenderAsLiveRoot`/`ContextCapture`, and they no longer need `Rask.TestSupport`
+  **or** `Rask.Core`'s internals — both `InternalsVisibleTo` entries are removed. They reference the package
+  and the validator under test, exactly like an app author's test project would, which is the proof that a
+  Rask validation package is testable from outside.
+  Their `RegisterValidator` helper used to hand-push an `EditContextScope` — a mechanism that is `internal`,
+  that only `Form` ever pushes, and that therefore no consumer could reach. It now renders a real `Form`, so
+  the suites cover the actual registration path rather than an approximation of it. Test-only; no assertion
+  changed and the suites still catch a validator that drops its service snapshot.
 - **The `BsDataGrid` suites drive their clicks through `Rask.Testing`'s public API.** They were the proof that
   the package's first-match-only helpers weren't enough: each of the four files carried its own copy of a
   `Regex` that scraped handler ids out of the markup. They now use `grid.HandlerIds("click")[n]` (and

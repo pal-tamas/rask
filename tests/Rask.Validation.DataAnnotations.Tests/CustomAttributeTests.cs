@@ -1,10 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
-using Rask.Core;
 using Rask.Core.Forms;
-using Rask.Core.Live;
-
-#pragma warning disable RASK014 // test-only NoOpRoot subclass has no generated factory
 
 namespace Rask.Validation.DataAnnotations.Tests;
 
@@ -13,8 +9,8 @@ namespace Rask.Validation.DataAnnotations.Tests;
 //   • IsValid(object?) overrides fire and produce per-field messages.
 //   • GetValidationResult(object?, ValidationContext) overrides can read ObjectInstance
 //     (cross-field) and MemberName (per-field path).
-//   • ValidationContext.GetService<T>() resolves from the render-scoped LiveRenderContext.Services
-//     when one is active, and degrades to null otherwise (ASP.NET Core parity).
+//   • ValidationContext.GetService<T>() resolves from the services the render was given, and
+//     degrades to null when there are none (ASP.NET Core parity).
 public class CustomAttributeTests
 {
     [Fact]
@@ -80,18 +76,13 @@ public class CustomAttributeTests
     {
         // [Banned] resolves IBannedWords from ValidationContext.GetService — proves the
         // render-scoped IServiceProvider flows through ValidationContext construction. The
-        // validator snapshots LiveRenderContext.Current?.Services at registration time (which
-        // is the Render() pass), so the live context must be active around RegisterValidator,
-        // NOT around Validate (handler invocation doesn't re-enter LiveRenderContext, just
-        // like the production path).
+        // validator snapshots the render's services at registration time (which is the Render()
+        // pass), so they have to be supplied to the render — not around Validate, which doesn't
+        // re-enter a render context, just like the production path.
         var sp = new StubServices(new BannedWords("admin", "root"));
         var m = new Account { Username = "admin", Password = "Strong1Pass", ConfirmPassword = "Strong1Pass" };
 
-        EditContext ctx;
-        using (LiveRenderContext.Begin(new NoOpRoot(), sp))
-        {
-            ctx = RegisterValidator(m);
-        }
+        var ctx = RegisterValidator(m, sp);
 
         ctx.Validate();
 
@@ -112,11 +103,6 @@ public class CustomAttributeTests
         ctx.Validate();
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(Account.Username))));
-    }
-
-    private sealed class NoOpRoot : Component
-    {
-        protected override Component? Render() => null;
     }
 
     private sealed class StubServices : IServiceProvider
