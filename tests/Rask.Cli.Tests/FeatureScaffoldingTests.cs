@@ -117,8 +117,8 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useTests = false, string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useSoftDelete, useConcurrency, useTests, context, plural, outputOverride: null);
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useEvents = false, bool useTests = false, string? context = null, string? plural = null) =>
+        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useSoftDelete, useConcurrency, useEvents, useTests, context, plural, outputOverride: null);
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -191,7 +191,7 @@ public sealed class FeatureGeneratorTests
     public void Assignments_are_this_qualified_so_a_lowercase_field_does_not_self_assign()
     {
         var entity = FeatureGenerator.RenderEntity("MyApp.Features.Notes", "Note",
-            [new FieldSpec("title", "string", false, 200)], "Guid", useValueObjects: false, useSoftDelete: false, useConcurrency: false);
+            [new FieldSpec("title", "string", false, 200)], "Guid", useValueObjects: false, useSoftDelete: false, useConcurrency: false, useEvents: false);
 
         Assert.Contains("this.title = title;", entity, StringComparison.Ordinal);
         Assert.DoesNotContain("\n        title = title;", entity, StringComparison.Ordinal); // not a self-assignment
@@ -379,6 +379,34 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Events_raise_domain_events_and_emit_records_plus_a_handler_stub()
+    {
+        var result = Generate(useEvents: true);
+
+        // Typed event records + a sample handler (auto-registered by AddRaskCqrs).
+        var events = File(result, "ProductEvents.cs");
+        Assert.Contains("public sealed record ProductCreated(Guid Id) : INotification;", events, StringComparison.Ordinal);
+        Assert.Contains("public sealed record ProductUpdated(Guid Id) : INotification;", events, StringComparison.Ordinal);
+        Assert.Contains("public sealed record ProductDeleted(Guid Id) : INotification;", events, StringComparison.Ordinal);
+        Assert.Contains("INotificationHandler<ProductCreated>", File(result, "ProductCreatedHandler.cs"), StringComparison.Ordinal);
+
+        // The aggregate raises them; the interceptor (Rask.Data) publishes after commit.
+        var entity = File(result, "Product.cs");
+        Assert.Contains("entity.Raise(new ProductCreated(entity.Id));", entity, StringComparison.Ordinal);
+        Assert.Contains("Raise(new ProductUpdated(Id));", entity, StringComparison.Ordinal);
+        Assert.Contains("public void RaiseDeleted() => Raise(new ProductDeleted(Id));", entity, StringComparison.Ordinal);
+        Assert.Contains("entity.RaiseDeleted();", File(result, "DeleteProduct.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Without_events_no_event_records_or_raise_calls()
+    {
+        var result = Generate();
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) is "ProductEvents.cs" or "ProductCreatedHandler.cs");
+        Assert.DoesNotContain("Raise(", File(result, "Product.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Mutation_pages_handle_errors_gracefully_with_an_inline_alert()
     {
         var create = File(Generate(), "CreateProduct.cs");
@@ -434,7 +462,7 @@ public sealed class FeatureGeneratorTests
     public void Plural_override_drives_names_and_route()
     {
         var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useSoftDelete: false, useConcurrency: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
+            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useSoftDelete: false, useConcurrency: false, useEvents: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);

@@ -24,6 +24,7 @@ internal static class FeatureGenerator
         bool useModal,
         bool useSoftDelete,
         bool useConcurrency,
+        bool useEvents,
         bool useTests,
         string? contextOverride,
         string? pluralOverride,
@@ -48,7 +49,7 @@ internal static class FeatureGenerator
             ("__FORMFIELDS__", FormFields(entityName, fields, useValueObjects, useBs, useConcurrency)), ("__COPYTOFORM__", CopyToForm(fields, useValueObjects, useConcurrency)),
             ("__CONFIGPROPS__", ConfigProperties(entityName, fields, useValueObjects)),
             ("__VALIDATOR__", FormValidator(entityName, validation)),
-            ("__DELETEBODY__", DeleteHandlerBody(plural)),
+            ("__DELETEBODY__", DeleteHandlerBody(plural, useEvents)),
             ("__ERRORALERT__", ErrorAlert(useBs)),
             ("__LISTQUERY__", ListQuery(plural, entityName, context, useSoftDelete)),
             ("__LISTLOADARG__", useSoftDelete ? "_showDeleted" : ""),
@@ -63,7 +64,7 @@ internal static class FeatureGenerator
         var listTemplate = useModal ? BsModalListTemplate : useBs ? BsListPageTemplate : ListPageTemplate;
         var files = new List<ScaffoldFile>
         {
-            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete, useConcurrency)),
+            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete, useConcurrency, useEvents)),
             new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields, validation, useConcurrency)),
             new(Path.Combine(targetDirectory, entityName + "Configuration.cs"), Apply(ConfigurationTemplate, tokens)),
             new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(listTemplate, tokens)),
@@ -81,6 +82,14 @@ internal static class FeatureGenerator
         if (useSoftDelete)
         {
             files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Restore" + entityName + ".cs"), Apply(useBs ? BsRestoreTemplate : RestoreTemplate, tokens)));
+        }
+
+        // --events: typed domain-event records (INotification) + a sample handler stub. The aggregate raises
+        // them; Rask.Data's DomainEventInterceptor publishes them in-process after the change commits.
+        if (useEvents)
+        {
+            files.Add(new ScaffoldFile(Path.Combine(targetDirectory, entityName + "Events.cs"), RenderEvents(ns, entityName, idType)));
+            files.Add(new ScaffoldFile(Path.Combine(targetDirectory, entityName + "CreatedHandler.cs"), Apply(EventHandlerTemplate, tokens)));
         }
 
         // valueobjects mode: one value object per required-string field, each owning its validation.
@@ -150,12 +159,14 @@ internal static class FeatureGenerator
     // so every delete flows through Rask.Data's interceptors: a --soft-delete entity is rewritten to a
     // DeletedAt stamp, audit/version columns update, and domain events fire — all of which ExecuteDelete
     // would bypass.
-    private static string DeleteHandlerBody(string plural) =>
+    private static string DeleteHandlerBody(string plural, bool useEvents) =>
         $"        var entity = await db.{plural}.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);\n"
             + "        if (entity is null)\n"
             + "        {\n"
             + "            return;\n"
             + "        }\n\n"
+            // Raise the Deleted event while the entity is still tracked (the interceptor collects it pre-save).
+            + (useEvents ? "        entity.RaiseDeleted();\n" : "")
             + $"        db.{plural}.Remove(entity);\n"
             + "        await db.SaveChangesAsync(cancellationToken);";
 
@@ -259,7 +270,7 @@ internal static class FeatureGenerator
     private static string EntityPropertyType(string entity, FieldSpec f, bool useValueObjects) =>
         IsValueObject(f, useValueObjects) ? ValueObjectName(entity, f) : f.PropertyType;
 
-    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects, bool useSoftDelete, bool useConcurrency)
+    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects, bool useSoftDelete, bool useConcurrency, bool useEvents)
     {
         var sb = new StringBuilder();
         sb.Append("namespace ").Append(ns).Append(";\n\n");
@@ -318,12 +329,43 @@ internal static class FeatureGenerator
 
         var createParams = string.Join(", ", fields.Select(f => $"{f.PropertyType} {Identifiers.ToCamelCase(f.Name)}"));
         var createArgs = string.Join(", ", fields.Select(f => WrapPrimitive(entity, f, useValueObjects)));
-        sb.Append("\n    public static ").Append(entity).Append(" Create(").Append(createParams).Append(") => new(").Append(createArgs).Append(");\n\n");
+        if (useEvents)
+        {
+            // --events: Create/Update/Delete raise domain events the DomainEventInterceptor publishes post-commit.
+            sb.Append("\n    public static ").Append(entity).Append(" Create(").Append(createParams).Append(")\n    {\n");
+            sb.Append("        var entity = new ").Append(entity).Append('(').Append(createArgs).Append(");\n");
+            sb.Append("        entity.Raise(new ").Append(entity).Append("Created(entity.Id));\n");
+            sb.Append("        return entity;\n    }\n\n");
+        }
+        else
+        {
+            sb.Append("\n    public static ").Append(entity).Append(" Create(").Append(createParams).Append(") => new(").Append(createArgs).Append(");\n\n");
+        }
 
         sb.Append("    public void Update(").Append(createParams).Append(")\n    {\n");
-        sb.Append(string.Join("\n", fields.Select(f => $"        this.{f.Name} = {WrapPrimitive(entity, f, useValueObjects)};"))).Append("\n    }\n}\n");
+        sb.Append(string.Join("\n", fields.Select(f => $"        this.{f.Name} = {WrapPrimitive(entity, f, useValueObjects)};")));
+        if (useEvents)
+        {
+            sb.Append("\n        Raise(new ").Append(entity).Append("Updated(Id));");
+        }
+
+        sb.Append("\n    }\n");
+
+        if (useEvents)
+        {
+            sb.Append("\n    public void RaiseDeleted() => Raise(new ").Append(entity).Append("Deleted(Id));\n");
+        }
+
+        sb.Append("}\n");
         return sb.ToString();
     }
+
+    // --events: the typed domain-event records (Id-only payload; INotification from Rask.Cqrs).
+    private static string RenderEvents(string ns, string entity, string idType) =>
+        $"namespace {ns};\n\n"
+        + $"public sealed record {entity}Created({idType} Id) : INotification;\n\n"
+        + $"public sealed record {entity}Updated({idType} Id) : INotification;\n\n"
+        + $"public sealed record {entity}Deleted({idType} Id) : INotification;\n";
 
     // Wrap a primitive parameter into its value object where the field has one, else pass it through.
     private static string WrapPrimitive(string entity, FieldSpec f, bool useValueObjects)
@@ -793,6 +835,27 @@ internal static class FeatureGenerator
             {
                 entity.HasKey(x => x.Id);
         __CONFIGPROPS__
+            }
+        }
+
+        """;
+
+    // --events: a sample notification handler so the extension point is obvious. Auto-registered by AddRaskCqrs().
+    private const string EventHandlerTemplate =
+        """
+        using Microsoft.Extensions.Logging;
+
+        namespace __NS__;
+
+        // A sample notification handler: reacts to __ENTITY__Created after the change commits (auto-registered
+        // by AddRaskCqrs()). Add handlers for __ENTITY__Updated / __ENTITY__Deleted, or extra reactions, the same way.
+        public sealed class __ENTITY__CreatedHandler(ILogger<__ENTITY__CreatedHandler> logger)
+            : INotificationHandler<__ENTITY__Created>
+        {
+            public Task HandleAsync(__ENTITY__Created notification, CancellationToken cancellationToken)
+            {
+                logger.LogInformation("__ENTITY__ {Id} created", notification.Id);
+                return Task.CompletedTask;
             }
         }
 
