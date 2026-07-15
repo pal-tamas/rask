@@ -54,32 +54,56 @@ report tooling is verified by running it, and CLAUDE.md's "unit-test every featu
 percentile maths and the error classifier are kept as small static classes so they are reviewable by eye.
 The gate itself is verified by deliberately breaking each invariant and checking it fails (see the PR).
 
-## The unexplained `mixed-ef` BUSY (open)
+## The `mixed-ef` BUSY: located, not yet fixed
 
-One sweep reported **2 escaped `SQLITE_BUSY` on `mixed-ef` @ 128 VUs in ~542,000 operations (0.0004%)**. It
-has never recurred and is **not root-caused**. Recorded here rather than dropped, because the honest status
-is "one unexplained observation", not "fixed".
+`mixed-ef` @ 128 VUs occasionally escapes `SQLITE_BUSY` (first seen: 2 in ~542,000 ops). **The cause is
+known. The fix is not.** Do not treat the retry-enabled EF path as proven airtight under mixed load.
 
-The one hard constraint: **that run was 15s and the arm's retry budget is 30s**, so the strategy cannot have
-exhausted its budget. It either gave up early or never saw the exception. Note the same sweep also produced
-the only occurrence of the `raw-nonblocking` error burst below — two unrelated anomalies in one run, neither
-seen before or since, which is itself evidence about that run rather than about the library.
+### Where it comes from
 
-Ruled out, each with a committed regression test in `tests/Rask.SQLite.EntityFrameworkCore.Tests`:
+Reproduce it by forcing blocking gen2 collections inside the measured window (pauses lengthen lock holds and
+widen the window); at 128 VUs it hits roughly **1 run in 6**. The stack is unambiguous:
 
-| Hypothesis | Verdict |
+```
+at Microsoft.Data.Sqlite.SqliteException.ThrowExceptionForRC(...)
+at Microsoft.Data.Sqlite.SqliteConnection.Deactivate()
+at Microsoft.Data.Sqlite.SqliteConnection.Close()
+```
+
+The exception is **not** thrown by the query or by `SaveChanges`. It comes out of
+`SqliteConnection.Close()` — Microsoft.Data.Sqlite's cleanup as a pooled connection is released, which runs
+when the `DbContext` is disposed, *after* the caller's work has already committed.
+
+That accounts for every otherwise-contradictory fact:
+
+- **A 15s run cannot exhaust a 30s retry budget.** It doesn't need to: connection teardown is not a command,
+  so no `IExecutionStrategy` covers it and *nothing retries it*.
+- **It needs `configureRetry`.** That is what sets `busy_timeout=0`. With the 5000 ms default the cleanup
+  simply waits the lock out; at 0 it throws instantly.
+- **It needs reads and writes.** A context per operation churns pooled connections fast while writers hold
+  the lock.
+
+**This is a real defect, not a harness artifact:** `UseRaskSqlite(configureRetry: …)` can throw
+`database is locked` out of *disposing* a `DbContext` under contention — after the work succeeded.
+
+### What has been tried
+
+| Attempt | Result |
 |---|---|
-| `PRAGMA journal_mode=WAL` (lock-taking) runs on every open via the interceptor, and `configureRetry` sets `busy_timeout=0`, removing the wait that the pragma ordering exists to provide | **No.** `RaskSqliteOpenUnderLockTests` — opening and reading while another connection holds the write lock does not throw. `journal_mode=WAL` only needs the exclusive lock when it *changes* the mode; on an already-WAL database it is a no-op. |
-| The measurement deadline cancels an op mid-retry, and the harness misreads the result as an escaped BUSY (2 ≈ the ops in flight at 128 VUs) | **No.** `RaskSqliteCancelledRetryTests` — a cancelled retrying `SaveChanges` throws `OperationCanceledException` at the top level, which the classifier scores as `Cancelled`, not `Busy`. |
+| `PRAGMA journal_mode=WAL` (lock-taking) racing on every open | **Not it** — `RaskSqliteOpenUnderLockTests`. It only takes the exclusive lock when it *changes* mode; on an already-WAL database it is a no-op. |
+| The measurement deadline cancelling an op mid-retry, misread as an escape | **Not it** — `RaskSqliteCancelledRetryTests`. A cancelled retrying `SaveChanges` throws `OperationCanceledException` at the top level, scored `Cancelled`. |
+| **Candidate fix:** restore a native `busy_timeout` in a `ConnectionClosing` interceptor hook, so teardown can wait the lock out while commands keep `busy_timeout=0` | **Reduces but does not eliminate** — ~1 affected run in 42 vs ~1 in 6. Not shipped: a partial fix that still throws is worse than an accurate note, because it stops the next person looking. It presumably misses a close path (pool eviction, or a dispose that never raises `ConnectionClosing`). |
 
-Not reproduced by: ~2.1M targeted `mixed-ef` @ 128 VU operations (8x the original exposure), a full `all`
-sweep, and 3x (pinned-WAL soak -> `mixed-ef` @ 128) to recreate the original sequence.
+No deterministic reproduction yet. Both attempts failed — a single context writing and then disposing under a
+held lock does **not** throw (200 iterations), and neither does raw Microsoft.Data.Sqlite connection churn
+with `busy_timeout=0` against a held write lock. Whatever makes the driver's cleanup need the lock is
+conditional and still unidentified; that condition is the next thing to find.
 
-If you see it again, the harness now prints the exception's **extended** result code and full chain
-(`first error was rc=5/ext=...`). That extended code is the thread to pull: it separates plain `SQLITE_BUSY`
-from `SQLITE_BUSY_SNAPSHOT` (an unretryable deferred read-then-write upgrade) and `SQLITE_BUSY_RECOVERY` (a
-WAL/-shm recovery race at open) — which have different causes and different fixes.
+### If you pick this up
 
-- The harness has also once logged a burst of non-busy errors on `raw-nonblocking` mid-sweep, in that same
-  sweep, that no later run reproduced. It predates the current error reporting, so its exception was never
-  captured.
+The harness prints the exception's **extended** result code and full chain (`first error was rc=5/ext=…`).
+The open question is narrow: **what does `SqliteConnection.Deactivate()` execute that needs the write lock,
+and under what condition?** Answer that and the fix follows.
+
+- The harness also once logged a burst of non-busy errors on `raw-nonblocking` mid-sweep that no later run
+  reproduced. It predates the current error reporting, so its exception was never captured.
