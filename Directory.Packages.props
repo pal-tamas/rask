@@ -35,7 +35,27 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.61.0" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
-    <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.11" />
+    <!--
+      SQLitePCLRaw is held at the 3.x family deliberately, ahead of what Microsoft.Data.Sqlite and
+      Microsoft.EntityFrameworkCore.Sqlite ask for (they still pin the 2.1.11 family).
+
+      Why: 2.1.11's SQLitePCLRaw.lib.e_sqlite3 bundles SQLite 3.49.1, which is vulnerable to
+      CVE-2025-6965 (GHSA-2m69-gcr7-jv3q, memory corruption; fixed in SQLite 3.50.2). The 3.x family
+      drops lib.e_sqlite3 entirely in favour of SourceGear.sqlite3, which carries SQLite 3.50.4 — so
+      moving the family off 2.1.x removes the vulnerable package rather than version-bumping around it.
+
+      How: every project with a direct Microsoft.Data.Sqlite / EF Core Sqlite reference also references
+      SQLitePCLRaw.bundle_e_sqlite3 explicitly. A direct reference is the only lever that lifts these —
+      CentralPackageTransitivePinning does NOT move them, and a PackageVersion alone only binds the
+      projects that already reference the package directly, which would split the family across majors.
+
+      Compatibility is verified, not assumed: Microsoft.Data.Sqlite 10.0.10 is built against
+      SQLitePCLRaw.core 2.x (AssemblyVersion 2.0.0.0; core 3.x is 8.0.0.0), but .NET resolves these by
+      simple name, and the SQLite suites pass against the 3.x family. `select sqlite_version()` through
+      the real graph reports 3.50.4. Re-check that if this family moves again.
+    -->
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+    <PackageVersion Include="SQLitePCLRaw.core" Version="3.0.3" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.23" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />

@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+- **SQLite is no longer vulnerable to CVE-2025-6965 — the shipped native library moves from SQLite 3.49.1 to
+  3.50.4.** `Microsoft.Data.Sqlite` and EF Core Sqlite pin the SQLitePCLRaw `2.1.11` family, whose
+  `lib.e_sqlite3` bundles SQLite 3.49.1 — a memory-corruption flaw (`GHSA-2m69-gcr7-jv3q`, High; fixed in
+  SQLite 3.50.2) that reached every Rask SQLite package, the mobile heads included. Rask now references the
+  SQLitePCLRaw **3.x** bundle explicitly wherever SQLite is used; that family drops `lib.e_sqlite3` in favour
+  of `SourceGear.sqlite3` (SQLite 3.50.4), so the vulnerable package leaves the graph entirely rather than
+  being bumped around. The `NuGetAuditSuppress` that accepted this advisory is removed, and `dotnet list
+  package --vulnerable --include-transitive` is now clean across the solution. Verified end-to-end:
+  `select sqlite_version()` through the real graph reports `3.50.4`.
+
 ### Fixed
 - **The `Rask.Wasm` package never declared its `Microsoft.JSInterop` dependency.** The runtime uses JSInterop
   directly (`WasmJSRuntime`, `WasmLiveSession`, the typed `Browser/*` wrappers), but it only ever arrived
