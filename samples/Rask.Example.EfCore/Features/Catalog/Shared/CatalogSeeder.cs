@@ -18,10 +18,21 @@ public static class CatalogSeeder
             return;
         }
 
+        // Enough rows that the grid slice has something to page through — a pager over three rows proves
+        // nothing.
         db.Products.AddRange(
             Product.Create("Mechanical keyboard", 89.00m, 12),
             Product.Create("27\" 4K monitor", 329.00m, 5),
-            Product.Create("USB-C hub", 39.50m, 40));
+            Product.Create("USB-C hub", 39.50m, 40),
+            Product.Create("Noise-cancelling headphones", 279.00m, 0),
+            Product.Create("Ergonomic chair", 349.00m, 3),
+            Product.Create("Standing desk", 599.00m, 7),
+            Product.Create("Bookshelf speakers", 199.00m, 9),
+            Product.Create("Trackball mouse", 69.00m, 41),
+            Product.Create("Monitor arm", 119.00m, 15),
+            Product.Create("Desk lamp", 39.00m, 51),
+            Product.Create("Webcam", 129.00m, 22),
+            Product.Create("Laptop stand", 49.00m, 33));
 
         await db.SaveChangesAsync();
     }

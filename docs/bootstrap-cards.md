@@ -13,8 +13,8 @@ BsCard(Class: Bs.Join(Shadow.Sm))[
 BsListGroup()[ BsListGroupItem()["One"], BsListGroupItem(Active: true)["Two"] ]
 ```
 
-For a fully featured data grid with sorting/paging, the package also ships `BsDataGrid` and the
-layout primitive `BsBlock`.
+Outgrown `BsTable`? [`BsDataGrid<T>`](data-grid.md) adds typed columns, click-to-sort headers, paging,
+footer totals and master-detail rows.
 
 ## Live example
 

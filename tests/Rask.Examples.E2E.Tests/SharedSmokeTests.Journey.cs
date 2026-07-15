@@ -67,6 +67,7 @@ public abstract partial class SharedSmokeTests
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
         await WalkBootstrapGuideAsync();
+        await WalkDataGridGuideAsync();
         await TestGuidesAsync();
 
         await TestInSessionNotFoundAsync();
@@ -528,6 +529,105 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25 14:45",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Page.Locator(".dropdown:has(#pick-datetime) .position-fixed").DispatchEventAsync("click");
+    }
+
+    // The data-grid guide (docs/data-grid.md). BsDataGrid is the showcase's most stateful component, and its
+    // sort/page/expand transitions are unit-tested in BsDataGridInteractionTests; what only a browser proves is
+    // that those transitions survive the real live morph over each host's transport (Server WS / WASM
+    // JSImport) — a re-ordered <tbody> and a keyed detail-row insert are exactly where a diff bug would hide.
+    protected async Task WalkDataGridGuideAsync()
+    {
+        // The heading match is case-sensitive; this page's h1 is just "Data grid" (the Bootstrap group pages
+        // read "Bootstrap — buttons & badges", which is why those walks assert lowercase).
+        await SideAsync("Data grid", "Data grid", "main .markdown-body h1");
+
+        // === Sorting — clicking a header re-orders the rows in the real DOM and flips aria-sort. ===
+        var demo = Page.Locator("#grid-demo");
+        var grid = Page.Locator("#bs-grid");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        await Expect(grid.Locator("th[aria-sort='ascending']")).ToHaveCountAsync(0);
+
+        var before = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        var productHeader = grid.Locator("th:has-text('Product')").First;
+        await productHeader.Locator("button").ClickAsync();
+        await Expect(productHeader).ToHaveAttributeAsync("aria-sort", "ascending",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+
+        var ascending = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        Assert.Equal(ascending.OrderBy(x => x, StringComparer.Ordinal), ascending);
+        Assert.NotEqual(before, ascending);
+
+        // A second click flips to descending. The grid is paged (5 of 12), so page 1 descending is the tail of
+        // the list reversed — NOT the reverse of page 1 ascending. Assert the order it actually claims.
+        await productHeader.Locator("button").ClickAsync();
+        await Expect(productHeader).ToHaveAttributeAsync("aria-sort", "descending",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        var descending = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        Assert.Equal(descending.OrderByDescending(x => x, StringComparer.Ordinal), descending);
+        Assert.NotEqual(ascending, descending);
+
+        // Only one column may claim a direction at a time.
+        await grid.Locator("th:has-text('Category') button").First.ClickAsync();
+        await Expect(grid.Locator("th[aria-sort='ascending']")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // === Paging — page 2 shows a DISJOINT slice, and the footer total spans the whole set, not the page.
+        //     A footer computed over the visible page would change here; it must not. ===
+        var footer = await grid.Locator("tfoot td").Last.InnerTextAsync();
+        var page1 = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        await demo.Locator(".pagination li button:has-text('2')").First.ClickAsync();
+        await Expect(demo.Locator(".pagination li:has(button:text-is('2'))")).ToHaveClassAsync(
+            new Regex("active"), new LocatorAssertionsToHaveClassOptions { Timeout = 15_000 });
+
+        var page2 = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        Assert.Empty(page2.Intersect(page1));
+        Assert.Equal(footer, await grid.Locator("tfoot td").Last.InnerTextAsync());
+
+        // Sorting returns to page 1 — otherwise the user lands mid-way through a list they just re-ordered.
+        await grid.Locator("th:has-text('Product') button").First.ClickAsync();
+        await Expect(demo.Locator(".pagination li:has(button:text-is('1'))")).ToHaveClassAsync(
+            new Regex("active"), new LocatorAssertionsToHaveClassOptions { Timeout = 15_000 });
+
+        // === Master-detail — the expander inserts a keyed detail <tr>; two can be open at once, and closing
+        //     one leaves the other untouched (the keyed-insert claim the live diff makes). ===
+        var detail = Page.Locator("#bs-grid-detail");
+        await Expect(detail).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        // The expanded detail renders a nested BsTable, so a bare "tbody tr" also counts its line rows. Only the
+        // grid's own rows are direct children of its tbody.
+        var outerRows = detail.Locator("> tbody > tr");
+        var collapsedRows = await outerRows.CountAsync();
+
+        var first = detail.Locator("> tbody > tr button[aria-expanded]").First;
+        await Expect(first).ToHaveAttributeAsync("aria-expanded", "false");
+        await first.ClickAsync();
+        await Expect(first).ToHaveAttributeAsync("aria-expanded", "true",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await Expect(outerRows).ToHaveCountAsync(collapsedRows + 1);
+        await Expect(detail.Locator("> tbody > tr > td[colspan]").First).ToBeVisibleAsync();
+
+        var second = detail.Locator("> tbody > tr button[aria-expanded]").Nth(1);
+        await second.ClickAsync();
+        await Expect(detail.Locator("> tbody > tr > td[colspan]")).ToHaveCountAsync(2,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(first).ToHaveAttributeAsync("aria-expanded", "true");
+
+        await first.ClickAsync();
+        await Expect(detail.Locator("> tbody > tr > td[colspan]")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // === Empty state — the placeholder replaces the whole table, and the grid comes back. ===
+        // The grid's Id lands on the <table> itself, so #bs-grid-empty IS the table: it disappears entirely
+        // when Empty takes over, rather than emptying out.
+        var emptyGrid = Page.Locator("#bs-grid-empty");
+        await Expect(emptyGrid).ToHaveCountAsync(1);
+        await Page.Locator("#grid-filter-none").ClickAsync();
+        await Expect(Page.Locator("#grid-empty")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Expect(emptyGrid).ToHaveCountAsync(0);
+
+        await Page.Locator("#grid-filter-clear").ClickAsync();
+        await Expect(emptyGrid).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
     }
 
     protected async Task WalkUserComponentsGuideAsync()
