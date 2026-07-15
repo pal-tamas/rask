@@ -16,26 +16,26 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Select_Controlled_OnChange_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsSelectDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsSelectDemo(), TestServices.Default());
+        var html = page.Render();
         Assert.Contains("Picked: <strong>Rask</strong>", html);
 
         var id = HandlerIn(html, "id=\"fc-select-controlled\"", "data-rask-on-change");
-        await host.TryInvokeHandlerAsync(id, Value("Blazor"));
+        await page.InvokeAsync(id, Value("Blazor"));
 
-        Assert.Contains("Picked: <strong>Blazor</strong>", host.RenderAsLiveRoot());
+        Assert.Contains("Picked: <strong>Blazor</strong>", page.Render());
     }
 
     [Fact]
     public async Task Select_Bound_OnChange_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsSelectDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsSelectDemo(), TestServices.Default());
+        var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-select-bound\"", "data-rask-on-change");
-        await host.TryInvokeHandlerAsync(id, Value("htmx"));
+        await page.InvokeAsync(id, Value("htmx"));
 
-        var html2 = host.RenderAsLiveRoot();
+        var html2 = page.Render();
         Assert.Contains("fc-select-bound-out", html2);
         Assert.Contains("Picked: <strong>htmx</strong>", html2);
     }
@@ -45,27 +45,27 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Input_Controlled_OnChange_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsInputDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsInputDemo(), TestServices.Default());
+        var html = page.Render();
         Assert.Contains("Echo: <strong>(empty)</strong>", html);
 
         var id = HandlerIn(html, "id=\"fc-input-controlled\"", "data-rask-on-change");
-        await host.TryInvokeHandlerAsync(id, Value("hello"));
+        await page.InvokeAsync(id, Value("hello"));
 
-        Assert.Contains("Echo: <strong>hello</strong>", host.RenderAsLiveRoot());
+        Assert.Contains("Echo: <strong>hello</strong>", page.Render());
     }
 
     [Fact]
     public async Task Input_Bound_OnInput_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsInputDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsInputDemo(), TestServices.Default());
+        var html = page.Render();
 
         // A bound text Input streams via data-rask-on-input (per keystroke); the change handler only touches.
         var id = HandlerIn(html, "id=\"fc-input-bound\"", "data-rask-on-input");
-        await host.TryInvokeHandlerAsync(id, Value("world"));
+        await page.InvokeAsync(id, Value("world"));
 
-        Assert.Contains("Echo: <strong>world</strong>", host.RenderAsLiveRoot());
+        Assert.Contains("Echo: <strong>world</strong>", page.Render());
     }
 
     // ---- Textarea ----
@@ -73,26 +73,26 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Textarea_Controlled_OnChange_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsTextareaDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsTextareaDemo(), TestServices.Default());
+        var html = page.Render();
         Assert.Contains("Length: <strong>0</strong>", html);
 
         var id = HandlerIn(html, "id=\"fc-textarea-controlled\"", "data-rask-on-change");
-        await host.TryInvokeHandlerAsync(id, Value("abcd"));
+        await page.InvokeAsync(id, Value("abcd"));
 
-        Assert.Contains("Length: <strong>4</strong>", host.RenderAsLiveRoot());
+        Assert.Contains("Length: <strong>4</strong>", page.Render());
     }
 
     [Fact]
     public async Task Textarea_Bound_OnInput_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsTextareaDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsTextareaDemo(), TestServices.Default());
+        var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-textarea-bound\"", "data-rask-on-input");
-        await host.TryInvokeHandlerAsync(id, Value("abc"));
+        await page.InvokeAsync(id, Value("abc"));
 
-        var html2 = host.RenderAsLiveRoot();
+        var html2 = page.Render();
         Assert.Contains("fc-textarea-bound-out", html2);
         Assert.Contains("Length: <strong>3</strong>", html2);
     }
@@ -102,28 +102,28 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Radio_Controlled_OnChange_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsRadioDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsRadioDemo(), TestServices.Default());
+        var html = page.Render();
         Assert.Contains("Plan: <strong>Free</strong>", html);
 
         // Controlled group renders first → first occurrence of value="Pro".
         var id = HandlerIn(html, "value=\"Pro\"", "data-rask-on-change");
-        await host.TryInvokeHandlerAsync(id, Value("true"));
+        await page.InvokeAsync(id, Value("true"));
 
-        Assert.Contains("Plan: <strong>Pro</strong>", host.RenderAsLiveRoot());
+        Assert.Contains("Plan: <strong>Pro</strong>", page.Render());
     }
 
     [Fact]
     public async Task Radio_Bound_OnChange_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsRadioDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsRadioDemo(), TestServices.Default());
+        var html = page.Render();
 
         // Bound group renders second → second occurrence of value="Team".
         var id = HandlerIn(html, "value=\"Team\"", "data-rask-on-change", skip: 1);
-        await host.TryInvokeHandlerAsync(id, Value("true"));
+        await page.InvokeAsync(id, Value("true"));
 
-        var html2 = host.RenderAsLiveRoot();
+        var html2 = page.Render();
         Assert.Contains("fc-radio-bound-out", html2);
         Assert.Contains("Plan: <strong>Team</strong>", html2);
     }
@@ -133,26 +133,26 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task Checkbox_Controlled_OnChange_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsCheckboxDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsCheckboxDemo(), TestServices.Default());
+        var html = page.Render();
         Assert.Contains("Interests: <strong>none</strong>", html);
 
         var id = HandlerIn(html, "value=\"AI\"", "data-rask-on-change");
-        await host.TryInvokeHandlerAsync(id, Value("true"));
+        await page.InvokeAsync(id, Value("true"));
 
-        Assert.Contains("Interests: <strong>AI</strong>", host.RenderAsLiveRoot());
+        Assert.Contains("Interests: <strong>AI</strong>", page.Render());
     }
 
     [Fact]
     public async Task Checkbox_Bound_OnChange_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsCheckboxDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsCheckboxDemo(), TestServices.Default());
+        var html = page.Render();
 
         var id = HandlerIn(html, "value=\"Mobile\"", "data-rask-on-change", skip: 1);
-        await host.TryInvokeHandlerAsync(id, Value("true"));
+        await page.InvokeAsync(id, Value("true"));
 
-        var html2 = host.RenderAsLiveRoot();
+        var html2 = page.Render();
         Assert.Contains("fc-checkbox-bound-out", html2);
         Assert.Contains("Interests: <strong>Mobile</strong>", html2);
     }
@@ -162,38 +162,35 @@ public sealed class FormControlsDemoTests
     [Fact]
     public async Task MultiSelect_Controlled_Select_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsMultiSelectDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsMultiSelectDemo(), TestServices.Default());
+        var html = page.Render();
         Assert.Contains("Selected: <strong>none</strong>", html);
 
         // Option buttons in order (News, Sports, Tech, …); controlled group first → Tech is index 2.
         var clicks = ClickIds(html, "dropdown-item");
-        await host.TryInvokeHandlerAsync(clicks[2], Empty());
+        await page.InvokeAsync(clicks[2]);
 
-        Assert.Contains("Selected: <strong>Tech</strong>", host.RenderAsLiveRoot());
+        Assert.Contains("Selected: <strong>Tech</strong>", page.Render());
     }
 
     [Fact]
     public async Task MultiSelect_Bound_Select_UpdatesReadout()
     {
-        var host = new LiveHost(() => FormControlsMultiSelectDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FormControlsMultiSelectDemo(), TestServices.Default());
+        var html = page.Render();
 
         // 5 controlled option buttons, then 5 bound → bound Tech is index 7.
         var clicks = ClickIds(html, "dropdown-item");
-        await host.TryInvokeHandlerAsync(clicks[7], Empty());
+        await page.InvokeAsync(clicks[7]);
 
-        var html2 = host.RenderAsLiveRoot();
+        var html2 = page.Render();
         Assert.Contains("fc-multiselect-bound-out", html2);
         Assert.Contains("Selected: <strong>Tech</strong>", html2);
     }
 
     // ---- helpers ----
 
-    private static JsonElement Value(string v) =>
-        JsonDocument.Parse($"{{\"value\":\"{v}\"}}").RootElement;
-
-    private static JsonElement Empty() => JsonDocument.Parse("{}").RootElement;
+    private static string Value(string v) => $"{{\"value\":\"{v}\"}}";
 
     // Returns the value of `attr` on the (skip-th) element tag that also contains `anchor`. Splitting on
     // '<' yields one element's attribute text per piece, so a match is scoped to a single tag.
