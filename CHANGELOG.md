@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask generate feature` entities inherit `Rask.Data`'s `AggregateRoot<TId>`, and `--soft-delete` is
+  new.** Every generated entity now inherits the base (Id + audit stamps + a domain-events buffer), the
+  generated `DbContext` calls `modelBuilder.ApplyRaskConventions()`, and the delete handler always
+  loads + `Remove`s (so it flows through the interceptors) instead of a set-based `ExecuteDelete`.
+  `--soft-delete` makes the entity `ISoftDeletable` (a `DeletedAt` stamp): deletes become soft deletes,
+  deleted rows drop out of the list behind a global query filter, and the list page gains a "Show deleted"
+  toggle + a generated `Restore<Entity>` command/button for deleted rows. Auto-NuGet + the next-steps add
+  `Rask.Data` + `AddRaskData()`. Every generated Create/Edit/modal page also now **handles errors
+  gracefully** — the submit try/catches and shows a friendly inline alert (`BsAlert` / `role="alert"`),
+  navigating only on success.
 - **Rask is now positioned as "the .NET One Person Framework".** A new [doctrine doc](docs/one-person-framework.md)
   and [roadmap](docs/roadmap.md) frame Rask as a full-stack, solo-developer framework — one C# codebase, one
   server, SQLite as the production database — with the UI reach (Server/WASM/native) and the lean runtime as
