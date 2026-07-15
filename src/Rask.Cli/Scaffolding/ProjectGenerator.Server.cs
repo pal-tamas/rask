@@ -12,16 +12,8 @@ internal static partial class ProjectGenerator
         {
             ($"{NameToken}.csproj", ServerCsproj(cqrs, version)),
             ("Program.cs", ServerProgram(auth, pwa, cqrs)),
-            ("App.cs", ServerApp(cqrs)),
-            ("HomePage.cs", HomePage),
-            ("HomePage.css", HomePageCss),
-            ("Counter.cs", CounterCs),
-            ("Weather.cs", WeatherCs),
-            ("WeatherForecast.cs", WeatherForecastCs),
-            ("LocalWeatherForecastService.cs", LocalWeatherServiceCs),
+            ("App.cs", AppCs),
             ("Properties/launchSettings.json", LaunchSettings),
-            ("README.md", ServerReadme),
-            ("AGENTS.md", ServerAgents),
         };
 
         if (auth)
@@ -29,12 +21,6 @@ internal static partial class ProjectGenerator
             files.Add(("Auth/CredentialStore.cs", AuthCredentialStore));
             files.Add(("Auth/LoginPage.cs", AuthLoginPage));
             files.Add(("Auth/MembersPage.cs", AuthMembersPage));
-        }
-
-        if (cqrs)
-        {
-            files.Add(("Cqrs/GreetingQuery.cs", CqrsGreetingQuery));
-            files.Add(("Cqrs/GreetingPage.cs", CqrsGreetingPage));
         }
 
         if (pwa)
@@ -103,7 +89,6 @@ internal static partial class ProjectGenerator
 
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
         sb.Append("builder.Services.AddRask();\n");
-        sb.Append("builder.Services.AddScoped<IWeatherForecastService, LocalWeatherForecastService>();\n");
 
         if (cqrs)
         {
@@ -197,58 +182,6 @@ internal static partial class ProjectGenerator
             """.TrimStart('\n'));
 
         return sb.ToString();
-    }
-
-    private static string ServerApp(bool cqrs)
-    {
-        var greetingNav = cqrs
-            ? """
-
-                            ,
-                            " | ",
-                            NavLink(GreetingPage())["Greeting"]
-                """.TrimEnd() + "\n"
-            : "";
-
-        return $$"""
-        using static Company.RaskServer.Routes;
-
-        namespace Company.RaskServer;
-
-        public sealed class App : Component
-        {
-            // App-level head contributions splice into the framework-managed <head>
-            // via the Component? Head override. Title is singleton — any page that
-            // overrides Head with its own Title supersedes this fallback for the tab.
-            protected override Component? Head => [
-                Title()["Company.RaskServer"],
-                Meta("utf-8"),
-                Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-                // Bootstrap 5.3 + Icons via Rask.Bootstrap (served from _content/Rask.Bootstrap).
-                BootstrapStyles()
-            ];
-
-            protected override Component? Render() =>
-                [
-                    Doctype(),
-                    Html("en")[
-                        Head(),
-                        Body()[
-                            Nav()[
-                                NavLink(HomePage())["Home"],
-                                " | ",
-                                NavLink(Counter())["Counter"],
-                                " | ",
-                                NavLink(Weather())["Weather"]{{greetingNav}}
-                            ],
-                            Hr(),
-                            Router()
-                        ]
-                    ]
-                ];
-        }
-
-        """;
     }
 
     private static string ServerNextSteps(string name, bool docker)
@@ -353,67 +286,6 @@ internal static partial class ProjectGenerator
 
         """;
 
-    private const string CqrsGreetingQuery =
-        """
-        using Rask.Cqrs;
-
-        namespace Company.RaskServer;
-
-        // A CQRS query and its handler. Rask.Cqrs discovers the handler at build time (source-generated,
-        // reflection-free) so a single AddRaskCqrs() in Program.cs registers it — no manual wiring here.
-        // Dispatch it with IDispatcher.DispatchAsync(new GreetingQuery(...)); the result type is inferred
-        // from IQuery<string>. Add more IQuery<T>/ICommand/ICommand<T> messages the same way. See docs/cqrs.md.
-        public sealed record GreetingQuery(string Name) : IQuery<string>;
-
-        public sealed class GreetingQueryHandler : IQueryHandler<GreetingQuery, string>
-        {
-            public Task<string> HandleAsync(GreetingQuery query, CancellationToken cancellationToken)
-            {
-                var name = string.IsNullOrWhiteSpace(query.Name) ? "world" : query.Name.Trim();
-                return Task.FromResult($"Hello, {name}!");
-            }
-        }
-
-        """;
-
-    private const string CqrsGreetingPage =
-        """
-        using Rask.Cqrs;
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer;
-
-        // Injects the umbrella IDispatcher and dispatches GreetingQuery — on mount, and again on each button
-        // click. The awaited dispatch re-renders this component automatically, so there's no StateHasChanged()
-        // by hand. This is the whole CQRS round-trip: a page sends a message, a handler (in
-        // Cqrs/GreetingQuery.cs) answers it, decoupled from the UI. See docs/cqrs.md.
-        [Route("/greeting")]
-        public sealed class GreetingPage(IDispatcher dispatcher) : Component
-        {
-            private static readonly string[] Names = ["world", "Ada", "Grace", "Linus"];
-            private int _index;
-            private string _greeting = "";
-
-            protected override async Task OnMountAsync() =>
-                _greeting = await dispatcher.DispatchAsync(new GreetingQuery(Names[_index]), CancellationToken);
-
-            private async Task GreetNextAsync()
-            {
-                _index = (_index + 1) % Names.Length;
-                _greeting = await dispatcher.DispatchAsync(new GreetingQuery(Names[_index]), CancellationToken);
-            }
-
-            protected override Component? Render() =>
-                [
-                    H1()["CQRS greeting"],
-                    P()["Each click dispatches a GreetingQuery through the mediator; a handler answers it."],
-                    P(Id: "greeting", Class: "fs-4 fw-semibold")[_greeting],
-                    BsButton(Color: BsColor.Primary, OnClickAsync: GreetNextAsync)["Greet the next name"]
-                ];
-        }
-
-        """;
-
     private const string Dockerfile =
         """
         # Multi-stage build: compile on the .NET SDK image, run on the smaller aspnet runtime.
@@ -467,75 +339,6 @@ internal static partial class ProjectGenerator
             </div>
         </body>
         </html>
-
-        """;
-
-    private const string ServerReadme =
-        """
-        # Company.RaskServer
-
-        A server-side [Rask](https://github.com/pal-tamas/rask) app. The browser holds a thin
-        client; renders and events flow over a WebSocket and Rask ships a minimal diff per update.
-
-        > Scaffolded with `rask new` — Rask is the .NET One Person Framework.
-        > For a client-side WebAssembly app instead, use `rask new --template wasm` (or `wasm-hosted`).
-
-        ## Run
-
-        ```bash
-        rask dev        # hot reload (or: dotnet run)
-        ```
-
-        Then open the printed URL.
-
-        ## Layout
-
-        - `Program.cs` — host wiring: `AddRask()` + `UseRask<App>()`.
-        - `App.cs` — the root component; renders the full page shell (`Doctype`/`Html`/`Head`/`Body`).
-        - `HomePage.cs` (+ `HomePage.css`) — a routed page with co-located scoped styles.
-        - `Counter.cs` — an interactive component.
-        - `Weather.cs` / `LocalWeatherForecastService.cs` — data via DI.
-
-        Add a full CRUD feature in one command: `rask generate feature Product --fields "Name:string,Price:decimal"`.
-
-        Next steps: the [Rask docs](https://github.com/pal-tamas/rask/tree/main/docs).
-
-        """;
-
-    private const string ServerAgents =
-        """
-        # AGENTS.md — building this app with an AI assistant
-
-        This is a **Rask** app. Rask is the .NET One Person Framework (a full-stack C# framework for .NET 10). This
-        file tells AI coding assistants the conventions so generated code compiles and runs. Full docs:
-        https://github.com/pal-tamas/rask/tree/main/docs
-
-        ## Mental model
-        - Components are **plain C# classes** deriving from `Component`. Override `Component? Render()`
-          and return a tree of HTML built with **generated factory methods** — no `.razor`, no JSX.
-        - The **same component code** runs server-rendered (live diff over WebSockets) or on WASM.
-
-        ## The rules that matter
-        - **Use factories, never `new`** for components: `Div(...)`, `Button(OnClick: ...)`. `new` outside the
-          framework is a compile error (RASK014).
-        - **Children go through the indexer**, not a constructor arg: `Div()[Span()["hi"], "text"]`. A bare
-          `string` becomes a text node; pass a list directly for collections: `Ul()[items]`. `..` spread does not work.
-        - **Props are factory parameters.** A nullable prop is optional; a non-nullable prop with no initializer is
-          **required**. Inject services through the **constructor**, not settable properties.
-        - **A page/root component renders the full shell**: `[Doctype(), Html(...)[Head(...), Body(...)]]` (RASK021).
-          The framework injects its runtime `<script>` automatically.
-        - **Text vs raw:** a bare string / `Text("..")` HTML-encodes; `Raw("..")` is verbatim (XSS risk).
-        - Route with `[Route("/users/{id:int}")]` + `[RouteParam]`/`[QueryParam]`. Lifecycle: `OnMount*`,
-          `OnPropsChanged*`, `OnRendered`, `OnUnmount*`. Navigate from event handlers via injected `Navigator`.
-
-        ## Scaffolding — use the `rask` CLI
-        - `rask generate page <Name>` / `rask generate component <Name>` scaffold a routed page / a component.
-        - `rask generate feature <Name> <field:type> …` emits a full CQRS + EF Core CRUD vertical slice (entity,
-          value objects, validation, list/create/edit pages, tests). Flags: `--bs`, `--modal`, `--soft-delete`,
-          `--concurrency`, `--events`, `--outbox`, `--tests`. See docs/cli.md.
-        - `rask dev` runs the app with hot reload; `rask new` scaffolds a project.
-
-        If you hit a `RASKxxx` compile error, see https://github.com/pal-tamas/rask/blob/main/docs/diagnostics.md
 
         """;
 }

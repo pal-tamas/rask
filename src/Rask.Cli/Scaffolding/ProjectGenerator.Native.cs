@@ -14,30 +14,24 @@ internal static partial class ProjectGenerator
     {
         var isLocal = string.Equals(host, "local", StringComparison.Ordinal);
 
-        // Shared files (both hosts): the multi-targeted csproj, both platform manifests, the iOS entry point,
-        // and the docs. The platform manifests carry an inline IsLocal conditional (the native device
-        // permissions) resolved per host — see NativeInfoPlist / NativeAndroidManifest.
+        // Shared files (both hosts): the multi-targeted csproj, both platform manifests and the iOS entry
+        // point. The Android manifest carries an inline IsLocal conditional (the notification permission the
+        // native backends need) resolved per host — see NativeAndroidManifest.
         var files = new List<(string Path, string Content)>
         {
             ($"{NameToken}.csproj", NativeCsproj(version)),
             ("Platforms/Android/AndroidManifest.xml", NativeAndroidManifest(isLocal)),
-            ("Platforms/iOS/Info.plist", NativeInfoPlist(isLocal)),
+            ("Platforms/iOS/Info.plist", NativeInfoPlist()),
             ("Platforms/iOS/Main.cs", NativeMainCs),
-            ("README.md", NativeReadme),
-            ("AGENTS.md", NativeAgents),
         };
 
         if (isLocal)
         {
-            // Native + Local: the shared component tree plus the in-process platform heads (each boots a
-            // NativeAppHost + RunLocalAsync<App>) and the native geolocation backends they register.
+            // Native + Local: the component tree plus the in-process platform heads, each of which boots a
+            // NativeAppHost + RunLocalAsync<App>.
             files.Add(("App.cs", NativeApp));
-            files.Add(("HomePage.cs", NativeHomePage));
-            files.Add(("Counter.cs", NativeCounter));
             files.Add(("Platforms/iOS/AppDelegate.cs", NativeIosAppDelegate));
-            files.Add(("Platforms/iOS/NativeGeolocation.cs", NativeIosGeolocation));
             files.Add(("Platforms/Android/MainActivity.cs", NativeAndroidMainActivity));
-            files.Add(("Platforms/Android/NativeGeolocation.cs", NativeAndroidGeolocation));
         }
         else
         {
@@ -62,7 +56,7 @@ internal static partial class ProjectGenerator
           <!--
             A native iOS + Android app that hosts a Rask app in-process inside a platform WebView (the WebView
             hybrid — C# runs natively, the view is a WebView). Multi-targets the two native TFMs; the shared
-            component code (App.cs / HomePage.cs / Counter.cs) compiles for both, and each platform head under
+            component code (App.cs) compiles for both, and each platform head under
             Platforms/ provides the INativeWebView implementation for its WebView control.
 
             Requires the iOS and/or Android SDK workloads:
@@ -116,18 +110,8 @@ internal static partial class ProjectGenerator
 
         """;
 
-    // Info.plist carries an inline `<!--#if (IsLocal) -->` block (the NSLocationWhenInUseUsageDescription for
-    // the native geolocation backend). Include it only for the local host; strip the marker comment lines in
-    // both cases — the same resolution the template engine did for the `#if`.
-    private static string NativeInfoPlist(bool isLocal)
-    {
-        var locationBlock = isLocal
-            ? "\n\t<!-- Shown in the iOS location prompt for NativeGeolocation (the IGeolocation backend). -->"
-              + "\n\t<key>NSLocationWhenInUseUsageDescription</key>"
-              + "\n\t<string>Shows your current location in the app.</string>"
-            : "";
-
-        return $"""
+    private static string NativeInfoPlist() =>
+        """
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
@@ -153,7 +137,7 @@ internal static partial class ProjectGenerator
         	     app runs letterboxed at a legacy size (black bars + everything scaled up). An empty UILaunchScreen
         	     dict opts into full-screen with a blank system launch screen (no storyboard file needed). -->
         	<key>UILaunchScreen</key>
-        	<dict/>{locationBlock}
+        	<dict/>
 
         	<key>UISupportedInterfaceOrientations</key>
         	<array>
@@ -165,16 +149,13 @@ internal static partial class ProjectGenerator
         </plist>
 
         """;
-    }
 
-    // AndroidManifest.xml carries the same inline `<!--#if (IsLocal) -->` block (the ACCESS_FINE_LOCATION +
-    // POST_NOTIFICATIONS permissions the native backends need). Resolved per host, markers stripped.
+    // AndroidManifest.xml carries an inline `<!--#if (IsLocal) -->` block (the POST_NOTIFICATIONS permission
+    // the native backends need). Resolved per host, markers stripped.
     private static string NativeAndroidManifest(bool isLocal)
     {
         var permissionsBlock = isLocal
-            ? "\n\t<!-- Required by NativeGeolocation (the IGeolocation backend). Remove if you don't use native location. -->"
-              + "\n\t<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>"
-              + "\n\t<!-- Required by NativeNotifications (the INotifications backend) on API 33+. Remove if unused. -->"
+            ? "\n\t<!-- Required by NativeNotifications (the INotifications backend) on API 33+. Remove if unused. -->"
               + "\n\t<uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>"
             : "";
 
@@ -203,11 +184,10 @@ internal static partial class ProjectGenerator
 
     private const string NativeApp =
         """
-        using static Company.RaskServer.Routes;
-        using NativeIcon = Rask.Native.Components.NativeIcon;
+        using Rask.Core.Routing;
 
-        // NativeHeaderBar / NativeTabBar / NativeTab / NativeWebView factories come from a global using the generator
-        // emits automatically for any project referencing Rask.Native — no `using static` needed here.
+        // NativeHeaderBar / NativeWebView factories come from a global using the generator emits automatically
+        // for any project referencing Rask.Native — no `using static` needed here.
 
         namespace Company.RaskServer;
 
@@ -242,64 +222,33 @@ internal static partial class ProjectGenerator
                             Router()
                         ]
                     ]
-                ],
+                ]
 
-                // Real native bottom tab bar — primary navigation. Tapping a tab routes to its type-safe To:.
-                NativeTabBar(
-                    Tabs:
-                    [
-                        NativeTab(Title: "Home", Icon: NativeIcon.Home, To: HomePage()),
-                        NativeTab(Title: "Counter", Icon: NativeIcon.Add, To: Counter())
-                    ])
-                // Selected is omitted — the framework highlights the tab matching the current route.
+                // Add a real native bottom tab bar here once you have somewhere to navigate:
+                //   NativeTabBar(Tabs: [NativeTab(Title: "Home", Icon: NativeIcon.Home, To: HomePage())])
+                // Tapping a tab routes to its type-safe To:; the framework highlights the matching route.
             ];
         }
-
-        """;
-
-    private const string NativeHomePage =
-        """
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer;
 
         [Route("/")]
         public sealed class HomePage : Component
         {
             protected override Component? Render() =>
-                Div(Style: "padding:1rem;font-family:system-ui,-apple-system,sans-serif")[
-                    H1()["Hello, Rask — natively! 👋"],
-                    P()["This is a native iOS/Android app. The same C# component code runs here as on the "
-                        + "server and in the browser — it's just packaged for the App Store / Play Store."],
-                    P()["Scaffold the rest with the rask CLI:"],
-                    Ul()[
-                        Li()[Code()["rask generate feature Product Name:string Price:decimal"], " — a full CRUD slice"],
+                Div(Style: "padding:1.25rem;font-family:system-ui,-apple-system,sans-serif")[
+                    H1(Style: "font-size:1.5rem;margin:0 0 .5rem")["Hello, Rask! 👋"],
+                    P(Style: "margin:0 0 1rem;color:#374151")["Your native app is ready. Scaffold the rest with the rask CLI:"],
+                    Ul(Style: "margin:0 0 1rem;padding-left:1.1rem;line-height:1.75;color:#374151")[
                         Li()[Code()["rask generate page About"], " — a routed page"],
                         Li()[Code()["rask generate component Card"], " — a reusable component"]
                     ],
-                    P()["Open Counter to see live, in-process state updates over the native WebView bridge."]
+                    P(Style: "margin:0;font-size:.9rem;color:#6b7280")[
+                        "Edit this page in ",
+                        Code()["App.cs"],
+                        ". Full guides at ",
+                        A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
+                        "."
+                    ]
                 ];
-        }
-
-        """;
-
-    private const string NativeCounter =
-        """
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer;
-
-        [Route("/counter")]
-        public sealed class Counter : Component
-        {
-            private int _count;
-
-            protected override Component? Render() =>
-            [
-                H1()["Counter"],
-                P()[$"Current count: {_count}"],
-                Button(OnClick: () => _count++)["Click me"]
-            ];
         }
 
         """;
@@ -360,7 +309,6 @@ internal static partial class ProjectGenerator
                 // any native backend on host.Services before RunLocalAsync — the last registration wins. See
                 // docs/native.md "Native device backends".
                 host.Services.AddSingleton<IShare>(_ => new NativeShare(() => Window?.RootViewController));  // share sheet
-                host.Services.AddSingleton<IGeolocation>(_ => new NativeGeolocation());                     // CoreLocation
                 host.Services.AddSingleton<INotifications>(_ => new NativeNotifications());                 // UNUserNotificationCenter
                 host.Services.AddSingleton<IBadge>(_ => new NativeBadge());                                 // app-icon badge
                 host.Services.AddSingleton<INativeChrome>(webView);                                         // native header/footer bars
@@ -409,162 +357,6 @@ internal static partial class ProjectGenerator
 
         """;
 
-    private const string NativeIosGeolocation =
-        """
-        using CoreLocation;
-        using Foundation;
-        using Rask.Core.Browser;
-        using UIKit;
-
-        namespace Company.RaskServer;
-
-        // Native iOS backend for IGeolocation — CoreLocation instead of the WebView's navigator.geolocation.
-        // Registered in AppDelegate before RunLocalAsync (overrides Rask's JS-backed default). Native location
-        // gives the real iOS permission prompt (Info.plist NSLocationWhenInUseUsageDescription) and CLLocationManager
-        // accuracy, and works even where the WebView's geolocation is restricted.
-        //
-        // This is the same framework-default → native-head-override pattern as NativeShare, for a request/response
-        // (+ subscription) capability: GetCurrentPositionAsync resolves one fix; WatchAsync streams them.
-        public sealed class NativeGeolocation : IGeolocation
-        {
-            public ValueTask<GeolocationPosition> GetCurrentPositionAsync(GeolocationOptions? options = null)
-            {
-                var tcs = new TaskCompletionSource<GeolocationPosition>();
-                UIApplication.SharedApplication.InvokeOnMainThread(() =>
-                {
-                    // The delegate keeps the manager alive until it fires (or faults), then tears it down.
-                    var manager = new CLLocationManager
-                    {
-                        DesiredAccuracy = (options?.EnableHighAccuracy ?? false)
-                            ? CLLocation.AccuracyBest
-                            : CLLocation.AccuracyHundredMeters
-                    };
-                    manager.Delegate = new OneShotDelegate(manager, tcs);
-                    manager.RequestWhenInUseAuthorization();
-                    RequestWhenAuthorized(manager);
-                });
-                return new ValueTask<GeolocationPosition>(tcs.Task);
-            }
-
-            public ValueTask<IAsyncDisposable> WatchAsync(
-                Func<GeolocationPosition, Task> onPosition, GeolocationOptions? options = null)
-            {
-                var watch = new Watch(onPosition, options?.EnableHighAccuracy ?? false);
-                return new ValueTask<IAsyncDisposable>(watch);
-            }
-
-            // RequestLocation only works once authorization is at least WhenInUse; if it's still NotDetermined the
-            // delegate re-requests from DidChangeAuthorization once the user answers the prompt.
-            private static void RequestWhenAuthorized(CLLocationManager manager)
-            {
-                if (manager.AuthorizationStatus is CLAuthorizationStatus.AuthorizedWhenInUse
-                    or CLAuthorizationStatus.AuthorizedAlways)
-                {
-                    manager.RequestLocation();
-                }
-            }
-
-            private sealed class OneShotDelegate(CLLocationManager manager, TaskCompletionSource<GeolocationPosition> tcs)
-                : CLLocationManagerDelegate
-            {
-                public override void AuthorizationChanged(CLLocationManager mgr, CLAuthorizationStatus status)
-                {
-                    if (status is CLAuthorizationStatus.AuthorizedWhenInUse or CLAuthorizationStatus.AuthorizedAlways)
-                    {
-                        mgr.RequestLocation();
-                    }
-                    else if (status is CLAuthorizationStatus.Denied or CLAuthorizationStatus.Restricted)
-                    {
-                        Finish(() => tcs.TrySetException(new InvalidOperationException("Location permission denied.")));
-                    }
-                }
-
-                public override void LocationsUpdated(CLLocationManager mgr, CLLocation[] locations)
-                {
-                    if (locations.Length > 0)
-                    {
-                        Finish(() => tcs.TrySetResult(Map(locations[^1])));
-                    }
-                }
-
-                public override void Failed(CLLocationManager mgr, NSError error) =>
-                    Finish(() => tcs.TrySetException(new InvalidOperationException(error.LocalizedDescription)));
-
-                private void Finish(Action complete)
-                {
-                    manager.Delegate = null;   // release the retain cycle so the manager can be collected
-                    complete();
-                }
-            }
-
-            // A watchPosition subscription: streams every CLLocation update until disposed.
-            private sealed class Watch : CLLocationManagerDelegate, IAsyncDisposable
-            {
-                private readonly Func<GeolocationPosition, Task> _onPosition;
-                private CLLocationManager? _manager;
-
-                public Watch(Func<GeolocationPosition, Task> onPosition, bool highAccuracy)
-                {
-                    _onPosition = onPosition;
-                    UIApplication.SharedApplication.InvokeOnMainThread(() =>
-                    {
-                        _manager = new CLLocationManager
-                        {
-                            DesiredAccuracy = highAccuracy ? CLLocation.AccuracyBest : CLLocation.AccuracyHundredMeters,
-                            Delegate = this
-                        };
-                        _manager.RequestWhenInUseAuthorization();
-                        if (_manager.AuthorizationStatus is CLAuthorizationStatus.AuthorizedWhenInUse
-                            or CLAuthorizationStatus.AuthorizedAlways)
-                        {
-                            _manager.StartUpdatingLocation();
-                        }
-                    });
-                }
-
-                public override void AuthorizationChanged(CLLocationManager mgr, CLAuthorizationStatus status)
-                {
-                    if (status is CLAuthorizationStatus.AuthorizedWhenInUse or CLAuthorizationStatus.AuthorizedAlways)
-                    {
-                        mgr.StartUpdatingLocation();
-                    }
-                }
-
-                public override void LocationsUpdated(CLLocationManager mgr, CLLocation[] locations)
-                {
-                    if (locations.Length > 0)
-                    {
-                        _ = _onPosition(Map(locations[^1]));
-                    }
-                }
-
-                public ValueTask DisposeAsync()
-                {
-                    UIApplication.SharedApplication.InvokeOnMainThread(() =>
-                    {
-                        _manager?.StopUpdatingLocation();
-                        if (_manager is not null)
-                        {
-                            _manager.Delegate = null;
-                        }
-                    });
-                    return default;
-                }
-            }
-
-            private static GeolocationPosition Map(CLLocation l) => new(
-                Latitude: l.Coordinate.Latitude,
-                Longitude: l.Coordinate.Longitude,
-                Accuracy: l.HorizontalAccuracy,
-                Altitude: l.VerticalAccuracy > 0 ? l.EllipsoidalAltitude : null,
-                AltitudeAccuracy: l.VerticalAccuracy > 0 ? l.VerticalAccuracy : null,
-                Heading: l.Course >= 0 ? l.Course : null,
-                Speed: l.Speed >= 0 ? l.Speed : null,
-                TimestampMs: (l.Timestamp.SecondsSince1970) * 1000.0);
-        }
-
-        """;
-
     private const string NativeAndroidMainActivity =
         """
         using Android.App;
@@ -587,13 +379,6 @@ internal static partial class ProjectGenerator
             protected override void OnCreate(Bundle? savedInstanceState)
             {
                 base.OnCreate(savedInstanceState);
-
-                // NativeGeolocation (registered below) needs the runtime location grant — request it up front so a
-                // later GetCurrentPositionAsync finds it granted (declare ACCESS_FINE_LOCATION in AndroidManifest.xml).
-                if (CheckSelfPermission(Android.Manifest.Permission.AccessFineLocation) != Permission.Granted)
-                {
-                    RequestPermissions([Android.Manifest.Permission.AccessFineLocation], 100);
-                }
 
                 // NativeNotifications (registered below) needs the POST_NOTIFICATIONS runtime grant on API 33+ —
                 // request it up front so a later ShowAsync posts (declare POST_NOTIFICATIONS in AndroidManifest.xml).
@@ -622,7 +407,6 @@ internal static partial class ProjectGenerator
                 // any native backend on host.Services before RunLocalAsync — the last registration wins. See
                 // docs/native.md "Native device backends".
                 host.Services.AddSingleton<IShare>(_ => new NativeShare(this));                  // OS share sheet
-                host.Services.AddSingleton<IGeolocation>(_ => new NativeGeolocation(this));       // LocationManager
                 host.Services.AddSingleton<INotifications>(_ => new NativeNotifications(this));   // NotificationManager
                 host.Services.AddSingleton<IBadge>(_ => new NativeBadge(this));                   // app badge notification
                 host.Services.AddSingleton<INativeChrome>(webView);                              // native header/footer bars
@@ -673,293 +457,6 @@ internal static partial class ProjectGenerator
                 SetContentView(RaskServerWebView.Create(this, ServerOrigin, new NativeShare(this)));
             }
         }
-
-        """;
-
-    private const string NativeAndroidGeolocation =
-        """
-        using Android.App;
-        using Android.Content;
-        using Android.Content.PM;
-        using Android.Locations;
-        using Android.OS;
-        using Android.Runtime;
-        using Rask.Core.Browser;
-
-        namespace Company.RaskServer;
-
-        // Native Android backend for IGeolocation — the platform LocationManager instead of the WebView's
-        // navigator.geolocation. Registered in MainActivity before RunLocalAsync (overrides Rask's JS-backed
-        // default). Needs ACCESS_FINE_LOCATION in AndroidManifest.xml + a runtime grant (MainActivity requests it
-        // on launch). Same framework-default → native-head-override pattern as NativeShare, for a request/response
-        // (+ subscription) capability.
-        public sealed class NativeGeolocation(Activity activity) : IGeolocation
-        {
-            public ValueTask<GeolocationPosition> GetCurrentPositionAsync(GeolocationOptions? options = null)
-            {
-                var tcs = new TaskCompletionSource<GeolocationPosition>();
-                activity.RunOnUiThread(() =>
-                {
-                    if (!HasPermission())
-                    {
-                        tcs.TrySetException(new InvalidOperationException("Location permission not granted."));
-                        return;
-                    }
-
-                    var manager = LocationManagerFor();
-                    var provider = BestProvider(manager, options?.EnableHighAccuracy ?? false);
-                    if (provider is null)
-                    {
-                        tcs.TrySetException(new InvalidOperationException("No enabled location provider."));
-                        return;
-                    }
-
-                    // One-shot: subscribe, take the first fix, then unsubscribe.
-                    OneShotListener? listener = null;
-                    listener = new OneShotListener(fix =>
-                    {
-                        manager.RemoveUpdates(listener!);
-                        tcs.TrySetResult(fix);
-                    });
-                    manager.RequestLocationUpdates(provider, 0L, 0f, listener, Looper.MainLooper);
-                });
-                return new ValueTask<GeolocationPosition>(tcs.Task);
-            }
-
-            public ValueTask<IAsyncDisposable> WatchAsync(
-                Func<GeolocationPosition, Task> onPosition, GeolocationOptions? options = null)
-            {
-                var watch = new Watch(activity, HasPermission, onPosition, options?.EnableHighAccuracy ?? false);
-                return new ValueTask<IAsyncDisposable>(watch);
-            }
-
-            private bool HasPermission() =>
-                activity.CheckSelfPermission(Android.Manifest.Permission.AccessFineLocation) == Permission.Granted;
-
-            private LocationManager LocationManagerFor() =>
-                (LocationManager)activity.GetSystemService(Context.LocationService)!;
-
-            private static string? BestProvider(LocationManager manager, bool highAccuracy)
-            {
-                // Prefer GPS for high accuracy; otherwise take whatever's enabled (network is faster/cheaper).
-                var order = highAccuracy
-                    ? new[] { LocationManager.GpsProvider, LocationManager.NetworkProvider }
-                    : new[] { LocationManager.NetworkProvider, LocationManager.GpsProvider };
-                foreach (var p in order)
-                {
-                    if (manager.IsProviderEnabled(p))
-                    {
-                        return p;
-                    }
-                }
-
-                return null;
-            }
-
-            private static GeolocationPosition Map(Location l) => new(
-                Latitude: l.Latitude,
-                Longitude: l.Longitude,
-                Accuracy: l.HasAccuracy ? l.Accuracy : 0,
-                Altitude: l.HasAltitude ? l.Altitude : null,
-                AltitudeAccuracy: l is { HasVerticalAccuracy: true } ? l.VerticalAccuracyMeters : null,
-                Heading: l.HasBearing ? l.Bearing : null,
-                Speed: l.HasSpeed ? l.Speed : null,
-                TimestampMs: l.Time);
-
-            private sealed class OneShotListener(Action<GeolocationPosition> onFix) : Java.Lang.Object, ILocationListener
-            {
-                public void OnLocationChanged(Location location) => onFix(Map(location));
-
-                public void OnProviderDisabled(string provider) { }
-
-                public void OnProviderEnabled(string provider) { }
-
-                public void OnStatusChanged(string? provider, [GeneratedEnum] Availability status, Bundle? extras) { }
-            }
-
-            private sealed class Watch : Java.Lang.Object, ILocationListener, IAsyncDisposable
-            {
-                private readonly Activity _activity;
-                private readonly Func<GeolocationPosition, Task> _onPosition;
-                private LocationManager? _manager;
-
-                public Watch(Activity activity, Func<bool> hasPermission, Func<GeolocationPosition, Task> onPosition, bool highAccuracy)
-                {
-                    _activity = activity;
-                    _onPosition = onPosition;
-                    activity.RunOnUiThread(() =>
-                    {
-                        if (!hasPermission())
-                        {
-                            return;
-                        }
-
-                        _manager = (LocationManager)activity.GetSystemService(Context.LocationService)!;
-                        var provider = BestProvider(_manager, highAccuracy);
-                        if (provider is not null)
-                        {
-                            _manager.RequestLocationUpdates(provider, 1000L, 0f, this, Looper.MainLooper);
-                        }
-                    });
-                }
-
-                public void OnLocationChanged(Location location) => _ = _onPosition(Map(location));
-
-                public void OnProviderDisabled(string provider) { }
-
-                public void OnProviderEnabled(string provider) { }
-
-                public void OnStatusChanged(string? provider, [GeneratedEnum] Availability status, Bundle? extras) { }
-
-                public ValueTask DisposeAsync()
-                {
-                    _activity.RunOnUiThread(() => _manager?.RemoveUpdates(this));
-                    return default;
-                }
-            }
-        }
-
-        """;
-
-    private const string NativeReadme =
-        """
-        # Company.RaskServer
-
-        A **native iOS + Android** app built with [Rask](https://github.com/pal-tamas/rask). The same C#
-        component code that runs on the Rask server and in the browser runs here too — packaged as a real,
-        store-distributable mobile app. It's a **WebView hybrid**: your C# runs natively on the device, and the
-        UI renders in a platform WebView driven by Rask's live diff pipeline.
-
-        ## Prerequisites
-
-        Install the iOS and/or Android SDK workloads:
-
-        ```bash
-        dotnet workload install ios android
-        ```
-
-        ## Run
-
-        ```bash
-        dotnet build -t:Run -f net10.0-android     # Android emulator
-        dotnet build -t:Run -f net10.0-ios         # iOS simulator (macOS + Xcode)
-        ```
-
-        ## What's here
-
-        - `App.cs`, `HomePage.cs`, `Counter.cs` — your Rask components (shared across both platforms). `App.cs`
-          pads `Body` by `env(safe-area-inset-*)` (with a `viewport-fit=cover` viewport) so content clears the
-          notch / status bar / home indicator — keep both if you restructure it.
-        - `Platforms/iOS/` — the iOS head: `AppDelegate` boots a `NativeAppHost`, and `RaskWkWebView` implements
-          `INativeWebView` over a `WKWebView` (custom `raskapp://` scheme + script-message bridge).
-        - `Platforms/Android/` — the Android head: `MainActivity` boots the host, and `RaskAndroidWebView`
-          implements `INativeWebView` over an `android.webkit.WebView` (asset-serving `WebViewClient` + a
-          `@JavascriptInterface` bridge).
-
-        Register app services on `host.Services` in the platform head's `StartAsync`, then add pages as
-        `[Route("/…")]` components — exactly as in any other Rask app.
-
-        ## Native + Server mode
-
-        To make the app a thin native shell over a remote Rask Server instead of running in-process, point the
-        WebView at the server URL:
-
-        ```csharp
-        var shell = NativeAppHost.ConnectToServer(new Uri("https://app.example.com/"));
-        // iOS:     webView.View.LoadRequest(new NSUrlRequest(new NSUrl(shell.ServerBaseUrl.ToString())));
-        // Android: webView.View... LoadUrl(shell.ServerBaseUrl.ToString());
-        ```
-
-        The server serves its own client and connects back over `wss://`; native device APIs remain available to
-        the page.
-
-        See the framework docs: [Native mobile apps with Rask](https://github.com/pal-tamas/rask/blob/main/docs/native.md).
-
-        """;
-
-    private const string NativeAgents =
-        """
-        # AGENTS.md — building this app with an AI assistant
-
-        This is a **Rask** native mobile app (iOS + Android) for .NET 10. Rask is the .NET One Person Framework —
-        one C# codebase, one server, every UI surface. This app is a **WebView hybrid**: your C#
-        runs natively on the device via `Rask.Native`, and the UI renders in a platform WebView driven by Rask's
-        live diff pipeline. The **same component code** as any other Rask host works here. Full docs:
-        https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/native.md.
-
-        ## Mental model
-        - Components are **plain C# classes** deriving from `Component`. Override `Component? Render()` and return
-          a tree built with **generated factory methods** — no `.razor`, no JSX. Use factories, never `new`
-          (RASK014). Children go through the indexer: `Div()[Span()["hi"], "text"]`. Props are factory params
-          (nullable ⇒ optional, non-nullable no-initializer ⇒ required).
-        - A page/root component must render the **full shell** `[Doctype(), Html(...)[Head(...), Body(...)]]`
-          (RASK021). The framework injects its runtime automatically.
-        - Route with `[Route("/path")]`; navigate only from event handlers via the injected `Navigator`. Inject
-          services (`HttpClient`, `IJSRuntime`, the typed `Rask.Core.Browser` APIs, your own) through the ctor.
-
-        ## Native structure — don't restructure these
-        - **Shared components** (`App.cs`, `HomePage.cs`, `Counter.cs`) compile for both `net10.0-ios` and
-          `net10.0-android`. Keep platform-specific types OUT of them. `App.cs` pads `Body` by
-          `env(safe-area-inset-*)` (paired with the `viewport-fit=cover` viewport meta) so content clears the
-          notch / status bar / home indicator — keep both together if you edit the shell. `App.cs` also declares the
-          native header/footer bars (see "Native header & footer bars" below).
-        - **Platform heads** live under `Platforms/iOS/` and `Platforms/Android/`. Each boots a
-          `NativeAppHost`, calls `host.RunLocalAsync<App>(webView)`, and provides the `INativeWebView`
-          implementation for its WebView (`WKWebView` on iOS, `android.webkit.WebView` on Android). Register app
-          services on `host.Services` in the head's `StartAsync` before `RunLocalAsync`.
-        - **Two modes:** `RunLocalAsync<App>(webView)` runs the app in-process (offline). To be a shell over a
-          remote Rask Server instead, `NativeAppHost.ConnectToServer(uri)` and load that URL in the WebView.
-
-        ## Device APIs
-        - Inject the typed `Rask.Core.Browser` wrappers (`IGeolocation`, `IClipboard`, `IVibration`,
-          `IBrowserStorage`, `INotifications`, `IBadge`, `IWakeLock`, …) — they work through the WebView's JS engine.
-        - Sharing: use the headless `Shareable` (`Rask.Core`) to attach share behaviour to your own element, or
-          inject `IShare` (`Rask.Client.Browser`) to share from code. Both hit the OS share sheet.
-        - **Native backends** override a JS default with real platform code. The head registers one on
-          `host.Services` **before `RunLocalAsync`** (last-wins). The template ships `NativeShare` for `IShare`
-          (iOS `UIActivityViewController`, Android `Intent.ACTION_SEND`), `NativeGeolocation` for `IGeolocation`
-          (iOS `CLLocationManager`, Android `LocationManager`), and `NativeNotifications` / `NativeBadge` for
-          `INotifications` / `IBadge` (iOS `UNUserNotificationCenter`, Android `NotificationManager` + a badge
-          notification) under `Platforms/`; register your own the same way. Geolocation needs the location
-          permission and notifications need `POST_NOTIFICATIONS` on Android 33+ (both already in
-          `AndroidManifest.xml` / `Info.plist`; `MainActivity` requests the runtime grants). Further native
-          backends (biometrics, push) are a framework work-in-progress.
-
-        ## Native header & footer bars
-        - A native page is a small **composed tree**: the native bars (`NativeHeaderBar` / `NativeTabBar` /
-          `NativeToolbar`) as siblings of a **`NativeWebView`**, which hosts the ordinary page shell
-          (`Doctype`/`Html`/`Head`/`Body`). `App.cs` shows the shape. The bars are ordinary factory-built components —
-          compose them in `Render()`, they are not magic base-class slots.
-        - The native host projects the bars to **real platform bars** — a `UINavigationBar` + `UITabBar` on iOS, a top
-          bar + bottom tab bar on Android — and serializes the `NativeWebView`'s HTML into the WebView between them.
-          Build bars from `NativeBarButton` / `NativeTab` / `NativeBackButton` and type-safe `NativeIcon`s. A
-          `NativeTab` also takes an optional `Badge` string (unread count) → `UITabBarItem.BadgeValue` / icon overlay.
-          `NativeHeaderBar` takes optional `Segments` (shown in place of the title) → a `UISegmentedControl` / button
-          row, controlled via `SelectedSegment` + `OnSegmentChanged(int)`. A `NativeMenuButton` bar item (with
-          `NativeMenuItem` entries) opens a native overflow pull-down → `UIMenu` (iOS) / `PopupMenu` (Android). A
-          `NativeBackButton` (header `Leading`) pops WebView history like hardware Back.
-        - **Style the bars** with `NativeColor` (the color sibling of `NativeIcon`: `Hex` / `Rgba` / `Adaptive(light,
-          dark)` / `System`) — set `Background` / `Tint` / `TitleColor` per bar (`NativeTabBar` also `UnselectedTint`),
-          or register an app-wide `NativeTheme` on `host.Services`. Per-bar wins, then the theme, then the platform
-          default; an unset color keeps the OS look.
-        - **Opt-in wiring (already done in the heads):** host `webView.ChromeView` (not `webView.View`) and register
-          the WebView head as `INativeChrome` on `host.Services` before `RunLocalAsync`. With no `INativeChrome`
-          registered the bars are inert (they render nothing; the WebView fills the screen) — fully backward compatible.
-        - Tabs navigate their type-safe `To:` route; bar buttons run their `OnClick`. Put a native chrome component
-          **inside** the HTML (an element child, or inside `NativeWebView`'s content) and you get **RASK032** — bars
-          belong at the layout level, as siblings of `NativeWebView`.
-        - Sharing an app across web + native? Branch with `IsNative` / `IsServer` / `IsWasm` / `IsIOS` / `IsAndroid`
-          (or `HostShell` / `HostEngine` / `HostPlatform`): compose the native tree under `IsNative`, return the plain
-          shell otherwise.
-
-        ## Build & run (needs the iOS/Android SDK workloads)
-        ```bash
-        dotnet workload install ios android
-        dotnet build -t:Run -f net10.0-android     # emulator
-        dotnet build -t:Run -f net10.0-ios         # simulator (macOS + Xcode)
-        ```
-
-        If you hit a `RASKxxx` compile error, see https://github.com/pal-tamas/rask/blob/main/docs/diagnostics.md
 
         """;
 }

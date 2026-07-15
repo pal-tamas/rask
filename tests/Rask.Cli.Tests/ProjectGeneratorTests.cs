@@ -7,12 +7,19 @@ public sealed class ProjectGeneratorTests
     private const string Root = "/proj/App";
     private const string Version = "9.9.9";
 
-    // Files the server template always emits, whatever the flags.
+    // Files the server template always emits, whatever the flags. A new project is deliberately minimal:
+    // the shell + welcome page (both in App.cs), the entry point, the csproj and the launch profile.
     private static readonly string[] AlwaysPresent =
     [
-        "App.csproj", "Program.cs", "App.cs", "HomePage.cs", "HomePage.css", "Counter.cs",
-        "Weather.cs", "WeatherForecast.cs", "LocalWeatherForecastService.cs",
-        "Properties/launchSettings.json", "README.md", "AGENTS.md",
+        "App.csproj", "Program.cs", "App.cs", "Properties/launchSettings.json",
+    ];
+
+    // Demo content `rask new` used to scaffold and deliberately no longer does — a new project is one file
+    // of components, not a folder of samples to delete. Guards against any of it creeping back.
+    private static readonly string[] NeverPresent =
+    [
+        "HomePage.cs", "HomePage.css", "Counter.cs", "Weather.cs", "WeatherForecast.cs",
+        "LocalWeatherForecastService.cs", "README.md", "AGENTS.md",
     ];
 
     [Fact]
@@ -20,17 +27,44 @@ public sealed class ProjectGeneratorTests
     {
         var (files, result) = Generate();
 
-        foreach (var expected in AlwaysPresent)
-        {
-            Assert.True(files.ContainsKey(expected), $"expected {expected} to be generated");
-        }
+        Assert.Equal(AlwaysPresent.Order(), files.Keys.Order());
 
         Assert.Equal(["Rask.Server", "Rask.Bootstrap"], result.Packages);
         // No opt-in artifacts leak in.
         Assert.DoesNotContain("Auth/CredentialStore.cs", files.Keys);
-        Assert.DoesNotContain("Cqrs/GreetingQuery.cs", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
         Assert.DoesNotContain("wwwroot/icon.svg", files.Keys);
+    }
+
+    [Fact]
+    public void The_welcome_page_lives_in_App_cs_and_no_demo_files_are_scaffolded()
+    {
+        var (files, _) = Generate(auth: true, pwa: true, cqrs: true, docker: true);
+
+        foreach (var gone in NeverPresent)
+        {
+            Assert.DoesNotContain(gone, files.Keys);
+        }
+
+        // App.cs carries BOTH the shell and the routed welcome page.
+        var app = files["App.cs"];
+        Assert.Contains("public sealed class App : Component", app, StringComparison.Ordinal);
+        Assert.Contains("[Route(\"/\")]", app, StringComparison.Ordinal);
+        Assert.Contains("public sealed class HomePage : Component", app, StringComparison.Ordinal);
+        Assert.Contains("Router()", app, StringComparison.Ordinal);
+        // Styled by Bootstrap — there is no scoped .css companion to pair with.
+        Assert.Contains("BsCard", app, StringComparison.Ordinal);
+        // The welcome copy points at the file it actually lives in.
+        Assert.Contains("Code()[\"App.cs\"]", app, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Program_registers_no_service_whose_file_is_not_scaffolded()
+    {
+        var (files, _) = Generate();
+
+        // The weather demo service went with its files; a stale registration would not compile.
+        Assert.DoesNotContain("IWeatherForecastService", files["Program.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -48,7 +82,6 @@ public sealed class ProjectGeneratorTests
 
         // Program.cs uses top-level statements (no namespace) but references the app namespace.
         Assert.Contains("using App;", files["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains("namespace App;", files["HomePage.cs"], StringComparison.Ordinal);
         Assert.Contains("namespace App;", files["App.cs"], StringComparison.Ordinal);
     }
 
@@ -90,21 +123,19 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain("AddRaskPwa", off["Program.cs"], StringComparison.Ordinal);
     }
 
+    // --cqrs is wiring-only: the mediator call + the package ref, and no sample slice to delete.
     [Fact]
-    public void Cqrs_flag_toggles_files_wiring_package_and_nav()
+    public void Cqrs_flag_toggles_the_wiring_and_package_but_scaffolds_no_sample()
     {
         var (on, onResult) = Generate(cqrs: true);
-        Assert.True(on.ContainsKey("Cqrs/GreetingQuery.cs"));
-        Assert.True(on.ContainsKey("Cqrs/GreetingPage.cs"));
         Assert.Contains("AddRaskCqrs", on["Program.cs"], StringComparison.Ordinal);
         Assert.Contains("Rask.Cqrs", onResult.Packages);
-        Assert.Contains("GreetingPage()", on["App.cs"], StringComparison.Ordinal); // nav link
+        Assert.DoesNotContain("Cqrs/GreetingQuery.cs", on.Keys);
+        Assert.DoesNotContain("Cqrs/GreetingPage.cs", on.Keys);
 
         var (off, offResult) = Generate(cqrs: false);
-        Assert.DoesNotContain("Cqrs/GreetingQuery.cs", off.Keys);
         Assert.DoesNotContain("AddRaskCqrs", off["Program.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Cqrs", offResult.Packages);
-        Assert.DoesNotContain("GreetingPage()", off["App.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -139,8 +170,12 @@ public sealed class ProjectGeneratorTests
 
         Assert.Equal(auth, files.ContainsKey("Auth/CredentialStore.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
-        Assert.Equal(cqrs, files.ContainsKey("Cqrs/GreetingQuery.cs"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));
+
+        foreach (var gone in NeverPresent)
+        {
+            Assert.DoesNotContain(gone, files.Keys);
+        }
 
         foreach (var content in files.Values)
         {
@@ -173,9 +208,7 @@ public sealed class ProjectGeneratorTests
 
     private static readonly string[] WasmAlwaysPresent =
     [
-        "App.csproj", "Program.cs", "App.cs", "HomePage.cs", "HomePage.css", "Counter.cs",
-        "Weather.cs", "WeatherForecast.cs", "LocalWeatherForecastService.cs",
-        "wwwroot/index.html", "runtimeconfig.template.json", "README.md", "AGENTS.md",
+        "App.csproj", "Program.cs", "App.cs", "wwwroot/index.html", "runtimeconfig.template.json",
     ];
 
     [Fact]
@@ -184,10 +217,7 @@ public sealed class ProjectGeneratorTests
         var result = ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: false, Version);
         var files = Index(result);
 
-        foreach (var expected in WasmAlwaysPresent)
-        {
-            Assert.True(files.ContainsKey(expected), $"expected {expected} to be generated");
-        }
+        Assert.Equal(WasmAlwaysPresent.Order(), files.Keys.Order());
 
         Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
         Assert.Contains("Microsoft.NET.Sdk.WebAssembly", files["App.csproj"], StringComparison.Ordinal);
@@ -241,10 +271,17 @@ public sealed class ProjectGeneratorTests
             Assert.True(files.ContainsKey(expected), $"[{auth},{pwa},{docker}] missing {expected}");
         }
 
+        Assert.Contains("public sealed class HomePage : Component", files["App.cs"], StringComparison.Ordinal);
+
         Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
         Assert.Equal(auth, files.ContainsKey("Auth/Auth.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));
+
+        foreach (var gone in NeverPresent)
+        {
+            Assert.DoesNotContain(gone, files.Keys);
+        }
 
         foreach (var content in files.Values)
         {
@@ -267,15 +304,13 @@ public sealed class ProjectGeneratorTests
     private static readonly string[] NativeShared =
     [
         "App.csproj", "Platforms/Android/AndroidManifest.xml", "Platforms/iOS/Info.plist",
-        "Platforms/iOS/Main.cs", "README.md", "AGENTS.md",
+        "Platforms/iOS/Main.cs",
     ];
 
-    // The local-only shared component code + in-process platform heads.
+    // The local-only component code + in-process platform heads.
     private static readonly string[] NativeLocalOnly =
     [
-        "App.cs", "HomePage.cs", "Counter.cs",
-        "Platforms/iOS/AppDelegate.cs", "Platforms/iOS/NativeGeolocation.cs",
-        "Platforms/Android/MainActivity.cs", "Platforms/Android/NativeGeolocation.cs",
+        "App.cs", "Platforms/iOS/AppDelegate.cs", "Platforms/Android/MainActivity.cs",
     ];
 
     // The server-only thin-shell platform heads.
@@ -326,14 +361,49 @@ public sealed class ProjectGeneratorTests
         }
     }
 
+    // The geolocation backend was a device-API demo; it went with the rest of the sample content. Its
+    // permissions and registrations have to go with it, or the heads request a grant nothing consumes and
+    // register a type that is not scaffolded (which would not compile).
     [Fact]
-    public void Native_info_plist_carries_the_location_key_only_for_local()
+    public void Native_local_carries_no_geolocation_backend_permission_or_registration()
     {
         var local = GenerateNative("local");
-        var server = GenerateNative("server");
 
-        Assert.Contains("NSLocationWhenInUseUsageDescription", local["Platforms/iOS/Info.plist"], StringComparison.Ordinal);
-        Assert.DoesNotContain("NSLocationWhenInUseUsageDescription", server["Platforms/iOS/Info.plist"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Platforms/iOS/NativeGeolocation.cs", local.Keys);
+        Assert.DoesNotContain("Platforms/Android/NativeGeolocation.cs", local.Keys);
+        Assert.DoesNotContain("NSLocationWhenInUseUsageDescription", local["Platforms/iOS/Info.plist"], StringComparison.Ordinal);
+        Assert.DoesNotContain("ACCESS_FINE_LOCATION", local["Platforms/Android/AndroidManifest.xml"], StringComparison.Ordinal);
+
+        foreach (var (path, content) in local)
+        {
+            Assert.DoesNotContain("NativeGeolocation", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("AccessFineLocation", content, StringComparison.Ordinal);
+            _ = path;
+        }
+
+        // The notification backend is still registered inline by the heads, so its permission stays.
+        Assert.Contains("POST_NOTIFICATIONS", local["Platforms/Android/AndroidManifest.xml"], StringComparison.Ordinal);
+        Assert.DoesNotContain("POST_NOTIFICATIONS", GenerateNative("server")["Platforms/Android/AndroidManifest.xml"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Native_local_puts_the_welcome_page_in_App_cs_and_scaffolds_no_demo_pages()
+    {
+        var local = GenerateNative("local");
+
+        Assert.DoesNotContain("HomePage.cs", local.Keys);
+        Assert.DoesNotContain("Counter.cs", local.Keys);
+        var app = local["App.cs"];
+        Assert.Contains("[Route(\"/\")]", app, StringComparison.Ordinal);
+        Assert.Contains("public sealed class HomePage : Component", app, StringComparison.Ordinal);
+
+        // The tab bar linked Counter, which is gone. It may survive as a commented-out suggestion, but
+        // nothing may still render it — an unresolved Counter() reference would not compile.
+        Assert.DoesNotContain("Counter()", app, StringComparison.Ordinal);
+        foreach (var line in app.Split('\n').Where(l => l.Contains("NativeTab", StringComparison.Ordinal)))
+        {
+            Assert.StartsWith("//", line.Trim(), StringComparison.Ordinal);
+        }
     }
 
     [Fact]

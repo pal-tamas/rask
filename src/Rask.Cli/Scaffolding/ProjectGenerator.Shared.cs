@@ -4,187 +4,65 @@ namespace Rask.Cli.Scaffolding;
 // namespace token replaced centrally (see ProjectGenerator.Materialize).
 internal static partial class ProjectGenerator
 {
-    private const string HomePage =
+    // The whole app surface a new project gets: the shell (which every page renders through, RASK021) and a
+    // welcome home page that teaches the CLI. Both live in App.cs — a new project is deliberately one file of
+    // components, not a folder of demos to delete. Styled with Bootstrap so there is no scoped .css to pair.
+    private const string AppCs =
         """
         using Rask.Core.Routing;
 
         namespace Company.RaskServer;
 
-        [Route("/")]
-        public sealed class HomePage : Component
+        public sealed class App : Component
         {
+            // App-level head contributions splice into the framework-managed <head>
+            // via the Component? Head override. Title is singleton — any page that
+            // overrides Head with its own Title supersedes this fallback for the tab.
+            protected override Component? Head => [
+                Title()["Company.RaskServer"],
+                Meta("utf-8"),
+                Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
+                // Bootstrap 5.3 + Icons via Rask.Bootstrap (served from _content/Rask.Bootstrap).
+                BootstrapStyles()
+            ];
+
             protected override Component? Render() =>
-                Div(Class: "welcome-card")[
-                    H1(Class: "welcome-title")["Hello, Rask! 👋"],
-                    P(Class: "welcome-lead")["Your app is ready. Scaffold the rest with the rask CLI:"],
-                    Ul(Class: "welcome-cheatsheet")[
-                        Li()[Code()["rask generate feature Product Name:string Price:decimal"], " — a full CRUD slice (entity, pages, tests)"],
-                        Li()[Code()["rask generate page About"], " — a routed page"],
-                        Li()[Code()["rask generate component Card"], " — a reusable component"],
-                        Li()[Code()["rask dev"], " — run with hot reload"]
-                    ],
-                    P(Class: "welcome-hint")[
-                        "Edit this page in ",
-                        Code()["HomePage.cs"],
-                        " — styled by the auto-scoped ",
-                        Code()["HomePage.css"],
-                        ". Full guides at ",
-                        A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
-                        "."
+                [
+                    Doctype(),
+                    Html("en")[
+                        Head(),
+                        Body()[Router()]
                     ]
                 ];
         }
 
-        """;
-
-    private const string HomePageCss =
-        """
-        .welcome-card {
-            max-width: 540px;
-            margin: 3rem auto;
-            padding: 1.75rem 2rem;
-            border: 1px solid #e1e4e8;
-            border-radius: 10px;
-            background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 18px rgba(0, 0, 0, 0.06);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
-        .welcome-title {
-            margin: 0 0 0.5rem;
-            font-size: 1.75rem;
-            color: #1f2937;
-        }
-
-        .welcome-lead {
-            margin: 0 0 1rem;
-            font-size: 1.05rem;
-            color: #374151;
-        }
-
-        .welcome-cheatsheet {
-            margin: 0 0 1rem;
-            padding-left: 1.1rem;
-            font-size: 0.95rem;
-            line-height: 1.75;
-            color: #374151;
-        }
-
-        .welcome-hint {
-            margin: 0;
-            font-size: 0.9rem;
-            color: #6b7280;
-        }
-
-        .welcome-card code {
-            background: #f3f4f6;
-            padding: 0.1rem 0.35rem;
-            border-radius: 4px;
-            font-size: 0.85em;
-            color: #1f2937;
-        }
-
-        """;
-
-    private const string CounterCs =
-        """
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer;
-
-        [Route("/counter")]
-        public sealed class Counter : Component
+        [Route("/")]
+        public sealed class HomePage : Component
         {
-            private int _count;
-
+            // BsBlock exposes only Id/Class (not Element's full HTML surface), so the width lives on a
+            // plain Div wrapper rather than a Style: on the card.
             protected override Component? Render() =>
-                [
-                    H1()["Counter"],
-                    P()[$"Current count: {_count}"],
-                    BsButton(Color: BsColor.Primary,
-                        OnClick: () => _count++)["Click me"]
-                ];
-        }
-
-        """;
-
-    private const string WeatherCs =
-        """
-        using Rask.Core.Routing;
-
-        namespace Company.RaskServer;
-
-        [Route("/weather")]
-        public sealed class Weather(IWeatherForecastService service) : Component
-        {
-            private WeatherForecast[]? _forecasts;
-
-            protected override async Task OnMountAsync() =>
-                _forecasts = await service.GetForecastsAsync(CancellationToken);
-
-            protected override Component? Render() =>
-                [
-                    H1()["Weather"],
-                    P()["This component demonstrates showing async data."],
-                    _forecasts is null
-                        ? P()[Em()["Loading..."]]
-                        : Table()[
-                            Thead()[
-                                Tr()[
-                                    Th()["Date"],
-                                    Th()["Temp. (C)"],
-                                    Th()["Temp. (F)"],
-                                    Th()["Summary"]
-                                ]
+                Div(Class: "mx-auto my-5", Style: "max-width:540px")[
+                    BsCard(Class: "shadow-sm")[
+                        BsCardBody()[
+                            BsCardTitle()["Hello, Rask! 👋"],
+                            BsCardText(Class: "text-body-secondary")["Your app is ready. Scaffold the rest with the rask CLI:"],
+                            Ul(Class: "mb-3")[
+                                Li()[Code()["rask generate feature Product Name:string Price:decimal"], " — a full CRUD slice (entity, pages, tests)"],
+                                Li()[Code()["rask generate page About"], " — a routed page"],
+                                Li()[Code()["rask generate component Card"], " — a reusable component"],
+                                Li()[Code()["rask dev"], " — run with hot reload"]
                             ],
-                            Tbody()[_forecasts.Select(f => Tr(Key: f.Date)[
-                                Td()[f.Date.ToString("yyyy-MM-dd")],
-                                Td()[f.TemperatureC],
-                                Td()[f.TemperatureF],
-                                Td()[f.Summary ?? ""]
-                            ]).ToArray()]
+                            P(Class: "mb-0 small text-body-secondary")[
+                                "Edit this page in ",
+                                Code()["App.cs"],
+                                ". Full guides at ",
+                                A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
+                                "."
+                            ]
                         ]
+                    ]
                 ];
-        }
-
-        """;
-
-    private const string WeatherForecastCs =
-        """
-        namespace Company.RaskServer;
-
-        public sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-        {
-            public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-        }
-
-        public interface IWeatherForecastService
-        {
-            Task<WeatherForecast[]> GetForecastsAsync(CancellationToken cancellationToken = default);
-        }
-
-        """;
-
-    private const string LocalWeatherServiceCs =
-        """
-        namespace Company.RaskServer;
-
-        public sealed class LocalWeatherForecastService : IWeatherForecastService
-        {
-            private static readonly string[] Summaries =
-                ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
-
-            public async Task<WeatherForecast[]> GetForecastsAsync(CancellationToken cancellationToken = default)
-            {
-                await Task.Delay(500, cancellationToken);
-                var startDate = DateOnly.FromDateTime(DateTime.Now);
-                var rng = Random.Shared;
-                return Enumerable.Range(1, 5).Select(i => new WeatherForecast(
-                    startDate.AddDays(i),
-                    rng.Next(-20, 55),
-                    Summaries[rng.Next(Summaries.Length)]
-                )).ToArray();
-            }
         }
 
         """;

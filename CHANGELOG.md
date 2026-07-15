@@ -34,6 +34,15 @@ them until tagged releases begin.
   project, resolving the platform-manifest permission blocks per host. The one remaining template (`wasm-hosted`)
   still goes through `dotnet new` until its generator lands in a follow-up. Every generated app's home page now
   greets you and shows the `rask generate` / `rask dev` cheatsheet.
+- **`rask new` scaffolds a minimal project — `App.cs`, `Program.cs`, the csproj and the launch profile.** A new
+  app is one file of components, not a folder of samples to delete first: `App.cs` now holds both the shell and
+  the routed welcome page, styled with Bootstrap. The demo content every web template used to write —
+  `HomePage.cs`/`.css`, `Counter.cs`, `Weather.cs`, `WeatherForecast.cs`, `LocalWeatherForecastService.cs` — is
+  gone, along with the generated `README.md` / `AGENTS.md`. The nav bar went with the pages it linked. `--cqrs`
+  is now wiring-only (`AddRaskCqrs()` + the package reference, no `Cqrs/` sample slice); `--pwa` and `--docker`
+  keep their feature assets (`icon.svg` / `offline.html` / `Dockerfile`), which the manifest, service worker and
+  build actually reference. The `native` template drops its `Counter` page and its geolocation backend demo (and
+  with it the iOS location usage string and the Android `ACCESS_FINE_LOCATION` permission + runtime request).
 - **`rask generate feature` takes its fields positionally.** Write
   `rask generate feature Product Name:string Price:decimal` instead of
   `--fields "Name:string,Price:decimal"`. The legacy `--fields` form still works (you just can't combine the

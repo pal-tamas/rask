@@ -12,18 +12,10 @@ internal static partial class ProjectGenerator
         {
             ($"{NameToken}.csproj", WasmCsproj(auth, version)),
             ("Program.cs", WasmProgram(auth, pwa)),
-            // The root shell is identical to the server template's (Home | Counter | Weather, no CQRS nav).
-            ("App.cs", ServerApp(cqrs: false)),
-            ("HomePage.cs", HomePage),
-            ("HomePage.css", HomePageCss),
-            ("Counter.cs", CounterCs),
-            ("Weather.cs", WeatherCs),
-            ("WeatherForecast.cs", WeatherForecastCs),
-            ("LocalWeatherForecastService.cs", LocalWeatherServiceCs),
+            // The root shell + welcome page are identical to the server template's.
+            ("App.cs", AppCs),
             ("wwwroot/index.html", WasmIndexHtml(pwa)),
             ("runtimeconfig.template.json", WasmRuntimeConfig),
-            ("README.md", WasmReadme),
-            ("AGENTS.md", WasmAgents),
         };
 
         if (auth)
@@ -118,7 +110,12 @@ internal static partial class ProjectGenerator
     {
         var sb = new StringBuilder();
         sb.Append("using Company.RaskServer;\n");
-        sb.Append("using Microsoft.Extensions.DependencyInjection;\n");
+        if (auth)
+        {
+            // Only the --auth block registers services, so this would otherwise be an unused using.
+            sb.Append("using Microsoft.Extensions.DependencyInjection;\n");
+        }
+
         sb.Append("using Rask.Wasm;\n");
         if (auth)
         {
@@ -140,8 +137,6 @@ internal static partial class ProjectGenerator
             // explicitly via WasmHostBuilder.CreateDefault(o => o.PathBase = "/myapp")
             // if you need to set it from .NET code.
             var host = WasmHostBuilder.CreateDefault();
-
-            host.Services.AddSingleton<IWeatherForecastService, LocalWeatherForecastService>();
 
             """.TrimStart('\n'));
 
@@ -614,82 +609,6 @@ internal static partial class ProjectGenerator
                     Button(Id: "logout", OnClickAsync: login.LogoutAsync)["Sign out"]
                 ];
         }
-
-        """;
-
-    private const string WasmReadme =
-        """
-        # Company.RaskServer
-
-        A standalone browser-WASM [Rask](https://github.com/pal-tamas/rask) SPA (`net10.0-browser`).
-        It runs entirely in the browser using the `JSImport`/`JSExport` transport — there is no
-        ASP.NET host of its own.
-
-        > Scaffolded with `rask new --template wasm` — Rask is the .NET One Person Framework.
-
-        ## Run
-
-        ```bash
-        rask dev        # hot reload (or: dotnet run)
-        ```
-
-        ## Publish
-
-        ```bash
-        dotnet publish -c Release
-        ```
-
-        Publishing trims the app and bakes scoped CSS/JS assets into the bundle; serve the output
-        from any static-file host. Keep the publish IL-trim-clean — new reflection needs a
-        `[DynamicallyAccessedMembers]` annotation or a justified suppression.
-
-        ## Layout
-
-        - `Program.cs` — `WasmHostBuilder.CreateDefault()` + `RunAsync<App>()`.
-        - `App.cs` — the root component (renders the full shell).
-        - `HomePage.cs` (+ `HomePage.css`), `Counter.cs`, `Weather.cs` — pages and components.
-
-        Add a full CRUD feature in one command: `rask generate feature Product Name:string Price:decimal`.
-
-        Next steps: the [Rask docs](https://github.com/pal-tamas/rask/tree/main/docs).
-
-        """;
-
-    private const string WasmAgents =
-        """
-        # AGENTS.md — building this app with an AI assistant
-
-        This is a **Rask** app. Rask is the .NET One Person Framework (a full-stack C# framework for .NET 10). This
-        file tells AI coding assistants the conventions so generated code compiles and runs. Full docs:
-        https://github.com/pal-tamas/rask/tree/main/docs
-
-        ## Mental model
-        - Components are **plain C# classes** deriving from `Component`. Override `Component? Render()`
-          and return a tree of HTML built with **generated factory methods** — no `.razor`, no JSX.
-        - This is a standalone browser-WASM SPA (`net10.0-browser`) — the same component model also runs
-          server-rendered; here it runs entirely in the browser, so services talk to external HTTP APIs.
-
-        ## The rules that matter
-        - **Use factories, never `new`** for components: `Div(...)`, `Button(OnClick: ...)`. `new` outside the
-          framework is a compile error (RASK014).
-        - **Children go through the indexer**, not a constructor arg: `Div()[Span()["hi"], "text"]`. A bare
-          `string` becomes a text node; pass a list directly for collections: `Ul()[items]`. `..` spread does not work.
-        - **Props are factory parameters.** A nullable prop is optional; a non-nullable prop with no initializer is
-          **required**. Inject services (`HttpClient`, `Navigator`, `IJSRuntime`, typed browser APIs) through the
-          **constructor**, not settable properties.
-        - **A page/root component renders the full shell**: `[Doctype(), Html(...)[Head(...), Body(...)]]` (RASK021).
-        - **Text vs raw:** a bare string / `Text("..")` HTML-encodes; `Raw("..")` is verbatim (XSS risk).
-        - **Keep it trim-clean:** the WASM publish trims; new reflection needs `[DynamicallyAccessedMembers]`.
-        - Route with `[Route("/users/{id:int}")]` + `[RouteParam]`/`[QueryParam]`. Navigate from event handlers via
-          injected `Navigator`; prefer the generated `Routes.*()` URL helpers over string paths (RASK033).
-
-        ## Scaffolding — use the `rask` CLI
-        - `rask generate page <Name>` / `rask generate component <Name>` scaffold a routed page / a component.
-        - `rask generate feature <Name> <field:type> …` emits a full CQRS + EF Core CRUD vertical slice. Add
-          `Rask.Cqrs` (reflection-free, trims clean) for a mediator. See docs/cli.md.
-        - `rask dev` runs the app with hot reload; `rask new` scaffolds a project.
-
-        If you hit a `RASKxxx` compile error, see https://github.com/pal-tamas/rask/blob/main/docs/diagnostics.md
 
         """;
 }
