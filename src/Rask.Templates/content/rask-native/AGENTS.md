@@ -1,6 +1,7 @@
 # AGENTS.md — building this app with an AI assistant
 
-This is a **Rask** native mobile app (iOS + Android) for .NET 10. It's a **WebView hybrid**: your C#
+This is a **Rask** native mobile app (iOS + Android) for .NET 10. Rask is the .NET One Person Framework —
+one C# codebase, one server, every UI surface. This app is a **WebView hybrid**: your C#
 runs natively on the device via `Rask.Native`, and the UI renders in a platform WebView driven by Rask's
 live diff pipeline. The **same component code** as any other Rask host works here. Full docs:
 https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/native.md.

@@ -47,4 +47,4 @@ Run `rask <command> --help` for command-specific usage, or `rask --version` for 
 ## Notes
 
 - **No external dependencies** — pure BCL over the `dotnet` SDK you already have.
-- More commands (`db`, `deploy`) are on the roadmap as Rask grows into a complete one-person framework.
+- More commands (`db`, `deploy`) are on the roadmap — the CLI is the front door to Rask, the .NET One Person Framework.

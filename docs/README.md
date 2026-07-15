@@ -1,8 +1,17 @@
 # Rask documentation
 
-Guides and references for building with Rask. **New to Rask?** Read
+Guides and references for building with Rask, **the .NET One Person Framework** — build, run, and ship a
+whole product solo, in C#, on one server. **New to Rask?** Read
 [Getting started](getting-started.md) start to finish — it goes from zero to a running, routed,
-interactive app. Want the pitch and a quick demo first? See the project [README](../README.md).
+interactive app. Want the philosophy first? Read **[The .NET One Person Framework](one-person-framework.md)**.
+Want the pitch and a quick demo? See the project [README](../README.md).
+
+## Start here
+
+| Guide | What it covers |
+|-------|----------------|
+| [**The .NET One Person Framework**](one-person-framework.md) | The doctrine: one developer, a whole product, one C# codebase, one server, SQLite-first — and the batteries that make it real. |
+| [Roadmap](roadmap.md) | The One-Person-Framework pillars — shipped vs planned (DB-backed jobs, outbox, mail, cache, broadcast). |
 
 ## Guides
 

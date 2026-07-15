@@ -1,0 +1,80 @@
+# The .NET One Person Framework
+
+Rask is built on one conviction: **a single developer should be able to build, run, and ship a complete
+product — the UI, the data, the auth, the background work, and the deployment — from one C# codebase on
+one server.** No PaaS to rent, no stack of services to assemble and glue, no second language to
+context-switch into. That is what "One Person Framework" means here, and every design decision serves it.
+
+This page is the doctrine. The [getting-started tutorial](getting-started.md) is the hands-on path; the
+[docs index](README.md) is the full map.
+
+## The problem it removes
+
+Shipping a product the conventional way means assembling a stack: a frontend framework in one language, a
+backend in another, a managed database, a queue for background jobs, a cache, a blob store, and a
+deployment pipeline to tie them together. Each piece is rented, integrated, monitored, and paid for. For a
+team that division of labor pays off. For **one person**, it is mostly overhead — the integration seams,
+the context-switching, and the monthly bill for capacity you don't yet need.
+
+Rask's answer is to collapse the stack. One language (C#), one codebase, one database file, one server.
+
+## One codebase, every surface
+
+You write the UI once, as plain C# components that return a tree of HTML from `Render()`. The *same*
+component code runs on three hosts — you pick per project, not per component:
+
+- **Server** — rendered server-side, updated live over a WebSocket with a minimal diff.
+- **WASM** — the same component running fully client-side in the browser (and installable as an offline PWA).
+- **Native** — the same component shipped as a real iOS/Android app via `Rask.Native`.
+
+Behind the UI, features are **vertical slices**: [`Rask.Cqrs`](cqrs.md) gives you source-generated
+commands/queries/notifications, and [`Rask.Data`](data-access.md) gives every aggregate a base with identity,
+audit stamps, soft delete, optimistic concurrency, and domain events — driven by EF Core interceptors, not
+boilerplate you copy into each feature. You don't wire a mediator or write a repository; you describe the
+slice and the framework assembles it.
+
+## SQLite-first: one server, no PaaS
+
+Rask treats **SQLite as the production database**, not a toy or a test double. A single database file on
+the server's local disk, configured for real concurrent web traffic (WAL journaling, a busy-timeout,
+enforced foreign keys) and **continuously backed up** by streaming its write-ahead log to object storage —
+plus scheduled full-file snapshots as a second line of defence.
+
+The payoff: **one box runs the whole product.** No managed database to provision and pay for, no network
+hop to a database tier, no separate cache or queue service — because everything stateful can ride the same
+SQLite database. When you outgrow one box, the door to a client-server database is open; most solo products
+never need to walk through it.
+
+The full reasoning — why WAL, why a busy-timeout, why single-writer is fine for a web app, and how the
+continuous backup works — is in **[Why one server, no PaaS](sqlite.md)**.
+
+## The batteries
+
+Everything a solo developer needs to go from empty folder to shipped, in the box:
+
+| Battery | What it does |
+|---------|--------------|
+| **[The `rask` CLI](cli.md)** | `rask new` (scaffold), `rask dev` (watch + hot reload), `rask generate` (page/component/feature). The front door. |
+| **[`rask generate feature`](cli.md)** | One command emits a full CQRS + EF Core CRUD vertical slice — encapsulated entity, value objects, validation, list/create/edit pages, and tests. |
+| **[`Rask.Data`](data-access.md)** | `AggregateRoot<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
+| **[`Rask.Cqrs`](cqrs.md)** | Source-generated, reflection-free CQRS/mediator — trim/AOT-safe, zero runtime scanning. |
+| **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
+| **[Auth](authentication.md)** | Cookie login/session scaffolding in the templates. |
+| **[PWA & native](pwa.md)** | Installable offline apps and real iOS/Android from the same components. |
+| **Deploy** | `--docker` emits a production Dockerfile — ship the one server to one box. |
+
+## DB-backed by default
+
+The through-line for everything stateful: **it rides the app's own SQLite database.** No external broker,
+no Redis, no separate infrastructure to stand up for a hello-world. Background jobs, the transactional
+outbox, cache, and mail are all designed to persist to the same database the app already has — so adding
+one is a package reference, not a new service to operate.
+
+See the **[roadmap](roadmap.md)** for what's shipped and what's next along this line.
+
+## Where to go next
+
+- **[Getting started](getting-started.md)** — zero to a running, routed, interactive app.
+- **[The `rask` CLI](cli.md)** — scaffold and run.
+- **[Why one server, no PaaS](sqlite.md)** — the SQLite production story.
+- **[Roadmap](roadmap.md)** — the DB-backed pillars, shipped vs planned.
