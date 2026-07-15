@@ -8,7 +8,7 @@ namespace Rask.Cli.Commands;
 /// (<c>page</c>, <c>component</c>, or a full CRUD <c>feature</c>), refusing to clobber an existing file
 /// unless <c>--force</c>.
 /// </summary>
-internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, string workingDirectory)
+internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
 {
     private static readonly string[] Kinds = ["page", "component", "feature"];
@@ -21,6 +21,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     };
 
     private readonly IFileSystem _fileSystem = fileSystem;
+    private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
 
     public override string Name => "generate";
@@ -32,20 +33,20 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     public override string Usage =>
         "rask generate <page|component|feature> <Name> [--fields \"Name:type,...\"] [--id guid|int|long] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
 
-    public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         if (args.Count == 0)
         {
             Console.Error.WriteLine($"Specify what to generate: {string.Join(", ", Kinds)}.");
             Console.Error.WriteLine($"Usage: {Usage}");
-            return Task.FromResult(1);
+            return 1;
         }
 
         var kind = KindAliases.GetValueOrDefault(args[0], args[0]);
         if (!Kinds.Contains(kind))
         {
             Console.Error.WriteLine($"Unknown artifact '{args[0]}'. Generate one of: {string.Join(", ", Kinds)} (aliases: p, c, f).");
-            return Task.FromResult(1);
+            return 1;
         }
 
         var schema = new ArgumentSchema()
@@ -58,26 +59,28 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Option("validation")
             .Flag("bs")
             .Flag("modal")
+            .Flag("tests")
+            .Flag("no-restore")
             .Flag("force")
             .Flag("dry-run");
 
         var parsed = schema.Parse(args.Skip(1).ToArray());
         if (parsed.HasErrors)
         {
-            return Task.FromResult(Fail(parsed.Errors));
+            return Fail(parsed.Errors);
         }
 
         var name = parsed.Positionals.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(name))
         {
             Console.Error.WriteLine($"A name is required. Usage: {Usage}");
-            return Task.FromResult(1);
+            return 1;
         }
 
         if (!Identifiers.IsValidTypeName(name))
         {
             Console.Error.WriteLine($"'{name}' is not a valid C# type name (letters, digits, and '_'; not starting with a digit).");
-            return Task.FromResult(1);
+            return 1;
         }
 
         var route = parsed.Option("route");
@@ -86,23 +89,24 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             if (kind != "page")
             {
                 Console.Error.WriteLine("--route only applies to 'generate page'.");
-                return Task.FromResult(1);
+                return 1;
             }
 
             if (!Identifiers.IsValidRoutePath(route))
             {
                 Console.Error.WriteLine($"'{route}' is not a valid route path (no quotes, backslashes, or control characters).");
-                return Task.FromResult(1);
+                return 1;
             }
         }
 
         if (kind != "feature"
             && (parsed.Option("fields") is not null || parsed.Option("context") is not null
                 || parsed.Option("plural") is not null || parsed.Option("id") is not null
-                || parsed.Option("validation") is not null || parsed.HasFlag("bs") || parsed.HasFlag("modal")))
+                || parsed.Option("validation") is not null || parsed.HasFlag("bs") || parsed.HasFlag("modal")
+                || parsed.HasFlag("tests")))
         {
-            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, --bs, and --modal only apply to 'generate feature'.");
-            return Task.FromResult(1);
+            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, --bs, --modal, and --tests only apply to 'generate feature'.");
+            return 1;
         }
 
         foreach (var (option, value) in new[] { ("context", parsed.Option("context")), ("plural", parsed.Option("plural")) })
@@ -110,7 +114,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             if (value is not null && !Identifiers.IsValidTypeName(value))
             {
                 Console.Error.WriteLine($"'{value}' is not a valid C# type name for --{option}.");
-                return Task.FromResult(1);
+                return 1;
             }
         }
 
@@ -118,16 +122,45 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         if (project is null)
         {
             Console.Error.WriteLine($"Couldn't find a single .csproj at or above '{_workingDirectory}'. Run this inside a Rask project.");
-            return Task.FromResult(1);
+            return 1;
         }
 
         if (!TryBuild(kind, name, project, parsed, out var result, out var buildError))
         {
             Console.Error.WriteLine(buildError);
-            return Task.FromResult(1);
+            return 1;
         }
 
-        return Task.FromResult(Write(result, parsed.HasFlag("force"), parsed.HasFlag("dry-run")));
+        var dryRun = parsed.HasFlag("dry-run");
+        var written = Write(result, parsed.HasFlag("force"), dryRun);
+        if (written == 0 && !dryRun && result.Packages.Count > 0)
+        {
+            await AddPackagesAsync(project.ProjectDirectory, result.Packages, parsed.HasFlag("no-restore"), cancellationToken).ConfigureAwait(false);
+        }
+
+        return written;
+    }
+
+    // Add the packages the generated code needs straight into the project (dotnet add package). A failure
+    // (e.g. offline, or the package isn't on a configured feed yet) is a warning, not a hard error — the
+    // files are already written and the printed next-steps list the packages as a manual fallback.
+    private async Task AddPackagesAsync(string projectDirectory, IReadOnlyList<string> packages, bool noRestore, CancellationToken cancellationToken)
+    {
+        if (noRestore)
+        {
+            Console.Out.WriteLine($"Skipped adding packages (--no-restore): {string.Join(", ", packages)}");
+            return;
+        }
+
+        Console.Out.WriteLine($"Adding {packages.Count} package(s) to the project…");
+        foreach (var package in packages)
+        {
+            var exit = await _process.RunAsync("dotnet", ["add", "package", package], projectDirectory, cancellationToken).ConfigureAwait(false);
+            if (exit != 0)
+            {
+                Console.Error.WriteLine($"  Couldn't add {package} automatically — add it manually: dotnet add package {package}");
+            }
+        }
     }
 
     private bool TryBuild(string kind, string name, ProjectContext project, ParsedArguments parsed, out ScaffoldResult result, out string? error)
@@ -195,7 +228,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 var useModal = parsed.HasFlag("modal");
                 var useBs = useModal || parsed.HasFlag("bs");
 
-                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, useBs, useModal, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
+                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, useBs, useModal, parsed.HasFlag("tests"), parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
                 return true;
         }
     }
