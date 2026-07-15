@@ -15,5 +15,17 @@ if (args.Length >= 1 && args[0] == "payload-bytes")
     return PayloadBytesReport.Run(args);
 }
 
+// `session-footprint` answers "how many live sessions fit in 1 GB" across a page-size sweep;
+// `session-churn` soaks and churns sessions to prove that number holds under sustained load.
+if (args.Length >= 1 && args[0] == "session-footprint")
+{
+    return SessionFootprintReport.Run(args);
+}
+
+if (args.Length >= 1 && args[0] == "session-churn")
+{
+    return SessionChurnReport.Run(args);
+}
+
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 return 0;

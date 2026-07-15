@@ -449,7 +449,7 @@ internal static class HtmlSerializer
                 // ineligible component returns false here and falls through to the walk below, which
                 // re-renders it and may re-cache. A replayed component is itself a nested user component
                 // for its parent, so flag that.
-                if (frames is not null && component.TryReplayCleanSubtree(sb, frames))
+                if (frames is not null && component.TryReplayCleanSubtree(sb, frames, liveCtx))
                 {
                     _sawNestedComponent = true;
                     break;
@@ -467,6 +467,16 @@ internal static class HtmlSerializer
                 // re-asserted to true after the walk so an ENCLOSING component still sees us as nested.
                 _sawNestedComponent = false;
                 var frameStart = frames?.Count ?? -1;
+
+                // Read the ambient forwarded key BEFORE the walk: if this component has no Key of its
+                // own, its first element will Consume() an ancestor's pending key and bake it into the
+                // frames we are about to capture. Reading it afterwards is too late — it has been
+                // consumed — and the snapshot needs to know which identity it was captured under.
+                var forwardedKeyAtCapture = KeyForwardScope.Peek();
+
+                // Likewise the handler-id counter: the walk about to run issues this subtree's ids
+                // starting here, and the snapshot has to know where its run began to replay it.
+                var handlerStartId = liveCtx?.PeekNextHandlerId ?? 0;
 
                 using (LiveRenderContext.PushScopeOrNone(liveCtx, component))
                 using (LiveRenderContext.EnterParentScopeOrNone(liveCtx, component))
@@ -500,7 +510,8 @@ internal static class HtmlSerializer
                 if (frames is not null && frameStart >= 0)
                 {
                     component.TryCacheCleanSubtree(
-                        frames, frameStart, hadNested, liveCtx?.CollectsNativeChrome ?? false);
+                        frames, frameStart, hadNested, liveCtx?.CollectsNativeChrome ?? false,
+                        forwardedKeyAtCapture, handlerStartId, liveCtx);
                 }
 
                 // Mark that our parent's subtree now contains a user component (us).

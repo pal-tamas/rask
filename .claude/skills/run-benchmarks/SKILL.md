@@ -32,4 +32,6 @@ dotnet run -c Release --project benchmarks/Rask.Benchmarks/Rask.Benchmarks.cspro
 Read the `Allocated` (and `Mean`) columns from the two
 `BenchmarkDotNet.Artifacts/results/*-report-github.md` runs. Trust `Allocated` even on
 `InvocationCount=1` benches. Quote the **delta** (e.g. "Allocated 1.84 KB → 0.91 KB, −51%") in
-the PR body. Custom byte reports: append `bundle-size` or `payload-bytes` instead of `--filter`.
+the PR body. Custom reports: append `bundle-size`, `payload-bytes`, `session-footprint` (per-live-session retained
+memory + sessions-per-GiB across a page-size sweep) or `session-churn` (soak + create/dispose churn)
+instead of `--filter`.

@@ -7,7 +7,7 @@ public class RenderedHtmlBuffersTests
 {
     private static RenderedHtmlBuffers WithCurrent(string html)
     {
-        var b = new RenderedHtmlBuffers(16);
+        var b = new RenderedHtmlBuffers();
         b.CopyFrom(new StringBuilder(html));
         return b;
     }
@@ -15,7 +15,7 @@ public class RenderedHtmlBuffersTests
     [Fact]
     public void FreshBuffers_HaveNoPrevious()
     {
-        using var b = new RenderedHtmlBuffers(16);
+        using var b = new RenderedHtmlBuffers();
         Assert.False(b.HasPrevious);
         // With no baseline a render can never dedup as a no-op — it must always be treated as changed.
         b.CopyFrom(new StringBuilder("<p>x</p>"));
@@ -87,7 +87,7 @@ public class RenderedHtmlBuffersTests
     [Fact]
     public void SeedPrevious_SetsBaselineFromAString_ForTheGetRenderHandoff()
     {
-        using var b = new RenderedHtmlBuffers(16);
+        using var b = new RenderedHtmlBuffers();
         b.SeedPrevious("<html><head></head><body>x</body></html>");
         Assert.True(b.HasPrevious);
         // The first live update after the GET must dedup a byte-identical re-render against the seed.
@@ -96,9 +96,9 @@ public class RenderedHtmlBuffersTests
     }
 
     [Fact]
-    public void GrowsBeyondInitialCapacity_WithoutTruncating()
+    public void GrowsFromNothing_WithoutTruncating()
     {
-        using var b = new RenderedHtmlBuffers(8);
+        using var b = new RenderedHtmlBuffers();
         var big = new string('a', 5000);
         b.CopyFrom(new StringBuilder(big));
         Assert.Equal(5000, b.CurrentSpan.Length);
@@ -109,5 +109,44 @@ public class RenderedHtmlBuffersTests
         b.CopyFrom(new StringBuilder(bigger));
         Assert.Equal(bigger, b.CurrentSpan.ToString());
         Assert.Equal(big, b.PreviousSpan.ToString());
+    }
+
+    [Fact]
+    public void FreshBuffers_AreEmpty_BecauseNothingIsRentedUntilFirstUse()
+    {
+        // The buffers are per-session and outlive every render, so they rent at the page's real size on
+        // first use rather than pre-renting a fixed block for a page they haven't seen yet.
+        using var b = new RenderedHtmlBuffers();
+        Assert.Equal(0, b.CurrentSpan.Length);
+        Assert.Equal(0, b.PreviousSpan.Length);
+    }
+
+    [Fact]
+    public void Dispose_BeforeAnyRender_DoesNotThrow()
+    {
+        // A session can be torn down before it ever renders (an abandoned GET). Both buffers are still
+        // the zero-length sentinel at that point, and handing those to the ArrayPool is not valid.
+        var b = new RenderedHtmlBuffers();
+        b.Dispose();
+    }
+
+    [Fact]
+    public void Dispose_AfterSeedingOnlyTheBaseline_DoesNotThrow()
+    {
+        // The GET path seeds `previous` and may never render into `current`, so disposal has to cope with
+        // one real rented buffer and one sentinel.
+        var b = new RenderedHtmlBuffers();
+        b.SeedPrevious("<html></html>");
+        b.Dispose();
+    }
+
+    [Fact]
+    public void Dispose_IsIdempotent()
+    {
+        var b = new RenderedHtmlBuffers();
+        b.CopyFrom(new StringBuilder("<p>x</p>"));
+        b.Dispose();
+        // Returning the same array to the pool twice would let two sessions rent the same buffer.
+        b.Dispose();
     }
 }
