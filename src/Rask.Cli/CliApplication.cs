@@ -23,7 +23,7 @@ internal sealed class CliApplication
     public static CliApplication CreateDefault(IConsole console, IProcessRunner process, IFileSystem fileSystem) =>
         new(console,
         [
-            new NewCommand(console, process),
+            new NewCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new DevCommand(console, process),
             new GenerateCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new InfoCommand(console, process),
