@@ -548,6 +548,8 @@ internal static class FeatureGenerator
         "double" => second ? "2.5d" : "1.5d",
         "bool" => second ? "false" : "true",
         "DateTime" => second ? "new DateTime(2025, 6, 15)" : "new DateTime(2024, 1, 1)",
+        "DateOnly" => second ? "new DateOnly(2025, 6, 15)" : "new DateOnly(2024, 1, 1)",
+        "TimeOnly" => second ? "new TimeOnly(14, 45)" : "new TimeOnly(9, 30)",
         "Guid" => second ? "Guid.Parse(\"22222222-2222-2222-2222-222222222222\")" : "Guid.Parse(\"11111111-1111-1111-1111-111111111111\")",
         _ => "default",
     };

@@ -7,6 +7,11 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`rask generate feature --fields` supports `date`, `time`, and `datetime`.** `date` maps to `DateOnly`,
+  `time` to `TimeOnly`, and `datetime` to `DateTime` (the bound form inputs auto-render as `type="date"` /
+  `type="time"`, and EF Core maps them to SQLite). Previously `date` was an alias for `DateTime`.
+
 ## [0.17.0] - 2026-07-15
 
 ### Added
