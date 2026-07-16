@@ -20,9 +20,12 @@ public class BsMultiSelectTests
             "<div class=\"form-select h-auto d-flex flex-wrap align-items-center gap-1\" data-rask-anchor=\"\" " +
             "role=\"combobox\" tabindex=\"0\" aria-haspopup=\"listbox\" aria-expanded=\"false\" " +
             "aria-controls=\"m-list\"><span class=\"text-secondary\">Select&#x2026;</span></div>", html);
-        Assert.Contains("<div id=\"m-list\" class=\"dropdown-menu\" role=\"listbox\">", html);
         Assert.Contains(
-            "<button class=\"dropdown-item d-flex align-items-center gap-2\" data-rask-key=\"0\" type=\"button\">" +
+            "<div id=\"m-list\" class=\"dropdown-menu\" role=\"listbox\" aria-multiselectable=\"true\">", html);
+        // Each row is a proper listbox option: id (for aria-activedescendant), role="option", aria-selected.
+        Assert.Contains(
+            "<button id=\"m-opt-0\" class=\"dropdown-item d-flex align-items-center gap-2\" data-rask-key=\"0\" " +
+            "role=\"option\" aria-selected=\"false\" type=\"button\">" +
             "<input class=\"form-check-input m-0 pe-none\" type=\"checkbox\" />a</button>", html);
     }
 

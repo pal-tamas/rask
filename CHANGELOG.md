@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`BsMultiSelect` is now fully keyboard-operable and reaches listbox accessibility parity with `BsSelect`.**
+  The multiselect dropdown previously responded only to Escape; it now has a roving highlight driven by
+  **Arrow Up/Down** (with **Home/End** to jump), opens from a closed box on Arrow/Enter/Space seeding the
+  highlight to the current selection, and **Enter/Space toggle** the highlighted option's membership while
+  leaving the dropdown open (Space still types a literal space in the search field). The listbox is marked
+  `aria-multiselectable`, each option is a proper `role="option"` carrying `aria-selected`, and the box
+  advertises the highlight through `aria-activedescendant` — matching `BsSelect`'s existing combobox wiring.
+  The shared cursor/id logic lives in a new internal `BsSelectNav` helper both controls consume.
 - **`BsTimePicker` keyboard parity — `Home`/`End` and a seconds nudge.** Rounding out the picker keyboard
   story: `Home`/`End` jump the clock to the earliest/latest selectable time (the `Min`/`Max` bound, or the
   day edge — `00:00`, and `23:59`/`23:59:59` with seconds), and when `Seconds` is on, `Shift`+`ArrowUp`/

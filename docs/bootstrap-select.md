@@ -17,6 +17,15 @@ multi-value, with the chosen items shown as chips (and the same opt-in `Filter`)
 live-diff, keyboard-navigable, ARIA `combobox`/`listbox`: opening a searchable select focuses the
 filter so you can type at once, and the navigation/commit keys stay inside the open dropdown —
 **Enter picks the highlighted option without submitting the surrounding form**, Escape closes.
+
+Both controls share one keyboard model over the (filtered) options: a closed box opens on
+Arrow/Enter/Space and seeds the roving highlight to the current selection; while open, **Arrow Up/Down**
+move the highlight, **Home/End** jump to the first/last option, and **Escape** closes. The highlighted
+option is the listbox's `aria-activedescendant` and carries `.active`. `BsSelect` commits with **Enter**
+(picks and closes). `BsMultiSelect` is an `aria-multiselectable` listbox whose options each expose
+`aria-selected`; **Enter/Space toggle** the highlighted option's membership and leave the dropdown open
+to pick more (inside the search field, Space types a literal space instead of toggling).
+
 `Native: true` drops `BsSelect` back to the plain OS `<select>` (handy on mobile). To bind a
 **projected field** while the options are objects, add an `OptionValue` selector —
 `BsSelect(() => model.PersonId, people, OptionValue: p => p.Id, OptionLabel: p => Text(p.Name))` binds
