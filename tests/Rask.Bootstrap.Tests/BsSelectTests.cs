@@ -139,4 +139,18 @@ public class BsSelectTests
             "<div class=\"position-relative\"><div id=\"s\" class=\"form-select bs-select-clearable\"", html);
         Assert.Contains("bs-select-clear", html);
     }
+
+    [Fact]
+    public void Select_OptionDisabled_Custom_RendersAriaDisabledOptionWithNoHandler() =>
+        // The "b" option is disabled: still a role="option", but greyed via aria-disabled and non-clickable.
+        Assert.Contains(
+            "<button id=\"s-opt-1\" class=\"dropdown-item\" data-rask-key=\"1\" role=\"option\" " +
+            "aria-disabled=\"true\" type=\"button\" disabled>b</button>",
+            BsSelect<string>(Options: ["a", "b"], Value: "a", OptionDisabled: o => o == "b", Id: "s").ToHtml());
+
+    [Fact]
+    public void Select_OptionDisabled_Native_RendersDisabledOption() =>
+        Assert.Contains("<option data-rask-key=\"1\" value=\"b\" disabled>b</option>",
+            BsSelect<string>(Options: ["a", "b"], Value: "a", Native: true, OptionDisabled: o => o == "b", Id: "t")
+                .ToHtml());
 }

@@ -31,6 +31,12 @@ to pick more (inside the search field, Space types a literal space instead of to
 `BsSelect(() => model.PersonId, people, OptionValue: p => p.Id, OptionLabel: p => Text(p.Name))` binds
 the id but renders/searches the whole `Person`.
 
+Both controls accept an **`OptionDisabled` predicate** (`item => bool`) to mark individual options
+non-selectable: a disabled option renders greyed with `aria-disabled`, takes no click, and the keyboard
+cursor skips over it (in `Native` mode it becomes a disabled `<option>`). `BsMultiSelect` additionally
+takes **`SelectAll: true`**, which adds a "Select all / Clear all" header row that toggles every shown,
+enabled option in one click (respecting an active `Filter` and never touching a disabled option).
+
 ## `BsSelect<T>` variants
 
 The same control across every option: basic (binds the option), `Floating` label, searchable
