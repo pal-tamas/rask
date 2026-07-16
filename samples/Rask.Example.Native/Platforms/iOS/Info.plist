@@ -37,5 +37,11 @@
 	     purpose string. Clipboard / vibration / wake-lock / network-info need no usage description. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>The showcase reads your location to demo the native IGeolocation backend.</string>
+	<!-- Native ISpeechRecognition (ApplePlatform → SFSpeechRecognizer + AVAudioEngine) needs both the
+	     microphone and speech-recognition purpose strings. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>The showcase uses the microphone to demo the native ISpeechRecognition backend.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>The showcase transcribes speech to demo the native ISpeechRecognition backend.</string>
 </dict>
 </plist>

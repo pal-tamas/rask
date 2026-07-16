@@ -119,6 +119,7 @@ public static class DemoRegistry
             ["browser-storage-estimate"] = () => CodeSample(["StorageEstimateDemo.cs"], Result: StorageEstimateDemo()),
             ["browser-clipboard"] = () => CodeSample(["ClipboardDemo.cs"], Result: ClipboardDemo()),
             ["browser-speech"] = () => CodeSample(["SpeechDemo.cs"], Result: SpeechDemo()),
+            ["browser-speech-recognition"] = () => CodeSample(["SpeechRecognitionDemo.cs"], Result: SpeechRecognitionDemo()),
             ["browser-media-session"] = () => CodeSample(["MediaSessionDemo.cs"], Result: MediaSessionDemo()),
             ["browser-crypto"] = () => CodeSample(["CryptoDemo.cs"], Result: CryptoDemo()),
             ["browser-file-system"] = () => CodeSample(["FileSystemAccessDemo.cs"], Result: FileSystemAccessDemo()),

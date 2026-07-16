@@ -8,6 +8,14 @@
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 	<uses-permission android:name="android.permission.VIBRATE"/>
 	<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+	<!-- ISpeechRecognition (SpeechRecognizer) needs microphone access; on API 30+ an app must also declare
+	     it queries the speech recognition service to bind to it. -->
+	<uses-permission android:name="android.permission.RECORD_AUDIO"/>
+	<queries>
+		<intent>
+			<action android:name="android.speech.RecognitionService"/>
+		</intent>
+	</queries>
 	<!-- Native + Server mode loads a local dev server over http (http://10.0.2.2:5080). Cleartext is a
 	     DEVELOPMENT convenience only — a real deployment is https and would not need this. -->
 	<application android:label="Rask Showcase" android:allowBackup="true" android:supportsRtl="true"

@@ -296,6 +296,7 @@ The shipped native backends (both platforms):
 | `INetworkInfo` | `NWPathMonitor` | `ConnectivityManager` |
 | `IBattery` | `UIDevice` battery monitoring | `BatteryManager` |
 | `ISpeechSynthesis` | `AVSpeechSynthesizer` | `TextToSpeech` |
+| `ISpeechRecognition` | `SFSpeechRecognizer` + `AVAudioEngine` | `SpeechRecognizer` |
 | `IScreenInfo` | `UIScreen` | `DisplayMetrics` |
 | `IDeviceOrientation` | CoreMotion (`CMMotionManager`) | `SensorManager` (rotation vector) |
 | `IDeviceMotion` | CoreMotion (`CMMotionManager`) | `SensorManager` (accelerometer + gyroscope) |

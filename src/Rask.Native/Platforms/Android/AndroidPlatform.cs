@@ -11,7 +11,8 @@ namespace Rask.Native;
 ///     these native C# backends for the browser/device API interfaces — <c>IShare</c> (ACTION_SEND chooser),
 ///     <c>IGeolocation</c> (LocationManager), <c>IClipboard</c> (ClipboardManager), <c>IVibration</c>
 ///     (Vibrator), <c>IWakeLock</c> (FLAG_KEEP_SCREEN_ON), <c>INetworkInfo</c> (ConnectivityManager),
-///     <c>IBattery</c> (BatteryManager), <c>ISpeechSynthesis</c> (TextToSpeech), <c>IScreenInfo</c> (DisplayMetrics),
+///     <c>IBattery</c> (BatteryManager), <c>ISpeechSynthesis</c> (TextToSpeech),
+///     <c>ISpeechRecognition</c> (SpeechRecognizer), <c>IScreenInfo</c> (DisplayMetrics),
 ///     <c>IDeviceOrientation</c>/<c>IDeviceMotion</c> (SensorManager), <c>INotifications</c>
 ///     (NotificationManager), and <c>IBadge</c> (a badge notification) — so injecting any of them resolves the
 ///     native implementation and every other interface falls back to the
@@ -35,6 +36,7 @@ public sealed class AndroidPlatform(Activity activity) : INativePlatform
         services.TryAddSingleton<INetworkInfo>(_ => new NativeNetworkInfo(activity));
         services.TryAddSingleton<IBattery>(_ => new NativeBattery(activity));
         services.TryAddSingleton<ISpeechSynthesis>(_ => new NativeSpeechSynthesis(activity));
+        services.TryAddSingleton<ISpeechRecognition>(_ => new NativeSpeechRecognition(activity));
         services.TryAddSingleton<IScreenInfo>(_ => new NativeScreenInfo(activity));
         services.TryAddSingleton<IDeviceOrientation>(_ => new NativeDeviceOrientation(activity));
         services.TryAddSingleton<IDeviceMotion>(_ => new NativeDeviceMotion(activity));
