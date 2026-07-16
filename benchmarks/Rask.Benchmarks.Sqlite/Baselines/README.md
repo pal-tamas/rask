@@ -54,15 +54,17 @@ report tooling is verified by running it, and CLAUDE.md's "unit-test every featu
 percentile maths and the error classifier are kept as small static classes so they are reviewable by eye.
 The gate itself is verified by deliberately breaking each invariant and checking it fails (see the PR).
 
-## The `mixed-ef` BUSY: located, not yet fixed
+## The `mixed-ef` BUSY: root-caused (and it was never a lock)
 
-`mixed-ef` @ 128 VUs occasionally escapes `SQLITE_BUSY` (first seen: 2 in ~542,000 ops). **The cause is
-known. The fix is not.** Do not treat the retry-enabled EF path as proven airtight under mixed load.
+`mixed-ef` @ 128 VUs can rarely throw `SQLITE_BUSY` (first seen: 2 in ~542,000 ops). **The cause is now
+known, and the earlier lock-contention framing on this page was wrong.** It is *not* a contended write lock,
+and `busy_timeout` cannot fix it — which is exactly why the `busy_timeout`-restoring candidate below only
+ever reduced it.
 
 ### Where it comes from
 
-Reproduce it by forcing blocking gen2 collections inside the measured window (pauses lengthen lock holds and
-widen the window); at 128 VUs it hits roughly **1 run in 6**. The stack is unambiguous:
+Reproduce it by forcing blocking gen2 collections inside the measured window; at 128 VUs it hits roughly
+**1 run in 6**. The stack is unambiguous:
 
 ```
 at Microsoft.Data.Sqlite.SqliteException.ThrowExceptionForRC(...)
@@ -70,21 +72,50 @@ at Microsoft.Data.Sqlite.SqliteConnection.Deactivate()
 at Microsoft.Data.Sqlite.SqliteConnection.Close()
 ```
 
-The exception is **not** thrown by the query or by `SaveChanges`. It comes out of
-`SqliteConnection.Close()` — Microsoft.Data.Sqlite's cleanup as a pooled connection is released, which runs
-when the `DbContext` is disposed, *after* the caller's work has already committed.
+`Deactivate()` runs **no lock-taking SQL** (decompiled, Microsoft.Data.Sqlite 10.0.10). All it does is
+*un-register the connection's user functions/collations* — via `sqlite3_create_function(name, null)` /
+`sqlite3_create_collation(name, null)` — when a pooled connection is returned (`SqliteConnectionPool.Return`
+→ `SqliteConnectionInternal.Deactivate` → `SqliteConnection.Deactivate`). EF Core registers ~13 of these on
+every connection (`regexp`, `ef_add`, `ef_mod`, `ef_avg`, the `EF_DECIMAL` collation, …), so there is always
+something to un-register.
 
-That accounts for every otherwise-contradictory fact:
+And **`sqlite3_create_function(name, null)` returns `SQLITE_BUSY` — *"unable to delete/modify user-function
+due to active statements"* — when a prepared statement is still active** on the connection (`nVdbeActive > 0`).
+That is the BUSY. It has nothing to do with locking.
 
-- **A 15s run cannot exhaust a 30s retry budget.** It doesn't need to: connection teardown is not a command,
-  so no `IExecutionStrategy` covers it and *nothing retries it*.
-- **It needs `configureRetry`.** That is what sets `busy_timeout=0`. With the 5000 ms default the cleanup
-  simply waits the lock out; at 0 it throws instantly.
-- **It needs reads and writes.** A context per operation churns pooled connections fast while writers hold
-  the lock.
+The active statement is an **orphaned reader**: a `SqliteCommand`/reader that was GC-collected but whose
+`sqlite3_stmt` SafeHandle finalizer has not run yet. `SqliteConnection.Close()` only finalizes commands whose
+`WeakReference` is still live (it iterates `_commands` and skips dead targets), so it misses the orphan; the
+statement is still active when `Deactivate()` tries to modify the function table. Forcing gen2 GC widens the
+window between "reader collected" and "statement finalized," which is why the repro needs it.
 
-**This is a real defect, not a harness artifact:** `UseRaskSqlite(configureRetry: …)` can throw
-`database is locked` out of *disposing* a `DbContext` under contention — after the work succeeded.
+This corrects every fact the old lock story bent to fit:
+
+- **A 15s run cannot exhaust a 30s retry budget** — right, but not because teardown "isn't a command." It's
+  because this BUSY is instantaneous and non-retryable: `busy_timeout` governs the *lock* busy handler, not the
+  function-table guard.
+- **"It needs `configureRetry` (which sets `busy_timeout=0`)"** — a correlation, not the cause. `busy_timeout`
+  never gated this call; enabling retry just raises throughput/churn, so orphaned-statement windows occur more
+  often. A deterministic repro (below) throws with the default 5000 ms `busy_timeout` set.
+- **It needs reads and writes** — reads supply the readers that get orphaned; write churn keeps the pool
+  cycling connections through `Deactivate`.
+
+### Deterministic reproduction
+
+No GC luck required. On a pooled connection, register a function the way EF does, orphan an active statement,
+then close:
+
+```csharp
+var c = new SqliteConnection("Data Source=app.db");   // pooling ON
+c.Open();
+c.CreateFunction("ef_demo", () => 1);                 // MDS-tracked, like EF's ef_* / regexp
+raw.sqlite3_prepare_v2(c.Handle, "SELECT x FROM t;", out var stmt);
+raw.sqlite3_step(stmt);                               // active statement, not a SqliteCommand
+c.Close();                                            // -> Return -> Deactivate -> create_function(ef_demo, null)
+// throws SqliteException rc=5: 'unable to delete/modify user-function due to active statements'
+```
+
+`Pooling=False` makes the same scenario pass (no pooled return → `Deactivate` never runs).
 
 ### What has been tried
 
@@ -92,18 +123,19 @@ That accounts for every otherwise-contradictory fact:
 |---|---|
 | `PRAGMA journal_mode=WAL` (lock-taking) racing on every open | **Not it** — `RaskSqliteOpenUnderLockTests`. It only takes the exclusive lock when it *changes* mode; on an already-WAL database it is a no-op. |
 | The measurement deadline cancelling an op mid-retry, misread as an escape | **Not it** — `RaskSqliteCancelledRetryTests`. A cancelled retrying `SaveChanges` throws `OperationCanceledException` at the top level, scored `Cancelled`. |
-| **Candidate fix:** restore a native `busy_timeout` in a `ConnectionClosing` interceptor hook, so teardown can wait the lock out while commands keep `busy_timeout=0` | **Reduces but does not eliminate** — ~1 affected run in 42 vs ~1 in 6. Not shipped: a partial fix that still throws is worse than an accurate note, because it stops the next person looking. It presumably misses a close path (pool eviction, or a dispose that never raises `ConnectionClosing`). |
+| **Candidate fix:** restore a native `busy_timeout` in a `ConnectionClosing` interceptor hook | **Reduced but never eliminated** — ~1 in 42 vs ~1 in 6. Now explained: `busy_timeout` was the wrong lever entirely (this BUSY isn't a lock wait); it only shifted timing/GC pressure. |
 
-No deterministic reproduction yet. Both attempts failed — a single context writing and then disposing under a
-held lock does **not** throw (200 iterations), and neither does raw Microsoft.Data.Sqlite connection churn
-with `busy_timeout=0` against a held write lock. Whatever makes the driver's cleanup need the lock is
-conditional and still unidentified; that condition is the next thing to find.
+### Fix / mitigation
 
-### If you pick this up
+It is an **upstream Microsoft.Data.Sqlite pool-return behaviour** — `Deactivate()` un-registers functions
+without tolerating the active-statements `SQLITE_BUSY` — present for any EF Core SQLite app that registers
+functions, Rask or not. No safe Rask-side code fix exists: finalizing lingering statements from a
+`ConnectionClosing` hook would break a still-live reader (you cannot tell an orphan from a live statement via
+`sqlite3_next_stmt`), and silently disabling pooling would be a per-open pragma-cost regression. The honest,
+correct guidance is `Pooling=False` on the EF connection string when this matters (verified to remove it),
+and to raise it upstream. Documented for users in [`docs/sqlite.md`](../../../docs/sqlite.md).
 
-The harness prints the exception's **extended** result code and full chain (`first error was rc=5/ext=…`).
-The open question is narrow: **what does `SqliteConnection.Deactivate()` execute that needs the write lock,
-and under what condition?** Answer that and the fix follows.
+### Unrelated: the one-off `raw-nonblocking` burst
 
 - The harness also once logged a burst of non-busy errors on `raw-nonblocking` mid-sweep that no later run
   reproduced. It predates the current error reporting, so its exception was never captured. The raw
