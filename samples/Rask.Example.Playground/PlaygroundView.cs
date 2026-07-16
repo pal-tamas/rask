@@ -151,10 +151,12 @@ public sealed class PlaygroundView : Component
                     ]
                 ],
                 Section(Class: "pg-editor")[
-                    // Monaco mounts into this host in OnRenderedAsync(firstRender). data-rask-managed keeps
-                    // the live-diff morph from touching the editor's own DOM after mount.
-                    Div(Ref: _editorHost, Class: "pg-code-host",
-                        Data: new Dictionary<string, string?> { ["rask-managed"] = "" })
+                    // Monaco mounts into this host in OnRenderedAsync(firstRender). The host renders childless,
+                    // so the positional diff never addresses inside it — but a *morph* (every full-HTML frame)
+                    // compares live children against the rendered ones and would strip Monaco's DOM. mountEditor
+                    // tags the nodes Monaco creates with data-rask-managed, which takes them out of the live-side
+                    // comparison; the marker belongs on those library-created children, never on this host.
+                    Div(Ref: _editorHost, Class: "pg-code-host")
                 ],
                 Section(Class: "pg-output")[
                     Div(Class: "pg-preview-head")["Preview"],

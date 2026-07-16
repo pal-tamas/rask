@@ -52,6 +52,15 @@ function loadMonaco() {
     return loadPromise;
 }
 
+// Tag the nodes a library mounts into `host` with data-rask-managed. The .NET side renders the host
+// childless, so the live-diff morph would otherwise compare the editor's DOM against zero rendered
+// children and strip it on the next full-HTML frame. The marker takes these children out of the live-side
+// comparison — it belongs on the library-created nodes, never on the host the .NET side renders (marking
+// the host instead makes morph append a duplicate empty host every frame).
+function markManaged(host) {
+    for (const child of host.children) child.setAttribute("data-rask-managed", "");
+}
+
 export async function mountEditor(host, code) {
     if (!host || editor || host.__fallback) return;
     try {
@@ -71,6 +80,7 @@ export async function mountEditor(host, code) {
             renderLineHighlight: "line",
             fixedOverflowWidgets: true
         });
+        markManaged(host);
     } catch {
         // Monaco unavailable — degrade to a textarea so the playground still compiles and runs code.
         const ta = document.createElement("textarea");
@@ -79,6 +89,7 @@ export async function mountEditor(host, code) {
         ta.value = code;
         host.appendChild(ta);
         host.__fallback = ta;
+        markManaged(host);
     }
 }
 

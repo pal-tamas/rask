@@ -2209,12 +2209,21 @@ function morph(from, to) {
     // the Server overlay (reconnect spinner sibling of <html>) and the WASM
     // scoped-css / scoped-js bundle tags (head children that don't appear in
     // the .NET-rendered HTML payload).
+    //
+    // The filter is symmetric: an incoming (to-side) child carrying the marker is
+    // always a misuse — a .NET-rendered node is by definition part of the payload,
+    // so the marker contradicts itself. Skipping it makes that mistake a harmless
+    // no-op; without this, the from-side node is filtered out but the to-side one
+    // isn't, so every morph appends a fresh unpaired copy (unbounded DOM growth).
     const fc = [], tc = [];
     for (let n = from.firstChild; n; n = n.nextSibling) {
         if (n.nodeType === 1 && n.hasAttribute("data-rask-managed")) continue;
         fc.push(n);
     }
-    for (let m = to.firstChild; m; m = m.nextSibling) tc.push(m);
+    for (let m = to.firstChild; m; m = m.nextSibling) {
+        if (m.nodeType === 1 && m.hasAttribute("data-rask-managed")) continue;
+        tc.push(m);
+    }
 
     // Keyed reconciliation: if any incoming child carries data-rask-key, match
     // by key instead of by position so reordered list items keep their DOM

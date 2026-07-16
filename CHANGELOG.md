@@ -87,6 +87,28 @@ them until tagged releases begin.
   `Markup` in scope together make every unqualified use ambiguous. Test-only; no shipped behaviour changes.
 
 ### Fixed
+- **`BsDataGrid`'s pager prev/next buttons had no accessible name.** They render an icon-only child (a
+  decorative, `aria-hidden` `BsIcon` chevron), so a screen reader announced two unlabelled buttons on every
+  grid with `PageSize > 0` — the numbered items were fine (their text names them), which made it easy to miss
+  until you tabbed to the arrows. `BsPageItem` now takes an `Aria` bag (matching `BsButton`/`BsTable`), and the
+  grid's arrows carry `aria-label="Previous page"` / `"Next page"`. A disabled arrow keeps both its name and its
+  `aria-disabled` state.
+- **The playground accumulated an empty `.pg-code-host` per full-HTML frame.** `PlaygroundView` put
+  `data-rask-managed` on the editor host div it *also renders* — inverting the marker's contract (it flags
+  nodes that are live but absent from the render payload). The live-diff `morph` filtered the marked host out
+  of the existing DOM but not the incoming tree, so it appended a fresh empty host every full-HTML frame,
+  unbounded for the tab's life. The marker now goes on Monaco's own library-created child nodes (where it
+  belongs — the same placement the Gantt wrapper uses), and `rask-morph.js` is hardened to ignore
+  `data-rask-managed` on a node that *is* in the incoming tree (always a misuse), so the mistake now fails safe
+  instead of duplicating silently. The playground holds a single host again.
+- **`ShowcaseLayoutTests.OnMount_SubscribesToRouteChanged_ActiveLinkRefreshesOnNav` didn't pin the
+  subscription it was named for** — it passed with `route.Changed += OnRouteChanged` deleted. It drove two full
+  root renders and asserted the active link refreshed, but that class is owned by `NavLink`, which subscribes
+  to `RouteState.Changed` itself; the layout's subscription actually drives the mobile drawer-close and the
+  active-group accordion auto-expand. The test now asserts those effects (and goes red when the subscription is
+  removed), and a new `Rask.Core.Tests` case pins the underlying framework invariant: a clean subtree that
+  depends on untracked external state is served stale from the render cache unless a `Changed` subscription
+  marks it dirty.
 - **`PackageDependencyTests` crashed instead of running, once `Rask.Templates` had been packed.** The guard
   added alongside the `PrivateAssets="all"` packaging fix scanned `src/` for `*.csproj` with
   `SearchOption.AllDirectories` — which also reaches `src/Rask.Templates/obj/`, where packing copies the

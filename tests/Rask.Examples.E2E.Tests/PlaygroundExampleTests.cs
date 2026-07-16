@@ -80,6 +80,17 @@ public sealed class PlaygroundExampleTests
             await Expect(page.Locator(".pg-preview"))
                 .ToContainTextAsync("Try the Rask playground",
                     new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+
+            // Regression guard for #419: the editor host must stay singular. data-rask-managed used to sit on
+            // the .pg-code-host div the .NET side renders, so every full-HTML frame (the first frame after
+            // each interaction ships full HTML) appended a second empty host — unbounded for the tab's life.
+            // After the Run + click + gallery interactions above there must be exactly one host and none empty.
+            var hostCount = await page.EvaluateAsync<int>(
+                "() => document.querySelectorAll('.pg-code-host').length");
+            var emptyHostCount = await page.EvaluateAsync<int>(
+                "() => [...document.querySelectorAll('.pg-code-host')].filter(h => h.children.length === 0).length");
+            Assert.Equal(1, hostCount);
+            Assert.Equal(0, emptyHostCount);
         }
         finally
         {
