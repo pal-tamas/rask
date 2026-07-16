@@ -16,28 +16,26 @@ public sealed class LifecycleProbeTests
     [Fact]
     public async Task TriggerReRender_ThroughBsButton_RunsHandlerAndRepaintsProbe()
     {
-        var host = new LiveHost(() => LifecycleProbe(), TestServices.Default());
+        var page = RaskTest.Render(() => LifecycleProbe(), TestServices.Default());
 
         // The probe's only click handler is the trigger button; that an id exists proves BsButton forwarded
         // the OnClick to the native button.
-        var clickId = ClickIds(host.RenderAsLiveRoot())[0];
-        await host.TryInvokeHandlerAsync(clickId, Empty());
+        var clickId = Markup.Attrs(page.Render(), "data-rask-on-click")[0];
+        await page.InvokeAsync(clickId);
 
-        Assert.Contains("Trigger re-render (button click)", host.RenderAsLiveRoot());
+        Assert.Contains("Trigger re-render (button click)", page.Render());
     }
 
 
     [Fact]
     public async Task LifecycleProbe_FiresMountThroughRenderedHooks_InOrder()
     {
-        var host = new LiveHost(() => LifecycleProbe(), TestServices.Default());
-
-        host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => LifecycleProbe(), TestServices.Default());
         // OnMountAsync awaits 450ms; allow time for the full sequence.
-        await WaitFor.True(() => RenderedHtml(host).Contains("OnMountAsync (after 450ms await)"),
+        await WaitFor.True(() => page.Render().Contains("OnMountAsync (after 450ms await)"),
             TimeSpan.FromSeconds(2));
 
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
         Assert.Contains("OnMount", html);
         Assert.Contains("OnMountAsync (start)", html);
         Assert.Contains("OnMountAsync (after 450ms await)", html);
@@ -50,11 +48,9 @@ public sealed class LifecycleProbeTests
     {
         var log = new LifecycleLog();
         var instanceId = 7;
-        var host = new LiveHost(
+        var page = RaskTest.Render(
             () => LifecycleCycleProbe(log.Add, instanceId),
             TestServices.Default());
-
-        host.RenderAsLiveRoot();
 
         Assert.Contains(log.Snapshot(), e => e == "#7 OnMount");
         Assert.Contains(log.Snapshot(), e => e.StartsWith("#7 OnMountAsync (start)"));
@@ -64,44 +60,17 @@ public sealed class LifecycleProbeTests
     public async Task LifecycleCycleProbe_OnUnmount_FiresWhenRemovedFromTree()
     {
         var log = new LifecycleLog();
-        var host = new LiveHost(
-            () => LifecycleCycleProbe(log.Add, 1),
+        var mounted = true;
+        var page = RaskTest.Render(
+            () => mounted ? LifecycleCycleProbe(log.Add, 1) : null,
             TestServices.Default());
-
-        host.RenderAsLiveRoot();
         await WaitFor.True(() => log.Contains("#1 OnMountAsync (after 150ms await)"), TimeSpan.FromSeconds(2));
 
-        host.Mounted = false;
-        host.RenderAsLiveRoot();
+        mounted = false;
+        page.Render();
         await WaitFor.True(() => log.Contains("#1 OnUnmountAsync"), TimeSpan.FromSeconds(2));
 
         Assert.Contains(log.Snapshot(), e => e == "#1 OnUnmount");
         Assert.Contains(log.Snapshot(), e => e == "#1 OnUnmountAsync");
-    }
-
-    // Helper: the LifecycleProbe captures its log internally and re-renders, so we
-    // peek at the rendered HTML to inspect the log contents.
-    private static string RenderedHtml(LiveHost host) => host.RenderAsLiveRoot();
-
-    private static JsonElement Empty()
-    {
-        using var doc = JsonDocument.Parse("{}");
-        return doc.RootElement.Clone();
-    }
-
-    private static List<string> ClickIds(string html)
-    {
-        var ids = new List<string>();
-        const string marker = "data-rask-on-click=\"";
-        var i = 0;
-        while ((i = html.IndexOf(marker, i, StringComparison.Ordinal)) >= 0)
-        {
-            i += marker.Length;
-            var end = html.IndexOf('"', i);
-            ids.Add(html[i..end]);
-            i = end;
-        }
-
-        return ids;
     }
 }

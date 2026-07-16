@@ -6,7 +6,7 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-// MetricsGauge / MetricsChart are driven through LiveHost so the real framework fires
+// MetricsGauge / MetricsChart are driven through RaskTest.Render so the real framework fires
 // their lifecycle hooks. A FakeMetricsFeed stands in for the producer so the test pushes
 // updates by hand (Publish) — fully deterministic, no background timer.
 public sealed class MetricsViewTests
@@ -15,9 +15,9 @@ public sealed class MetricsViewTests
     public void Gauge_RendersInitialSnapshot()
     {
         var feed = new FakeMetricsFeed(Snapshot(tick: 0, cpu: 50, jobs: 4));
-        var host = new LiveHost(() => MetricsGauge(), Services(feed));
+        var page = RaskTest.Render(() => MetricsGauge(), Services(feed));
 
-        var html = host.RenderAsLiveRoot();
+        var html = page.Html;
 
         Assert.Contains("tick 0", html);
         Assert.Contains("50.0%", html);
@@ -27,11 +27,10 @@ public sealed class MetricsViewTests
     public void Gauge_RepaintsWhenFeedPublishes()
     {
         var feed = new FakeMetricsFeed(Snapshot(tick: 0, cpu: 50, jobs: 4));
-        var host = new LiveHost(() => MetricsGauge(), Services(feed));
-        host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => MetricsGauge(), Services(feed));
 
         feed.Publish(Snapshot(tick: 7, cpu: 73.5, jobs: 9));
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
 
         Assert.Contains("tick 7", html);
         Assert.Contains("73.5%", html);
@@ -42,13 +41,12 @@ public sealed class MetricsViewTests
     public void Gauge_SubscribesOnMount_AndUnsubscribesOnUnmount()
     {
         var feed = new FakeMetricsFeed(Snapshot(tick: 0, cpu: 50, jobs: 4));
-        var host = new LiveHost(() => MetricsGauge(), Services(feed));
-
-        host.RenderAsLiveRoot();
+        var mounted = true;
+        var page = RaskTest.Render(() => mounted ? MetricsGauge() : null, Services(feed));
         Assert.Equal(1, feed.SubscriberCount);
 
-        host.Mounted = false;
-        host.RenderAsLiveRoot();
+        mounted = false;
+        page.Render();
         Assert.Equal(0, feed.SubscriberCount);
 
         // A tick after unmount must not throw (no live handler) and produces no value change.
@@ -60,17 +58,18 @@ public sealed class MetricsViewTests
     public void Chart_SubscribesAndRendersSvgFromHistory()
     {
         var feed = new FakeMetricsFeed(Snapshot(tick: 0, cpu: 50, jobs: 4));
-        var host = new LiveHost(() => MetricsChart(), Services(feed));
+        var mounted = true;
+        var page = RaskTest.Render(() => mounted ? MetricsChart() : null, Services(feed));
 
-        var html = host.RenderAsLiveRoot();
+        var html = page.Html;
         Assert.Equal(1, feed.SubscriberCount);
         Assert.Contains("<svg", html);
         // Percentage-formatted axis labels (ValueFormat "0.0'%'"), not the default money.
         Assert.Contains("50.0%", html);
         Assert.DoesNotContain("$", html);
 
-        host.Mounted = false;
-        host.RenderAsLiveRoot();
+        mounted = false;
+        page.Render();
         Assert.Equal(0, feed.SubscriberCount);
     }
 
