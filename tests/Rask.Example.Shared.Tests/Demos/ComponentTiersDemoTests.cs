@@ -14,8 +14,8 @@ public sealed class ComponentTiersDemoTests
     [Fact]
     public void Render_ShowsAllThreeTiers()
     {
-        var host = new LiveHost(() => ComponentTiersDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => ComponentTiersDemo(), TestServices.Default());
+        var html = page.Render();
 
         // Tier 0 — the static helper's inlined badges.
         Assert.Contains("inlined", html);
@@ -30,21 +30,15 @@ public sealed class ComponentTiersDemoTests
     [Fact]
     public async Task StatefulCounter_Click_Increments_WithoutStateHasChanged()
     {
-        var host = new LiveHost(() => ComponentTiersDemo(), TestServices.Default());
-        var clickId = ClickHandler(host.RenderAsLiveRoot());
+        var page = RaskTest.Render(() => ComponentTiersDemo(), TestServices.Default());
+        var clickId = ClickHandler(page.Render());
 
-        await host.TryInvokeHandlerAsync(clickId, Empty());
-        await host.TryInvokeHandlerAsync(clickId, Empty());
+        await page.InvokeAsync(clickId);
+        await page.InvokeAsync(clickId);
 
-        var final = host.RenderAsLiveRoot();
+        var final = page.Render();
         Assert.Contains("Clicked 2 times", final);
         Assert.DoesNotContain("Clicked 0 times", final);
-    }
-
-    private static JsonElement Empty()
-    {
-        using var doc = JsonDocument.Parse("{}");
-        return doc.RootElement.Clone();
     }
 
     // The counter's OnClick is the only wired event in the demo, so its id is the first (and only)

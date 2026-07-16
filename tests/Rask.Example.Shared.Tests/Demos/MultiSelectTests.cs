@@ -14,20 +14,20 @@ public sealed class MultiSelectTests
 {
     private static readonly string[] Options = ["a", "b", "c"];
 
-    private static (LiveHost Host, Bag Model) MountBound()
+    private static (RenderedComponent Page, Bag Model) MountBound()
     {
         var model = new Bag();
-        var host = new LiveHost(
+        var page = RaskTest.Render(
             () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options)],
             TestServices.Default());
-        return (host, model);
+        return (page, model);
     }
 
     [Fact]
     public void Render_Closed_ShowsPlaceholderAndAllOptions()
     {
-        var (host, _) = MountBound();
-        var html = host.RenderAsLiveRoot();
+        var (page, _) = MountBound();
+        var html = page.Render();
 
         Assert.Contains("Select&#x2026;", html);           // default placeholder, HTML-encoded ellipsis
         Assert.DoesNotContain("dropdown-menu show", html);  // closed by default
@@ -38,12 +38,12 @@ public sealed class MultiSelectTests
     [Fact]
     public async Task Toggle_OpensMenu_AndRendersBackdrop()
     {
-        var (host, _) = MountBound();
-        var ids = ClickIds(host.RenderAsLiveRoot());
+        var (page, _) = MountBound();
+        var ids = ClickIds(page.Render());
 
-        await host.TryInvokeHandlerAsync(ids[0], Empty()); // box toggle is the first click handler
+        await page.InvokeAsync(ids[0]); // box toggle is the first click handler
 
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
         Assert.Contains("dropdown-menu show", html);
         Assert.Contains("position-fixed", html);            // click-outside backdrop only when open
     }
@@ -51,49 +51,49 @@ public sealed class MultiSelectTests
     [Fact]
     public async Task ClickOutside_ClosesMenu()
     {
-        var (host, _) = MountBound();
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[0], Empty()); // open
+        var (page, _) = MountBound();
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open
 
-        var openIds = ClickIds(host.RenderAsLiveRoot()); // [box, opt-a, opt-b, opt-c, backdrop]
-        await host.TryInvokeHandlerAsync(openIds[^1], Empty()); // backdrop is the last click handler
+        var openIds = ClickIds(page.Render()); // [box, opt-a, opt-b, opt-c, backdrop]
+        await page.InvokeAsync(openIds[^1]); // backdrop is the last click handler
 
-        Assert.DoesNotContain("dropdown-menu show", host.RenderAsLiveRoot());
+        Assert.DoesNotContain("dropdown-menu show", page.Render());
     }
 
     [Fact]
     public async Task Escape_ClosesMenu()
     {
-        var (host, _) = MountBound();
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[0], Empty()); // open
+        var (page, _) = MountBound();
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open
 
-        var keyId = HandlerIds(host.RenderAsLiveRoot(), "data-rask-on-keydown")[0];
-        await host.TryInvokeHandlerAsync(keyId, Json("{\"key\":\"Escape\"}"));
+        var keyId = page.HandlerIds("keydown")[0];
+        await page.InvokeAsync(keyId, "{\"key\":\"Escape\"}");
 
-        Assert.DoesNotContain("dropdown-menu show", host.RenderAsLiveRoot());
+        Assert.DoesNotContain("dropdown-menu show", page.Render());
     }
 
     [Fact]
     public async Task Escape_OtherKey_DoesNotClose()
     {
-        var (host, _) = MountBound();
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[0], Empty()); // open
+        var (page, _) = MountBound();
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open
 
-        var keyId = HandlerIds(host.RenderAsLiveRoot(), "data-rask-on-keydown")[0];
-        await host.TryInvokeHandlerAsync(keyId, Json("{\"key\":\"ArrowDown\"}"));
+        var keyId = page.HandlerIds("keydown")[0];
+        await page.InvokeAsync(keyId, "{\"key\":\"ArrowDown\"}");
 
-        Assert.Contains("dropdown-menu show", host.RenderAsLiveRoot());
+        Assert.Contains("dropdown-menu show", page.Render());
     }
 
     [Fact]
     public async Task SelectOption_AddsToCollection_RendersChipAndCheck()
     {
-        var (host, model) = MountBound();
-        var ids = ClickIds(host.RenderAsLiveRoot()); // [toggle, opt-a, opt-b, opt-c]
+        var (page, model) = MountBound();
+        var ids = ClickIds(page.Render()); // [toggle, opt-a, opt-b, opt-c]
 
-        await host.TryInvokeHandlerAsync(ids[2], Empty()); // select "b"
+        await page.InvokeAsync(ids[2]); // select "b"
 
         Assert.Equal(["b"], model.Tags);
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
         Assert.Contains("badge", html);                      // chip rendered for the selection
         Assert.Equal(1, CountOccurrences(html, " checked")); // exactly one option checked
     }
@@ -101,12 +101,12 @@ public sealed class MultiSelectTests
     [Fact]
     public async Task RemoveChip_RemovesFromCollection()
     {
-        var (host, model) = MountBound();
+        var (page, model) = MountBound();
         model.Tags.Add("a");
         // Layout order: box toggle, then chip-remove buttons (inside the box), then option rows.
-        var ids = ClickIds(host.RenderAsLiveRoot()); // [toggle, chip-remove-a, opt-a, opt-b, opt-c]
+        var ids = ClickIds(page.Render()); // [toggle, chip-remove-a, opt-a, opt-b, opt-c]
 
-        await host.TryInvokeHandlerAsync(ids[1], Empty()); // remove the "a" chip
+        await page.InvokeAsync(ids[1]); // remove the "a" chip
 
         Assert.Empty(model.Tags);
     }
@@ -119,16 +119,16 @@ public sealed class MultiSelectTests
         // path used to resolve no owner (DelegateOwner skipped the generic display class holding `this`),
         // so the control never re-rendered and the badge lingered until an unrelated render (reopening the
         // dropdown). A cache-aware second render must now drop the removed chip on its own.
-        var (host, model) = MountBound();
+        var (page, model) = MountBound();
         model.Tags.Add("a");
         model.Tags.Add("b");
-        var ids = ClickIds(host.RenderAsLiveRoot()); // [toggle, chip-remove-a, chip-remove-b, opt-a, opt-b, opt-c]
+        var ids = ClickIds(page.Render()); // [toggle, chip-remove-a, chip-remove-b, opt-a, opt-b, opt-c]
 
-        await host.TryInvokeHandlerAsync(ids[1], Empty()); // remove the "a" chip
+        await page.InvokeAsync(ids[1]); // remove the "a" chip
         Assert.Equal(["b"], model.Tags);
 
         // The cache-aware re-render must reflect the removal without any extra interaction.
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
         Assert.Equal(1, CountOccurrences(html, "badge"));     // only the surviving "b" chip
         Assert.Equal(1, CountOccurrences(html, " checked")); // exactly one option still ticked
     }
@@ -136,14 +136,14 @@ public sealed class MultiSelectTests
     [Fact]
     public async Task SelectingTwice_TogglesOff()
     {
-        var (host, model) = MountBound();
-        var ids = ClickIds(host.RenderAsLiveRoot());
+        var (page, model) = MountBound();
+        var ids = ClickIds(page.Render());
 
-        await host.TryInvokeHandlerAsync(ids[1], Empty()); // select "a"
+        await page.InvokeAsync(ids[1]); // select "a"
         Assert.Equal(["a"], model.Tags);
 
-        var ids2 = ClickIds(host.RenderAsLiveRoot()); // now [toggle, chip-remove-a, opt-a, opt-b, opt-c]
-        await host.TryInvokeHandlerAsync(ids2[2], Empty()); // click the "a" option row again
+        var ids2 = ClickIds(page.Render()); // now [toggle, chip-remove-a, opt-a, opt-b, opt-c]
+        await page.InvokeAsync(ids2[2]); // click the "a" option row again
         Assert.Empty(model.Tags);
     }
 
@@ -151,7 +151,7 @@ public sealed class MultiSelectTests
     public async Task Validate_ShowsMessage_BelowMinimum_AndClearsWhenSatisfied()
     {
         var model = new Bag();
-        var host = new LiveHost(
+        var page = RaskTest.Render(
             () => Form(model)[
                 BsMultiSelect<string>(
                     () => model.Tags,
@@ -159,13 +159,13 @@ public sealed class MultiSelectTests
                     Validate: tags => tags.Count >= 2 ? Array.Empty<string>() : ["Pick at least two."])],
             TestServices.Default());
 
-        var ids = ClickIds(host.RenderAsLiveRoot());
-        await host.TryInvokeHandlerAsync(ids[1], Empty()); // select "a" (count 1 < 2)
-        Assert.Contains("Pick at least two.", host.RenderAsLiveRoot());
+        var ids = ClickIds(page.Render());
+        await page.InvokeAsync(ids[1]); // select "a" (count 1 < 2)
+        Assert.Contains("Pick at least two.", page.Render());
 
-        var ids2 = ClickIds(host.RenderAsLiveRoot());
-        await host.TryInvokeHandlerAsync(ids2[3], Empty()); // select "b" (count 2)
-        Assert.DoesNotContain("Pick at least two.", host.RenderAsLiveRoot());
+        var ids2 = ClickIds(page.Render());
+        await page.InvokeAsync(ids2[3]); // select "b" (count 2)
+        Assert.DoesNotContain("Pick at least two.", page.Render());
     }
 
     [Fact]
@@ -173,12 +173,12 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         ICollection<string>? seen = null;
-        var host = new LiveHost(
+        var page = RaskTest.Render(
             () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, AfterBind: c => seen = c)],
             TestServices.Default());
 
-        var ids = ClickIds(host.RenderAsLiveRoot());
-        await host.TryInvokeHandlerAsync(ids[2], Empty()); // select "b"
+        var ids = ClickIds(page.Render());
+        await page.InvokeAsync(ids[2]); // select "b"
 
         Assert.NotNull(seen);
         Assert.Equal(["b"], seen!);
@@ -190,7 +190,7 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         var fired = false;
-        var host = new LiveHost(
+        var page = RaskTest.Render(
             () => Form(model)[BsMultiSelect<string>(
                 () => model.Tags, Options, AfterBindAsync: _ =>
                 {
@@ -199,7 +199,7 @@ public sealed class MultiSelectTests
                 })],
             TestServices.Default());
 
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[1], Empty());
+        await page.InvokeAsync(ClickIds(page.Render())[1]);
 
         Assert.True(fired);
     }
@@ -209,12 +209,12 @@ public sealed class MultiSelectTests
     {
         var value = new List<string> { "a" };
         ICollection<string>? emitted = null;
-        var host = new LiveHost(
+        var page = RaskTest.Render(
             () => BsMultiSelect<string>(Options, Value: value, OnChange: next => emitted = next),
             TestServices.Default());
 
-        var ids = ClickIds(host.RenderAsLiveRoot()); // [box, chip-remove-a, opt-a, opt-b, opt-c]
-        await host.TryInvokeHandlerAsync(ids[3], Empty()); // select "b"
+        var ids = ClickIds(page.Render()); // [box, chip-remove-a, opt-a, opt-b, opt-c]
+        await page.InvokeAsync(ids[3]); // select "b"
 
         Assert.NotNull(emitted);
         Assert.Equal(["a", "b"], emitted!);
@@ -226,7 +226,7 @@ public sealed class MultiSelectTests
     {
         var value = new List<string>();
         ICollection<string>? emitted = null;
-        var host = new LiveHost(
+        var page = RaskTest.Render(
             () => BsMultiSelect<string>(Options, Value: value, OnChangeAsync: next =>
             {
                 emitted = next;
@@ -234,7 +234,7 @@ public sealed class MultiSelectTests
             }),
             TestServices.Default());
 
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[1], Empty()); // select "a"
+        await page.InvokeAsync(ClickIds(page.Render())[1]); // select "a"
 
         Assert.Equal(["a"], emitted!);
     }
@@ -242,11 +242,11 @@ public sealed class MultiSelectTests
     [Fact]
     public void Controlled_NoValidationMessage_NoEditContext()
     {
-        var host = new LiveHost(
+        var page = RaskTest.Render(
             () => BsMultiSelect<string>(Options, Value: new List<string>(), OnChange: _ => { }),
             TestServices.Default());
 
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
         Assert.Contains("dropdown-item", html);
         Assert.DoesNotContain("invalid-feedback", html); // no bound field → no ValidationMessage
     }
@@ -255,11 +255,11 @@ public sealed class MultiSelectTests
     public void Disabled_ToggleBoxHasNoClickHandler()
     {
         var model = new Bag();
-        var host = new LiveHost(
+        var page = RaskTest.Render(
             () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, Disabled: true)],
             TestServices.Default());
 
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
 
         Assert.Contains("form-select", html);
         Assert.Contains("disabled", html);
@@ -270,48 +270,22 @@ public sealed class MultiSelectTests
     public void NullOptions_ThrowsArgumentNullException()
     {
         var model = new Bag();
-        var host = new LiveHost(
+        // Render() renders as it is called, so the render-time throw surfaces from the call itself.
+        Assert.Throws<ArgumentNullException>(() => RaskTest.Render(
             () => Form(model)[BsMultiSelect<string>(() => model.Tags, null!)],
-            TestServices.Default());
-
-        Assert.Throws<ArgumentNullException>(() => host.RenderAsLiveRoot());
+            TestServices.Default()));
     }
 
     [Fact]
     public void NeitherBindNorValue_Throws()
     {
-        var host = new LiveHost(
+        Assert.Throws<InvalidOperationException>(() => RaskTest.Render(
             () => BsMultiSelect<string>(Options),
-            TestServices.Default());
-
-        Assert.Throws<InvalidOperationException>(() => host.RenderAsLiveRoot());
+            TestServices.Default()));
     }
 
-    private static JsonElement Empty() => Json("{}");
-
-    private static JsonElement Json(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.Clone();
-    }
-
-    private static List<string> ClickIds(string html) => HandlerIds(html, "data-rask-on-click");
-
-    private static List<string> HandlerIds(string html, string attr)
-    {
-        var ids = new List<string>();
-        var marker = attr + "=\"";
-        var i = 0;
-        while ((i = html.IndexOf(marker, i, StringComparison.Ordinal)) >= 0)
-        {
-            i += marker.Length;
-            var end = html.IndexOf('"', i);
-            ids.Add(html[i..end]);
-            i = end;
-        }
-
-        return ids;
-    }
+    private static IReadOnlyList<string> ClickIds(string html) =>
+        Markup.Attrs(html, "data-rask-on-click");
 
     private static int CountOccurrences(string haystack, string needle)
     {

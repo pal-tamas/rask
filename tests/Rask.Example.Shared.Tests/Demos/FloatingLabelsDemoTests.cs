@@ -14,40 +14,33 @@ public sealed class FloatingLabelsDemoTests
     [Fact]
     public async Task ValidSubmit_ShowsSuccessAlert()
     {
-        var host = new LiveHost(() => FloatingLabelsDemo(), TestServices.Default());
-        var html = host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => FloatingLabelsDemo(), TestServices.Default());
+        var html = page.Render();
 
         // Populate the model through the live field handlers (the submit bridge validates/invokes
         // against the live-bound model, not the event payload).
-        await Fill(host, html, "ff-FullName", "Ada Lovelace");
-        await Fill(host, html, "ff-Email", "ada@example.com");
-        await Fill(host, html, "ff-Age", "30");
-        await Fill(host, html, "ff-Plan", "pro");
+        await Fill(page, html, "ff-FullName", "Ada Lovelace");
+        await Fill(page, html, "ff-Email", "ada@example.com");
+        await Fill(page, html, "ff-Age", "30");
+        await Fill(page, html, "ff-Plan", "pro");
 
-        await host.TryInvokeHandlerAsync(SubmitHandler(host.RenderAsLiveRoot()), Empty());
+        await page.InvokeAsync(SubmitHandler(page.Render()));
 
-        var final = host.RenderAsLiveRoot();
+        var final = page.Render();
         Assert.Contains("Created account for Ada Lovelace", final);
         Assert.Contains("alert-success", final);
     }
 
-    private static async Task Fill(LiveHost host, string html, string id, string value)
+    private static async Task Fill(RenderedComponent page, string html, string id, string value)
     {
         foreach (var attr in new[] { "data-rask-on-input", "data-rask-on-change" })
         {
             var hid = TryAttrOnTagWith(html, $"id=\"{id}\"", attr);
             if (hid is not null)
             {
-                using var v = JsonDocument.Parse($"{{\"value\":\"{value}\"}}");
-                await host.TryInvokeHandlerAsync(hid, v.RootElement);
+                await page.InvokeAsync(hid, $"{{\"value\":\"{value}\"}}");
             }
         }
-    }
-
-    private static JsonElement Empty()
-    {
-        using var doc = JsonDocument.Parse("{}");
-        return doc.RootElement.Clone();
     }
 
     private static string SubmitHandler(string html)
@@ -79,7 +72,7 @@ public sealed class FloatingLabelsDemoTests
     [Fact]
     public void FloatingLabelsDemo_Render_EmitsFloatingFieldsAndLinkedLabels()
     {
-        var html = new LiveHost(() => FloatingLabelsDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = RaskTest.Render(() => FloatingLabelsDemo(), TestServices.Default()).Html;
 
         // Bootstrap floating-label markup across all three controls.
         Assert.Contains("form-floating", html);
