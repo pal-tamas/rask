@@ -33,5 +33,5 @@ public sealed class MasterDetailDemoTests
     }
 
     private static string Render() =>
-        new MasterDetailDemo().RenderAsLiveRoot(TestServices.Default());
+        RaskTest.Render(new MasterDetailDemo(), TestServices.Default()).Html;
 }

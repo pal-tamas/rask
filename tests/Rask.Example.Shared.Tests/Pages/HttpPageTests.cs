@@ -18,11 +18,10 @@ public sealed class HttpPageTests
         // Drive HttpFetchDemo directly through LiveHost — its standalone /http page was folded into
         // docs/http-and-files.md. Re-rendering the SAME host preserves the demo instance so the
         // awaited fetch's continuation result is observed.
-        var host = new LiveHost(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
-        host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
         await WaitFor.True(() => fakeHttp.RequestCount >= 1, TimeSpan.FromSeconds(2));
         await Task.Delay(50);
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
 
         Assert.True(fakeHttp.RequestCount >= 1);
         // Verify the fetch went to the expected relative path, and the post rendered.
@@ -38,11 +37,10 @@ public sealed class HttpPageTests
         var (http, _) = FakeHttp.Throwing(
             new HttpRequestException("boom", null, HttpStatusCode.InternalServerError));
 
-        var host = new LiveHost(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
-        host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
         // Loading shows initially; after the fetch faults the error banner should appear on next render.
         await Task.Delay(120);
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
 
         Assert.Contains("alert-danger", html);
     }
@@ -73,11 +71,10 @@ public sealed class HttpPageTests
         // page's source-code pane (which now contains "alert-danger"/"spinner-border" as literal
         // text). Re-rendering the SAME host preserves the demo instance, so the retried fetch's
         // continuation result is observed.
-        var host = new LiveHost(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
-        host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
         await WaitFor.True(() => handler.RequestCount >= 2, TimeSpan.FromSeconds(2));
         await Task.Delay(50);
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
 
         Assert.DoesNotContain("alert-danger", html);
         Assert.Contains("the body text", html);
@@ -95,11 +92,10 @@ public sealed class HttpPageTests
         // Re-rendering the SAME host preserves the demo instance so the retry loop's terminal
         // error (set on a continuation) is observed; the loop makes MaxTransientRetries + 1
         // attempts then stops.
-        var host = new LiveHost(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
-        host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
         await WaitFor.True(() => handler.RequestCount > 3, TimeSpan.FromSeconds(3));
         await Task.Delay(50);
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
 
         Assert.Contains("alert-danger", html);
         // The spinner is gone — the demo no longer hangs on the loading state. Asserting on the
@@ -114,10 +110,9 @@ public sealed class HttpPageTests
         // never throws out of the lifecycle — the page/guide stays alive around it.
         var (http, _) = FakeHttp.WithStatus(HttpStatusCode.NotFound);
 
-        var host = new LiveHost(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
-        host.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
         await Task.Delay(120);
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
 
         Assert.Contains("alert-danger", html);
     }

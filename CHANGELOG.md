@@ -19,6 +19,10 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Changed
+- **The showcase page, layout and guide suites render through `Rask.Testing`.** They called the internal
+  `RenderAsLiveRoot(services)` straight on a page component; they now use
+  `RaskTest.Render(new SomePage(), services).Html`, which is the same thing a consumer writes. Test-only;
+  84 tests before and after, and the suites still catch a layout that drops its `navbar-brand`.
 - **The lifecycle demo suites drive mount/unmount through `Rask.Testing`.** The five suites that assert on
   lifecycle hooks (`LiveTicker`, `LifecycleProbe`, `CancellationProbe`, `DisposableTimerProbe`, `MetricsView`)
   now render with `RaskTest.Render`, and unmount by having their factory return `null` instead of flipping a

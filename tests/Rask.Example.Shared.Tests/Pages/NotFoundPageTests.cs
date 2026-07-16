@@ -12,8 +12,7 @@ public sealed class NotFoundPageTests
     public void Render_ShowsRouteInBody()
     {
         var routeState = new RouteState { Path = "/__unknown" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.Contains("Page not found", html);
         Assert.Contains("/__unknown", html);
