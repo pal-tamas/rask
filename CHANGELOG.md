@@ -39,6 +39,14 @@ them until tagged releases begin.
   Core-tier wrapper, so it works on **both transports** (no user gesture needed). Showcased on the Browser APIs
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
+### Fixed
+- **`Rask.Outbox` now delivers nested `IOutboxEvent` types.** The source generator registers each event by
+  its dot-separated display name, but `OutboxSerializerRegistry.Serialize` stored `Type.FullName` — which
+  uses `+` between a nesting type and a nested type — so a nested event (a record declared inside a class)
+  was stored under a name the registry never had: it deserialized to `null` and was silently left unpublished
+  until it exhausted its attempts. `Serialize` now normalizes the name to match the generator. (Top-level
+  events were unaffected.)
+
 ## [0.18.0] - 2026-07-16
 
 ### Changed
