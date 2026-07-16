@@ -26,6 +26,13 @@ them until tagged releases begin.
   non-interactive `.dropdown-header` rows in the custom dropdown. Grouping reorders the options into group order
   while keeping keyboard navigation walking that flat visual order (headers are skipped), and composes with
   `Filter` and `OptionDisabled`. The shared group/flatten/cursor logic lives in `BsSelectNav`.
+- **`IBattery` — typed Battery Status API with native iOS/Android backends.** Inject it and
+  `GetStatusAsync()` reads the charge level + charging state once (or `null` where unavailable), while
+  `WatchAsync(onChange)` subscribes to level/charging changes and returns an `IAsyncDisposable`. A Core-tier
+  wrapper, so it works on **both transports**; browser support is Chromium-only, but in the
+  [native shell](docs/native.md) it upgrades to a real OS backend the WebView can't provide — iOS
+  `UIDevice` battery monitoring and Android `BatteryManager`. Showcased on the Browser APIs page and
+  documented in [`docs/apis/battery.md`](docs/apis/battery.md).
 - **`BsSelect` and `BsMultiSelect` gain per-option disabling, and `BsMultiSelect` gains a "Select all / Clear
   all" header.** A new `OptionDisabled` predicate (`item => bool`) on both controls marks individual options
   non-selectable: the option renders greyed with `aria-disabled`, takes no click, and the keyboard cursor

@@ -72,6 +72,7 @@ public static class RaskBrowserApis
         services.AddBrowserApi<IVibration, Vibration>(lifetime);
         services.AddBrowserApi<IPageVisibility, PageVisibilityInfo>(lifetime);
         services.AddBrowserApi<IWebLocks, WebLocks>(lifetime);
+        services.AddBrowserApi<IBattery, Battery>(lifetime);
         // Transport-agnostic PWA APIs (IJSRuntime-backed, no transient activation): push subscribe, local
         // notifications, app badge, screen wake lock. Their JS helpers ship on Server only under AddRaskPwa.
         services.AddBrowserApi<IWebPush, WebPush>(lifetime);

@@ -106,6 +106,7 @@ public static class DemoRegistry
             ["browser-vibration"] = () => CodeSample(["VibrationDemo.cs"], Result: VibrationDemo()),
             ["browser-navigator-info"] = () => CodeSample(["NavigatorInfoDemo.cs"], Result: NavigatorInfoDemo()),
             ["browser-network"] = () => CodeSample(["NetworkInfoDemo.cs"], Result: NetworkInfoDemo()),
+            ["browser-battery"] = () => CodeSample(["BatteryDemo.cs"], Result: BatteryDemo()),
             ["browser-screen"] = () => CodeSample(["ScreenInfoDemo.cs"], Result: ScreenInfoDemo()),
             ["browser-visual-viewport"] = () => CodeSample(["VisualViewportDemo.cs"], Result: VisualViewportDemo()),
             ["browser-media-query"] = () => CodeSample(["MediaQueryDemo.cs"], Result: MediaQueryDemo()),
