@@ -14,6 +14,8 @@
     <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <!-- UseRaskSqlite: the production SQLite pragmas (WAL, foreign_keys, busy_timeout) on every connection. -->
     <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
+    <!-- The mail slice (SendMailPage) queues transactional email on the same SQLite database. -->
+    <ProjectReference Include="..\..\src\Rask.Mail\Rask.Mail.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

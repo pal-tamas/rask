@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Mail</PackageId>
+    <Title>Rask.Mail — durable transactional email on your database</Title>
+    <Description>Durable transactional email for a Rask app, queued on its own database — no broker, no Redis. Compose an email (a Rask component rendered to HTML is the body), call `IMailQueue.SendAsync`, and a background `MailProcessor` delivers it over SMTP (MailKit) — at-least-once, with exponential-backoff retries and dead-lettering. Zero-config in development: logs or writes `.eml` files when no SMTP server is set. Server-side; pairs with EF Core.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — a standalone server-side mail queue. -->
+    <PackageTags>email mail smtp mailkit transactional-email queue outbox retry entity-framework-core efcore background-service sqlite dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <PackageReference Include="MailKit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Mail.Tests"/>
+  </ItemGroup>
+
+  <!-- Rask.Core supplies Component.ToHtml() (email bodies are components rendered to HTML). PrivateAssets="all"
+       keeps the unpublished Rask.Core "package" out of the nuspec; we do NOT re-pack Rask.Core.dll here —
+       Rask.Mail is always consumed alongside a Rask.Server host, which already bundles it into lib/ (the same
+       arrangement as Rask.Bootstrap). Enforced by PackageDependencyTests. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Mail;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

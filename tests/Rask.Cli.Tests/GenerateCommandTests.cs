@@ -61,6 +61,34 @@ public sealed class GenerateCommandTests
     }
 
     [Fact]
+    public async Task Generates_an_email_component_and_adds_its_package()
+    {
+        var (console, fs, process, command) = BuildWithProcess();
+
+        var exit = await command.ExecuteAsync(["email", "WelcomeEmail"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var path = Path.GetFullPath("/proj/Emails/WelcomeEmail.cs");
+        Assert.True(fs.Files.ContainsKey(path));
+        Assert.Contains("namespace MyApp.Emails;", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains("class WelcomeEmail : Component", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains("Body(new WelcomeEmail())", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Mail"]);
+        Assert.Contains("AddRaskMail", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Email_alias_e_scaffolds_an_email()
+    {
+        var (_, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["e", "Receipt"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Emails/Receipt.cs")));
+    }
+
+    [Fact]
     public async Task Route_on_job_is_rejected()
     {
         var (console, _, command) = Build();

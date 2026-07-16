@@ -8,6 +8,25 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Rask.Mail` — durable transactional email on the app's own database.** The roadmap's next DB-backed
+  pillar: compose an email with a fluent `Email` builder — its body is a **Rask component rendered to HTML**
+  (`Body(new WelcomeEmail(name))`) — call `IMailQueue.SendAsync(email)`, and a hosted `MailProcessor` delivers
+  it off the request thread over SMTP (MailKit) — **at-least-once**, with exponential-backoff retries up to
+  `MaxAttempts` (then a dead letter kept for inspection) and a retention purge. Rides the existing SQLite
+  database (no broker, no Redis) with a single hosted poller per app; the message is persisted fully rendered,
+  so nothing is rehydrated at send time. **Zero-config in development** — with no SMTP configured, mail is
+  logged, or point `PickupDirectory` at a folder to write `.eml` files. Delayed send via
+  `ScheduleAsync(email, delay)`; swap in a custom `IMailSender` (e.g. a provider API) by registering it before
+  `AddRaskMail`. Wire with `services.AddRaskMail<AppDbContext>(o => { o.From = …; o.Smtp = …; })` +
+  `modelBuilder.AddRaskMail()`, then `rask db add AddMail`. Documented in `docs/mail.md`.
+- **`rask generate email <Name>` (alias `rask g e`).** Scaffolds an email-body component under `Emails/` (a
+  Rask `Component` rendered to HTML by `Email.Body(...)`), adds the `Rask.Mail` package, and prints the
+  `AddRaskMail` / `modelBuilder.AddRaskMail()` / `rask db add AddMail` registration steps — mirroring
+  `rask generate job`.
+- **`Rask.Example.EfCore` gains a mail demo.** A new `/mail` slice queues a message through `IMailQueue` on the
+  same SQLite database the catalog uses and delivers it — with no SMTP configured — to a pickup directory as an
+  `.eml` file, wired with `AddRaskMail<CatalogDbContext>` + `modelBuilder.AddRaskMail()` and covered by a
+  Playwright E2E test.
 - **`ISpeechRecognition` — typed speech recognition / dictation with native iOS/Android backends.** The
   counterpart to `ISpeechSynthesis`: `StartAsync(onResult, options)` prompts for the microphone and streams
   each recognised phrase (final, and with `InterimResults` the live hypotheses) to the callback, returning an
@@ -17,8 +36,6 @@ them until tagged releases begin.
   `SFSpeechRecognizer` + `AVAudioEngine` and Android `SpeechRecognizer` (needs mic permission: iOS
   `NSMicrophoneUsageDescription` + `NSSpeechRecognitionUsageDescription`, Android `RECORD_AUDIO`). Showcased on
   the Browser APIs page and documented in [`docs/apis/speech-recognition.md`](docs/apis/speech-recognition.md).
-
-### Added
 - **`BsDataGrid` column chooser and reordering.** `ColumnChooser: true` renders a "Columns" menu above the
   grid — a checkbox to show or hide each column, and move earlier/later buttons to reorder it — and makes each
   header a drag source so a column can also be dragged onto another to reorder it. Both axes are controlled or

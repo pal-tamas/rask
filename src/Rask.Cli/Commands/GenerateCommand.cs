@@ -11,7 +11,7 @@ namespace Rask.Cli.Commands;
 internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
 {
-    private static readonly string[] Kinds = ["page", "component", "feature", "job"];
+    private static readonly string[] Kinds = ["page", "component", "feature", "job", "email"];
 
     private static readonly Dictionary<string, string> KindAliases = new(StringComparer.Ordinal)
     {
@@ -19,6 +19,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         ["c"] = "component",
         ["f"] = "feature",
         ["j"] = "job",
+        ["e"] = "email",
     };
 
     private readonly IFileSystem _fileSystem = fileSystem;
@@ -29,10 +30,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
     public override IReadOnlyList<string> Aliases => ["g"];
 
-    public override string Summary => "Scaffold a page, component, CRUD feature, or background job into the current project.";
+    public override string Summary => "Scaffold a page, component, CRUD feature, background job, or email into the current project.";
 
     public override string Usage =>
-        "rask generate <page|component|feature|job> <Name> [<field:type> ...] [--id guid|int|long] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
+        "rask generate <page|component|feature|job|email> <Name> [<field:type> ...] [--id guid|int|long] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -46,7 +47,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         var kind = KindAliases.GetValueOrDefault(args[0], args[0]);
         if (!Kinds.Contains(kind))
         {
-            Console.Error.WriteLine($"Unknown artifact '{args[0]}'. Generate one of: {string.Join(", ", Kinds)} (aliases: p, c, f).");
+            Console.Error.WriteLine($"Unknown artifact '{args[0]}'. Generate one of: {string.Join(", ", Kinds)} (aliases: p, c, f, j, e).");
             return 1;
         }
 
@@ -192,6 +193,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
             case "job":
                 result = JobGenerator.Generate(project, _workingDirectory, name, parsed.Option("output"));
+                return true;
+
+            case "email":
+                result = EmailGenerator.Generate(project, _workingDirectory, name, parsed.Option("output"));
                 return true;
 
             default: // feature
