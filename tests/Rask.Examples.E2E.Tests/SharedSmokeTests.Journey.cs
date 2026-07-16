@@ -271,6 +271,29 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".guide-demo .sample-result-body button.btn.btn-primary").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
+        // === Tabs, accordion & collapse — the disclosure components, all controlled and zero-JS. The
+        //     accordion is embedded in the tabs demo; BsCollapse has its own demo whose toggle flips Open. ===
+        await SideAsync("Tabs, accordion & collapse", "tabs, accordion & collapse", "main .markdown-body h1");
+        await Expect(Page.Locator(".guide-demo .sample-result-body .accordion").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        // BsCollapse — its card body starts hidden (.collapse without .show → display:none). The toggle
+        // adds .show through the live diff and reveals it, no bootstrap.js. Scope to .card-body so the
+        // accordion's own .collapse panels (one starts open) don't match.
+        var collapseBody = Page.Locator(".guide-demo .sample-result-body .collapse .card-body").First;
+        await Expect(collapseBody).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await Page.Locator(".guide-demo button:has-text('Show details')").First.ClickAsync();
+        await Expect(collapseBody).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // === Alerts, spinners & progress — the feedback components. All render live; a structural
+        //     visibility assertion is the browser-side proof, their exact markup is unit-tested. ===
+        await SideAsync("Alerts, spinners & progress", "alerts, spinners & progress", "main .markdown-body h1");
+        await Expect(Page.Locator(".guide-demo .sample-result-body .alert").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        await Expect(Page.Locator(".guide-demo .sample-result-body .spinner-border").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".guide-demo .sample-result-body .progress .progress-bar").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
         // === Navbar & nav — the BsNavItems render as SPA-routed anchors (data-rask-nav), the same primitive
         //     the showcase chrome is built from. ===
         await SideAsync("Navbar & nav", "navbar & nav", "main .markdown-body h1");

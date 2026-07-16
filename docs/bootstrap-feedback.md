@@ -16,3 +16,13 @@ Dismissible alerts — the close is controlled state, driven entirely by Rask's 
 **no `bootstrap.js`**:
 
 <!-- demo:bootstrap-alerts -->
+
+`BsSpinner` — border and grow, in theme colours and a compact size, each with a visually-hidden
+status label for assistive tech:
+
+<!-- demo:bootstrap-spinner -->
+
+`BsProgress` — the fill, colour, and striped/animated treatment, with `role`/`aria` on the outer
+`.progress` (Bootstrap 5.3):
+
+<!-- demo:bootstrap-progress -->
