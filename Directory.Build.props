@@ -54,18 +54,6 @@
     level in a focused PR that fixes/justifies each finding with benchmark evidence — not here.
   -->
 
-  <!--
-    NuGet audit runs as part of the warnings-as-errors gate (NU1903 = known vulnerability). This one
-    advisory is unactionable: SQLitePCLRaw.lib.e_sqlite3 arrives transitively via the latest
-    Microsoft.EntityFrameworkCore.Sqlite (used only by the Rask.Example.EfCore *sample*), the whole
-    SQLitePCLRaw family tops out at 2.1.11, and the advisory reports no patched version
-    (patched: null). Suppress just this advisory — audit stays on for everything else — and remove
-    this entry once a patched SQLitePCLRaw family ships. https://github.com/advisories/GHSA-2m69-gcr7-jv3q
-  -->
-  <ItemGroup>
-    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
-  </ItemGroup>
-
   <ItemGroup Condition=" '$(IsPackable)' != 'false' ">
     <None Include="$(MSBuildThisFileDirectory)NUGET.md" Pack="true" PackagePath="" Visible="false"/>
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false"/>

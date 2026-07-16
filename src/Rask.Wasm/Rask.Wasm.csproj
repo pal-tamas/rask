@@ -47,6 +47,13 @@
       surface this dep at the package boundary so consumers can restore it.
     -->
     <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
+    <!--
+      Same reasoning: this project uses Microsoft.JSInterop directly (JSInterop/WasmJSRuntime,
+      WasmLiveSession, the Browser/* wrappers), but it only ever arrived transitively through the
+      PrivateAssets="all" Rask.Core reference — which deliberately keeps Core out of the nuspec, so
+      the dep was never declared for consumers to restore.
+    -->
+    <PackageReference Include="Microsoft.JSInterop"/>
   </ItemGroup>
 
   <ItemGroup>

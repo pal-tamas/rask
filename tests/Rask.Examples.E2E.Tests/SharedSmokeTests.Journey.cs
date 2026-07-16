@@ -1241,7 +1241,7 @@ public abstract partial class SharedSmokeTests
     {
         await ClearJsRuntimeStorageAsync();
         await SideAsync("JavaScript interop", "JavaScript interop", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 7,
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 8,
             "expected the JS-interop guide to embed the demos as live demos");
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameString = "Show LazyChild" })).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
@@ -1341,6 +1341,104 @@ public abstract partial class SharedSmokeTests
         await Page.GetByRole(AriaRole.Button, new() { NameString = "Hide LazyChild" }).ClickAsync();
         await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
         Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+
+        await WalkGanttDemoAsync();
+    }
+
+    // Third-party interop: the Gantt demo wraps frappe-gantt, which builds its own DOM inside a host div
+    // the .NET side renders as a leaf. Only a browser can prove any of this — that the vendored library
+    // loads and draws, that its events round-trip into C# state, and (the subtle one) that its DOM
+    // survives a full-document morph.
+    private async Task WalkGanttDemoAsync()
+    {
+        var demo = Page.Locator(".guide-demo:has(.rask-gantt)");
+        var chart = demo.Locator(".rask-gantt");
+        var bars = chart.Locator(".bar-wrapper");
+
+        // The library loaded from the vendored _content/ asset and drew a bar per task.
+        //
+        // This assertion is also THE regression guard for the data-rask-managed tag Gantt.js puts on the
+        // chart's DOM, and it is much sharper than it looks: the first interactive frame after page load
+        // always ships full HTML, which the client applies by morphing the document. The morph pairs the
+        // host's live children against the zero the .NET render declares, so without that tag the chart
+        // is deleted moments after it draws and never comes back — verified by removing the tag, at which
+        // point the chart never becomes visible here at all.
+        await Expect(chart.Locator("svg.gantt")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await Expect(bars).ToHaveCountAsync(4, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        // Exactly one container: a duplicate would mean the tag had been put on the host instead of the
+        // library's children, and the morph had appended a second, empty one.
+        Assert.Equal(1, await chart.Locator(".gantt-container").CountAsync());
+
+        // The library's own stylesheet was injected into <head> at runtime and survives re-renders — the
+        // behaviour this guide section documents. Assert it applied, not merely that the tag is present.
+        Assert.True(
+            await chart.Locator(".bar-wrapper").First.EvaluateAsync<bool>(
+                "el => getComputedStyle(el.querySelector('.bar')).fill !== ''"),
+            "frappe-gantt's stylesheet must be loaded and applied");
+
+        // JS -> C#: clicking a bar routes through the static [JSInvokable] into this component's state.
+        await bars.First.Locator(".bar").ClickAsync(new LocatorClickOptions { Force = true });
+        await Expect(demo.Locator(".gantt-log")).ToContainTextAsync("click: Design system",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        // The full round trip: drag a bar and the C# table below re-renders with the new dates. This is
+        // the half of the story a unit test can't reach — real pointer events into the library's own drag
+        // handling, back out through interop, into a live re-render.
+        var startCell = demo.Locator("tbody tr").First.Locator("td").Nth(1);
+        var before = await startCell.TextContentAsync();
+        var bar = bars.First.Locator(".bar");
+        // Raw mouse events land at viewport coordinates and do NOT auto-scroll the way ClickAsync does —
+        // the guide is thousands of pixels tall, so read the box only once the bar is actually on screen.
+        await bar.ScrollIntoViewIfNeededAsync();
+        var box = await bar.BoundingBoxAsync();
+        Assert.NotNull(box);
+        var cx = box!.X + (box.Width / 2);
+        var cy = box.Y + (box.Height / 2);
+        await Page.Mouse.MoveAsync(cx, cy);
+        await Page.Mouse.DownAsync();
+        // Small steps, well past the library's 10px drag threshold: it re-measures on every mousemove.
+        for (var step = 1; step <= 12; step++)
+        {
+            await Page.Mouse.MoveAsync(cx + (step * 10), cy);
+        }
+
+        await Page.Mouse.UpAsync();
+        await Expect(startCell).Not.ToHaveTextAsync(before ?? "",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(demo.Locator(".gantt-log")).ToContainTextAsync("date_change: Design system",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        // A prop change pushes the new view mode at the live instance (change_view_mode) rather than
+        // re-mounting: same chart, rescaled axis. Exact names — the library renders its own "Today"
+        // button, and the demo has "¼ day" / "½ day" alongside "Day".
+        await demo.GetByRole(AriaRole.Button, new() { NameString = "Month", Exact = true }).ClickAsync();
+        await Expect(bars).ToHaveCountAsync(4, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await demo.GetByRole(AriaRole.Button, new() { NameString = "Day", Exact = true }).ClickAsync();
+        await Expect(bars).ToHaveCountAsync(4, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // Add/remove push a new task list at the library. The bar count tracking the row count is what
+        // proves the prop-change path: a caller who mutates the same list instance gets no prop change,
+        // no OnPropsChanged, and a chart that silently stops following its data.
+        await demo.Locator("button:has-text('Add task')").ClickAsync();
+        await Expect(bars).ToHaveCountAsync(5, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(demo.Locator("tbody tr")).ToHaveCountAsync(5);
+
+        for (var remaining = 5; remaining > 1; remaining--)
+        {
+            await demo.Locator("button:has-text('Remove last')").ClickAsync();
+            await Expect(demo.Locator("tbody tr")).ToHaveCountAsync(remaining - 1,
+                new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+            await Expect(bars).ToHaveCountAsync(remaining - 1,
+                new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        }
+
+        // Disabled, not removed — a sibling that disappears shifts the positional identity of every later
+        // child, which would rebuild the chart component. Still exactly one chart, still one container.
+        await Expect(demo.Locator("button:has-text('Remove last')")).ToBeDisabledAsync();
+        await Expect(chart.Locator("svg.gantt")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        Assert.Equal(1, await chart.Locator(".gantt-container").CountAsync());
     }
 
     // Elements guide: the DSL primitives, tag factories, universal props, SVG, and the HTML-element

@@ -241,6 +241,16 @@ public static class DemoRegistry
                 ["ScopedRed.cs", "ScopedBlue.cs", "ScopedRed.css", "ScopedBlue.css"],
                 Result: Div(Class: "d-flex flex-column gap-2")[ScopedRed(), ScopedBlue()]),
             ["js-interop-jsruntime"] = () => CodeSample(["JsRuntimeDemo.cs"], Result: JsRuntimeDemo()),
+            ["js-interop-thirdparty"] = () => CodeSample(
+                ["GanttDemo.cs", "Gantt.cs", "Gantt.js"],
+                Notes: "A wrapper around frappe-gantt (MIT, vendored under wwwroot/lib). The library owns "
+                + "every node inside the host div, so the component renders that div as a leaf and lets "
+                + "Gantt.js fill it — props in, C# delegates out. Drag or resize a bar and the table below "
+                + "updates: that path is browser → [JSInvokable] → C# state → live re-render. Two things "
+                + "worth copying: the chart's nodes are tagged data-rask-managed, without which the first "
+                + "full-HTML frame would morph them away seconds after they draw, and the library's "
+                + "stylesheet, injected into <head> at runtime, is preserved with no code at all.",
+                Result: GanttDemo()),
 
             // --- CQRS guide: one vertical slice (query + result-command + notification + a pipeline
             //     behaviour), dispatched reflection-free by the Rask.Cqrs source generator. ---

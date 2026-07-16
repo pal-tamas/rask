@@ -137,7 +137,7 @@ jobs:
           dotnet pack src/Rask.Cli/Rask.Cli.csproj -c Release -o ./artifacts
 
       - name: Download Rask.Native package (macOS-built, with heads)
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: native-nupkgs
           path: ./artifacts

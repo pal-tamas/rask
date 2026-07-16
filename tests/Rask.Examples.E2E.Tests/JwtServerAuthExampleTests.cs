@@ -56,9 +56,15 @@ public sealed class JwtServerAuthExampleTests : IAsyncLifetime
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         // 4. The raw JWT must NOT be readable in JS — sessionStorage holds only the encrypted blob.
+        //    A raw JWT *starts with* the base64url "eyJ" header, so that's what we check. Don't reach for
+        //    DoesNotContain here: the value is a Data Protection ciphertext, and "eyJ" turning up somewhere
+        //    inside base64url random bytes is pure chance (~1 run in 900) — that assertion failed exactly
+        //    that way, on ciphertext that was never a JWT.
         var stored = await _page.EvaluateAsync<string?>("() => sessionStorage.getItem('rask.jwt')");
         Assert.False(string.IsNullOrEmpty(stored));
-        Assert.DoesNotContain("eyJ", stored); // not a raw JWT (which starts with the base64 "eyJ" header)
+        Assert.False(
+            stored!.StartsWith("eyJ", StringComparison.Ordinal),
+            $"sessionStorage must hold the encrypted blob, not a raw JWT — got: {stored}");
 
         // 5. Sign out → back to /login.
         await _page.Locator("#logout").ClickAsync();
