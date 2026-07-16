@@ -46,3 +46,41 @@ Both are available on [`BsDataGrid<T>`](data-grid.md) too, which forwards them.
 Cards, driven entirely by Rask's live runtime — **no `bootstrap.js`**:
 
 <!-- demo:bootstrap-cards -->
+
+## Breadcrumbs
+
+`BsBreadcrumb` renders `<nav aria-label="breadcrumb"><ol class="breadcrumb">…`. Give each
+`BsBreadcrumbItem` an `Href` to make it a link, and mark the current page `Active` — it renders as plain
+text with `aria-current="page"`. `Label` renames the wrapping `<nav>` for assistive tech.
+
+```csharp
+BsBreadcrumb()[
+    BsBreadcrumbItem(Href: "/")["Home"], BsBreadcrumbItem(Active: true)["Data"]
+]
+```
+
+<!-- demo:bootstrap-breadcrumb -->
+
+## List groups
+
+`BsListGroup` holds `BsListGroupItem` children. Items take `Active`, `Disabled`, and a `Color` tint;
+pass `Href` for a clickable item (`.list-group-item-action`). Set `Numbered` for an auto-numbered `<ol>`
+or `Flush` to drop the outer borders.
+
+```csharp
+BsListGroup()[ BsListGroupItem(Active: true)["One"], BsListGroupItem(Href: "/two")["Two"] ]
+```
+
+<!-- demo:bootstrap-listgroup -->
+
+## Placeholders
+
+`BsPlaceholder` is a loading skeleton — a `<span class="placeholder">` sized by `Col` (the `col-{n}`
+grid width), optionally tinted with `Color` and scaled with `Size`. `Animation` (`Glow` or `Wave`) wraps
+it so it shimmers while content loads.
+
+```csharp
+BsPlaceholder(Col: 7, Animation: BsPlaceholderAnimation.Glow)
+```
+
+<!-- demo:bootstrap-placeholder -->
