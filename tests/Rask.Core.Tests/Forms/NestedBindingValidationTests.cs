@@ -25,18 +25,16 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Address.Street,
                 v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
-        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId!, blur.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
 
         Assert.NotNull(captured);
         Assert.Contains("street required",
@@ -52,25 +50,20 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Address.Street,
                 v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        var html = view.RenderAsLiveRoot();
         var fid = new FieldIdentifier(p.Address, nameof(Address.Street));
 
         // Blur with empty — touches and produces the message.
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        await page.ChangeAsync("{\"value\":\"\"}");
         Assert.Contains("too short", captured!.GetValidationMessages(fid));
 
         // Keystroke with a longer value — re-validates because the field is touched.
-        var inputId = Markup.Attr(html, "data-rask-on-input")!;
-        using var keystroke = JsonDocument.Parse("{\"value\":\"Oak\"}");
-        await view.TryInvokeHandlerAsync(inputId, keystroke.RootElement);
+        await page.InputAsync("{\"value\":\"Oak\"}");
         Assert.Empty(captured.GetValidationMessages(fid));
         Assert.Equal("Oak", p.Address.Street);
     }
@@ -85,16 +78,13 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Address.Street,
                 _ => new[] { "always-fail" }),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"x\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        await page.ChangeAsync("{\"value\":\"x\"}");
 
         // The form's captured EditContext.Model is the root, not the sub-object.
         Assert.NotNull(captured);
@@ -116,19 +106,18 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         var ctx = new EditContext(p);
 
-        var view = new StubComponent(() => Form<Person>(p, Context: ctx)[
+        var page = RaskTest.Render(() => Form<Person>(p, Context: ctx)[
             Input(() => p.Address.Street,
                 _ => new[] { "model-plus-context" }),
             ValidationMessage(() => p.Address.Street,
                 msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
         ]);
 
-        var initial = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"x\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        var initial = page.Render();
+        var changeId = page.HandlerId("change");
+        await page.InvokeAsync(changeId!, "{\"value\":\"x\"}");
 
-        var afterBlur = view.RenderAsLiveRoot();
+        var afterBlur = page.Render();
         Assert.Contains("model-plus-context", afterBlur);
         Assert.Contains("model-plus-context",
             ctx.GetValidationMessages(new FieldIdentifier(p.Address, nameof(Address.Street))));
@@ -143,16 +132,13 @@ public class NestedBindingValidationTests
         var ctx = new EditContext(p);
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(Context: ctx)[
+        var page = RaskTest.Render(() => Form(Context: ctx)[
             Input(() => p.Address.Street,
                 _ => new[] { "nested-explicit-ctx" }),
-            new ContextCapture(c => captured = c)
+            RaskTest.EditContextProbe(c => captured = c)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"x\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        await page.ChangeAsync("{\"value\":\"x\"}");
 
         Assert.Same(ctx, captured);
         Assert.Contains("nested-explicit-ctx",
@@ -168,21 +154,18 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "old" } };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Address.Street,
                 v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        view.RenderAsLiveRoot();
 
         // Swap to a fresh Address and re-render.
         p.Address = new Address { Street = "" };
-        var html = view.RenderAsLiveRoot();
+        page.Render();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        await page.ChangeAsync("{\"value\":\"\"}");
 
         Assert.NotNull(captured);
         Assert.Contains("street required",
@@ -201,7 +184,7 @@ public class NestedBindingValidationTests
         // the failure is render-pipeline or Server-WS-pipeline.
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
-        var view = new StubComponent(() => Form<StorefrontModel>(m)[
+        var page = RaskTest.Render(() => Form<StorefrontModel>(m)[
             Input(() => m.Address.PostalCode,
                 async (v, ct) =>
                 {
@@ -222,25 +205,23 @@ public class NestedBindingValidationTests
                 msgs => [.. msgs.Select((s, i) => Div(Class: "err", Key: i)[s])])
         ]);
 
-        var initial = view.RenderAsLiveRoot();
-        var inputId = Markup.Attr(initial, "data-rask-on-input")!;
-        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
+        var initial = page.Render();
+        var inputId = page.HandlerId("input");
+        var changeId = page.HandlerId("change");
 
         // Simulate typing "99999" one character at a time via OnInput. None of these should
         // produce validation messages — the field isn't touched yet.
         foreach (var partial in new[] { "9", "99", "999", "9999", "99999" })
         {
-            using var doc = JsonDocument.Parse($"{{\"value\":\"{partial}\"}}");
-            await view.TryInvokeHandlerAsync(inputId, doc.RootElement);
+            await page.InvokeAsync(inputId!, $"{{\"value\":\"{partial}\"}}");
         }
 
-        Assert.DoesNotContain("don't ship", view.RenderAsLiveRoot());
+        Assert.DoesNotContain("don't ship", page.Render());
 
         // Blur with the final value — OnChange handler touches + runs async validator.
-        using var blur = JsonDocument.Parse("{\"value\":\"99999\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"99999\"}");
 
-        var afterBlur = view.RenderAsLiveRoot();
+        var afterBlur = page.Render();
         Assert.Contains("ship to this area", afterBlur);
     }
 
@@ -253,7 +234,7 @@ public class NestedBindingValidationTests
         // see error clear after async settles".
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
-        var view = new StubComponent(() => Form(m)[
+        var page = RaskTest.Render(() => Form(m)[
             Input(() => m.Address.PostalCode,
                 async (v, ct) =>
                 {
@@ -274,31 +255,22 @@ public class NestedBindingValidationTests
                 msgs => [.. msgs.Select((s, i) => Div(Class: "err", Key: i)[s])])
         ]);
 
-        var initial = view.RenderAsLiveRoot();
-        var inputId = Markup.Attr(initial, "data-rask-on-input")!;
-        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
+        var initial = page.Render();
+        var inputId = page.HandlerId("input");
+        var changeId = page.HandlerId("change");
 
         // Step 1: blur with "99999" → undeliverable message lands.
-        using (var d = JsonDocument.Parse("{\"value\":\"99999\"}"))
-        {
-            await view.TryInvokeHandlerAsync(inputId, d.RootElement);
-        }
+        await page.InvokeAsync(inputId!, "{\"value\":\"99999\"}");
 
-        using (var d = JsonDocument.Parse("{\"value\":\"99999\"}"))
-        {
-            await view.TryInvokeHandlerAsync(changeId, d.RootElement);
-        }
+        await page.InvokeAsync(changeId!, "{\"value\":\"99999\"}");
 
-        Assert.Contains("ship to this area", view.RenderAsLiveRoot());
+        Assert.Contains("ship to this area", page.Render());
 
         // Step 2: now-touched field, type a valid value via OnInput. Async validator runs and
         // returns success; the message must clear.
-        using (var d = JsonDocument.Parse("{\"value\":\"12345\"}"))
-        {
-            await view.TryInvokeHandlerAsync(inputId, d.RootElement);
-        }
+        await page.InvokeAsync(inputId!, "{\"value\":\"12345\"}");
 
-        Assert.DoesNotContain("ship to this area", view.RenderAsLiveRoot());
+        Assert.DoesNotContain("ship to this area", page.Render());
     }
 
     [Fact]
@@ -311,7 +283,7 @@ public class NestedBindingValidationTests
         var m = new StorefrontModel { CustomerName = "", Address = new StorefrontAddress { PostalCode = "" } };
         string? submitted = null;
 
-        var view = new StubComponent(() => Form(
+        var page = RaskTest.Render(() => Form(
             m,
             mm => submitted = $"Charged to {mm.CustomerName}")[
             Input(() => m.CustomerName,
@@ -329,26 +301,18 @@ public class NestedBindingValidationTests
                 })
         ]);
 
-        var initial = view.RenderAsLiveRoot();
-        // Two inputs → two on-input handlers. Filter by attribute order.
-        var nameInputId = Markup.Attr(initial, "data-rask-on-input")!;
-        // To get the postal input id we look past the first occurrence.
-        var postalInputId = ExtractAttrAfter(initial, "data-rask-on-input", nameInputId);
+        // Two inputs → two on-input handlers, in document order.
+        var inputIds = page.HandlerIds("input");
+        var nameInputId = inputIds[0];
+        var postalInputId = inputIds[1];
         Assert.NotNull(postalInputId);
 
-        using (var d = JsonDocument.Parse("{\"value\":\"Ada\"}"))
-        {
-            await view.TryInvokeHandlerAsync(nameInputId, d.RootElement);
-        }
+        await page.InvokeAsync(nameInputId!, "{\"value\":\"Ada\"}");
 
-        using (var d = JsonDocument.Parse("{\"value\":\"12345\"}"))
-        {
-            await view.TryInvokeHandlerAsync(postalInputId!, d.RootElement);
-        }
+        await page.InvokeAsync(postalInputId!, "{\"value\":\"12345\"}");
 
-        var submitId = Markup.Attr(initial, "data-rask-on-submit")!;
-        using var submit = JsonDocument.Parse("{}");
-        await view.TryInvokeHandlerAsync(submitId, submit.RootElement);
+        var submitId = page.HandlerId("submit");
+        await page.InvokeAsync(submitId!, "{}");
 
         Assert.Equal("Charged to Ada", submitted);
     }
@@ -363,7 +327,7 @@ public class NestedBindingValidationTests
         // to during the re-render that follows the event dispatch.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Address.Street,
                 v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
@@ -371,14 +335,13 @@ public class NestedBindingValidationTests
                 msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
         ]);
 
-        var initial = view.RenderAsLiveRoot();
+        var initial = page.Render();
         Assert.DoesNotContain("street required", initial);
 
-        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        var changeId = page.HandlerId("change");
+        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
 
-        var afterBlur = view.RenderAsLiveRoot();
+        var afterBlur = page.Render();
         Assert.Contains("street required", afterBlur);
     }
 
@@ -389,7 +352,7 @@ public class NestedBindingValidationTests
         // makes the value valid must clear the message in the next render's HTML.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Address.Street,
                 v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
@@ -397,17 +360,15 @@ public class NestedBindingValidationTests
                 msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
         ]);
 
-        var initial = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
-        Assert.Contains("too short", view.RenderAsLiveRoot());
+        var initial = page.Render();
+        var changeId = page.HandlerId("change");
+        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
+        Assert.Contains("too short", page.Render());
 
-        var inputId = Markup.Attr(initial, "data-rask-on-input")!;
-        using var keystroke = JsonDocument.Parse("{\"value\":\"Oak\"}");
-        await view.TryInvokeHandlerAsync(inputId, keystroke.RootElement);
+        var inputId = page.HandlerId("input");
+        await page.InvokeAsync(inputId!, "{\"value\":\"Oak\"}");
 
-        var afterKeystroke = view.RenderAsLiveRoot();
+        var afterKeystroke = page.Render();
         Assert.DoesNotContain("too short", afterKeystroke);
     }
 
@@ -422,50 +383,18 @@ public class NestedBindingValidationTests
         };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Address.Postal.Code,
                 v =>
                     string.IsNullOrEmpty(v) ? new[] { "postal required" } : Array.Empty<string>()),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        await page.ChangeAsync("{\"value\":\"\"}");
 
         Assert.NotNull(captured);
         Assert.Contains("postal required",
             captured!.GetValidationMessages(new FieldIdentifier(p.Address.Postal!, nameof(PostalInfo.Code))));
-    }
-
-    private static string? ExtractAttrAfter(string html, string attr, string skipValue)
-    {
-        var marker = attr + "=\"";
-        var cursor = 0;
-        while (true)
-        {
-            var i = html.IndexOf(marker, cursor, StringComparison.Ordinal);
-            if (i < 0)
-            {
-                return null;
-            }
-
-            var start = i + marker.Length;
-            var end = html.IndexOf('"', start);
-            if (end < 0)
-            {
-                return null;
-            }
-
-            var value = html.Substring(start, end - start);
-            if (value != skipValue)
-            {
-                return value;
-            }
-
-            cursor = end + 1;
-        }
     }
 
     private sealed class StorefrontModel

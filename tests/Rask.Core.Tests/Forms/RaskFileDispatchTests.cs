@@ -19,17 +19,14 @@ public class RaskFileDispatchTests
         IReadOnlyList<RaskFile>? received = null;
         Callback<IReadOnlyList<RaskFile>> handler = files => received = files;
 
-        var view = new StubComponent(() => Input<string>(OnFiles: handler));
-        view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Input<string>(OnFiles: handler), services);
 
-        var payload = JsonDocument.Parse("""
-                                         { "id": "h0", "type": "files", "files": [
-                                             { "token": "t1", "name": "a.txt", "size": 5, "type": "text/plain", "lastModified": 1 },
-                                             { "token": "t2", "name": "b.txt", "size": 3, "type": "text/plain", "lastModified": 2 }
-                                         ]}
-                                         """).RootElement;
-
-        var ok = await view.TryInvokeHandlerAsync("h0", payload, services);
+        var ok = await page.TryInvokeAsync("h0", """
+                                                 { "id": "h0", "type": "files", "files": [
+                                                     { "token": "t1", "name": "a.txt", "size": 5, "type": "text/plain", "lastModified": 1 },
+                                                     { "token": "t2", "name": "b.txt", "size": 3, "type": "text/plain", "lastModified": 2 }
+                                                 ]}
+                                                 """);
 
         Assert.True(ok);
         Assert.NotNull(received);
@@ -54,16 +51,13 @@ public class RaskFileDispatchTests
             return Task.CompletedTask;
         };
 
-        var view = new StubComponent(() => Input<string>(OnFilesAsync: handler));
-        view.RenderAsLiveRoot();
+        var page = RaskTest.Render(() => Input<string>(OnFilesAsync: handler), services);
 
-        var payload = JsonDocument.Parse("""
-                                         { "id": "h0", "type": "files", "files": [
-                                             { "token": "x", "name": "x.txt", "size": 1, "type": "text/plain", "lastModified": 0 }
-                                         ]}
-                                         """).RootElement;
-
-        await view.TryInvokeHandlerAsync("h0", payload, services);
+        await page.InvokeAsync("h0", """
+                                     { "id": "h0", "type": "files", "files": [
+                                         { "token": "x", "name": "x.txt", "size": 1, "type": "text/plain", "lastModified": 0 }
+                                     ]}
+                                     """);
 
         Assert.Equal(1, seen);
         Assert.Single(backend.Released);
@@ -73,8 +67,7 @@ public class RaskFileDispatchTests
     public void Input_Emits_DataRaskOnFiles_Attribute_When_OnFiles_Set()
     {
         Callback<IReadOnlyList<RaskFile>> handler = _ => { };
-        var view = new StubComponent(() => Input<string>(InputType.File, OnFiles: handler));
-        var html = view.RenderAsLiveRoot();
+        var html = RaskTest.Render(() => Input<string>(InputType.File, OnFiles: handler)).Html;
         Assert.Contains("data-rask-on-files=", html);
         Assert.Contains("type=\"file\"", html);
     }

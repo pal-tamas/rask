@@ -22,16 +22,14 @@ public class AsyncFormBindingTests
         var ctx = new EditContext(model);
         ctx.AddValidator(new TaggingAsyncValidator("Username", "no good"));
 
-        var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
+        var page = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
             Input(() => model.Username)
         ]);
 
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
 
-        using var doc = JsonDocument.Parse("{\"value\":\"new\"}");
-        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"new\"}");
 
         var fid = new FieldIdentifier(model, "Username");
         Assert.Equal(new[] { "no good" }, ctx.GetValidationMessages(fid));
@@ -45,14 +43,14 @@ public class AsyncFormBindingTests
         var validator = new GatedAsyncValidator();
         ctx.AddValidator(validator);
 
-        var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
+        var page = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
             Input(() => model.Username)
         ]);
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = page.HandlerId("change");
 
-        using var doc = JsonDocument.Parse("{\"value\":\"taken\"}");
-        var dispatchTask = view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        // Held un-awaited on purpose: the gate keeps the validator mid-flight so the state below is
+        // observable. InvokeAsync returning a Task is what makes that expressible through the public API.
+        var dispatchTask = page.InvokeAsync(changeId!, "{\"value\":\"taken\"}");
 
         await validator.Started.Task;
         var fid = new FieldIdentifier(model, "Username");
@@ -72,18 +70,13 @@ public class AsyncFormBindingTests
         var ctx = new EditContext(model);
         ctx.AddValidator(new RejectIfEqualsValidator("admin", "Already taken."));
 
-        var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
+        var page = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
             Input(() => model.Username)
         ]);
-        var html = view.RenderAsLiveRoot();
-        var inputId = Markup.Attr(html, "data-rask-on-input");
-        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         // Mirror the browser: OnInput sets the value, OnChange (blur) touches and validates.
-        using var inputDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
-        await view.TryInvokeHandlerAsync(inputId!, inputDoc.RootElement);
-        using var changeDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
-        await view.TryInvokeHandlerAsync(changeId!, changeDoc.RootElement);
+        await page.InputAsync("{\"value\":\"admin\"}");
+        await page.ChangeAsync("{\"value\":\"admin\"}");
 
         var fid = new FieldIdentifier(model, "Username");
         Assert.Equal("admin", model.Username);
@@ -91,6 +84,12 @@ public class AsyncFormBindingTests
         Assert.False(ctx.IsValidating(fid));
     }
 
+    // The two PostHandlerRender tests below stay on the internal render entry points, deliberately.
+    // They install a RenderingHandle so the dispatcher's mid-await render produces a real cached
+    // subtree — that cache is the thing under test, and RaskTest has no RenderHandle to install
+    // (nor should it: a render handle is a live-session mechanism, below the HTML + dispatch seam
+    // the package covers). They pass without the handle too, which is exactly the trap: the
+    // assertions survive while the cached-subtree path they exist to cover quietly stops running.
     [Fact]
     public async Task AsyncValidator_PostHandlerRender_ShowsMessage_AndNoIndicator()
     {
@@ -182,11 +181,10 @@ public class AsyncFormBindingTests
         _ = ctx.ValidateFieldAsync(fid);
         Assert.True(ctx.IsValidating(fid));
 
-        var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
+        var html = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
             ValidatingIndicator(() => model.Username, () => Span(Class: "spinner")["Checking..."])
-        ]);
+        ]).Html;
 
-        var html = view.RenderAsLiveRoot();
         Assert.Contains("<span class=\"spinner\">", html);
         Assert.Contains("Checking...", html);
     }
@@ -197,11 +195,10 @@ public class AsyncFormBindingTests
         var model = new SignupModel { Username = "ada" };
         var ctx = new EditContext(model);
 
-        var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
+        var html = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
             ValidatingIndicator(() => model.Username, () => Span(Class: "spinner")["Checking..."])
-        ]);
+        ]).Html;
 
-        var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("Checking...", html);
         Assert.DoesNotContain("spinner", html);
     }
