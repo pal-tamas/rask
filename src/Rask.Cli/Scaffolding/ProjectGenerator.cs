@@ -9,8 +9,9 @@ namespace Rask.Cli.Scaffolding;
 /// version the caller passes (the CLI's own version).
 /// </summary>
 /// <remarks>
-/// One template per partial file — <c>.Server.cs</c>, <c>.Wasm.cs</c>, <c>.WasmHosted.cs</c>,
-/// <c>.Native.cs</c> — with the content more than one of them emits in <c>.Shared.cs</c>.
+/// One template per partial file — <c>.Server.cs</c>, <c>.Wasm.cs</c>, <c>.Native.cs</c> — with the
+/// content more than one of them emits in <c>.Shared.cs</c>. <c>wasm-hosted</c> has no partial here: it
+/// still goes through <c>dotnet new</c> + Rask.Templates until its generator lands.
 /// </remarks>
 internal static partial class ProjectGenerator
 {
