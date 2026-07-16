@@ -229,12 +229,19 @@ for writes:
 ~26k/second through EF Core. For scale, that is far past what a single application server will ask of it —
 which is the point: SQLite is not the bottleneck you should be designing around.
 
-> One caveat reported rather than buried: the EF mixed arm occasionally escapes `SQLITE_BUSY` under load,
-> and **the cause is known but unfixed**. It is thrown from `SqliteConnection.Close()` as a pooled connection
-> is released — i.e. from *disposing* the `DbContext`, after the work has committed. Connection teardown is
-> not a command, so no execution strategy covers it and nothing retries it; enabling `configureRetry` sets
-> `busy_timeout=0`, which leaves it no tolerance for a concurrent writer. The raw path shows nothing
-> equivalent. Details, and what has already been tried, are in the harness
+> One caveat reported rather than buried: the EF mixed arm can rarely throw `SQLITE_BUSY` from
+> `SqliteConnection.Close()` — i.e. from *disposing* the `DbContext`, after the work has committed. **This is
+> not lock contention, and `busy_timeout` cannot fix it.** When Microsoft.Data.Sqlite returns a pooled
+> connection it runs `Deactivate()`, which *un-registers EF Core's built-in helper functions* (`ef_add`,
+> `regexp`, the `EF_DECIMAL` collation, …) via `sqlite3_create_function(name, null)`. SQLite refuses that with
+> `SQLITE_BUSY` — *"unable to delete/modify user-function due to active statements"* — if any prepared
+> statement is still active on the connection, which happens when a reader was GC-collected but its statement
+> finalizer has not run yet (`Close()` only finalizes commands it still holds a live reference to). Heavy
+> concurrent read/write churn plus a gen2 GC at the wrong instant is what surfaces it. It is an upstream
+> Microsoft.Data.Sqlite pool-return behaviour, present for any EF Core SQLite app that registers functions —
+> not specific to Rask, and the raw ADO path (no EF functions) shows nothing equivalent. If it bites you,
+> `Pooling=False` on the connection string removes it (no pooled return means no `Deactivate`), at the cost of
+> re-applying the pragmas on every open. Full deterministic reproduction and analysis are in the harness
 > [baselines README](../benchmarks/Rask.Benchmarks.Sqlite/Baselines/README.md).
 
 ### Under a sustained soak
