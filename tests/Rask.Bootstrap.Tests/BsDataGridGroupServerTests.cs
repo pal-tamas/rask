@@ -88,6 +88,15 @@ public class BsDataGridGroupServerTests
             .ToArray();
     }
 
+    // The header titles, markup stripped.
+    private static string[] HeaderTitles(string html)
+    {
+        var head = Regex.Match(html, "<thead>(.*?)</thead>", RegexOptions.Singleline).Groups[1].Value;
+        return Regex.Matches(head, "<th[^>]*>(.*?)</th>", RegexOptions.Singleline)
+            .Select(m => Regex.Replace(Regex.Replace(m.Groups[1].Value, "<[^>]+>", " "), @"\s+", " ").Trim())
+            .ToArray();
+    }
+
     // --- IQueryable: the store orders --------------------------------------------------------------------
     //
     // These go through RaskTest.Render (a real render engine), not ToHtml(): an IQueryable Data throws under
@@ -141,6 +150,19 @@ public class BsDataGridGroupServerTests
     }
 
     [Fact]
+    public void Query_GroupedColumn_IsHiddenByDefault()
+    {
+        // Column hiding is orthogonal to where the data comes from: the grouped column folds away over an
+        // IQueryable exactly as over a list, while the store still leads the ORDER BY with it.
+        var grid = RaskTest.Render(new Host(() => BsDataGrid(
+            Data: Interleaved.AsQueryable(), Columns: Columns(), RowKey: r => r.Name,
+            Grouped: ["category"], OnGroupedChange: _ => { })));
+
+        Assert.Equal(["Name", "Supplier", "Qty"], HeaderTitles(grid.Html));
+        Assert.Contains("Category: Fruit", grid.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Query_Grouping_DoesNotDefeatTheQueryCache()
     {
         // The cache key folds in the grouping (string.Join(',', CurrentGrouped)), so a grouped grid still
@@ -184,6 +206,23 @@ public class BsDataGridGroupServerTests
 
         Assert.Equal(["Category: Fruit (3)", "Category: Veg (2)"], BandTitles(html));
         Assert.Equal(["Apple", "Banana", "Cherry", "Carrot", "Leek"], FirstCells(html));
+    }
+
+    [Fact]
+    public void TotalCount_GroupedColumn_IsHiddenByDefault()
+    {
+        var slice = new List<Row>
+        {
+            new("Apple", "Fruit", "Acme", 5),
+            new("Banana", "Fruit", "Bolt", 3),
+            new("Carrot", "Veg", "Acme", 9),
+        };
+
+        var html = BsDataGrid(Data: slice, Columns: Columns(), RowKey: r => r.Name, TotalCount: slice.Count,
+            PageSize: 10, Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+
+        Assert.Equal(["Name", "Supplier", "Qty"], HeaderTitles(html));
+        Assert.Contains("Category: Fruit", html, StringComparison.Ordinal);
     }
 
     [Fact]
