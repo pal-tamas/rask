@@ -31,6 +31,19 @@ public sealed class DeployConfigTests
     }
 
     [Fact]
+    public void Save_then_load_round_trips_the_health_settings()
+    {
+        var fs = new FakeFileSystem();
+        new DeployConfig { Host = "deploy@box", HealthPath = "/ready", HealthCheckDisabled = true }
+            .Save(fs, WorkingDir);
+
+        var loaded = DeployConfig.Load(fs, WorkingDir);
+
+        Assert.Equal("/ready", loaded.HealthPath);
+        Assert.True(loaded.HealthCheckDisabled);
+    }
+
+    [Fact]
     public void Save_writes_to_dot_rask_deploy_json()
     {
         var fs = new FakeFileSystem();
