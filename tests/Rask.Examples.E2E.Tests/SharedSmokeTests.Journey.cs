@@ -351,7 +351,11 @@ public abstract partial class SharedSmokeTests
         await Page.Locator(".guide-demo button:has-text('Open settings')").First.ClickAsync();
         var drawer = Page.Locator(".guide-demo .sample-result-body .offcanvas.show").First;
         await Expect(drawer).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Page.Locator(".guide-demo .sample-result-body .offcanvas-backdrop").First.ClickAsync();
+        // Dispatch the click rather than actuate it: the .offcanvas-backdrop is position:fixed far down a
+        // long guide page, where Playwright's actionability/scroll handling can fail to land a real click on
+        // a fixed Bs overlay. DispatchEventAsync fires the handler directly — the same idiom the sidebar
+        // drawer dismissal uses above.
+        await Page.Locator(".guide-demo .sample-result-body .offcanvas-backdrop").First.DispatchEventAsync("click");
         await Expect(Page.Locator(".guide-demo .sample-result-body .offcanvas.show")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
 
