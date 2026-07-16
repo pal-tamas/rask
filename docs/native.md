@@ -294,6 +294,7 @@ The shipped native backends (both platforms):
 | `IVibration` | system vibration (AudioToolbox) | `Vibrator` / `VibratorManager` |
 | `IWakeLock` | `UIApplication.IdleTimerDisabled` | window `FLAG_KEEP_SCREEN_ON` |
 | `INetworkInfo` | `NWPathMonitor` | `ConnectivityManager` |
+| `IBattery` | `UIDevice` battery monitoring | `BatteryManager` |
 | `ISpeechSynthesis` | `AVSpeechSynthesizer` | `TextToSpeech` |
 | `IScreenInfo` | `UIScreen` | `DisplayMetrics` |
 | `IDeviceOrientation` | CoreMotion (`CMMotionManager`) | `SensorManager` (rotation vector) |
