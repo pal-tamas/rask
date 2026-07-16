@@ -21,6 +21,11 @@ static column above it.
 
 <!-- demo:bootstrap-modal -->
 
+An offcanvas drawer — it slides in over a backdrop and dismisses from the ×, the backdrop, or your
+own button, all through the live diff:
+
+<!-- demo:bootstrap-offcanvas -->
+
 ## Dropdowns
 
 `BsDropdown`(+`BsDropdownItem`) is a controlled, Popper-less menu: you own the `Open` state and wire
@@ -41,3 +46,10 @@ rule, not a Rask bug: an ancestor with a CSS
 
 The package also ships `BsPopover` (a hover/click text popover) and `BsConfirmDialog` (a modal-backed
 confirm prompt) for the common one-off cases.
+
+## Confirm dialog
+
+`BsConfirmDialog` layers a confirm/cancel prompt over `BsModal` for destructive actions — hold a
+`bool`, wire `Open` + `OnConfirm`/`OnCancel`, and the confirm button defaults to `Danger`:
+
+<!-- demo:bootstrap-confirm -->
