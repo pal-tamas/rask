@@ -22,7 +22,7 @@ public class RaskJSRuntimeTests
         using var host = RaskTestHost.Create<JsRoundTripApp>();
         var initialResponse = await host.Http.GetAsync("/");
         var initialHtml = await initialResponse.Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -57,7 +57,7 @@ public class RaskJSRuntimeTests
     {
         using var host = RaskTestHost.Create<JsErrorApp>();
         var initialHtml = await host.Http.GetStringAsync("/");
-        var sessionId = Markup.SessionId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -83,7 +83,7 @@ public class RaskJSRuntimeTests
         // ordering is preserved by session.Lock.
         using var host = RaskTestHost.Create<JsClickApp>();
         var initialHtml = await host.Http.GetStringAsync("/");
-        var sessionId = Markup.SessionId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -131,7 +131,7 @@ public class RaskJSRuntimeTests
         // in-render-walk path through a real session.
         using var host = RaskTestHost.Create<JsRenderStormApp>();
         var initialHtml = await host.Http.GetStringAsync("/");
-        var sessionId = Markup.SessionId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });

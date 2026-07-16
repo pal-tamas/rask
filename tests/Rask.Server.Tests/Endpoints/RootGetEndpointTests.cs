@@ -67,7 +67,7 @@ public class RootGetEndpointTests
         var response = await host.Http.GetAsync("/q?x=1&y=two");
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(body);
+        var sessionId = MarkupAssert.SessionId(body);
 
         var ls = host.Store.Get(sessionId);
         Assert.NotNull(ls);

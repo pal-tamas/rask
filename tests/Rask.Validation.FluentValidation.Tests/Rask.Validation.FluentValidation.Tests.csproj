@@ -31,6 +31,7 @@
     <Using Include="Rask.Core.Components.Generated" Static="true"/>
     <Using Include="Rask.Validation.FluentValidation"/>
     <Using Include="Rask.Validation.FluentValidation.Generated" Static="true"/>
+    <Using Include="Rask.Testing"/>
     <Using Include="Rask.TestSupport"/>
     <Using Include="Rask.Validation.FluentValidation.Tests.ValidationTestSupport" Static="true"/>
   </ItemGroup>

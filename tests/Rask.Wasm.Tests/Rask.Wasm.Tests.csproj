@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
+    <Using Include="Rask.Testing"/>
     <Using Include="Rask.TestSupport"/>
     <Using Include="Rask.TestSupport.Bytes" Static="true"/>
     <Using Include="Rask.Wasm.Tests.Infrastructure.WasmSessionHarness" Static="true"/>

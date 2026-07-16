@@ -18,6 +18,15 @@ them until tagged releases begin.
   package --vulnerable --include-transitive` is now clean across the solution. Verified end-to-end:
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
+### Changed
+- **Rask's own test helpers build on `Rask.Testing` instead of duplicating it.** `Rask.TestSupport`'s
+  `Markup.Attr` was a character-for-character copy of the package's scanner — two implementations of one
+  algorithm, already at risk of drifting apart. The duplicate is deleted: `Markup.Attr`/`Attrs` now come from
+  the shipped `Rask.Testing`, putting the public API on the compile path of every suite that uses TestSupport.
+  What remains there is what the package deliberately doesn't ship — the `Assert`-calling and live-wire-payload
+  helpers — renamed to `MarkupAssert` (`RequireAttr`, `SessionId`, `FirstHandlerId`), because two classes named
+  `Markup` in scope together make every unqualified use ambiguous. Test-only; no shipped behaviour changes.
+
 ### Fixed
 - **`PackageDependencyTests` crashed instead of running, once `Rask.Templates` had been packed.** The guard
   added alongside the `PrivateAssets="all"` packaging fix scanned `src/` for `*.csproj` with

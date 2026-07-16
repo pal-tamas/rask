@@ -19,8 +19,8 @@ public class HandlerTimeoutTests
             using var capture = MeterCapture.For(host.Store.Metrics!.Meter);
 
             var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-            var sessionId = Markup.SessionId(html);
-            var handlerId = Markup.FirstHandlerId(html);
+            var sessionId = MarkupAssert.SessionId(html);
+            var handlerId = MarkupAssert.FirstHandlerId(html);
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });

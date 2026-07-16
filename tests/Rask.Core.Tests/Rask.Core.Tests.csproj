@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
+    <Using Include="Rask.Testing"/>
     <Using Include="Rask.TestSupport"/>
     <!-- Tag factories and the routing/form/fragment irregulars are all emitted by the
          source generator into Rask.Core.Components.Components and Rask.Core.Routing.Components.
