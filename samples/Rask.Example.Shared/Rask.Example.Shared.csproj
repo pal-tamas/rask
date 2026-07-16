@@ -4,6 +4,12 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- wwwroot/ carries the vendored third-party libraries the showcase demos wrap (frappe-gantt).
+         The Razor SDK publishes it as static web assets under _content/$(PackageId); set the base path
+         explicitly so Server (MapStaticAssets) and WASM (the publish bundle) resolve the same URL.
+         Native opts out of static web assets entirely and hand-bundles these files instead — see the
+         AndroidAsset/BundleResource items in Rask.Example.Native.csproj. -->
+    <StaticWebAssetBasePath>_content/Rask.Example.Shared</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup>

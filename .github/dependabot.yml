@@ -16,14 +16,26 @@ updates:
       # analyzer that references a newer Roslyn than the running csc fails with CS9057, and it
       # would raise the compiler floor for every downstream Rask consumer. Keep these pinned to
       # the SDK's Roslyn version; bump them by hand alongside a global.json / SDK-band update.
+      #
+      # .Features is listed for the same reason even though no generator references it (only the
+      # Playground sample and its tests do): it depends on .CSharp of the same version, and central
+      # package management allows one version per package — so a Features bump drags .CSharp with
+      # it. Leaving it off the list is how PR #396 got opened despite .CSharp being ignored;
+      # dependabot updates must-move-together packages as a pair.
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp.Features"
       - dependency-name: "Microsoft.CodeAnalysis.CSharp.Workspaces"
     groups:
+      # The .NET platform stack ships as one versioned family (10.0.x) and lands in a single
+      # Directory.Packages.props — group it so a patch wave is one PR. Ungrouped members each open
+      # their own PR against that one file, and those PRs then conflict pairwise.
       microsoft-extensions:
         patterns:
           - "Microsoft.Extensions.*"
           - "Microsoft.AspNetCore.*"
           - "Microsoft.JSInterop"
+          - "Microsoft.EntityFrameworkCore*"
+          - "Microsoft.Data.Sqlite"
       test-tooling:
         patterns:
           - "xunit*"

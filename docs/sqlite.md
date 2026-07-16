@@ -223,11 +223,13 @@ for writes:
 ~26k/second through EF Core. For scale, that is far past what a single application server will ask of it —
 which is the point: SQLite is not the bottleneck you should be designing around.
 
-> One caveat reported rather than buried: a single earlier run of the EF mixed arm escaped `SQLITE_BUSY`
-> twice in ~542,000 operations (0.0004%), inside a 15-second run whose retry budget was 30 seconds — so the
-> retry did not time out, it never engaged. It has not recurred in ~2.1M further operations and is **not
-> root-caused**; the raw path shows nothing equivalent. What was ruled out (each with a regression test) is
-> in the harness [baselines README](../benchmarks/Rask.Benchmarks.Sqlite/Baselines/README.md).
+> One caveat reported rather than buried: the EF mixed arm occasionally escapes `SQLITE_BUSY` under load,
+> and **the cause is known but unfixed**. It is thrown from `SqliteConnection.Close()` as a pooled connection
+> is released — i.e. from *disposing* the `DbContext`, after the work has committed. Connection teardown is
+> not a command, so no execution strategy covers it and nothing retries it; enabling `configureRetry` sets
+> `busy_timeout=0`, which leaves it no tolerance for a concurrent writer. The raw path shows nothing
+> equivalent. Details, and what has already been tried, are in the harness
+> [baselines README](../benchmarks/Rask.Benchmarks.Sqlite/Baselines/README.md).
 
 ### Under a sustained soak
 

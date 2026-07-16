@@ -7,7 +7,40 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+- **SQLite is no longer vulnerable to CVE-2025-6965 — the shipped native library moves from SQLite 3.49.1 to
+  3.50.4.** `Microsoft.Data.Sqlite` and EF Core Sqlite pin the SQLitePCLRaw `2.1.11` family, whose
+  `lib.e_sqlite3` bundles SQLite 3.49.1 — a memory-corruption flaw (`GHSA-2m69-gcr7-jv3q`, High; fixed in
+  SQLite 3.50.2) that reached every Rask SQLite package, the mobile heads included. Rask now references the
+  SQLitePCLRaw **3.x** bundle explicitly wherever SQLite is used; that family drops `lib.e_sqlite3` in favour
+  of `SourceGear.sqlite3` (SQLite 3.50.4), so the vulnerable package leaves the graph entirely rather than
+  being bumped around. The `NuGetAuditSuppress` that accepted this advisory is removed, and `dotnet list
+  package --vulnerable --include-transitive` is now clean across the solution. Verified end-to-end:
+  `select sqlite_version()` through the real graph reports `3.50.4`.
+
 ### Fixed
+- **Flaky E2E: `JwtServerAuthExampleTests.Journey_JwtLogin_AdminRoundTrip_ThenNonAdmin`.** It asserted the JWT
+  isn't JS-readable with `DoesNotContain("eyJ", stored)`, but `stored` is a Data Protection ciphertext — so
+  `eyJ` turning up *somewhere* inside its base64url bytes is pure chance (~1 run in 900), and it duly failed on
+  a blob that was never a JWT. A raw JWT is identified by *starting* with the base64url `eyJ` header, so the
+  assertion now checks `StartsWith` (matching the `WasmJwtAuthExampleTests` sibling, which had it right).
+  Test-only; the property it guards is unchanged, and it still fails — naming the leaked token — when the
+  sample is mutated to store the raw JWT.
+- **`Rask.Wasm.Hosting`, `Rask.Validation.DataAnnotations` and `Rask.Validation.FluentValidation` could not be
+  restored at all.** Each referenced `Rask.Core` without `PrivateAssets="all"`, and because Core is
+  `IsPackable=false` their nuspecs declared a dependency on a `Rask.Core` package that exists on no feed — at
+  version `1.0.0`, which MinVer never stamps. Every `dotnet restore` that touched one died with `NU1101: Unable
+  to find package Rask.Core`, so the wasm-hosted template and both validation add-ons were unusable from
+  nuget.org. The references are now private, matching `Rask.Server`/`Rask.Wasm`, which is what lets consumers
+  pick up `Rask.Core.dll` from the host package's `lib/` instead. Nothing about the shipped assemblies changes.
+  The in-repo projects that had been inheriting Core through those references now name it directly, as
+  `Rask.Example.Server` already did, and a new repo-wide test fails if any packable project ever again depends
+  on an unpublishable one.
+- **The `Rask.Wasm` package never declared its `Microsoft.JSInterop` dependency.** The runtime uses JSInterop
+  directly (`WasmJSRuntime`, `WasmLiveSession`, the typed `Browser/*` wrappers), but it only ever arrived
+  transitively through the `PrivateAssets="all"` `Rask.Core` reference — which deliberately keeps Core out of the
+  nuspec — and the WASM track has no `Microsoft.AspNetCore.App` framework reference to supply it instead. It is now
+  surfaced at the package boundary like `Microsoft.AspNetCore.Authorization` already was, so consumers restore it.
 - **The `rask` CLI and the `Rask.Data` / `Rask.Outbox` / `Rask.Testing` packages are now published.** All four
   were packable but missing from the release + nightly pack lists, so `dotnet tool install -g Rask.Cli` failed
   ("Rask.Cli is not found in NuGet feeds") and the packages that `rask generate feature --events`/`--outbox` and
@@ -86,6 +119,14 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **Showcase: a Gantt chart wrapping a real third-party JS library** ([#394](https://github.com/pal-tamas/rask/issues/394)).
+  `samples/Rask.Example.Shared/Features/Gantt` wraps [frappe-gantt](https://github.com/frappe/gantt) (MIT,
+  vendored) as an ordinary Rask component — typed `GanttTask`/`GanttHoliday`/`GanttViewMode` props in, plain
+  C# delegates out for click / drag / progress — and is embedded in the **JavaScript interop** guide, whose
+  third-party section now covers the whole recipe: give the library a childless leaf to own, mount in
+  `OnRenderedAsync`, tag the nodes it creates `data-rask-managed` so a full-HTML frame's morph can't delete
+  them, and route its callbacks back through a static `[JSInvokable]` keyed by an id. Showcase + docs only —
+  no framework or package change (`Rask.Bootstrap` stays JavaScript-free).
 - **`rask generate feature --fields` supports `date`, `time`, and `datetime`.** `date` maps to `DateOnly`,
   `time` to `TimeOnly`, and `datetime` to `DateTime` (the bound form inputs auto-render as `type="date"` /
   `type="time"`, and EF Core maps them to SQLite). Previously `date` was an alias for `DateTime`.

@@ -9,6 +9,7 @@ both transports — Server (WebSocket) and WASM (`JSImport`/`JSExport`).
 - [Typed browser APIs](#typed-browser-apis)
 - [Element refs](#element-refs)
 - [Delivery & caching](#delivery--caching)
+- [Wrapping a third-party JS library](#wrapping-a-third-party-js-library)
 
 ---
 
@@ -302,7 +303,88 @@ the bundle, so it paints the instant it mounts — no per-component fetch, no FO
 
 <!-- demo:asset-lazy-mount -->
 
-## Third-party libraries that inject into `<head>`
+## Wrapping a third-party JS library
+
+Everything above is enough to wrap a library that owns its own DOM — a chart, a code editor, a map. Two
+questions come up every time: **what happens to the DOM the library builds**, and **what happens to the
+`<style>` it injects**. Rask answers the second for you; the first is one rule.
+
+### Give the library a leaf to own
+
+Render the host element with **no children** and let the library fill it. That's the whole rule, and it
+works because of how the diff addresses nodes: ops are computed from your C# render tree and applied by
+positional path, so a node your components never render is a node the diff can never reach.
+
+```csharp
+private readonly ElementRef _host = ElementRef.New();   // a field — the id must be stable across renders
+
+// A leaf: no children here, ever. The library owns everything inside it.
+protected override Component? Render() => Div(Ref: _host, Class: "chart");
+
+// Mount in OnRendered, not OnMount — OnMount runs *before* the first render, so the element doesn't
+// exist yet and the ref would resolve to null. firstRender guards against re-mounting.
+protected override async Task OnRenderedAsync(bool firstRender)
+{
+    if (!firstRender) return;
+    await _js.InvokeVoidAsync("Rask.Chart.mount", _host, DataAsJson());
+}
+
+// Fires only on a real prop change — push new data at the library instead of re-mounting it.
+protected override async Task OnPropsChangedAsync() => await _js.InvokeVoidAsync("Rask.Chart.update", _host, DataAsJson());
+
+// Sync and fire-and-forget — see the note below on why this must not be an awaited DisposeAsync.
+protected override void OnUnmount() => _ = DestroyQuietlyAsync();
+```
+
+There is one exception to "the diff can't reach it", and it is not optional. Not every frame is a diff:
+the first interactive frame after page load always ships the body in full, and a structural change can
+too. The client applies a full frame by **morphing** the document, and a morph pairs each live child
+against the rendered one — your host has live children where the render says none, so the morph clears
+it. Skip that and the chart is deleted seconds after it draws. Tag the library's nodes; the reconciler
+leaves marked nodes alone:
+
+```js
+// Right after the library builds its DOM. Mark what it created — never the host itself, which your
+// component *does* render (marking that makes the morph treat it as missing and append a duplicate).
+for (const child of host.children) child.setAttribute("data-rask-managed", "");
+```
+
+One more identity rule, because it bites stateful wrappers specifically: a component's identity is its
+**(type, position)** among its parent's children. A sibling rendered as `cond ? node : null` shifts every
+later child's position when it vanishes, so the wrapper gets matched against the wrong slot and rebuilt —
+remounting the widget on an unrelated click. Prefer disabling to un-rendering a sibling above a
+stateful component.
+
+For events coming back the other way, a library callback can't reach an instance method — the JS shim
+dispatches to **static** `[JSInvokable]`s by assembly and name. Hand JS a token at mount, keep a static
+`ConcurrentDictionary<string, YourComponent>`, route on it, and unregister on unmount. Two things to get
+right, because a `[JSInvokable]` is callable by *any* script on the page with *any* arguments:
+
+- **Make the token unguessable** (`Guid.NewGuid().ToString("N")`). That dictionary is static, so on the
+  Server host it is shared by every live session — with a sequential `int`, one visitor could drive
+  another's widget by counting from 1. Holding the token is what proves ownership.
+- **Unregister on unmount**, or the entry pins the component for the life of the process.
+
+Keep the boundary to primitives and JSON strings and a trimmed WASM publish stays clean. Prefer callbacks
+that take **one** argument (bundle extras into a record): the generated factory only wraps arity-≤1
+delegates for auto-re-render, so a two-arg callback silently leaves the caller reaching for
+`StateHasChanged()`.
+
+Finally, tear down from `OnUnmount` **without awaiting** the interop call. An `IAsyncDisposable`
+component is awaited by the framework's dispose walk, and that walk also runs for a session whose socket
+has already closed — where an interop call has nobody to answer it and never completes.
+
+A Gantt chart wrapping [frappe-gantt](https://github.com/frappe/gantt), start to finish — drag or resize
+a bar and the C# table below it updates; add or remove one and the chart follows. That it is on screen at
+all is the marker above doing its job:
+
+<!-- demo:js-interop-thirdparty -->
+
+> A scoped `{Component}.css` **cannot** style the library's internals: scoping works by stamping
+> `data-{scopeId}` on the elements your component renders, and the library's nodes never get it. Size the
+> host in scoped CSS; let the library's own stylesheet handle the rest.
+
+### What it injects into `<head>`
 
 Rask treats `<head>` as **authoritative**: on every re-render the live-diff reconciler morphs the live
 head back to what your components rendered, which keeps `<title>`/`<meta>`/scoped-CSS links correct. A
