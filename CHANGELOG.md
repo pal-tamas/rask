@@ -161,6 +161,12 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **`Rask.Testing`: `RaskTest.Render(factory, services?)` renders from a component factory.** The existing
+  `Render(component)` overload renders one fixed instance, so a tree built at the call site keeps the values
+  it was built with — a re-render can never show changed props. The new overload re-runs the factory on every
+  render, which is what a test needs whenever state changes between renders:
+  `RaskTest.Render(() => Form(model)[Input(() => model.Name)])`. Returning `null` renders nothing (and, for a
+  child built by its generated factory, drives it through its unmount path). Purely additive.
 - **Showcase: a Gantt chart wrapping a real third-party JS library** ([#394](https://github.com/pal-tamas/rask/issues/394)).
   `samples/Rask.Example.Shared/Features/Gantt` wraps [frappe-gantt](https://github.com/frappe/gantt) (MIT,
   vendored) as an ordinary Rask component — typed `GanttTask`/`GanttHoliday`/`GanttViewMode` props in, plain
