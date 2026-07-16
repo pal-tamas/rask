@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Example.EfCore;
 using Rask.Example.EfCore.Features.Catalog.Shared;
+using Rask.Mail;
 using Rask.Server;
 using Rask.SQLite;
 
@@ -17,6 +18,17 @@ var dbPath = builder.Configuration["RASK_DB_PATH"] ?? "raskExampleCatalog.db";
 // pragmas (WAL journal, foreign_keys on, a busy_timeout) instead of SQLite's bare defaults.
 builder.Services.AddDbContextFactory<CatalogDbContext>(options =>
     options.UseRaskSqlite($"Data Source={dbPath}"));
+
+// Transactional email on the same SQLite database. No SMTP here: PickupDirectory makes the background
+// MailProcessor write each sent message as an .eml file (RASK_MAIL_PICKUP lets the E2E fixture point at an
+// isolated temp dir), and a short poll keeps the demo responsive. Set o.Smtp in production to send for real.
+builder.Services.AddRaskMail<CatalogDbContext>(o =>
+{
+    o.From = "demo@rask.example";
+    o.FromName = "Rask EF Core demo";
+    o.PickupDirectory = builder.Configuration["RASK_MAIL_PICKUP"] ?? "mail-pickup";
+    o.PollInterval = TimeSpan.FromSeconds(1);
+});
 
 var app = builder.Build();
 

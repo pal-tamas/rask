@@ -45,6 +45,7 @@ rask info
 |---|---|
 | `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted\|native`), forwarding `--auth` / `--pwa` / `--cqrs` / `--docker`. Every template is generated directly — no `dotnet new` needed. |
 | `rask generate <page\|component> <Name>` | Scaffold a routed page or a component into the current project (folder-based namespace, no-overwrite, `--dry-run`). |
+| `rask generate <job\|email> <Name>` | Scaffold a background job (`IJob` + handler) or an email-body component, adding the `Rask.Jobs` / `Rask.Mail` package. Aliases: `rask g j` / `rask g e`. |
 | `rask generate feature <Name> <field:type> …` | Scaffold a full CQRS + EF Core CRUD vertical slice — encapsulated entity (`Create`/`Update`, Guid id), `DbContext`, commands/queries + handlers, and pages that dispatch via `IDispatcher`. Aliases: `rask g f`. |
 | `rask db <add\|remove\|list\|update\|drop>` | Manage EF Core migrations — a friendly `dotnet ef` wrapper that finds the project and installs `dotnet-ef` on demand. |
 | `rask deploy` | Build and run the app on a single host over SSH (`docker -H ssh://…`). `--domain` fronts it with auto-HTTPS Caddy; deploys are zero-downtime and multiple apps share one box. |

@@ -27,8 +27,12 @@ public sealed class App : Component
                         NavLink(global::Rask.Example.EfCore.Features.Catalog.ListProducts.Routes.ListProductsPage(), Class: "navbar-brand fw-bold")[
                             I(Class: "bi bi-database me-2"), "Rask · EF Core catalog"
                         ],
-                        A("https://github.com/pal-tamas/rask", "_blank",
-                            Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
+                        Div(Class: "d-flex gap-2")[
+                            NavLink(global::Rask.Example.EfCore.Features.Mail.SendMail.Routes.SendMailPage(),
+                                Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-envelope me-1"), "Send mail"],
+                            A("https://github.com/pal-tamas/rask", "_blank",
+                                Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
+                        ]
                     ]
                 ],
                 Main(Class: "container py-4")[Router()]
