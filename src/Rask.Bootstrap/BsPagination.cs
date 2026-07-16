@@ -43,9 +43,22 @@ public sealed class BsPageItem : BsBlock
             ? new Dictionary<string, string?> { ["current"] = "page" }
             : null;
 
+        // .disabled only greys the item and sets pointer-events:none — it stops a mouse but nothing else, so
+        // on its own a "disabled" page stays focusable, announces as enabled, and still fires on Enter. The
+        // control itself has to carry aria-disabled (Bootstrap's own documented markup for a disabled page
+        // link). It goes on the link, not the <li>, because the link is what takes focus.
+        //
+        // Deliberately aria-disabled rather than the disabled attribute: disabled would drop focus to <body>
+        // the moment a page click starts a fetch, throwing away the user's keyboard position. Callers still
+        // guard their handlers — see BsDataGrid.GoToPageAsync.
+        var linkAria = Disabled is true
+            ? new Dictionary<string, string?> { ["disabled"] = "true" }
+            : null;
+
         Component link = Href is not null
-            ? A(Class: "page-link", Href: Href)[Items]
-            : Button(Type: "button", Class: "page-link", OnClick: OnClick, OnClickAsync: OnClickAsync)[Items];
+            ? A(Class: "page-link", Href: Href, Aria: linkAria)[Items]
+            : Button(Type: "button", Class: "page-link", Aria: linkAria, OnClick: OnClick,
+                OnClickAsync: OnClickAsync)[Items];
 
         return Li(Id: Id, Class: BsClass.Join(liCls, Class), Aria: liAria)[[link]];
     }

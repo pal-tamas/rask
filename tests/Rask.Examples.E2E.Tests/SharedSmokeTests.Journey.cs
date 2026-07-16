@@ -583,6 +583,18 @@ public abstract partial class SharedSmokeTests
         Assert.Empty(page2.Intersect(page1));
         Assert.Equal(footer, await grid.Locator("tfoot td").Last.InnerTextAsync());
 
+        // The active page is the app's brand primary, not Bootstrap's blue. Bootstrap derives every OTHER
+        // pagination colour from a CSS variable but bakes the literal hex #0d6efd into --bs-pagination-
+        // active-bg, so an app that themes --bs-primary used to get a purple surface with a blue active page.
+        // rask-bootstrap.css re-points it at the runtime var; only a real browser resolves that cascade, so
+        // the assertion lives here. The showcase's --bs-primary is #7C3AED.
+        // ToHaveCSS, not a one-shot getComputedStyle: .page-link transitions background-color over .15s, so
+        // reading it the instant the class lands samples the fade (a near-white part-way colour that differs
+        // run to run). This retries until it settles.
+        await Expect(demo.Locator(".pagination li.active .page-link").First)
+            .ToHaveCSSAsync("background-color", "rgb(124, 58, 237)",
+                new LocatorAssertionsToHaveCSSOptions { Timeout = 15_000 });
+
         // Sorting returns to page 1 — otherwise the user lands mid-way through a list they just re-ordered.
         await grid.Locator("th:has-text('Product') button").First.ClickAsync();
         await Expect(demo.Locator(".pagination li:has(button:text-is('1'))")).ToHaveClassAsync(
@@ -628,6 +640,306 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#grid-filter-clear").ClickAsync();
         await Expect(emptyGrid).ToHaveCountAsync(1,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        await WalkDataGridGroupAsync();
+        await WalkDataGridSelectionAsync();
+        await WalkDataGridRowsAsync();
+        await WalkDataGridLoadingAsync();
+        await WalkDataGridStickyAsync();
+    }
+
+    // Grouping. The unit tests pin the banding; the browser proves the ordering guarantee survives the real
+    // live morph — re-banding and re-sorting rewrite the <tbody> wholesale, which is exactly where a diff bug
+    // would hide.
+    private async Task WalkDataGridGroupAsync()
+    {
+        var demo = Page.Locator("#grid-group-demo");
+        var grid = Page.Locator("#bs-grid-group");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // === One level. The demo's source list is NOT ordered by region, so each region appearing exactly
+        //     once is the ordering guarantee doing its job. ===
+        var bands = grid.Locator("tbody tr.table-group-divider");
+        await Expect(bands).ToHaveCountAsync(3); // AMER, APAC, EMEA
+        await Expect(bands.First).ToContainTextAsync("Region: AMER");
+
+        // === The user's sort applies WITHIN a band, never across it. Sorting by Account keeps three bands. ===
+        await grid.Locator("th:has-text('Account') button").ClickAsync();
+        await Expect(grid.Locator("th:has-text('Account')")).ToHaveAttributeAsync("aria-sort", "ascending",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await Expect(bands).ToHaveCountAsync(3);
+
+        var emeaAccounts = await grid.Locator("tbody tr:not(.table-group-divider):not(.table-light) td:nth-child(1)")
+            .AllInnerTextsAsync();
+        Assert.NotEmpty(emeaAccounts);
+
+        // === Subtotals — one per band, plus the grand total in <tfoot>. ===
+        await Expect(grid.Locator("tbody tr.table-light")).ToHaveCountAsync(3);
+        await Expect(grid.Locator("tfoot")).ToBeVisibleAsync();
+
+        // === Collapse — keyed by the band's value, so it survives the re-render. ===
+        var firstToggle = grid.Locator("tbody tr.table-group-divider button[aria-expanded]").First;
+        await Expect(firstToggle).ToHaveAttributeAsync("aria-expanded", "true");
+        var rowsBefore = await grid.Locator("tbody tr:not(.table-group-divider):not(.table-light)").CountAsync();
+        await firstToggle.ClickAsync();
+        await Expect(firstToggle).ToHaveAttributeAsync("aria-expanded", "false",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await Expect(grid.Locator("tbody tr:not(.table-group-divider):not(.table-light)"))
+            .Not.ToHaveCountAsync(rowsBefore);
+        await Expect(bands).ToHaveCountAsync(3); // the band header stays; only its rows go
+
+        await firstToggle.ClickAsync();
+        await Expect(firstToggle).ToHaveAttributeAsync("aria-expanded", "true",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+
+        // === Nesting — region ▸ rep: more bands, and the outer ones still appear once each. ===
+        // 3 region bands + 5 region/rep bands (EMEA has Ana and Dee, AMER has Bo and Ana, APAC only Cy).
+        await demo.Locator("#group-nested").ClickAsync();
+        await Expect(bands).ToHaveCountAsync(8,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(grid.Locator("tbody tr.table-group-divider:has-text('Region:')")).ToHaveCountAsync(3);
+
+        // === Ungrouped — every band goes, the rows stay. ===
+        await demo.Locator("#group-none").ClickAsync();
+        await Expect(bands).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(grid.Locator("tbody tr")).ToHaveCountAsync(9);
+        await Expect(grid.Locator("tbody tr.table-light")).ToHaveCountAsync(0);
+
+        await demo.Locator("#group-region").ClickAsync();
+        await Expect(bands).ToHaveCountAsync(3,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        await WalkDataGridGroupPanelAsync(demo, grid, bands);
+    }
+
+    // The group panel, driven BOTH ways. The keyboard walk is the point: the panel's promise is that drag is an
+    // accelerator, not the only way in, and only a browser can prove a real Enter keypress on a real focused
+    // button does the same thing a drag does.
+    private async Task WalkDataGridGroupPanelAsync(ILocator demo, ILocator grid, ILocator bands)
+    {
+        var panel = demo.Locator(".bs-grid-grouppanel");
+        await Expect(panel).ToBeVisibleAsync();
+        await Expect(panel.Locator(".bs-grid-chip")).ToHaveCountAsync(1); // region
+
+        // === KEYBOARD ONLY. Press Enter on the Rep header's group control — no pointer at all. ===
+        // The settle is load-bearing, and cost an hour to find. The steps above end with a click that
+        // re-groups the whole grid, and its LAST live frame can land a beat after the assertion that waited
+        // for it: the diff then replaces this very button, and a keypress aimed at it lands on a detached
+        // node — silently, because a key that hits nothing raises nothing. Let the re-render finish first.
+        // (Locator.Press does not help: its auto-wait re-resolves the element, but cannot know a frame is
+        // still in flight.)
+        await Page.WaitForTimeoutAsync(500);
+        await grid.Locator("th:has-text('Rep') button[aria-label='Group by Rep']").PressAsync("Enter");
+        await Expect(panel.Locator(".bs-grid-chip")).ToHaveCountAsync(2,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        // region ▸ rep, the same nesting the buttons produced above. Grouping is two renders — the grid's own
+        // (from the click) and the consumer's (from OnGroupedChange) — so give it the same room as its
+        // neighbours rather than the 5s default.
+        await Expect(bands).ToHaveCountAsync(8,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // Renest from the keyboard: move Rep out one level, so rep ▸ region.
+        await panel.Locator("button[aria-label='Move Rep out one level']").PressAsync("Enter");
+        await Expect(panel.Locator(".bs-grid-chip").First).ToContainTextAsync("Rep",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        // The ends are really disabled, not merely styled that way.
+        await Expect(panel.Locator("button[aria-label='Move Rep out one level']")).ToBeDisabledAsync();
+
+        // Ungroup from the keyboard.
+        await panel.Locator("button[aria-label='Stop grouping by Rep']").PressAsync("Enter");
+        await Expect(panel.Locator(".bs-grid-chip")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // === DRAG is wired, but is not asserted end-to-end here, and that is deliberate. Rask uses NATIVE
+        //     HTML5 drag-and-drop (dragstart/dragover/drop), and Playwright's DragTo synthesises mouse
+        //     move/down/up — which the browser does not turn into native drag events. Driving it needs manual
+        //     dispatchEvent with a hand-built DataTransfer, which tests the harness more than the feature.
+        //     The keyboard path above IS the accessible path and is proven end-to-end; the drag is the
+        //     pointer accelerator over the same handlers. Assert its wiring is present rather than fake a
+        //     gesture the harness can't faithfully produce. ===
+        var repHeader = grid.Locator("th:has-text('Rep')");
+        await Expect(repHeader).ToHaveAttributeAsync("draggable", "true");
+        await Expect(repHeader).ToHaveAttributeAsync("data-rask-on-dragstart", new Regex(".+"));
+        await Expect(panel).ToHaveAttributeAsync("data-rask-on-drop", new Regex(".+"));
+        await Expect(panel.Locator(".bs-grid-chip").First).ToHaveAttributeAsync("draggable", "true");
+    }
+
+    // Selection driving a bulk action. The unit tests pin the set arithmetic; the browser proves the part that
+    // only a real transport shows — that ticking a checkbox re-renders the grid's OWNER (the toolbar count
+    // lives outside the grid), which is exactly what the consumer-resolution fix underneath this is about.
+    private async Task WalkDataGridSelectionAsync()
+    {
+        var grid = Page.Locator("#bs-grid-selection");
+        var archive = Page.Locator("#grid-bulk-archive");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Nothing selected: the bulk action is disabled and says so.
+        await Expect(archive).ToHaveTextAsync("Archive 0 selected");
+        await Expect(archive).ToBeDisabledAsync();
+
+        var boxes = grid.Locator("tbody .form-check-input");
+        await Expect(boxes).ToHaveCountAsync(6);
+
+        // Tick two rows — the count outside the grid tracks, and the rows mark themselves.
+        await boxes.Nth(0).CheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 1 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await boxes.Nth(2).CheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 2 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(grid.Locator("tbody tr.table-active")).ToHaveCountAsync(2);
+        await Expect(archive).ToBeEnabledAsync();
+
+        // Selection is keyed, so it follows the rows through a sort rather than staying at those positions.
+        var pickedBefore = await grid.Locator("tbody tr.table-active td:nth-child(2)").AllInnerTextsAsync();
+        await grid.Locator("th:has-text('Task') button").ClickAsync();
+        await Expect(grid.Locator("th[aria-sort='ascending']")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        var pickedAfter = await grid.Locator("tbody tr.table-active td:nth-child(2)").AllInnerTextsAsync();
+        Assert.Equal(pickedBefore.OrderBy(x => x, StringComparer.Ordinal),
+            pickedAfter.OrderBy(x => x, StringComparer.Ordinal));
+
+        // Select-all covers the page, and its accessible name says exactly that.
+        var all = grid.Locator("thead .form-check-input");
+        await Expect(all).ToHaveAttributeAsync("aria-label", "Select all rows on this page");
+        await all.CheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 6 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        await all.UncheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 0 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // The bulk action consumes the reported keys.
+        await boxes.Nth(0).CheckAsync();
+        await Expect(archive).ToHaveTextAsync("Archive 1 selected",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await archive.ClickAsync();
+        await Expect(grid.Locator("tbody tr")).ToHaveCountAsync(5,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#grid-bulk-done")).ToHaveTextAsync("Archived 1.");
+    }
+
+    // The busy state over a real transport. The unit tests pin the markup of each state; what only a browser
+    // shows is the round trip — spinner appears, controls go inert, rows are replaced, spinner goes.
+    private async Task WalkDataGridLoadingAsync()
+    {
+        var grid = Page.Locator("#bs-grid-loading");
+        var demo = Page.Locator("#grid-loading-demo");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Idle: in use (Loading: false) so the wrapper is there, but no overlay and no aria-busy.
+        await Expect(demo.Locator(".position-relative")).ToHaveCountAsync(1);
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0);
+        await Expect(grid).Not.ToHaveAttributeAsync("aria-busy", "true");
+
+        var firstBefore = await grid.Locator("tbody tr td:nth-child(1)").First.InnerTextAsync();
+
+        // Sorting awaits a 600ms fetch, so the overlay is observable. The demo's Loading flips true, the grid
+        // re-renders, and only then does the await complete.
+        await grid.Locator("th:has-text('City') button").ClickAsync();
+
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(grid).ToHaveAttributeAsync("aria-busy", "true");
+        // aria-disabled, not disabled: the control must stay focusable while it says it is inert.
+        await Expect(grid.Locator("th:has-text('City') button")).ToHaveAttributeAsync("aria-disabled", "true");
+        await Expect(demo.Locator(".pagination .page-item:not(.disabled)")).ToHaveCountAsync(0);
+
+        // ...and it clears, leaving the rows sorted.
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(grid).Not.ToHaveAttributeAsync("aria-busy", "true");
+
+        var sorted = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        Assert.Equal(sorted.OrderBy(x => x, StringComparer.Ordinal), sorted);
+        Assert.NotEqual(firstBefore, sorted[0]);
+
+        // The wrapper survived the whole flip — it must never be torn down, or the table would lose its DOM
+        // identity (and any focus or scroll inside it) on every fetch.
+        await Expect(demo.Locator(".position-relative")).ToHaveCountAsync(1);
+
+        // Paging awaits too, and lands on a disjoint slice. Wait out the whole fetch — overlay in, overlay
+        // out — before reading the rows. Neither shortcut works here, and both fail in opposite directions:
+        // "overlay is gone" is already true in the instant before the fetch starts, and "the pager says 2" is
+        // true from the MID-AWAIT render onwards, while the rows are still the previous page's. The overlay's
+        // two edges are the only signal that brackets the fetch itself.
+        var pageOne = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        await demo.Locator(".pagination li:has(button:text-is('2')) button").ClickAsync();
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(demo.Locator(".bs-grid-overlay")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        var pageTwo = await grid.Locator("tbody tr td:nth-child(1)").AllInnerTextsAsync();
+        Assert.Empty(pageOne.Intersect(pageTwo));
+    }
+
+    // Row clicks and conditional row styling. The unit tests prove which cells carry the handler; only a real
+    // browser proves the consequence of that choice — that a click on the row body opens the row, while the
+    // button inside a template cell still fires its OWN handler rather than being cancelled by an ancestor.
+    private async Task WalkDataGridRowsAsync()
+    {
+        var grid = Page.Locator("#bs-grid-row");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // === RowClass — the overdue invoices are tinted from their own data, the current ones are not. ===
+        await Expect(grid.Locator("tbody tr.table-warning")).ToHaveCountAsync(1);
+        await Expect(grid.Locator("tbody tr.table-danger")).ToHaveCountAsync(1);
+
+        // === Row click — clicking a Value cell reports its row. ===
+        await Expect(Page.Locator("#grid-row-opened")).ToHaveCountAsync(0);
+        await grid.Locator("tbody tr:nth-child(2) td.bs-grid-click").First.ClickAsync();
+        await Expect(Page.Locator("#grid-row-opened")).ToHaveTextAsync("Opened INV-1042",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // === The Open button still works. This is the regression that matters: the button lives in a Template
+        //     cell, which is NOT row-clickable, so no ancestor handler cancels its click. Were the row click
+        //     attached to the <tr> instead, this button would be dead and nothing would say so. ===
+        await grid.Locator("#open-INV-1044").ClickAsync();
+        await Expect(Page.Locator("#grid-row-opened")).ToHaveTextAsync("Opened INV-1044",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // The button's cell never carries a handler of its own.
+        await Expect(grid.Locator("tbody tr:first-child td:last-child")).Not.ToHaveClassAsync(
+            new System.Text.RegularExpressions.Regex("bs-grid-click"));
+    }
+
+    // The sticky header, which is only observable in a real layout: the assertion is that the header stays put
+    // in the viewport while the rows scroll under it inside the bounded container.
+    private async Task WalkDataGridStickyAsync()
+    {
+        var grid = Page.Locator("#bs-grid-sticky");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        await Expect(grid).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("bs-table-sticky"));
+
+        var header = grid.Locator("thead th").First;
+        var box = grid.Locator("xpath=..");  // the .table-responsive wrapper MaxHeight bounds
+
+        var headerBefore = await header.BoundingBoxAsync();
+        var firstRowBefore = await grid.Locator("tbody tr").First.BoundingBoxAsync();
+
+        // Scroll the container, not the page: the header sticks to its nearest scroll container, which is
+        // exactly what MaxHeight created.
+        await box.EvaluateAsync("el => el.scrollTop = 200");
+        await Page.WaitForTimeoutAsync(250);
+
+        var headerAfter = await header.BoundingBoxAsync();
+        var firstRowAfter = await grid.Locator("tbody tr").First.BoundingBoxAsync();
+
+        Assert.NotNull(headerBefore);
+        Assert.NotNull(headerAfter);
+        Assert.NotNull(firstRowBefore);
+        Assert.NotNull(firstRowAfter);
+
+        // The rows moved up; the header did not move at all. Without position:sticky both would have moved.
+        Assert.True(firstRowAfter!.Y < firstRowBefore!.Y - 100,
+            $"rows should have scrolled up, but went {firstRowBefore.Y} -> {firstRowAfter.Y}");
+        Assert.True(Math.Abs(headerAfter!.Y - headerBefore!.Y) < 2,
+            $"the header should have stayed put, but went {headerBefore.Y} -> {headerAfter.Y}");
     }
 
     protected async Task WalkUserComponentsGuideAsync()

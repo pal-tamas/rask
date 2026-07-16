@@ -297,6 +297,51 @@ public static class DemoRegistry
                        + "follows.",
                 Result: BsDataGridDetailDemo()),
             ["data-grid-empty"] = () => CodeSample(["BsDataGridEmptyDemo.cs"], Result: BsDataGridEmptyDemo()),
+            ["data-grid-row"] = () => CodeSample(
+                ["BsDataGridRowDemo.cs"],
+                Notes: "OnRowClick is attached to the cells of the RowClickable columns — by default the Value "
+                       + "columns, never the Template ones. That is what keeps the Open button alive: the "
+                       + "client cancels the default action of every click it dispatches, so a handler above "
+                       + "the button would swallow its click, and a link or checkbox would go dead the same "
+                       + "way. A clickable row is a pointer shortcut, so the button stays the real, "
+                       + "keyboard-reachable control.",
+                Result: BsDataGridRowDemo()),
+            ["data-grid-group"] = () => CodeSample(
+                ["BsDataGridGroupDemo.cs"],
+                Notes: "Field names the column by reading the member off the expression (Field = d => d.Region "
+                       + "-> \"region\"), which is what Grouped carries and what a URL would. Value could not: "
+                       + "a compiled Func has no member name. The source list is not ordered by region — a "
+                       + "band is a run of CONSECUTIVE rows, so the grid orders by the group keys first and "
+                       + "the user's sort applies inside each band. Click Amount and watch the rows re-sort "
+                       + "within the bands rather than scattering them. Subtotals reuse each column's Footer "
+                       + "delegate over the band's rows, and see only the rows on this page.",
+                Result: BsDataGridGroupDemo()),
+            ["data-grid-selection"] = () => CodeSample(
+                ["BsDataGridSelectionDemo.cs"],
+                Notes: "Selection is tracked by RowKey, not by position, so it follows a row through a sort "
+                       + "and accumulates across pages — pick a row, sort, page, and it stays picked. "
+                       + "OnSelectionChange reports the full set of KEYS after every click, not a delta and "
+                       + "not rows: under TotalCount or an IQueryable the grid only ever holds the current "
+                       + "page, so it cannot turn a key from a page you have left back into a row. The "
+                       + "header checkbox says 'select all rows on this page' because the page is all it can "
+                       + "reach.",
+                Result: BsDataGridSelectionDemo()),
+            ["data-grid-loading"] = () => CodeSample(
+                ["BsDataGridLoadingDemo.cs"],
+                Notes: "Loading is bool?, and the three states differ: null means the grid isn't using the "
+                       + "feature and renders exactly as before; false means in use and idle; true means "
+                       + "fetching. That distinction lets the position-relative wrapper stay put across the "
+                       + "flip instead of appearing under the table — the live diff matches sibling elements "
+                       + "by tag name, so a wrapper that came and went would be paired with whatever div sat "
+                       + "at its slot. aria-busy goes on the table and the spinner outside it, because a "
+                       + "role=status live region inside an aria-busy subtree never announces.",
+                Result: BsDataGridLoadingDemo()),
+            ["data-grid-sticky"] = () => CodeSample(
+                ["BsDataGridStickyDemo.cs"],
+                Notes: "StickyHeader needs MaxHeight: a sticky header sticks to its nearest scroll container, "
+                       + "so without a bounded height there is nothing to stick to and it scrolls away with "
+                       + "the page.",
+                Result: BsDataGridStickyDemo()),
 
             // --- Elements & the DSL guide: primitives, tag factories, universal props, SVG, and the
             //     HTML element catalog (their standalone example pages folded into docs/elements.md).

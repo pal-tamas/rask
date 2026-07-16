@@ -56,6 +56,40 @@ them until tagged releases begin.
   that child when the ancestor's key changes, so it would re-emit the old identity and the diff would
   reconcile the subtree against the wrong sibling — moving the wrong DOM. The snapshot now records the
   forwarded key it was captured under and falls back to a walk when it no longer matches.
+- **`--bs-primary` now actually themes the Bootstrap components.** Bootstrap 5.3 derives most of a component's
+  colours from CSS variables (`.pagination` reads `var(--bs-link-color)`, `var(--bs-body-bg)`, …) but bakes the
+  literal hex `#0d6efd` into the part that matters most — the active/checked/selected state. So an app that set
+  `--bs-primary` got a brand-coloured surface with a **Bootstrap-blue active page**, blue progress bars, blue
+  checked checkboxes (including `BsDataGrid`'s new selection column) and blue focus rings on every input. The
+  only workaround was to re-declare each component's variables by hand, with literal hexes, in every app.
+  Swept the bundled stylesheet and re-pointed all of it at the runtime variable, in two forms: the custom
+  properties on `.btn-primary`, `.btn-outline-primary`, `.pagination`, `.list-group`, `.progress`,
+  `.dropdown-menu`, `.nav-pills`, `.accordion` and `.btn-close`; and the **plain declarations** — which no
+  variable could reach and so needed real rule overrides — on `.form-check-input:checked`, the focus ring of
+  `.form-control`/`.form-select`/`.form-check-input`, `.form-range`'s thumb, and `.nav-link:focus-visible`.
+  Shades and tints follow Bootstrap's own ladder (hover = shade 15%, active = 20%, active border = 25%, focus
+  border = tint 50%) via `color-mix`, so they track any `--bs-primary`; override `--rask-primary-hover`,
+  `--rask-primary-active`, `--rask-primary-active-border` or `--rask-primary-focus-border` to hand-pick one.
+  Set `--bs-primary-rgb` alongside `--bs-primary` for the focus rings, which is Bootstrap's own convention.
+  The showcase samples accordingly **drop their hand-patched `.btn-primary`/`.btn-outline-primary` blocks** —
+  seven copies of the same literal-hex workaround, now unnecessary.
+- **A controlled form control whose `OnChange` captured a local silently stopped re-rendering its consumer.**
+  `IFormControl<T>.ControlledChangeHandler` resolved the component to notify with a bare
+  `Target as Component`. A handler that captures a local *alongside* `this` — `OnChange: v => Rename(i, v)`
+  inside a loop, or a data grid's per-row checkbox — is lowered by Roslyn to a compiler display class, so that
+  cast returned null and nothing was notified. When the control was also rendered inside a wrapper component
+  (the shape every composite table produces: the cells are built by one component and handed to another), the
+  fallback owner was the wrapper, so the component whose state actually changed stayed render-cached showing
+  stale values, with no error. It now resolves the consumer through `DelegateOwner`, the same
+  unwrap-the-captured-`this` rule `RegisterHandler` and `AutoCallback` already applied — and which refuses to
+  resolve to an `Element`, so it cannot regress to dirty-marking the control itself.
+- **`BsPageItem(Disabled: true)` now says it is disabled.** It only added the `.disabled` class, which greys
+  the item and sets `pointer-events: none` — that stops a mouse and nothing else, so a "disabled" page link
+  stayed focusable, announced as enabled, and still fired on Enter. The control now carries
+  `aria-disabled="true"` (Bootstrap's own documented markup for a disabled page link), on the link/button that
+  actually takes focus rather than on the `<li>`. Deliberately `aria-disabled` rather than the `disabled`
+  attribute, which would drop focus to `<body>` the moment a page click starts a fetch; callers still guard
+  their handlers, which is what `BsDataGrid`'s pager has always done.
 
 ### Changed
 - **`rask new` generates the `server`, `wasm` and `native` templates itself — no `dotnet new` / Rask.Templates.**
@@ -133,6 +167,90 @@ them until tagged releases begin.
   sessions/GiB on a trivial page vs ~150 on a 1,000-row grid. `session-churn` also reports the
   per-interaction cost (allocation + time per update), so a change that trades retained memory against
   update cost can be read against both.
+- **`BsTable` gained `MaxHeight`, `StickyHeader` and `Aria`.** `MaxHeight` (any CSS length) bounds the
+  table's scroll container so a long table scrolls in its own box instead of running down the page, and
+  `StickyHeader` freezes the header row while the body scrolls under it — the pair a list screen has always
+  had to hand-roll. They go together: a sticky header sticks to its nearest scroll container, so without
+  `MaxHeight` there is nothing to stick to. `MaxHeight` implies the wrapper even when `Responsive` is off,
+  since a height with no scroll container would only clip. `Aria` passes ARIA attributes through to the
+  `<table>` itself, which is what lets a caller mark it `aria-busy` while refetching without the wrapper
+  enclosing — and so deferring — any live region rendered beside it. All three are appended and optional, so
+  no existing call site moves. `BsDataGrid<T>` forwards them.
+- **`BsDataGrid<T>` gained row clicks, conditional row styling and a sticky header.** `OnRowClick` /
+  `OnRowClickAsync` raise the clicked row, `RowClass` computes a row's classes from the row itself (the
+  overdue invoice, the cancelled order), and `StickyHeader` + `MaxHeight` forward to `BsTable` so a long grid
+  scrolls in its own box under a frozen header, with the pager outside it.
+  The row click is attached to the **cells** of `RowClickable` columns rather than to the `<tr>`, and
+  `BsColumn<T>.RowClickable` defaults to auto: `Value` columns are clickable, `Template` columns are not. That
+  is a safety rule, not a style. Rask's client cancels the default action of every click it dispatches, so
+  under a handler a checkbox never fires `change`, an `<a href>` never navigates, and a bare `<button>`
+  swallows the click instead — all silently. A `Value` cell is plain encoded text and can never hold any of
+  them; a `Template` cell is exactly where they live, so it opts out unless you set `RowClickable = true`.
+  The grid deliberately adds no `role`/`tabindex` to the row: faking a button on a `<tr>` would destroy the
+  row semantics screen readers depend on. A clickable row is a pointer shortcut, so the action needs a real
+  control too — the demo pairs it with a button, which is also what proves the cells rule in the browser.
+  The per-cell design has a real price, now measured rather than guessed: on a 100-row × 5-column unpaged grid
+  `OnRowClick` is 500 handlers, **+45% allocation and ~2× render time** (new `BsDataGridBenchmarks`, which
+  gives the grid's render path the same before/after scrutiny as the Core hot paths). Paging it cuts both
+  roughly in proportion, and `RowClickable = false` trims further. `RowClass` is free.
+- **`BsDataGrid<T>` gained a `Loading` state.** v0.17.0 shipped `OnPageChangeAsync`/`OnSortChangeAsync`, so a
+  click could await a database round-trip with no feedback at all and nothing stopping a second click. Set
+  `Loading` around the fetch and the grid dims the table behind a spinner, marks it `aria-busy`, and ignores
+  further sort/page clicks until it clears. The empty state is suppressed while loading — a fetch in flight is
+  not "no results", and the first load would otherwise flash the placeholder before the rows land.
+  It is `bool?` on purpose: `null` means the grid isn't using the feature and its markup is unchanged, while
+  `false`/`true` mean in-use-idle and fetching. Once in use the grid renders a `position-relative` wrapper in
+  **both** states so it never appears or disappears under the table — the live diff matches sibling elements by
+  tag name, so a wrapper that came and went would be paired against whatever element sat at its slot. Keeping
+  it also preserves the table's DOM identity, and with it focus and scroll position, across a refetch. For the
+  same reason the overlay is appended after the pager rather than between the two.
+  `aria-busy` goes on the `<table>`, not the wrapper, and the spinner stays outside it: `BsSpinner` renders
+  `role="status"`, and a live region inside an `aria-busy` subtree has its announcement deferred until busy
+  clears — by which point the spinner is gone and the load was never announced. Controls get `aria-disabled`
+  rather than `disabled`, which would drop focus to `<body>` mid-fetch; the handlers guard for real.
+- **`BsDataGrid<T>` gained row selection.** `Selectable` adds a leading checkbox column, and
+  `OnSelectionChange` / `OnSelectionChangeAsync` report the selection so a toolbar can drive a bulk action;
+  `SelectedKeys` takes control of it the same way `Page` and `Sort` do for paging and sorting. Unlike `Sort`,
+  "is it set?" is a sound signal here — an empty list is a valid controlled selection meaning *nothing picked*
+  — so `null` unambiguously means the grid owns it.
+  Selection is tracked **by `RowKey`**, so it follows a row through a sort and accumulates across pages (three
+  on page 1 and two on page 2 is five). It reports **keys, not rows**: under `TotalCount` or an `IQueryable`
+  the grid only ever holds the current page and cannot turn a key from a page you have left back into a row.
+  Re-check reported keys server-side — a key can name a row since deleted, or one this user may not touch.
+  Select-all covers **this page**, and says so (`"Select all rows on this page"`), because the page is all the
+  grid holds; next to a pager, "select all" would be a lie. It has no indeterminate state — `indeterminate` is
+  a JavaScript-only DOM property and this grid renders without any. Row checkboxes are named from their row
+  ("Select Espresso Machine") rather than twenty identical "Select row"s, which read as one control repeated.
+- **`BsDataGrid<T>` gained a group panel.** `GroupPanel` renders a chip per group level above the grid and a
+  group control on every `Groupable` header: drag a header into the panel to group by it, drag the chips to
+  renest, drag one out to ungroup. **Every gesture is also a real `<button>`** — the chips carry ungroup and
+  move in/out, the headers carry group-by with `aria-pressed` — so the whole feature works from the keyboard
+  alone and drag is only an accelerator. That ordering is deliberate: a feature whose primary action is
+  drag-only cannot be reached by keyboard at all. Drag state is one field on the grid rather than the
+  `DragDrop` primitive, which sets `BypassRenderCache` and would re-execute the whole table's subtree on every
+  render for the sake of a panel; the client already `preventDefault`s `dragover` and dedupes the hover
+  round-trip to one message per element, so a drag never floods the socket.
+- **`BsDataGrid<T>` gained grouping.** Rows band by a column's value — nested, collapsible, with a subtotal per
+  band — via `Grouped` / `OnGroupedChange` and `Groupable` columns, plus `GroupCollapsible` and
+  `GroupSubtotals`. Controlled and uncontrolled follow `Sort`'s three-way opt-in.
+  **`BsColumn<T>.Field` names a column, once.** `Field = d => d.Region` calls it `"region"` — the token
+  `Grouped` carries, `OnSortChange` reports, and a URL serialises (`?group=region,rep`). It is an expression,
+  so the name is read off the member and cannot drift from the property; `Value` could never supply it, being a
+  compiled `Func` with no member name to read. One `Field` also doubles as the `ORDER BY` under `IQueryable`.
+  `SortField` and `SortBy` still win where set, so nothing existing moves.
+  A band is a run of **consecutive** rows, so the grid **orders by the group keys itself** wherever it owns the
+  order — in memory, and by prepending them to an `IQueryable`'s `ORDER BY` — and the user's sort then applies
+  *within* each band. Under a `TotalCount` slice it never holds the set and cannot: order by those fields in
+  your query, which is exactly what `OnGroupedChange` hands you. `Grouped` is URL input, so unknown or
+  non-`Groupable` names are ignored rather than thrown.
+  Collapse is keyed by the band's **value path**, never an index, so it follows the band across a sort or page.
+  Subtotals reuse each column's `Footer`/`FooterTemplate` over the band's rows — one hook, not two — and, like
+  the grand footer in the server-side modes, see only the rows on this page. The band toggle carries
+  `aria-expanded` but deliberately no `aria-controls`: it governs a run of sibling `<tr>`s with no element to
+  point at, and honouring the id-list would mean minting an id for every row in every band.
+  Measured (`BsDataGridBenchmarks`): **+5%** render allocation for one level over 100 rows, **+19%** for two.
+  Grouping by a near-unique column is one band per row and costs **+87%** — group by the low-cardinality
+  things, which is what a band is for.
 
 ## [0.17.0] - 2026-07-15
 
