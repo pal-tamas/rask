@@ -8,11 +8,13 @@ namespace Rask.Testing;
 ///     (<see cref="InvokeAsync" />, <see cref="ClickAsync" />) to simulate an event, which dispatches it
 ///     and re-renders, or call <see cref="Render" /> to re-render after mutating external state.
 /// </summary>
-public sealed class RenderedComponent
+public class RenderedComponent
 {
     private readonly Component _root;
     private readonly IServiceProvider _services;
 
+    // Not sealed so RenderedComponent<T> can add Instance; the ctor stays internal, so this type is still
+    // only constructible — and only derivable — inside the package.
     internal RenderedComponent(Component root, IServiceProvider services)
     {
         _root = root;
@@ -70,6 +72,42 @@ public sealed class RenderedComponent
     public async Task<string> InvokeAsync(string handlerId, string? jsonPayload = null)
     {
         ArgumentNullException.ThrowIfNull(handlerId);
+
+        if (!await DispatchAsync(handlerId, jsonPayload).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException(
+                $"No handler with id '{handlerId}' is registered in the current render. Handler ids are "
+                + "reissued every render — read the id from the current Html (HandlerId(\"click\") / "
+                + "Attr(\"data-rask-on-...\")) immediately before invoking.");
+        }
+
+        return Render();
+    }
+
+    /// <summary>
+    ///     Dispatches <paramref name="handlerId" /> if it is live in the current render, re-rendering and
+    ///     returning <c>true</c>; returns <c>false</c> — without re-rendering — if no such handler is
+    ///     registered. Use this to assert that a handler is <b>gone</b> (a removed element, a disposed
+    ///     subtree); <see cref="InvokeAsync" /> is the ergonomic default when you expect it to be there.
+    /// </summary>
+    /// <exception cref="ArgumentException">The payload is not valid JSON.</exception>
+    public async Task<bool> TryInvokeAsync(string handlerId, string? jsonPayload = null)
+    {
+        ArgumentNullException.ThrowIfNull(handlerId);
+
+        var dispatched = await DispatchAsync(handlerId, jsonPayload).ConfigureAwait(false);
+        if (dispatched)
+        {
+            Render();
+        }
+
+        return dispatched;
+    }
+
+    // Parses the payload and hands it to the handler. Returns whether the id was live — the throw-vs-bool
+    // choice belongs to the callers above. An invalid payload is a caller bug either way, so it always throws.
+    private async Task<bool> DispatchAsync(string handlerId, string? jsonPayload)
+    {
         JsonDocument doc;
         try
         {
@@ -84,18 +122,9 @@ public sealed class RenderedComponent
 
         using (doc)
         {
-            var dispatched = await _root.TryInvokeHandlerAsync(handlerId, doc.RootElement, _services)
+            return await _root.TryInvokeHandlerAsync(handlerId, doc.RootElement, _services)
                 .ConfigureAwait(false);
-            if (!dispatched)
-            {
-                throw new InvalidOperationException(
-                    $"No handler with id '{handlerId}' is registered in the current render. Handler ids are "
-                    + "reissued every render — read the id from the current Html (HandlerId(\"click\") / "
-                    + "Attr(\"data-rask-on-...\")) immediately before invoking.");
-            }
         }
-
-        return Render();
     }
 
     /// <summary>Dispatches the <b>first</b> <c>click</c> handler in the current render (see <see cref="HandlerId" />).</summary>
@@ -118,4 +147,24 @@ public sealed class RenderedComponent
                      $"No {domEvent} handler (data-rask-on-{domEvent}) in the current render.");
         return InvokeAsync(id, jsonPayload);
     }
+}
+
+/// <summary>
+///     A rendered component under test whose <see cref="Instance" /> is the component object itself — for
+///     asserting against a component's own state, rather than only the markup it produced.
+/// </summary>
+/// <typeparam name="T">The component's type.</typeparam>
+public sealed class RenderedComponent<T> : RenderedComponent
+    where T : Component
+{
+    internal RenderedComponent(Component root, T instance, IServiceProvider services)
+        : base(root, services) => Instance = instance;
+
+    /// <summary>
+    ///     The component under test — the very object passed to
+    ///     <see cref="RaskTest.Render{T}(T, IServiceProvider)" />, for the lifetime of this handle. The
+    ///     forwarding test root renders it directly rather than reconciling it, so this never becomes a
+    ///     different instance behind your back.
+    /// </summary>
+    public T Instance { get; }
 }

@@ -161,6 +161,13 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **`Rask.Testing`: `RenderedComponent<T>.Instance` and a non-throwing `TryInvokeAsync`.**
+  `RaskTest.Render(component)` now returns a `RenderedComponent<T>` whose `Instance` is the object you passed
+  in, so a test can assert the component's own state instead of parsing it back out of the markup. The
+  forwarding test root renders that object directly rather than reconciling it, so `Instance` is guaranteed
+  to stay the same instance for the handle's lifetime. `TryInvokeAsync(id, json?)` dispatches only if the id
+  is still live and returns `false` otherwise — for asserting a handler is *gone*, where `InvokeAsync` throws.
+  Source-compatible: existing `Render(x)` calls bind to the generic overload and get a subtype.
 - **`Rask.Testing`: query every match — `HandlerIds(domEvent)`, `Attrs(name)`, and a public `Markup`.**
   `HandlerId`/`Attr` reach only the first match, which is useless for a component that wires many elements to
   one event; the workaround was to scrape the markup with a hand-rolled `Regex` (Rask's own `BsDataGrid`

@@ -40,6 +40,9 @@ public async Task Clicking_increments()
 - **`.HandlerIds(domEvent)`** / **`.Attrs(name)`** — every match, in document order. Index these to target
   one of several same-event elements: `await page.InvokeAsync(page.HandlerIds("click")[1])`.
 - **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string.
+- **`.TryInvokeAsync(handlerId, json?)`** — dispatch only if the id is still live; returns `false` rather
+  than throwing, so you can assert a handler is gone.
+- **`.Instance`** — the component object you passed in, for asserting its state directly.
 - **`.Render()`** — re-render after mutating external state the component reads.
 
 ## Install

@@ -3,7 +3,7 @@ using Rask.Core;
 namespace Rask.Testing;
 
 /// <summary>
-///     Entry point for unit-testing Rask components. <see cref="Render(Component, IServiceProvider)" />
+///     Entry point for unit-testing Rask components. <see cref="Render{T}(T, IServiceProvider)" />
 ///     renders a component to HTML with its live event handlers wired, and returns a
 ///     <see cref="RenderedComponent" /> you can query and drive (invoke handlers, re-render) — no browser,
 ///     server, or WebSocket involved. Pass a factory (<see cref="Render(Func{Component}, IServiceProvider)" />)
@@ -15,23 +15,26 @@ public static class RaskTest
     ///     Renders <paramref name="component" /> as a live root and returns a handle to the result. The
     ///     component is wrapped in a forwarding root (so any component — including one that can't be a
     ///     page root — works), its event handlers are registered, and <see cref="RenderedComponent.Html" />
-    ///     holds the initial markup.
+    ///     holds the initial markup. The handle's <see cref="RenderedComponent{T}.Instance" /> is this same
+    ///     object, so a test can assert against the component's own state as well as its markup.
     /// </summary>
+    /// <typeparam name="T">The component's type, inferred from <paramref name="component" />.</typeparam>
     /// <param name="component">The component under test.</param>
     /// <param name="services">
     ///     Services available to the component (constructor-injected framework services, your own
     ///     registrations). Defaults to an empty provider.
     /// </param>
-    public static RenderedComponent Render(Component component, IServiceProvider? services = null)
+    public static RenderedComponent<T> Render<T>(T component, IServiceProvider? services = null)
+        where T : Component
     {
         ArgumentNullException.ThrowIfNull(component);
-        return Render(() => component, services);
+        return new RenderedComponent<T>(new TestRoot(() => component), component, services ?? EmptyServices);
     }
 
     /// <summary>
     ///     Renders the component produced by <paramref name="factory" /> as a live root and returns a handle
     ///     to the result. The factory runs on <b>every</b> render, so the tree is rebuilt from your current
-    ///     state each time — use this (rather than the <see cref="Render(Component, IServiceProvider)" />
+    ///     state each time — use this (rather than the <see cref="Render{T}(T, IServiceProvider)" />
     ///     overload, which renders one fixed instance) whenever a re-render should see changed props:
     ///     <c>RaskTest.Render(() => Form(model)[Input(() => model.Name)])</c>. Returning <c>null</c> renders
     ///     nothing — for a child built by its generated factory, that also drives it through its unmount path.
