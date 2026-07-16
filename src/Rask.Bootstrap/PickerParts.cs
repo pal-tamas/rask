@@ -41,20 +41,21 @@ internal static class PickerParts
         return Div(Role: "row", Key: 0)[cells];
     }
 
-    // The prev/next month header with the localized "MMMM yyyy" label.
+    // The prev/next month header with the localized "MMMM yyyy" label. The nav aria-labels come from
+    // `labels` (they have no CultureInfo source, unlike the month/day names).
     internal static Component MonthHeader(
         DateOnly view, CultureInfo culture, Callback onPrev, Callback onNext,
-        bool prevDisabled, bool nextDisabled) =>
+        bool prevDisabled, bool nextDisabled, BsPickerLabels labels) =>
         Div(Class: BsClass.Join(Display.Flex(), Flex.Align(BsAlign.Center),
             Flex.Justify(BsJustify.Between), Margin.Bottom(2)))[
             Button(Type: "button", Class: "btn btn-sm btn-outline-secondary",
                 Disabled: prevDisabled ? true : null,
-                Aria: new Dictionary<string, string?> { ["label"] = "Previous month" },
+                Aria: new Dictionary<string, string?> { ["label"] = labels.PreviousMonth },
                 OnClick: prevDisabled ? null : onPrev)["‹"],
             Span(Class: Font.Semibold)[view.ToString("y", culture)],
             Button(Type: "button", Class: "btn btn-sm btn-outline-secondary",
                 Disabled: nextDisabled ? true : null,
-                Aria: new Dictionary<string, string?> { ["label"] = "Next month" },
+                Aria: new Dictionary<string, string?> { ["label"] = labels.NextMonth },
                 OnClick: nextDisabled ? null : onNext)["›"]
         ];
 
@@ -121,42 +122,96 @@ internal static class PickerParts
             Aria: new Dictionary<string, string?> { ["label"] = view.ToString("y", culture) })[rows];
     }
 
-    // Two scrollable listboxes (hours 0-23, minutes 0..<60 by step). The active cell reflects the current
-    // value; clicking one composes a new time in the picker. Named columns carry aria labels for AT.
+    // Scrollable listboxes (hours 0-23, minutes 0..<60 by step, and — when `seconds` — seconds 0..<60 by
+    // step). The active cell reflects the current value; clicking one composes a new time in the picker.
+    // Items outside [min,max] for their column (boundary-aware against the current hour/minute) are greyed
+    // and non-clickable — the picker's own Clamp is the correctness guarantee regardless. Named columns
+    // carry aria labels for AT, sourced from `labels`.
     internal static Component TimeColumns(
-        TimeOnly? current, int minuteStep, CultureInfo culture,
-        Func<int, Task> onHour, Func<int, Task> onMinute)
+        TimeOnly? current, int minuteStep, bool seconds, int secondStep,
+        TimeOnly? min, TimeOnly? max, CultureInfo culture, BsPickerLabels labels,
+        Func<int, Task> onHour, Func<int, Task> onMinute, Func<int, Task>? onSecond)
     {
-        var step = minuteStep < 1 ? 1 : minuteStep;
+        var mStep = minuteStep < 1 ? 1 : minuteStep;
+        var sStep = secondStep < 1 ? 1 : secondStep;
+        var refT = current ?? new TimeOnly(0, 0);
+        // The largest minute actually rendered in a column, so the boundary hour is greyed when even its last
+        // stepped minute is still below Min (e.g. Min 10:59 with step 5 renders only …:55 — hour 10 is dead).
+        var lastMinute = 59 / mStep * mStep;
+
         var hours = new List<Component>(24);
         for (var h = 0; h < 24; h++)
         {
             var hh = h;
-            hours.Add(Button(Type: "button", Key: h,
-                Class: BsClass.Join("dropdown-item", "bs-time-item", current?.Hour == h ? "active" : null),
-                Aria: current?.Hour == h ? Selected : null,
-                OnClickAsync: () => onHour(hh))[h.ToString("00", culture)]);
+            var off = (min is { } mn && (h < mn.Hour || (h == mn.Hour && lastMinute < mn.Minute)))
+                      || (max is { } mx && h > mx.Hour);
+            hours.Add(TimeItem(h, current?.Hour == h, off, culture, () => onHour(hh)));
         }
 
         var minutes = new List<Component>();
-        for (var m = 0; m < 60; m += step)
+        for (var m = 0; m < 60; m += mStep)
         {
             var mm = m;
-            minutes.Add(Button(Type: "button", Key: m,
-                Class: BsClass.Join("dropdown-item", "bs-time-item", current?.Minute == m ? "active" : null),
-                Aria: current?.Minute == m ? Selected : null,
-                OnClickAsync: () => onMinute(mm))[m.ToString("00", culture)]);
+            var off = (min is { } mn && refT.Hour == mn.Hour && m < mn.Minute) ||
+                      (max is { } mx && refT.Hour == mx.Hour && m > mx.Minute);
+            minutes.Add(TimeItem(m, current?.Minute == m, off, culture, () => onMinute(mm)));
         }
 
-        return Div(Class: BsClass.Join("bs-time", Display.Flex(), Flex.Gap(1)))[
+        var cols = new List<Component>
+        {
             Div(Class: "bs-time-col", Role: "listbox",
-                Aria: new Dictionary<string, string?> { ["label"] = "Hour" })[hours],
+                Aria: new Dictionary<string, string?> { ["label"] = labels.Hour })[hours],
             Span(Class: "bs-time-sep")[":"],
             Div(Class: "bs-time-col", Role: "listbox",
-                Aria: new Dictionary<string, string?> { ["label"] = "Minute" })[minutes]
-        ];
+                Aria: new Dictionary<string, string?> { ["label"] = labels.Minute })[minutes],
+        };
+
+        if (seconds && onSecond is not null)
+        {
+            var secs = new List<Component>();
+            for (var s = 0; s < 60; s += sStep)
+            {
+                var ss = s;
+                var off = (min is { } mn && refT.Hour == mn.Hour && refT.Minute == mn.Minute && s < mn.Second) ||
+                          (max is { } mx && refT.Hour == mx.Hour && refT.Minute == mx.Minute && s > mx.Second);
+                secs.Add(TimeItem(s, current?.Second == s, off, culture, () => onSecond(ss)));
+            }
+
+            cols.Add(Span(Class: "bs-time-sep")[":"]);
+            cols.Add(Div(Class: "bs-time-col", Role: "listbox",
+                Aria: new Dictionary<string, string?> { ["label"] = labels.Second })[secs]);
+        }
+
+        return Div(Class: BsClass.Join("bs-time", Display.Flex(), Flex.Gap(1)))[cols];
+    }
+
+    // One hour/minute/second option: 00-formatted, active when it matches the value, greyed and
+    // non-clickable when out of range for its column. Reuses shared aria dictionaries so a full time
+    // column (24 hours + minutes + seconds) doesn't allocate a dictionary per option on every render.
+    private static Component TimeItem(
+        int value, bool active, bool disabled, CultureInfo culture, CallbackAsync onPick)
+    {
+        var aria = (active, disabled) switch
+        {
+            (true, true) => SelectedAndDisabled,
+            (true, false) => Selected,
+            (false, true) => DisabledAria,
+            _ => null,
+        };
+
+        return Button(Type: "button", Key: value,
+            Class: BsClass.Join("dropdown-item", "bs-time-item", active ? "active" : null,
+                disabled ? "disabled" : null),
+            Aria: aria,
+            OnClickAsync: disabled ? null : onPick)[value.ToString("00", culture)];
     }
 
     private static readonly IReadOnlyDictionary<string, string?> Selected =
         new Dictionary<string, string?> { ["selected"] = "true" };
+
+    private static readonly IReadOnlyDictionary<string, string?> DisabledAria =
+        new Dictionary<string, string?> { ["disabled"] = "true" };
+
+    private static readonly IReadOnlyDictionary<string, string?> SelectedAndDisabled =
+        new Dictionary<string, string?> { ["selected"] = "true", ["disabled"] = "true" };
 }

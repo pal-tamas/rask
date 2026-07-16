@@ -6,8 +6,9 @@ namespace Rask.Bootstrap;
 // A Bootstrap date picker: a .form-control trigger that opens a custom month-grid calendar popover,
 // bound to a DateOnly (or DateOnly?). Open/close, month navigation and day selection are pure live-diff
 // view state — no bootstrap.js. Full keyboard support (arrows move a virtual cursor via
-// aria-activedescendant, PageUp/Down change month, Home/End the week, Enter selects, Escape closes) and
-// ARIA grid roles. Min/Max/Disable grey out unavailable days. Native:true falls back to <input type=date>.
+// aria-activedescendant, PageUp/Down change month — Shift for a year, Home/End the week edge, Enter
+// selects, Escape closes) and ARIA grid roles; typing into the box also commits live. Min/Max/Disable grey
+// out unavailable days. Labels localizes the nav/clear aria-labels. Native:true falls back to <input type=date>.
 //   Bound:      BsDatePicker(() => model.StartDate, Label: "Start", Min: today)
 //   Controlled: BsDatePicker(Value: d, OnChange: v => …)
 public sealed class BsDatePicker<T> : BsPickerBase<T>
@@ -18,6 +19,10 @@ public sealed class BsDatePicker<T> : BsPickerBase<T>
 
     private DateOnly _cursor;
     private bool _seeded;
+
+    // True once the user has arrow-navigated the open grid, so Enter commits the highlighted day. Reset by
+    // any typing (ParseAsync) and on close, so Enter after clearing a nullable field never re-writes a value.
+    private bool _navigated;
 
     protected override Component? Render()
     {
@@ -54,14 +59,14 @@ public sealed class BsDatePicker<T> : BsPickerBase<T>
             PickerParts.MonthHeader(_cursor, Culture,
                 () => _cursor = Clamp(_cursor.AddMonths(-1)),
                 () => _cursor = Clamp(_cursor.AddMonths(1)),
-                PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor)),
+                PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor), PickerLabels),
             PickerParts.CalendarGrid(_cursor, _cursor, selected, Min, Max, Disable, Culture, prefix, gridId,
                 day => PickAsync(acc, ctx, fid, day))
         ];
 
         return RenderShell(b, controlId, gridId, formatted, boxAria,
             raw => ParseAsync(acc, ctx, fid, raw),
-            OnKeyAsync,
+            e => OnKeyAsync(acc, ctx, fid, e),
             selected is not null, popover,
             () => WriteBoxedAsync(acc, ctx, fid, null));
     }
@@ -80,16 +85,53 @@ public sealed class BsDatePicker<T> : BsPickerBase<T>
         _seeded = true;
     }
 
-    // The box is an editable input; typing commits live, so keyboard here is just Escape/Enter to close.
-    private Task OnKeyAsync(KeyboardEventArgs e)
+    // Grid keyboard navigation over a virtual cursor (the box keeps DOM focus; aria-activedescendant points
+    // at the cursor cell — the WAI-ARIA combobox+grid pattern, same as BsSelect). A first navigation key opens
+    // the popover; thereafter arrows move a day/week, PageUp/Down a month (Shift a year), Home/End the week
+    // edge (shared GridMove), Enter selects the navigated cursor day, Escape closes. Moves clamp to [Min,Max];
+    // the cursor may rest on a Disable-predicate day but Enter won't commit it (guarded by Selectable).
+    private async Task OnKeyAsync(
+        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid, KeyboardEventArgs e)
     {
-        if (e.Key is "Escape" or "Enter")
+        if (!Open)
         {
-            Open = false;
-            Text = null;
+            if (IsGridOpenKey(e))
+            {
+                Open = true;
+            }
+
+            return;
         }
 
-        return Task.CompletedTask;
+        if (GridMove(_cursor, e) is { } moved)
+        {
+            _cursor = Clamp(moved);
+            _navigated = true;
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case "Escape":
+                Open = false;
+                Text = null;
+                _navigated = false;
+                break;
+            case "Enter":
+                // Commit the highlighted day only when the user actually arrow-navigated to it; otherwise just
+                // close, so Enter after clearing a nullable field doesn't re-write the stale cursor day.
+                if (_navigated && Selectable(_cursor))
+                {
+                    await PickAsync(acc, ctx, fid, _cursor).ConfigureAwait(false);
+                }
+                else
+                {
+                    Open = false;
+                    Text = null;
+                }
+
+                break;
+        }
     }
 
     // Live per-keystroke parse of the typed text in the current culture: a valid, in-range date commits and
@@ -97,6 +139,10 @@ public sealed class BsDatePicker<T> : BsPickerBase<T>
     private Task ParseAsync(
         ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid, string raw)
     {
+        // Typing is text entry, not grid navigation: drop the nav flag so a later Enter closes rather than
+        // re-committing a stale cursor day (e.g. after the user clears a nullable field to leave it blank).
+        _navigated = false;
+
         if (string.IsNullOrWhiteSpace(raw))
         {
             return CanClear ? WriteBoxedAsync(acc, ctx, fid, null) : Task.CompletedTask;
@@ -122,6 +168,7 @@ public sealed class BsDatePicker<T> : BsPickerBase<T>
         _cursor = day;
         Open = false;
         Text = null;
+        _navigated = false;
         await WriteBoxedAsync(acc, ctx, fid, day).ConfigureAwait(false);
     }
 
