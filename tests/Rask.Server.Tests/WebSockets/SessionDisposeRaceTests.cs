@@ -27,7 +27,7 @@ public class SessionDisposeRaceTests
         try
         {
             var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-            var sessionId = Markup.SessionId(html);
+            var sessionId = MarkupAssert.SessionId(html);
             var handlerId = Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"").Groups[1].Value;
             Assert.NotEmpty(handlerId);
 

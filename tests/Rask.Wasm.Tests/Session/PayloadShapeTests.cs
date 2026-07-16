@@ -37,7 +37,7 @@ public class PayloadShapeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
 
         var payload =
             await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));

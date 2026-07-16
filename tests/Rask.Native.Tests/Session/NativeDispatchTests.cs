@@ -38,7 +38,7 @@ public class NativeDispatchTests() : ResettingTestBase(LiveDiffMode.DisabledFull
     public async Task ClickHandler_IncrementsCounter_AndPushesUpdatedFrame()
     {
         var (_, webView, initial) = await NewSessionAsync(diffMode: DiffMode);
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
 
         await webView.PostAsync($$"""{"id":"{{handlerId}}","type":"click"}""");
 

@@ -28,7 +28,7 @@ public class SocketLifecycleTests
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
         var initial = await host.Http.GetAsync("/start");
-        var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
@@ -49,7 +49,7 @@ public class SocketLifecycleTests
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromSeconds(2));
-        var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
         var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -71,7 +71,7 @@ public class SocketLifecycleTests
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
-        var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
         var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -100,7 +100,7 @@ public class SocketLifecycleTests
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = Regex.Match(initialHtml, "data-rask-on-click=\"(h\\d+)\"").Groups[1].Value;
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -124,7 +124,7 @@ public class SocketLifecycleTests
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
-        var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });

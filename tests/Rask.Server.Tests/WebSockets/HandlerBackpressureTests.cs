@@ -18,8 +18,8 @@ public class HandlerBackpressureTests
             using var host = RaskTestHost.Create<HangingApp>(
                 configureServer: o => o.MaxPendingHandlers = 4);
             var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-            var sessionId = Markup.SessionId(initialHtml);
-            var handlerId = Markup.FirstHandlerId(initialHtml);
+            var sessionId = MarkupAssert.SessionId(initialHtml);
+            var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -64,8 +64,8 @@ public class HandlerBackpressureTests
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.MaxPendingHandlers = 512);
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(initialHtml);
-        var handlerId = Markup.FirstHandlerId(initialHtml);
+        var sessionId = MarkupAssert.SessionId(initialHtml);
+        var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });

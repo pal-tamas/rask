@@ -21,7 +21,7 @@ public class NavigationPublishRerenderTests : ResettingTestBase
         var (session, provider) = NewSession<NavigateWithPublishRenderApp>();
 
         var initial = await session.InitialRenderAsync();
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
 
         var result = await session.DispatchAsync(
             Utf8($$"""{"id":"{{handlerId}}","type":"click"}"""));

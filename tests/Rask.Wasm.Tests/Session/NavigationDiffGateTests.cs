@@ -124,7 +124,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
         // A handler bumps a counter that drives BOTH the <title> and an H1 — no navigation.
         // The head fragment must ride the diff (previously a body-only diff froze the head),
         // and there is no history because nothing navigated.
-        var handlerId = Markup.FirstHandlerId(initial);
+        var handlerId = MarkupAssert.FirstHandlerId(initial);
         var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
         using var doc = JsonDocument.Parse(result.AsMemory());

@@ -119,8 +119,8 @@ public class PendingAckTests
     {
         var initial = await host.Http.GetAsync("/start");
         var html = await initial.Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(html);
-        var handlerId = Markup.FirstHandlerId(html);
+        var sessionId = MarkupAssert.SessionId(html);
+        var handlerId = MarkupAssert.FirstHandlerId(html);
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });

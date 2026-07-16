@@ -12,7 +12,7 @@ public class ResourceLimitTests
     {
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.IdleSocketTimeout = TimeSpan.FromMilliseconds(300));
-        var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -39,8 +39,8 @@ public class ResourceLimitTests
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.IdleSocketTimeout = TimeSpan.FromSeconds(5));
         var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(html);
-        var handlerId = Markup.FirstHandlerId(html);
+        var sessionId = MarkupAssert.SessionId(html);
+        var handlerId = MarkupAssert.FirstHandlerId(html);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -66,8 +66,8 @@ public class ResourceLimitTests
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => { o.MaxPendingHandlerBytes = 1; o.MaxPendingHandlers = 10_000; });
         var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-        var sessionId = Markup.SessionId(html);
-        var handlerId = Markup.FirstHandlerId(html);
+        var sessionId = MarkupAssert.SessionId(html);
+        var handlerId = MarkupAssert.FirstHandlerId(html);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
