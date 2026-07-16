@@ -346,6 +346,30 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#demo-dropdown-out")).ToContainTextAsync("Archive",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
+        // Offcanvas — the panel stays in the DOM and slides in via .show; the trigger opens it, a
+        // backdrop click dismisses it, all through the live diff (no bootstrap.js).
+        await Page.Locator(".guide-demo button:has-text('Open settings')").First.ClickAsync();
+        var drawer = Page.Locator(".guide-demo .sample-result-body .offcanvas.show").First;
+        await Expect(drawer).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        // Dispatch the click rather than actuate it: the .offcanvas-backdrop is position:fixed far down a
+        // long guide page, where Playwright's actionability/scroll handling can fail to land a real click on
+        // a fixed Bs overlay. DispatchEventAsync fires the handler directly — the same idiom the sidebar
+        // drawer dismissal uses above.
+        await Page.Locator(".guide-demo .sample-result-body .offcanvas-backdrop").First.DispatchEventAsync("click");
+        await Expect(Page.Locator(".guide-demo .sample-result-body .offcanvas.show")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // Confirm dialog — a BsModal-backed prompt. Confirming runs the action (updates the readout) and
+        // closes it; the destructive confirm button is btn-danger.
+        await Page.Locator(".guide-demo button:has-text('Delete item')").First.ClickAsync();
+        var confirm = Page.Locator("div.modal.show").First;
+        await Expect(confirm).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await confirm.Locator("button.btn-danger:has-text('Delete')").First.ClickAsync();
+        await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#bs-confirm-status")).ToContainTextAsync("deleted",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
         // === Toasts — shown and dismissed entirely by live-diff state (no bootstrap.js, no data-bs-dismiss).
         //     Showing renders class="toast show"; the × removes it. ===
         await SideAsync("Toasts", "toasts", "main .markdown-body h1");

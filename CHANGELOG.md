@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Live demos and unit tests for `BsOffcanvas` and `BsConfirmDialog`.** The two interactive overlay
+  components — previously documented in prose only — now each have a showcase demo (code-above /
+  live-result-below) on the "Modals, offcanvas & dropdowns" guide: an offcanvas drawer that slides in
+  over a backdrop, and a `BsModal`-backed confirm/cancel prompt with a status readout. `BsOffcanvas`
+  gains a rendered-markup unit test, and the shared browser E2E journey now drives both (open the
+  drawer + backdrop-dismiss it, and confirm the destructive-delete dialog).
 - **`Rask.Mail` — durable transactional email on the app's own database.** The roadmap's next DB-backed
   pillar: compose an email with a fluent `Email` builder — its body is a **Rask component rendered to HTML**
   (`Body(new WelcomeEmail(name))`) — call `IMailQueue.SendAsync(email)`, and a hosted `MailProcessor` delivers
