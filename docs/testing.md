@@ -38,6 +38,20 @@ public async Task Clicking_increments()
 
 - **`RaskTest.Render(component, services?)`** → a `RenderedComponent`. Pass an `IServiceProvider` when the
   component constructor-injects framework services or your own registrations.
+- **`RaskTest.Render(factory, services?)`** — renders the component the factory returns, re-running the
+  factory on **every** render so the tree is rebuilt from your current state. Reach for this whenever a
+  re-render should see changed props; the `component` overload renders one fixed instance, so a tree you
+  build at the call site keeps the values it was built with:
+
+  ```csharp
+  var model = new OrderModel();
+  var page = RaskTest.Render(() => Form(model)[Input(() => model.Name)]);
+
+  await page.InputAsync("{\"value\":\"Ada\"}");   // the next render rebuilds the form from `model`
+  ```
+
+  Returning `null` renders nothing — for a child built by its generated factory, that also drives it
+  through its unmount path.
 - **`.Html`** — the current markup. **`.Render()`** re-renders after you mutate external state it reads.
 - **`.ClickAsync(json?)` / `.InputAsync(json?)` / `.ChangeAsync(json?)` / `.SubmitAsync(json?)`** — dispatch
   the **first** element wired to that event (optionally with a JSON event payload, e.g.

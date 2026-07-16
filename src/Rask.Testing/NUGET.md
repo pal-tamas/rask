@@ -28,6 +28,10 @@ public async Task Clicking_increments()
 
 - **`RaskTest.Render(component, services?)`** → a `RenderedComponent`. Renders the component with its
   event handlers wired; pass an `IServiceProvider` when the component constructor-injects services.
+- **`RaskTest.Render(factory, services?)`** — same, but the factory runs on **every** render, so the tree is
+  rebuilt from your current state each time. Use it whenever a re-render should see changed props:
+  `RaskTest.Render(() => Form(model)[Input(() => model.Name)])`. The `component` overload renders one fixed
+  instance, so a tree you build at the call site keeps the values it was built with.
 - **`RenderedComponent.Html`** — the current markup, reflecting the latest state.
 - **`.ClickAsync(json?)` / `.InvokeAsync(handlerId, json?)`** — dispatch a handler (optionally with a JSON
   event payload like `"{\"value\":\"hi\"}"` for an input) and re-render; returns the new `Html`.
