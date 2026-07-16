@@ -285,6 +285,8 @@ public static class DemoRegistry
             ["bootstrap-icons"] = () => CodeSample(["BsIconsDemo.cs"], Result: BsIconsDemo()),
             ["bootstrap-modal"] = () => CodeSample(["BsModalDemo.cs"], Result: BsModalDemo()),
             ["bootstrap-tabs"] = () => CodeSample(["BsTabsDemo.cs"], Result: BsTabsDemo()),
+            ["bootstrap-table"] = () => CodeSample(["BsTableDemo.cs"], Result: BsTableDemo()),
+            ["bootstrap-pagination"] = () => CodeSample(["BsPaginationDemo.cs"], Result: BsPaginationDemo()),
             ["bootstrap-offcanvas"] = () => CodeSample(["BsOffcanvasDemo.cs"], Result: BsOffcanvasDemo()),
             ["bootstrap-confirm"] = () => CodeSample(["BsConfirmDialogDemo.cs"], Result: BsConfirmDialogDemo()),
             ["bootstrap-collapse"] = () => CodeSample(["BsCollapseDemo.cs"], Result: BsCollapseDemo()),

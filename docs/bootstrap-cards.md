@@ -84,3 +84,29 @@ BsPlaceholder(Col: 7, Animation: BsPlaceholderAnimation.Glow)
 ```
 
 <!-- demo:bootstrap-placeholder -->
+
+## Tables
+
+`BsTable` wraps a core `<table>` with the typed style toggles — `Striped`, `Hover`, `Bordered`,
+`Small`, `Responsive`, and more — over the usual `Thead`/`Tbody`/`Tr`/`Th`/`Td` markup. For typed
+columns, click-to-sort and paging, reach for [`BsDataGrid<T>`](data-grid.md) instead.
+
+```csharp
+BsTable(Striped: true, Hover: true)[ Thead()[Tr()[Th()["Name"]]], Tbody()[Tr()[Td()["Ada"]]] ]
+```
+
+<!-- demo:bootstrap-table -->
+
+## Pagination
+
+`BsPagination`(+`BsPageItem`) renders `<nav><ul class="pagination">…`. Each item is a real `<button>`
+(or an `<a>` with `Href`); wire `OnClick` to drive paging from C#, mark the current page `Active`, and
+`Disabled` greys the ends — all zero-JS through the live runtime.
+
+```csharp
+BsPagination()[
+    BsPageItem(Disabled: true)["Previous"], BsPageItem(Active: true)["1"], BsPageItem()["2"]
+]
+```
+
+<!-- demo:bootstrap-pagination -->
