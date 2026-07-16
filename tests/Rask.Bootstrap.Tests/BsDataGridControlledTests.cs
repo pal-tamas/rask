@@ -36,9 +36,6 @@ public class BsDataGridControlledTests
         new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Sortable = true, SortField = "qty" },
     ];
 
-    private static string[] ClickHandlers(string html) =>
-        Regex.Matches(html, "data-rask-on-click=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToArray();
-
     private static string[] BodyCells(string html, int column)
     {
         var body = Regex.Match(html, "<tbody>(.*?)</tbody>", RegexOptions.Singleline).Groups[1].Value;
@@ -68,7 +65,7 @@ public class BsDataGridControlledTests
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(), PageSize: 2,
             Page: 0, OnPageChange: p => asked.Add(p))));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[4]); // page 2
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[4]); // page 2
 
         Assert.Equal([1], asked);
         // Still page 1: the grid does not own the page, so nothing moves until the caller re-renders it.
@@ -94,11 +91,11 @@ public class BsDataGridControlledTests
             Sort: "name", SortDescending: false, OnSortChange: s => asked.Add(s))));
 
         // Clicking the already-sorted column asks for the opposite direction...
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
+        await grid.InvokeAsync(grid.HandlerIds("click")[0]);
         Assert.Equal(new DataGridSort("name", true), asked[^1]);
 
         // ...and a different column asks for ascending on that field.
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[1]);
+        await grid.InvokeAsync(grid.HandlerIds("click")[1]);
         Assert.Equal(new DataGridSort("qty", false), asked[^1]);
     }
 
@@ -108,7 +105,7 @@ public class BsDataGridControlledTests
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(Data: All, Columns: Columns(),
             Sort: null, OnSortChange: _ => { })));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]);
 
         // The caller owns the sort and has not changed it, so the order is untouched.
         Assert.Equal(["Banana", "Apple", "Cherry", "Date", "Elderberry"], BodyCells(html, 0));
@@ -126,11 +123,11 @@ public class BsDataGridControlledTests
         Assert.Contains("1-2 / 5", grid.Html); // the whole list, not the page
 
         // It sorts...
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]);
         Assert.Equal(["Apple", "Banana"], BodyCells(html, 0));
 
         // ...and pages, entirely on its own.
-        html = await grid.InvokeAsync(ClickHandlers(html)[4]);
+        html = await grid.InvokeAsync(Markup.Attrs(html, "data-rask-on-click")[4]);
         Assert.Equal(["Cherry", "Date"], BodyCells(html, 0));
         Assert.Contains("3-4 / 5", html);
     }
@@ -161,7 +158,7 @@ public class BsDataGridControlledTests
                 asked.Add(s);
             })));
 
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
+        await grid.InvokeAsync(grid.HandlerIds("click")[0]);
 
         Assert.Equal(new DataGridSort("name", true), Assert.Single(asked));
     }
@@ -178,7 +175,7 @@ public class BsDataGridControlledTests
                 asked.Add(p);
             })));
 
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[4]); // page 2
+        await grid.InvokeAsync(grid.HandlerIds("click")[4]); // page 2
 
         Assert.Equal([1], asked);
     }
@@ -195,7 +192,7 @@ public class BsDataGridControlledTests
                 return Task.CompletedTask;
             })));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]);
 
         Assert.Equal(new DataGridSort("name", false), Assert.Single(asked));
         // Controlled: it reported the click and left the order alone.
@@ -257,7 +254,7 @@ public class BsDataGridControlledTests
             Page: 1, OnPageChange: p => pages.Add(p),
             Sort: "qty", SortDescending: true, OnSortChange: s => asked.Add(s))));
 
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[0]); // click Name
+        await grid.InvokeAsync(grid.HandlerIds("click")[0]); // click Name
         Assert.Equal(new DataGridSort("name", false), asked[^1]);
 
         // Nothing moved on its own: the caller re-renders the grid with the new query results.

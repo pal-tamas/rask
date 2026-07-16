@@ -56,9 +56,6 @@ public class BsDataGridQueryTests
         },
     ];
 
-    private static string[] ClickHandlers(string html) =>
-        Regex.Matches(html, "data-rask-on-click=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToArray();
-
     private static string[] BodyCells(string html, int column)
     {
         var body = Regex.Match(html, "<tbody>(.*?)</tbody>", RegexOptions.Singleline).Groups[1].Value;
@@ -87,11 +84,11 @@ public class BsDataGridQueryTests
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
             Data: All.AsQueryable(), Columns: Columns(), PageSize: 2)));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]); // by Name
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]); // by Name
         Assert.Equal(["Apple", "Banana"], BodyCells(html, 0));
         Assert.Contains("aria-sort=\"ascending\"", html);
 
-        html = await grid.InvokeAsync(ClickHandlers(html)[0]); // descending
+        html = await grid.InvokeAsync(Markup.Attrs(html, "data-rask-on-click")[0]); // descending
         Assert.Equal(["Elderberry", "Date"], BodyCells(html, 0));
         Assert.Contains("aria-sort=\"descending\"", html);
     }
@@ -103,7 +100,7 @@ public class BsDataGridQueryTests
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
             Data: All.AsQueryable(), Columns: Columns(), PageSize: 5)));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[1]); // by Qty
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[1]); // by Qty
 
         Assert.Equal(["Cherry", "Banana", "Apple", "Elderberry", "Date"], BodyCells(html, 0)); // 1,3,5,7,9
     }
@@ -115,7 +112,7 @@ public class BsDataGridQueryTests
             Data: All.AsQueryable(), Columns: Columns(), PageSize: 2)));
 
         // [0] Name, [1] Qty, [2] prev, [3] p1, [4] p2, [5] p3, [6] next.
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[5]); // page 3
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[5]); // page 3
 
         Assert.Equal(["Elderberry"], BodyCells(html, 0));
         Assert.Contains("5-5 / 5", html);
@@ -175,7 +172,7 @@ public class BsDataGridQueryTests
             Data: query, Columns: Columns(), PageSize: 2)));
         var afterFirst = source.Executions;
 
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[0]); // sort
+        await grid.InvokeAsync(grid.HandlerIds("click")[0]); // sort
 
         Assert.True(source.Executions > afterFirst, "a new sort must re-run the query");
     }
