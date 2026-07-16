@@ -2,7 +2,39 @@
 
 Rask apps are ordinary .NET apps, so every standard .NET hosting path works — `dotnet publish`
 behind a reverse proxy, Azure App Service, a systemd unit, or a container. This guide covers
-**containers**, which the templates scaffold for you.
+**containers**, which the templates scaffold for you — and `rask deploy`, which ships one to a single
+host for you.
+
+## One-command deploy — `rask deploy`
+
+If you just want your app live on a box you own, `rask deploy` does the whole thing:
+
+```bash
+rask deploy --host deploy@box --domain app.example.com
+# → builds the image on the host, runs it, and serves https://app.example.com with an auto-issued cert
+```
+
+It builds and runs the app **on the host over SSH** — every step is `docker -H ssh://<host> …`, so
+there's no registry, no local Docker daemon, and no image tarball to copy; the build context ships to
+the host's daemon and builds there. It deploys the [`--docker`](#scaffolding-a-dockerfile----docker)
+Dockerfile below (override with `--dockerfile`).
+
+- **Automatic HTTPS.** With `--domain`, Rask runs a shared [Caddy](https://caddyserver.com) reverse
+  proxy on the box that obtains and renews a Let's Encrypt certificate — a live HTTPS site with nothing
+  else to configure. (Point the domain's DNS `A`/`AAAA` record at the host first so the cert can issue.)
+- **Zero-downtime.** Deploys are blue-green: the new container starts alongside the old, is
+  waited on until its container is running, then Caddy is reloaded to point at it before the old one is
+  removed. A new container that fails to start leaves the previous version serving.
+- **Many apps, one box.** Each app is a separate `--domain`; the proxy's routing is regenerated from the
+  host's live containers on every deploy, so a second app never disturbs the first.
+- **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own
+  reverse proxy / TLS in front — see the container sections below.
+
+**Prerequisites:** the Docker CLI locally, and on the host a running Docker daemon plus key-based SSH
+(so `ssh user@box` works non-interactively). The host, domain, and port are remembered in
+`.rask/deploy.json` for repeat deploys — a bare `rask deploy` re-ships. Secrets are never stored there;
+pass them with `--env KEY=VALUE` (repeatable) or `--env-file <path>`. Use `--dry-run` to print the exact
+docker commands without running anything. Full flag reference: [`docs/cli.md`](cli.md#rask-deploy--ship-to-a-single-host-over-ssh).
 
 ## Scaffolding a Dockerfile — `--docker`
 

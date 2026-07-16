@@ -163,6 +163,47 @@ The EF Core tools need the startup project to reference `Microsoft.EntityFramewo
 projects from `rask generate feature` already do, and `rask db` adds it for you (via `dotnet add
 package`) if it's missing.
 
+## `rask deploy` — ship to a single host over SSH
+
+```bash
+rask deploy --host deploy@box --domain app.example.com   # → https://app.example.com (auto-HTTPS)
+rask deploy --host deploy@box --port 8080                 # no domain: publish a port, bring your own TLS
+rask deploy                                               # redeploy: host/domain remembered
+rask deploy --dry-run --host deploy@box --domain app.example.com   # print the docker commands, run nothing
+```
+
+One command builds your app's Docker image **on the box** and runs it. Every step is
+`docker -H ssh://<host> …`, so there's no registry, no local Docker daemon, and no image tarball to
+copy — the build context ships to the host's daemon over SSH and builds there. It deploys the
+`Dockerfile` that `rask new --docker` scaffolds (point at another with `--dockerfile`).
+
+**With `--domain`** Rask runs a shared [Caddy](https://caddyserver.com) reverse proxy on the box that
+fetches an automatic Let's Encrypt certificate, so you get a live HTTPS site with nothing else to
+configure. Deploys are **zero-downtime**: the new container starts alongside the old one (blue-green),
+is waited on until its container is running, then Caddy is reloaded to point at it before the old one
+is removed. If the new container fails to start, the previous version keeps serving.
+
+**Multiple apps share one box.** Each app container is labelled, so the proxy's routing is regenerated
+from the host's live containers on every deploy — deploying a second app (a different `--domain`)
+leaves the first untouched. Without `--domain`, the app is published on `--port` (default `8080`) and
+you put your own TLS/reverse proxy in front (there's no zero-downtime swap on a single published port).
+
+| Option | Purpose |
+| --- | --- |
+| `--host user@box` | SSH target. Required on the first deploy, then remembered in `.rask/deploy.json`. |
+| `--domain <host>` | Front the app with auto-HTTPS Caddy. Omit to publish `--port` directly. |
+| `--port <n>` | Host port when there's no domain (default `8080`). |
+| `--name <slug>` | Image/container name (default: the project name). |
+| `--project <path>` · `--dockerfile <path>` | The build context / Dockerfile, if not the current project. |
+| `--env KEY=VALUE` · `--env-file <path>` | Runtime environment for the app container (repeat `--env`). |
+| `--dry-run` | Print the exact docker commands without running them. |
+
+**Prerequisites.** The [Docker CLI](https://docs.docker.com/get-docker/) installed locally; on the
+host, a running Docker daemon and key-based SSH so `ssh user@box` works non-interactively. Point your
+domain's DNS `A`/`AAAA` record at the host before the first `--domain` deploy so the certificate can be
+issued. `.rask/deploy.json` remembers the host/domain/port for repeat deploys but **never stores
+secrets** — pass those via `--env`/`--env-file` each time.
+
 ## `rask info` — environment report
 
 ```bash
@@ -170,17 +211,16 @@ rask info
 ```
 
 ```text
-  Rask CLI         0.16.1
+  Rask CLI         0.17.0
   .NET SDK         10.0.201
-  Rask templates   installed
   OS               macOS 26.5.1
 ```
 
-A quick check when diagnosing a machine: the tool version, the .NET SDK version, whether the Rask
-templates are installed, and the OS. `rask --version` prints just the tool version.
+A quick check when diagnosing a machine: the tool version, the .NET SDK version, and the OS.
+`rask --version` prints just the tool version.
 
 ## Roadmap
 
-The CLI is the front door for Rask's "one person framework" tooling. Next up: `rask deploy`
-(one-command deploy). See the [development workflow](development-workflow.md) for how the framework
-is built.
+The CLI is the front door for Rask's "one person framework" tooling — from `rask new` to `rask deploy`,
+the whole lifecycle lives here. See the [development workflow](development-workflow.md) for how the
+framework is built.

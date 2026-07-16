@@ -24,6 +24,8 @@ Rask app correctly without you re-explaining the conventions.
 2. Point your assistant at Rask's repo-root `AGENTS.md` (and `llms.txt` if it fetches docs).
 3. Ask for features in plain language — the assistant follows the conventions and links to
    `docs/diagnostics.md` when it hits a `RASKxxx` compile diagnostic.
+4. Ship it: `rask deploy --host user@box --domain app.example.com` builds and runs it on a single
+   host over SSH with automatic HTTPS.
 
 ## Keeping it accurate
 

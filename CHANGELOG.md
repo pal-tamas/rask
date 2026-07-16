@@ -21,6 +21,18 @@ them until tagged releases begin.
   install tabs updated to the `rask new` flow.
 
 ### Added
+- **`rask deploy` — one-command deploy to a single host over SSH.** Builds the app's Docker image on a
+  remote box and runs it, with no registry, no local Docker daemon, and no image tarball: every step is
+  `docker -H ssh://<host> …`, so the build context ships to the host's daemon and builds there. It deploys
+  the `--docker` Dockerfile the templates scaffold. With `--domain` it runs a shared **Caddy** reverse
+  proxy that obtains an automatic **Let's Encrypt** certificate — one command to a live HTTPS site — and
+  deploys are **zero-downtime** (blue-green: start the new container, health-check it, reload Caddy, then
+  retire the old; a failed start leaves the previous version serving). **Multiple apps share one host**:
+  each container is labelled and the proxy's routing is regenerated from the host's live containers every
+  deploy, so a second `--domain` never disturbs the first. Without `--domain` it publishes `--port`
+  (default 8080) for your own reverse proxy. `--host`/`--domain`/`--port` are remembered in
+  `.rask/deploy.json` (never secrets — pass those via `--env`/`--env-file`); `--dry-run` prints the exact
+  docker commands. Documented in `docs/cli.md` and `docs/deployment.md`.
 - **`rask db` — EF Core migrations from the CLI.** A friendly wrapper over `dotnet ef` for the everyday
   migration lifecycle, pairing with what `rask generate feature` scaffolds: `rask db add <Name>`,
   `rask db remove`, `rask db list`, `rask db update [<target>]`, and `rask db drop [--force]`. It resolves
