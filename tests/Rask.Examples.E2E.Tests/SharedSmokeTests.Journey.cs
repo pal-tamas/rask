@@ -336,6 +336,17 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".guide-demo .sample-result-body .toast.show")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
+        // === Cards, lists & tables — the static content components (breadcrumb, list group, placeholder
+        //     skeletons) render in a real browser. These carry no interactive state, so a structural
+        //     visibility assertion is the browser-side proof; their exact markup is unit-tested. ===
+        await SideAsync("Cards, lists & tables", "cards, lists & tables", "main .markdown-body h1");
+        await Expect(Page.Locator(".guide-demo .sample-result-body .breadcrumb").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        await Expect(Page.Locator(".guide-demo .sample-result-body .list-group .list-group-item").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".guide-demo .sample-result-body .placeholder").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
         // === Form controls — the IFormControl<T>-bound demo, incl. the in-form single-select (BsSelect). ===
         await SideAsync("Form controls", "form controls", "main .markdown-body h1");
 
