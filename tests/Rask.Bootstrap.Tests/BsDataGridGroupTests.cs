@@ -226,6 +226,37 @@ public class BsDataGridGroupTests
     }
 
     [Fact]
+    public void GroupSubtotals_ReuseAColumnsFooterTemplate_WhenItSetsOne()
+    {
+        // A subtotal reuses whichever footer hook the column defines — FooterTemplate (a component), not only
+        // the text Footer. It is the same single hook the grand <tfoot> uses, so a badge footer bands too.
+        BsColumn<Row>[] columns =
+        [
+            new BsColumn<Row> { Title = "Name", Value = r => r.Name, Field = r => r.Name },
+            new BsColumn<Row>
+            {
+                Title = "Category", Value = r => r.Category, Field = r => r.Category, Groupable = true,
+            },
+            new BsColumn<Row> { Title = "Supplier", Value = r => r.Supplier, Field = r => r.Supplier },
+            new BsColumn<Row>
+            {
+                Title = "Qty", Value = r => r.Qty,
+                FooterTemplate = rs => BsBadge()[rs.Sum(x => x.Qty).ToString()],
+            },
+        ];
+
+        var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
+            Grouped: ["category"], OnGroupedChange: _ => { }, GroupSubtotals: true).ToHtml();
+
+        var subtotals = Regex.Matches(html, "<tr class=\"table-light\"[^>]*>(.*?)</tr>", RegexOptions.Singleline)
+            .Select(m => m.Groups[1].Value).ToArray();
+
+        Assert.Equal(2, subtotals.Length);
+        Assert.Contains("<span class=\"badge\">15</span>", subtotals[0], StringComparison.Ordinal); // Fruit 5+3+7
+        Assert.Contains("<span class=\"badge\">11</span>", subtotals[1], StringComparison.Ordinal); // Veg 9+2
+    }
+
+    [Fact]
     public async Task UncontrolledGrouping_IsOwnedByTheGrid()
     {
         // No Grouped/OnGroupedChange passed at all -> the grid keeps its own list. Nothing renders a control
