@@ -314,7 +314,9 @@ public static class DemoRegistry
                        + "band is a run of CONSECUTIVE rows, so the grid orders by the group keys first and "
                        + "the user's sort applies inside each band. Click Amount and watch the rows re-sort "
                        + "within the bands rather than scattering them. Subtotals reuse each column's Footer "
-                       + "delegate over the band's rows, and see only the rows on this page.",
+                       + "delegate over the band's rows, and see only the rows on this page. A grouped column "
+                       + "folds away by default — its value already names the band header — so 'Show grouped "
+                       + "column' flips ShowGroupedColumns to keep it in the table too.",
                 Result: BsDataGridGroupDemo()),
             ["data-grid-selection"] = () => CodeSample(
                 ["BsDataGridSelectionDemo.cs"],

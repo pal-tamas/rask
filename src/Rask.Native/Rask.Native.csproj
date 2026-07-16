@@ -114,7 +114,7 @@
     app gets the Generated.{Tag}() factories, the Routes registry, and the RASK diagnostics), and
     Rask.Core.dll/.xml are bundled into lib/net10.0/. PrivateAssets="all" on the Core ProjectReference
     keeps Rask.Core out of the nuspec dependency list — we pack its DLL explicitly here. Without this,
-    `dotnet new rask-native` + build cannot resolve Component, the element factories, or [Route].
+    a `rask new` native project + build cannot resolve Component, the element factories, or [Route].
   -->
   <Import Project="..\RaskAnalyzerPack.targets"/>
 

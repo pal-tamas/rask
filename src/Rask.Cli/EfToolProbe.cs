@@ -3,8 +3,7 @@ namespace Rask.Cli;
 /// <summary>
 /// Detects (and, when missing, installs) the Entity Framework Core command-line tools that
 /// <c>rask db</c> shells out to. Presence is checked with <c>dotnet ef --version</c> — a zero exit code
-/// means the tool is on the path, which covers both a global install and a local tool manifest. Modeled
-/// on <see cref="Templates.TemplateProbe"/> so the heuristic lives in exactly one place.
+/// means the tool is on the path, which covers both a global install and a local tool manifest.
 /// </summary>
 internal static class EfToolProbe
 {

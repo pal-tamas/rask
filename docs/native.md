@@ -7,7 +7,7 @@ the *same* render → diff pipeline as the Server and WASM hosts. Your C# runs *
 a WebView. Every existing Rask component — `Div()[Span(), …]`, forms, routing, scoped CSS/JS — works
 unchanged.
 
-> **Status — preview / pre-1.0.** The host, the `dotnet new rask-native` template (with the iOS
+> **Status — preview / pre-1.0.** The host, the `native` template (with the iOS
 > `WKWebView` and Android `WebView` app heads), and the native client runtime **ship and run
 > end-to-end on both platforms** — a scaffolded app boots, renders the component tree over the native
 > bridge, routes, and updates live (see [Roadmap](#roadmap) for the verification detail). It's still
@@ -59,8 +59,8 @@ and turns WebView events back into handler/navigate dispatches — structurally 
 Scaffold a native app from the template, then run it on an emulator/simulator:
 
 ```bash
-dotnet new install Rask.Templates
-dotnet new rask-native -n MyApp              # --host local (default) | --host server
+dotnet tool install -g Rask.Cli              # one-time: install the rask CLI
+rask new MyApp --template native             # --host local (default) | --host server
 cd MyApp
 
 dotnet workload install ios android          # the iOS/Android SDK workloads (one-time)
@@ -74,7 +74,7 @@ remote Rask Server with the [native capability bridge](#native-device-apis-from-
 (its heads are `Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`, and there are no `App.cs`
 components — the server renders them).
 
-`dotnet new rask-native --host local` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
+`rask new MyApp --template native --host local` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
 
 ```
 MyApp.csproj                  # multi-targets net10.0-ios;net10.0-android; refs Rask.Native
@@ -172,7 +172,7 @@ work — but a plain **`Shareable`** button still pops the **native** sheet, bec
 `--host` parameter:
 
 ```bash
-dotnet new rask-native -n MyApp --host server   # (--host local is the default)
+rask new MyApp --template native --host server   # (--host local is the default)
 ```
 
 The generated head (`Platforms/Android/ServerActivity.cs`, `Platforms/iOS/ServerAppDelegate.cs`) points its

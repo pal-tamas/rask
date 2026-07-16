@@ -48,7 +48,7 @@ public sealed class SiteExampleTests
 
             // The install tabs are Rask state too — switching re-renders the selected terminal.
             await page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "WASM" }).ClickAsync();
-            await Expect(page.Locator(".term")).ToContainTextAsync("rask-wasm");
+            await Expect(page.Locator(".term")).ToContainTextAsync("rask new MyApp --template wasm");
             await page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "Native" }).ClickAsync();
             await Expect(page.Locator(".term")).ToContainTextAsync("net10.0-android");
 

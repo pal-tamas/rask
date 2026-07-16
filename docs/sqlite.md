@@ -126,6 +126,12 @@ For a transaction you drive yourself, `connection.BeginImmediate()` gives you a 
 that took the write lock up front (its wait, though, blocks the thread inside Microsoft.Data.Sqlite —
 use `ExecuteInImmediateTransactionAsync` when you want the non-blocking retry).
 
+Because the lock is taken through the pooled native handle, the path is defensive about connection
+reuse: it clears a leaked transaction before `BEGIN IMMEDIATE`, and never hands a mid-transaction handle
+back to the pool. If a statement genuinely fails it throws a `SqliteException` carrying the extended
+result code and the autocommit state, so a rare failure is attributable rather than an opaque
+`SQLite Error 1: 'not an error'`.
+
 ### Entity Framework Core — opt-in retry strategy
 
 Pass `configureRetry` (even empty) to register a fair-interval execution strategy so `SaveChanges`
@@ -223,12 +229,19 @@ for writes:
 ~26k/second through EF Core. For scale, that is far past what a single application server will ask of it —
 which is the point: SQLite is not the bottleneck you should be designing around.
 
-> One caveat reported rather than buried: the EF mixed arm occasionally escapes `SQLITE_BUSY` under load,
-> and **the cause is known but unfixed**. It is thrown from `SqliteConnection.Close()` as a pooled connection
-> is released — i.e. from *disposing* the `DbContext`, after the work has committed. Connection teardown is
-> not a command, so no execution strategy covers it and nothing retries it; enabling `configureRetry` sets
-> `busy_timeout=0`, which leaves it no tolerance for a concurrent writer. The raw path shows nothing
-> equivalent. Details, and what has already been tried, are in the harness
+> One caveat reported rather than buried: the EF mixed arm can rarely throw `SQLITE_BUSY` from
+> `SqliteConnection.Close()` — i.e. from *disposing* the `DbContext`, after the work has committed. **This is
+> not lock contention, and `busy_timeout` cannot fix it.** When Microsoft.Data.Sqlite returns a pooled
+> connection it runs `Deactivate()`, which *un-registers EF Core's built-in helper functions* (`ef_add`,
+> `regexp`, the `EF_DECIMAL` collation, …) via `sqlite3_create_function(name, null)`. SQLite refuses that with
+> `SQLITE_BUSY` — *"unable to delete/modify user-function due to active statements"* — if any prepared
+> statement is still active on the connection, which happens when a reader was GC-collected but its statement
+> finalizer has not run yet (`Close()` only finalizes commands it still holds a live reference to). Heavy
+> concurrent read/write churn plus a gen2 GC at the wrong instant is what surfaces it. It is an upstream
+> Microsoft.Data.Sqlite pool-return behaviour, present for any EF Core SQLite app that registers functions —
+> not specific to Rask, and the raw ADO path (no EF functions) shows nothing equivalent. If it bites you,
+> `Pooling=False` on the connection string removes it (no pooled return means no `Deactivate`), at the cost of
+> re-applying the pragmas on every open. Full deterministic reproduction and analysis are in the harness
 > [baselines README](../benchmarks/Rask.Benchmarks.Sqlite/Baselines/README.md).
 
 ### Under a sustained soak
@@ -488,6 +501,13 @@ Assert.Equal("wal", cmd.ExecuteScalar());
 
 See `tests/Rask.SQLite.Tests` for the unit + integration coverage, and
 `tests/Rask.Examples.E2E.Tests/SqliteExampleTests.cs` for the end-to-end concurrent-writes check.
+
+> **Careful with `SqliteConnection.ClearAllPools()`.** It is process-global and disposes the underlying
+> `sqlite3` handle of connections that are *currently leased and in use*, not just idle ones — so calling
+> it while writes are in flight can throw `ObjectDisposedException` from a live connection on another
+> thread. In tests, keep pool-clearing teardown from running in parallel with connection-using tests (the
+> SQLite test assemblies set `[assembly: CollectionBehavior(DisableTestParallelization = true)]` for this);
+> in app code, do not call it on a reset/health-check path that overlaps request handling.
 
 For load rather than correctness, `benchmarks/Rask.Benchmarks.Sqlite` drives sustained concurrent traffic and
 reports throughput, tail latency and error counts (the numbers in

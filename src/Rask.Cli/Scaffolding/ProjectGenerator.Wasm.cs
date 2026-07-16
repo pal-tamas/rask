@@ -50,18 +50,11 @@ internal static partial class ProjectGenerator
     // Rask.Core don't flow through the published package chain, so the --auth scaffold references them directly.
     private const string AspNetCoreFrameworkVersion = "10.0.9";
 
-    private static string WasmCsproj(bool auth, string version)
-    {
-        var authRefs = auth
-            ? $"""
-
-                    <PackageReference Include="Microsoft.JSInterop" Version="{AspNetCoreFrameworkVersion}"/>
-                    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="{AspNetCoreFrameworkVersion}"/>
-                """.TrimEnd()
-            : "";
-        return $"""
-        <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
-
+    // The WebAssembly SDK <PropertyGroup> — byte-identical for the standalone `wasm` template and the
+    // `wasm-hosted` client project. Shared here so the two csproj builders (WasmCsproj and
+    // WasmHostedClientCsproj) can never drift.
+    internal const string WasmSdkPropertyGroup =
+        """
           <PropertyGroup>
             <TargetFramework>net10.0-browser</TargetFramework>
             <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
@@ -95,6 +88,21 @@ internal static partial class ProjectGenerator
                  [DynamicDependency] on them (standard Blazor WASM mitigation) instead of suppressing. -->
             <NoWarn>$(NoWarn);IL2104</NoWarn>
           </PropertyGroup>
+        """;
+
+    private static string WasmCsproj(bool auth, string version)
+    {
+        var authRefs = auth
+            ? $"""
+
+                    <PackageReference Include="Microsoft.JSInterop" Version="{AspNetCoreFrameworkVersion}"/>
+                    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="{AspNetCoreFrameworkVersion}"/>
+                """.TrimEnd()
+            : "";
+        return $"""
+        <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+        {WasmSdkPropertyGroup}
 
           <ItemGroup>
             <PackageReference Include="Rask.Wasm" Version="{version}"/>

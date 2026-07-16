@@ -163,6 +163,23 @@ page, and paging cuts wherever it cuts.
 `Grouped` is URL input, so unknown or non-`Groupable` field names are ignored rather than thrown — a stale
 `?group=deleteMe` renders an ungrouped grid.
 
+### Grouped columns fold away
+
+A grouped column holds the **same value for every row in its band**, and the band header already names it
+(`Region: EMEA (4)`). Rendering the column too would be a run of duplicates under a header that says nothing new —
+so by default a grouped column is **dropped from the table** while it is grouped: its header, cells, subtotal
+and footer go, and the band-header and detail-row colspans shrink to match. Its group control moves to the panel
+chip, which is where you ungroup it.
+
+Set `ShowGroupedColumns: true` to keep it — the value then shows in the band header **and** repeated down every
+row (the behaviour before this default). Nothing else changes; grouping still orders, bands and subtotals the
+same way.
+
+```csharp
+BsDataGrid(Data: deals, Grouped: ["region"], OnGroupedChange: g => _grouped = [.. g],
+    ShowGroupedColumns: true, Columns: [...]) // keep the Region column visible while grouped
+```
+
 ### Collapsing and subtotals
 
 `GroupCollapsible` makes each band header a toggle. Collapse state is keyed by the band's **value path**, so it
@@ -189,16 +206,22 @@ header carries group-by. So the whole feature works from the keyboard alone, and
 That ordering is deliberate: a feature whose primary action is drag-only cannot be reached by keyboard at all,
 which would fail WCAG 2.1.1 for the thing the panel exists to do.
 
-The edge buttons are `disabled` at the ends rather than being no-ops that look live, and the group control
-carries `aria-pressed` so its state is announced.
+The edge buttons are `disabled` at the ends rather than being no-ops that look live, and a groupable header's
+group control carries `aria-pressed` so its state is announced. Once a column is grouped its header folds away
+(see [Grouped columns fold away](#grouped-columns-fold-away)), so the panel chip is what then carries its
+ungroup control — unless `ShowGroupedColumns: true` keeps the header, and its pressed control, in place.
 
 ### What it costs
 
-Grouping re-orders the set and boxes one key per row per level to find the runs: about **+5% render
-allocation** for one level over 100 rows, **+19%** for two (`BsDataGridBenchmarks`).
+Grouping re-orders the set and boxes one key per row per level to find the runs — but by default it also
+**removes the grouped column's cells**, and a folded-away column of 100 cells outweighs the ordering. Net, a
+grouped grid allocates **less** than a plain one over 100 rows: about **−8%** for one level, **−7%** for two
+(`BsDataGridBenchmarks`). Keep the column with `ShowGroupedColumns: true` and the ordering shows as a cost
+instead — **+5%** for one level, **+19%** for two.
 
 **Don't group by a near-unique column.** Grouping 100 rows by a unique SKU is 100 bands — one header per row —
-and measured **+87%**. Group by the low-cardinality things (region, status, month); that is what a band is for.
+and a band header spans the whole table whether or not the column folds away, so it stays expensive. Group by
+the low-cardinality things (region, status, month); that is what a band is for.
 
 ## Selection
 
@@ -557,6 +580,7 @@ renders only the visible window instead.
 | `GroupCollapsible` | `null` | Band headers become toggles. |
 | `GroupSubtotals` | `null` | A subtotal row per innermost band, reusing each column's `Footer`. Page-scoped. |
 | `GroupPanel` | `null` | Chips + per-header group controls. Drag or keyboard — every gesture has a button. |
+| `ShowGroupedColumns` | `null` | `true` keeps a grouped column in the table. Default folds it away — its value already names the band header. |
 | `Selectable` | `null` | Adds the leading checkbox column. Implied by `SelectedKeys`/`OnSelectionChange`. Set `RowKey` with it. |
 | `SelectedKeys` | `null` | Controlled selection (`RowKey` values). Null = the grid owns it. |
 | `OnSelectionChange` / `OnSelectionChangeAsync` | `null` | The full set of selected keys after a click; the async form is awaited. |

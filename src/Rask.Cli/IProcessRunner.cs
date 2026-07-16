@@ -19,7 +19,7 @@ internal interface IProcessRunner
 
     /// <summary>
     /// Run a child process and capture its output (probing commands like <c>rask info</c> that parse
-    /// <c>dotnet --version</c> / <c>dotnet new list</c>).
+    /// <c>dotnet --version</c>).
     /// </summary>
     Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken);
 }

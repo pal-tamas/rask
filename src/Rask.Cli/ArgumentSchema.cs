@@ -7,6 +7,7 @@ namespace Rask.Cli;
 internal sealed class ParsedArguments(
     IReadOnlyList<string> positionals,
     IReadOnlyDictionary<string, string> options,
+    IReadOnlyDictionary<string, IReadOnlyList<string>> multiOptions,
     IReadOnlySet<string> flags,
     IReadOnlyList<string> passthrough,
     IReadOnlyList<string> errors)
@@ -14,6 +15,8 @@ internal sealed class ParsedArguments(
     public IReadOnlyList<string> Positionals { get; } = positionals;
 
     public IReadOnlyDictionary<string, string> Options { get; } = options;
+
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> MultiOptions { get; } = multiOptions;
 
     public IReadOnlySet<string> Flags { get; } = flags;
 
@@ -26,6 +29,10 @@ internal sealed class ParsedArguments(
     public bool HasFlag(string longName) => Flags.Contains(longName);
 
     public string? Option(string longName) => Options.TryGetValue(longName, out var value) ? value : null;
+
+    /// <summary>All values supplied for a repeatable <see cref="ArgumentSchema.MultiOption"/> (empty if none).</summary>
+    public IReadOnlyList<string> MultiOption(string longName) =>
+        MultiOptions.TryGetValue(longName, out var values) ? values : [];
 }
 
 /// <summary>
@@ -40,6 +47,7 @@ internal sealed class ArgumentSchema
     private readonly Dictionary<string, string> _aliases = new(StringComparer.Ordinal);
     private readonly HashSet<string> _flags = new(StringComparer.Ordinal);
     private readonly HashSet<string> _options = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _multiOptions = new(StringComparer.Ordinal);
 
     public ArgumentSchema Flag(string longName, char? shortName = null)
     {
@@ -51,6 +59,18 @@ internal sealed class ArgumentSchema
     public ArgumentSchema Option(string longName, char? shortName = null)
     {
         _options.Add(longName);
+        Register(longName, shortName);
+        return this;
+    }
+
+    /// <summary>
+    /// A valued option that may be supplied more than once (e.g. <c>--env A=1 --env B=2</c>); every value is
+    /// collected in order and read via <see cref="ParsedArguments.MultiOption"/> rather than overwriting.
+    /// </summary>
+    public ArgumentSchema MultiOption(string longName, char? shortName = null)
+    {
+        _options.Add(longName);
+        _multiOptions.Add(longName);
         Register(longName, shortName);
         return this;
     }
@@ -68,6 +88,7 @@ internal sealed class ArgumentSchema
     {
         var positionals = new List<string>();
         var options = new Dictionary<string, string>(StringComparer.Ordinal);
+        var multiOptions = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         var flags = new HashSet<string>(StringComparer.Ordinal);
         var passthrough = new List<string>();
         var errors = new List<string>();
@@ -131,10 +152,27 @@ internal sealed class ArgumentSchema
                 }
             }
 
-            options[longName] = value;
+            if (_multiOptions.Contains(longName))
+            {
+                if (!multiOptions.TryGetValue(longName, out var values))
+                {
+                    multiOptions[longName] = values = [];
+                }
+
+                values.Add(value);
+            }
+            else
+            {
+                options[longName] = value;
+            }
         }
 
-        return new ParsedArguments(positionals, options, flags, passthrough, errors);
+        var multi = multiOptions.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyList<string>)pair.Value,
+            StringComparer.Ordinal);
+
+        return new ParsedArguments(positionals, options, multi, flags, passthrough, errors);
     }
 
     private static void ApplyFlag(string longName, string? inlineValue, HashSet<string> flags, List<string> errors)

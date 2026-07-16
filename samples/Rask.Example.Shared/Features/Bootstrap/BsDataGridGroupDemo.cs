@@ -14,6 +14,10 @@ namespace Rask.Example.Shared.Features;
 // GroupPanel adds the chips and the per-header group control. Drag a header into the panel, drag the chips to
 // renest, drag one out to ungroup — and every one of those is also a real button, so the whole thing works
 // from the keyboard alone. Tab to a header's group control and press Enter.
+//
+// A grouped column folds away by default: its value is the same for every row in its band and already names
+// the band header, so the column would be a run of duplicates. "Show grouped column" flips ShowGroupedColumns
+// to keep it — the value then appears in the band header AND repeated down every row.
 public sealed class BsDataGridGroupDemo : Component
 {
     private sealed record Deal(string Account, string Region, string Rep, decimal Amount);
@@ -32,6 +36,7 @@ public sealed class BsDataGridGroupDemo : Component
     ];
 
     private List<string> _grouped = ["region"];
+    private bool _showGrouped;
 
     protected override Component? Render() =>
         Div(Id: "grid-group-demo")[
@@ -42,7 +47,9 @@ public sealed class BsDataGridGroupDemo : Component
                 BsButton(Id: "group-nested", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
                     Active: Is("region", "rep"), OnClick: () => _grouped = ["region", "rep"])["Region ▸ rep"],
                 BsButton(Id: "group-none", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    Active: _grouped.Count == 0, OnClick: () => _grouped = [])["Ungrouped"]
+                    Active: _grouped.Count == 0, OnClick: () => _grouped = [])["Ungrouped"],
+                BsButton(Id: "group-show-col", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
+                    Active: _showGrouped, OnClick: () => _showGrouped = !_showGrouped)["Show grouped column"]
             ],
             BsDataGrid(
                 Id: "bs-grid-group",
@@ -53,6 +60,7 @@ public sealed class BsDataGridGroupDemo : Component
                 GroupPanel: true,
                 GroupCollapsible: true,
                 GroupSubtotals: true,
+                ShowGroupedColumns: _showGrouped,
                 Columns:
                 [
                     new BsColumn<Deal> { Title = "Account", Value = d => d.Account, Field = d => d.Account, Sortable = true },

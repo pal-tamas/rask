@@ -5,14 +5,14 @@ namespace Rask.Cli.Tests;
 public sealed class TemplateCatalogTests
 {
     [Theory]
-    [InlineData("server", "rask-server")]
-    [InlineData("wasm", "rask-wasm")]
-    [InlineData("wasm-hosted", "rask-wasm-hosted")]
-    [InlineData("native", "rask-native")]
-    public void Maps_friendly_key_to_dotnet_new_short_name(string key, string shortName)
+    [InlineData("server")]
+    [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
+    [InlineData("native")]
+    public void Resolves_each_known_template_by_key(string key)
     {
         Assert.True(TemplateCatalog.TryGet(key, out var template));
-        Assert.Equal(shortName, template.ShortName);
+        Assert.Equal(key, template.Key);
     }
 
     [Fact]

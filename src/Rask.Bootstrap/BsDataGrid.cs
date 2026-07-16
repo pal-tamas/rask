@@ -494,6 +494,14 @@ public sealed class BsDataGrid<T> : BsBlock
     /// </remarks>
     public bool? GroupPanel { get; set; }
 
+    /// <summary>
+    ///     Whether a grouped column stays in the table. A grouped column's value is the same for every row in
+    ///     its band and already names the band header, so by default (null/false) the column is folded away
+    ///     while it is grouped — its header, cells, subtotal and footer are dropped and the colspans shrink to
+    ///     match. Set true to keep it, so the value shows both in the band header and repeated down every row.
+    /// </summary>
+    public bool? ShowGroupedColumns { get; set; }
+
     private bool Expandable => ExpandedContent is not null;
 
     // Same three-way opt-in Sort uses, and for the same reason: Grouped = null legitimately means "ungrouped"
@@ -706,6 +714,43 @@ public sealed class BsDataGrid<T> : BsBlock
         return result;
     }
 
+    // A grouped column is folded out of the table body: its value is identical for every row in its band and
+    // already names the band header, so repeating it as a column would be a run of duplicates under a header
+    // the band header already carries. Mirrors GroupColumns' match (Groupable + FieldName == token) so the two
+    // never disagree about which columns are grouped. ShowGroupedColumns keeps the column instead.
+    private bool IsGroupedAway(BsColumn<T> column) =>
+        ShowGroupedColumns is not true
+        && column.Groupable
+        && column.FieldName is { } f
+        && CurrentGrouped.Contains(f);
+
+    // The columns that render, computed once per render (Render threads the result down). Returns `columns`
+    // itself — same reference, no allocation — whenever nothing is hidden, which is every ungrouped grid and
+    // every grid that opts out, so the feature stays free when unused. Only a grid that actually folds a column
+    // away pays for the copy, and only once.
+    private IReadOnlyList<BsColumn<T>> VisibleColumns(IReadOnlyList<BsColumn<T>> columns)
+    {
+        if (ShowGroupedColumns is true || CurrentGrouped.Count == 0)
+        {
+            return columns;
+        }
+
+        List<BsColumn<T>>? visible = null;
+        for (var i = 0; i < columns.Count; i++)
+        {
+            if (IsGroupedAway(columns[i]))
+            {
+                visible ??= [.. columns.Take(i)]; // first hidden column: seed with the visible ones before it
+            }
+            else
+            {
+                visible?.Add(columns[i]);
+            }
+        }
+
+        return visible ?? columns;
+    }
+
     private Task SetGroupedAsync(IReadOnlyList<string> next)
     {
         if (!GroupControlled)
@@ -916,7 +961,12 @@ public sealed class BsDataGrid<T> : BsBlock
             return Wrap(GroupPanel is true ? GroupPanelRow(columns) : null, Empty, null);
         }
 
-        var hasFooter = columns.Any(c => c.HasFooter);
+        // The columns that actually render, folded once per render and threaded down like `selected`/`pageKeys`
+        // below — so the per-cell path never re-derives it. A grouped-away column takes its footer with it, so
+        // `visible` is also what decides whether there is a <tfoot> at all. HeaderCells keeps the FULL list: its
+        // sort index is a position in `columns`, which the visible subset would renumber.
+        var visible = VisibleColumns(columns);
+        var hasFooter = visible.Any(c => c.HasFooter);
 
         // Built once per render and threaded down, rather than rebuilt per row. The page's keys come with it:
         // the select-all box needs them, and computing a key is a user delegate call per row.
@@ -927,8 +977,8 @@ public sealed class BsDataGrid<T> : BsBlock
             StickyHeader: StickyHeader, MaxHeight: MaxHeight, Class: Class,
             Aria: Busy ? BsGridAria.Busy : null)[
             Thead()[Tr()[HeaderCells(columns, selected, pageKeys)]],
-            Tbody()[BodyRows(columns, pageRows, selected)],
-            hasFooter ? Tfoot()[Tr()[FooterCells(columns, footerRows)]] : null
+            Tbody()[BodyRows(visible, columns, pageRows, selected)],
+            hasFooter ? Tfoot()[Tr()[FooterCells(visible, footerRows)]] : null
         ];
 
         return Wrap(GroupPanel is true ? GroupPanelRow(columns) : null, table,
@@ -1112,7 +1162,7 @@ public sealed class BsDataGrid<T> : BsBlock
     // controls is a run of sibling <tr>s with no wrapper element to point at, and aria-controls takes an id
     // LIST — so honouring it would mean minting and emitting an id for every row in every band. aria-expanded
     // alone is a valid disclosure pattern; this is the price of banding inside one <tbody>.
-    private Component BandHeaderRow(IReadOnlyList<BsColumn<T>> columns, BsColumn<T> column, object? key,
+    private Component BandHeaderRow(IReadOnlyList<BsColumn<T>> visible, BsColumn<T> column, object? key,
         IReadOnlyList<T> band, int level, string path, bool collapsed)
     {
         Component content = column.GroupHeader is { } header
@@ -1137,7 +1187,7 @@ public sealed class BsDataGrid<T> : BsBlock
 
         // Nested bands indent so the hierarchy is visible; level 0 sits flush.
         return Tr(Key: $"band:{path}", Class: "table-group-divider")[
-            Td(Colspan: columns.Count + LeadingCells,
+            Td(Colspan: Math.Max(1, visible.Count + LeadingCells),
                 Class: level > 0 ? Padding.Start(level * 3 + 2) : null)[label, content]
         ];
     }
@@ -1145,11 +1195,11 @@ public sealed class BsDataGrid<T> : BsBlock
     // Reuses each column's Footer/FooterTemplate over the band's rows: those delegates already take an
     // IReadOnlyList<T>, so a subtotal is the same delegate over a narrower set — one shape to learn, and a
     // column that totals in the footer totals per band for free.
-    private Component SubtotalRow(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> band, int level,
+    private Component SubtotalRow(IReadOnlyList<BsColumn<T>> visible, IReadOnlyList<T> band, int level,
         string path) =>
-        Tr(Key: $"sub:{path}", Class: "table-light")[SubtotalCells(columns, band, level)];
+        Tr(Key: $"sub:{path}", Class: "table-light")[SubtotalCells(visible, band, level)];
 
-    private IEnumerable<Component> SubtotalCells(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> band,
+    private IEnumerable<Component> SubtotalCells(IReadOnlyList<BsColumn<T>> visible, IReadOnlyList<T> band,
         int level)
     {
         for (var i = 0; i < LeadingCells; i++)
@@ -1157,9 +1207,11 @@ public sealed class BsDataGrid<T> : BsBlock
             yield return Td()[""];
         }
 
-        for (var c = 0; c < columns.Count; c++)
+        // `visible` has the grouped-away columns already folded out, so the "Subtotal" caption on the first cell
+        // with no footer of its own lands on the first column the user actually sees.
+        for (var c = 0; c < visible.Count; c++)
         {
-            var column = columns[c];
+            var column = visible[c];
             yield return Td(Class: Bs.Join(column.Class, Font.Semibold))[
                 c == 0 && !column.HasFooter ? "Subtotal" : column.FooterCell(band)];
         }
@@ -1203,6 +1255,13 @@ public sealed class BsDataGrid<T> : BsBlock
         for (var i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
+
+            // A grouped column is folded away — its header goes with its cells. `i` is NOT renumbered: it stays
+            // the index into the full column list, which is what CurrentSortColumn and ToggleSortAsync speak.
+            if (IsGroupedAway(column))
+            {
+                continue;
+            }
 
             // The panel's other half: the keyboard route to grouping. Dragging the header does the same thing
             // for a mouse, so the header is a drag SOURCE too — the field rides the grid's own drag state.
@@ -1268,13 +1327,16 @@ public sealed class BsDataGrid<T> : BsBlock
             OnClickAsync: () => GroupByAsync(field))[BsIcon(Name: BsIconName.Diagram3)];
     }
 
-    private IEnumerable<Component> BodyRows(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows,
-        HashSet<object>? selected)
+    // `visible` is the columns that render (grouped-away ones already folded out); `columns` is the full list,
+    // needed only to resolve the grouping columns for banding — a band's key comes from a column that has itself
+    // been folded away.
+    private IEnumerable<Component> BodyRows(IReadOnlyList<BsColumn<T>> visible,
+        IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows, HashSet<object>? selected)
     {
         var groups = GroupColumns(columns);
         return groups.Count == 0
-            ? PlainRows(columns, pageRows, selected, 0, pageRows.Count)
-            : BandRows(columns, pageRows, selected, groups, 0, 0, pageRows.Count);
+            ? PlainRows(visible, pageRows, selected, 0, pageRows.Count)
+            : BandRows(visible, pageRows, selected, groups, 0, 0, pageRows.Count);
     }
 
     // Bands one level of the page, then recurses. A band is a RUN of consecutive rows sharing the key at this
@@ -1283,7 +1345,7 @@ public sealed class BsDataGrid<T> : BsBlock
     //
     // Nesting falls out of the recursion: each band at level N re-bands its own slice by level N+1, and the
     // deepest level renders the rows themselves.
-    private IEnumerable<Component> BandRows(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows,
+    private IEnumerable<Component> BandRows(IReadOnlyList<BsColumn<T>> visible, IReadOnlyList<T> pageRows,
         HashSet<object>? selected, List<BsColumn<T>> groups, int level, int start, int end)
     {
         var column = groups[level];
@@ -1304,13 +1366,13 @@ public sealed class BsDataGrid<T> : BsBlock
             var band = Slice(pageRows, i, runEnd);
             var collapsed = _collapsed.Contains(path);
 
-            yield return BandHeaderRow(columns, column, key, band, level, path, collapsed);
+            yield return BandHeaderRow(visible, column, key, band, level, path, collapsed);
 
             if (!collapsed)
             {
                 var inner = level + 1 < groups.Count
-                    ? BandRows(columns, pageRows, selected, groups, level + 1, i, runEnd)
-                    : PlainRows(columns, pageRows, selected, i, runEnd);
+                    ? BandRows(visible, pageRows, selected, groups, level + 1, i, runEnd)
+                    : PlainRows(visible, pageRows, selected, i, runEnd);
 
                 foreach (var row in inner)
                 {
@@ -1319,9 +1381,9 @@ public sealed class BsDataGrid<T> : BsBlock
 
                 // Subtotals sit at the END of the band, where a running total belongs, and only at the deepest
                 // level: one per innermost band rather than a cascade of identical rows at every level.
-                if (GroupSubtotals is true && level + 1 == groups.Count && columns.Any(c => c.HasFooter))
+                if (GroupSubtotals is true && level + 1 == groups.Count && visible.Any(c => c.HasFooter))
                 {
-                    yield return SubtotalRow(columns, band, level, path);
+                    yield return SubtotalRow(visible, band, level, path);
                 }
             }
 
@@ -1353,7 +1415,7 @@ public sealed class BsDataGrid<T> : BsBlock
         return BandPath(keys, level);
     }
 
-    private IEnumerable<Component> PlainRows(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> pageRows,
+    private IEnumerable<Component> PlainRows(IReadOnlyList<BsColumn<T>> visible, IReadOnlyList<T> pageRows,
         HashSet<object>? selected, int start, int end)
     {
         for (var r = start; r < end; r++)
@@ -1365,7 +1427,7 @@ public sealed class BsDataGrid<T> : BsBlock
             // table-active is joined with the caller's RowClass rather than replacing it, so a row can be both
             // overdue and selected.
             yield return Tr(Key: key, Class: BsClass.Join(RowClass?.Invoke(row), isSelected ? "table-active" : null))[
-                Cells(columns, row, key, r, selected, isSelected)];
+                Cells(visible, row, key, r, selected, isSelected)];
 
             if (!Expandable || !_expanded.Contains(key))
             {
@@ -1376,13 +1438,13 @@ public sealed class BsDataGrid<T> : BsBlock
             if (detail is not null)
             {
                 yield return Tr(Key: $"{key}:detail", Id: DetailId(r))[
-                    Td(Colspan: columns.Count + LeadingCells)[detail]
+                    Td(Colspan: Math.Max(1, visible.Count + LeadingCells))[detail]
                 ];
             }
         }
     }
 
-    private IEnumerable<Component> Cells(IReadOnlyList<BsColumn<T>> columns, T row, object key, int index,
+    private IEnumerable<Component> Cells(IReadOnlyList<BsColumn<T>> visible, T row, object key, int index,
         HashSet<object>? selected, bool isSelected)
     {
         if (selected is not null)
@@ -1391,7 +1453,7 @@ public sealed class BsDataGrid<T> : BsBlock
             // (via the first Value column where there is one), because twenty identical "Select row"s in a
             // list read as one control repeated rather than twenty distinct ones.
             yield return Td(Class: "bs-grid-check")[
-                SelectBox(isSelected, SelectRowAria(columns, row), Busy,
+                SelectBox(isSelected, SelectRowAria(visible, row), Busy,
                     raw => SetSelectedAsync(selected, key, raw == "true"))
             ];
         }
@@ -1406,9 +1468,10 @@ public sealed class BsDataGrid<T> : BsBlock
         // the handler *id* is still per element, which is why OnRowClick scales rows × columns.
         var click = RowClickHandler(row);
 
-        for (var c = 0; c < columns.Count; c++)
+        // `visible` already excludes grouped-away columns, so the row loop stays a straight walk — no per-cell
+        // hidden check on the hottest path.
+        foreach (var column in visible)
         {
-            var column = columns[c];
             var clickable = click is not null && column.IsRowClickable;
 
             yield return Td(
@@ -1487,7 +1550,7 @@ public sealed class BsDataGrid<T> : BsBlock
         return BsGridAria.SelectRow;
     }
 
-    private IEnumerable<Component> FooterCells(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> data)
+    private IEnumerable<Component> FooterCells(IReadOnlyList<BsColumn<T>> visible, IReadOnlyList<T> data)
     {
         // The easy miss: the footer needs a leading cell for EVERY leading column, or every <tfoot> cell is
         // off by one and the totals sit under the wrong headers.
@@ -1501,7 +1564,9 @@ public sealed class BsDataGrid<T> : BsBlock
             yield return Td()[""];
         }
 
-        foreach (var column in columns)
+        // `visible` has grouped-away columns already folded out, so each remaining column lines up with its
+        // header.
+        foreach (var column in visible)
         {
             yield return Td(Class: column.Class)[column.FooterCell(data)];
         }

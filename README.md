@@ -10,7 +10,7 @@
 [![NuGet Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=Rask.Server)](https://www.nuget.org/packages/Rask.Server)
 [![NuGet Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=Rask.Wasm)](https://www.nuget.org/packages/Rask.Wasm)
 [![NuGet Rask.Native](https://img.shields.io/nuget/v/Rask.Native.svg?label=Rask.Native)](https://www.nuget.org/packages/Rask.Native)
-[![NuGet Rask.Templates](https://img.shields.io/nuget/v/Rask.Templates.svg?label=Rask.Templates)](https://www.nuget.org/packages/Rask.Templates)
+[![NuGet Rask.Cli](https://img.shields.io/nuget/v/Rask.Cli.svg?label=Rask.Cli)](https://www.nuget.org/packages/Rask.Cli)
 [![NuGet Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=Rask.Bootstrap)](https://www.nuget.org/packages/Rask.Bootstrap)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
@@ -55,6 +55,7 @@ rask new Shop                                             # scaffold the app
 rask generate feature Product Name:string Price:decimal   # a full CQRS + EF Core CRUD slice
 rask db add InitialCreate && rask db update                # create + apply the migration
 rask dev                                                  # run it with hot reload
+rask deploy --host you@box --domain shop.example.com       # ship it: build over SSH, auto-HTTPS
 ```
 
 **[📖 Read the doctrine → The .NET One Person Framework](docs/one-person-framework.md)**
@@ -71,14 +72,14 @@ sends **push notifications**, badges its **app icon**, keeps the **screen awake*
 device — **vibration, share sheet, geolocation, clipboard, orientation** — through typed C#.
 
 ```bash
-dotnet new rask-wasm --pwa     # → an installable, offline PWA, ready to deploy
+rask new MyApp --template wasm --pwa     # → an installable, offline PWA, ready to deploy
 ```
 
 **[📖 Build mobile apps with Rask →](docs/pwa.md)**  ·  **[Try the installable demo ↗](https://pal-tamas.github.io/rask/demo/)**
 
 Going further than a PWA? **`Rask.Native`** *(preview)* ships the *same* component code as a real
 **native iOS/Android app** for App Store / Play Store distribution — a WebView hybrid where your C#
-runs natively on the device. Scaffold it with `dotnet new rask-native` and run on an emulator with
+runs natively on the device. Scaffold it with `rask new MyApp --template native` and run on an emulator with
 `dotnet build -t:Run -f net10.0-android` — or run the full in-repo showcase, the native peers of the
 Server/WASM samples: `samples/Rask.Example.Native` (in-process) and `samples/Rask.Example.Native.Server`.
 
@@ -99,7 +100,8 @@ box — no PaaS, no glue, no second language to context-switch into.
   WebAssembly, or as a native iOS/Android app. Pick the host per project; write the UI once.
 - **Batteries, not a menu.** `rask new` scaffolds the app, `rask generate feature Product Name:string Price:decimal` emits a full
   **CQRS + EF Core vertical slice** (encapsulated entity, value objects, validation, list/create/edit pages, tests),
-  `rask db add`/`update` creates and applies its migration, and `rask dev` hot-reloads it.
+  `rask db add`/`update` creates and applies its migration, `rask dev` hot-reloads it, and `rask deploy` ships it
+  to a single host over SSH — with automatic HTTPS and zero-downtime.
   **[The CLI is the front door →](docs/cli.md)**
 - **SQLite is the production database.** Correct, concurrent, continuously-backed-up SQLite by default — WAL,
   busy-timeout, streaming replication — one file, one server, no managed DB to rent.
@@ -148,32 +150,22 @@ are the real tour — this README is just the front door.**
 
 ### Scaffold a new project (recommended)
 
+The [`rask` CLI](docs/cli.md) (`Rask.Cli`, a global .NET tool) owns all scaffolding:
+
 ```bash
-dotnet new install Rask.Templates
+dotnet tool install -g Rask.Cli          # one-time: install the CLI
 
-dotnet new rask-server       -n MyApp    # ASP.NET live-server app
-dotnet new rask-wasm         -n MyApp    # standalone browser-WASM SPA
-dotnet new rask-wasm-hosted  -n MyApp    # browser-WASM client + ASP.NET host
-dotnet new rask-native       -n MyApp    # native iOS + Android app (WebView hybrid, preview)
+rask new MyApp                            # ASP.NET live-server app (the default template)
+rask new MyApp --template wasm            # standalone browser-WASM SPA
+rask new MyApp --template wasm-hosted     # browser-WASM client + ASP.NET host
+rask new MyApp --template native          # native iOS + Android app (WebView hybrid, preview)
 
-cd MyApp && dotnet run                    # that's it (native: dotnet build -t:Run -f net10.0-android)
+cd MyApp && rask dev                       # run with hot reload (native: dotnet build -t:Run -f net10.0-android)
 ```
 
 Add `--auth` for a cookie/JWT-wired starter, `--pwa` (WASM) for an installable offline app, or
 `--docker` (the three web templates) for a production multi-stage Dockerfile — see
-[docs/deployment.md](docs/deployment.md).
-
-### Or use the `rask` CLI
-
-The optional [`Rask.Cli`](docs/cli.md) .NET tool wraps the SDK with shorter, Rask-aware commands:
-
-```bash
-dotnet tool install -g Rask.Cli
-
-rask new MyApp --auth --docker      # scaffold (installs the templates on demand)
-cd MyApp && rask dev                # run with hot reload (dotnet watch)
-rask info                           # CLI / SDK / template / OS report
-```
+[docs/deployment.md](docs/deployment.md). `rask info` reports the CLI / SDK / OS versions.
 
 ### Add packages to an existing project
 

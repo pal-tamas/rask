@@ -7,17 +7,42 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **The `rask` CLI now owns all scaffolding — `rask new --template wasm-hosted` is generated directly, and the
+  `Rask.Templates` package is discontinued.** `wasm-hosted` was the last template still shelling out to
+  `dotnet new`; it now emits its files directly like `server`/`wasm`/`native`, so `rask new` no longer depends
+  on `Rask.Templates` at all. The generated hosted app is the idiomatic three-project trio — **`{Name}.Client`**
+  (the browser-WASM SPA), **`{Name}.Server`** (the ASP.NET host you run and deploy), and **`{Name}.Shared`** (a
+  class library both reference; with `--auth`, the `LoginRequest`/`MeDto` contracts live here instead of being
+  duplicated). `rask new` restores the generated solution, and `rask info` drops its "Rask templates installed"
+  row (the CLI *is* the scaffolder). **BREAKING:** the `Rask.Templates` NuGet package and its `dotnet new rask-*`
+  templates are no longer published — scaffold with `rask new [--template server|wasm|wasm-hosted|native]`
+  instead (install the CLI once with `dotnet tool install -g Rask.Cli`). Docs, README, `llms.txt`, and the site
+  install tabs updated to the `rask new` flow.
+
 ### Added
+- **`rask deploy` — one-command deploy to a single host over SSH.** Builds the app's Docker image on a
+  remote box and runs it, with no registry, no local Docker daemon, and no image tarball: every step is
+  `docker -H ssh://<host> …`, so the build context ships to the host's daemon and builds there. It deploys
+  the `--docker` Dockerfile the templates scaffold. With `--domain` it runs a shared **Caddy** reverse
+  proxy that obtains an automatic **Let's Encrypt** certificate — one command to a live HTTPS site — and
+  deploys are **zero-downtime** (blue-green: start the new container, health-check it, reload Caddy, then
+  retire the old; a failed start leaves the previous version serving). **Multiple apps share one host**:
+  each container is labelled and the proxy's routing is regenerated from the host's live containers every
+  deploy, so a second `--domain` never disturbs the first. Without `--domain` it publishes `--port`
+  (default 8080) for your own reverse proxy. `--host`/`--domain`/`--port` are remembered in
+  `.rask/deploy.json` (never secrets — pass those via `--env`/`--env-file`); `--dry-run` prints the exact
+  docker commands. Documented in `docs/cli.md` and `docs/deployment.md`.
 - **Date/time pickers gain keyboard navigation, seconds, time ranges and localizable chrome.** The
   `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker` calendar and clock are now fully keyboard-operable
   (the WAI-ARIA combobox + grid pattern the docs already described but never implemented): a first nav
   key opens the popover, then arrows move a day/week, `PageUp`/`PageDown` a month (`Shift` a year),
-  `Home`/`End` the week edge, and `Enter`/`Space` selects — with `aria-activedescendant` tracking the
-  cursor while the box keeps focus. `BsTimePicker` takes `Min`/`Max` (`TimeOnly`); both time pickers take
-  `Seconds`/`SecondStep` to add a seconds column, and the date-time picker greys out-of-range time items
-  on a boundary day. A new `Labels` (`BsPickerLabels`) parameter translates the month-nav buttons, the
-  time-column headings and the clear button — the chrome that has no `CultureInfo` source. Documented in
-  `docs/bootstrap-pickers.md` with a new keyboard table; showcased in the pickers guide.
+  `Home`/`End` the week edge, and `Enter` selects the navigated day — with `aria-activedescendant`
+  tracking the cursor while the box keeps focus. `BsTimePicker` takes `Min`/`Max` (`TimeOnly`); both time
+  pickers take `Seconds`/`SecondStep` to add a seconds column, and the date-time picker greys out-of-range
+  time items on a boundary day. A new `Labels` (`BsPickerLabels`) parameter translates the month-nav
+  buttons, the time-column headings and the clear button — the chrome that has no `CultureInfo` source.
+  Documented in `docs/bootstrap-pickers.md` with a new keyboard table; showcased in the pickers guide.
 - **`rask db` — EF Core migrations from the CLI.** A friendly wrapper over `dotnet ef` for the everyday
   migration lifecycle, pairing with what `rask generate feature` scaffolds: `rask db add <Name>`,
   `rask db remove`, `rask db list`, `rask db update [<target>]`, and `rask db drop [--force]`. It resolves
@@ -40,6 +65,13 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Changed
+- **Breaking: `BsDataGrid` now hides a grouped column by default.** A grouped column holds the same value for
+  every row in its band, and the band header already names it (`Region: EMEA (4)`), so repeating it in-row was a
+  column of duplicates. While a column is grouped its header, cells, subtotal and footer are now dropped and the
+  band-header/detail-row colspans shrink to match; its ungroup control lives on the panel chip. Set the new
+  `ShowGroupedColumns: true` to restore the previous behaviour (the value in the band header **and** repeated
+  down every row). Grouping still orders, bands and subtotals exactly as before. Documented in
+  `docs/data-grid.md`; the grouping demo gains a "Show grouped column" toggle.
 - **The showcase page, layout and guide suites render through `Rask.Testing`.** They called the internal
   `RenderAsLiveRoot(services)` straight on a page component; they now use
   `RaskTest.Render(new SomePage(), services).Html`, which is the same thing a consumer writes. Test-only;
@@ -97,6 +129,16 @@ them until tagged releases begin.
   `Markup` in scope together make every unqualified use ambiguous. Test-only; no shipped behaviour changes.
 
 ### Fixed
+- **`Rask.SQLite`'s raw immediate-transaction path is hardened against pooled-handle reuse, and its
+  failures are now diagnosable.** `ExecuteInImmediateTransactionAsync` drives `BEGIN`/`COMMIT`/`ROLLBACK`
+  through the pooled native `sqlite3` handle, outside Microsoft.Data.Sqlite's transaction bookkeeping. It
+  now clears a leaked transaction before `BEGIN IMMEDIATE` (a handle that arrived mid-transaction would
+  otherwise hit a non-retryable `SQLITE_ERROR`) and, via a `finally`, never returns a mid-transaction
+  handle to the pool. When a statement genuinely fails, the thrown `SqliteException` now carries the
+  extended result code and the autocommit state (e.g. `SQLite Error 1 (errcode 1, extended 1, autocommit
+  1): '…'`) instead of the opaque `SQLite Error 1: 'not an error'` a bare exec code plus `errmsg` produced
+  when a pooled handle's returned code and error slot disagreed. The retry classifier now compares the
+  primary result code so an extended `BUSY`/`LOCKED` variant is still waited out rather than misread as fatal.
 - **`BsDataGrid`'s pager prev/next buttons had no accessible name.** They render an icon-only child (a
   decorative, `aria-hidden` `BsIcon` chevron), so a screen reader announced two unlabelled buttons on every
   grid with `PageSize > 0` — the numbered items were fine (their text names them), which made it easy to miss
