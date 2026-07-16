@@ -1,0 +1,13 @@
+/* Scoped to the Gantt component — which here means: to the host div and nothing else.
+   Scoped CSS works by stamping data-{scopeId} on the elements *this component renders* and rewriting
+   every selector to match it. frappe-gantt builds its own DOM in the browser, so none of those nodes
+   carry the attribute and no rule here can reach them. The chart's own appearance comes from the
+   vendored frappe-gantt.css (global by nature, injected into <head> by Gantt.js). Style the box; leave
+   the chart to the library's stylesheet and its CSS variables. */
+
+/* min-height reserves the box while the library's script is still downloading, so the chart doesn't
+   shove the page around when it appears. */
+.rask-gantt {
+    min-height: 320px;
+    overflow-x: auto;
+}
