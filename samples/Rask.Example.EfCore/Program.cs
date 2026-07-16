@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Cache;
 using Rask.Example.EfCore;
 using Rask.Example.EfCore.Features.Catalog.Shared;
 using Rask.Mail;
@@ -29,6 +30,10 @@ builder.Services.AddRaskMail<CatalogDbContext>(o =>
     o.PickupDirectory = builder.Configuration["RASK_MAIL_PICKUP"] ?? "mail-pickup";
     o.PollInterval = TimeSpan.FromSeconds(1);
 });
+
+// A read-through cache on the same SQLite database — GetOrCreateAsync stores each result as a CacheEntry row
+// and the background CachePurger sweeps expired rows (a short interval keeps the demo tidy).
+builder.Services.AddRaskCache<CatalogDbContext>(o => o.PurgeInterval = TimeSpan.FromSeconds(30));
 
 var app = builder.Build();
 

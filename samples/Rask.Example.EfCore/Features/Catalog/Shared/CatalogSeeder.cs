@@ -14,13 +14,14 @@ public static class CatalogSeeder
         await db.Database.EnsureCreatedAsync();
 
         // EnsureCreated no-ops on an already-existing database, so a table mapped later (the QueuedMail mail
-        // table) is missing on a DB an earlier run created — and a send would fail with "no such table". This
-        // demo DB has no migration history and holds only seed data, so rebuild it when a mapped table is
-        // absent rather than fail on first use. (A real app with an evolving schema uses migrations instead.)
-        var mailTableExists = await db.Database
-            .SqlQuery<string>($"SELECT name AS Value FROM sqlite_master WHERE type = 'table' AND name = 'QueuedMail'")
-            .AnyAsync();
-        if (!mailTableExists)
+        // table, the CacheEntry cache table) is missing on a DB an earlier run created — and using that feature
+        // would fail with "no such table". This demo DB has no migration history and holds only seed data, so
+        // rebuild it when a mapped table is absent rather than fail on first use. (A real app with an evolving
+        // schema uses migrations instead.)
+        var mappedTablesExist = await db.Database
+            .SqlQuery<int>($"SELECT count(*) AS Value FROM sqlite_master WHERE type = 'table' AND name IN ('QueuedMail', 'CacheEntry')")
+            .SingleAsync() == 2;
+        if (!mappedTablesExist)
         {
             await db.Database.EnsureDeletedAsync();
             await db.Database.EnsureCreatedAsync();
