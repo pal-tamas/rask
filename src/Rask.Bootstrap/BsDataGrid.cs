@@ -113,6 +113,21 @@ public sealed class BsColumn<T>
     public bool Groupable { get; init; }
 
     /// <summary>
+    ///     Whether the column chooser may hide this column. Default true — hiding costs nothing, so nearly every
+    ///     column should be manageable. Set false to pin a column the grid is unusable without (an identity
+    ///     column, a row-action column): it gets no hide toggle and <see cref="BsDataGrid{T}.HiddenColumns" />
+    ///     cannot drop it.
+    /// </summary>
+    public bool Hideable { get; init; } = true;
+
+    /// <summary>
+    ///     Whether the user may reorder this column. Default true. Set false to anchor a column at its declared
+    ///     position (a leading name column, say) — <see cref="BsDataGrid{T}.ColumnOrder" /> leaves it put and the
+    ///     other columns flow around it.
+    /// </summary>
+    public bool Reorderable { get; init; } = true;
+
+    /// <summary>
     ///     The value rows are banded by when grouped, defaulting to <see cref="Value" />. Set it when the band
     ///     should be coarser than the cell — group orders by month, show the full date.
     /// </summary>
@@ -211,6 +226,14 @@ public sealed class BsDataGrid<T> : BsBlock
 
     // Uncontrolled grouping, outermost first.
     private readonly List<string> _grouped = [];
+
+    // Uncontrolled column visibility (hidden field tokens) and display order (field tokens, first to last).
+    // Both mirror _grouped: a token list the grid owns when the caller doesn't control it.
+    private readonly List<string> _hidden = [];
+    private readonly List<string> _order = [];
+
+    // Whether the "Columns" menu is open. Zero-JS disclosure, keyed on the grid like _expanded/_collapsed.
+    private bool _chooserOpen;
 
     // Collapsed bands, keyed by their composite VALUE path ("FruitApple"), never by index: a band's
     // position changes with every sort and page, and collapse must follow the band rather than the slot.
@@ -502,6 +525,52 @@ public sealed class BsDataGrid<T> : BsBlock
     /// </summary>
     public bool? ShowGroupedColumns { get; set; }
 
+    /// <summary>
+    ///     The <see cref="BsColumn{T}.Field" /> names of columns to hide from the table, so this is
+    ///     URL-serialisable (<c>?hide=discount,notes</c>) exactly like <see cref="Grouped" />. Set it to take
+    ///     control of visibility the same way <see cref="Grouped" /> does for grouping; leave it null and the grid
+    ///     owns its own. Unknown, unnamed or <see cref="BsColumn{T}.Hideable" />-false tokens are ignored (a URL
+    ///     is user input), and a set that would hide every column is refused wholesale — the grid never renders a
+    ///     bodyless table.
+    /// </summary>
+    public IReadOnlyList<string>? HiddenColumns { get; set; }
+
+    /// <summary>Raised with the full set of hidden tokens after a toggle — not a delta.</summary>
+    public Callback<IReadOnlyList<string>>? OnHiddenColumnsChange { get; set; }
+
+    /// <summary>The awaited form of <see cref="OnHiddenColumnsChange" />.</summary>
+    public CallbackAsync<IReadOnlyList<string>>? OnHiddenColumnsChangeAsync { get; set; }
+
+    /// <summary>
+    ///     The <see cref="BsColumn{T}.Field" /> names in display order, so this is URL-serialisable
+    ///     (<c>?cols=name,price,region</c>). It is partial and stale-tolerant: unknown tokens are dropped, and any
+    ///     named column the list omits is appended in declaration order — so adding a column to
+    ///     <see cref="Columns" /> without touching a persisted order lands it predictably at the end rather than
+    ///     vanishing. Columns with no <see cref="BsColumn{T}.Field" /> (or <see cref="BsColumn{T}.Reorderable" />
+    ///     false) are fixtures held at their declared slot.
+    /// </summary>
+    public IReadOnlyList<string>? ColumnOrder { get; set; }
+
+    /// <summary>Raised with the full column order, outermost first, after a move.</summary>
+    public Callback<IReadOnlyList<string>>? OnColumnOrderChange { get; set; }
+
+    /// <summary>The awaited form of <see cref="OnColumnOrderChange" />.</summary>
+    public CallbackAsync<IReadOnlyList<string>>? OnColumnOrderChangeAsync { get; set; }
+
+    /// <summary>
+    ///     Renders a "Columns" menu above the grid: a checkbox to show or hide each column, and move earlier/later
+    ///     buttons to reorder it. Implied by <see cref="HiddenColumns" />/<see cref="ColumnOrder" /> (and their
+    ///     callbacks), so it is only needed for a grid that keeps its own layout. With it on, a column header also
+    ///     becomes a drag source for reordering — drop a header on another header to move it.
+    /// </summary>
+    /// <remarks>
+    ///     The menu never lists a column with no <see cref="BsColumn{T}.Field" /> (nothing to name it in a URL).
+    ///     Every action is a real <c>&lt;button&gt;</c> or checkbox, so the whole feature works from the keyboard
+    ///     alone; header drag is a mouse accelerator layered on top. The menu shares the toolbar strip with the
+    ///     <see cref="GroupPanel" /> when both are on.
+    /// </remarks>
+    public bool? ColumnChooser { get; set; }
+
     private bool Expandable => ExpandedContent is not null;
 
     // Same three-way opt-in Sort uses, and for the same reason: Grouped = null legitimately means "ungrouped"
@@ -510,6 +579,22 @@ public sealed class BsDataGrid<T> : BsBlock
         Grouped is not null || OnGroupedChange is not null || OnGroupedChangeAsync is not null;
 
     private IReadOnlyList<string> CurrentGrouped => GroupControlled ? Grouped ?? [] : _grouped;
+
+    // Column visibility and order follow the same three-way opt-in as Grouped: an empty list is a legitimate
+    // controlled value ("nothing hidden" / "no explicit order"), so any of the three signals opts in.
+    private bool HideControlled =>
+        HiddenColumns is not null || OnHiddenColumnsChange is not null || OnHiddenColumnsChangeAsync is not null;
+
+    private IReadOnlyList<string> CurrentHidden => HideControlled ? HiddenColumns ?? [] : _hidden;
+
+    private bool OrderControlled =>
+        ColumnOrder is not null || OnColumnOrderChange is not null || OnColumnOrderChangeAsync is not null;
+
+    private IReadOnlyList<string> CurrentOrder => OrderControlled ? ColumnOrder ?? [] : _order;
+
+    // Header drag reorders when the chooser is on or a controlled order is in use — the same gate the drag
+    // source on the header reads.
+    private bool ReorderEnabled => ColumnChooser is true || OrderControlled;
 
     // Any of the four opts in: Selectable for a grid that owns its selection, the other three for a caller
     // that owns it. Mirrors how SortControlled reads its three.
@@ -724,31 +809,113 @@ public sealed class BsDataGrid<T> : BsBlock
         && column.FieldName is { } f
         && CurrentGrouped.Contains(f);
 
-    // The columns that render, computed once per render (Render threads the result down). Returns `columns`
-    // itself — same reference, no allocation — whenever nothing is hidden, which is every ungrouped grid and
-    // every grid that opts out, so the feature stays free when unused. Only a grid that actually folds a column
-    // away pays for the copy, and only once.
+    // A column the chooser has hidden. Mirrors IsGroupedAway: token match against the current set, and a
+    // column that opts out of hiding (Hideable = false) or has no name can never match.
+    private bool IsHidden(BsColumn<T> column) =>
+        column.Hideable && column.FieldName is { } f && CurrentHidden.Contains(f);
+
+    // The columns that render, in render order, computed once per render (Render threads the result down).
+    // Returns `columns` itself — same reference, no allocation — whenever nothing reorders, hides or folds,
+    // which is every grid that uses none of these, so the feature stays free when unused.
     private IReadOnlyList<BsColumn<T>> VisibleColumns(IReadOnlyList<BsColumn<T>> columns)
     {
-        if (ShowGroupedColumns is true || CurrentGrouped.Count == 0)
+        var reorder = CurrentOrder.Count > 0;
+        var hide = CurrentHidden.Count > 0;
+        var fold = ShowGroupedColumns is not true && CurrentGrouped.Count > 0;
+
+        // Grouping-only (or nothing): keep the original lazy fold that seeds on the first grouped-away column,
+        // so a grouped grid allocates exactly as before and an ungrouped one not at all.
+        if (!reorder && !hide)
         {
-            return columns;
+            if (!fold)
+            {
+                return columns;
+            }
+
+            List<BsColumn<T>>? visible = null;
+            for (var i = 0; i < columns.Count; i++)
+            {
+                if (IsGroupedAway(columns[i]))
+                {
+                    visible ??= [.. columns.Take(i)]; // first hidden column: seed with the visible ones before it
+                }
+                else
+                {
+                    visible?.Add(columns[i]);
+                }
+            }
+
+            return visible ?? columns;
         }
 
-        List<BsColumn<T>>? visible = null;
+        // The chooser is in play. Reorder is a presentation permutation applied first, then drop the columns
+        // that don't render.
+        var shown = reorder ? Reordered(columns, CurrentOrder) : [.. columns];
+
+        if (fold)
+        {
+            shown.RemoveAll(IsGroupedAway);
+        }
+
+        // Hiding must never empty the table by itself: a stale HiddenColumns that resolves to "hide everything"
+        // is ignored wholesale (the same tolerance as a stale ?group=deleteMe). Folding may legitimately empty
+        // it (group by every column), which the band/detail colspans already clamp to 1.
+        if (hide && shown.Exists(c => !IsHidden(c)))
+        {
+            shown.RemoveAll(IsHidden);
+        }
+
+        return shown;
+    }
+
+    // Reorders `columns` to match `order` (field tokens, first to last). A movable column (Reorderable and
+    // named) is ranked by its token's position in `order`, or last-among-movable in declared order when the
+    // token is absent; unknown tokens are ignored (forgiving, like GroupColumns). A column that opts out of
+    // reordering, or has no name to address it by, is a FIXTURE: it stays at its declared slot and the movable
+    // columns flow into the gaps around it. Stable — equal ranks keep declared order.
+    private static List<BsColumn<T>> Reordered(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<string> order)
+    {
+        var slots = new BsColumn<T>?[columns.Count];
+        var movable = new List<(BsColumn<T> Column, int Rank, int Declared)>(columns.Count);
+
         for (var i = 0; i < columns.Count; i++)
         {
-            if (IsGroupedAway(columns[i]))
+            var column = columns[i];
+            if (column.Reorderable && column.FieldName is { } f)
             {
-                visible ??= [.. columns.Take(i)]; // first hidden column: seed with the visible ones before it
+                var at = IndexOf(order, f);
+                movable.Add((column, at < 0 ? int.MaxValue : at, i));
             }
             else
             {
-                visible?.Add(columns[i]);
+                slots[i] = column; // fixture: anchored at its declared index
             }
         }
 
-        return visible ?? columns;
+        movable.Sort(static (a, b) =>
+            a.Rank != b.Rank ? a.Rank.CompareTo(b.Rank) : a.Declared.CompareTo(b.Declared));
+
+        var result = new List<BsColumn<T>>(columns.Count);
+        var m = 0;
+        for (var i = 0; i < slots.Length; i++)
+        {
+            result.Add(slots[i] ?? movable[m++].Column);
+        }
+
+        return result;
+    }
+
+    private static int IndexOf(IReadOnlyList<string> list, string value)
+    {
+        for (var i = 0; i < list.Count; i++)
+        {
+            if (list[i] == value)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private Task SetGroupedAsync(IReadOnlyList<string> next)
@@ -763,6 +930,119 @@ public sealed class BsDataGrid<T> : BsBlock
         }
 
         return Raise(OnGroupedChange, OnGroupedChangeAsync, next);
+    }
+
+    // --- Column chooser & reorder --------------------------------------------------------------------------
+    //
+    // Two token lists, hidden and order, each following the same controlled/uncontrolled split as Grouped and
+    // reusing the same drag field. The chooser menu drives them from real buttons; header drag is an
+    // accelerator wired to the same DropOnHeaderAsync.
+
+    private Task SetHiddenAsync(IReadOnlyList<string> next)
+    {
+        if (!HideControlled)
+        {
+            _hidden.Clear();
+            _hidden.AddRange(next);
+        }
+
+        return Raise(OnHiddenColumnsChange, OnHiddenColumnsChangeAsync, next);
+    }
+
+    private Task SetOrderAsync(IReadOnlyList<string> next)
+    {
+        if (!OrderControlled)
+        {
+            _order.Clear();
+            _order.AddRange(next);
+        }
+
+        return Raise(OnColumnOrderChange, OnColumnOrderChangeAsync, next);
+    }
+
+    // Showing a column can never empty the table; hiding one might, so it is refused when nothing would remain
+    // visible. The last column's checkbox is disabled too — this is the keyboard and stale-input backstop for
+    // the same rule.
+    private Task ToggleHiddenAsync(string field)
+    {
+        var next = CurrentHidden.ToList();
+        if (next.Remove(field))
+        {
+            return SetHiddenAsync(next);
+        }
+
+        var hiddenIfAdded = new HashSet<string>(next) { field };
+        var remaining = 0;
+        foreach (var column in Columns ?? [])
+        {
+            var hidden = column.Hideable && column.FieldName is { } f && hiddenIfAdded.Contains(f);
+            if (!IsGroupedAway(column) && !hidden)
+            {
+                remaining++;
+            }
+        }
+
+        if (remaining == 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        next.Add(field);
+        return SetHiddenAsync(next);
+    }
+
+    // The current display order as a COMPLETE token list — every reorderable, named column in the order it now
+    // renders. ColumnOrder may be partial, so a move or drop materialises the whole order first and emits all
+    // of it, which keeps the reported order stable rather than growing one token at a time.
+    private List<string> EffectiveOrder()
+    {
+        var columns = Columns ?? [];
+        var ordered = CurrentOrder.Count > 0 ? Reordered(columns, CurrentOrder) : columns;
+        var result = new List<string>(ordered.Count);
+        foreach (var column in ordered)
+        {
+            if (column.Reorderable && column.FieldName is { } f)
+            {
+                result.Add(f);
+            }
+        }
+
+        return result;
+    }
+
+    // Moves a column one place earlier/later. Real buttons on the chooser row, so reorder is reachable without
+    // a mouse — the same rule the group chips' move in/out follows.
+    private Task MoveColumnAsync(string field, int delta)
+    {
+        var next = EffectiveOrder();
+        var from = next.IndexOf(field);
+        var to = from + delta;
+        if (from < 0 || to < 0 || to >= next.Count)
+        {
+            return Task.CompletedTask;
+        }
+
+        next.RemoveAt(from);
+        next.Insert(to, field);
+        return SetOrderAsync(next);
+    }
+
+    // Dropping a dragged header ON another header moves it before the target; a null target appends. Dropping a
+    // header on itself is a no-op.
+    private Task DropOnHeaderAsync(string? target)
+    {
+        var field = _dragField;
+        _dragField = null;
+        if (field is null || field == target)
+        {
+            return Task.CompletedTask;
+        }
+
+        var next = EffectiveOrder();
+        next.Remove(field);
+        var at = target is null ? next.Count : next.IndexOf(target);
+        next.Insert(at < 0 ? next.Count : at, field);
+        return SetOrderAsync(next);
     }
 
     // The band's identity: its key path from the outermost level in. Uses a unit separator so two levels
@@ -894,7 +1174,10 @@ public sealed class BsDataGrid<T> : BsBlock
                 "badge text-bg-secondary"),
             Draggable: true,
             OnDragStart: () => _dragField = field,
-            OnDragEnd: () => _dragField = null,
+            // dragend fires after any drop, so this is the "drag the chip out to ungroup" gesture: dropping on
+            // the panel or another chip already consumed _dragField (DropOnAsync nulled it), leaving this a
+            // no-op; dropping on nothing leaves it set, and DropOutsideAsync removes the level.
+            OnDragEndAsync: () => DropOutsideAsync(),
             OnDragOver: () => { },
             OnDropAsync: () => DropOnAsync(field))[
             Span()[column.Title],
@@ -914,6 +1197,92 @@ public sealed class BsDataGrid<T> : BsBlock
             Disabled: disabled ? true : null,
             Aria: new Dictionary<string, string?> { ["label"] = label },
             OnClickAsync: () => onClick())[BsIcon(Name: icon)];
+
+    // --- Column chooser menu -------------------------------------------------------------------------------
+    //
+    // A disclosure button plus, when open, a checkbox-and-reorder row per named column. It is the keyboard route
+    // to both axes: the checkbox shows/hides, the up/down buttons reorder. Header drag is only an accelerator on
+    // top of the same handlers. The whole thing renders only when ColumnChooser is true, so a grid that drives
+    // HiddenColumns/ColumnOrder from the URL alone (no menu) pays nothing for it.
+    // The toolbar fragment when the chooser is on: the Columns menu first, then the group panel if it too is on.
+    // A fragment renders its children with no wrapper, so a null group panel adds nothing.
+    private Component Toolbar(IReadOnlyList<BsColumn<T>> columns) =>
+        [ColumnChooserBar(columns), GroupPanel is true ? GroupPanelRow(columns) : null];
+
+    private Component ColumnChooserBar(IReadOnlyList<BsColumn<T>> columns) =>
+        Div(
+            Id: Id is null ? null : $"{Id}-columnchooser",
+            Class: Bs.Join("bs-grid-columnchooser", Position.Relative, Margin.Bottom(2)))[
+            Button(
+                Type: "button",
+                Class: "btn btn-sm btn-outline-secondary",
+                Aria: new Dictionary<string, string?>
+                {
+                    ["expanded"] = _chooserOpen ? "true" : "false",
+                    ["label"] = "Columns",
+                },
+                OnClick: () => _chooserOpen = !_chooserOpen)[
+                BsIcon(Name: BsIconName.Columns, Class: Margin.End(1)), "Columns"],
+            _chooserOpen
+                ? Div(Class: Bs.Join("bs-grid-columnmenu", "list-group", Margin.Top(1)))[
+                    ColumnChooserItems(columns)]
+                : null
+        ];
+
+    private IEnumerable<Component> ColumnChooserItems(IReadOnlyList<BsColumn<T>> columns)
+    {
+        // List the columns in the order they render, so the up/down buttons read the way the table looks. Hidden
+        // columns are listed too (that is how you get them back), so the walk is over the full named set rather
+        // than `visible`.
+        var display = CurrentOrder.Count > 0 ? Reordered(columns, CurrentOrder) : columns;
+        var order = EffectiveOrder();
+        var visibleCount = 0;
+        foreach (var column in columns)
+        {
+            if (!IsGroupedAway(column) && !IsHidden(column))
+            {
+                visibleCount++;
+            }
+        }
+
+        foreach (var column in display)
+        {
+            if (column.FieldName is not { } field)
+            {
+                continue;
+            }
+
+            var visible = !IsHidden(column);
+
+            // A non-hideable column is always shown; the last visible column can't be unchecked into a bodyless
+            // table. Either way the box is locked on.
+            var lockOn = !column.Hideable || (visible && visibleCount == 1);
+
+            // onChange is built HERE, not inside SelectBox, so its closure captures the grid — the owner the
+            // framework re-renders after a change. See the remarks on SelectBox.
+            var box = SelectBox(visible, new Dictionary<string, string?> { ["label"] = $"Show {column.Title}" },
+                lockOn, _ => ToggleHiddenAsync(field));
+
+            var rank = order.IndexOf(field);
+            var canMove = column.Reorderable && rank >= 0;
+
+            yield return Div(
+                Key: $"col:{field}",
+                Class: Bs.Join("bs-grid-columnitem", "list-group-item", Display.Flex(), Flex.Align(BsAlign.Center),
+                    "gap-2", Padding.Y(1)))[
+                box,
+                Span(Class: "me-auto")[column.Title],
+                canMove
+                    ? ChipButton(BsIconName.ChevronUp, $"Move {column.Title} earlier", rank == 0,
+                        () => MoveColumnAsync(field, -1))
+                    : null,
+                canMove
+                    ? ChipButton(BsIconName.ChevronDown, $"Move {column.Title} later", rank == order.Count - 1,
+                        () => MoveColumnAsync(field, 1))
+                    : null
+            ];
+        }
+    }
 
     // BsPageItem's Disabled only adds a CSS class — the button stays clickable — so the pager's edges have to
     // be guarded here. Without the clamp, prev on page 0 underflows and the summary renders "-1-0 / 3".
@@ -952,19 +1321,27 @@ public sealed class BsDataGrid<T> : BsBlock
             : TotalCount is { } t ? Sliced(t)
             : Local(columns);
 
+        // The toolbar strip above the grid: the Columns menu and/or the group panel, whichever are on. When
+        // ColumnChooser is off it is exactly what it was before — null, or the group panel Div directly — so the
+        // existing paths stay byte-identical; only a chooser grid gets the enclosing fragment.
+        var toolbar = ColumnChooser is true
+            ? Toolbar(columns)
+            : GroupPanel is true ? GroupPanelRow(columns) : null;
+
         // A fetch in flight is not "no results": without this guard the first load flashes the placeholder
         // before the rows land, and every refetch of an empty filter blinks it back.
         if (total == 0 && Empty is not null && !Busy)
         {
-            // The panel stays with the empty state: it is how the user got here (grouped down to nothing) and
-            // how they get back out.
-            return Wrap(GroupPanel is true ? GroupPanelRow(columns) : null, Empty, null);
+            // The toolbar stays with the empty state: it is how the user got here (grouped or hidden down to
+            // nothing) and how they get back out.
+            return Wrap(toolbar, Empty, null);
         }
 
-        // The columns that actually render, folded once per render and threaded down like `selected`/`pageKeys`
-        // below — so the per-cell path never re-derives it. A grouped-away column takes its footer with it, so
-        // `visible` is also what decides whether there is a <tfoot> at all. HeaderCells keeps the FULL list: its
-        // sort index is a position in `columns`, which the visible subset would renumber.
+        // The columns that actually render — reordered, then hidden and grouped-away folded out — computed once
+        // per render and threaded down like `selected`/`pageKeys` below, so the per-cell path never re-derives
+        // it. A folded column takes its footer with it, so `visible` also decides whether there is a <tfoot>.
+        // HeaderCells renders `visible` (in its order) but also takes the FULL `columns`, because the sort index
+        // is a position in `columns` that a reordered/filtered subset would renumber.
         var visible = VisibleColumns(columns);
         var hasFooter = visible.Any(c => c.HasFooter);
 
@@ -976,12 +1353,12 @@ public sealed class BsDataGrid<T> : BsBlock
         var table = BsTable(Id: Id, Striped: Striped, Hover: Hover, Small: Small, Responsive: Responsive,
             StickyHeader: StickyHeader, MaxHeight: MaxHeight, Class: Class,
             Aria: Busy ? BsGridAria.Busy : null)[
-            Thead()[Tr()[HeaderCells(columns, selected, pageKeys)]],
+            Thead()[Tr()[HeaderCells(visible, columns, selected, pageKeys)]],
             Tbody()[BodyRows(visible, columns, pageRows, selected)],
             hasFooter ? Tfoot()[Tr()[FooterCells(visible, footerRows)]] : null
         ];
 
-        return Wrap(GroupPanel is true ? GroupPanelRow(columns) : null, table,
+        return Wrap(toolbar, table,
             PageSize > 0 && pageCount > 1 ? Pager(pageCount, total) : null);
     }
 
@@ -1232,8 +1609,10 @@ public sealed class BsDataGrid<T> : BsBlock
         return keys;
     }
 
-    private IEnumerable<Component> HeaderCells(IReadOnlyList<BsColumn<T>> columns, HashSet<object>? selected,
-        IReadOnlyList<object> pageKeys)
+    // `visible` is the columns that render, already reordered with grouped-away/hidden folded out; `columns` is
+    // the full declared list, needed only to resolve each header's sort index (see OriginalIndex).
+    private IEnumerable<Component> HeaderCells(IReadOnlyList<BsColumn<T>> visible,
+        IReadOnlyList<BsColumn<T>> columns, HashSet<object>? selected, IReadOnlyList<object> pageKeys)
     {
         if (selected is not null)
         {
@@ -1252,22 +1631,17 @@ public sealed class BsDataGrid<T> : BsBlock
             yield return Th(Scope: "col")[""];
         }
 
-        for (var i = 0; i < columns.Count; i++)
+        foreach (var column in visible)
         {
-            var column = columns[i];
+            var field = column.FieldName;
 
-            // A grouped column is folded away — its header goes with its cells. `i` is NOT renumbered: it stays
-            // the index into the full column list, which is what CurrentSortColumn and ToggleSortAsync speak.
-            if (IsGroupedAway(column))
-            {
-                continue;
-            }
-
-            // The panel's other half: the keyboard route to grouping. Dragging the header does the same thing
-            // for a mouse, so the header is a drag SOURCE too — the field rides the grid's own drag state.
-            var canGroup = GroupPanel is true && column.Groupable && column.FieldName is not null;
+            // The panel's other half: the keyboard route to grouping. Dragging the header does the same for a
+            // mouse — and the same drag also reorders. Which one a drop means is decided by where it lands
+            // (a panel/chip → group; another header → reorder), so both share the grid's one drag field.
+            var canGroup = GroupPanel is true && column.Groupable && field is not null;
+            var canReorder = ReorderEnabled && column.Reorderable && field is not null;
             var groupBtn = canGroup ? GroupByButton(column) : null;
-            var drag = canGroup ? column.FieldName : null;
+            var drag = canGroup || canReorder ? field : null;
 
             // A sort the grid cannot actually perform must not advertise a control: a controlled sort is
             // reported by a name (SortField, or the one read off Field), and a Query is ordered by an
@@ -1279,11 +1653,16 @@ public sealed class BsDataGrid<T> : BsBlock
                 yield return Th(Class: column.Class, Scope: "col",
                     Draggable: drag is not null ? true : null,
                     OnDragStart: drag is not null ? () => _dragField = drag : null,
-                    OnDragEnd: drag is not null ? () => _dragField = null : null)[column.Title, groupBtn];
+                    OnDragEnd: drag is not null ? () => _dragField = null : null,
+                    OnDragOver: canReorder ? () => { }
+                : null,
+                    OnDropAsync: canReorder ? () => DropOnHeaderAsync(field) : null)[column.Title, groupBtn];
                 continue;
             }
 
-            var index = i;
+            // Reorder/hide give the header a different sequence than `columns`, but sort tracks a column's
+            // IDENTITY, not its slot — so resolve the index into the full list rather than the render position.
+            var index = OriginalIndex(columns, column);
             var sorted = CurrentSortColumn == index;
             var caret = sorted
                 ? BsIcon(Name: CurrentSortDescending ? BsIconName.CaretDownFill : BsIconName.CaretUpFill,
@@ -1296,7 +1675,10 @@ public sealed class BsDataGrid<T> : BsBlock
             yield return Th(Class: column.Class, Scope: "col", Aria: BsGridAria.Sort(sorted, CurrentSortDescending),
                 Draggable: drag is not null ? true : null,
                 OnDragStart: drag is not null ? () => _dragField = drag : null,
-                OnDragEnd: drag is not null ? () => _dragField = null : null)[
+                OnDragEnd: drag is not null ? () => _dragField = null : null,
+                OnDragOver: canReorder ? () => { }
+            : null,
+                OnDropAsync: canReorder ? () => DropOnHeaderAsync(field) : null)[
                 Button(
                     Type: "button",
                     Class: Bs.Join("btn btn-sm btn-link text-decoration-none", Padding.All(0), Font.Semibold),
@@ -1305,6 +1687,22 @@ public sealed class BsDataGrid<T> : BsBlock
                 groupBtn
             ];
         }
+    }
+
+    // A column's position in the full, declared `columns` list — the index the sort state
+    // (CurrentSortColumn/ToggleSortAsync) speaks. Resolved by reference because reorder and hide give the
+    // header a different sequence; columns are unique instances, and the list is short.
+    private static int OriginalIndex(IReadOnlyList<BsColumn<T>> columns, BsColumn<T> column)
+    {
+        for (var i = 0; i < columns.Count; i++)
+        {
+            if (ReferenceEquals(columns[i], column))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     // Toggles this column in and out of the grouping. A separate control from the sort button on purpose: the

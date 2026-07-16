@@ -319,6 +319,16 @@ public static class DemoRegistry
                        + "folds away by default — its value already names the band header — so 'Show grouped "
                        + "column' flips ShowGroupedColumns to keep it in the table too.",
                 Result: BsDataGridGroupDemo()),
+            ["data-grid-columns"] = () => CodeSample(
+                ["BsDataGridColumnsDemo.cs"],
+                Notes: "ColumnChooser adds a 'Columns' menu: a checkbox per column to show or hide it, and move "
+                       + "earlier/later buttons to reorder it — every action a real button or checkbox, so it "
+                       + "works from the keyboard alone. Dragging a header onto another reorders it too, as a "
+                       + "mouse accelerator. HiddenColumns and ColumnOrder are token lists of Field names, just "
+                       + "like Grouped, so a real app persists them into the URL and a laid-out grid survives a "
+                       + "reload. Hide, reorder and grouped-away folding all funnel through one visible-column "
+                       + "list, so sort, footers and colspans follow for free.",
+                Result: BsDataGridColumnsDemo()),
             ["data-grid-selection"] = () => CodeSample(
                 ["BsDataGridSelectionDemo.cs"],
                 Notes: "Selection is tracked by RowKey, not by position, so it follows a row through a sort "

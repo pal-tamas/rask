@@ -119,4 +119,31 @@ public class BsDataGridBenchmarks
         new BsColumn<Product> { Title = "Stock", Value = p => p.Stock },
         new BsColumn<Product> { Title = "Price", Value = p => p.Price },
     ];
+
+    // The column chooser turned on but its menu closed — the common resting state. The delta against
+    // Grid100_Plain is the cost of making every header a drag source (four drag handlers per header) plus the
+    // one toolbar button. It does NOT touch the per-cell path, so it should stay roughly flat in rows.
+    [Benchmark]
+    public string Grid100_ColumnChooser() =>
+        BS.BsDataGrid(Data: Rows, Columns: NamedColumns(), RowKey: p => p.Name, ColumnChooser: true)
+            .RenderAsLiveRoot();
+
+    // The chooser actually in use: one column hidden and the order reversed. This is the path that allocates —
+    // VisibleColumns reorders and filters — so the delta against Grid100_ColumnChooser is what a laid-out grid
+    // costs over an idle one. Fewer rendered columns (one hidden) partly offsets it.
+    [Benchmark]
+    public string Grid100_HiddenReordered() =>
+        BS.BsDataGrid(Data: Rows, Columns: NamedColumns(), RowKey: p => p.Name, ColumnChooser: true,
+            HiddenColumns: ["category"], ColumnOrder: ["price", "stock", "sku", "category", "name"],
+            OnHiddenColumnsChange: _ => { }, OnColumnOrderChange: _ => { }).RenderAsLiveRoot();
+
+    // Every column named, so both the chooser and reorder can address all five.
+    private static BsColumn<Product>[] NamedColumns() =>
+    [
+        new BsColumn<Product> { Title = "Name", Value = p => p.Name, Field = p => p.Name, Sortable = true },
+        new BsColumn<Product> { Title = "Category", Value = p => p.Category, Field = p => p.Category },
+        new BsColumn<Product> { Title = "SKU", Value = p => p.Sku, Field = p => p.Sku },
+        new BsColumn<Product> { Title = "Stock", Value = p => p.Stock, Field = p => p.Stock },
+        new BsColumn<Product> { Title = "Price", Value = p => p.Price, Field = p => p.Price },
+    ];
 }
