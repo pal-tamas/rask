@@ -103,6 +103,10 @@ coverage*.info
 *.swp
 *.bak
 *.cache
+# Rask.Cache is a source package, not a build artifact — but its directory name matches the *.cache glob
+# above on case-insensitive filesystems, which would ignore the whole package. Re-include it (its own
+# bin/obj build output is still ignored by the [Bb]in/ and [Oo]bj/ rules, and *.cache files within still match).
+!src/Rask.Cache/
 *.dbmdl
 *.dbproj.schemaview
 *.publishsettings

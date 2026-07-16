@@ -16,6 +16,8 @@
     <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
     <!-- The mail slice (SendMailPage) queues transactional email on the same SQLite database. -->
     <ProjectReference Include="..\..\src\Rask.Mail\Rask.Mail.csproj"/>
+    <!-- The cache slice (CacheReportPage) caches computed values on the same SQLite database. -->
+    <ProjectReference Include="..\..\src\Rask.Cache\Rask.Cache.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

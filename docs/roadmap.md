@@ -18,6 +18,7 @@ service to operate.
 | **Transactional outbox** | ✅ | [`Rask.Outbox`](outbox.md) — durable, crash-safe domain-event delivery on the app's own database. |
 | **Background jobs** | ✅ | [`Rask.Jobs`](jobs.md) — durable enqueued/delayed/recurring work on the app's own database, at-least-once with backoff. |
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database and delivered off the request thread over SMTP (MailKit), at-least-once with backoff; bodies are Rask components rendered to HTML. |
+| **Cache** | ✅ | [`Rask.Cache`](cache.md) — a developer-facing cache on the app's own database; standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync`, absolute/sliding expiry. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **Auth** | ✅ | [`authentication.md`](authentication.md) — cookie login/session in the templates. |
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
@@ -28,9 +29,9 @@ service to operate.
 Each of these is designed to persist to the **same SQLite database the app already has** — no external
 broker, no Redis, no separate infrastructure for a hello-world. Ordered by leverage for shipping a product.
 
-### Cache
-A developer-facing cache over the app's database, plus a render/fragment cache reusing the framework's
-existing subtree-cache machinery.
+### Cache — render/fragment cache
+The developer-facing cache has [shipped](cache.md). Still planned: a render/fragment cache reusing the
+framework's existing subtree-cache machinery, to memoize a component subtree across sessions by an explicit key.
 
 ### Broadcast
 Server-to-many-clients pub/sub over the existing WebSocket channel — subscribe to a topic, push a live diff
