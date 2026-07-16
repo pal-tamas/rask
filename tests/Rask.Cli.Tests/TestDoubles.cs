@@ -3,19 +3,43 @@ using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
 
-/// <summary>An <see cref="IConsole"/> that captures everything written, for assertions.</summary>
+/// <summary>
+/// An <see cref="IConsole"/> that captures everything written, for assertions. Both output streams
+/// report as redirected so styling stays off and captured text is plain — substring assertions hold
+/// regardless of the styling layer. Seed <see cref="InputLines"/> to script interactive prompts.
+/// </summary>
 internal sealed class StringConsole : IConsole
 {
     private readonly StringWriter _out = new();
     private readonly StringWriter _error = new();
+    private TextReader _in = new StringReader(string.Empty);
 
     public TextWriter Out => _out;
 
     public TextWriter Error => _error;
 
+    public TextReader In => _in;
+
+    /// <summary>When false, the console behaves like a terminal (styling on, prompts read input).</summary>
+    public bool IsOutputRedirected { get; set; } = true;
+
+    public bool IsErrorRedirected { get; set; } = true;
+
+    public bool IsInputRedirected { get; set; } = true;
+
     public string OutText => _out.ToString();
 
     public string ErrorText => _error.ToString();
+
+    /// <summary>Script the answers an interactive prompt will read, one per line, and treat stdin as a terminal.</summary>
+    public IReadOnlyList<string> InputLines
+    {
+        set
+        {
+            _in = new StringReader(string.Join(Environment.NewLine, value) + Environment.NewLine);
+            IsInputRedirected = false;
+        }
+    }
 }
 
 /// <summary>A recorded invocation of the process runner.</summary>

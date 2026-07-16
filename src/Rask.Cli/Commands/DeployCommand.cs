@@ -47,18 +47,31 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         "rask deploy [--host user@box] [--domain app.example.com] [--port <n>] [--project <path>] " +
         "[--name <slug>] [--dockerfile <path>] [--env KEY=VALUE ...] [--env-file <path>] [--dry-run]";
 
+    public override IReadOnlyList<string> Examples =>
+    [
+        "rask deploy --host deploy@box.example.com --domain app.example.com",
+        "rask deploy --host deploy@box.example.com --port 8080",
+        "rask deploy --env ConnectionStrings__Db=... --env-file .env.production",
+        "rask deploy --dry-run",
+    ];
+
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    private static ArgumentSchema CreateSchema() =>
+        new ArgumentSchema()
+            .Option("host", 'h', "user@box", "SSH target to build and run on (remembered in .rask/deploy.json).")
+            .Option("domain", 'd', "host", "Public domain to serve over HTTPS via Caddy (implies ports 80/443).")
+            .Option("port", valueHint: "n", description: "Published port when not using --domain (default: 8080).")
+            .Option("project", 'p', "path", "Project to deploy (default: found from the current directory).")
+            .Option("name", 'n', "slug", "Container/app name (default: derived from the project).")
+            .Option("dockerfile", valueHint: "path", description: "Dockerfile to build (default: ./Dockerfile).")
+            .Option("env-file", valueHint: "path", description: "File of KEY=VALUE lines to pass to the container.")
+            .MultiOption("env", 'e', "KEY=VALUE", "Environment variable to pass (repeatable).")
+            .Flag("dry-run", description: "Print the docker commands that would run without changing anything.");
+
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
-        var schema = new ArgumentSchema()
-            .Option("host", 'h')
-            .Option("domain", 'd')
-            .Option("port")
-            .Option("project", 'p')
-            .Option("name", 'n')
-            .Option("dockerfile")
-            .Option("env-file")
-            .MultiOption("env", 'e')
-            .Flag("dry-run");
+        var schema = CreateSchema();
 
         var parsed = schema.Parse(args);
         if (parsed.HasErrors)

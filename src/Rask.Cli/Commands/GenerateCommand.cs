@@ -35,6 +35,47 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     public override string Usage =>
         "rask generate <page|component|feature|job|email> <Name> [<field:type> ...] [--id guid|int|long] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
 
+    public override IReadOnlyList<(string Name, string Description)> Arguments =>
+    [
+        ("<page|component|feature|job|email>", "What to scaffold (aliases: p, c, f, j, e)."),
+        ("<Name>", "The type name, e.g. Product or Dashboard."),
+        ("[<field:type> ...]", "Fields for a feature, e.g. Name:string Price:decimal."),
+    ];
+
+    public override IReadOnlyList<string> Examples =>
+    [
+        "rask generate page Dashboard --route /dashboard",
+        "rask generate component UserCard",
+        "rask generate feature Product Name:string Price:decimal",
+        "rask generate feature Order Total:decimal --bs --modal --tests",
+        "rask g j SendWelcomeEmail",
+    ];
+
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    private const string FeatureGroup = "Feature options (rask generate feature)";
+
+    /// <summary>The flag/option schema — shared by <see cref="ExecuteAsync"/> and <c>--help</c> so they can't drift.</summary>
+    private static ArgumentSchema CreateSchema() =>
+        new ArgumentSchema()
+            .Option("output", 'o', "dir", "Directory to write into (default: derived from the artifact).")
+            .Flag("force", description: "Overwrite existing files instead of refusing.")
+            .Flag("dry-run", description: "Print what would be written without touching disk.")
+            .Option("route", 'r', "path", "URL route for the page.", group: "Page options")
+            .Option("fields", 'f', "list", "Fields as Name:type,... (or pass them positionally).", FeatureGroup)
+            .Option("context", 'c', "Name", "Reuse an existing DbContext instead of generating one.", FeatureGroup)
+            .Option("plural", 'p', "Name", "Plural name for the feature folder/route (default: auto-pluralized).", FeatureGroup)
+            .Option("id", valueHint: "guid|int|long", description: "Primary-key type (default: guid).", group: FeatureGroup)
+            .Option("validation", valueHint: "mode", description: "Validation style: valueobjects (default), dataannotations, or fluent.", group: FeatureGroup)
+            .Flag("bs", description: "Render pages with Rask.Bootstrap (Bs*) components.", group: FeatureGroup)
+            .Flag("modal", description: "Fold create/edit into a modal on the list page (implies --bs).", group: FeatureGroup)
+            .Flag("soft-delete", description: "Soft-delete rows and add a Restore command.", group: FeatureGroup)
+            .Flag("concurrency", description: "Add optimistic-concurrency (row version) handling.", group: FeatureGroup)
+            .Flag("events", description: "Raise domain events on create/update/delete.", group: FeatureGroup)
+            .Flag("outbox", description: "Persist domain events via the transactional outbox (implies --events).", group: FeatureGroup)
+            .Flag("tests", description: "Generate a sibling <Project>.Tests project with domain + persistence tests.", group: FeatureGroup)
+            .Flag("no-restore", description: "Write files without adding packages or restoring.", group: FeatureGroup);
+
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         if (args.Count == 0)
@@ -51,24 +92,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return 1;
         }
 
-        var schema = new ArgumentSchema()
-            .Option("route", 'r')
-            .Option("output", 'o')
-            .Option("fields", 'f')
-            .Option("context", 'c')
-            .Option("plural", 'p')
-            .Option("id")
-            .Option("validation")
-            .Flag("bs")
-            .Flag("modal")
-            .Flag("soft-delete")
-            .Flag("concurrency")
-            .Flag("events")
-            .Flag("outbox")
-            .Flag("tests")
-            .Flag("no-restore")
-            .Flag("force")
-            .Flag("dry-run");
+        var schema = CreateSchema();
 
         var parsed = schema.Parse(args.Skip(1).ToArray());
         if (parsed.HasErrors)

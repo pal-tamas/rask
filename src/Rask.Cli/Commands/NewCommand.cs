@@ -31,17 +31,34 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     public override string Usage =>
         "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--docker] [--host local|server] [--output <dir>]";
 
+    public override IReadOnlyList<(string Name, string Description)> Arguments =>
+        [("<name>", "Name of the project to create (scaffolds ./<name>/).")];
+
+    public override IReadOnlyList<string> Examples =>
+    [
+        "rask new Shop",
+        "rask new Shop --template wasm --pwa",
+        "rask new Api --template server --auth --docker",
+        "rask new MyApp --template native --host server",
+    ];
+
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    /// <summary>The flag/option schema — shared by <see cref="ExecuteAsync"/> and <c>--help</c> so they can't drift.</summary>
+    private static ArgumentSchema CreateSchema() =>
+        new ArgumentSchema()
+            .Option("template", 't', "name", "Template to scaffold: server (default), wasm, wasm-hosted, or native.")
+            .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
+            .Option("name", 'n', "name", "Project name, if not given positionally.")
+            .Option("host", valueHint: "local|server", description: "Native host mode: local (default) or server. Native template only.")
+            .Flag("auth", description: "Add cookie authentication (login + members pages).")
+            .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
+            .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
+            .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.");
+
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
-        var schema = new ArgumentSchema()
-            .Option("template", 't')
-            .Option("output", 'o')
-            .Option("name", 'n')
-            .Option("host")
-            .Flag("auth")
-            .Flag("pwa")
-            .Flag("cqrs")
-            .Flag("docker");
+        var schema = CreateSchema();
 
         var parsed = schema.Parse(args);
         if (parsed.HasErrors)

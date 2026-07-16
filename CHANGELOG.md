@@ -8,7 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
-- **Live demos for `BsTable` and `BsPagination`, plus unit tests for `BsBadge`.** The "Cards, lists &
+- **`rask <command> --help` now teaches — an aligned options table, arguments, and examples.** Every command's
+  help was three lines (summary + one usage string); it now renders a described **Options** table straight from
+  the same schema that parses the arguments (so it can never drift), a **Arguments** section, and copy-pasteable
+  **Examples**. This surfaces `rask generate`'s previously **undiscoverable** feature flags — `--bs`, `--modal`,
+  `--soft-delete`, `--concurrency`, `--events`, `--outbox`, `--tests`, `--validation`, `--no-restore` — grouped
+  under "Feature options". Output is colorized when writing to a terminal and stays plain when piped or when
+  `NO_COLOR` is set (so `rask info | cat` and CI logs are unaffected). Parse errors now point at
+  `rask <command> --help`. No new dependencies — the styling and help layers are pure BCL. The "Cards, lists &
   tables" guide gains a `BsTable` demo (typed style toggles over core `Thead`/`Tbody` markup) and an
   interactive `BsPagination` demo (click a page — the `.active` marker and readout follow, zero-JS). Both
   components were already unit-tested; `BsBadge` (already shown on the buttons demo) now gets a

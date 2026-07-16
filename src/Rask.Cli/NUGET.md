@@ -52,7 +52,9 @@ rask info
 | `rask dev` | Run the app with C# Hot Reload (`dotnet watch run`); `--no-hot-reload` for a plain run. Args after `--` reach the app. |
 | `rask info` | Report the CLI version, .NET SDK version, and OS. |
 
-Run `rask <command> --help` for command-specific usage, or `rask --version` for the tool version.
+Run `rask <command> --help` for a full reference — arguments, a described options table, and examples
+— or `rask --version` for the tool version. Output is colorized on a terminal and plain when piped or
+under `NO_COLOR`.
 
 ## Notes
 

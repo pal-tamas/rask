@@ -59,6 +59,17 @@ echo "==> Environment"
 check "info"            0 "Rask CLI"          -- info
 check "--version"       0 "[0-9]+\.[0-9]+"    -- --version
 
+echo "==> Help is discoverable (options table + examples; hidden feature flags surfaced)"
+check "generate --help shows feature flags" 0 "Feature options" -- generate --help
+check "generate --help shows examples"      0 "Examples:"       -- generate --help
+# --outbox/--tests were previously undocumented — help must now list them.
+helpout="$( rask generate --help 2>&1 )"
+if echo "$helpout" | grep -q -- "--outbox" && echo "$helpout" | grep -q -- "--tests"; then
+  echo "  PASS  generate --help lists --outbox/--tests"; PASS=$((PASS+1))
+else
+  echo "  FAIL  generate --help missing hidden flags"; echo "$helpout" | sed 's/^/        | /' | head -6; FAIL=$((FAIL+1))
+fi
+
 echo "==> Scaffold a new server project"
 check "new Shop"        0 "Created Shop"      -- new Shop --template server --output "$WORK/Shop"
 have "$WORK/Shop/Shop.csproj"

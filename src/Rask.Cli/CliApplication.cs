@@ -35,7 +35,7 @@ internal sealed class CliApplication
     {
         if (args.Count == 0)
         {
-            PrintUsage(_console.Out);
+            CommandHelp.RenderTopLevel(_console, _commands, toError: false);
             return 0;
         }
 
@@ -45,11 +45,11 @@ internal sealed class CliApplication
         {
             if (args.Count > 1 && TryGetCommand(args[1], out var helpTarget))
             {
-                PrintCommandHelp(_console.Out, helpTarget);
+                CommandHelp.RenderCommand(_console, helpTarget);
             }
             else
             {
-                PrintUsage(_console.Out);
+                CommandHelp.RenderTopLevel(_console, _commands, toError: false);
             }
 
             return 0;
@@ -63,15 +63,15 @@ internal sealed class CliApplication
 
         if (!TryGetCommand(first, out var command))
         {
-            _console.Error.WriteLine($"Unknown command '{first}'.");
-            PrintUsage(_console.Error);
+            _console.WriteErrorLine($"Unknown command '{first}'.", ConsoleStyle.Error);
+            CommandHelp.RenderTopLevel(_console, _commands, toError: true);
             return 1;
         }
 
         var rest = args.Skip(1).ToArray();
         if (RequestsHelp(rest))
         {
-            PrintCommandHelp(_console.Out, command);
+            CommandHelp.RenderCommand(_console, command);
             return 0;
         }
 
@@ -113,31 +113,5 @@ internal sealed class CliApplication
 
         command = null!;
         return false;
-    }
-
-    private void PrintUsage(TextWriter writer)
-    {
-        writer.WriteLine("rask — the Rask framework command-line tool");
-        writer.WriteLine();
-        writer.WriteLine("Usage: rask <command> [options]");
-        writer.WriteLine();
-        writer.WriteLine("Commands:");
-
-        var width = _commands.Count == 0 ? 0 : _commands.Max(c => c.Name.Length);
-        foreach (var command in _commands)
-        {
-            writer.WriteLine($"  {command.Name.PadRight(width)}   {command.Summary}");
-        }
-
-        writer.WriteLine();
-        writer.WriteLine("Run 'rask <command> --help' for command-specific usage.");
-        writer.WriteLine("  --version    Show the tool version.");
-    }
-
-    private static void PrintCommandHelp(TextWriter writer, CliCommand command)
-    {
-        writer.WriteLine(command.Summary);
-        writer.WriteLine();
-        writer.WriteLine($"Usage: {command.Usage}");
     }
 }

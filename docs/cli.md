@@ -16,6 +16,22 @@ That puts a `rask` command on your `PATH`. Update it later with `dotnet tool upd
 > `rask generate`), and shells out to `dotnet` for the rest — `rask dev` wraps `dotnet watch`, `rask db`
 > wraps `dotnet ef`.
 
+## Getting help
+
+`rask` on its own lists the commands. `rask <command> --help` (or `-h`) prints that command's full
+reference — its arguments, an aligned table of every option with a one-line description, and
+copy-pasteable examples:
+
+```bash
+rask                       # list all commands
+rask new --help            # arguments, options, and examples for `new`
+rask generate feature --help
+```
+
+Help (and other output) is colorized when `rask` is writing to a terminal, and falls back to plain
+text when the output is piped or when the [`NO_COLOR`](https://no-color.org) environment variable is
+set — so `rask info | cat` and CI logs stay clean.
+
 ## `rask new` — scaffold a project
 
 ```bash
