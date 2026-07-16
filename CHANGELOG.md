@@ -36,6 +36,8 @@ them until tagged releases begin.
   `SFSpeechRecognizer` + `AVAudioEngine` and Android `SpeechRecognizer` (needs mic permission: iOS
   `NSMicrophoneUsageDescription` + `NSSpeechRecognitionUsageDescription`, Android `RECORD_AUDIO`). Showcased on
   the Browser APIs page and documented in [`docs/apis/speech-recognition.md`](docs/apis/speech-recognition.md).
+  The iOS backend honours `Continuous`: without it the session stops after the first final utterance, matching
+  the browser and Android contract (`AVAudioEngine` otherwise streams until disposed).
 - **`BsDataGrid` column chooser and reordering.** `ColumnChooser: true` renders a "Columns" menu above the
   grid — a checkbox to show or hide each column, and move earlier/later buttons to reorder it — and makes each
   header a drag source so a column can also be dragged onto another to reorder it. Both axes are controlled or
