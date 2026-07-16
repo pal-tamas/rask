@@ -1,8 +1,8 @@
 # The `rask` CLI
 
 `Rask.Cli` is a [.NET tool](https://learn.microsoft.com/dotnet/core/tools/global-tools) that gives
-Rask a short, task-focused command line on top of the .NET SDK. It is a thin, dependency-free wrapper
-— every command shells out to `dotnet` — so it never gets in the way of the tools you already use.
+Rask a short, task-focused command line on top of the .NET SDK. It is dependency-free, it generates or
+shells out to `dotnet` for everything it does, and it never gets in the way of the tools you already use.
 
 ## Install
 
@@ -25,22 +25,38 @@ rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Field --template native     # a native iOS + Android app
 ```
 
-`rask new` resolves the friendly `--template` name to the matching `dotnet new` template, forwards the
-feature flags that template supports, and installs the `Rask.Templates` package automatically the first
-time if it isn't present.
+The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
+restore` so the output builds immediately. The one exception is `wasm-hosted`, which still goes through
+`dotnet new` (installing `Rask.Templates` on demand) until its generator lands.
+
+A new project is deliberately **minimal** — four files, nothing to delete before you start:
+
+```
+MyApp/
+  MyApp.csproj
+  Program.cs
+  App.cs                          the shell + a welcome home page that teaches the CLI
+  Properties/launchSettings.json
+```
+
+`App.cs` holds both the root shell (which every page renders through) and the `[Route("/")]` welcome
+page, styled with Bootstrap. Add pages and components to taste — `rask generate` is the fast path.
 
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
 | `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or `native`. |
 | `--auth` | Scaffold a cookie login/session (web templates). |
-| `--pwa` | Scaffold a web app manifest + service worker (web templates). |
-| `--cqrs` | Wire up `Rask.Cqrs` (the `server` template only). |
+| `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
+| `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
+| `--host` | `local` (default) or `server` — which native mode to scaffold (the `native` template only). |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 
+The flags wire a feature up; they don't scaffold sample pages for you to delete.
+
 Requesting a flag a template doesn't support (for example `--cqrs` on `wasm`) fails fast with the list
-of flags that template *does* support, rather than passing an unknown option through to `dotnet new`.
+of flags that template *does* support, rather than passing an unknown option through.
 
 ## `rask generate` — scaffold code
 
