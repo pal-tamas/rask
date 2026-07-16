@@ -27,6 +27,17 @@ them until tagged releases begin.
   `aria-multiselectable`, each option is a proper `role="option"` carrying `aria-selected`, and the box
   advertises the highlight through `aria-activedescendant` — matching `BsSelect`'s existing combobox wiring.
   The shared cursor/id logic lives in a new internal `BsSelectNav` helper both controls consume.
+- **`Rask.Jobs` — durable background jobs on the app's own database.** The roadmap's #1 DB-backed pillar:
+  enqueue a unit of work and a hosted `JobProcessor` runs it off the request thread — **at-least-once**, with
+  exponential-backoff retries up to `MaxAttempts` (then a dead letter kept for inspection). A job is a
+  `Rask.Cqrs` command (`record SendWelcomeEmail(Guid Id) : IJob`) handled by an ordinary
+  `ICommandHandler<TJob>`; inject `IJobQueue` and `EnqueueAsync(job)` or `ScheduleAsync(job, delay)`. Supports
+  durable **interval-recurring** jobs (`o.AddRecurring<T>("name", every, () => new T())`, tracked so a restart
+  never double-runs them) and a retention purge of completed jobs. Rides the existing SQLite database (no
+  broker, no Redis) with a single hosted poller per app, and a source generator registers each `IJob` type for
+  reflection-free rehydration. Wire with `services.AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`,
+  then `rask db add AddJobs`. Scaffold one with **`rask generate job <Name>`** (alias `g j`). Complements
+  `Rask.Outbox` (transaction-derived events) — jobs are work you explicitly schedule. Documented in `docs/jobs.md`.
 - **`BsTimePicker` keyboard parity — `Home`/`End` and a seconds nudge.** Rounding out the picker keyboard
   story: `Home`/`End` jump the clock to the earliest/latest selectable time (the `Min`/`Max` bound, or the
   day edge — `00:00`, and `23:59`/`23:59:59` with seconds), and when `Seconds` is on, `Shift`+`ArrowUp`/

@@ -32,6 +32,46 @@ public sealed class GenerateCommandTests
     }
 
     [Fact]
+    public async Task Generates_a_job_with_its_handler_and_adds_its_packages()
+    {
+        var (console, fs, process, command) = BuildWithProcess();
+
+        var exit = await command.ExecuteAsync(["job", "SendWelcomeEmail"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var path = Path.GetFullPath("/proj/Jobs/SendWelcomeEmail.cs");
+        Assert.True(fs.Files.ContainsKey(path));
+        Assert.Contains("namespace MyApp.Jobs;", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains("record SendWelcomeEmail : IJob", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains("ICommandHandler<SendWelcomeEmail>", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Jobs"]);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Cqrs"]);
+        Assert.Contains("AddRaskJobs", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Job_alias_j_scaffolds_a_job()
+    {
+        var (_, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["j", "Cleanup"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Jobs/Cleanup.cs")));
+    }
+
+    [Fact]
+    public async Task Route_on_job_is_rejected()
+    {
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["job", "Cleanup", "--route", "/x"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("--route only applies to 'generate page'", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Dry_run_writes_nothing_but_prints_the_content()
     {
         var (console, fs, command) = Build();
