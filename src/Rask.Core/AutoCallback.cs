@@ -87,6 +87,7 @@ public static class AutoCallback
 
         return async () =>
         {
+            r.MarkDirtyForAsyncHandler();
             await d().ConfigureAwait(false);
             r.StateHasChanged();
         };
@@ -107,6 +108,7 @@ public static class AutoCallback
 
         return async arg =>
         {
+            r.MarkDirtyForAsyncHandler();
             await d(arg).ConfigureAwait(false);
             r.StateHasChanged();
         };
@@ -171,6 +173,7 @@ public static class AutoCallback
 
         return async () =>
         {
+            r.MarkDirtyForAsyncHandler();
             await d().ConfigureAwait(false);
             r.StateHasChanged();
         };
@@ -191,6 +194,7 @@ public static class AutoCallback
 
         return async arg =>
         {
+            r.MarkDirtyForAsyncHandler();
             await d(arg).ConfigureAwait(false);
             r.StateHasChanged();
         };

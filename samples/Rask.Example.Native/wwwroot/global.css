@@ -33,26 +33,6 @@
     --nav-h: 56px;
 }
 
-.btn-primary {
-    --bs-btn-bg: #7C3AED;
-    --bs-btn-border-color: #7C3AED;
-    --bs-btn-hover-bg: #6D28D9;
-    --bs-btn-hover-border-color: #6D28D9;
-    --bs-btn-active-bg: #512BD4;
-    --bs-btn-active-border-color: #512BD4;
-    --bs-btn-disabled-bg: #7C3AED;
-    --bs-btn-disabled-border-color: #7C3AED;
-}
-
-.btn-outline-primary {
-    --bs-btn-color: #6D28D9;
-    --bs-btn-border-color: #7C3AED;
-    --bs-btn-hover-bg: #7C3AED;
-    --bs-btn-hover-border-color: #7C3AED;
-    --bs-btn-active-bg: #6D28D9;
-    --bs-btn-active-border-color: #6D28D9;
-}
-
 body {
     font-family: var(--font-body);
     /* Inter stylistic sets: single-storey a (cv11), open digits — quiet, technical legibility. */

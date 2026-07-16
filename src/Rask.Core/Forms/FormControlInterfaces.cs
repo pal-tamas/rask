@@ -98,9 +98,17 @@ public interface IFormControl<T> : IFormControl
         // control is Element-derived (Select/Input/Textarea), so the generator skips AutoCallback
         // wrapping (the !isElement hot-path guard), and the registered handler's Target is this
         // control — so RegisterHandler's owner heuristic would dirty-mark the control, never the
-        // consumer whose state OnChange mutates. Capture the consumer via the same Target-as-Component
-        // heuristic AutoCallback uses and notify it after the typed callbacks run.
-        var consumer = (OnChange?.Target ?? OnChangeAsync?.Target) as Component;
+        // consumer whose state OnChange mutates. Resolve the consumer and notify it after the typed
+        // callbacks run.
+        //
+        // DelegateOwner.Resolve, not a bare `Target as Component`: a handler that captures a local
+        // ALONGSIDE `this` — `OnChange: v => Rename(i, v)` inside a loop, or a data grid's per-row
+        // checkbox — is lowered to a compiler display class, so `Target as Component` is null and the
+        // consumer silently never re-renders. Resolve unwraps the closure's captured `this` (and nested
+        // closures) to find the defining component, which is the same rule RegisterHandler and
+        // AutoCallback already apply. It also refuses to resolve to an Element, so it cannot regress to
+        // dirty-marking the control itself.
+        var consumer = DelegateOwner.Resolve(OnChange) ?? DelegateOwner.Resolve(OnChangeAsync);
 
         return new CallbackAsync<string>(async raw =>
         {
