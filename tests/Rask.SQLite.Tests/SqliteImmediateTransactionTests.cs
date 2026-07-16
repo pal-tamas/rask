@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Data.Sqlite;
+using SQLitePCL;
 
 namespace Rask.SQLite.Tests;
 
@@ -111,6 +112,53 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         // The wait ended near the 150 ms timeout — not the driver's multi-second synchronous block.
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(2), $"took {stopwatch.ElapsedMilliseconds} ms");
         Assert.Equal(0, Count());
+    }
+
+    [Fact]
+    public async Task Recovers_when_the_handle_arrives_with_a_leaked_transaction()
+    {
+        // The raw path drives BEGIN/COMMIT through the native handle, invisible to ADO's transaction
+        // bookkeeping, and the handle is pooled. Simulate an earlier lease that left a transaction open:
+        // once autocommit is off, a plain BEGIN IMMEDIATE would fail non-retryably ("cannot start a
+        // transaction within a transaction"). The entry guard must clear it and still commit the work.
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        Exec(connection, "BEGIN IMMEDIATE;"); // leak a write transaction onto the raw handle
+        Assert.Equal(0, raw.sqlite3_get_autocommit(connection.Handle!)); // precondition: mid-transaction
+
+        await connection.ExecuteInImmediateTransactionAsync(
+            new SqliteBusyRetryOptions(),
+            async (c, ct) =>
+            {
+                await using var cmd = c.CreateCommand();
+                cmd.CommandText = "INSERT INTO t(v) VALUES('recovered');";
+                await cmd.ExecuteNonQueryAsync(ct);
+            });
+
+        Assert.Equal(1, Count());
+        Assert.Equal(1, raw.sqlite3_get_autocommit(connection.Handle!)); // handle left clean
+    }
+
+    [Fact]
+    public async Task Leaves_the_handle_in_autocommit_after_work_throws()
+    {
+        // The finally guard must never return a mid-transaction handle to the pool, even when work throws.
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            connection.ExecuteInImmediateTransactionAsync(
+                new SqliteBusyRetryOptions(),
+                async (c, ct) =>
+                {
+                    await using var cmd = c.CreateCommand();
+                    cmd.CommandText = "INSERT INTO t(v) VALUES('doomed');";
+                    await cmd.ExecuteNonQueryAsync(ct);
+                    throw new InvalidOperationException("boom");
+                }));
+
+        Assert.Equal(0, Count());
+        Assert.Equal(1, raw.sqlite3_get_autocommit(connection.Handle!)); // rolled back, pool not poisoned
     }
 
     private static void Insert(SqliteConnection connection, SqliteTransaction transaction, string value)

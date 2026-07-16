@@ -31,8 +31,11 @@ internal static class SqliteBusyRetry
                 return;
             }
 
-            // Only a contended lock is retryable; every other result code is a real error.
-            if (rc != raw.SQLITE_BUSY && rc != raw.SQLITE_LOCKED)
+            // Only a contended lock is retryable; every other result code is a real error. Compare the
+            // primary result code (low byte) so an extended BUSY/LOCKED variant is still treated as a
+            // contended lock rather than misclassified as fatal.
+            var primary = rc & 0xFF;
+            if (primary != raw.SQLITE_BUSY && primary != raw.SQLITE_LOCKED)
             {
                 throw Failure(handle, rc);
             }
@@ -49,7 +52,20 @@ internal static class SqliteBusyRetry
 
     private static SqliteException Failure(sqlite3 handle, int rc)
     {
+        // Capture the full diagnosis straight off the handle. The bare exec return code plus errmsg can
+        // read as the meaningless "SQLite Error 1: 'not an error'" when a pooled handle's error slot and
+        // the returned rc disagree (e.g. a BEGIN issued on a handle already inside a transaction); the
+        // extended errcode and the autocommit flag make that state attributable instead of a dead end.
+        var errcode = raw.sqlite3_errcode(handle);
+        var extended = raw.sqlite3_extended_errcode(handle);
+        var autocommit = raw.sqlite3_get_autocommit(handle);
         var message = raw.sqlite3_errmsg(handle).utf8_to_string();
-        return new SqliteException($"SQLite Error {rc}: '{message}'.", rc);
+
+        // Keep the primary result code (the exec return's low byte) as SqliteErrorCode — the same value
+        // callers see today — and carry the extended code through SqliteExtendedErrorCode.
+        return new SqliteException(
+            $"SQLite Error {rc} (errcode {errcode}, extended {extended}, autocommit {autocommit}): '{message}'.",
+            rc & 0xFF,
+            extended);
     }
 }

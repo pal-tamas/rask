@@ -106,4 +106,8 @@ The open question is narrow: **what does `SqliteConnection.Deactivate()` execute
 and under what condition?** Answer that and the fix follows.
 
 - The harness also once logged a burst of non-busy errors on `raw-nonblocking` mid-sweep that no later run
-  reproduced. It predates the current error reporting, so its exception was never captured.
+  reproduced. It predates the current error reporting, so its exception was never captured. The raw
+  immediate-transaction path is now hardened for a recurrence: it clears a leaked transaction before
+  `BEGIN IMMEDIATE`, never returns a mid-transaction handle to the pool, and throws a `SqliteException`
+  carrying the extended result code and autocommit state — so a repeat would be attributable rather than
+  an opaque `SQLite Error 1: 'not an error'`.

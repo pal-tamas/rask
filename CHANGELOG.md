@@ -107,6 +107,16 @@ them until tagged releases begin.
   `Markup` in scope together make every unqualified use ambiguous. Test-only; no shipped behaviour changes.
 
 ### Fixed
+- **`Rask.SQLite`'s raw immediate-transaction path is hardened against pooled-handle reuse, and its
+  failures are now diagnosable.** `ExecuteInImmediateTransactionAsync` drives `BEGIN`/`COMMIT`/`ROLLBACK`
+  through the pooled native `sqlite3` handle, outside Microsoft.Data.Sqlite's transaction bookkeeping. It
+  now clears a leaked transaction before `BEGIN IMMEDIATE` (a handle that arrived mid-transaction would
+  otherwise hit a non-retryable `SQLITE_ERROR`) and, via a `finally`, never returns a mid-transaction
+  handle to the pool. When a statement genuinely fails, the thrown `SqliteException` now carries the
+  extended result code and the autocommit state (e.g. `SQLite Error 1 (errcode 1, extended 1, autocommit
+  1): '…'`) instead of the opaque `SQLite Error 1: 'not an error'` a bare exec code plus `errmsg` produced
+  when a pooled handle's returned code and error slot disagreed. The retry classifier now compares the
+  primary result code so an extended `BUSY`/`LOCKED` variant is still waited out rather than misread as fatal.
 - **`BsDataGrid`'s pager prev/next buttons had no accessible name.** They render an icon-only child (a
   decorative, `aria-hidden` `BsIcon` chevron), so a screen reader announced two unlabelled buttons on every
   grid with `PageSize > 0` — the numbered items were fine (their text names them), which made it easy to miss

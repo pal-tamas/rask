@@ -34,9 +34,11 @@
     <PackageReference Include="SQLitePCLRaw.core"/>
   </ItemGroup>
 
-  <!-- The EF Core companion shares SqlitePragmaOptions.Validate() (internal). -->
+  <!-- The EF Core companion shares SqlitePragmaOptions.Validate() (internal); the test project drives
+       the internal SqliteBusyRetry retry/diagnostics loop directly. -->
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore"/>
+    <InternalsVisibleTo Include="Rask.SQLite.Tests"/>
   </ItemGroup>
 
 </Project>
