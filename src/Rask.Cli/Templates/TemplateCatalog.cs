@@ -2,19 +2,17 @@ namespace Rask.Cli.Templates;
 
 /// <summary>
 /// A Rask project template: its friendly <see cref="Key"/> (what the user types after
-/// <c>rask new --template</c>), the <c>dotnet new</c> <see cref="ShortName"/> it maps to, and the
-/// opt-in feature <see cref="SupportedFlags"/> that template understands.
+/// <c>rask new --template</c>), a human <see cref="DisplayName"/>, and the opt-in feature
+/// <see cref="SupportedFlags"/> that template understands.
 /// </summary>
 internal sealed record TemplateInfo(
     string Key,
-    string ShortName,
     string DisplayName,
     IReadOnlySet<string> SupportedFlags);
 
 /// <summary>
-/// The set of templates <c>rask new</c> can create, kept in one place so both the command and its
-/// tests read the same source of truth. Mirrors the <c>shortName</c>/symbol declarations in
-/// <c>src/Rask.Templates/content/*/.template.config/template.json</c>.
+/// The set of templates <c>rask new</c> can create, kept in one place so both the command and its tests
+/// read the same source of truth. Every template is generated directly by <see cref="Scaffolding.ProjectGenerator"/>.
 /// </summary>
 internal static class TemplateCatalog
 {
@@ -23,13 +21,13 @@ internal static class TemplateCatalog
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
-        new("server", "rask-server", "Rask Server app",
+        new("server", "Rask Server app",
             new HashSet<string>(["auth", "pwa", "cqrs", "docker"], StringComparer.Ordinal)),
-        new("wasm", "rask-wasm", "Rask browser-WASM SPA",
+        new("wasm", "Rask browser-WASM SPA",
             new HashSet<string>(WebFlags, StringComparer.Ordinal)),
-        new("wasm-hosted", "rask-wasm-hosted", "Rask WASM + ASP.NET host",
+        new("wasm-hosted", "Rask WASM + ASP.NET host",
             new HashSet<string>(WebFlags, StringComparer.Ordinal)),
-        new("native", "rask-native", "Rask native mobile app (iOS + Android)",
+        new("native", "Rask native mobile app (iOS + Android)",
             new HashSet<string>(StringComparer.Ordinal)),
     ];
 

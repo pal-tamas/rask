@@ -1,33 +1,10 @@
 using Rask.Cli.Commands;
-using Rask.Cli.Templates;
 
 namespace Rask.Cli.Tests;
 
 public sealed class NewCommandTests
 {
     private const string WorkingDirectory = "/proj";
-
-    [Fact]
-    public void BuildDotnetNewArguments_composes_name_output_and_flags()
-    {
-        TemplateCatalog.TryGet("server", out var server);
-
-        var args = NewCommand.BuildDotnetNewArguments(server, "MyApp", "out/dir", ["auth", "docker"]);
-
-        Assert.Equal(
-            ["new", "rask-server", "--name", "MyApp", "--output", "out/dir", "--auth", "--docker"],
-            args);
-    }
-
-    [Fact]
-    public void BuildDotnetNewArguments_omits_output_when_absent()
-    {
-        TemplateCatalog.TryGet("wasm", out var wasm);
-
-        var args = NewCommand.BuildDotnetNewArguments(wasm, "Spa", output: null, flags: []);
-
-        Assert.Equal(["new", "rask-wasm", "--name", "Spa"], args);
-    }
 
     [Theory]
     [InlineData("0.17.0", "0.17.0")]      // a published stable pins exactly
@@ -145,31 +122,36 @@ public sealed class NewCommandTests
     }
 
     [Fact]
-    public async Task Non_ported_template_still_delegates_to_dotnet_new_when_installed()
+    public async Task WasmHosted_template_is_generated_directly_without_dotnet_new()
     {
-        var (console, _, runner, command) = Build();
-        runner.CaptureResult = new ProcessResult(0, "These templates matched: rask-server, rask-wasm…", string.Empty);
+        var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["HostedApp", "--template", "wasm-hosted"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["HostedApp", "--template", "wasm-hosted", "--auth"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.DoesNotContain(runner.Invocations, i => !i.Captured && i.Arguments.Contains("install"));
-        Assert.Equal(["new", "rask-wasm-hosted", "--name", "HostedApp"], runner.LastRun!.Arguments);
         Assert.Empty(console.ErrorText);
+        // A three-project solution is written directly under ./HostedApp.
+        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.sln"));
+        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Client/HostedApp.Client.csproj"));
+        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Server/HostedApp.Server.csproj"));
+        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Shared/HostedApp.Shared.csproj"));
+        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Server/Auth/CredentialStore.cs")); // --auth
+        // It restores the solution, and never shells to `dotnet new` / installs Rask.Templates.
+        Assert.Contains(runner.Invocations, i => i.Arguments is ["restore", "/proj/HostedApp/HostedApp.sln"]);
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
     }
 
     [Fact]
-    public async Task Non_ported_template_installs_templates_first_when_missing()
+    public async Task WasmHosted_generation_refuses_to_overwrite_an_existing_solution()
     {
-        var (_, _, runner, command) = Build();
-        runner.CaptureResult = new ProcessResult(0, "No templates installed.", string.Empty);
+        var (console, fs, runner, command) = Build();
+        fs.Seed("/proj/HostedApp/HostedApp.sln", "solution");
 
         var exit = await command.ExecuteAsync(["HostedApp", "--template", "wasm-hosted"], CancellationToken.None);
 
-        Assert.Equal(0, exit);
-        var runs = runner.Invocations.Where(i => !i.Captured).ToArray();
-        Assert.Equal(["new", "install", "Rask.Templates"], runs[0].Arguments);
-        Assert.Equal(["new", "rask-wasm-hosted", "--name", "HostedApp"], runs[1].Arguments);
+        Assert.Equal(1, exit);
+        Assert.Contains("already exists", console.ErrorText, StringComparison.Ordinal);
+        Assert.Empty(runner.Invocations);
     }
 
     [Fact]

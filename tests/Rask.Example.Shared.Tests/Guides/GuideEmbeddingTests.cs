@@ -105,9 +105,9 @@ public sealed class GuideEmbeddingTests
     [Fact]
     public void HighlightCodeBlocks_TokenizesABashFence()
     {
-        // The getting-started guide's `dotnet new …` blocks are ```bash; ColorCode has no shell lexer,
+        // The getting-started guide's `rask new …` blocks are ```bash; ColorCode has no shell lexer,
         // so BashLanguage supplies comment/string/keyword rules.
-        const string markdig = "<pre><code class=\"language-bash\">dotnet new rask -o MyApp # scaffold</code></pre>";
+        const string markdig = "<pre><code class=\"language-bash\">rask new MyApp # scaffold</code></pre>";
 
         var html = Markdown.HighlightCodeBlocks(markdig);
 

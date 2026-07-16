@@ -437,4 +437,138 @@ public sealed class ProjectGeneratorTests
             }
         }
     }
+
+    // ---- wasm-hosted template ----
+
+    // The three-project trio a hosted app always emits: a solution, a Shared class library, the WASM Client
+    // (SPA shell + welcome page + host), and the ASP.NET Server. Slim by default — no demo pages.
+    private static readonly string[] WasmHostedAlwaysPresent =
+    [
+        "App.sln",
+        "App.Shared/App.Shared.csproj", "App.Shared/Contracts.cs",
+        "App.Client/App.Client.csproj", "App.Client/Program.cs", "App.Client/App.cs",
+        "App.Client/wwwroot/index.html", "App.Client/runtimeconfig.template.json",
+        "App.Server/App.Server.csproj", "App.Server/Program.cs", "App.Server/Properties/launchSettings.json",
+    ];
+
+    private static Dictionary<string, string> GenerateWasmHosted(bool auth = false, bool pwa = false, bool docker = false) =>
+        Index(ProjectGenerator.GenerateWasmHosted(Root, "App", auth, pwa, docker, Version));
+
+    [Fact]
+    public void WasmHosted_base_emits_the_three_projects_and_restores_the_solution()
+    {
+        var result = ProjectGenerator.GenerateWasmHosted(Root, "App", auth: false, pwa: false, docker: false, Version);
+        var files = Index(result);
+
+        Assert.Equal(WasmHostedAlwaysPresent.Order(), files.Keys.Order());
+
+        // Restore targets the solution (no root csproj), which pulls all three projects.
+        Assert.Equal("App.sln", result.RestoreTarget);
+        Assert.Equal(["Rask.Wasm", "Rask.Bootstrap", "Rask.Wasm.Hosting"], result.Packages);
+
+        // No opt-in artifacts leak in, and no demo content survives the slimming.
+        Assert.DoesNotContain("App.Client/Auth/Auth.cs", files.Keys);
+        Assert.DoesNotContain("Dockerfile", files.Keys);
+        Assert.DoesNotContain("App.Client/wwwroot/icon.svg", files.Keys);
+        foreach (var demo in new[] { "Counter.cs", "Weather.cs", "WeatherForecast.cs", "LocalWeatherForecastService.cs" })
+        {
+            Assert.DoesNotContain(files.Keys, k => k.Contains(demo, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void WasmHosted_wires_the_projects_with_the_right_namespaces_and_references()
+    {
+        var files = GenerateWasmHosted();
+
+        // Each project owns its Client/Server/Shared namespace; the welcome shell is the shared one, re-homed.
+        Assert.Contains("namespace App.Client;", files["App.Client/App.cs"], StringComparison.Ordinal);
+        Assert.Contains("public sealed class HomePage : Component", files["App.Client/App.cs"], StringComparison.Ordinal);
+        Assert.Contains("namespace App.Shared;", files["App.Shared/Contracts.cs"], StringComparison.Ordinal);
+
+        // Client references Shared.
+        Assert.Contains("App.Shared\\App.Shared.csproj", files["App.Client/App.Client.csproj"], StringComparison.Ordinal);
+
+        // Server references Shared normally + the Client cross-TFM (bundle publish), and pins the version.
+        var server = files["App.Server/App.Server.csproj"];
+        Assert.Contains("<PackageReference Include=\"Rask.Wasm.Hosting\" Version=\"9.9.9\"/>", server, StringComparison.Ordinal);
+        Assert.Contains("App.Shared\\App.Shared.csproj", server, StringComparison.Ordinal);
+        Assert.Contains("App.Client\\App.Client.csproj", server, StringComparison.Ordinal);
+        Assert.Contains("ReferenceOutputAssembly=\"false\"", server, StringComparison.Ordinal);
+        Assert.Contains("<StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>", server, StringComparison.Ordinal);
+        // The static-file host serves the bundle without running components — non-generic UseRask.
+        Assert.Contains("app.UseRask();", files["App.Server/Program.cs"], StringComparison.Ordinal);
+
+        // The sln lists all three projects.
+        var sln = files["App.sln"];
+        foreach (var proj in new[] { "App.Client", "App.Server", "App.Shared" })
+        {
+            Assert.Contains(proj, sln, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void WasmHosted_auth_puts_the_shared_dtos_in_the_shared_project()
+    {
+        var on = GenerateWasmHosted(auth: true);
+        Assert.True(on.ContainsKey("App.Client/Auth/Auth.cs"));
+        Assert.True(on.ContainsKey("App.Client/Auth/LoginPage.cs"));
+        Assert.True(on.ContainsKey("App.Client/Auth/MembersPage.cs"));
+        Assert.True(on.ContainsKey("App.Server/Auth/CredentialStore.cs"));
+
+        // The dedup win: LoginRequest/MeDto live in Shared, referenced by both sides (not redefined).
+        var contracts = on["App.Shared/Contracts.cs"];
+        Assert.Contains("record LoginRequest", contracts, StringComparison.Ordinal);
+        Assert.Contains("record MeDto", contracts, StringComparison.Ordinal);
+        Assert.DoesNotContain("record LoginRequest", on["App.Server/Auth/CredentialStore.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("record LoginRequest", on["App.Client/Auth/Auth.cs"], StringComparison.Ordinal);
+        Assert.Contains("using App.Shared;", on["App.Server/Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("AddAuthentication", on["App.Server/Program.cs"], StringComparison.Ordinal);
+
+        var off = GenerateWasmHosted(auth: false);
+        Assert.DoesNotContain("App.Client/Auth/Auth.cs", off.Keys);
+        Assert.DoesNotContain("record LoginRequest", off["App.Shared/Contracts.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("AddAuthentication", off["App.Server/Program.cs"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WasmHosted_pwa_and_docker_toggle_their_files()
+    {
+        var pwa = GenerateWasmHosted(pwa: true);
+        Assert.True(pwa.ContainsKey("App.Client/wwwroot/icon.svg"));
+        Assert.Contains("serviceWorker", pwa["App.Client/wwwroot/index.html"], StringComparison.Ordinal);
+        Assert.Contains("UsePwa", pwa["App.Client/Program.cs"], StringComparison.Ordinal);
+
+        var noPwa = GenerateWasmHosted(pwa: false);
+        Assert.DoesNotContain("serviceWorker", noPwa["App.Client/wwwroot/index.html"], StringComparison.Ordinal);
+
+        var docker = GenerateWasmHosted(docker: true);
+        Assert.True(docker.ContainsKey("Dockerfile"));
+        Assert.True(docker.ContainsKey(".dockerignore"));
+        // The Dockerfile publishes the Server (which bakes the client bundle), not a static host.
+        Assert.Contains("App.Server.dll", docker["Dockerfile"], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(WasmFlagCombinations))]
+    public void Every_wasm_hosted_flag_combination_holds_the_invariants(bool auth, bool pwa, bool docker)
+    {
+        var files = GenerateWasmHosted(auth, pwa, docker);
+
+        foreach (var expected in WasmHostedAlwaysPresent)
+        {
+            Assert.True(files.ContainsKey(expected), $"[{auth},{pwa},{docker}] missing {expected}");
+        }
+
+        Assert.Equal(auth, files.ContainsKey("App.Client/Auth/Auth.cs"));
+        Assert.Equal(pwa, files.ContainsKey("App.Client/wwwroot/icon.svg"));
+        Assert.Equal(docker, files.ContainsKey("Dockerfile"));
+
+        // The placeholder namespace is rewritten in every file's content and path.
+        foreach (var (path, content) in files)
+        {
+            Assert.DoesNotContain("Company.RaskServer", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("Company.RaskServer", path, StringComparison.Ordinal);
+        }
+    }
 }

@@ -25,21 +25,21 @@ public sealed class InstallTabs : Component
     {
         1 => Pre()[Code()[
             Span(Class: "cmt")["# standalone browser-WASM SPA (add --pwa for offline)\n"],
-            Line("$", " dotnet new install Rask.Templates"),
-            Line("$", " dotnet new rask-wasm -n MyApp --pwa"),
-            Span(Class: "prompt")["$"], " cd MyApp && dotnet run"
+            Line("$", " dotnet tool install -g Rask.Cli"),
+            Line("$", " rask new MyApp --template wasm --pwa"),
+            Span(Class: "prompt")["$"], " cd MyApp && rask dev"
         ]],
         2 => Pre()[Code()[
             Span(Class: "cmt")["# native iOS + Android app (WebView hybrid, preview)\n"],
-            Line("$", " dotnet new install Rask.Templates"),
-            Line("$", " dotnet new rask-native -n MyApp"),
+            Line("$", " dotnet tool install -g Rask.Cli"),
+            Line("$", " rask new MyApp --template native"),
             Span(Class: "prompt")["$"], " dotnet build -t:Run -f net10.0-android"
         ]],
         _ => Pre()[Code()[
             Span(Class: "cmt")["# ASP.NET live-server app\n"],
-            Line("$", " dotnet new install Rask.Templates"),
-            Line("$", " dotnet new rask-server -n MyApp"),
-            Span(Class: "prompt")["$"], " cd MyApp && dotnet run"
+            Line("$", " dotnet tool install -g Rask.Cli"),
+            Line("$", " rask new MyApp"),
+            Span(Class: "prompt")["$"], " cd MyApp && rask dev"
         ]]
     };
 

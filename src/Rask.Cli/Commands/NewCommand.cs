@@ -4,10 +4,10 @@ using Rask.Cli.Templates;
 namespace Rask.Cli.Commands;
 
 /// <summary>
-/// <c>rask new</c> — scaffold a Rask project. The CLI is the scaffolding authority: the <c>server</c>,
-/// <c>wasm</c> and <c>native</c> templates are generated directly (files written + package refs baked at the
-/// CLI's own version + <c>dotnet restore</c>), with no <c>dotnet new</c> / Rask.Templates dependency. The one
-/// remaining template (<c>wasm-hosted</c>) still delegates to <c>dotnet new</c> until its generator lands.
+/// <c>rask new</c> — scaffold a Rask project. The CLI is the scaffolding authority: every template
+/// (<c>server</c>, <c>wasm</c>, <c>wasm-hosted</c>, <c>native</c>) is generated directly — files written +
+/// package refs baked at the CLI's own version + <c>dotnet restore</c> — with no <c>dotnet new</c> /
+/// Rask.Templates dependency.
 /// </summary>
 internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
@@ -103,24 +103,22 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 cancellationToken).ConfigureAwait(false);
         }
 
-        // The remaining ported web templates are generated directly by the CLI; wasm-hosted still goes through
-        // dotnet new + Rask.Templates until its generator lands.
-        if (template.Key is "server" or "wasm")
-        {
-            return await GenerateDirectAsync(
-                template, name, parsed.Option("output"),
-                (dir, version) =>
+        // Every web template is generated directly by the CLI (server, wasm, wasm-hosted). native is handled
+        // above with its own shape; the key here is one of those three (validated by TemplateCatalog.TryGet).
+        return await GenerateDirectAsync(
+            template, name, parsed.Option("output"),
+            (dir, version) =>
+            {
+                bool auth = requestedFlags.Contains("auth"), pwa = requestedFlags.Contains("pwa"),
+                    cqrs = requestedFlags.Contains("cqrs"), docker = requestedFlags.Contains("docker");
+                return template.Key switch
                 {
-                    bool auth = requestedFlags.Contains("auth"), pwa = requestedFlags.Contains("pwa"),
-                        cqrs = requestedFlags.Contains("cqrs"), docker = requestedFlags.Contains("docker");
-                    return template.Key == "wasm"
-                        ? ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version)
-                        : ProjectGenerator.GenerateServer(dir, name, auth, pwa, cqrs, docker, version);
-                },
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        return await DelegateToDotnetNewAsync(template, name, parsed.Option("output"), requestedFlags, cancellationToken).ConfigureAwait(false);
+                    "wasm" => ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version),
+                    "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(dir, name, auth, pwa, docker, version),
+                    _ => ProjectGenerator.GenerateServer(dir, name, auth, pwa, cqrs, docker, version),
+                };
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<int> GenerateDirectAsync(
@@ -129,15 +127,22 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     {
         // rask new MyApp → ./MyApp/ ; --output overrides the destination directory.
         var targetDirectory = Scaffold.TargetDirectory(_workingDirectory, output, name);
-        var csprojPath = Path.Combine(targetDirectory, name + ".csproj");
-        if (_fileSystem.FileExists(csprojPath))
-        {
-            Console.Error.WriteLine($"A project already exists at '{targetDirectory}' ({name}.csproj). Choose another name or --output.");
-            return 1;
-        }
 
+        // build() is pure (in-memory strings), so it's safe to run before the existence check — we need its
+        // RestoreTarget to know what to guard/restore. Single-project templates restore {name}.csproj at the
+        // root; a multi-project template (wasm-hosted) has no root csproj and restores its {name}.sln instead.
         var version = ResolvePackageVersion(CliMetadata.Version);
         var result = build(targetDirectory, version);
+
+        var restoreTarget = result.RestoreTarget is { } relative
+            ? Path.Combine(targetDirectory, relative)
+            : Path.Combine(targetDirectory, name + ".csproj");
+        if (_fileSystem.FileExists(restoreTarget))
+        {
+            var existing = Path.GetFileName(restoreTarget);
+            Console.Error.WriteLine($"A project already exists at '{targetDirectory}' ({existing}). Choose another name or --output.");
+            return 1;
+        }
 
         Console.Out.WriteLine($"Creating {template.DisplayName} '{name}'…");
         foreach (var file in result.Files)
@@ -152,9 +157,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Console.Out.WriteLine($"  + {Path.GetRelativePath(_workingDirectory, file.Path)}");
         }
 
-        // Package refs are already baked into the csproj at the pinned version; restore pulls them so the
+        // Package refs are already baked into the csproj(s) at the pinned version; restore pulls them so the
         // project builds immediately. A restore failure is a warning — the files are written and correct.
-        var restore = await _process.RunAsync("dotnet", ["restore", csprojPath], targetDirectory, cancellationToken).ConfigureAwait(false);
+        var restore = await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false);
         if (restore != 0)
         {
             Console.Error.WriteLine("  Couldn't restore automatically — run 'dotnet restore' in the project directory.");
@@ -169,26 +174,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         return 0;
     }
 
-    private async Task<int> DelegateToDotnetNewAsync(
-        TemplateInfo template, string name, string? output, IReadOnlyList<string> flags, CancellationToken cancellationToken)
-    {
-        var dotnetArgs = BuildDotnetNewArguments(template, name, output, flags);
-
-        if (!await TemplateProbe.AreInstalledAsync(_process, cancellationToken).ConfigureAwait(false))
-        {
-            Console.Out.WriteLine("Rask templates were not found — installing the Rask.Templates package…");
-            var install = await _process.RunAsync("dotnet", ["new", "install", "Rask.Templates"], null, cancellationToken).ConfigureAwait(false);
-            if (install != 0)
-            {
-                Console.Error.WriteLine("Failed to install Rask.Templates. Run 'dotnet new install Rask.Templates' and retry.");
-                return install;
-            }
-        }
-
-        Console.Out.WriteLine($"Creating {template.DisplayName} '{name}'…");
-        return await _process.RunAsync("dotnet", dotnetArgs, null, cancellationToken).ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Resolve the package version to pin in a generated project: the CLI's own version when it's a published
     /// stable, else the latest-stable fallback (a dev/CI prerelease isn't on NuGet). Pure — unit-tested directly.
@@ -199,24 +184,4 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         && cliVersion != "0.0.0"
             ? cliVersion
             : LatestStableFallback;
-
-    /// <summary>Build the <c>dotnet new</c> argument list. Pure and deterministic, so it is unit-tested directly.</summary>
-    internal static IReadOnlyList<string> BuildDotnetNewArguments(
-        TemplateInfo template, string name, string? output, IReadOnlyList<string> flags)
-    {
-        var args = new List<string> { "new", template.ShortName, "--name", name };
-
-        if (!string.IsNullOrWhiteSpace(output))
-        {
-            args.Add("--output");
-            args.Add(output);
-        }
-
-        foreach (var flag in flags)
-        {
-            args.Add("--" + flag);
-        }
-
-        return args;
-    }
 }

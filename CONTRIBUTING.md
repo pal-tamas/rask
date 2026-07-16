@@ -50,7 +50,7 @@ a `[DynamicallyAccessedMembers]` annotation or a justified `[UnconditionalSuppre
 | `src/Rask.Core/` | Rendering, live diff codec, routing, lifecycle, scoped CSS/JS, primitives. |
 | `src/Rask.Generators/` | Roslyn factory/route generators and analyzers (RASK001–029). |
 | `src/Rask.Server/`, `src/Rask.Wasm/`, `src/Rask.Wasm.Hosting/` | The three hosts. |
-| `src/Rask.Templates/` | `dotnet new` templates (`rask-server`, `rask-wasm`, `rask-wasm-hosted`). |
+| `src/Rask.Cli/` | The `rask` CLI — scaffolds every project via `rask new` (server, wasm, wasm-hosted, native). |
 | `samples/` | Runnable feature showcases. | 
 | `tests/`, `benchmarks/` | Test suites and render hot-path baselines. |
 

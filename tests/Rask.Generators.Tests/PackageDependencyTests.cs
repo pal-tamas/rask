@@ -7,9 +7,9 @@ namespace Rask.Generators.Tests;
 //
 // The regression: Rask.Wasm.Hosting referenced Rask.Core (IsPackable=false) without PrivateAssets="all",
 // so its nuspec listed `<dependency id="Rask.Core" version="1.0.0" />` — an id that exists on no feed, at
-// a version MinVer never stamped. Every restore of the published package died with NU1101, which made the
-// wasm-hosted template unusable from NuGet. Nothing caught it: the in-repo build resolves Rask.Core through
-// the ProjectReference, so only a restore of the *published* package ever failed.
+// a version MinVer never stamped. Every restore of the published package died with NU1101, which made a
+// wasm-hosted app (which references Rask.Wasm.Hosting) unrestorable from NuGet. Nothing caught it: the
+// in-repo build resolves Rask.Core through the ProjectReference, so only a restore of the *published* package failed.
 //
 // Unpackable projects reach consumers by being bundled into a host package's lib/ folder (see
 // _RaskAddCoreToLib in Rask.Wasm/Rask.Server), which is exactly what PrivateAssets="all" pairs with. This
@@ -69,9 +69,9 @@ public class PackageDependencyTests
             + "with NU1101:\n  " + string.Join("\n  ", offenders));
     }
 
-    // Only real sources. Rask.Templates copies its `dotnet new` content — Company.RaskWasm.csproj and friends —
-    // into obj/ at build time, so an all-directories scan sees every template project twice and the lookup below
-    // throws on the duplicate name rather than reporting anything. Build output is never the thing under test.
+    // Only real sources — never anything a build copied under bin/ or obj/. An all-directories scan can otherwise
+    // pick up staged/intermediate csproj copies and see a project twice, so the lookup below would throw on the
+    // duplicate name rather than report anything. Build output is never the thing under test.
     private static bool IsSource(string csprojPath) =>
         !csprojPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
             .Any(segment =>

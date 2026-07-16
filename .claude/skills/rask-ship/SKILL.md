@@ -68,7 +68,7 @@ If the change is visible to app authors (new/changed component, API, prop, defau
   journey in `tests/Rask.Examples.E2E.Tests` — every `samples/` change needs E2E).
 - **Update the docs**: the relevant `docs/*.md` guide, the matching section of `README.md`, and
   `docs/diagnostics.md` if a RASK0xx changed. Keep the AI guides current too
-  (`docs/ai-agents.md`, root `llms.txt`, and the `AGENTS.md` baked into `src/Rask.Templates`).
+  (`docs/ai-agents.md`, root `llms.txt`, and the `AGENTS.md` in the repo root).
 - Nothing user-facing ships without a runnable example + updated docs.
 
 ## 4. Benchmarks (framework/render-hotpath changes only)
