@@ -67,6 +67,7 @@ rask generate page Products                  # → Features/Products/ProductsPag
 rask generate page Products --route /catalog # a custom route
 rask generate component PriceTag             # → Components/PriceTag.cs
 rask generate component PriceTag -o Widgets  # into a chosen folder
+rask generate job SendWelcomeEmail           # → Jobs/SendWelcomeEmail.cs (IJob + handler)
 rask generate page Orders --dry-run          # print what would be written, write nothing
 
 # A full CQRS + EF Core CRUD vertical slice
@@ -82,6 +83,7 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 |----------|-------|-------------------|
 | `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
 | `component <Name>` | `Components/<Name>.cs` — a plain `Component` | `<Name>` in `<Root>.Components` |
+| `job <Name>` | `Jobs/<Name>.cs` — a background job: an `IJob` record + its `ICommandHandler` (adds the `Rask.Jobs` / `Rask.Cqrs` packages). Alias: `rask g j` | `<Name>` in `<Root>.Jobs` |
 | `feature <Name> <field:type> …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id) with **value objects** for required strings (built-in validation), an EF `IEntityTypeConfiguration`, a `DbContext`, **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
 
 | Option | Meaning |

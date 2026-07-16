@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Jobs</PackageId>
+    <Title>Rask.Jobs — durable background jobs on your database</Title>
+    <Description>Durable background jobs for a Rask app, stored in its own database — no broker, no Redis. Enqueue a job (an `IJob`, dispatched to its Rask.Cqrs `ICommandHandler`) and a background `JobProcessor` polls the table and runs it — at-least-once, with exponential-backoff retries. Supports delayed (run-at) jobs and durable interval-recurring jobs. A source generator registers each job type for reflection-free lookup. Server-side; pairs with Rask.Cqrs and EF Core.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — a standalone server-side job queue. -->
+    <PackageTags>background-jobs jobs queue scheduler recurring retry entity-framework-core efcore background-service sqlite dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+  </ItemGroup>
+
+  <!-- The registration source generator is referenced as an analyzer (no runtime assembly reference). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Jobs.Generators\Rask.Jobs.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Jobs;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+  <!-- Pack the source generator into analyzers/dotnet/cs/ so NuGet consumers run it. -->
+  <ItemGroup>
+    <None Include="..\Rask.Jobs.Generators\bin\$(Configuration)\netstandard2.0\Rask.Jobs.Generators.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+  </ItemGroup>
+
+</Project>
