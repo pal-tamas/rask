@@ -1047,6 +1047,56 @@ window.__raskPip = window.__raskPip || {
     exit: () => document.pictureInPictureElement ? document.exitPictureInPicture() : Promise.resolve()
 };
 
+// Web Locks (driven by IWebLocks) — coordinate work across the tabs/workers of one origin. C# mints the
+// id and holds the lock by deferring release() until its `work` callback finishes: navigator.locks.request
+// keeps the lock for the lifetime of the promise its callback returns, so we resolve `request` as soon as
+// the lock is granted (or false when ifAvailable can't grant it) and park the held promise's resolver under
+// the id until release(id) fires. Shared here (not WASM-only): navigator.locks needs no user gesture, so it
+// works over the Server client too.
+window.__raskLocks = window.__raskLocks || (() => {
+    const releasers = new Map(); // id -> resolve() of the held promise
+    return {
+        isSupported: () => !!(navigator.locks && navigator.locks.request),
+        request: (id, name, mode, ifAvailable) =>
+            new Promise((resolveGranted, rejectGranted) => {
+                const opts = {mode: mode || "exclusive"};
+                if (ifAvailable) {
+                    opts.ifAvailable = true;
+                }
+                navigator.locks.request(name, opts, (lock) => {
+                    if (!lock) {
+                        resolveGranted(false); // ifAvailable and the lock was already held
+                        return undefined;
+                    }
+                    resolveGranted(true);
+                    // Hold the lock until C# calls release(id); its promise stays pending until then.
+                    return new Promise((release) => releasers.set(id, release));
+                }).catch((e) => {
+                    releasers.delete(id);
+                    rejectGranted(e);
+                });
+            }),
+        release: (id) => {
+            const release = releasers.get(id);
+            if (release) {
+                releasers.delete(id);
+                release();
+            }
+        },
+        query: () => {
+            if (!navigator.locks || !navigator.locks.query) {
+                return Promise.resolve([]);
+            }
+            return navigator.locks.query().then((state) => {
+                const out = [];
+                (state.held || []).forEach((l) => out.push({name: l.name, mode: l.mode, clientId: l.clientId, held: true}));
+                (state.pending || []).forEach((l) => out.push({name: l.name, mode: l.mode, clientId: l.clientId, held: false}));
+                return out;
+            });
+        }
+    };
+})();
+
 
 // ----- Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) -----
 // Transport-agnostic PWA framework helpers, spliced into BOTH the Server client (rask.js) and the WASM

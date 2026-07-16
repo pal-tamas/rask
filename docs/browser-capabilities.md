@@ -33,6 +33,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`IIndexedDb`](apis/indexeddb.md) | ✅ | ✅ | ✅ | — |
 | [`IFileSystemAccess`](apis/file-system-access.md) | ✅ | ✅ | ✅ | — |
 | [`IWebAuthn`](apis/webauthn.md) | ✅ | ✅ | ✅ | — |
+| [`IWebLocks`](apis/web-locks.md) | ✅ | ✅ | ✅ | — |
 | [`IBroadcastChannel`](apis/broadcast-channel.md) | ✅ | ✅ | ✅ | — |
 | [`IIntersectionObserver`](apis/intersection-observer.md) | ✅ | ✅ | ✅ | — |
 | [`IResizeObserver`](apis/resize-observer.md) | ✅ | ✅ | ✅ | — |
