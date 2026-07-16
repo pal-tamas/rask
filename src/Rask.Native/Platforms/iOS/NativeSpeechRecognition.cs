@@ -46,14 +46,17 @@ internal sealed class NativeSpeechRecognition : ISpeechRecognition
         private readonly SFSpeechRecognizer _recognizer;
         private readonly Func<RecognitionResult, Task> _onResult;
         private readonly bool _interim;
+        private readonly bool _continuous;
         private SFSpeechAudioBufferRecognitionRequest? _request;
         private SFSpeechRecognitionTask? _task;
+        private bool _stopped;
         private bool _disposed;
 
         public Session(Func<RecognitionResult, Task> onResult, SpeechRecognitionOptions? options)
         {
             _onResult = onResult;
             _interim = options?.InterimResults ?? false;
+            _continuous = options?.Continuous ?? false;
             _recognizer = options?.Lang is { } lang
                 ? new SFSpeechRecognizer(NSLocale.FromLocaleIdentifier(lang))
                 : new SFSpeechRecognizer();
@@ -73,6 +76,13 @@ internal sealed class NativeSpeechRecognition : ISpeechRecognition
                 if (result is not null)
                 {
                     _ = _onResult(new RecognitionResult(result.BestTranscription.FormattedString, result.Final, 0));
+
+                    // Match the browser/Android contract: without Continuous, stop after the first final
+                    // utterance rather than streaming until DisposeAsync (AVAudioEngine has no built-in stop).
+                    if (result.Final && !_continuous)
+                    {
+                        StopListening();
+                    }
                 }
             });
 
@@ -87,6 +97,20 @@ internal sealed class NativeSpeechRecognition : ISpeechRecognition
             _engine.StartAndReturnError(out _);
         }
 
+        private void StopListening()
+        {
+            if (_stopped)
+            {
+                return;
+            }
+
+            _stopped = true;
+            _engine.InputNode.RemoveTapOnBus(0);
+            _engine.Stop();
+            _request?.EndAudio();
+            _task?.Cancel();
+        }
+
         public ValueTask DisposeAsync()
         {
             if (_disposed)
@@ -95,10 +119,7 @@ internal sealed class NativeSpeechRecognition : ISpeechRecognition
             }
 
             _disposed = true;
-            _engine.InputNode.RemoveTapOnBus(0);
-            _engine.Stop();
-            _request?.EndAudio();
-            _task?.Cancel();
+            StopListening();
             return default;
         }
     }
