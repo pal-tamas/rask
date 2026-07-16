@@ -19,6 +19,13 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     // Placeholder shown in the trigger box when there is no value.
     public string? Placeholder { get; set; }
 
+    // Localizable accessible names for the picker chrome (month-nav buttons, time-column headings, clear
+    // button) that has no CultureInfo source. Null → English defaults. See BsPickerLabels.
+    public BsPickerLabels? Labels { get; set; }
+
+    // The labels to render with — the caller's overrides, or the shared English default.
+    private protected BsPickerLabels PickerLabels => Labels ?? BsPickerLabels.Default;
+
     // Popover visibility — pure live-diff view state, opened on focus, closed by the backdrop or Escape.
     // The value itself lives in the bound model / controlled Value, never here.
     private protected bool Open;
@@ -180,7 +187,7 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
             ? BsCloseButton(
                 Class: BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
                     Position.TranslateMiddleY, Margin.End(2), "bs-picker-clear", Open ? "bs-clear-open" : null),
-                AriaLabel: "Clear",
+                AriaLabel: PickerLabels.Clear,
                 OnClickAsync: clearAsync)
             : null;
 
@@ -240,6 +247,31 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
 
     private protected static readonly IReadOnlyDictionary<string, string?> Hidden =
         new Dictionary<string, string?> { ["hidden"] = "true" };
+
+    // Shared grid keyboard navigation, used by BsDatePicker and BsDateTimePicker (the box keeps DOM focus;
+    // aria-activedescendant tracks the cursor). Returns the moved cursor for a grid-movement key (the caller
+    // clamps to its own range), or null when the key isn't a grid move. Arrows move a day/week, PageUp/Down a
+    // month (Shift a year), Home/End the culture week edge. Left/Right are deliberately NOT contained in the
+    // client (rask-dom.js) so the editable box keeps its text caret; the day cursor moving alongside is benign.
+    private protected DateOnly? GridMove(DateOnly cursor, KeyboardEventArgs e) => e.Key switch
+    {
+        "ArrowLeft" => cursor.AddDays(-1),
+        "ArrowRight" => cursor.AddDays(1),
+        "ArrowUp" => cursor.AddDays(-7),
+        "ArrowDown" => cursor.AddDays(7),
+        "PageUp" => e.Shift ? cursor.AddYears(-1) : cursor.AddMonths(-1),
+        "PageDown" => e.Shift ? cursor.AddYears(1) : cursor.AddMonths(1),
+        "Home" => PickerParts.WeekStart(cursor, Culture),
+        "End" => PickerParts.WeekEnd(cursor, Culture),
+        _ => null,
+    };
+
+    // A closed, focused grid picker opens on a navigation key. Enter and Space are intentionally excluded:
+    // Enter in a form-bound text box is the form's submit key (and reopening while submitting is contradictory),
+    // and Space is a literal text character the client can't suppress without breaking typing.
+    private protected static bool IsGridOpenKey(KeyboardEventArgs e) =>
+        e.Key is "ArrowDown" or "ArrowUp" or "ArrowLeft" or "ArrowRight"
+            or "PageUp" or "PageDown" or "Home" or "End";
 
     // The popover wrapper class — always a .dropdown-menu, gaining .show + d-block only while Open.
     private protected string? MenuClass() =>

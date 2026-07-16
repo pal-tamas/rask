@@ -19,6 +19,52 @@ BsTimePicker(() => model.At)
 BsDateTimePicker(() => model.When, Native: true)   // native OS control
 ```
 
+## Time range, seconds & steps
+
+`BsTimePicker` takes `Min`/`Max` (`TimeOnly`) to bound the clock, and `MinuteStep` (default 5) to
+control the minute list. Set `Seconds: true` to add a seconds column stepped by `SecondStep` (default
+5). `BsDateTimePicker` also takes `Seconds`/`SecondStep`; its calendar honours the `DateTime` `Min`/`Max`
+day-by-day, and on a boundary day the time columns grey out the out-of-range hours/minutes. Out-of-range
+values are always clamped back into `[Min, Max]` on write, whatever path produced them.
+
+```csharp
+BsTimePicker(() => model.At, Min: new TimeOnly(9, 0), Max: new TimeOnly(17, 0), Seconds: true, SecondStep: 15)
+BsDateTimePicker(() => model.When, Seconds: true)
+```
+
+## Keyboard
+
+The calendar and clock are fully keyboard-operable (WAI-ARIA combobox + grid pattern — the box keeps
+focus and `aria-activedescendant` tracks a virtual cursor). A first navigation key opens the popover:
+
+| Key | Date / date-time grid | Time columns |
+| --- | --- | --- |
+| `←` / `→` | previous / next day | — |
+| `↑` / `↓` | previous / next week | nudge the minute by `MinuteStep` |
+| `PageUp` / `PageDown` | previous / next month (`Shift` → year) | nudge the hour |
+| `Home` / `End` | start / end of the week | — |
+| `Enter` | select the navigated day | commit / close |
+| `Escape` | close | close |
+
+Typing into the box still commits live in parallel, so both entry styles work. `Enter` selects only a day
+you actually arrow-navigated to, so pressing it after clearing a nullable field leaves the field blank; and
+`←`/`→` still move the text caret (the day cursor moves alongside).
+
+## Localizing the chrome
+
+The weekday/month names and the per-date accessible labels come from `CultureInfo.CurrentCulture`
+automatically. The remaining chrome that has no culture source — the month-nav buttons, the time-column
+headings and the clear button — is translated with `Labels`:
+
+```csharp
+BsDatePicker(() => model.StartsOn, Labels: new BsPickerLabels
+{
+    PreviousMonth = "Vorheriger Monat",
+    NextMonth = "Nächster Monat",
+    Clear = "Löschen",
+})
+```
+
 ## Live example
 
 The `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker` calendar/clock controls:
