@@ -21,6 +21,17 @@ them until tagged releases begin.
   opt out with `BsColumn.Hideable`/`Reorderable`. New **RASK034** warns when a chooser column has no `Field`
   (so it could never be shown or reordered). Documented in `docs/data-grid.md`; the showcase gains a columns
   demo. A grid that uses none of this renders byte-identical markup and allocates the same as before.
+- **`BsTimePicker` keyboard parity — `Home`/`End` and a seconds nudge.** Rounding out the picker keyboard
+  story: `Home`/`End` jump the clock to the earliest/latest selectable time (the `Min`/`Max` bound, or the
+  day edge — `00:00`, and `23:59`/`23:59:59` with seconds), and when `Seconds` is on, `Shift`+`ArrowUp`/
+  `ArrowDown` nudges the second by `SecondStep` (plain arrows stay on the minute, `PageUp`/`PageDown` on the
+  hour). Every nudge still clamps to `[Min, Max]`. Documented in `docs/bootstrap-pickers.md`.
+
+### Fixed
+- **`BsDataGrid` group panel: dragging a chip out of the panel now ungroups that level.** The gesture the docs
+  describe was wired to `dragstart`/drop but never to `dragend`, so releasing a chip on empty space did nothing
+  and the only way to remove a level was its `×` button. The chip's `dragend` now runs the drag-out handler —
+  a no-op after a real drop (which already consumed the drag), an ungroup when the chip was released on nothing.
 
 ## [0.18.0] - 2026-07-16
 
@@ -69,12 +80,6 @@ them until tagged releases begin.
   project doesn't reference `Microsoft.EntityFrameworkCore.Design` (which the tools require) it adds the
   package for you rather than leaving EF's terse message. Closes the gap between scaffolding an EF-backed
   feature and having a live schema. Documented in `docs/cli.md`.
-
-### Fixed
-- **`BsDataGrid` group panel: dragging a chip out of the panel now ungroups that level.** The gesture the docs
-  describe was wired to `dragstart`/drop but never to `dragend`, so releasing a chip on empty space did nothing
-  and the only way to remove a level was its `×` button. The chip's `dragend` now runs the drag-out handler —
-  a no-op after a real drop (which already consumed the drag), an ungroup when the chip was released on nothing.
 
 ### Security
 - **SQLite is no longer vulnerable to CVE-2025-6965 — the shipped native library moves from SQLite 3.49.1 to

@@ -7,7 +7,8 @@ namespace Rask.Bootstrap;
 // minute lists (plus seconds when Seconds:true), bound to a TimeOnly (or TimeOnly?). Open/close and
 // selection are pure live-diff view state — no bootstrap.js. Minutes step by MinuteStep (default 5),
 // seconds by SecondStep (default 5). Min/Max grey out-of-range items and clamp every write. Keyboard: a
-// first nav key opens; ArrowUp/Down nudge the minute by a step, PageUp/Down nudge the hour, Enter/Escape
+// first nav key opens; ArrowUp/Down nudge the minute by a step (Shift+ArrowUp/Down the second when Seconds
+// is on), PageUp/Down nudge the hour, Home/End jump to the earliest/latest selectable time, Enter/Escape
 // close; typing into the box also commits live. Labels localizes the column/clear aria-labels. Native:true
 // falls back to <input type=time>.
 //   Bound:      BsTimePicker(() => model.Alarm, Label: "Alarm", MinuteStep: 15)
@@ -20,8 +21,9 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
     public bool? Seconds { get; set; }
     public int? SecondStep { get; set; }
 
-    // The effective minute step (default 5), shared by the render and the keyboard nudge.
+    // The effective minute/second steps (default 5), shared by the render and the keyboard nudge.
     private int Step => MinuteStep is { } s && s > 0 ? s : 5;
+    private int SecStep => SecondStep is { } ss && ss > 0 ? ss : 5;
 
     protected override Component? Render()
     {
@@ -35,7 +37,7 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
         var gridId = (controlId ?? FallbackPrefix("bstp")) + "-time";
         var selected = ReadTime(b);
         var step = Step;
-        var secStep = SecondStep is { } ss && ss > 0 ? ss : 5;
+        var secStep = SecStep;
         var showSeconds = Seconds is true;
 
         var acc = b.Accessor;
@@ -68,7 +70,8 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
     private static TimeOnly? ReadTime(in Bound b) =>
         (object?)b.Current is TimeOnly t ? t : null;
 
-    // A first nav key opens; then ArrowUp/Down nudge the minute by a step, PageUp/Down nudge the hour,
+    // A first nav key opens; then ArrowUp/Down nudge the minute by a step (Shift+ArrowUp/Down the second when
+    // Seconds is on), PageUp/Down nudge the hour, Home/End jump to the earliest/latest selectable time, and
     // Enter/Escape close. Nudges wrap within the day and clamp to [Min,Max]; typing commits live separately.
     private async Task OnKeyAsync(
         ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,
@@ -78,7 +81,7 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
         {
             // Enter and Space are excluded: Enter is the form's submit key (and the client only contains it
             // while the popover is already open), and Space is a literal text character in the editable box.
-            if (e.Key is "ArrowDown" or "ArrowUp" or "PageDown" or "PageUp")
+            if (e.Key is "ArrowDown" or "ArrowUp" or "PageDown" or "PageUp" or "Home" or "End")
             {
                 Open = true;
             }
@@ -87,6 +90,7 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
         }
 
         var step = Step;
+        var seconds = Seconds is true;
         var cur = selected ?? new TimeOnly(0, 0);
         switch (e.Key)
         {
@@ -96,10 +100,14 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
                 Text = null;
                 break;
             case "ArrowDown":
-                await NudgeAsync(acc, ctx, fid, cur.AddMinutes(step)).ConfigureAwait(false);
+                await NudgeAsync(acc, ctx, fid,
+                    seconds && e.Shift ? cur.Add(TimeSpan.FromSeconds(SecStep)) : cur.AddMinutes(step))
+                    .ConfigureAwait(false);
                 break;
             case "ArrowUp":
-                await NudgeAsync(acc, ctx, fid, cur.AddMinutes(-step)).ConfigureAwait(false);
+                await NudgeAsync(acc, ctx, fid,
+                    seconds && e.Shift ? cur.Add(TimeSpan.FromSeconds(-SecStep)) : cur.AddMinutes(-step))
+                    .ConfigureAwait(false);
                 break;
             case "PageDown":
                 await NudgeAsync(acc, ctx, fid, cur.AddHours(1)).ConfigureAwait(false);
@@ -107,8 +115,20 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
             case "PageUp":
                 await NudgeAsync(acc, ctx, fid, cur.AddHours(-1)).ConfigureAwait(false);
                 break;
+            case "Home":
+                await NudgeAsync(acc, ctx, fid, Earliest()).ConfigureAwait(false);
+                break;
+            case "End":
+                await NudgeAsync(acc, ctx, fid, Latest()).ConfigureAwait(false);
+                break;
         }
     }
+
+    // The earliest/latest selectable time for Home/End: the Min/Max bound, or the day edge (00:00, and 23:59
+    // or 23:59:59 with seconds). NudgeAsync clamps + normalizes, so these are exact whatever the precision.
+    private TimeOnly Earliest() => Min ?? new TimeOnly(0, 0, 0);
+
+    private TimeOnly Latest() => Max ?? (Seconds is true ? new TimeOnly(23, 59, 59) : new TimeOnly(23, 59));
 
     // Live per-keystroke parse of the typed text in the current culture; empty clears a nullable picker.
     // An out-of-[Min,Max] value is ignored (keep typing) rather than committed.

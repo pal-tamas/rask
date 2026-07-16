@@ -557,6 +557,13 @@ public abstract partial class SharedSmokeTests
         await kbTime.PressAsync("ArrowDown");
         await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("09:15",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Home/End jump to the day edge (this picker has no Min/Max): End → 23:59, Home → 00:00.
+        await kbTime.PressAsync("End");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("23:59",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await kbTime.PressAsync("Home");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("00:00",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Page.Locator(".dropdown:has(#pick-time) .position-fixed").DispatchEventAsync("click");
 
         // Nullable picker × clears to null: set a deadline, then click the × — the readout's last segment
