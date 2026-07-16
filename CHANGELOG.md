@@ -70,6 +70,12 @@ them until tagged releases begin.
   package for you rather than leaving EF's terse message. Closes the gap between scaffolding an EF-backed
   feature and having a live schema. Documented in `docs/cli.md`.
 
+### Fixed
+- **`BsDataGrid` group panel: dragging a chip out of the panel now ungroups that level.** The gesture the docs
+  describe was wired to `dragstart`/drop but never to `dragend`, so releasing a chip on empty space did nothing
+  and the only way to remove a level was its `×` button. The chip's `dragend` now runs the drag-out handler —
+  a no-op after a real drop (which already consumed the drag), an ungroup when the chip was released on nothing.
+
 ### Security
 - **SQLite is no longer vulnerable to CVE-2025-6965 — the shipped native library moves from SQLite 3.49.1 to
   3.50.4.** `Microsoft.Data.Sqlite` and EF Core Sqlite pin the SQLitePCLRaw `2.1.11` family, whose

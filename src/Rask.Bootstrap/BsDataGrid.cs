@@ -1174,7 +1174,10 @@ public sealed class BsDataGrid<T> : BsBlock
                 "badge text-bg-secondary"),
             Draggable: true,
             OnDragStart: () => _dragField = field,
-            OnDragEnd: () => _dragField = null,
+            // dragend fires after any drop, so this is the "drag the chip out to ungroup" gesture: dropping on
+            // the panel or another chip already consumed _dragField (DropOnAsync nulled it), leaving this a
+            // no-op; dropping on nothing leaves it set, and DropOutsideAsync removes the level.
+            OnDragEndAsync: () => DropOutsideAsync(),
             OnDragOver: () => { },
             OnDropAsync: () => DropOnAsync(field))[
             Span()[column.Title],
