@@ -19,6 +19,14 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Fixed
+- **`PackageDependencyTests` crashed instead of running, once `Rask.Templates` had been packed.** The guard
+  added alongside the `PrivateAssets="all"` packaging fix scanned `src/` for `*.csproj` with
+  `SearchOption.AllDirectories` — which also reaches `src/Rask.Templates/obj/`, where packing copies the
+  `dotnet new` content. Every template project was therefore found twice and the name lookup threw
+  `An item with the same key has already been added. Key: Company.RaskWasm` before a single reference was
+  checked, so the invariant it guards was silently unenforced on any machine that had packed. The scan now
+  skips `bin`/`obj` segments: build output is never the thing under test. The guard itself is unchanged and
+  still names the offender when `PrivateAssets="all"` is removed from `Rask.Wasm.Hosting`.
 - **Flaky E2E: `JwtServerAuthExampleTests.Journey_JwtLogin_AdminRoundTrip_ThenNonAdmin`.** It asserted the JWT
   isn't JS-readable with `DoesNotContain("eyJ", stored)`, but `stored` is a Data Protection ciphertext — so
   `eyJ` turning up *somewhere* inside its base64url bytes is pure chance (~1 run in 900), and it duly failed on

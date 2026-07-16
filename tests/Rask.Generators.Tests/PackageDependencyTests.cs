@@ -21,6 +21,7 @@ public class PackageDependencyTests
     {
         var projects = Directory
             .GetFiles(Path.Combine(RepoRoot(), "src"), "*.csproj", SearchOption.AllDirectories)
+            .Where(IsSource)
             .ToDictionary(p => Path.GetFileNameWithoutExtension(p), p => p, StringComparer.OrdinalIgnoreCase);
 
         var offenders = new List<string>();
@@ -67,6 +68,15 @@ public class PackageDependencyTests
             + "nuspec will declare a dependency on a package that does not exist and every restore of them fails "
             + "with NU1101:\n  " + string.Join("\n  ", offenders));
     }
+
+    // Only real sources. Rask.Templates copies its `dotnet new` content — Company.RaskWasm.csproj and friends —
+    // into obj/ at build time, so an all-directories scan sees every template project twice and the lookup below
+    // throws on the duplicate name rather than reporting anything. Build output is never the thing under test.
+    private static bool IsSource(string csprojPath) =>
+        !csprojPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
+            .Any(segment =>
+                segment.Equals("bin", StringComparison.OrdinalIgnoreCase)
+                || segment.Equals("obj", StringComparison.OrdinalIgnoreCase));
 
     // Mirrors how the repo declares it: an explicit <IsPackable>false</IsPackable>. Everything else in src/
     // ships (the SDK default is true), so absence means packable.
