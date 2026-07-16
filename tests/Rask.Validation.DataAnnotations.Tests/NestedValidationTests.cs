@@ -1,8 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using Rask.Core.Forms;
 
-#pragma warning disable RASK014 // test-only StubComponent subclass has no generated factory
 
 namespace Rask.Validation.DataAnnotations.Tests;
 
@@ -244,17 +242,15 @@ public class NestedValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             DataAnnotationsValidator(),
             Input(() => p.Address!.Street),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
-        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId!, blur.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
 
         Assert.NotNull(captured);
         Assert.Same(p, captured!.Model);
@@ -271,21 +267,19 @@ public class NestedValidationTests
         // misses by reading the EditContext directly instead of going through the renderer.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             DataAnnotationsValidator(),
             Input(() => p.Address!.Street),
             ValidationMessage(() => p.Address!.Street,
                 msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
         ]);
 
-        var initial = view.RenderAsLiveRoot();
+        var initial = page.Html;
         Assert.DoesNotContain("Street required", initial);
 
-        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        var changeId = page.HandlerId("change")!;
+        var afterBlur = await page.InvokeAsync(changeId, "{\"value\":\"\"}");
 
-        var afterBlur = view.RenderAsLiveRoot();
         Assert.Contains("Street required", afterBlur);
     }
 

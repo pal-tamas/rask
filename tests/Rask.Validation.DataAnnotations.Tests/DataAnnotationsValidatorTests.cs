@@ -1,9 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using Rask.Core;
 using Rask.Core.Forms;
 
-#pragma warning disable RASK014 // test-only StubComponent subclass has no generated factory
 
 namespace Rask.Validation.DataAnnotations.Tests;
 
@@ -22,7 +20,7 @@ public class DataAnnotationsValidatorTests
         //   4. Submit a valid payload via the new handler — must reach OnValidSubmit.
         var p = new Person { Name = "", Age = 0 };
         Person? captured = null;
-        var view = new StubComponent(() => Form<Person>(
+        var page = RaskTest.Render(() => Form<Person>(
             p,
             (Callback<Person>)(m => captured = m))[
             DataAnnotationsValidator(),
@@ -30,14 +28,10 @@ public class DataAnnotationsValidatorTests
             Input(() => p.Age)
         ]);
 
-        var html1 = view.RenderAsLiveRoot();
-        var submit1 = Markup.Attr(html1, "data-rask-on-submit");
+        var submit1 = page.HandlerId("submit");
         Assert.NotNull(submit1);
 
-        using (var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}"))
-        {
-            await view.TryInvokeHandlerAsync(submit1!, doc.RootElement);
-        }
+        await page.InvokeAsync(submit1!, "{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
 
         Assert.Null(captured);
 
@@ -47,14 +41,11 @@ public class DataAnnotationsValidatorTests
         p.Name = "Ada";
         p.Age = 30;
 
-        var html2 = view.RenderAsLiveRoot();
-        var submit2 = Markup.Attr(html2, "data-rask-on-submit");
+        page.Render();
+        var submit2 = page.HandlerId("submit");
         Assert.NotNull(submit2);
 
-        using (var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}"))
-        {
-            await view.TryInvokeHandlerAsync(submit2!, doc.RootElement);
-        }
+        await page.InvokeAsync(submit2!, "{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
         Assert.Same(p, captured);
     }
@@ -198,16 +189,17 @@ public class DataAnnotationsValidatorTests
     public void Component_Render_IsIdempotent_AcrossMultipleRenders()
     {
         var p = new Person { Name = "" };
-        var ctx = new EditContext(p);
+        EditContext? captured = null;
 
         // Two separate component instances each Render under the same context: AddValidator's
         // type-dedup should prevent double-registration. If duplicated, "Name is required"
         // would appear twice in the messages list.
-        using (EditContextScope.Push(ctx))
-        {
-            DataAnnotationsValidator().ToHtml();
-            DataAnnotationsValidator().ToHtml();
-        }
+        RaskTest.Render(() => Form(p)[
+            DataAnnotationsValidator(),
+            DataAnnotationsValidator(),
+            RaskTest.EditContextProbe(c => captured = c)
+        ]);
+        var ctx = captured!;
 
         ctx.Validate();
         Assert.Single(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
