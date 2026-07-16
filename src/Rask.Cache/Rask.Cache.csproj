@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Cache</PackageId>
+    <Title>Rask.Cache — a developer-facing cache on your database</Title>
+    <Description>A developer-facing cache for a Rask app, stored in its own database — no broker, no Redis. Implements the standard `IDistributedCache` (so it drops into ASP.NET session and output caching), plus a typed `ICache` convenience layer with `GetOrCreateAsync&lt;T&gt;`. Entries carry absolute and sliding expirations; a background `CachePurger` sweeps expired rows. Server-side; pairs with EF Core and SQLite.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — a standalone server-side cache. -->
+    <PackageTags>cache distributed-cache idistributedcache entity-framework-core efcore background-service sqlite dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Cache.Tests"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Cache;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

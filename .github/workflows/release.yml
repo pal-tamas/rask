@@ -109,6 +109,15 @@ jobs:
       - name: Pack Rask.Outbox
         run: dotnet pack src/Rask.Outbox/Rask.Outbox.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Jobs
+        run: dotnet pack src/Rask.Jobs/Rask.Jobs.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.Mail
+        run: dotnet pack src/Rask.Mail/Rask.Mail.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.Cache
+        run: dotnet pack src/Rask.Cache/Rask.Cache.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Testing
         run: dotnet pack src/Rask.Testing/Rask.Testing.csproj -c Release --no-build -o ./artifacts
 

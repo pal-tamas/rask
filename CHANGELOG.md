@@ -20,6 +20,15 @@ them until tagged releases begin.
   over a backdrop, and a `BsModal`-backed confirm/cancel prompt with a status readout. `BsOffcanvas`
   gains a rendered-markup unit test, and the shared browser E2E journey now drives both (open the
   drawer + backdrop-dismiss it, and confirm the destructive-delete dialog).
+- **`Rask.Cache` — a developer-facing cache on the app's own database.** The roadmap's next DB-backed pillar:
+  implements the standard `IDistributedCache` (so it drops into ASP.NET session state and output caching) plus a
+  typed `ICache` with read-through `GetOrCreateAsync<T>`, backed by a `CacheEntry` table — no broker, no Redis.
+  Entries carry absolute and sliding expirations; a read renews a sliding entry and evicts an expired one
+  lazily, and a hosted `CachePurger` sweeps expired rows. The typed JSON layer has trim-safe `JsonTypeInfo<T>`
+  overloads. Wire via `AddRaskCache<AppDbContext>()` + `modelBuilder.AddRaskCache()` + `rask db add AddCache`.
+  New `/cache` slice in `Rask.Example.EfCore` (with a Playwright E2E). Docs: `docs/cache.md`.
+- **CI now packs `Rask.Jobs`, `Rask.Mail`, and `Rask.Cache`** in the release and nightly workflows (the Jobs and
+  Mail pillars were previously built but never packed/published).
 - **`Rask.Mail` — durable transactional email on the app's own database.** The roadmap's next DB-backed
   pillar: compose an email with a fluent `Email` builder — its body is a **Rask component rendered to HTML**
   (`Body(new WelcomeEmail(name))`) — call `IMailQueue.SendAsync(email)`, and a hosted `MailProcessor` delivers
