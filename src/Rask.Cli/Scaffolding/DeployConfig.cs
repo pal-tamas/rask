@@ -23,6 +23,12 @@ internal sealed class DeployConfig
 
     public string? EnvFile { get; set; }
 
+    /// <summary>The HTTP path <c>rask deploy</c> probes to confirm readiness before switching traffic (default <c>/health</c>).</summary>
+    public string? HealthPath { get; set; }
+
+    /// <summary>When <c>true</c>, skip the HTTP health probe and gate only on the container running.</summary>
+    public bool? HealthCheckDisabled { get; set; }
+
     /// <summary>The <c>.rask/deploy.json</c> path under <paramref name="workingDirectory"/>.</summary>
     public static string PathFor(string workingDirectory) =>
         Path.Combine(workingDirectory, ".rask", "deploy.json");

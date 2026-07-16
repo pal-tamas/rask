@@ -89,6 +89,10 @@ internal static partial class ProjectGenerator
 
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
         sb.Append("builder.Services.AddRask();\n");
+        // A liveness/readiness endpoint (mapped below) — reports the app is up and serving. `rask deploy`
+        // probes it to gate the blue-green swap; also useful for any load balancer or orchestrator. Register
+        // real dependency checks later, e.g. builder.Services.AddHealthChecks().AddDbContextCheck<AppDb>().
+        sb.Append("builder.Services.AddHealthChecks();\n");
 
         if (cqrs)
         {
@@ -149,6 +153,11 @@ internal static partial class ProjectGenerator
         sb.Append("""
 
             var app = builder.Build();
+
+            // Health endpoint FIRST — as terminal middleware it short-circuits before UseHttpsRedirection,
+            // so /health answers 200 over plain HTTP. `rask deploy` probes it internally on http://…:8080
+            // (no X-Forwarded-Proto), where a redirected endpoint would 307 to a port nothing listens on.
+            app.UseHealthChecks("/health");
 
             // Transport security (applies whether or not auth is enabled): redirect HTTP→HTTPS, and in
             // non-Development emit HSTS so browsers refuse plain-HTTP for the configured max-age.

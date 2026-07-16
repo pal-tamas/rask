@@ -184,8 +184,10 @@ copy — the build context ships to the host's daemon over SSH and builds there.
 **With `--domain`** Rask runs a shared [Caddy](https://caddyserver.com) reverse proxy on the box that
 fetches an automatic Let's Encrypt certificate, so you get a live HTTPS site with nothing else to
 configure. Deploys are **zero-downtime**: the new container starts alongside the old one (blue-green),
-is waited on until its container is running, then Caddy is reloaded to point at it before the old one
-is removed. If the new container fails to start, the previous version keeps serving.
+is waited on until its container is running **and answers an HTTP health check** (`GET /health` by
+default — the endpoint `rask new` scaffolds), then Caddy is reloaded to point at it before the old one
+is removed. If the new container fails to start, or fails its health probe, the previous version keeps
+serving. Probe a different path with `--health-path`, or skip the probe with `--no-health-check`.
 
 **Multiple apps share one box.** Each app container is labelled, so the proxy's routing is regenerated
 from the host's live containers on every deploy — deploying a second app (a different `--domain`)
@@ -200,6 +202,8 @@ you put your own TLS/reverse proxy in front (there's no zero-downtime swap on a 
 | `--name <slug>` | Image/container name (default: the project name). |
 | `--project <path>` · `--dockerfile <path>` | The build context / Dockerfile, if not the current project. |
 | `--env KEY=VALUE` · `--env-file <path>` | Runtime environment for the app container (repeat `--env`). |
+| `--health-path <path>` | The path the readiness probe hits before switching traffic (default `/health`). Remembered in `.rask/deploy.json`. |
+| `--no-health-check` | Gate only on the container running (skip the HTTP probe) — for apps without a health endpoint. Remembered. |
 | `--dry-run` | Print the exact docker commands without running them. |
 
 **Prerequisites.** The [Docker CLI](https://docs.docker.com/get-docker/) installed locally; on the
