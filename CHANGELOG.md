@@ -19,6 +19,14 @@ them until tagged releases begin.
   `ScheduleAsync(email, delay)`; swap in a custom `IMailSender` (e.g. a provider API) by registering it before
   `AddRaskMail`. Wire with `services.AddRaskMail<AppDbContext>(o => { o.From = …; o.Smtp = …; })` +
   `modelBuilder.AddRaskMail()`, then `rask db add AddMail`. Documented in `docs/mail.md`.
+- **`rask generate email <Name>` (alias `rask g e`).** Scaffolds an email-body component under `Emails/` (a
+  Rask `Component` rendered to HTML by `Email.Body(...)`), adds the `Rask.Mail` package, and prints the
+  `AddRaskMail` / `modelBuilder.AddRaskMail()` / `rask db add AddMail` registration steps — mirroring
+  `rask generate job`.
+- **`Rask.Example.EfCore` gains a mail demo.** A new `/mail` slice queues a message through `IMailQueue` on the
+  same SQLite database the catalog uses and delivers it — with no SMTP configured — to a pickup directory as an
+  `.eml` file, wired with `AddRaskMail<CatalogDbContext>` + `modelBuilder.AddRaskMail()` and covered by a
+  Playwright E2E test.
 - **`ISpeechRecognition` — typed speech recognition / dictation with native iOS/Android backends.** The
   counterpart to `ISpeechSynthesis`: `StartAsync(onResult, options)` prompts for the microphone and streams
   each recognised phrase (final, and with `InterimResults` the live hypotheses) to the callback, returning an
