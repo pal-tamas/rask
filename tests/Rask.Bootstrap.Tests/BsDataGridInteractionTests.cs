@@ -26,11 +26,6 @@ public class BsDataGridInteractionTests
         new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Sortable = true },
     ];
 
-    // Handler ids are reissued on every render and RenderedComponent's helpers target the *first* match, but a
-    // grid wires many buttons. Read them all in document order and index the one under test — re-reading after
-    // every render rather than reusing a captured id.
-    private static string[] ClickHandlers(string html) =>
-        Regex.Matches(html, "data-rask-on-click=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToArray();
 
     private static string[] BodyCells(string html, int column)
     {
@@ -48,13 +43,13 @@ public class BsDataGridInteractionTests
         var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns()));
         Assert.Equal(["Banana", "Apple", "Cherry"], BodyCells(grid.Html, 0));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]);
         Assert.Equal(["Apple", "Banana", "Cherry"], BodyCells(html, 0));
         Assert.Contains("aria-sort=\"ascending\"", html);
         Assert.Contains("bi-caret-up-fill", html);
 
         // A second click on the same header flips to descending, exactly reversed.
-        html = await grid.InvokeAsync(ClickHandlers(html)[0]);
+        html = await grid.InvokeAsync(Markup.Attrs(html, "data-rask-on-click")[0]);
         Assert.Equal(["Cherry", "Banana", "Apple"], BodyCells(html, 0));
         Assert.Contains("aria-sort=\"descending\"", html);
         Assert.Contains("bi-caret-down-fill", html);
@@ -65,8 +60,8 @@ public class BsDataGridInteractionTests
     {
         var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns()));
 
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);            // by Name
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[1]); // then by Qty
+        await grid.InvokeAsync(grid.HandlerIds("click")[0]);            // by Name
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[1]); // then by Qty
 
         Assert.Equal(["Cherry", "Banana", "Apple"], BodyCells(html, 0)); // 1, 3, 5
         // Only one column may claim a direction, and only it shows a caret.
@@ -82,7 +77,7 @@ public class BsDataGridInteractionTests
         Assert.Contains("1-2 / 3", grid.Html);
 
         // Handlers: [0] Name, [1] Qty, [2] prev, [3] page 1, [4] page 2, [5] next.
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[4]);
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[4]);
 
         var second = BodyCells(html, 0);
         Assert.Contains("3-3 / 3", html);
@@ -95,10 +90,10 @@ public class BsDataGridInteractionTests
     {
         var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[5]); // next
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[5]); // next
         Assert.Equal(["Cherry"], BodyCells(html, 0));
 
-        html = await grid.InvokeAsync(ClickHandlers(html)[2]); // prev
+        html = await grid.InvokeAsync(Markup.Attrs(html, "data-rask-on-click")[2]); // prev
         Assert.Equal(["Banana", "Apple"], BodyCells(html, 0));
         Assert.Contains("1-2 / 3", html);
     }
@@ -110,7 +105,7 @@ public class BsDataGridInteractionTests
         // unguarded decrement went to page -1 and rendered "-1-0 / 3".
         var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[2]); // prev, already on page 1
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]); // prev, already on page 1
 
         Assert.Contains("1-2 / 3", html);
         Assert.DoesNotContain("-1-0", html);
@@ -122,8 +117,8 @@ public class BsDataGridInteractionTests
     {
         var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2));
 
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[5]);            // -> page 2 (last)
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[5]); // next again
+        await grid.InvokeAsync(grid.HandlerIds("click")[5]);            // -> page 2 (last)
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[5]); // next again
 
         Assert.Contains("3-3 / 3", html);
         Assert.Equal(["Cherry"], BodyCells(html, 0));
@@ -134,10 +129,10 @@ public class BsDataGridInteractionTests
     {
         var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[4]); // page 2
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[4]); // page 2
         Assert.Contains("3-3 / 3", html);
 
-        html = await grid.InvokeAsync(ClickHandlers(html)[0]); // sort by Name
+        html = await grid.InvokeAsync(Markup.Attrs(html, "data-rask-on-click")[0]); // sort by Name
 
         Assert.Contains("1-2 / 3", html);
     }
@@ -154,7 +149,7 @@ public class BsDataGridInteractionTests
         var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: columns, PageSize: 2));
         Assert.Contains("<tfoot><tr><td></td><td>9</td></tr></tfoot>", grid.Html);
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[3]); // page 2
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[3]); // page 2
 
         Assert.Equal(["Cherry"], BodyCells(html, 0));
         Assert.Contains("<tfoot><tr><td></td><td>9</td></tr></tfoot>", html);
@@ -167,7 +162,7 @@ public class BsDataGridInteractionTests
             RowKey: r => r.Name, ExpandedContent: r => Div()[$"detail-{r.Name}"]));
         Assert.DoesNotContain("<div>detail-Banana</div>", grid.Html);
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[2]); // first row's expander
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]); // first row's expander
         Assert.Contains("<div>detail-Banana</div>", html);
         // The detail id is derived from the row's position, not from RowKey: a RowKey like "Espresso Machine"
         // would put a space in the id, and aria-controls is a space-separated id list — one space silently
@@ -179,7 +174,7 @@ public class BsDataGridInteractionTests
         // The detail row spans the expander column plus both data columns.
         Assert.Contains("<td colspan=\"3\">", html);
 
-        html = await grid.InvokeAsync(ClickHandlers(html)[2]);
+        html = await grid.InvokeAsync(Markup.Attrs(html, "data-rask-on-click")[2]);
         Assert.DoesNotContain("<div>detail-Banana</div>", html);
         Assert.DoesNotContain("aria-expanded=\"true\"", html);
     }
@@ -195,7 +190,7 @@ public class BsDataGridInteractionTests
         var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: rows, Columns: Columns(),
             RowKey: r => r.Name, ExpandedContent: _ => Div()["d"]));
 
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[2]);
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]);
 
         var controls = Regex.Match(html, "aria-controls=\"([^\"]+)\"").Groups[1].Value;
         Assert.DoesNotContain(" ", controls);
@@ -210,13 +205,13 @@ public class BsDataGridInteractionTests
         var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: Rows, Columns: Columns(),
             RowKey: r => r.Name, ExpandedContent: r => Div()[$"detail-{r.Name}"]));
 
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[2]); // Banana
+        await grid.InvokeAsync(grid.HandlerIds("click")[2]); // Banana
         // Banana's detail row shifts the handler list, so Apple's expander is now at [3].
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[3]);
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[3]);
         Assert.Contains("<div>detail-Banana</div>", html);
         Assert.Contains("<div>detail-Apple</div>", html);
 
-        html = await grid.InvokeAsync(ClickHandlers(html)[2]); // close Banana
+        html = await grid.InvokeAsync(Markup.Attrs(html, "data-rask-on-click")[2]); // close Banana
         Assert.DoesNotContain("<div>detail-Banana</div>", html);
         Assert.Contains("<div>detail-Apple</div>", html);
     }
@@ -228,8 +223,8 @@ public class BsDataGridInteractionTests
         var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: Rows, Columns: Columns(),
             RowKey: r => r.Name, ExpandedContent: r => Div()[$"detail-{r.Name}"]));
 
-        await grid.InvokeAsync(ClickHandlers(grid.Html)[2]);            // open Banana (first row)
-        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]); // sort -> Apple, Banana, Cherry
+        await grid.InvokeAsync(grid.HandlerIds("click")[2]);            // open Banana (first row)
+        var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]); // sort -> Apple, Banana, Cherry
 
         Assert.Equal(["Apple", "Banana", "Cherry"], BodyCells(html, 1));
         Assert.Contains("<div>detail-Banana</div>", html);
@@ -245,14 +240,14 @@ public class BsDataGridInteractionTests
         var host = RaskTest.Render(new FilterHost());
 
         // Handlers: [0] the host's filter toggle, then the grid's sortable headers.
-        var html = await host.InvokeAsync(ClickHandlers(host.Html)[1]); // sort by Name
+        var html = await host.InvokeAsync(host.HandlerIds("click")[1]); // sort by Name
         Assert.Equal(["Apple", "Banana", "Cherry"], BodyCells(html, 0));
 
-        html = await host.InvokeAsync(ClickHandlers(html)[0]); // filter everything out
+        html = await host.InvokeAsync(Markup.Attrs(html, "data-rask-on-click")[0]); // filter everything out
         Assert.Contains("<div>none</div>", html);
         Assert.DoesNotContain("<table", html);
 
-        html = await host.InvokeAsync(ClickHandlers(html)[0]); // and back
+        html = await host.InvokeAsync(Markup.Attrs(html, "data-rask-on-click")[0]); // and back
         Assert.Equal(["Apple", "Banana", "Cherry"], BodyCells(html, 0));
     }
 
