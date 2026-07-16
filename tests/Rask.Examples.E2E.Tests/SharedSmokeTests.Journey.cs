@@ -1978,6 +1978,9 @@ public abstract partial class SharedSmokeTests
         // Vibration / speech are device-dependent (no-op headless) — smoke-check the control renders.
         await Expect(Page.Locator("#vibrate-buzz")).ToBeVisibleAsync(visible);
         await Expect(Page.Locator("#speech-speak")).ToBeVisibleAsync(visible);
+        // Speech recognition needs a real microphone (and Chromium's cloud recognizer) — can't round-trip
+        // headless, so smoke-check the control renders.
+        await Expect(Page.Locator("#speech-recognize-start")).ToBeVisibleAsync(visible);
 
         // Broadcast channel — full JS→C# push round-trip (BroadcastChannel.onmessage → [JSInvokable] →
         // handler → StateHasChanged), on every host including trimmed WASM.

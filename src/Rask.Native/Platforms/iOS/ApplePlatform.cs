@@ -11,7 +11,7 @@ namespace Rask.Native;
 ///     native C# backends for the browser/device API interfaces — <c>IShare</c> (system share sheet),
 ///     <c>IGeolocation</c> (CoreLocation), <c>IClipboard</c> (UIPasteboard), <c>IVibration</c>,
 ///     <c>IWakeLock</c>, <c>INetworkInfo</c> (NWPathMonitor), <c>IBattery</c> (UIDevice battery monitoring),
-///     <c>ISpeechSynthesis</c> (AVSpeechSynthesizer),
+///     <c>ISpeechSynthesis</c> (AVSpeechSynthesizer), <c>ISpeechRecognition</c> (SFSpeechRecognizer),
 ///     <c>IScreenInfo</c> (UIScreen), <c>IDeviceOrientation</c>/<c>IDeviceMotion</c> (CoreMotion),
 ///     <c>INotifications</c> (UNUserNotificationCenter), and <c>IBadge</c> (the app-icon badge) — so
 ///     injecting any of them resolves the native implementation, and every other interface falls back to the
@@ -39,6 +39,7 @@ public sealed class ApplePlatform(Func<UIViewController?> presenter) : INativePl
         services.TryAddSingleton<INetworkInfo>(_ => new NativeNetworkInfo());
         services.TryAddSingleton<IBattery>(_ => new NativeBattery());
         services.TryAddSingleton<ISpeechSynthesis>(_ => new NativeSpeechSynthesis());
+        services.TryAddSingleton<ISpeechRecognition>(_ => new NativeSpeechRecognition());
         services.TryAddSingleton<IScreenInfo>(_ => new NativeScreenInfo());
         services.TryAddSingleton<IDeviceOrientation>(_ => new NativeDeviceOrientation());
         services.TryAddSingleton<IDeviceMotion>(_ => new NativeDeviceMotion());

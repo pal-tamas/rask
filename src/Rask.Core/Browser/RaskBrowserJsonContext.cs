@@ -20,6 +20,8 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(NotificationOptions))]
 [JsonSerializable(typeof(NetworkReading))]
 [JsonSerializable(typeof(SpeechOptions))]
+[JsonSerializable(typeof(SpeechRecognitionOptions))]
+[JsonSerializable(typeof(RecognitionResult))]
 [JsonSerializable(typeof(ScreenInfo))]
 [JsonSerializable(typeof(StorageEstimate))]
 [JsonSerializable(typeof(VisualViewport))]
