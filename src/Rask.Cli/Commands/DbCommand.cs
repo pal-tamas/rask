@@ -104,7 +104,7 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
             return 1;
         }
 
-        WarnIfDesignPackageMissing(startupProject);
+        await EnsureDesignPackageAsync(startupProject, cancellationToken).ConfigureAwait(false);
 
         var efArgs = BuildEfArguments(subcommand, name, project, startupProject, parsed.Option("context"), output, parsed.HasFlag("force"), parsed.Passthrough);
         return await _process.RunAsync("dotnet", efArgs, _workingDirectory, cancellationToken).ConfigureAwait(false);
@@ -112,25 +112,36 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
 
     // The EF Core tools need the startup project to reference Microsoft.EntityFrameworkCore.Design;
     // without it `dotnet ef` fails with a terse message. Projects from `rask generate feature` already
-    // include it, but a hand-built one (or a demo that uses EnsureCreated) may not — so surface the exact
-    // fix up front. This only warns and never blocks: if we can't confidently read the startup project's
-    // csproj, we stay quiet rather than nag a setup we can't see (e.g. the ref comes from imported props).
-    private void WarnIfDesignPackageMissing(string startupProject)
+    // include it, but a hand-built one (or a demo that uses EnsureCreated) may not — so add it for the
+    // user (like `rask generate` does for the packages it needs, and like the dotnet-ef tool install
+    // above). `dotnet add package` restores too, so the subsequent `dotnet ef` build picks it up. This
+    // never blocks: if we can't confidently read the startup project's csproj we stay quiet rather than
+    // touch a setup we can't see (e.g. the ref comes from imported props), and a failed add still lets
+    // `dotnet ef` run so the user sees EF's own guidance.
+    private async Task EnsureDesignPackageAsync(string startupProject, CancellationToken cancellationToken)
     {
+        string csproj;
         try
         {
-            var csproj = ResolveCsproj(startupProject);
-            if (csproj is null || _fileSystem.ReadAllText(csproj).Contains("Microsoft.EntityFrameworkCore.Design", StringComparison.Ordinal))
+            var resolved = ResolveCsproj(startupProject);
+            if (resolved is null || _fileSystem.ReadAllText(resolved).Contains("Microsoft.EntityFrameworkCore.Design", StringComparison.Ordinal))
             {
                 return;
             }
 
-            Console.Out.WriteLine("Note: the EF Core tools need the startup project to reference Microsoft.EntityFrameworkCore.Design.");
-            Console.Out.WriteLine($"      If this fails, add it with: dotnet add \"{csproj}\" package Microsoft.EntityFrameworkCore.Design");
+            csproj = resolved;
         }
         catch (IOException)
         {
-            // Unreadable project file — skip the hint rather than fail the command over it.
+            // Unreadable project file — leave it to `dotnet ef` rather than fail the command over it.
+            return;
+        }
+
+        Console.Out.WriteLine("Adding Microsoft.EntityFrameworkCore.Design to the startup project (required by the EF Core tools)…");
+        var exit = await _process.RunAsync("dotnet", ["add", csproj, "package", "Microsoft.EntityFrameworkCore.Design"], _workingDirectory, cancellationToken).ConfigureAwait(false);
+        if (exit != 0)
+        {
+            Console.Error.WriteLine($"  Couldn't add it automatically — add it manually: dotnet add \"{csproj}\" package Microsoft.EntityFrameworkCore.Design");
         }
     }
 

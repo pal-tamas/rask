@@ -219,7 +219,7 @@ public sealed class DbCommandTests
     }
 
     [Fact]
-    public async Task Warns_when_the_startup_project_lacks_ef_design()
+    public async Task Adds_ef_design_when_the_startup_project_lacks_it()
     {
         var console = new StringConsole();
         var runner = new FakeProcessRunner();
@@ -230,24 +230,35 @@ public sealed class DbCommandTests
         var exit = await command.ExecuteAsync(["list"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.Contains("Microsoft.EntityFrameworkCore.Design", console.OutText, StringComparison.Ordinal);
-        // The hint never blocks — the ef command still runs.
+        Assert.Contains(runner.Invocations, i => i.Arguments is ["add", Csproj, "package", "Microsoft.EntityFrameworkCore.Design"]);
+        // Adding never blocks — the ef command still runs afterwards.
         Assert.Equal(["ef", "migrations", "list", "--project", ProjectDir, "--startup-project", ProjectDir], runner.LastRun!.Arguments);
     }
 
     [Fact]
-    public async Task No_warning_when_the_startup_project_references_ef_design()
+    public async Task Does_not_add_ef_design_when_already_referenced()
     {
-        var console = new StringConsole();
-        var runner = new FakeProcessRunner();
-        var fileSystem = new FakeFileSystem();
-        fileSystem.Seed(Csproj, "<Project><ItemGroup><PackageReference Include=\"Microsoft.EntityFrameworkCore.Design\" /></ItemGroup></Project>");
-        var command = new DbCommand(console, fileSystem, runner, ProjectDir);
+        var (command, runner, _) = CreateWithProject(); // seeded csproj already references EF Core Design
 
         var exit = await command.ExecuteAsync(["list"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.DoesNotContain("Note:", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("Microsoft.EntityFrameworkCore.Design"));
+    }
+
+    [Fact]
+    public async Task Failed_ef_design_add_surfaces_the_manual_command_but_still_runs_ef()
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner { RunExitCode = 1 }; // the `dotnet add package` fails
+        var fileSystem = new FakeFileSystem();
+        fileSystem.Seed(Csproj, "<Project></Project>");
+        var command = new DbCommand(console, fileSystem, runner, ProjectDir);
+
+        var exit = await command.ExecuteAsync(["list"], CancellationToken.None);
+
+        Assert.Contains("dotnet add", console.ErrorText, StringComparison.Ordinal);
+        Assert.Equal(["ef", "migrations", "list", "--project", ProjectDir, "--startup-project", ProjectDir], runner.LastRun!.Arguments);
     }
 
     private static (DbCommand Command, FakeProcessRunner Runner, StringConsole Console) CreateWithProject()
@@ -255,7 +266,9 @@ public sealed class DbCommandTests
         var console = new StringConsole();
         var runner = new FakeProcessRunner();
         var fileSystem = new FakeFileSystem();
-        fileSystem.Seed(Csproj);
+        // Seed a csproj that already references EF Core Design so the common execute paths don't trigger
+        // the auto-add; the add behavior has its own dedicated tests.
+        fileSystem.Seed(Csproj, "<Project><ItemGroup><PackageReference Include=\"Microsoft.EntityFrameworkCore.Design\" /></ItemGroup></Project>");
         return (new DbCommand(console, fileSystem, runner, ProjectDir), runner, console);
     }
 }

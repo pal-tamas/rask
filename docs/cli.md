@@ -158,7 +158,8 @@ that configures it; defaults to `--project`), and `--context/-c` (when the app h
 `DbContext`). Anything after `--` is forwarded to `dotnet ef` verbatim (e.g. `rask db update -- --verbose`).
 
 The EF Core tools need the startup project to reference `Microsoft.EntityFrameworkCore.Design` —
-projects from `rask generate feature` already do, and `rask db` points out the exact fix if it's missing.
+projects from `rask generate feature` already do, and `rask db` adds it for you (via `dotnet add
+package`) if it's missing.
 
 ## `rask info` — environment report
 
