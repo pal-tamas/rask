@@ -73,7 +73,7 @@ public sealed class GuidesTests
     public void GuidePage_KnownSlug_RendersGuideChromeWithMarkdownBody()
     {
         // GuidePage delegates to GuideChrome (a DI-ctor component), so it renders through a live context.
-        var html = new GuidePage { Slug = "routing" }.RenderAsLiveRoot(TestServices.Default());
+        var html = RaskTest.Render(new GuidePage { Slug = "routing" }, TestServices.Default()).Html;
         Assert.Contains("markdown-body", html);
         Assert.Contains("All guides", html); // the back link
         Assert.Contains("guide-chapters", html); // the Rails-style Chapters TOC
@@ -82,7 +82,7 @@ public sealed class GuidesTests
     [Fact]
     public void GuidePage_UnknownSlug_RendersNotFound()
     {
-        var html = new GuidePage { Slug = "nope" }.RenderAsLiveRoot(TestServices.Default());
+        var html = RaskTest.Render(new GuidePage { Slug = "nope" }, TestServices.Default()).Html;
         Assert.Contains("No guide found", html);
         Assert.DoesNotContain("markdown-body", html);
     }

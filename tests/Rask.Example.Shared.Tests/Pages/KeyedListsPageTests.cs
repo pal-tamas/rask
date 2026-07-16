@@ -14,7 +14,7 @@ public sealed class KeyedListsPageTests
     [Fact]
     public void Demo_RendersSeededRows_KeyedByDefault()
     {
-        var html = new KeyedListsReorderDemo().RenderAsLiveRoot(TestServices.Default());
+        var html = RaskTest.Render(new KeyedListsReorderDemo(), TestServices.Default()).Html;
 
         Assert.Contains("Apple", html);
         Assert.Contains("Elderberry", html);

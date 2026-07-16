@@ -94,7 +94,7 @@ public sealed class GuideChromeTests
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
 
-        var html = new GuideChrome(js) { Slug = "routing" }.RenderAsLiveRoot(sp);
+        var html = RaskTest.Render(new GuideChrome(js) { Slug = "routing" }, sp).Html;
 
         // Chrome scaffolding.
         Assert.Contains("guide-chapters", html);
@@ -120,7 +120,7 @@ public sealed class GuideChromeTests
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
 
-        var html = new GuideChrome(js) { Slug = "forms" }.RenderAsLiveRoot(sp);
+        var html = RaskTest.Render(new GuideChrome(js) { Slug = "forms" }, sp).Html;
 
         // Every marker resolved and mounted — no leftover comment, no unknown-demo warning.
         Assert.DoesNotContain("<!-- demo:", html);
@@ -139,7 +139,7 @@ public sealed class GuideChromeTests
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
 
-        var html = new GuideChrome(js) { Slug = "no-such-guide" }.RenderAsLiveRoot(sp);
+        var html = RaskTest.Render(new GuideChrome(js) { Slug = "no-such-guide" }, sp).Html;
 
         Assert.Contains("No guide found", html);
     }

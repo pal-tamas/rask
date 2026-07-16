@@ -13,7 +13,7 @@ public sealed class LiveTickerDemoTests
     [Fact]
     public void Render_EmitsAllThreeSwitchButtons_AndTheTickerDefaultsToBtc()
     {
-        var html = new LiveTickerDemo().RenderAsLiveRoot(TestServices.Default());
+        var html = RaskTest.Render(new LiveTickerDemo(), TestServices.Default()).Html;
 
         Assert.Contains("ticker-symbol-switcher", html);
         Assert.Contains("ticker-switch-BTC", html);
@@ -26,7 +26,7 @@ public sealed class LiveTickerDemoTests
     [Fact]
     public void Render_HookActivityCard_Present()
     {
-        var html = new LiveTickerDemo().RenderAsLiveRoot(TestServices.Default());
+        var html = RaskTest.Render(new LiveTickerDemo(), TestServices.Default()).Html;
 
         Assert.Contains("Hook activity", html);
         Assert.Contains("ticker-clear-log", html);
