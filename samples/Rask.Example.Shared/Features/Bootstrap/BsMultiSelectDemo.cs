@@ -10,6 +10,14 @@ public sealed class BsMultiSelectDemo : Component
 
     private readonly Model _m = new();
 
+    // Groups the interests under .dropdown-header sections (first-seen order: Frontend, Data, Other).
+    private static string Category(string i) => i switch
+    {
+        "Web" or "Mobile" => "Frontend",
+        "AI" or "Data" => "Data",
+        _ => "Other",
+    };
+
     protected override Component? Render() =>
     [
         Form<Model>(_m, Class: "vstack gap-3")[
@@ -25,12 +33,18 @@ public sealed class BsMultiSelectDemo : Component
                 Label: "Interests (floating)", Floating: true, Id: "ms-float"),
             // 4. Disabled — non-interactive, still shows its bound chips.
             BsMultiSelect<string>(() => _m.Locked, Interests,
-                Label: "Interests (disabled)", Disabled: true, Id: "ms-locked")
+                Label: "Interests (disabled)", Disabled: true, Id: "ms-locked"),
+            // 5. Grouped + select-all + a disabled option — OptionGroup renders .dropdown-header sections,
+            //    SelectAll adds a bulk "Select all / Clear all" header, OptionDisabled greys "Games" (which the
+            //    header and the keyboard both skip).
+            BsMultiSelect<string>(() => _m.Grouped, Interests,
+                OptionGroup: Category, SelectAll: true, OptionDisabled: i => i == "Games",
+                Label: "Interests (grouped + select all)", Placeholder: "Pick a few…", Id: "ms-grouped")
         ],
         BsAlert(Color: BsColor.Secondary, Class: "mt-3 mb-0")[
             Span(Id: "ms-readout")[
                 $"Basic: {Join(_m.Basic)} · Search: {Join(_m.Searchable)} · " +
-                $"Floating: {Join(_m.Floating)} · Locked: {Join(_m.Locked)}"
+                $"Floating: {Join(_m.Floating)} · Locked: {Join(_m.Locked)} · Grouped: {Join(_m.Grouped)}"
             ]
         ]
     ];
@@ -43,5 +57,6 @@ public sealed class BsMultiSelectDemo : Component
         public List<string> Searchable { get; } = [];
         public List<string> Floating { get; } = [];
         public List<string> Locked { get; } = ["AI", "Data"];
+        public List<string> Grouped { get; } = [];
     }
 }
