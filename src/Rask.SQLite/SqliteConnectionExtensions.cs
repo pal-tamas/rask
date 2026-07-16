@@ -67,6 +67,16 @@ public static class SqliteConnectionExtensions
         // Thread.Sleep retry (governed by CommandTimeout) never runs either.
         raw.sqlite3_busy_timeout(handle, 0);
 
+        // BEGIN/COMMIT/ROLLBACK run through the raw handle, bypassing Microsoft.Data.Sqlite's
+        // SqliteTransaction bookkeeping, and the underlying sqlite3 handle is pooled and reused. If an
+        // earlier lease left a transaction open on it, BEGIN IMMEDIATE here would hit "cannot start a
+        // transaction within a transaction" (SQLITE_ERROR) — a non-retryable fast failure. Clear any
+        // leaked transaction first so BEGIN always starts from autocommit (Rails' transaction_active? guard).
+        if (raw.sqlite3_get_autocommit(handle) == 0)
+        {
+            raw.sqlite3_exec(handle, "ROLLBACK;");
+        }
+
         await SqliteBusyRetry.ExecAsync(handle, "BEGIN IMMEDIATE;", retry, time, cancellationToken).ConfigureAwait(false);
         try
         {
@@ -74,11 +84,16 @@ public static class SqliteConnectionExtensions
             await SqliteBusyRetry.ExecAsync(handle, "COMMIT;", retry, time, cancellationToken).ConfigureAwait(false);
             return result;
         }
-        catch
+        finally
         {
-            // Best-effort rollback; ignore the result code — the transaction may already be gone.
-            raw.sqlite3_exec(handle, "ROLLBACK;");
-            throw;
+            // Never hand a mid-transaction handle back to the pool. On the happy path COMMIT already
+            // restored autocommit and this is a no-op; on any failure (a throwing work, or a COMMIT that
+            // never completed) this rolls the open transaction back. Best-effort: ignore the result code —
+            // the transaction may already be gone.
+            if (raw.sqlite3_get_autocommit(handle) == 0)
+            {
+                raw.sqlite3_exec(handle, "ROLLBACK;");
+            }
         }
     }
 

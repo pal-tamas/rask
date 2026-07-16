@@ -126,6 +126,12 @@ For a transaction you drive yourself, `connection.BeginImmediate()` gives you a 
 that took the write lock up front (its wait, though, blocks the thread inside Microsoft.Data.Sqlite —
 use `ExecuteInImmediateTransactionAsync` when you want the non-blocking retry).
 
+Because the lock is taken through the pooled native handle, the path is defensive about connection
+reuse: it clears a leaked transaction before `BEGIN IMMEDIATE`, and never hands a mid-transaction handle
+back to the pool. If a statement genuinely fails it throws a `SqliteException` carrying the extended
+result code and the autocommit state, so a rare failure is attributable rather than an opaque
+`SQLite Error 1: 'not an error'`.
+
 ### Entity Framework Core — opt-in retry strategy
 
 Pass `configureRetry` (even empty) to register a fair-interval execution strategy so `SaveChanges`
@@ -488,6 +494,13 @@ Assert.Equal("wal", cmd.ExecuteScalar());
 
 See `tests/Rask.SQLite.Tests` for the unit + integration coverage, and
 `tests/Rask.Examples.E2E.Tests/SqliteExampleTests.cs` for the end-to-end concurrent-writes check.
+
+> **Careful with `SqliteConnection.ClearAllPools()`.** It is process-global and disposes the underlying
+> `sqlite3` handle of connections that are *currently leased and in use*, not just idle ones — so calling
+> it while writes are in flight can throw `ObjectDisposedException` from a live connection on another
+> thread. In tests, keep pool-clearing teardown from running in parallel with connection-using tests (the
+> SQLite test assemblies set `[assembly: CollectionBehavior(DisableTestParallelization = true)]` for this);
+> in app code, do not call it on a reset/health-check path that overlaps request handling.
 
 For load rather than correctness, `benchmarks/Rask.Benchmarks.Sqlite` drives sustained concurrent traffic and
 reports throughput, tail latency and error counts (the numbers in
