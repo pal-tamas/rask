@@ -35,8 +35,8 @@ public sealed class Counter : Component
 > (`dotnet workload install ios android`) for the native template.
 
 ```bash
-dotnet new install Rask.Templates        # scaffolding
-dotnet new rask-server -o MyApp          # or: rask-wasm, rask-wasm-hosted, rask-native
+dotnet tool install -g Rask.Cli          # the rask CLI (scaffolding)
+rask new MyApp                            # or: --template wasm | wasm-hosted | native
 ```
 
 Or add to an existing project:

@@ -82,9 +82,6 @@ jobs:
       - name: Pack Rask.Validation.FluentValidation
         run: dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release --no-build -o ./artifacts
 
-      - name: Pack Rask.Templates
-        run: dotnet pack src/Rask.Templates/Rask.Templates.csproj -c Release --no-build -o ./artifacts
-
       - name: Pack Rask.Bootstrap
         run: dotnet pack src/Rask.Bootstrap/Rask.Bootstrap.csproj -c Release --no-build -o ./artifacts
 

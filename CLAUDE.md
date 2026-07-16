@@ -33,7 +33,7 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, tem
 - `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, `[Route]` registration.
 - `src/Rask.Server` — ASP.NET host (`AddRask()`/`UseRask<TApp>()`, WS dispatcher). `src/Rask.Wasm` — browser host.
 - `src/Rask.Wasm.Hosting` — static-file host for a published WASM bundle. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
-- `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Templates` — `dotnet new` templates.
+- `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
 - `samples/` — showcase apps. `tests/` — sibling `*.Tests` per project + `Rask.Examples.E2E.Tests` (Playwright). `benchmarks/`.
 

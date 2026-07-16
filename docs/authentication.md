@@ -115,7 +115,7 @@ And the declarative `Authorize` component, live — sign in as *user* or *admin*
 The lowest-friction, most secure option for the Server (WS) host — the token lives in an HttpOnly cookie and
 never reaches JavaScript.
 
-> **Scaffold it:** `dotnet new rask-server --auth` generates exactly this — a `/login` form, a
+> **Scaffold it:** `rask new MyApp --auth` generates exactly this — a `/login` form, a
 > `DemoCredentialStore`, a protected `/members` page, and the `AddCookie` + `UseAuthentication` wiring below.
 > A runnable reference also lives in `samples/Rask.Example.Auth`.
 
@@ -250,10 +250,11 @@ Sign out from any event handler: `await auth.SignOutAsync(returnUrl: "/");`
 The WASM client has no server pipeline of its own, so the **API host** owns the cookie. The client hydrates
 its principal from `/api/me`. Runnable: **`samples/Rask.Example.Auth.WasmCookie(.Host)`** (with a browser E2E).
 
-> **Scaffold it:** `dotnet new rask-wasm-hosted --auth` generates this — the host's `/api/login` + `/api/me` +
-> `/auth/logout`, and a client with `ApiUserProvider`, a login page, and a protected `/members` page.
+> **Scaffold it:** `rask new MyApp --template wasm-hosted --auth` generates this — the `MyApp.Server` host's
+> `/api/login` + `/api/me` + `/auth/logout`, and the `MyApp.Client` SPA with `ApiUserProvider`, a login page,
+> and a protected `/members` page.
 
-**On the API host** (`Rask.Wasm.Host` / your ASP.NET server):
+**On the API host** (`MyApp.Server` / your ASP.NET server):
 
 ```csharp
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
@@ -514,7 +515,7 @@ host.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<JwtUserPro
 > ⚠️ A token in `localStorage` is readable by any script on the page (XSS). For maximum security prefer the
 > **HttpOnly-cookie** scheme — the token never reaches JS at all (see [Cookie + WASM](#cookie--wasm)).
 >
-> Note: the runnable JWT samples and `dotnet new rask-wasm --auth` scaffold this **plaintext-`localStorage`**
+> Note: the runnable JWT samples and `rask new MyApp --template wasm --auth` scaffold this **plaintext-`localStorage`**
 > `TokenStore` as the starting point. Treat it as the floor, not the recommendation — pair it with
 > short-lived access tokens (minutes, not hours), HTTPS, and a strict CSP, or graft on the encrypted-at-rest
 > `ProtectedTokenStore` below before going to production.
@@ -558,7 +559,7 @@ runtime is entirely in-browser (no WebSocket back to a Rask host). So there's no
 store the JWT client-side, decode it to a principal, and attach it to your `HttpClient` calls.** The external
 API must enable **CORS** for your app's origin and allow the `Authorization` header.
 
-> **Scaffold it:** `dotnet new rask-wasm --auth` generates the client pieces below (`TokenStore`,
+> **Scaffold it:** `rask new MyApp --template wasm --auth` generates the client pieces below (`TokenStore`,
 > `BearerTokenHandler`, `JwtUserProvider`, a login page) with a `BaseAddress` stub — point it at your API.
 
 > No host means no ASP.NET Data Protection key ring, so the encrypted "protected storage" option isn't

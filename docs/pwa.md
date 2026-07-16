@@ -29,9 +29,9 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 Start a new app with the **`--pwa`** option:
 
 ```bash
-dotnet new rask-wasm --pwa          # standalone browser-WASM PWA (full offline)
-dotnet new rask-wasm-hosted --pwa   # WASM PWA + ASP.NET host (full offline)
-dotnet new rask-server --pwa        # installable + push-capable Server app (not offline)
+rask new MyApp --template wasm --pwa          # standalone browser-WASM PWA (full offline)
+rask new MyApp --template wasm-hosted --pwa   # WASM PWA + ASP.NET host (full offline)
+rask new MyApp --pwa                          # installable + push-capable Server app (not offline)
 ```
 
 The WASM templates scaffold a manifest + icon and register Rask's default service worker from

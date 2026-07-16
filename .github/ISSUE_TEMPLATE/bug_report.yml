@@ -22,7 +22,7 @@ body:
       label: Minimal reproduction
       description: Steps, or a link to a minimal repo / gist. Include the component code if relevant.
       placeholder: |
-        1. `dotnet new rask-server`
+        1. `rask new MyApp`
         2. Add this component: …
         3. Navigate to /…
       render: text
