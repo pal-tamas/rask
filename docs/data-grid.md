@@ -223,6 +223,62 @@ instead — **+5%** for one level, **+19%** for two.
 and a band header spans the whole table whether or not the column folds away, so it stays expensive. Group by
 the low-cardinality things (region, status, month); that is what a band is for.
 
+## Columns chooser & reordering
+
+`ColumnChooser: true` renders a **"Columns" menu** above the grid: a checkbox to show or hide each column, and
+move earlier/later buttons to reorder it.
+
+```csharp
+BsDataGrid(Data: deals, ColumnChooser: true,
+    HiddenColumns: _hidden, OnHiddenColumnsChange: h => _hidden = [.. h],
+    ColumnOrder: _order,   OnColumnOrderChange: o => _order = [.. o],
+    Columns: [...])
+```
+
+<!-- demo:data-grid-columns -->
+
+Both axes are **token lists of `Field` names**, exactly like `Grouped` — `HiddenColumns: ["region"]` and
+`ColumnOrder: ["amount", "name", "region"]`. Set them (with the change callbacks) to control the layout the way
+`Grouped` controls grouping, or leave them null and the grid owns its own. Because they are just tokens they are
+URL-serialisable, which is the whole point (see [Putting the state in the URL](#putting-the-state-in-the-url)):
+`?hide=region&cols=amount,name,region` restores a laid-out grid on reload or share.
+
+**Every action is a real `<button>` or checkbox**, so the menu works from the keyboard alone. Dragging a header
+onto another header reorders it too — a mouse accelerator over the same handlers — while dragging a header onto
+the [group panel](#the-group-panel) still groups by it. Which one a drop means is decided by where it lands, so
+the two gestures share one drag without fighting.
+
+### It composes with the rest
+
+Hiding, reordering and grouped-column folding funnel through **one** visible-column list, so everything
+downstream follows for free:
+
+- **Sort** tracks a column's identity, not its slot: reorder the columns and clicking a header still sorts the
+  right one; the caret rides along.
+- A **hidden column keeps its sort applied** to the data — only its header disappears until you show it again,
+  just as a grouped-away column's grouping persists though its header is gone.
+- **Footers and subtotals** drop with their column and the `<tfoot>` and band colspans shrink to match.
+- An explicit `HiddenColumns` entry **overrides `ShowGroupedColumns`** — asking to keep a grouped column, then
+  hiding it, removes it.
+
+### The rules at the edges
+
+- **Name your columns.** A column addressed by the chooser needs a `Field` (its token); one without is a
+  fixture — always visible, held at its declared slot. [RASK034](diagnostics.md#rask034) warns at the call site
+  when a chooser column has no `Field`.
+- **Opt a column out** with `Hideable = false` (pins it visible) or `Reorderable = false` (anchors its
+  position). A column that sets both is a pure fixture and RASK034 leaves it alone.
+- **At least one column always shows.** The last visible column's checkbox is disabled, and a stale
+  `HiddenColumns` that resolves to hiding everything is ignored wholesale — the grid never renders a bodyless
+  table. A stale or unknown token (`?hide=deleteMe`) is dropped, the same tolerance `Grouped` gives.
+- **A new column absent from a persisted `ColumnOrder`** is appended at its declared position, never dropped —
+  so adding a column without touching a saved layout lands it predictably at the end.
+
+A grid that uses none of this renders byte-identical markup and allocates exactly as before. With the chooser
+on but idle the cost is making each header a drag source — about **+2%** over a plain grid of 100 rows
+(`BsDataGridBenchmarks`); hiding a column removes its cells, so a hidden-and-reordered grid actually allocates
+**less** than the plain one.
+
 ## Selection
 
 `Selectable` adds a leading checkbox column so rows can be picked for a bulk action. The grid tracks the
@@ -383,6 +439,10 @@ Handled for you, and worth knowing about:
 - While `Loading`, the table is `aria-busy` and the sort/pager controls are `aria-disabled` (not `disabled`,
   which would drop focus to `<body>`). The spinner's `role="status"` live region sits *outside* the
   `aria-busy` table — inside it, the announcement would be deferred until busy cleared, i.e. never.
+- The [column chooser](#columns-chooser--reordering) is a real `<button>` disclosure (`aria-expanded`); each
+  menu row is a labelled checkbox (*"Show Region"*) and labelled move buttons (*"Move Region earlier"*),
+  disabled at the ends rather than live-looking no-ops. Header drag-to-reorder is a mouse accelerator, so every
+  hide and every move is reachable from the keyboard alone.
 
 ## Server-side paging & sorting
 
@@ -581,6 +641,11 @@ renders only the visible window instead.
 | `GroupSubtotals` | `null` | A subtotal row per innermost band, reusing each column's `Footer`. Page-scoped. |
 | `GroupPanel` | `null` | Chips + per-header group controls. Drag or keyboard — every gesture has a button. |
 | `ShowGroupedColumns` | `null` | `true` keeps a grouped column in the table. Default folds it away — its value already names the band header. |
+| `ColumnChooser` | `null` | Renders the "Columns" menu (show/hide checkbox + reorder buttons) and enables header-drag reorder. Implied by `HiddenColumns`/`ColumnOrder`. |
+| `HiddenColumns` | `null` | Controlled visibility: the `Field` names to hide. URL-serialisable. Null = the grid owns it. |
+| `OnHiddenColumnsChange` / `OnHiddenColumnsChangeAsync` | `null` | The full hidden set after a toggle; the async form is awaited. |
+| `ColumnOrder` | `null` | Controlled order: the `Field` names in display order. Partial + stale-tolerant. URL-serialisable. |
+| `OnColumnOrderChange` / `OnColumnOrderChangeAsync` | `null` | The full column order after a move; the async form is awaited. |
 | `Selectable` | `null` | Adds the leading checkbox column. Implied by `SelectedKeys`/`OnSelectionChange`. Set `RowKey` with it. |
 | `SelectedKeys` | `null` | Controlled selection (`RowKey` values). Null = the grid owns it. |
 | `OnSelectionChange` / `OnSelectionChangeAsync` | `null` | The full set of selected keys after a click; the async form is awaited. |
@@ -599,6 +664,9 @@ renders only the visible window instead.
 
 `BsColumn<T>`: `Title`, `Value`, `Template`, `Class`, `Footer`, `FooterTemplate`, `RowClickable` (null = auto:
 `Value` columns yes, `Template` columns no).
+
+**Column chooser:** `Hideable` (default `true`; `false` pins the column visible), `Reorderable` (default
+`true`; `false` anchors it at its declared slot). A column with both `false` is a fixture the chooser ignores.
 
 **Naming a column:** `Field` (an expression — names the column from the member, and doubles as the `ORDER BY`),
 `Groupable`, `GroupKey` (band coarser than the cell), `GroupHeader` (custom band header).

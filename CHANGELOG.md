@@ -8,6 +8,19 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`BsDataGrid` column chooser and reordering.** `ColumnChooser: true` renders a "Columns" menu above the
+  grid — a checkbox to show or hide each column, and move earlier/later buttons to reorder it — and makes each
+  header a drag source so a column can also be dragged onto another to reorder it. Both axes are controlled or
+  uncontrolled just like grouping: `HiddenColumns`/`ColumnOrder` (with `On…Change`/`…Async`) carry `Field`-name
+  tokens, so a laid-out grid is URL-serialisable (`?hide=region&cols=amount,name,region`) and survives a
+  reload. Every action is a real `<button>` or checkbox, so the feature works from the keyboard alone; header
+  drag is only a mouse accelerator, and a header dropped on the group panel still groups rather than reorders.
+  Hide, reorder and grouped-column folding funnel through one visible-column list, so sort (which tracks a
+  column's identity, not its slot), footers and band colspans all follow; a hidden-but-sorted column keeps its
+  sort, an explicit hide overrides `ShowGroupedColumns`, and the grid never renders a bodyless table. Columns
+  opt out with `BsColumn.Hideable`/`Reorderable`. New **RASK034** warns when a chooser column has no `Field`
+  (so it could never be shown or reordered). Documented in `docs/data-grid.md`; the showcase gains a columns
+  demo. A grid that uses none of this renders byte-identical markup and allocates the same as before.
 - **`BsSelect` and `BsMultiSelect` gain option groups.** A new `OptionGroup` selector (`item => string`) groups
   the options by the returned key in first-seen order — rendered as `<optgroup label>` in `Native` mode and as
   non-interactive `.dropdown-header` rows in the custom dropdown. Grouping reorders the options into group order
@@ -57,6 +70,12 @@ them until tagged releases begin.
   was stored under a name the registry never had: it deserialized to `null` and was silently left unpublished
   until it exhausted its attempts. `Serialize` now normalizes the name to match the generator. (Top-level
   events were unaffected.)
+
+### Fixed
+- **`BsDataGrid` group panel: dragging a chip out of the panel now ungroups that level.** The gesture the docs
+  describe was wired to `dragstart`/drop but never to `dragend`, so releasing a chip on empty space did nothing
+  and the only way to remove a level was its `×` button. The chip's `dragend` now runs the drag-out handler —
+  a no-op after a real drop (which already consumed the drag), an ungroup when the chip was released on nothing.
 
 ## [0.18.0] - 2026-07-16
 

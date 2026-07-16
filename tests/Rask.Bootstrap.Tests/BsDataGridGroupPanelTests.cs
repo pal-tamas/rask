@@ -214,6 +214,39 @@ public class BsDataGridGroupPanelTests
     }
 
     [Fact]
+    public async Task DraggingAChipOut_Ungroups()
+    {
+        // The accelerator over the chip's × button: drag it out of the panel and release on nothing. dragend
+        // fires with no drop before it, so _dragField is still set — the "drag out to ungroup" gesture.
+        var reported = new List<IReadOnlyList<string>>();
+        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
+            GroupPanel: true, Grouped: ["region"], OnGroupedChange: reported.Add));
+
+        await grid.InvokeAsync(Handler(grid.Html, "dragstart")); // [0] the region chip
+        await grid.InvokeAsync(Handler(grid.Html, "dragend"));   // released on nothing
+
+        Assert.Equal([], reported[^1]);
+    }
+
+    [Fact]
+    public async Task ADropThenDragEnd_DoesNotAlsoUngroup()
+    {
+        // A completed drop consumes the drag, so the dragend that follows it must be a no-op — otherwise every
+        // successful reorder would immediately ungroup the level it just moved.
+        var reported = new List<IReadOnlyList<string>>();
+        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
+            GroupPanel: true, Grouped: ["region", "rep"], OnGroupedChange: reported.Add));
+
+        await grid.InvokeAsync(Handler(grid.Html, "dragstart", 1)); // rep chip
+        await grid.InvokeAsync(Handler(grid.Html, "drop", 1));      // onto the region chip → [rep, region]
+        Assert.Equal(["rep", "region"], reported[^1]);
+
+        var count = reported.Count;
+        await grid.InvokeAsync(Handler(grid.Html, "dragend"));      // the drag is already spent — no-op
+        Assert.Equal(count, reported.Count);
+    }
+
+    [Fact]
     public void ThePanelSurvivesTheEmptyState()
     {
         // Grouping down to nothing must not strand the user: the panel is how they got here and how they leave.

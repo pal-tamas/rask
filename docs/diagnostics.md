@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK033)
+# Rask diagnostics (RASK001–RASK034)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -46,6 +46,7 @@ packed alongside the analyzers in the `Rask.Server` / `Rask.Wasm` packages — n
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
 | [RASK032](#rask032) | Error | Native component nested in the HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
+| [RASK034](#rask034) | Warning | BsDataGrid column has no Field, so the column chooser can't show/hide or reorder it |
 
 ---
 
@@ -508,3 +509,35 @@ A("https://example.com", "_blank")["Docs"]; // ✓ external — untouched
 **Fix:** call the generated `Routes.<Page>()` (with arguments for any route/query params). For a genuinely
 dynamic or external target, use `RouteUrl.External("…")`, or suppress with `#pragma warning disable RASK033`
 / `.editorconfig` (`dotnet_diagnostic.RASK033.severity = none`).
+
+## RASK034
+**BsDataGrid column has no Field, so the column chooser can't show/hide or reorder it** · Warning
+
+A [`BsDataGrid`](data-grid.md) that turns on the column chooser or reordering — `ColumnChooser`, or the
+controlled `HiddenColumns`/`ColumnOrder` (and their callbacks) — addresses each column by the token read off
+its [`Field`](data-grid.md#field-names-the-column) expression (`Field = r => r.Region` → `"region"`). A
+column with **no `Field`** has no token, so it can never be hidden or reordered: it stays pinned in the table
+with no menu row, silently. The analyzer flags any `BsColumn` in an **inline** `Columns:` list that sets no
+`Field` while the chooser is in use.
+
+It leaves alone:
+- A grid that uses **neither** the chooser nor a controlled `HiddenColumns`/`ColumnOrder` — a missing `Field`
+  costs nothing there.
+- A column that is a **deliberate fixture** — `Hideable = false` *and* `Reorderable = false` — since it opts
+  out of both axes and needs no token.
+- A `Columns:` passed as a **variable** rather than an inline collection expression (its contents are out of
+  reach of the call-site check).
+
+```csharp
+BsDataGrid(Data: deals, ColumnChooser: true, Columns:
+[
+    new BsColumn<Deal> { Title = "Region", Value = d => d.Region },              // ✗ RASK034 — no token
+    new BsColumn<Deal> { Title = "Amount", Field = d => d.Amount },              // ✓ named "amount"
+    new BsColumn<Deal> { Title = "", Template = d => Actions(d),
+        Hideable = false, Reorderable = false },                                 // ✓ pinned fixture
+]);
+```
+
+**Fix:** add `Field = r => r.X` to name the column (the same token feeds grouping and a controlled sort, so
+name it once), or mark it a fixture with `Hideable = false` and `Reorderable = false`. Suppress with
+`#pragma warning disable RASK034` / `.editorconfig` (`dotnet_diagnostic.RASK034.severity = none`).

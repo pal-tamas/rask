@@ -720,10 +720,52 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
 
         await WalkDataGridGroupAsync();
+        await WalkDataGridColumnsAsync();
         await WalkDataGridSelectionAsync();
         await WalkDataGridRowsAsync();
         await WalkDataGridLoadingAsync();
         await WalkDataGridStickyAsync();
+    }
+
+    // The column chooser, driven from the keyboard-first menu. The unit tests pin the fold/reorder arithmetic;
+    // the browser proves the real live morph — hiding rewrites the header AND every row's cells, reordering
+    // permutes them, and sort still resolves to the right column afterwards through the whole transport.
+    private async Task WalkDataGridColumnsAsync()
+    {
+        var demo = Page.Locator("#grid-columns-demo");
+        var grid = Page.Locator("#bs-grid-columns");
+        await Expect(grid).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        var headers = grid.Locator("thead th");
+        await Expect(headers).ToHaveTextAsync(["Account", "Region", "Rep", "Amount"]);
+
+        // Open the menu — a real disclosure button, no drag needed.
+        await demo.Locator("button[aria-label='Columns']").ClickAsync();
+        await Expect(demo.Locator(".bs-grid-columnmenu")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        // === Hide — unchecking Region folds its header (and cells) out of the table. ===
+        await demo.Locator("input[aria-label='Show Region']").ClickAsync();
+        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(headers).ToHaveCountAsync(3);
+
+        // Re-show it — the menu row outlives the hidden column, which is the only way back.
+        await demo.Locator("input[aria-label='Show Region']").ClickAsync();
+        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // === Reorder — moving Amount earlier permutes the header order in the real DOM (Amount before Rep). ===
+        await demo.Locator("button[aria-label='Move Amount earlier']").ClickAsync();
+        await Expect(headers).ToHaveTextAsync(["Account", "Region", "Amount", "Rep"],
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // === Sort survives the reorder — clicking the moved Amount header still sorts by Amount, not by
+        //     whatever column now sits at that slot. ===
+        await grid.Locator("th:has-text('Amount') button").ClickAsync();
+        await Expect(grid.Locator("th:has-text('Amount')")).ToHaveAttributeAsync("aria-sort", "ascending",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await Expect(grid.Locator("th[aria-sort='ascending']")).ToHaveCountAsync(1);
     }
 
     // Grouping. The unit tests pin the banding; the browser proves the ordering guarantee survives the real

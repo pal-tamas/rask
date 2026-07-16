@@ -90,8 +90,9 @@ public class BsDataGridApiCompatTests
 
         Assert.Equal(
             [
-                "Class", "Field", "Footer", "FooterTemplate", "GroupHeader", "GroupKey", "Groupable",
-                "RowClickable", "SortBy", "SortField", "SortKey", "Sortable", "Template", "Title", "Value",
+                "Class", "Field", "Footer", "FooterTemplate", "GroupHeader", "GroupKey", "Groupable", "Hideable",
+                "Reorderable", "RowClickable", "SortBy", "SortField", "SortKey", "Sortable", "Template", "Title",
+                "Value",
             ],
             actual);
     }
@@ -134,13 +135,14 @@ public class BsDataGridApiCompatTests
 
         Assert.Equal(
             [
-                "Children", "Class", "Columns", "Data", "Empty", "ExpandedContent", "GroupCollapsible",
-                "GroupPanel", "GroupSubtotals", "Grouped", "Hover", "Id", "Key", "Loading", "MaxHeight",
-                "OnGroupedChange",
-                "OnGroupedChangeAsync", "OnPageChange", "OnPageChangeAsync", "OnRowClick", "OnRowClickAsync",
-                "OnSelectionChange", "OnSelectionChangeAsync", "OnSortChange", "OnSortChangeAsync", "Page",
-                "PageSize", "Responsive", "RowClass", "RowKey", "Selectable", "SelectedKeys", "ShowGroupedColumns",
-                "Small", "Sort", "SortDescending", "StickyHeader", "Striped", "TotalCount",
+                "Children", "Class", "ColumnChooser", "ColumnOrder", "Columns", "Data", "Empty",
+                "ExpandedContent", "GroupCollapsible", "GroupPanel", "GroupSubtotals", "Grouped", "HiddenColumns",
+                "Hover", "Id", "Key", "Loading", "MaxHeight", "OnColumnOrderChange", "OnColumnOrderChangeAsync",
+                "OnGroupedChange", "OnGroupedChangeAsync", "OnHiddenColumnsChange", "OnHiddenColumnsChangeAsync",
+                "OnPageChange", "OnPageChangeAsync", "OnRowClick", "OnRowClickAsync", "OnSelectionChange",
+                "OnSelectionChangeAsync", "OnSortChange", "OnSortChangeAsync", "Page", "PageSize", "Responsive",
+                "RowClass", "RowKey", "Selectable", "SelectedKeys", "ShowGroupedColumns", "Small", "Sort",
+                "SortDescending", "StickyHeader", "Striped", "TotalCount",
             ],
             actual);
     }
