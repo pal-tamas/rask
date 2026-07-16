@@ -32,6 +32,11 @@ public sealed class BsPageItem : BsBlock
     public Callback? OnClick { get; set; }
     public CallbackAsync? OnClickAsync { get; set; }
 
+    // Extra ARIA attributes for the page link itself — pass aria-label to name an icon-only control
+    // (a prev/next arrow whose only child is a decorative BsIcon has no accessible name otherwise).
+    // Merged under the component's own aria-disabled, so a disabled labelled item keeps both.
+    public IReadOnlyDictionary<string, string?>? Aria { get; set; }
+
     protected override Component? Render()
     {
         var liCls = BsClass.Join(
@@ -51,9 +56,11 @@ public sealed class BsPageItem : BsBlock
         // Deliberately aria-disabled rather than the disabled attribute: disabled would drop focus to <body>
         // the moment a page click starts a fetch, throwing away the user's keyboard position. Callers still
         // guard their handlers — see BsDataGrid.GoToPageAsync.
+        // Caller aria first (e.g. aria-label naming an arrow), then aria-disabled layered on top so a
+        // disabled arrow keeps its name — WithAria copies rather than mutating the caller's dictionary.
         var linkAria = Disabled is true
-            ? new Dictionary<string, string?> { ["disabled"] = "true" }
-            : null;
+            ? BsClass.WithAria(Aria, "disabled", "true")
+            : Aria;
 
         Component link = Href is not null
             ? A(Class: "page-link", Href: Href, Aria: linkAria)[Items]

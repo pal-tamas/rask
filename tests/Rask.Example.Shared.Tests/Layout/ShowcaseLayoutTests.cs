@@ -137,27 +137,37 @@ public sealed class ShowcaseLayoutTests
     }
 
     [Fact]
-    public void OnMount_SubscribesToRouteChanged_ActiveLinkRefreshesOnNav()
+    public async Task OnRouteChanged_ExpandsActiveGroupAndClosesDrawer()
     {
-        // Behavioural test: navigate from "/" to "/todos", then re-render App with the
-        // same RouteState. The layout's active-link computation must reflect the new
-        // path — which requires its Render() to re-execute after the path change.
+        // ShowcaseLayout subscribes to RouteState.Changed in OnMount so that on every nav it closes the
+        // mobile drawer and expands the accordion group holding the newly-active route (OnRouteChanged →
+        // _drawerOpen = false + OpenActiveGroup + StateHasChanged). Those two effects are the subscription's
+        // real job — NOT the sidebar's active CSS class, which each NavLink owns and refreshes off its own
+        // RouteState.Changed subscription. This test asserts the two effects, so deleting the layout's
+        // subscription (which leaves the drawer open and the group collapsed) turns it red.
         var routeState = new RouteState { Path = "/" };
         var services = TestServices.Default(routeState: routeState);
-        // One handle across both frames: the same App instance has to re-render after the path change.
+        // One handle across frames: the same App/layout instance re-renders after the path change.
         var page = RaskTest.Render(new Shared.App(), services);
 
-        var htmlAtRoot = page.Html;
-        // The "All guides" link to "/" (the site root now the Welcome page is gone) is the active one
-        // when the path is "/" — it carries the bi-book icon.
-        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-book",
-            CollapseWhitespace(htmlAtRoot));
+        // The "Apps" accordion (Examples section, holding Todos) is collapsed at "/" — only the guide
+        // groups auto-open (OpenGuideGroups). Its toggle carries the "open" class only when expanded.
+        var appsExpanded = new Regex("nav-group-toggle open\"[\\s\\S]{0,200}nav-group-label\">Apps<");
+        Assert.DoesNotMatch(appsExpanded, CollapseWhitespace(page.Html));
 
-        routeState.Path = "/todos";
-        var htmlAtTodos = page.Render();
-        // After nav, the active link should be the Todos one (bi-check2-square icon).
-        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-check2-square",
-            CollapseWhitespace(htmlAtTodos));
+        // Open the mobile drawer via the hamburger (it toggles _drawerOpen); the backdrop marks it open.
+        var hamburgerId = Regex.Match(page.Html, "hamburger-btn[^\"]*\"[^>]*data-rask-on-click=\"([^\"]+)\"")
+            .Groups[1].Value;
+        Assert.NotEqual("", hamburgerId);
+        Assert.Contains("offcanvas-backdrop", await page.InvokeAsync(hamburgerId));
+
+        // Navigate to /todos → RouteState.Changed fires → OnRouteChanged closes the drawer and expands the
+        // group holding /todos. Without the subscription neither happens (the drawer stays open, Apps stays
+        // collapsed) even though the layout still re-renders.
+        routeState.Path = Rask.Example.Shared.Features.Routes.TodosPage();
+        var atTodos = CollapseWhitespace(page.Render());
+        Assert.Matches(appsExpanded, atTodos);                 // active group auto-expanded
+        Assert.DoesNotContain("offcanvas-backdrop", atTodos);  // drawer closed
     }
 
     private static string CollapseWhitespace(string s) =>

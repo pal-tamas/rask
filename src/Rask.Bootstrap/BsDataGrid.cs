@@ -1524,7 +1524,10 @@ public sealed class BsDataGrid<T> : BsBlock
     {
         // While loading every item is disabled, not just the edges: the pager is what the user just clicked,
         // so it is where a "wait" has to be visible. BsPageItem renders aria-disabled from this.
+        // The arrows' only child is a decorative (aria-hidden) BsIcon, so they need an explicit
+        // accessible name — without it a screen reader announces an unlabelled button.
         yield return BsPageItem(Key: "prev", Disabled: Busy || CurrentPage == 0,
+            Aria: new Dictionary<string, string?> { ["label"] = "Previous page" },
             OnClickAsync: () => GoToPageAsync(CurrentPage - 1, pageCount))[BsIcon(Name: BsIconName.ChevronLeft)];
 
         // A small sliding window around the current page keeps the pager compact for many pages.
@@ -1540,6 +1543,7 @@ public sealed class BsDataGrid<T> : BsBlock
         }
 
         yield return BsPageItem(Key: "next", Disabled: Busy || CurrentPage == pageCount - 1,
+            Aria: new Dictionary<string, string?> { ["label"] = "Next page" },
             OnClickAsync: () => GoToPageAsync(CurrentPage + 1, pageCount))[BsIcon(Name: BsIconName.ChevronRight)];
     }
 
