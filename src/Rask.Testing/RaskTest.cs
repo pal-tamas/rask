@@ -1,4 +1,5 @@
 using Rask.Core;
+using Rask.Core.Forms;
 
 namespace Rask.Testing;
 
@@ -48,6 +49,27 @@ public static class RaskTest
     {
         ArgumentNullException.ThrowIfNull(factory);
         return new RenderedComponent(new TestRoot(factory), services ?? EmptyServices);
+    }
+
+    /// <summary>
+    ///     A zero-markup component that hands <paramref name="capture" /> the <see cref="EditContext" /> the
+    ///     surrounding form is using, so a test can assert validation state (<c>GetValidationMessages</c>,
+    ///     <c>IsValidating</c>, <c>IsModified</c>) that never reaches the markup. Place it <b>inside</b> the
+    ///     form's children — the context is ambient only within that subtree:
+    ///     <code>
+    ///     EditContext? ctx = null;
+    ///     var page = RaskTest.Render(() => Form(model)[
+    ///         Input(() => model.Name),
+    ///         RaskTest.EditContextProbe(c => ctx = c)
+    ///     ]);
+    ///     </code>
+    ///     The callback runs on every render, so <paramref name="capture" /> sees the current context.
+    /// </summary>
+    /// <param name="capture">Receives the ambient context during each render.</param>
+    public static Component EditContextProbe(Action<EditContext> capture)
+    {
+        ArgumentNullException.ThrowIfNull(capture);
+        return new EditContextProbe(capture);
     }
 
     private static readonly IServiceProvider EmptyServices = new EmptyServiceProvider();
