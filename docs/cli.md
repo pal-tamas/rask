@@ -111,7 +111,7 @@ audit stamps + a domain-events buffer), so a generated `feature` needs **EF Core
 (`dotnet add package` for EF Core + SQLite, `Rask.Cqrs`, `Rask.Data`, and — with `--bs`/`--validation` —
 `Rask.Bootstrap` / the validation library; pass `--no-restore` to skip). It then prints the DI
 registration (`AddRaskCqrs()` + `AddRaskData()` + `AddDbContextFactory` with the interceptors) and the
-`dotnet ef` migration to run before it works.
+migration to create and apply with [`rask db`](#rask-db--ef-core-migrations) before it works.
 
 Every command has short aliases: `rask g` = `rask generate`, and `g f` / `g c` / `g p` scaffold a
 feature / component / page.
@@ -128,6 +128,34 @@ rask dev -- --urls http://localhost:5005   # everything after -- goes to the app
 By default `rask dev` runs `dotnet watch run`, so editing a component's `Render()` (or a scoped
 `.css` / `.js`) and saving re-renders live via C# Hot Reload. Pass `--no-hot-reload` for a one-shot run,
 and forward any app arguments after a `--` separator.
+
+## `rask db` — EF Core migrations
+
+```bash
+rask db add InitialCreate            # create a migration for the current model
+rask db list                         # list migrations and which are applied
+rask db update                       # apply pending migrations to the database
+rask db update 20240101_Init         # migrate up/down to a specific migration
+rask db remove                       # undo the last (unapplied) migration
+rask db drop --force                 # drop the database (a dev reset)
+```
+
+A friendly wrapper over `dotnet ef` for the everyday migration lifecycle, meant to pair with what
+`rask generate feature` scaffolds. It finds the project for you (the single `.csproj` at or above the
+current directory — override with `--project`), and if the EF Core tools aren't installed it installs
+`dotnet-ef` globally the first time you run it.
+
+| Action | Wraps | Notes |
+| --- | --- | --- |
+| `add <Name>` | `dotnet ef migrations add` | `--output <dir>` sets the migrations folder |
+| `remove` | `dotnet ef migrations remove` | undo the last migration |
+| `list` | `dotnet ef migrations list` | show migrations and applied state |
+| `update [<target>]` | `dotnet ef database update` | apply pending, or migrate to a named point |
+| `drop` | `dotnet ef database drop` | drops the database; prompts unless `--force` |
+
+Shared options: `--project/-p` (the project owning the `DbContext`), `--startup-project/-s` (the app
+that configures it; defaults to `--project`), and `--context/-c` (when the app has more than one
+`DbContext`). Anything after `--` is forwarded to `dotnet ef` verbatim (e.g. `rask db update -- --verbose`).
 
 ## `rask info` — environment report
 
@@ -147,6 +175,6 @@ templates are installed, and the OS. `rask --version` prints just the tool versi
 
 ## Roadmap
 
-The CLI is the front door for Rask's "one person framework" tooling. Next up: `rask db` (migrations)
-and `rask deploy` (one-command deploy). See the [development workflow](development-workflow.md) for how
-the framework is built.
+The CLI is the front door for Rask's "one person framework" tooling. Next up: `rask deploy`
+(one-command deploy). See the [development workflow](development-workflow.md) for how the framework
+is built.
