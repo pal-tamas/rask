@@ -464,6 +464,37 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#ms-basic .position-fixed").DispatchEventAsync("click");
         await Expect(msMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
+        // Grouped single-select — OptionGroup renders .dropdown-header sections and OptionDisabled greys a
+        // non-selectable option (the "Data" team); picking an enabled option writes the bound id.
+        var grouped = Page.Locator("#sel-grouped");
+        await grouped.ClickAsync();
+        var groupedMenu = Page.Locator(".dropdown:has(#sel-grouped) .dropdown-menu.show");
+        await Expect(groupedMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(groupedMenu.Locator(".dropdown-header").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(groupedMenu.Locator(".dropdown-item[disabled]"))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await groupedMenu.Locator(".dropdown-item:not([disabled])").First.ClickAsync();
+        await Expect(Page.Locator("#sel-readout")).ToContainTextAsync("GroupedTeam: Platform",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Grouped multiselect — OptionGroup renders three .dropdown-header sections, SelectAll adds a bulk
+        // "Select all" header, and the disabled "Games" is a non-interactive option. (The select-all/disabled
+        // toggle behaviour is unit-tested; here we verify the grouped structure renders in a real browser —
+        // count-based checks avoid depending on the fixed popover scrolling each row into the viewport.)
+        var msGrouped = Page.Locator("#ms-grouped");
+        await msGrouped.ClickAsync();
+        var msGroupedMenu = Page.Locator("#ms-grouped .dropdown-menu.show");
+        await Expect(msGroupedMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(msGroupedMenu.Locator(".dropdown-header"))
+            .ToHaveCountAsync(3, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 }); // Frontend/Data/Other
+        await Expect(msGroupedMenu.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "Select all" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(msGroupedMenu.Locator(".dropdown-item[disabled]"))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 }); // "Games" disabled
+        await Page.Locator("#ms-grouped .position-fixed").DispatchEventAsync("click");
+        await Expect(msGroupedMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
         // === Date & time pickers — hand-editable, custom-popover calendar/clock controls (no bootstrap.js). ===
         await SideAsync("Date & time pickers", "date & time pickers", "main .markdown-body h1");
         await Expect(Page.Locator("#pick-date").First)
