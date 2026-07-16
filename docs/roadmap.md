@@ -11,7 +11,7 @@ service to operate.
 | Pillar | Status | Where |
 |--------|--------|-------|
 | **UI across three hosts** | ✅ | Server (WebSocket live diff), WASM (client-side + PWA), Native iOS/Android — one component. |
-| **The `rask` CLI** | ✅ | [`cli.md`](cli.md) — `new` / `dev` / `generate`. |
+| **The `rask` CLI** | ✅ | [`cli.md`](cli.md) — `new` / `dev` / `generate` / `db` / `deploy`. |
 | **CRUD scaffolder** | ✅ | [`rask generate feature`](cli.md) — CQRS + EF Core vertical slice, value objects, validation, pages, tests. |
 | **CQRS / mediator** | ✅ | [`Rask.Cqrs`](cqrs.md) — source-generated, reflection-free. |
 | **Data layer** | ✅ | [`Rask.Data`](data-access.md) — `AggregateRoot<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
@@ -19,7 +19,7 @@ service to operate.
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **Auth** | ✅ | [`authentication.md`](authentication.md) — cookie login/session in the templates. |
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
-| **Deploy to one box** | ✅ | `--docker` template → a production Dockerfile. |
+| **Deploy to one box** | ✅ | [`rask deploy`](cli.md) — build over SSH, zero-downtime, auto-HTTPS (Caddy), multi-app on one host. |
 
 ## Planned — DB-backed pillars
 

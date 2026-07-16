@@ -2,8 +2,8 @@
 
 **The `rask` command-line tool** — a productivity front-door for the
 [Rask](https://github.com/pal-tamas/rask) framework. It is a thin, dependency-free wrapper over the
-.NET SDK: scaffold a project, run it with hot reload, and inspect your environment, all with short,
-Rask-aware commands.
+.NET SDK: scaffold a project, run it with hot reload, manage migrations, and deploy it to a single host
+over SSH — all with short, Rask-aware commands.
 
 ## Install
 
@@ -32,7 +32,10 @@ rask db update
 # Run it with hot reload (dotnet watch)
 rask dev
 
-# Show CLI / SDK / template environment info
+# Ship it to a single host over SSH — auto-HTTPS, zero-downtime
+rask deploy --host deploy@box --domain app.example.com
+
+# Show CLI / SDK / OS environment info
 rask info
 ```
 
@@ -44,12 +47,13 @@ rask info
 | `rask generate <page\|component> <Name>` | Scaffold a routed page or a component into the current project (folder-based namespace, no-overwrite, `--dry-run`). |
 | `rask generate feature <Name> <field:type> …` | Scaffold a full CQRS + EF Core CRUD vertical slice — encapsulated entity (`Create`/`Update`, Guid id), `DbContext`, commands/queries + handlers, and pages that dispatch via `IDispatcher`. Aliases: `rask g f`. |
 | `rask db <add\|remove\|list\|update\|drop>` | Manage EF Core migrations — a friendly `dotnet ef` wrapper that finds the project and installs `dotnet-ef` on demand. |
+| `rask deploy` | Build and run the app on a single host over SSH (`docker -H ssh://…`). `--domain` fronts it with auto-HTTPS Caddy; deploys are zero-downtime and multiple apps share one box. |
 | `rask dev` | Run the app with C# Hot Reload (`dotnet watch run`); `--no-hot-reload` for a plain run. Args after `--` reach the app. |
-| `rask info` | Report the CLI version, .NET SDK version, template status, and OS. |
+| `rask info` | Report the CLI version, .NET SDK version, and OS. |
 
 Run `rask <command> --help` for command-specific usage, or `rask --version` for the tool version.
 
 ## Notes
 
-- **No external dependencies** — pure BCL over the `dotnet` SDK you already have.
-- More commands (`db`, `deploy`) are on the roadmap — the CLI is the front door to Rask, the .NET One Person Framework.
+- **No external dependencies** — pure BCL over the `dotnet` SDK you already have (`rask deploy` drives the Docker CLI).
+- The CLI is the front door to Rask, the .NET One Person Framework — the whole lifecycle from `new` to `deploy`.

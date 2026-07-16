@@ -29,11 +29,17 @@ internal sealed class FakeProcessRunner : IProcessRunner
 {
     private readonly ConcurrentQueue<ProcessInvocation> _invocations = new();
 
-    /// <summary>Exit code returned by <see cref="RunAsync"/>.</summary>
+    /// <summary>Exit code returned by <see cref="RunAsync"/> (fallback when <see cref="RunHandler"/> is unset).</summary>
     public int RunExitCode { get; set; }
 
-    /// <summary>Result returned by <see cref="CaptureAsync"/>.</summary>
+    /// <summary>Result returned by <see cref="CaptureAsync"/> (fallback when <see cref="CaptureHandler"/> is unset).</summary>
     public ProcessResult CaptureResult { get; set; } = new(0, string.Empty, string.Empty);
+
+    /// <summary>Per-invocation run exit code by argument list — for multi-step flows where one step fails.</summary>
+    public Func<IReadOnlyList<string>, int>? RunHandler { get; set; }
+
+    /// <summary>Per-invocation capture result by argument list — for flows that read varied command output.</summary>
+    public Func<IReadOnlyList<string>, ProcessResult>? CaptureHandler { get; set; }
 
     public IReadOnlyList<ProcessInvocation> Invocations => _invocations.ToArray();
 
@@ -41,14 +47,16 @@ internal sealed class FakeProcessRunner : IProcessRunner
 
     public Task<int> RunAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
     {
-        _invocations.Enqueue(new ProcessInvocation(fileName, arguments.ToArray(), Captured: false));
-        return Task.FromResult(RunExitCode);
+        var args = arguments.ToArray();
+        _invocations.Enqueue(new ProcessInvocation(fileName, args, Captured: false));
+        return Task.FromResult(RunHandler?.Invoke(args) ?? RunExitCode);
     }
 
     public Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
     {
-        _invocations.Enqueue(new ProcessInvocation(fileName, arguments.ToArray(), Captured: true));
-        return Task.FromResult(CaptureResult);
+        var args = arguments.ToArray();
+        _invocations.Enqueue(new ProcessInvocation(fileName, args, Captured: true));
+        return Task.FromResult(CaptureHandler?.Invoke(args) ?? CaptureResult);
     }
 }
 
