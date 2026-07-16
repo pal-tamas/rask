@@ -32,6 +32,10 @@ them until tagged releases begin.
   opt out with `BsColumn.Hideable`/`Reorderable`. New **RASK034** warns when a chooser column has no `Field`
   (so it could never be shown or reordered). Documented in `docs/data-grid.md`; the showcase gains a columns
   demo. A grid that uses none of this renders byte-identical markup and allocates the same as before.
+- **Live demos and unit tests for `BsBreadcrumb`, `BsListGroup`, and `BsPlaceholder`.** The three static
+  content components — previously documented in prose only — now each have a showcase demo embedded in the
+  "Cards, lists & tables" guide (`docs/bootstrap-cards.md`, code-above / live-result-below) and a dedicated
+  rendered-markup unit test, bringing them to coverage parity with the other `Bs*` components.
 - **`BsSelect` and `BsMultiSelect` gain option groups.** A new `OptionGroup` selector (`item => string`) groups
   the options by the returned key in first-seen order — rendered as `<optgroup label>` in `Native` mode and as
   non-interactive `.dropdown-header` rows in the custom dropdown. Grouping reorders the options into group order
