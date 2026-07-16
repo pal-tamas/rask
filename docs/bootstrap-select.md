@@ -37,6 +37,12 @@ cursor skips over it (in `Native` mode it becomes a disabled `<option>`). `BsMul
 takes **`SelectAll: true`**, which adds a "Select all / Clear all" header row that toggles every shown,
 enabled option in one click (respecting an active `Filter` and never touching a disabled option).
 
+Pass an **`OptionGroup` selector** (`item => string`) to both controls to group the options by the
+returned key in first-seen order — `<optgroup label>` in `Native` mode, non-interactive
+`.dropdown-header` rows in the custom dropdown. Grouping only reorders the options into group order;
+keyboard navigation still walks that flat visual order (headers are skipped) and composes with `Filter`
+and `OptionDisabled`.
+
 ## `BsSelect<T>` variants
 
 The same control across every option: basic (binds the option), `Floating` label, searchable

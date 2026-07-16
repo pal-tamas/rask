@@ -9,6 +9,71 @@ namespace Rask.Bootstrap;
 // predicate so a per-option-disabled option is skipped over rather than landed on.
 internal static class BsSelectNav
 {
+    // One rendered option and its position in the FLAT cursor space (== render order after grouping).
+    internal readonly record struct FlatRow<TItem>(TItem Item, int FlatIndex);
+
+    // A group of options under an optional header (null header == the ungrouped single group).
+    internal readonly record struct OptGroup<TItem>(string? Header, IReadOnlyList<FlatRow<TItem>> Rows);
+
+    // The rendered layout: groups (render order: header then Rows) plus the flat option list the roving cursor
+    // indexes. Flat[i] is the i-th rendered option, so the flat index doubles as the aria-activedescendant id.
+    internal readonly record struct Layout<TItem>(
+        IReadOnlyList<OptGroup<TItem>> Groups,
+        IReadOnlyList<TItem> Flat);
+
+    // Groups the already-filtered options for rendering while preserving a flat option list for cursor math.
+    // group == null → one headerless group and Flat == filtered. Otherwise options are bucketed by the group
+    // key in first-seen order; each option is assigned the next flat index so the flat list tracks final render
+    // order (headers are not in it). Empty groups can't arise — a key is created only on its first member.
+    internal static Layout<TItem> Build<TItem>(IReadOnlyList<TItem> filtered, Func<TItem, string>? group)
+    {
+        if (group is null)
+        {
+            var rows = new FlatRow<TItem>[filtered.Count];
+            for (var i = 0; i < filtered.Count; i++)
+            {
+                rows[i] = new FlatRow<TItem>(filtered[i], i);
+            }
+
+            return new Layout<TItem>([new OptGroup<TItem>(null, rows)], filtered);
+        }
+
+        // First pass: bucket items by group key in first-seen order (buckets hold the items, not yet indexed).
+        var order = new List<string>();
+        var buckets = new Dictionary<string, List<TItem>>();
+        foreach (var item in filtered)
+        {
+            var key = group(item);
+            if (!buckets.TryGetValue(key, out var bucket))
+            {
+                bucket = [];
+                buckets[key] = bucket;
+                order.Add(key);
+            }
+
+            bucket.Add(item);
+        }
+
+        // Second pass: lay the groups out in first-seen order and assign each option its flat index IN THAT
+        // RENDER ORDER, so the cursor's flat index equals the option's rendered position (arrows follow the eye).
+        var flat = new List<TItem>(filtered.Count);
+        var groups = new OptGroup<TItem>[order.Count];
+        for (var g = 0; g < order.Count; g++)
+        {
+            var items = buckets[order[g]];
+            var rows = new FlatRow<TItem>[items.Count];
+            for (var j = 0; j < items.Count; j++)
+            {
+                rows[j] = new FlatRow<TItem>(items[j], flat.Count);
+                flat.Add(items[j]);
+            }
+
+            groups[g] = new OptGroup<TItem>(order[g], rows);
+        }
+
+        return new Layout<TItem>(groups, flat);
+    }
+
     // The stable per-option id an aria-activedescendant points at: "{prefix}-opt-{flatIndex}".
     internal static string OptId(string prefix, int idx) =>
         prefix + "-opt-" + idx.ToString(CultureInfo.InvariantCulture);

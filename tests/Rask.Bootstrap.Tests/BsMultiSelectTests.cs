@@ -130,6 +130,15 @@ public class BsMultiSelectTests
             BsMultiSelect<string>(Options: ["a", "b"], Value: new List<string> { "a", "b" }, SelectAll: true)
                 .ToHtml());
 
+    [Fact]
+    public void MultiSelect_OptionGroup_RendersDropdownHeadersInFirstSeenOrder()
+    {
+        var html = BsMultiSelect<string>(Options: ["a", "b"], Value: new List<string>(),
+            OptionGroup: o => o == "a" ? "G1" : "G2", Id: "m").ToHtml();
+        Assert.Contains("<div class=\"dropdown-header\" data-rask-key=\"hdr-G1\">G1</div>", html);
+        Assert.Contains("<div class=\"dropdown-header\" data-rask-key=\"hdr-G2\">G2</div>", html);
+    }
+
     private sealed class TagModel
     {
         public List<string> Tags { get; set; } = [];
