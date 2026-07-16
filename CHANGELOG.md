@@ -30,6 +30,13 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Changed
+- **Breaking: `BsDataGrid` now hides a grouped column by default.** A grouped column holds the same value for
+  every row in its band, and the band header already names it (`Region: EMEA (4)`), so repeating it in-row was a
+  column of duplicates. While a column is grouped its header, cells, subtotal and footer are now dropped and the
+  band-header/detail-row colspans shrink to match; its ungroup control lives on the panel chip. Set the new
+  `ShowGroupedColumns: true` to restore the previous behaviour (the value in the band header **and** repeated
+  down every row). Grouping still orders, bands and subtotals exactly as before. Documented in
+  `docs/data-grid.md`; the grouping demo gains a "Show grouped column" toggle.
 - **The showcase page, layout and guide suites render through `Rask.Testing`.** They called the internal
   `RenderAsLiveRoot(services)` straight on a page component; they now use
   `RaskTest.Render(new SomePage(), services).Html`, which is the same thing a consumer writes. Test-only;

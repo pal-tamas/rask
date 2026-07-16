@@ -53,6 +53,15 @@ public class BsDataGridGroupTests
             .ToArray();
     }
 
+    // The header titles, markup stripped — a sortable header wraps its title in a button, so tags come out.
+    private static string[] HeaderTitles(string html)
+    {
+        var head = Regex.Match(html, "<thead>(.*?)</thead>", RegexOptions.Singleline).Groups[1].Value;
+        return Regex.Matches(head, "<th[^>]*>(.*?)</th>", RegexOptions.Singleline)
+            .Select(m => Regex.Replace(Regex.Replace(m.Groups[1].Value, "<[^>]+>", " "), @"\s+", " ").Trim())
+            .ToArray();
+    }
+
     [Fact]
     public void Field_NamesTheColumn_FromTheMember()
     {
@@ -123,13 +132,117 @@ public class BsDataGridGroupTests
     }
 
     [Fact]
-    public void TheBandHeader_SpansEveryColumn_IncludingTheLeadingOnes()
+    public void TheBandHeader_SpansEveryVisibleColumn_IncludingTheLeadingOnes()
     {
         var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Selectable: true,
             Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
 
-        // 4 data columns + the checkbox column.
-        Assert.Contains("<td colspan=\"5\">", html, StringComparison.Ordinal);
+        // 4 data columns, Category grouped away (3 visible), + the checkbox column = 4.
+        Assert.Contains("<td colspan=\"4\">", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GroupedColumn_IsHiddenByDefault_AndItsValueSurvivesInTheBandHeader()
+    {
+        // A grouped column repeats one value down its whole band under a header the band header already carries,
+        // so by default it folds away — the value lives only in the band header.
+        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
+            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+
+        Assert.Equal(["Name", "Supplier", "Qty"], HeaderTitles(html)); // Category's <th> is gone
+        Assert.Contains("Category: Fruit", html, StringComparison.Ordinal); // but the band header keeps it
+        // The Category cell "Fruit"/"Veg" no longer appears as a row cell; only Name leads each row.
+        Assert.Equal(["Apple", "Banana", "Cherry", "Carrot", "Leek"], FirstCells(html));
+    }
+
+    [Fact]
+    public void ShowGroupedColumns_KeepsTheGroupedColumn_InHeaderAndCells()
+    {
+        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
+            Grouped: ["category"], OnGroupedChange: _ => { }, ShowGroupedColumns: true).ToHtml();
+
+        Assert.Equal(["Name", "Category", "Supplier", "Qty"], HeaderTitles(html)); // all four stay
+        // The value shows both in the band header AND repeated in every row (the pre-hide behaviour).
+        var fruitBand = Regex.Match(html, "Category: Fruit.*?(?=Category: Veg)", RegexOptions.Singleline).Value;
+        Assert.Contains(">Fruit<", fruitBand, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MultiLevelGrouping_HidesEveryGroupedColumn()
+    {
+        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
+            Grouped: ["category", "supplier"], OnGroupedChange: _ => { }).ToHtml();
+
+        // Both grouped columns fold away; only the ungrouped Name and Qty remain.
+        Assert.Equal(["Name", "Qty"], HeaderTitles(html));
+    }
+
+    [Fact]
+    public void SubtotalLabel_LandsOnTheFirstVisibleColumn_WhenColumnZeroIsGroupedAway()
+    {
+        // Column 0 is the grouped-away one, so "Subtotal" must move to the first column that actually renders.
+        BsColumn<Row>[] columns =
+        [
+            new BsColumn<Row>
+            {
+                Title = "Category", Value = r => r.Category, Field = r => r.Category, Groupable = true,
+            },
+            new BsColumn<Row> { Title = "Name", Value = r => r.Name, Field = r => r.Name },
+            new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Footer = rs => rs.Sum(x => x.Qty) },
+        ];
+
+        var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
+            Grouped: ["category"], OnGroupedChange: _ => { }, GroupSubtotals: true).ToHtml();
+
+        var firstSubtotal = Regex.Match(html, "<tr class=\"table-light\"[^>]*>(.*?)</tr>", RegexOptions.Singleline)
+            .Groups[1].Value;
+        // First rendered cell (Name's slot) carries the caption; the Category cell it used to sit under is gone.
+        Assert.Contains(">Subtotal<", firstSubtotal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AGroupedColumnsFooter_DoesNotForceATfoot()
+    {
+        // The only footer belongs to the column being grouped; folding the column away takes its footer with it,
+        // so there is nothing left to put a <tfoot> on the table.
+        BsColumn<Row>[] columns =
+        [
+            new BsColumn<Row> { Title = "Name", Value = r => r.Name, Field = r => r.Name },
+            new BsColumn<Row>
+            {
+                Title = "Category", Value = r => r.Category, Field = r => r.Category, Groupable = true,
+                Footer = rs => rs.Count,
+            },
+        ];
+
+        var grouped = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
+            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        Assert.DoesNotContain("<tfoot>", grouped, StringComparison.Ordinal);
+
+        // Kept (opt-out) or ungrouped, the footer is back.
+        var shown = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
+            Grouped: ["category"], OnGroupedChange: _ => { }, ShowGroupedColumns: true).ToHtml();
+        Assert.Contains("<tfoot>", shown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GroupingEveryColumn_NeverEmitsAZeroColspanBandHeader()
+    {
+        // The degenerate case: the one and only column is grouped away, so the band header spans no data
+        // columns. colspan must clamp to 1 rather than emit the invalid colspan="0".
+        BsColumn<Row>[] columns =
+        [
+            new BsColumn<Row>
+            {
+                Title = "Category", Value = r => r.Category, Field = r => r.Category, Groupable = true,
+            },
+        ];
+
+        var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
+            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+
+        Assert.DoesNotContain("colspan=\"0\"", html, StringComparison.Ordinal);
+        Assert.Contains("<td colspan=\"1\">", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -289,8 +402,10 @@ public class BsDataGridGroupTests
             },
         ];
 
+        // ShowGroupedColumns keeps the sole column visible — the point here is that the CELL shows the whole
+        // name while the BAND is keyed by the initial, which is only observable with the column rendered.
         var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
-            Grouped: ["name"], OnGroupedChange: _ => { }).ToHtml();
+            Grouped: ["name"], OnGroupedChange: _ => { }, ShowGroupedColumns: true).ToHtml();
 
         Assert.Equal(["Initial: A (1)", "Initial: B (1)", "Initial: C (2)", "Initial: L (1)"], BandTitles(html));
         Assert.Equal(["Apple", "Banana", "Carrot", "Cherry", "Leek"], FirstCells(html));

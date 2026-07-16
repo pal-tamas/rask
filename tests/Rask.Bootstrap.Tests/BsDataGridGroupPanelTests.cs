@@ -75,10 +75,12 @@ public class BsDataGridGroupPanelTests
 
         Assert.Contains("Grouped by", html, StringComparison.Ordinal);
         Assert.Equal(3, Regex.Matches(html, "table-group-divider").Count); // AMER, APAC, EMEA
-        Assert.Contains("aria-pressed=\"true\"", html, StringComparison.Ordinal);
+        // Region's header (and with it the aria-pressed group-by toggle) folds away once it's grouped — its
+        // value lives in the band header now, so the panel chip is what carries the grouped state and ungroup.
+        Assert.DoesNotContain("aria-label=\"Group by Region\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"Stop grouping by Region\"", html, StringComparison.Ordinal);
 
-        // The same button ungroups. Read it by label, not index: once grouped, the panel's chip buttons
+        // The chip ungroups. Read it by label, not index: once grouped, the panel's chip buttons
         // precede the headers in document order and every index shifts.
         html = await grid.InvokeAsync(ClickFor(html, "Stop grouping by Region"));
         Assert.DoesNotContain("table-group-divider", html, StringComparison.Ordinal);

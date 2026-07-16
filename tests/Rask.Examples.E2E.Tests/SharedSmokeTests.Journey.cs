@@ -663,6 +663,17 @@ public abstract partial class SharedSmokeTests
         await Expect(bands).ToHaveCountAsync(3); // AMER, APAC, EMEA
         await Expect(bands.First).ToContainTextAsync("Region: AMER");
 
+        // === Grouped columns fold away (default). Region is grouped, so its own <th> is gone — the value lives
+        //     only in the band header. "Show grouped column" flips ShowGroupedColumns to bring the column back;
+        //     toggle it off again so the rest of the walk runs against the default. ===
+        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(0);
+        await demo.Locator("#group-show-col").ClickAsync();
+        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await demo.Locator("#group-show-col").ClickAsync();
+        await Expect(grid.Locator("thead th:has-text('Region')")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
         // === The user's sort applies WITHIN a band, never across it. Sorting by Account keeps three bands. ===
         await grid.Locator("th:has-text('Account') button").ClickAsync();
         await Expect(grid.Locator("th:has-text('Account')")).ToHaveAttributeAsync("aria-sort", "ascending",
