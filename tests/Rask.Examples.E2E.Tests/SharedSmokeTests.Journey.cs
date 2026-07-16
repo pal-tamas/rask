@@ -270,6 +270,9 @@ public abstract partial class SharedSmokeTests
         // Gate on it so the page has hydrated before we assert.
         await Expect(Page.Locator(".guide-demo .sample-result-body button.btn.btn-primary").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        // Badges render on the same demo (the .badge span; exact markup is unit-tested).
+        await Expect(Page.Locator(".guide-demo .sample-result-body .badge").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // === Tabs, accordion & collapse — the disclosure components, all controlled and zero-JS. The
         //     accordion is embedded in the tabs demo; BsCollapse has its own demo whose toggle flips Open. ===
@@ -393,6 +396,17 @@ public abstract partial class SharedSmokeTests
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(Page.Locator(".guide-demo .sample-result-body .placeholder").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // BsTable renders its rows (static — structural proof; exact markup is unit-tested).
+        await Expect(Page.Locator(".guide-demo .sample-result-body table.table tbody tr").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // BsPagination — clicking a page button flips _page through the live runtime: the .active marker
+        // moves to that page and the readout updates. Each item is a real <button>, no bootstrap.js.
+        await Page.Locator(".guide-demo .sample-result-body .pagination .page-link")
+            .Filter(new LocatorFilterOptions { HasText = "3" }).First.ClickAsync();
+        await Expect(Page.Locator(".guide-demo .sample-result-body .pagination .page-item.active .page-link"))
+            .ToHaveTextAsync("3", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#bs-pagination-status")).ToContainTextAsync("Page 3",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // === Form controls — the IFormControl<T>-bound demo, incl. the in-form single-select (BsSelect). ===
         await SideAsync("Form controls", "form controls", "main .markdown-body h1");

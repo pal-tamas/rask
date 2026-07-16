@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Live demos for `BsTable` and `BsPagination`, plus unit tests for `BsBadge`.** The "Cards, lists &
+  tables" guide gains a `BsTable` demo (typed style toggles over core `Thead`/`Tbody` markup) and an
+  interactive `BsPagination` demo (click a page — the `.active` marker and readout follow, zero-JS). Both
+  components were already unit-tested; `BsBadge` (already shown on the buttons demo) now gets a
+  rendered-markup unit test too. The shared browser E2E journey asserts the table rows, drives the
+  pagination page-click, and checks a badge renders — closing the last `Bs*` demo/test-coverage gaps.
 - **Live demos and unit tests for `BsOffcanvas` and `BsConfirmDialog`.** The two interactive overlay
   components — previously documented in prose only — now each have a showcase demo (code-above /
   live-result-below) on the "Modals, offcanvas & dropdowns" guide: an offcanvas drawer that slides in
