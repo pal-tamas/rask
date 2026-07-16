@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`BsSelect` and `BsMultiSelect` gain option groups.** A new `OptionGroup` selector (`item => string`) groups
+  the options by the returned key in first-seen order — rendered as `<optgroup label>` in `Native` mode and as
+  non-interactive `.dropdown-header` rows in the custom dropdown. Grouping reorders the options into group order
+  while keeping keyboard navigation walking that flat visual order (headers are skipped), and composes with
+  `Filter` and `OptionDisabled`. The shared group/flatten/cursor logic lives in `BsSelectNav`.
 - **`BsSelect` and `BsMultiSelect` gain per-option disabling, and `BsMultiSelect` gains a "Select all / Clear
   all" header.** A new `OptionDisabled` predicate (`item => bool`) on both controls marks individual options
   non-selectable: the option renders greyed with `aria-disabled`, takes no click, and the keyboard cursor

@@ -430,6 +430,29 @@ public sealed class MultiSelectTests
         Assert.Empty(value); // controlled mode never mutates the parent's Value in place
     }
 
+    [Fact]
+    public async Task Grouped_ArrowNavigation_WalksFlatOrder_SkippingHeadersAndDisabled()
+    {
+        // Options a,b,c,d grouped a,c -> "Odd", b,d -> "Even" (first-seen: Odd then Even), so the flat cursor
+        // order is a(0), c(1), b(2), d(3). Disable "c" (flat 1).
+        var model = new Bag();
+        var page = RaskTest.Render(
+            () => Form(model)[BsMultiSelect<string>(
+                () => model.Tags, ["a", "b", "c", "d"],
+                OptionGroup: o => o is "a" or "c" ? "Odd" : "Even",
+                OptionDisabled: o => o == "c")],
+            TestServices.Default());
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open, cursor seeds to flat 0 ("a")
+
+        var html = page.Render();
+        Assert.Contains("dropdown-header", html);                                  // grouped headers render
+        Assert.Equal("Tags-opt-0", Markup.Attr(html, "aria-activedescendant")!);   // a (flat 0)
+
+        // ArrowDown from a(0): the next flat option c(1) is disabled → skip it and the headers, land on b(2).
+        await page.InvokeAsync(page.HandlerIds("keydown")[0], "{\"key\":\"ArrowDown\"}");
+        Assert.Equal("Tags-opt-2", Markup.Attr(page.Render(), "aria-activedescendant")!);
+    }
+
     private static IReadOnlyList<string> ClickIds(string html) =>
         Markup.Attrs(html, "data-rask-on-click");
 
