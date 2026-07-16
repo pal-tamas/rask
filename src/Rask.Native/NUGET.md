@@ -12,11 +12,11 @@ head. Includes `Rask.Core` and the Rask source generators.
 
 ## Get started
 
-The `rask-native` template scaffolds both platform heads for you:
+The `rask` CLI's native template scaffolds both platform heads for you:
 
 ```bash
-dotnet new install Rask.Templates
-dotnet new rask-native -n MyApp
+dotnet tool install -g Rask.Cli
+rask new MyApp --template native
 cd MyApp
 
 dotnet workload install ios android          # the iOS/Android SDK workloads (one-time)

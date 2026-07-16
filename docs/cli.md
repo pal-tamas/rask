@@ -12,8 +12,9 @@ dotnet tool install -g Rask.Cli
 
 That puts a `rask` command on your `PATH`. Update it later with `dotnet tool update -g Rask.Cli`.
 
-> The CLI is optional. Everything it does, you can still do by hand with `dotnet new` and
-> `dotnet watch` — `rask` just makes the common paths shorter and Rask-aware.
+> `rask` is a thin, Rask-aware layer over the .NET SDK: it owns scaffolding end to end (`rask new`,
+> `rask generate`), and shells out to `dotnet` for the rest — `rask dev` wraps `dotnet watch`, `rask db`
+> wraps `dotnet ef`.
 
 ## `rask new` — scaffold a project
 
@@ -26,8 +27,9 @@ rask new Field --template native     # a native iOS + Android app
 ```
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
-restore` so the output builds immediately. The one exception is `wasm-hosted`, which still goes through
-`dotnet new` (installing `Rask.Templates` on demand) until its generator lands.
+restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
+(the browser-WASM SPA), `MyApp.Server` (the ASP.NET host you run and deploy), and `MyApp.Shared` (a class
+library both reference).
 
 A new project is deliberately **minimal** — four files, nothing to delete before you start:
 
@@ -103,7 +105,7 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 | `--force` | Overwrite existing file(s). |
 | `--dry-run` | Print the file(s) that would be written, and write nothing. |
 
-The generated code compiles as-is in any `dotnet new rask-*` project — the factory methods and the
+The generated code compiles as-is in any project scaffolded by `rask new` — the factory methods and the
 `Component` base come from Rask's implicit usings, and pages navigate with the type-safe generated
 `Routes.*()` URLs. Every generated entity inherits [`Rask.Data`](data.md)'s `AggregateRoot<TId>` (Id +
 audit stamps + a domain-events buffer), so a generated `feature` needs **EF Core + `Rask.Cqrs` +

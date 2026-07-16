@@ -27,33 +27,34 @@ dotnet --version      # must be ≥ 10.0
 If that prints an older version (or errors), install the .NET 10 SDK from
 [dotnet.microsoft.com](https://dotnet.microsoft.com/download) first.
 
-> **WASM only:** the two WebAssembly templates (`rask-wasm`, `rask-wasm-hosted`) also need the browser
+> **WASM only:** the two WebAssembly templates (`wasm`, `wasm-hosted`) also need the browser
 > WebAssembly tooling — install it once with `dotnet workload install wasm-tools`. If you're starting
 > with the server template (recommended below), you can skip this.
 
 ## 1. Scaffold a project
 
-**Not sure which host to pick? Choose `rask-server`** — it's a single ASP.NET project that runs with no
-extra setup, and the components you write are identical across hosts, so nothing you learn here is
-wasted if you switch later.
+Scaffolding is done by the [`rask` CLI](cli.md) (`Rask.Cli`, a global .NET tool). **Not sure which host
+to pick? Choose the default `server` template** — it's a single ASP.NET project that runs with no extra
+setup, and the components you write are identical across hosts, so nothing you learn here is wasted if
+you switch later.
 
 ```bash
-dotnet new install Rask.Templates    # one-time: install the templates
+dotnet tool install -g Rask.Cli      # one-time: install the rask CLI
 
-dotnet new rask-server -o MyApp      # create a server app in ./MyApp
+rask new MyApp                       # create a server app in ./MyApp (server is the default)
 ```
 
-`Rask.Templates` ships three templates, one per host model:
+`rask new` ships three templates, one per host model:
 
-| Template            | What you get                                                                                  |
+| `--template`        | What you get                                                                                  |
 |---------------------|-----------------------------------------------------------------------------------------------|
-| `rask-server`       | One ASP.NET project. Components render on the server; live updates ship over a WebSocket. **Best default.** |
-| `rask-wasm`         | One `net10.0-browser` project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
-| `rask-wasm-hosted`  | Two projects: the WASM client plus an ASP.NET host that serves the bundle and your own `/api/...` endpoints. |
+| `server` (default)  | One ASP.NET project. Components render on the server; live updates ship over a WebSocket. **Best default.** |
+| `wasm`              | One `net10.0-browser` project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
+| `wasm-hosted`       | Three projects: `MyApp.Client` (the WASM SPA), `MyApp.Server` (the ASP.NET host that serves the bundle and your own `/api/...` endpoints), and `MyApp.Shared` (a class library both reference). |
 
 All three emit the same starter pages, so the rest of this guide applies whichever you chose. Each also
 accepts a `--auth` switch that scaffolds a working login flow — see [authentication](authentication.md)
-when you need it. The `rask-server` template additionally accepts `--cqrs`, which scaffolds the
+when you need it. The `server` template additionally accepts `--cqrs`, which scaffolds the
 [Rask.Cqrs](cqrs.md) mediator (a sample query + handler and a `/greeting` page that dispatches it), and
 `--pwa`, which makes it an installable [PWA](pwa.md).
 
@@ -61,8 +62,8 @@ when you need it. The `rask-server` template additionally accepts `--cqrs`, whic
 
 ```bash
 cd MyApp
-dotnet run            # rask-server / rask-wasm
-# rask-wasm-hosted: run the host project — dotnet run --project MyApp.Host
+dotnet run            # server / wasm
+# wasm-hosted: run the host project — dotnet run --project MyApp.Server
 ```
 
 Open the URL printed in the console. **You should see** a small nav bar (`Home | Counter | Weather`)
@@ -82,7 +83,7 @@ above three working pages: a welcome card, a counter you can click, and a weathe
 
 ## 3. Tour of what the template generated
 
-Before writing code, here's what's in the project and why. This is the `rask-server` layout (the WASM
+Before writing code, here's what's in the project and why. This is the `server` template layout (the WASM
 templates differ only in `Program.cs`):
 
 - **`Program.cs`** — the host setup. `builder.Services.AddRask()` registers the framework, and

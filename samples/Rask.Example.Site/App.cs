@@ -207,7 +207,7 @@ public class App : Component
                     Host("Rask.Wasm", "WebAssembly", "WasmHostBuilder.CreateDefault()",
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
                     Host("Rask.Native · preview", "Native iOS / Android", "NativeAppHost.CreateDefault()",
-                        "A WebView-hybrid app head for App Store / Play Store — your C# runs natively on the device. Scaffold with ", Code()["dotnet new rask-native"], ".")
+                        "A WebView-hybrid app head for App Store / Play Store — your C# runs natively on the device. Scaffold with ", Code()["rask new MyApp --template native"], ".")
                 ]
             ]
         ];

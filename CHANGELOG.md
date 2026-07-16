@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **The `rask` CLI now owns all scaffolding — `rask new --template wasm-hosted` is generated directly, and the
+  `Rask.Templates` package is discontinued.** `wasm-hosted` was the last template still shelling out to
+  `dotnet new`; it now emits its files directly like `server`/`wasm`/`native`, so `rask new` no longer depends
+  on `Rask.Templates` at all. The generated hosted app is the idiomatic three-project trio — **`{Name}.Client`**
+  (the browser-WASM SPA), **`{Name}.Server`** (the ASP.NET host you run and deploy), and **`{Name}.Shared`** (a
+  class library both reference; with `--auth`, the `LoginRequest`/`MeDto` contracts live here instead of being
+  duplicated). `rask new` restores the generated solution, and `rask info` drops its "Rask templates installed"
+  row (the CLI *is* the scaffolder). **BREAKING:** the `Rask.Templates` NuGet package and its `dotnet new rask-*`
+  templates are no longer published — scaffold with `rask new [--template server|wasm|wasm-hosted|native]`
+  instead (install the CLI once with `dotnet tool install -g Rask.Cli`). Docs, README, `llms.txt`, and the site
+  install tabs updated to the `rask new` flow.
+
 ### Added
 - **`rask db` — EF Core migrations from the CLI.** A friendly wrapper over `dotnet ef` for the everyday
   migration lifecycle, pairing with what `rask generate feature` scaffolds: `rask db add <Name>`,
