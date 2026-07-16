@@ -28,6 +28,10 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     // click, and the keyboard cursor skips over it; e.g. OptionDisabled: p => p.SoldOut.
     public Func<TItem, bool>? OptionDisabled { get; set; }
 
+    // Groups the options, keyed by the returned string in first-seen order — <optgroup label> in Native mode,
+    // non-interactive .dropdown-header rows in the custom dropdown; e.g. OptionGroup: p => p.Category.
+    public Func<TItem, string>? OptionGroup { get; set; }
+
     // Opt out of the custom popover and render the native <select> instead. Guarantees a working control
     // (and the OS picker on mobile) where the custom UI is unwanted.
     public bool? Native { get; set; }
@@ -76,19 +80,44 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 
         var children = new List<Component?>();
         // A leading empty option: a non-selectable prompt for a required select, or a selectable "none"
-        // entry when the binding is nullable (empty value → null via the shared StringChangeHandler).
+        // entry when the binding is nullable (empty value → null via the shared StringChangeHandler). It stays
+        // outside any <optgroup>.
         if (Placeholder is not null || CanClear)
         {
             children.Add(Option(Value: "", Disabled: CanClear ? null : true, Key: "placeholder")[
                 Placeholder ?? "None"]);
         }
 
-        for (var i = 0; i < opts.Count; i++)
+        // Group (optional) into <optgroup>s. Each option keeps its GLOBAL flat index as the reconciliation key
+        // so keys stay unique across the whole <select> once options nest under groups; each group gets its own
+        // ordinal key. With no OptionGroup this is one headerless group → options emitted flat, exactly as before.
+        var layout = BsSelectNav.Build(opts, OptionGroup);
+        Component OptionFor(BsSelectNav.FlatRow<TItem> fr) => Option(
+            Value: BindingHelpers.FormatValue(ValueOf(fr.Item)),
+            Disabled: OptionDisabled?.Invoke(fr.Item) == true ? true : null,
+            Key: fr.FlatIndex)[LabelOf(fr.Item)];
+
+        for (var g = 0; g < layout.Groups.Count; g++)
         {
-            children.Add(Option(
-                Value: BindingHelpers.FormatValue(ValueOf(opts[i])),
-                Disabled: OptionDisabled?.Invoke(opts[i]) == true ? true : null,
-                Key: i)[LabelOf(opts[i])]);
+            var group = layout.Groups[g];
+            if (group.Header is null)
+            {
+                foreach (var fr in group.Rows)
+                {
+                    children.Add(OptionFor(fr));
+                }
+            }
+            else
+            {
+                var groupOpts = new List<Component?>();
+                foreach (var fr in group.Rows)
+                {
+                    groupOpts.Add(OptionFor(fr));
+                }
+
+                children.Add(Optgroup(Label: group.Header, Key: "grp-" + g.ToString(CultureInfo.InvariantCulture))[
+                    groupOpts]);
+            }
         }
 
         var control = Select<string>(
@@ -125,14 +154,19 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
             ? opts.Where(o => Filter!(o, _filter)).ToList()
             : opts;
 
-        // Per-option disable predicate over the filtered list; the keyboard cursor skips these indices.
-        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(filtered[i]) == true;
+        // Group (optional) and flatten: `flat` is the option order the roving cursor indexes — grouping only
+        // reorders it into first-seen group order, so the flat index still equals the rendered option position.
+        var layout = BsSelectNav.Build(filtered, OptionGroup);
+        var flat = layout.Flat;
 
-        // Snap the roving cursor into the current filtered list and off any disabled option (a filter change
+        // Per-option disable predicate over the flat list; the keyboard cursor skips these indices.
+        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(flat[i]) == true;
+
+        // Snap the roving cursor into the current flat list and off any disabled option (a filter change
         // sets _cursor loosely, and a selected-but-disabled seed must move to the nearest enabled option).
         if (_open)
         {
-            _cursor = BsSelectNav.Normalize(_cursor, filtered.Count, optDisabled);
+            _cursor = BsSelectNav.Normalize(_cursor, flat.Count, optDisabled);
         }
 
         // The box shows the selected option's (rich) label, or the muted placeholder; blank while floating+empty.
@@ -151,7 +185,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
             aria["labelledby"] = labelId;
         }
 
-        if (_open && _cursor >= 0 && _cursor < filtered.Count)
+        if (_open && _cursor >= 0 && _cursor < flat.Count)
         {
             aria["activedescendant"] = BsSelectNav.OptId(prefix, _cursor);
         }
@@ -176,8 +210,8 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
             Role: "combobox",
             TabIndex: disabled ? null : 0,
             Aria: aria,
-            OnClick: disabled ? null : () => Toggle(b, opts),
-            OnKeyDownAsync: disabled ? null : e => OnKeyAsync(b, filtered, e))[content];
+            OnClick: disabled ? null : () => Toggle(b, flat),
+            OnKeyDownAsync: disabled ? null : e => OnKeyAsync(b, flat, e))[content];
 
         var clear = showClear
             ? BsCloseButton(
@@ -203,47 +237,60 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
                     Autofocus: true,
                     Aria: new Dictionary<string, string?> { ["label"] = "Search" },
                     OnInput: raw => { _filter = raw; _cursor = 0; },
-                    OnKeyDownAsync: e => OnKeyAsync(b, filtered, e))]);
+                    OnKeyDownAsync: e => OnKeyAsync(b, flat, e))]);
         }
 
-        if (searchable && filtered.Count == 0)
+        if (searchable && flat.Count == 0)
         {
             rows.Add(Span(Class: BsClass.Join("dropdown-item", "disabled", Txt.Muted))["No matches"]);
         }
         else
         {
-            for (var i = 0; i < filtered.Count; i++)
+            // Walk the groups: a non-interactive .dropdown-header per group (skipped by the cursor), then that
+            // group's option rows keyed by their FLAT index so ids/active/aria-activedescendant stay in step.
+            foreach (var g in layout.Groups)
             {
-                var idx = i;
-                var item = filtered[i];
-                var isSelected = b.Current is not null && Comparer.Equals(ValueOf(item), b.Current);
-                var optionDisabled = optDisabled(idx);
-                // aria dict only when there's something to say (keeps the enabled/unselected option markup as
-                // it was): aria-selected first, then aria-disabled — a disabled option stays a role="option".
-                Dictionary<string, string?>? optAria = null;
-                if (isSelected || optionDisabled)
+                if (g.Header is not null)
                 {
-                    optAria = new Dictionary<string, string?>();
-                    if (isSelected)
-                    {
-                        optAria["selected"] = "true";
-                    }
-
-                    if (optionDisabled)
-                    {
-                        optAria["disabled"] = "true";
-                    }
+                    rows.Add(Div(Class: "dropdown-header", Key: "hdr-" + g.Header)[g.Header]);
                 }
 
-                rows.Add(Button(
-                    Type: "button",
-                    Class: BsClass.Join("dropdown-item", isSelected || (_open && idx == _cursor) ? "active" : null),
-                    Id: BsSelectNav.OptId(prefix, idx),
-                    Role: "option",
-                    Aria: optAria,
-                    Disabled: disabled || optionDisabled ? true : null,
-                    Key: idx,
-                    OnClickAsync: disabled || optionDisabled ? null : () => WriteAsync(b, ValueOf(item)))[LabelOf(item)]);
+                foreach (var fr in g.Rows)
+                {
+                    var idx = fr.FlatIndex;
+                    var item = fr.Item;
+                    var isSelected = b.Current is not null && Comparer.Equals(ValueOf(item), b.Current);
+                    var optionDisabled = optDisabled(idx);
+                    // aria dict only when there's something to say (keeps the enabled/unselected option markup
+                    // as it was): aria-selected first, then aria-disabled — a disabled option stays role="option".
+                    Dictionary<string, string?>? optAria = null;
+                    if (isSelected || optionDisabled)
+                    {
+                        optAria = new Dictionary<string, string?>();
+                        if (isSelected)
+                        {
+                            optAria["selected"] = "true";
+                        }
+
+                        if (optionDisabled)
+                        {
+                            optAria["disabled"] = "true";
+                        }
+                    }
+
+                    rows.Add(Button(
+                        Type: "button",
+                        Class: BsClass.Join("dropdown-item",
+                            isSelected || (_open && idx == _cursor) ? "active" : null),
+                        Id: BsSelectNav.OptId(prefix, idx),
+                        Role: "option",
+                        Aria: optAria,
+                        Disabled: disabled || optionDisabled ? true : null,
+                        Key: idx,
+                        OnClickAsync: disabled || optionDisabled
+                            ? null
+                            : () => WriteAsync(b, ValueOf(item)))[LabelOf(item)]);
+                }
             }
         }
 
@@ -310,8 +357,8 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     }
 
     // Clicking the display box toggles the popover; opening seeds the keyboard cursor to the selected option
-    // (or the first enabled option when the selection is disabled/absent).
-    private void Toggle(Bound b, IReadOnlyList<TItem> opts)
+    // (or the first enabled option when the selection is disabled/absent). `flat` is the grouped option order.
+    private void Toggle(Bound b, IReadOnlyList<TItem> flat)
     {
         if (_open)
         {
@@ -319,7 +366,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
             return;
         }
 
-        _cursor = BsSelectNav.Seed(SelectedIndex(b, opts), opts.Count, i => OptionDisabled?.Invoke(opts[i]) == true);
+        _cursor = BsSelectNav.Seed(SelectedIndex(b, flat), flat.Count, i => OptionDisabled?.Invoke(flat[i]) == true);
         _open = true;
     }
 
@@ -349,18 +396,18 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         _filter = null;
     }
 
-    // Combobox keyboard over the FILTERED list: arrows move the cursor (skipping disabled options), Home/End
-    // jump to the first/last enabled option, Enter picks the cursor, Escape closes. Space is left to type into
-    // the filter. Focus already opened the popover.
-    private async Task OnKeyAsync(Bound b, IReadOnlyList<TItem> filtered, KeyboardEventArgs e)
+    // Combobox keyboard over the flat (filtered + grouped) option list: arrows move the cursor (skipping
+    // disabled options), Home/End jump to the first/last enabled option, Enter picks the cursor, Escape closes.
+    // Space is left to type into the filter. Focus already opened the popover.
+    private async Task OnKeyAsync(Bound b, IReadOnlyList<TItem> flat, KeyboardEventArgs e)
     {
-        var count = filtered.Count;
-        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(filtered[i]) == true;
+        var count = flat.Count;
+        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(flat[i]) == true;
         if (!_open)
         {
             if (e.Key is "ArrowDown" or "ArrowUp" or "Enter" or " ")
             {
-                _cursor = BsSelectNav.Seed(SelectedIndex(b, filtered), count, optDisabled);
+                _cursor = BsSelectNav.Seed(SelectedIndex(b, flat), count, optDisabled);
                 _open = true;
             }
 
@@ -387,7 +434,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
             case "Enter":
                 if (_cursor >= 0 && _cursor < count && !optDisabled(_cursor))
                 {
-                    await WriteAsync(b, ValueOf(filtered[_cursor])).ConfigureAwait(false);
+                    await WriteAsync(b, ValueOf(flat[_cursor])).ConfigureAwait(false);
                 }
 
                 break;

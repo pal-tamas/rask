@@ -54,6 +54,38 @@ public class BsSelectNavTests
     }
 
     [Fact]
+    public void Build_NoGroup_OneHeaderlessGroup_FlatEqualsInput()
+    {
+        var layout = BsSelectNav.Build(new[] { "a", "b", "c" }, null);
+        Assert.Single(layout.Groups);
+        Assert.Null(layout.Groups[0].Header);
+        Assert.Equal(["a", "b", "c"], layout.Flat);
+        Assert.Equal([0, 1, 2], layout.Groups[0].Rows.Select(r => r.FlatIndex));
+    }
+
+    [Fact]
+    public void Build_Groups_InFirstSeenOrder_FlatIndexTracksRenderPosition()
+    {
+        // Items interleave groups; Build reorders into first-seen group order and the flat index equals the
+        // final rendered position (group X's rows first, then group Y's).
+        var items = new[] { ("X", "a"), ("Y", "b"), ("X", "c"), ("Y", "d") };
+        var layout = BsSelectNav.Build(items, i => i.Item1);
+
+        Assert.Equal(["X", "Y"], layout.Groups.Select(g => g.Header));
+        Assert.Equal(["a", "c", "b", "d"], layout.Flat.Select(i => i.Item2)); // X rows, then Y rows
+        Assert.Equal([0, 1], layout.Groups[0].Rows.Select(r => r.FlatIndex));
+        Assert.Equal([2, 3], layout.Groups[1].Rows.Select(r => r.FlatIndex));
+    }
+
+    [Fact]
+    public void Build_EmptyInput_ProducesNoGroups()
+    {
+        var layout = BsSelectNav.Build(Array.Empty<string>(), i => i);
+        Assert.Empty(layout.Groups); // a key is created only on its first member → no empty groups
+        Assert.Empty(layout.Flat);
+    }
+
+    [Fact]
     public void Normalize_ClampsAndSnapsOffDisabled()
     {
         Assert.Equal(2, BsSelectNav.Normalize(9, 3, None));         // past the end → last
