@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Mail;
 
 namespace Rask.Example.EfCore.Features.Catalog.Shared;
 
@@ -10,5 +11,7 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
     public DbSet<Product> Products => Set<Product>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(CatalogDbContext).Assembly);
+        modelBuilder
+            .ApplyConfigurationsFromAssembly(typeof(CatalogDbContext).Assembly)
+            .AddRaskMail();   // maps the QueuedMail table onto this context (EnsureCreated builds it, see CatalogSeeder)
 }

@@ -22,11 +22,12 @@ work, and the worker dispatches to it.
 ## Use
 
 ```csharp
-public sealed record SendWelcomeEmail(Guid UserId) : IJob;
+public sealed record SendWelcomeEmail(string Email, string Name) : IJob;
 
-public sealed class SendWelcomeEmailHandler(IEmailSender email) : ICommandHandler<SendWelcomeEmail>
+public sealed class SendWelcomeEmailHandler(IMailQueue mail) : ICommandHandler<SendWelcomeEmail>
 {
-    public Task HandleAsync(SendWelcomeEmail job, CancellationToken ct) => email.SendWelcomeAsync(job.UserId, ct);
+    public Task HandleAsync(SendWelcomeEmail job, CancellationToken ct) =>
+        mail.SendAsync(Email.To(job.Email).Subject("Welcome").Body(new WelcomeEmail(job.Name)), ct);
 }
 
 // Program.cs
@@ -53,7 +54,7 @@ Add a migration for the new tables before running — `rask db add AddJobs && ra
 (or `dotnet ef migrations add AddJobs` directly). Then enqueue from anywhere `IJobQueue` is injected:
 
 ```csharp
-await jobs.EnqueueAsync(new SendWelcomeEmail(user.Id));                    // run asap
+await jobs.EnqueueAsync(new SendWelcomeEmail(user.Email, user.Name));      // run asap
 await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(24));  // run later
 ```
 

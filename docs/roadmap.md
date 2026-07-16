@@ -17,6 +17,7 @@ service to operate.
 | **Data layer** | ✅ | [`Rask.Data`](data-access.md) — `AggregateRoot<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
 | **Transactional outbox** | ✅ | [`Rask.Outbox`](outbox.md) — durable, crash-safe domain-event delivery on the app's own database. |
 | **Background jobs** | ✅ | [`Rask.Jobs`](jobs.md) — durable enqueued/delayed/recurring work on the app's own database, at-least-once with backoff. |
+| **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database and delivered off the request thread over SMTP (MailKit), at-least-once with backoff; bodies are Rask components rendered to HTML. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **Auth** | ✅ | [`authentication.md`](authentication.md) — cookie login/session in the templates. |
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
@@ -26,10 +27,6 @@ service to operate.
 
 Each of these is designed to persist to the **same SQLite database the app already has** — no external
 broker, no Redis, no separate infrastructure for a hello-world. Ordered by leverage for shipping a product.
-
-### Transactional email
-Send email from the backend, with the outbox pattern for reliable delivery, and Rask components rendered to
-HTML as the email templates (reusing the render pipeline).
 
 ### Cache
 A developer-facing cache over the app's database, plus a render/fragment cache reusing the framework's
