@@ -164,3 +164,23 @@ public sealed class OutboxTests : IDisposable
         }
     }
 }
+
+// A nested outbox event: its Type.FullName uses '+', which must still match the generator's dotted registration.
+public sealed class OuterScope
+{
+    public sealed record NestedEvent(int N) : IOutboxEvent;
+}
+
+public sealed class OutboxSerializerRegistryTests
+{
+    [Fact]
+    public void A_nested_event_type_round_trips()
+    {
+        // The Rask.Outbox source generator registered this assembly's IOutboxEvent types at module load.
+        var (type, payload) = OutboxSerializerRegistry.Serialize(new OuterScope.NestedEvent(7));
+
+        Assert.DoesNotContain('+', type); // stored dotted, matching the generator's registration
+        var back = OutboxSerializerRegistry.Deserialize(type, payload);
+        Assert.Equal(7, Assert.IsType<OuterScope.NestedEvent>(back).N);
+    }
+}

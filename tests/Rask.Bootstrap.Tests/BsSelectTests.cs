@@ -139,4 +139,39 @@ public class BsSelectTests
             "<div class=\"position-relative\"><div id=\"s\" class=\"form-select bs-select-clearable\"", html);
         Assert.Contains("bs-select-clear", html);
     }
+
+    [Fact]
+    public void Select_OptionDisabled_Custom_RendersAriaDisabledOptionWithNoHandler() =>
+        // The "b" option is disabled: still a role="option", but greyed via aria-disabled and non-clickable.
+        Assert.Contains(
+            "<button id=\"s-opt-1\" class=\"dropdown-item\" data-rask-key=\"1\" role=\"option\" " +
+            "aria-disabled=\"true\" type=\"button\" disabled>b</button>",
+            BsSelect<string>(Options: ["a", "b"], Value: "a", OptionDisabled: o => o == "b", Id: "s").ToHtml());
+
+    [Fact]
+    public void Select_OptionDisabled_Native_RendersDisabledOption() =>
+        Assert.Contains("<option data-rask-key=\"1\" value=\"b\" disabled>b</option>",
+            BsSelect<string>(Options: ["a", "b"], Value: "a", Native: true, OptionDisabled: o => o == "b", Id: "t")
+                .ToHtml());
+
+    [Fact]
+    public void Select_OptionGroup_Custom_RendersDropdownHeadersInFirstSeenOrder()
+    {
+        var html = BsSelect<string>(Options: ["a", "b"], Value: "a",
+            OptionGroup: o => o == "a" ? "First" : "Second", Id: "s").ToHtml();
+        Assert.Contains("<div class=\"dropdown-header\" data-rask-key=\"hdr-First\">First</div>", html);
+        Assert.Contains("<div class=\"dropdown-header\" data-rask-key=\"hdr-Second\">Second</div>", html);
+    }
+
+    [Fact]
+    public void Select_OptionGroup_Native_WrapsOptionsInOptgroups()
+    {
+        var html = BsSelect<string>(Options: ["a", "b"], Value: "a", Native: true,
+            OptionGroup: o => o == "a" ? "First" : "Second", Id: "s").ToHtml();
+        // Each group is an <optgroup label> (own ordinal key); options keep their global flat key + value.
+        Assert.Contains("<optgroup data-rask-key=\"grp-0\" label=\"First\">" +
+            "<option data-rask-key=\"0\" value=\"a\" selected>a</option></optgroup>", html);
+        Assert.Contains("<optgroup data-rask-key=\"grp-1\" label=\"Second\">" +
+            "<option data-rask-key=\"1\" value=\"b\">b</option></optgroup>", html);
+    }
 }

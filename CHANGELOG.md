@@ -21,11 +21,55 @@ them until tagged releases begin.
   opt out with `BsColumn.Hideable`/`Reorderable`. New **RASK034** warns when a chooser column has no `Field`
   (so it could never be shown or reordered). Documented in `docs/data-grid.md`; the showcase gains a columns
   demo. A grid that uses none of this renders byte-identical markup and allocates the same as before.
+- **`BsSelect` and `BsMultiSelect` gain option groups.** A new `OptionGroup` selector (`item => string`) groups
+  the options by the returned key in first-seen order — rendered as `<optgroup label>` in `Native` mode and as
+  non-interactive `.dropdown-header` rows in the custom dropdown. Grouping reorders the options into group order
+  while keeping keyboard navigation walking that flat visual order (headers are skipped), and composes with
+  `Filter` and `OptionDisabled`. The shared group/flatten/cursor logic lives in `BsSelectNav`.
+- **`BsSelect` and `BsMultiSelect` gain per-option disabling, and `BsMultiSelect` gains a "Select all / Clear
+  all" header.** A new `OptionDisabled` predicate (`item => bool`) on both controls marks individual options
+  non-selectable: the option renders greyed with `aria-disabled`, takes no click, and the keyboard cursor
+  skips over it (in `Native` mode it becomes a disabled `<option>`). `BsMultiSelect` also accepts
+  `SelectAll: true`, which adds a header row that toggles every shown, enabled option in one click —
+  respecting an active `Filter` and never touching a disabled option, in both bound and controlled modes.
+- **`BsMultiSelect` is now fully keyboard-operable and reaches listbox accessibility parity with `BsSelect`.**
+  The multiselect dropdown previously responded only to Escape; it now has a roving highlight driven by
+  **Arrow Up/Down** (with **Home/End** to jump), opens from a closed box on Arrow/Enter/Space seeding the
+  highlight to the current selection, and **Enter/Space toggle** the highlighted option's membership while
+  leaving the dropdown open (Space still types a literal space in the search field). The listbox is marked
+  `aria-multiselectable`, each option is a proper `role="option"` carrying `aria-selected`, and the box
+  advertises the highlight through `aria-activedescendant` — matching `BsSelect`'s existing combobox wiring.
+  The shared cursor/id logic lives in a new internal `BsSelectNav` helper both controls consume.
+- **`Rask.Jobs` — durable background jobs on the app's own database.** The roadmap's #1 DB-backed pillar:
+  enqueue a unit of work and a hosted `JobProcessor` runs it off the request thread — **at-least-once**, with
+  exponential-backoff retries up to `MaxAttempts` (then a dead letter kept for inspection). A job is a
+  `Rask.Cqrs` command (`record SendWelcomeEmail(Guid Id) : IJob`) handled by an ordinary
+  `ICommandHandler<TJob>`; inject `IJobQueue` and `EnqueueAsync(job)` or `ScheduleAsync(job, delay)`. Supports
+  durable **interval-recurring** jobs (`o.AddRecurring<T>("name", every, () => new T())`, tracked so a restart
+  never double-runs them) and a retention purge of completed jobs. Rides the existing SQLite database (no
+  broker, no Redis) with a single hosted poller per app, and a source generator registers each `IJob` type for
+  reflection-free rehydration. Wire with `services.AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`,
+  then `rask db add AddJobs`. Scaffold one with **`rask generate job <Name>`** (alias `g j`). Complements
+  `Rask.Outbox` (transaction-derived events) — jobs are work you explicitly schedule. Documented in `docs/jobs.md`.
 - **`BsTimePicker` keyboard parity — `Home`/`End` and a seconds nudge.** Rounding out the picker keyboard
   story: `Home`/`End` jump the clock to the earliest/latest selectable time (the `Min`/`Max` bound, or the
   day edge — `00:00`, and `23:59`/`23:59:59` with seconds), and when `Seconds` is on, `Shift`+`ArrowUp`/
   `ArrowDown` nudges the second by `SecondStep` (plain arrows stay on the minute, `PageUp`/`PageDown` on the
   hour). Every nudge still clamps to `[Min, Max]`. Documented in `docs/bootstrap-pickers.md`.
+- **`IWebLocks` — typed Web Locks API for coordinating work across an origin's tabs and workers.** Inject it
+  and `RequestAsync(name, work)` waits for a named lock, runs your callback while holding it, then releases —
+  even if the callback throws; `TryRequestAsync` uses `ifAvailable` (returns `false` without waiting when the
+  lock is held, so it's a natural "leader tab" election), and `QueryAsync` snapshots held/pending locks. A
+  Core-tier wrapper, so it works on **both transports** (no user gesture needed). Showcased on the Browser APIs
+  page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
+
+### Fixed
+- **`Rask.Outbox` now delivers nested `IOutboxEvent` types.** The source generator registers each event by
+  its dot-separated display name, but `OutboxSerializerRegistry.Serialize` stored `Type.FullName` — which
+  uses `+` between a nesting type and a nested type — so a nested event (a record declared inside a class)
+  was stored under a name the registry never had: it deserialized to `null` and was silently left unpublished
+  until it exhausted its attempts. `Serialize` now normalizes the name to match the generator. (Top-level
+  events were unaffected.)
 
 ### Fixed
 - **`BsDataGrid` group panel: dragging a chip out of the panel now ungroups that level.** The gesture the docs
