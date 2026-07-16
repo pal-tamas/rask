@@ -17,15 +17,14 @@ public class EditContextDisposalTests
         var ctx = new EditContext(model);
         var show = true;
 
-        var view = new StubComponent(() => show
+        var page = RaskTest.Render(() => show
             ? Form<Model>(model, Context: ctx)[Input(() => model.Name)]
             : Div()[Text("gone")]);
 
-        view.RenderAsLiveRoot();
         Assert.False(ctx.IsDisposed);
 
         show = false;
-        view.RenderAsLiveRoot(); // form unmounted → ctx not re-resolved this frame
+        page.Render(); // form unmounted → ctx not re-resolved this frame
         Assert.True(ctx.IsDisposed);
     }
 
@@ -34,10 +33,9 @@ public class EditContextDisposalTests
     {
         var model = new Model { Name = "ada" };
         var ctx = new EditContext(model);
-        var view = new StubComponent(() => Form<Model>(model, Context: ctx)[Input(() => model.Name)]);
+        var page = RaskTest.Render(() => Form<Model>(model, Context: ctx)[Input(() => model.Name)]);
 
-        view.RenderAsLiveRoot();
-        view.RenderAsLiveRoot();
+        page.Render();
 
         Assert.False(ctx.IsDisposed);
     }

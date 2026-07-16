@@ -13,18 +13,16 @@ public class InputDelegateValidateTests
         var p = new Person { Name = "" };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Name,
                 v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
-        using var blur = JsonDocument.Parse("{\"value\":\"ab\"}");
-        await view.TryInvokeHandlerAsync(changeId!, blur.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"ab\"}");
 
         Assert.NotNull(captured);
         Assert.Contains("too short",
@@ -42,19 +40,16 @@ public class InputDelegateValidateTests
         var invalidCalled = 0;
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form<Person>(
+        var page = RaskTest.Render(() => Form<Person>(
             p,
             _ => validCalled++,
             _ => invalidCalled++)[
             Input(() => p.Name,
                 _ => new[] { "always-fail" }),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var submitId = Markup.Attr(html, "data-rask-on-submit")!;
-        using var payload = JsonDocument.Parse("{\"form\":{\"Name\":\"\"}}");
-        await view.TryInvokeHandlerAsync(submitId, payload.RootElement);
+        await page.SubmitAsync("{\"form\":{\"Name\":\"\"}}");
 
         Assert.NotNull(captured);
         Assert.Contains("always-fail",
@@ -70,19 +65,16 @@ public class InputDelegateValidateTests
         var includeValidator = true;
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             includeValidator
                 ? Input(() => p.Name,
                     v =>
                         v.Length < 3 ? new[] { "too short" } : Array.Empty<string>())
                 : Input(() => p.Name),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
 
-        var html = view.RenderAsLiveRoot();
-        var changeId = Markup.Attr(html, "data-rask-on-change")!;
-        using var blur = JsonDocument.Parse("{\"value\":\"ab\"}");
-        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+        await page.ChangeAsync("{\"value\":\"ab\"}");
 
         Assert.NotEmpty(captured!.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
 
@@ -90,10 +82,8 @@ public class InputDelegateValidateTests
         // Validate=null, which clears the prior registration. Then fire another change
         // event — no rule, no messages.
         includeValidator = false;
-        var html2 = view.RenderAsLiveRoot();
-        var changeId2 = Markup.Attr(html2, "data-rask-on-change")!;
-        using var blur2 = JsonDocument.Parse("{\"value\":\"ab\"}");
-        await view.TryInvokeHandlerAsync(changeId2, blur2.RootElement);
+        page.Render();
+        await page.ChangeAsync("{\"value\":\"ab\"}");
 
         Assert.Empty(captured.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
     }
@@ -108,7 +98,7 @@ public class InputDelegateValidateTests
         var p = new Person { Name = "" };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Name,
                 async (v, ct) =>
                 {
@@ -116,9 +106,9 @@ public class InputDelegateValidateTests
                     ct.ThrowIfCancellationRequested();
                     return v.Length < 3 ? new[] { "async-too-short" } : Array.Empty<string>();
                 }),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        var html = view.RenderAsLiveRoot();
+
         Assert.NotNull(captured);
 
         await captured!.ValidateFieldAsync(new FieldIdentifier(p, nameof(Person.Name)));
@@ -136,7 +126,7 @@ public class InputDelegateValidateTests
         var p = new Person { Name = "abc" };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             Input(() => p.Name,
                 async (v, ct) =>
                 {
@@ -144,9 +134,9 @@ public class InputDelegateValidateTests
                     ct.ThrowIfCancellationRequested();
                     return Array.Empty<string>();
                 }),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        view.RenderAsLiveRoot();
+
         Assert.NotNull(captured);
 
         using var cts = new CancellationTokenSource();

@@ -19,6 +19,17 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Changed
+- **`Rask.Core`'s Forms suite drives its handlers through `Rask.Testing`'s public API.** All eight files that
+  rendered and dispatched — the canonical `StubComponent` + `RenderAsLiveRoot` + `Markup.Attr` +
+  `JsonDocument.Parse` + `TryInvokeHandlerAsync` shape — now read as `RaskTest.Render(() => Form(m)[…])` +
+  `await page.ChangeAsync("{\"value\":\"…\"}")`, 232 lines shorter. `NestedBindingValidationTests`' hand-rolled
+  `ExtractAttrAfter` (which existed only to find the *second* input's handler) is deleted in favour of
+  `HandlerIds("input")[1]`. Test-only; 258 tests before and after, and the suite still catches an `EditContext`
+  that stops marking fields modified.
+  Two tests keep the internal entry points, deliberately and with the reason in the code: they install a render
+  handle so the dispatcher's mid-await render produces a real cached subtree, and that cache is what they exist
+  to pin. A render handle is a live-session mechanism, below the HTML + dispatch seam the package covers, so
+  it is not something `Rask.Testing` should grow.
 - **The validation suites are the first to run on nothing but the shipped package.**
   `Rask.Validation.{DataAnnotations,FluentValidation}.Tests` now use `RaskTest.Render` + `EditContextProbe`
   instead of `StubComponent`/`RenderAsLiveRoot`/`ContextCapture`, and they no longer need `Rask.TestSupport`
