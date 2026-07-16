@@ -23,6 +23,9 @@ public sealed class BsSelectDemo : Component
 
     private static string SeatLabel(int? n) => $"{n} seat{(n == 1 ? "" : "s")}";
 
+    // Groups the teams under .dropdown-header (custom) / <optgroup> (native) sections.
+    private static string Division(Team t) => t.Id == 2 ? "Business" : "Engineering";
+
     protected override Component? Render() =>
     [
         Form<Model>(_m, Class: "vstack gap-3")[
@@ -51,7 +54,12 @@ public sealed class BsSelectDemo : Component
                 Placeholder: "None", Label: "Seats (native, nullable)", Id: "sel-nseats"),
             // 8. Disabled — non-interactive, still shows its bound value.
             BsSelect(() => _m.Locked, Plans, OptionLabel: p => Text(PlanLabel(p)),
-                Label: "Plan (disabled)", Disabled: true, Id: "sel-locked")
+                Label: "Plan (disabled)", Disabled: true, Id: "sel-locked"),
+            // 9. Grouped + per-option disabled — OptionGroup renders .dropdown-header sections; OptionDisabled
+            //    greys a non-selectable option that the keyboard cursor skips over.
+            BsSelect(() => _m.GroupedTeamId, Options: Teams, OptionValue: t => t.Id, OptionLabel: t => Text(t.Name),
+                OptionGroup: Division, OptionDisabled: t => t.Id == 3,
+                Placeholder: "Pick a team", Label: "Team (grouped, one disabled)", Id: "sel-grouped")
         ],
         BsAlert(Color: BsColor.Secondary, Class: "mt-3 mb-0")[
             Span(Id: "sel-readout")[
@@ -61,7 +69,8 @@ public sealed class BsSelectDemo : Component
                 $"Seats: {(_m.Seats is { } s ? SeatLabel(s) : "—")} · " +
                 $"Team: {(_m.TeamId is { } id ? Teams.First(t => t.Id == id).Name : "—")} · " +
                 $"Tier: {PlanLabel(_m.Tier)} · " +
-                $"NativeSeats: {(_m.NativeSeats is { } ns ? SeatLabel(ns) : "—")}"
+                $"NativeSeats: {(_m.NativeSeats is { } ns ? SeatLabel(ns) : "—")} · " +
+                $"GroupedTeam: {(_m.GroupedTeamId is { } gt ? Teams.First(t => t.Id == gt).Name : "—")}"
             ]
         ]
     ];
@@ -76,6 +85,7 @@ public sealed class BsSelectDemo : Component
         public string Tier { get; set; } = "free";
         public int? NativeSeats { get; set; }
         public string Locked { get; set; } = "team";
+        public int? GroupedTeamId { get; set; }
     }
 
     private sealed record Team(int Id, string Name);
