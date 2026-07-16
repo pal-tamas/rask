@@ -7,6 +7,13 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`BsTimePicker` keyboard parity — `Home`/`End` and a seconds nudge.** Rounding out the picker keyboard
+  story: `Home`/`End` jump the clock to the earliest/latest selectable time (the `Min`/`Max` bound, or the
+  day edge — `00:00`, and `23:59`/`23:59:59` with seconds), and when `Seconds` is on, `Shift`+`ArrowUp`/
+  `ArrowDown` nudges the second by `SecondStep` (plain arrows stay on the minute, `PageUp`/`PageDown` on the
+  hour). Every nudge still clamps to `[Min, Max]`. Documented in `docs/bootstrap-pickers.md`.
+
 ## [0.18.0] - 2026-07-16
 
 ### Changed

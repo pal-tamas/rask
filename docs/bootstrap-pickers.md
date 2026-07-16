@@ -40,9 +40,9 @@ focus and `aria-activedescendant` tracks a virtual cursor). A first navigation k
 | Key | Date / date-time grid | Time columns |
 | --- | --- | --- |
 | `←` / `→` | previous / next day | — |
-| `↑` / `↓` | previous / next week | nudge the minute by `MinuteStep` |
+| `↑` / `↓` | previous / next week | nudge the minute by `MinuteStep` (`Shift`: the second) |
 | `PageUp` / `PageDown` | previous / next month (`Shift` → year) | nudge the hour |
-| `Home` / `End` | start / end of the week | — |
+| `Home` / `End` | start / end of the week | earliest / latest time (`Min`/`Max` or day edge) |
 | `Enter` | select the navigated day | commit / close |
 | `Escape` | close | close |
 
