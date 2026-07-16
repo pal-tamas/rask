@@ -57,6 +57,10 @@ public async Task Clicking_increments()
   the **first** element wired to that event (optionally with a JSON event payload, e.g.
   `"{\"value\":\"hi\"}"` for an input), then re-render; returns the new `Html`.
 - **`.InvokeAsync(handlerId, json?)`** — dispatch a specific handler by id.
+- **`.TryInvokeAsync(handlerId, json?)`** — dispatch only if the id is still live; returns `false` instead of
+  throwing. Use it to assert a handler is **gone** (a removed element, a disposed subtree).
+- **`.Instance`** — the component object you passed to `Render(component)`, so you can assert its own state
+  rather than parsing it back out of the markup. It stays the same object for the handle's lifetime.
 - **`.HandlerId(domEvent)`** / **`.Attr(name)`** — read a handler id / attribute off the current `Html`.
   Handler ids are reissued every render, so read one from the current `Html` right before invoking rather
   than reusing a captured id.
