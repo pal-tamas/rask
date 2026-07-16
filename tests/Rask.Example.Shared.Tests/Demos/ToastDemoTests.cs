@@ -13,7 +13,7 @@ public sealed class ToastDemoTests
     [Fact]
     public void Render_Initial_NoToasts_ShowsTriggerAndEmptyState()
     {
-        var html = new LiveHost(() => ToastDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = RaskTest.Render(() => ToastDemo(), TestServices.Default()).Html;
 
         Assert.DoesNotContain("toast show", html);
         Assert.Contains("Show toast", html);
@@ -23,11 +23,11 @@ public sealed class ToastDemoTests
     [Fact]
     public async Task ShowToast_AddsVisibleToast()
     {
-        var host = new LiveHost(() => ToastDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => ToastDemo(), TestServices.Default());
 
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[0], Empty()); // "Show toast"
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // "Show toast"
 
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
         Assert.Contains("toast show", html);
         Assert.Contains("Hello, world! This is a toast message.", html);
         Assert.DoesNotContain("No toasts", html);
@@ -36,35 +36,35 @@ public sealed class ToastDemoTests
     [Fact]
     public async Task ShowToast_Twice_StacksTwoToasts()
     {
-        var host = new LiveHost(() => ToastDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => ToastDemo(), TestServices.Default());
 
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[0], Empty());
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[0], Empty());
+        await page.InvokeAsync(ClickIds(page.Render())[0]);
+        await page.InvokeAsync(ClickIds(page.Render())[0]);
 
-        Assert.Equal(2, CountOccurrences(host.RenderAsLiveRoot(), "toast show"));
+        Assert.Equal(2, CountOccurrences(page.Render(), "toast show"));
     }
 
     [Fact]
     public async Task Dismiss_RemovesToast()
     {
-        var host = new LiveHost(() => ToastDemo(), TestServices.Default());
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[0], Empty()); // show
+        var page = RaskTest.Render(() => ToastDemo(), TestServices.Default());
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // show
 
         // The toast's × is the last click handler, appended after the trigger/option controls.
-        var ids = ClickIds(host.RenderAsLiveRoot());
-        await host.TryInvokeHandlerAsync(ids[^1], Empty()); // close
+        var ids = ClickIds(page.Render());
+        await page.InvokeAsync(ids[^1]); // close
 
-        Assert.DoesNotContain("toast show", host.RenderAsLiveRoot());
+        Assert.DoesNotContain("toast show", page.Render());
     }
 
     [Fact]
     public async Task SuccessButton_RendersColouredToast_WithWhiteClose()
     {
-        var host = new LiveHost(() => ToastDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => ToastDemo(), TestServices.Default());
 
-        await host.TryInvokeHandlerAsync(ClickIds(host.RenderAsLiveRoot())[1], Empty()); // "Success"
+        await page.InvokeAsync(ClickIds(page.Render())[1]); // "Success"
 
-        var html = host.RenderAsLiveRoot();
+        var html = page.Render();
         Assert.Contains("text-bg-success", html);
         Assert.Contains("btn-close-white", html);
         Assert.Contains("Your changes were saved.", html);
@@ -73,9 +73,9 @@ public sealed class ToastDemoTests
     [Fact]
     public void Toast_Render_EmitsBootstrapMarkup()
     {
-        var html = new LiveHost(
+        var html = RaskTest.Render(
             () => BsToast(Id: 1, Title: "Heads up", Message: "A message", Timestamp: "just now", Icon: BsIconName.Bell),
-            TestServices.Default()).RenderAsLiveRoot();
+            TestServices.Default()).Html;
 
         Assert.Contains("toast show", html);
         Assert.Contains("toast-header", html);
@@ -91,9 +91,9 @@ public sealed class ToastDemoTests
     [Fact]
     public void Toast_ColouredVariant_UsesHeaderlessFlexLayout()
     {
-        var html = new LiveHost(
+        var html = RaskTest.Render(
             () => BsToast(Id: 1, Title: "Saved", Message: "Done", Color: BsColor.Success),
-            TestServices.Default()).RenderAsLiveRoot();
+            TestServices.Default()).Html;
 
         Assert.Contains("toast show align-items-center text-bg-success border-0", html);
         Assert.Contains("<div class=\"d-flex\">", html);
@@ -104,18 +104,12 @@ public sealed class ToastDemoTests
     [Fact]
     public void Toast_Default_NoVariant_NoWhiteClose()
     {
-        var html = new LiveHost(
+        var html = RaskTest.Render(
             () => BsToast(Id: 1, Title: "T", Message: "M"),
-            TestServices.Default()).RenderAsLiveRoot();
+            TestServices.Default()).Html;
 
         Assert.DoesNotContain("text-bg", html);
         Assert.DoesNotContain("btn-close-white", html);
-    }
-
-    private static JsonElement Empty()
-    {
-        using var doc = JsonDocument.Parse("{}");
-        return doc.RootElement.Clone();
     }
 
     private static List<string> ClickIds(string html)

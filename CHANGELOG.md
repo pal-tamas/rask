@@ -19,6 +19,15 @@ them until tagged releases begin.
   `select sqlite_version()` through the real graph reports `3.50.4`.
 
 ### Changed
+- **The showcase demo suites drop their copy-pasted markup helpers for `Rask.Testing`.** Five files each kept
+  their own `Empty()` / `Json()` / `ClickIds()` / `HandlerIds()` — the same helpers, written five times, over
+  the same markup. `InvokeAsync`'s `"{}"` payload default deletes every `Empty()` outright, and
+  `Markup.Attrs` / `page.HandlerIds(evt)` replace the hand-rolled scanners. Test-only; 44 tests before and
+  after, and the suite still catches a toast that won't dismiss.
+  One helper deliberately survives: `FormControlsDemoTests.ClickIds(html, cssClass)` filters handlers by the
+  CSS class on their element, which is *structural*. `Markup` reads attributes, not structure, and that line
+  is the same one that made a CSS-selector API the wrong shape for this package — so the honest outcome is to
+  leave the structural helper where it is rather than grow the package toward a DOM.
 - **`Rask.Core`'s Forms suite drives its handlers through `Rask.Testing`'s public API.** All eight files that
   rendered and dispatched — the canonical `StubComponent` + `RenderAsLiveRoot` + `Markup.Attr` +
   `JsonDocument.Parse` + `TryInvokeHandlerAsync` shape — now read as `RaskTest.Render(() => Form(m)[…])` +
