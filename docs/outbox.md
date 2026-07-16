@@ -53,7 +53,8 @@ same transaction; the background `OutboxProcessor` drains and publishes them jus
 `INotificationHandler<OrderPlaced>` reacts — the **same handler** works whether the event is delivered
 in-process or via the outbox (`IOutboxEvent` is an `INotification`).
 
-Add a migration for the new table (`dotnet ef migrations add AddOutbox`) before running.
+Add a migration for the new table before running — `rask db add AddOutbox && rask db update`
+(or `dotnet ef migrations add AddOutbox` directly).
 
 ## How it works
 
