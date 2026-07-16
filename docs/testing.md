@@ -59,8 +59,19 @@ public async Task Clicking_increments()
 - **`.InvokeAsync(handlerId, json?)`** — dispatch a specific handler by id.
 - **`.HandlerId(domEvent)`** / **`.Attr(name)`** — read a handler id / attribute off the current `Html`.
   Handler ids are reissued every render, so read one from the current `Html` right before invoking rather
-  than reusing a captured id. To target one of several same-event elements, give it an `Id` and read its
-  handler from `.Html`.
+  than reusing a captured id.
+- **`.HandlerIds(domEvent)`** / **`.Attrs(name)`** — every match, in document order. This is how you target
+  one of several same-event elements — a grid's sort headers, a list's row buttons:
+
+  ```csharp
+  var grid = RaskTest.Render(() => BsDataGrid<Row>(Data: rows, Columns: columns));
+
+  await grid.InvokeAsync(grid.HandlerIds("click")[1]);   // click the second sortable header
+  ```
+
+  Re-read the list after every render, for the same reason a single id can't be cached.
+- **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string you
+  hold, rather than over a `RenderedComponent` (e.g. markup lifted out of a live payload).
 
 `Rask.Core` comes transitively from the app under test (via its `Rask.Server` / `Rask.Wasm` reference),
 so a test project only references `Rask.Testing` and the app.

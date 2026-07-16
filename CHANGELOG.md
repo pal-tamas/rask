@@ -161,6 +161,13 @@ them until tagged releases begin.
   (16,370 → 16,090 B) despite the added handler bookkeeping.
 
 ### Added
+- **`Rask.Testing`: query every match — `HandlerIds(domEvent)`, `Attrs(name)`, and a public `Markup`.**
+  `HandlerId`/`Attr` reach only the first match, which is useless for a component that wires many elements to
+  one event; the workaround was to scrape the markup with a hand-rolled `Regex` (Rask's own `BsDataGrid`
+  suites did exactly that). The new list accessors return every match in document order, so
+  `page.HandlerIds("click")[1]` drives the second wired element. `Markup.Attr`/`Markup.Attrs` expose the same
+  lookups over any HTML string — for markup lifted out of a live payload rather than a `RenderedComponent`.
+  Still a dependency-free substring scan, not an HTML parser. Purely additive.
 - **`Rask.Testing`: `RaskTest.Render(factory, services?)` renders from a component factory.** The existing
   `Render(component)` overload renders one fixed instance, so a tree built at the call site keeps the values
   it was built with — a re-render can never show changed props. The new overload re-runs the factory on every

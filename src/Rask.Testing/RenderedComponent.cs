@@ -34,18 +34,31 @@ public sealed class RenderedComponent
     ///     The value of the first <c>{name}="..."</c> attribute in the current <see cref="Html" />, or
     ///     <c>null</c> if absent. Handler ids live in <c>data-rask-on-{event}</c> attributes.
     /// </summary>
-    public string? Attr(string name) => MarkupQuery.Attr(Html, name);
+    public string? Attr(string name) => Markup.Attr(Html, name);
+
+    /// <summary>
+    ///     The value of every <c>{name}="..."</c> attribute in the current <see cref="Html" />, in document
+    ///     order. Empty if none match.
+    /// </summary>
+    public IReadOnlyList<string> Attrs(string name) => Markup.Attrs(Html, name);
 
     /// <summary>
     ///     The handler id for the <b>first</b> element wired to <paramref name="domEvent" /> (e.g.
     ///     <c>"click"</c>, <c>"input"</c>, <c>"change"</c>, <c>"submit"</c>), or <c>null</c> if none is
     ///     present. Handler ids are reissued from scratch on every render, so an id is valid only for the
     ///     <see cref="Html" /> it was read from — re-query after any re-render rather than reusing a
-    ///     captured id. For a component with several elements wired to the same event, prefer giving the
-    ///     target an <c>Id</c> and reading its handler off <see cref="Html" />; the event helpers below
-    ///     always target the first match.
+    ///     captured id. When several elements are wired to the same event, use <see cref="HandlerIds" />;
+    ///     the event helpers below always target the first match.
     /// </summary>
     public string? HandlerId(string domEvent) => Attr("data-rask-on-" + domEvent);
+
+    /// <summary>
+    ///     The handler ids for <b>every</b> element wired to <paramref name="domEvent" />, in document order
+    ///     — index the one under test when a component wires several (a grid's sort headers, a list's row
+    ///     buttons): <c>await page.InvokeAsync(page.HandlerIds("click")[2])</c>. Like <see cref="HandlerId" />,
+    ///     these are only valid for the render they were read from, so re-read them after every re-render.
+    /// </summary>
+    public IReadOnlyList<string> HandlerIds(string domEvent) => Attrs("data-rask-on-" + domEvent);
 
     /// <summary>
     ///     Dispatches the handler registered under <paramref name="handlerId" /> with an optional JSON event
