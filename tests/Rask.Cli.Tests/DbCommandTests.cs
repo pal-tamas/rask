@@ -218,6 +218,38 @@ public sealed class DbCommandTests
         Assert.Contains("--force only applies", console.ErrorText);
     }
 
+    [Fact]
+    public async Task Warns_when_the_startup_project_lacks_ef_design()
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner();
+        var fileSystem = new FakeFileSystem();
+        fileSystem.Seed(Csproj, "<Project><ItemGroup><PackageReference Include=\"Microsoft.EntityFrameworkCore.Sqlite\" /></ItemGroup></Project>");
+        var command = new DbCommand(console, fileSystem, runner, ProjectDir);
+
+        var exit = await command.ExecuteAsync(["list"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("Microsoft.EntityFrameworkCore.Design", console.OutText, StringComparison.Ordinal);
+        // The hint never blocks — the ef command still runs.
+        Assert.Equal(["ef", "migrations", "list", "--project", ProjectDir, "--startup-project", ProjectDir], runner.LastRun!.Arguments);
+    }
+
+    [Fact]
+    public async Task No_warning_when_the_startup_project_references_ef_design()
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner();
+        var fileSystem = new FakeFileSystem();
+        fileSystem.Seed(Csproj, "<Project><ItemGroup><PackageReference Include=\"Microsoft.EntityFrameworkCore.Design\" /></ItemGroup></Project>");
+        var command = new DbCommand(console, fileSystem, runner, ProjectDir);
+
+        var exit = await command.ExecuteAsync(["list"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain("Note:", console.OutText, StringComparison.Ordinal);
+    }
+
     private static (DbCommand Command, FakeProcessRunner Runner, StringConsole Console) CreateWithProject()
     {
         var console = new StringConsole();

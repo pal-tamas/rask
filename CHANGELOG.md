@@ -13,8 +13,10 @@ them until tagged releases begin.
   `rask db remove`, `rask db list`, `rask db update [<target>]`, and `rask db drop [--force]`. It resolves
   the target project itself (the single `.csproj` at or above the working directory; override with
   `--project`/`--startup-project`, or select a `--context`), forwards anything after `--` to `dotnet ef`
-  verbatim, and installs the `dotnet-ef` global tool on first use if it's missing. Closes the gap between
-  scaffolding an EF-backed feature and having a live schema. Documented in `docs/cli.md`.
+  verbatim, and installs the `dotnet-ef` global tool on first use if it's missing. When the startup
+  project doesn't reference `Microsoft.EntityFrameworkCore.Design` (which the tools require) it prints the
+  exact fix rather than leaving EF's terse message. Closes the gap between scaffolding an EF-backed feature
+  and having a live schema. Documented in `docs/cli.md`.
 
 ### Security
 - **SQLite is no longer vulnerable to CVE-2025-6965 — the shipped native library moves from SQLite 3.49.1 to

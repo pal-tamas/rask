@@ -104,8 +104,47 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
             return 1;
         }
 
+        WarnIfDesignPackageMissing(startupProject);
+
         var efArgs = BuildEfArguments(subcommand, name, project, startupProject, parsed.Option("context"), output, parsed.HasFlag("force"), parsed.Passthrough);
         return await _process.RunAsync("dotnet", efArgs, _workingDirectory, cancellationToken).ConfigureAwait(false);
+    }
+
+    // The EF Core tools need the startup project to reference Microsoft.EntityFrameworkCore.Design;
+    // without it `dotnet ef` fails with a terse message. Projects from `rask generate feature` already
+    // include it, but a hand-built one (or a demo that uses EnsureCreated) may not — so surface the exact
+    // fix up front. This only warns and never blocks: if we can't confidently read the startup project's
+    // csproj, we stay quiet rather than nag a setup we can't see (e.g. the ref comes from imported props).
+    private void WarnIfDesignPackageMissing(string startupProject)
+    {
+        try
+        {
+            var csproj = ResolveCsproj(startupProject);
+            if (csproj is null || _fileSystem.ReadAllText(csproj).Contains("Microsoft.EntityFrameworkCore.Design", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            Console.Out.WriteLine("Note: the EF Core tools need the startup project to reference Microsoft.EntityFrameworkCore.Design.");
+            Console.Out.WriteLine($"      If this fails, add it with: dotnet add \"{csproj}\" package Microsoft.EntityFrameworkCore.Design");
+        }
+        catch (IOException)
+        {
+            // Unreadable project file — skip the hint rather than fail the command over it.
+        }
+    }
+
+    // Resolve a --project / --startup-project value (a .csproj path or a directory) to its csproj file,
+    // or null when it can't be pinned to exactly one — mirroring how ProjectLocator treats ambiguity.
+    private string? ResolveCsproj(string projectPathOrDirectory)
+    {
+        if (projectPathOrDirectory.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            return _fileSystem.FileExists(projectPathOrDirectory) ? projectPathOrDirectory : null;
+        }
+
+        var projects = _fileSystem.ListFiles(projectPathOrDirectory, "*.csproj");
+        return projects.Count == 1 ? projects[0] : null;
     }
 
     private static bool ValidatePositional(string subcommand, string? name, out string? error)
