@@ -27,6 +27,12 @@ them until tagged releases begin.
   day edge — `00:00`, and `23:59`/`23:59:59` with seconds), and when `Seconds` is on, `Shift`+`ArrowUp`/
   `ArrowDown` nudges the second by `SecondStep` (plain arrows stay on the minute, `PageUp`/`PageDown` on the
   hour). Every nudge still clamps to `[Min, Max]`. Documented in `docs/bootstrap-pickers.md`.
+- **`IWebLocks` — typed Web Locks API for coordinating work across an origin's tabs and workers.** Inject it
+  and `RequestAsync(name, work)` waits for a named lock, runs your callback while holding it, then releases —
+  even if the callback throws; `TryRequestAsync` uses `ifAvailable` (returns `false` without waiting when the
+  lock is held, so it's a natural "leader tab" election), and `QueryAsync` snapshots held/pending locks. A
+  Core-tier wrapper, so it works on **both transports** (no user gesture needed). Showcased on the Browser APIs
+  page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
 ## [0.18.0] - 2026-07-16
 

@@ -84,6 +84,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IIndexedDb` | IndexedDB | `OpenStoreAsync(name)` → large async key/value store | one-shot |
 | `IFileSystemAccess` | File System Access API | Open/save a file *back to disk* + directory access (editors) | one-shot |
 | `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
+| `IWebLocks` | Web Locks API | Serialise work across an origin's tabs/workers — hold a named lock for a callback | callback-scoped |
 | `IBroadcastChannel` | `BroadcastChannel` | Cross-tab messaging | **subscription** |
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
@@ -353,6 +354,13 @@ The push pattern above, one element at a time.
 **`IBroadcastChannel`** — send messages between same-origin tabs (open this guide in a second tab to try it).
 
 <!-- demo:browser-broadcast-channel -->
+
+**`IWebLocks`** — serialise work across an origin's tabs/workers: `RequestAsync(name, work)` waits for the
+named lock, runs `work` while holding it, then releases (even if `work` throws); `TryRequestAsync` returns
+`false` without waiting when the lock is already held. Open this guide in a second tab and click "Hold" in
+both to watch one wait for the other.
+
+<!-- demo:browser-web-locks -->
 
 **`INotifications` + `IBadge`** — raise a local notification and set the app-icon badge from the page. In the
 [native shell](native.md) these resolve to real OS backends (UNUserNotificationCenter / NotificationManager and

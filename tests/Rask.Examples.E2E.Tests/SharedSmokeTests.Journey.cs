@@ -1911,6 +1911,12 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#bc-send").ClickAsync();
         await Expect(Page.Locator("#bc-log")).ToContainTextAsync("Message #1", contains);
 
+        // Web Locks — a full C#→JS→C# round-trip that runs headlessly (navigator.locks needs no permission
+        // or gesture): TryRequestAsync acquires the free lock, runs the callback, and releases, all through
+        // the __raskLocks helper under a C#-minted id.
+        await Page.Locator("#locks-try").ClickAsync();
+        await Expect(Page.Locator("#locks-status")).ToContainTextAsync("acquired", contains);
+
         // Intersection observer — another push: scroll the target in and the browser pushes the change.
         await Expect(Page.Locator("#io-status")).ToContainTextAsync("out of view", contains);
         await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
