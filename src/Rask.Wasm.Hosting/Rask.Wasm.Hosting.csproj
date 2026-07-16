@@ -17,7 +17,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <!--
+      PrivateAssets="all" — Rask.Core is IsPackable=false, so without it the nuspec lists a dependency on
+      a "Rask.Core" package that exists on no feed (at a bogus 1.0.0, since Core carries no MinVer
+      version) and every restore of this package fails with NU1101. Consumers get Core.dll from
+      Rask.Wasm above, which bundles it into its own lib/ — the same arrangement Rask.Server and
+      Rask.Wasm use for their own Core references, so nothing is packed here. In-repo consumers do not
+      inherit Core through this reference and must reference it themselves, as the samples already do.
+    -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
   </ItemGroup>
 
   <ItemGroup>

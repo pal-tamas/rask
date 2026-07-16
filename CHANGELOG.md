@@ -26,6 +26,16 @@ them until tagged releases begin.
   assertion now checks `StartsWith` (matching the `WasmJwtAuthExampleTests` sibling, which had it right).
   Test-only; the property it guards is unchanged, and it still fails — naming the leaked token — when the
   sample is mutated to store the raw JWT.
+- **`Rask.Wasm.Hosting`, `Rask.Validation.DataAnnotations` and `Rask.Validation.FluentValidation` could not be
+  restored at all.** Each referenced `Rask.Core` without `PrivateAssets="all"`, and because Core is
+  `IsPackable=false` their nuspecs declared a dependency on a `Rask.Core` package that exists on no feed — at
+  version `1.0.0`, which MinVer never stamps. Every `dotnet restore` that touched one died with `NU1101: Unable
+  to find package Rask.Core`, so the wasm-hosted template and both validation add-ons were unusable from
+  nuget.org. The references are now private, matching `Rask.Server`/`Rask.Wasm`, which is what lets consumers
+  pick up `Rask.Core.dll` from the host package's `lib/` instead. Nothing about the shipped assemblies changes.
+  The in-repo projects that had been inheriting Core through those references now name it directly, as
+  `Rask.Example.Server` already did, and a new repo-wide test fails if any packable project ever again depends
+  on an unpublishable one.
 - **The `Rask.Wasm` package never declared its `Microsoft.JSInterop` dependency.** The runtime uses JSInterop
   directly (`WasmJSRuntime`, `WasmLiveSession`, the typed `Browser/*` wrappers), but it only ever arrived
   transitively through the `PrivateAssets="all"` `Rask.Core` reference — which deliberately keeps Core out of the
