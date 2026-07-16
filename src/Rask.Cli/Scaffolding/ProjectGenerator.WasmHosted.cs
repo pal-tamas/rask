@@ -317,46 +317,14 @@ internal static partial class ProjectGenerator
 
         """;
 
-    // NOTE: the property block mirrors the standalone `wasm` template's WasmCsproj (ProjectGenerator.Wasm.cs) —
-    // keep the two in sync. The hosted client differs only in referencing the Shared project (and never the
-    // --auth JSInterop/Authorization refs — hosted auth is cookie-based, so it needs neither).
+    // Shares the WebAssembly SDK property block with the standalone `wasm` template (WasmSdkPropertyGroup in
+    // ProjectGenerator.Wasm.cs) so the two can't drift. The hosted client differs only in referencing the
+    // Shared project (and never the --auth JSInterop/Authorization refs — hosted auth is cookie-based).
     private static string WasmHostedClientCsproj(string version) =>
         $"""
         <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
-          <PropertyGroup>
-            <TargetFramework>net10.0-browser</TargetFramework>
-            <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-            <OutputType>Exe</OutputType>
-            <UseAppHost>false</UseAppHost>
-            <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>
-            <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-            <!-- Rask WASM marker (gates the framework's wwwroot staging + scoped-asset bake). -->
-            <RaskWasm>true</RaskWasm>
-            <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders on
-                 publish so static-host (GitHub Pages) redeploys stay subresource-integrity-safe. -->
-            <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-            <!-- Full WASM AOT is opt-in: publish with -p:RaskWasmAot=true (needs the wasm-tools workload)
-                 to AOT-compile IL->WASM; the default keeps the Mono interpreter. Both are gated off the fast
-                 no-native build: the SDK's runtime-pack default for this property is empty, so even 'false'
-                 is a relink trigger conflicting with -p:WasmBuildNative=false. -->
-            <RunAOTCompilation Condition=" '$(RaskWasmAot)' == 'true' ">true</RunAOTCompilation>
-            <RunAOTCompilation Condition=" '$(RaskWasmAot)' != 'true' and '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
-            <!-- Trimming is trim-safe: page types reach the runtime via the route registry's generated
-                 module initialiser, which emits a [DynamicDependency] per registered page. -->
-            <PublishTrimmed>true</PublishTrimmed>
-            <TrimMode>full</TrimMode>
-            <!-- Drops the ~2.6 MB of ICU data under _framework/icudt*.dat. Remove this if your app
-                 formats culture-sensitive values (dates, numbers, currency). Gated off the fast
-                 no-native build (-p:WasmBuildNative=false): the SDK forces a native relink when
-                 InvariantGlobalization=true, so the two conflict, and it's irrelevant with no runtime. -->
-            <InvariantGlobalization Condition=" '$(WasmBuildNative)' != 'false' ">true</InvariantGlobalization>
-            <!-- IL2104 comes from Microsoft.JSInterop's reflection-driven [JSInvokable] scanner; apps
-                 that only INVOKE JS never hit it. If you mark methods [JSInvokable], add a
-                 [DynamicDependency] on them (standard Blazor WASM mitigation) instead of suppressing. -->
-            <NoWarn>$(NoWarn);IL2104</NoWarn>
-          </PropertyGroup>
+        {WasmSdkPropertyGroup}
 
           <ItemGroup>
             <PackageReference Include="Rask.Wasm" Version="{version}"/>
