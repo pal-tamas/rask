@@ -11,6 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- A consumer registering a service for the component under test has DI available (their app pulls it
+         in); this project needs it explicitly to exercise the Render(component, services) overload.
+         Microsoft.JSInterop is NOT listed: it flows transitively from Rask.Testing, which is exactly how a
+         consumer gets it — so TestJSRuntime is being used here over the same surface they'd have. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio">

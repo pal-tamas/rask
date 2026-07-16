@@ -77,6 +77,44 @@ public async Task Clicking_increments()
 - **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string you
   hold, rather than over a `RenderedComponent` (e.g. markup lifted out of a live payload).
 
+### Components that call JavaScript
+
+`TestJSRuntime` is an `IJSRuntime` that records every call and returns what you configure — register it and
+assert on the identifier and arguments your component shipped:
+
+```csharp
+var js = new TestJSRuntime();
+js.SetResponse("raskApi.clipboard.read", "hello");
+var services = new ServiceCollection().AddSingleton<IJSRuntime>(js).BuildServiceProvider();
+
+var page = RaskTest.Render(new Copier(), services);
+await page.ClickAsync();
+
+Assert.Equal(["hello"], js.ArgsFor("raskApi.clipboard.write"));
+```
+
+`.Calls` lists every call in order; `.ArgsFor(id)` is the single-call shorthand, `.CallCount(id)` counts, and
+`.SetException(id, ex)` faults one. An unconfigured call returns `default` — the same as a real absent value.
+
+### Forms: asserting validation state
+
+Validation state (messages, `IsModified`, `IsValidating`) never reaches the markup, so reach the form's
+`EditContext` with a probe placed **inside** the form's children:
+
+```csharp
+EditContext? ctx = null;
+var page = RaskTest.Render(() => Form(model)[
+    Input(() => model.Name),
+    RaskTest.EditContextProbe(c => ctx = c)
+]);
+
+await page.InputAsync("{\"value\":\"Ada\"}");
+Assert.True(ctx!.IsModified(new FieldIdentifier(model, nameof(model.Name))));
+```
+
+The probe renders no markup of its own. Outside a form it captures nothing — the context is ambient only
+within the form's subtree.
+
 `Rask.Core` comes transitively from the app under test (via its `Rask.Server` / `Rask.Wasm` reference),
 so a test project only references `Rask.Testing` and the app.
 
