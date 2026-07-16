@@ -71,6 +71,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IPageVisibility` | `document.visibilityState` | Foreground/background state | one-shot |
 | `INavigatorInfo` | `window.navigator` | `OnLineAsync` / `LanguageAsync` / `UserAgentAsync` | one-shot |
 | `INetworkInfo` | `navigator.connection` | Effective type / downlink / RTT / Data Saver — adapt loading | one-shot |
+| `IBattery` | Battery Status API | Charge level + charging state (native OS backend on the shell) | one-shot + **subscription** |
 | `IMediaQuery` | `window.matchMedia` | Evaluate a query; `PrefersDarkAsync` / `PrefersReducedMotionAsync` | one-shot |
 | `ISpeechSynthesis` | `window.speechSynthesis` | Speak text aloud; cancel | one-shot |
 | `IMediaSession` | `navigator.mediaSession` | Now-playing metadata + hardware media-key handlers (native-feel player) | one-shot + subscription |
@@ -186,6 +187,7 @@ each change back into C#:
 - **`IMutationObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
 - **`IMediaSession.SetActionHandlerAsync`** — `SetActionHandlerAsync(action, onAction)` → `IAsyncDisposable`
 - **`IDeviceOrientation`** / **`IDeviceMotion`** — `WatchAsync(onReading)` → `IAsyncDisposable`
+- **`IBattery`** — `WatchAsync(onChange)` → `IAsyncDisposable` (plus a one-shot `GetStatusAsync`)
 - **`IGeolocation.WatchAsync`** — `WatchAsync(onPosition, options?)` → `IAsyncDisposable`
 - **`IGamepad`** — `WatchAsync(onReading)` → `IAsyncDisposable` (a `requestAnimationFrame` poll pushed on change)
 - **`IIdleDetector`** *(WASM)* — `WatchAsync(onChange, thresholdSeconds?)` → `IAsyncDisposable`
@@ -262,6 +264,10 @@ APIs live in the [Mobile & PWA guide](pwa.md).
 **`INetworkInfo`** — connection quality (effective type, downlink, RTT, Data Saver) to adapt loading.
 
 <!-- demo:browser-network -->
+
+**`IBattery`** — charge level and charging state: `GetStatusAsync()` reads once, `WatchAsync(onChange)` subscribes to level/charging changes. Chromium-only in the browser (`GetStatusAsync` returns `null` elsewhere); in the [native shell](native.md) it resolves to a real OS backend (iOS `UIDevice` / Android `BatteryManager`).
+
+<!-- demo:browser-battery -->
 
 **`IScreenInfo`** — display size, colour depth, and device pixel ratio.
 

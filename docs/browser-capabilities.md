@@ -20,6 +20,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`IPageVisibility`](apis/page-visibility.md) | ✅ | ✅ | ✅ | — |
 | [`INavigatorInfo`](apis/navigator-info.md) | ✅ | ✅ | ✅ | — |
 | [`INetworkInfo`](apis/network-info.md) | ✅ | ✅ | ✅&nbsp;★ | NWPathMonitor / ConnectivityManager |
+| [`IBattery`](apis/battery.md) | ✅ | ✅ | ✅&nbsp;★ | UIDevice battery monitoring / BatteryManager |
 | [`IMediaQuery`](apis/media-query.md) | ✅ | ✅ | ✅ | — |
 | [`ISpeechSynthesis`](apis/speech-synthesis.md) | ✅ | ✅ | ✅&nbsp;★ | AVSpeechSynthesizer / TextToSpeech |
 | [`IMediaSession`](apis/media-session.md) | ✅ | ✅ | ✅ | — |

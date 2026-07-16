@@ -371,6 +371,45 @@ window.__raskIntersect = window.__raskIntersect || (() => {
     };
 })();
 
+// Battery Status (driven by IBattery). getStatus reads navigator.getBattery() once; watch adds the
+// level/charging change listeners under the C#-minted id and pushes each snapshot back via the shared
+// window.DotNet.invokeMethodAsync shim (static [JSInvokable] BatteryInterop.Changed in Rask.Core). Shared
+// here (not WASM-only): navigator.getBattery needs no user gesture, so it works over the Server client too.
+window.__raskBattery = window.__raskBattery || (() => {
+    const watches = new Map(); // id -> {mgr, handler}
+    const EVENTS = ["levelchange", "chargingchange", "chargingtimechange", "dischargingtimechange"];
+    // charging/discharging time are Infinity when unknown — JSON can't carry Infinity, so map it to null.
+    const read = (b) => ({
+        level: b.level,
+        charging: b.charging,
+        chargingTime: isFinite(b.chargingTime) ? b.chargingTime : null,
+        dischargingTime: isFinite(b.dischargingTime) ? b.dischargingTime : null
+    });
+    return {
+        isSupported: () => typeof navigator.getBattery === "function",
+        getStatus: () => navigator.getBattery ? navigator.getBattery().then(read) : Promise.resolve(null),
+        watch: (id) => {
+            if (!navigator.getBattery) {
+                return Promise.resolve();
+            }
+            return navigator.getBattery().then((b) => {
+                const handler = () =>
+                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskBatteryChanged", id, read(b));
+                EVENTS.forEach((e) => b.addEventListener(e, handler));
+                watches.set(id, {mgr: b, handler: handler});
+            });
+        },
+        clear: (id) => {
+            const w = watches.get(id);
+            if (!w) {
+                return;
+            }
+            watches.delete(id);
+            EVENTS.forEach((e) => w.mgr.removeEventListener(e, w.handler));
+        }
+    };
+})();
+
 // Device Orientation (driven by IDeviceOrientation). Each watch adds a window "deviceorientation"
 // listener under the C#-minted id; each reading is pushed back via the shared window.DotNet.invokeMethodAsync
 // shim (static [JSInvokable] DeviceOrientationInterop.Reading in Rask.Core).

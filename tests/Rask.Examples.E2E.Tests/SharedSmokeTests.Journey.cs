@@ -1948,6 +1948,11 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#locks-try").ClickAsync();
         await Expect(Page.Locator("#locks-status")).ToContainTextAsync("acquired", contains);
 
+        // Battery — one-shot read of navigator.getBattery (headless Chromium provides a mock manager, so
+        // GetStatusAsync resolves rather than returning null); the status flips to "read".
+        await Page.Locator("#battery-read").ClickAsync();
+        await Expect(Page.Locator("#battery-status")).ToContainTextAsync("read", contains);
+
         // Intersection observer — another push: scroll the target in and the browser pushes the change.
         await Expect(Page.Locator("#io-status")).ToContainTextAsync("out of view", contains);
         await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
