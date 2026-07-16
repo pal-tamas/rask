@@ -138,7 +138,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 
         if (_open && _cursor >= 0 && _cursor < filtered.Count)
         {
-            aria["activedescendant"] = OptId(prefix, _cursor);
+            aria["activedescendant"] = BsSelectNav.OptId(prefix, _cursor);
         }
 
         if (FieldAria(b, controlId) is { } fa)
@@ -205,7 +205,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
                 rows.Add(Button(
                     Type: "button",
                     Class: BsClass.Join("dropdown-item", isSelected || (_open && idx == _cursor) ? "active" : null),
-                    Id: OptId(prefix, idx),
+                    Id: BsSelectNav.OptId(prefix, idx),
                     Role: "option",
                     Aria: isSelected ? SelectedAria : null,
                     Disabled: Disabled,
@@ -289,9 +289,6 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         _cursor = s >= 0 ? s : 0;
         _open = true;
     }
-
-    private static string OptId(string prefix, int idx) =>
-        prefix + "-opt-" + idx.ToString(CultureInfo.InvariantCulture);
 
     // Index of the option whose projected value equals the bound value, or -1.
     private int SelectedIndex(in Bound b, IReadOnlyList<TItem> opts)

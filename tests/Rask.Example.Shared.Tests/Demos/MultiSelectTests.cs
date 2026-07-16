@@ -85,6 +85,84 @@ public sealed class MultiSelectTests
     }
 
     [Fact]
+    public async Task ArrowDown_WhenClosed_OpensAndSeedsCursorToFirstOption()
+    {
+        var (page, _) = MountBound();
+        var keyId = page.HandlerIds("keydown")[0]; // closed → the box is the only keydown handler
+
+        await page.InvokeAsync(keyId, "{\"key\":\"ArrowDown\"}");
+
+        var html = page.Render();
+        Assert.Contains("dropdown-menu show", html);                              // opened
+        Assert.Equal("Tags-opt-0", Markup.Attr(html, "aria-activedescendant")!);  // seeded to the first option
+    }
+
+    [Fact]
+    public async Task ArrowKeys_HomeEnd_MoveRovingCursor_TrackingActiveDescendant()
+    {
+        var (page, _) = MountBound();
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open (cursor seeded to option 0)
+
+        await page.InvokeAsync(page.HandlerIds("keydown")[0], "{\"key\":\"ArrowDown\"}"); // 0 -> 1
+        var html = page.Render();
+        Assert.Equal("Tags-opt-1", Markup.Attr(html, "aria-activedescendant")!);
+        // the highlighted (not selected) option carries .active
+        Assert.Contains(
+            "<button id=\"Tags-opt-1\" class=\"dropdown-item d-flex align-items-center gap-2 active\"", html);
+
+        await page.InvokeAsync(page.HandlerIds("keydown")[0], "{\"key\":\"End\"}"); // -> last
+        Assert.Equal("Tags-opt-2", Markup.Attr(page.Render(), "aria-activedescendant")!);
+
+        await page.InvokeAsync(page.HandlerIds("keydown")[0], "{\"key\":\"Home\"}"); // -> first
+        Assert.Equal("Tags-opt-0", Markup.Attr(page.Render(), "aria-activedescendant")!);
+    }
+
+    [Fact]
+    public async Task Enter_TogglesCursorOptionMembership()
+    {
+        var (page, model) = MountBound();
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open, cursor seeded to option 0 ("a")
+
+        await page.InvokeAsync(page.HandlerIds("keydown")[0], "{\"key\":\"Enter\"}");
+
+        Assert.Equal(["a"], model.Tags);
+        var html = page.Render();
+        Assert.Contains("badge", html);                        // chip rendered
+        Assert.Contains("aria-selected=\"true\"", html);       // the option reflects selection
+    }
+
+    [Fact]
+    public async Task Space_FromBox_TogglesCursorOption()
+    {
+        var (page, model) = MountBound();
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open, cursor at option 0
+
+        await page.InvokeAsync(page.HandlerIds("keydown")[0], "{\"key\":\" \"}");
+
+        Assert.Equal(["a"], model.Tags);
+    }
+
+    [Fact]
+    public async Task Space_InSearchField_TypesSpace_DoesNotToggle()
+    {
+        // With a Filter, the open dropdown grows a search field. Space there must type a literal space (fall
+        // through), never toggle the cursor option — the box handler owns Space-to-toggle, the search doesn't.
+        var model = new Bag();
+        var page = RaskTest.Render(
+            () => Form(model)[BsMultiSelect<string>(
+                () => model.Tags, Options,
+                Filter: (o, t) => o.Contains(t, StringComparison.OrdinalIgnoreCase))],
+            TestServices.Default());
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open → search field appears
+
+        var keydownIds = page.HandlerIds("keydown"); // [box, search field]
+        await page.InvokeAsync(keydownIds[1], "{\"key\":\" \"}"); // Space in the search field
+
+        Assert.Empty(model.Tags);                              // no membership toggled
+        Assert.Contains("dropdown-menu show", page.Render());  // still open
+    }
+
+    [Fact]
     public async Task SelectOption_AddsToCollection_RendersChipAndCheck()
     {
         var (page, model) = MountBound();

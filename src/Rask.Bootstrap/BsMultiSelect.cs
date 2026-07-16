@@ -40,9 +40,11 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     public bool? Floating { get; set; }
 
     // View state only — the selection lives in the bound model / parent Value. Toggling re-renders. _filter
-    // is the text typed into the inline search field (null when not searching).
+    // is the text typed into the inline search field (null when not searching); _cursor is the roving
+    // keyboard highlight (a flat index into the filtered option list), surfaced as aria-activedescendant.
     private bool _open;
     private string? _filter;
+    private int _cursor;
 
     // A per-instance suffix so two id-less multiselects still emit unique list/label ids for the
     // combobox aria-controls / aria-labelledby wiring. Uses the shared non-generic counter so two
@@ -103,6 +105,28 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             : Options;
         var filteredList = filtered as IReadOnlyList<TItem> ?? filtered.ToList();
 
+        // No per-option disabling in this control yet — the cursor may land on any option. (PR wiring an
+        // OptionDisabled predicate replaces this so disabled options are skipped over.)
+        Func<int, bool> optDisabled = static _ => false;
+
+        // The roving keyboard cursor lives in flat filtered-index space. Normalise it once against the current
+        // list so a filter change (which may shrink the list) can't leave it dangling past the end, and seed
+        // it to the first selected option so opening lands the highlight where the eye already is.
+        if (_open)
+        {
+            _cursor = BsSelectNav.Normalize(_cursor, filteredList.Count, optDisabled);
+        }
+
+        var firstSelected = -1;
+        for (var i = 0; i < filteredList.Count; i++)
+        {
+            if (selected is not null && selected.Contains(filteredList[i], comparer))
+            {
+                firstSelected = i;
+                break;
+            }
+        }
+
         var hasChips = selected is not null && selected.Count > 0;
         var floating = Floating is true && Label is not null;
 
@@ -142,8 +166,8 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
                     Autocomplete: "off",
                     Autofocus: true,
                     Aria: new Dictionary<string, string?> { ["label"] = "Search" },
-                    OnInput: raw => _filter = raw,
-                    OnKeyDown: OnBoxKeyDown)]);
+                    OnInput: raw => { _filter = raw; _cursor = 0; },
+                    OnKeyDownAsync: e => OnKeyAsync(e, fromSearch: true))]);
         }
 
         if (searchable && filteredList.Count == 0)
@@ -157,8 +181,18 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             {
                 var captured = option;
                 var isChecked = selected is not null && selected.Contains(captured, comparer);
+                // aria-selected and the read-only checkbox both derive from isChecked (never from _cursor), so
+                // they can't drift; the cursor is surfaced only as the .active highlight. role="option" +
+                // aria-selected make this a proper listbox option for assistive tech.
+                var optAria = new Dictionary<string, string?> { ["selected"] = isChecked ? "true" : "false" };
                 rows.Add(Button(
-                    Type: "button", Class: "dropdown-item d-flex align-items-center gap-2", Disabled: Disabled,
+                    Type: "button",
+                    Class: BsClass.Join("dropdown-item d-flex align-items-center gap-2",
+                        _open && idx == _cursor ? "active" : null),
+                    Id: BsSelectNav.OptId(prefix, idx),
+                    Role: "option",
+                    Aria: optAria,
+                    Disabled: Disabled,
                     OnClickAsync: disabled ? null : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked),
                     Key: idx)[
                     Input<string>(InputType.Checkbox, Class: "form-check-input m-0 pe-none", Checked: isChecked),
@@ -179,6 +213,11 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             boxAria["labelledby"] = labelId;
         }
 
+        if (_open && _cursor >= 0 && _cursor < filteredList.Count)
+        {
+            boxAria["activedescendant"] = BsSelectNav.OptId(prefix, _cursor);
+        }
+
         // Merge the shared aria-invalid/aria-describedby contract (the same builder BsSelect/BsFormControl
         // use) so the four controls stay in lockstep if it ever grows.
         if (BsClass.FieldAria(invalid, errorId) is { } fa)
@@ -197,8 +236,20 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             Role: "combobox",
             TabIndex: disabled ? null : 0,
             Aria: boxAria,
-            OnClick: disabled ? null : () => { _open = !_open; if (!_open) { _filter = null; } },
-            OnKeyDown: disabled ? null : OnBoxKeyDown)[box];
+            OnClick: disabled ? null : () =>
+            {
+                if (_open)
+                {
+                    _open = false;
+                    _filter = null;
+                }
+                else
+                {
+                    _cursor = BsSelectNav.Seed(firstSelected, filteredList.Count, optDisabled);
+                    _open = true;
+                }
+            },
+            OnKeyDownAsync: disabled ? null : e => OnKeyAsync(e, fromSearch: false))[box];
 
         var labelNode = Label is null
             ? null
@@ -217,9 +268,11 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             ? Div(Class: BsClass.Join("form-floating bs-floating", hasChips ? "bs-floating-filled" : null,
                 Position.Relative))[boxDiv, labelNode]
             : boxDiv);
-        children.Add(Div(Id: listId, Role: "listbox", Class: _open
-            ? BsClass.Join("dropdown-menu show", Display.Block(), Sizing.W(100))
-            : "dropdown-menu")[rows]);
+        children.Add(Div(Id: listId, Role: "listbox",
+            Aria: new Dictionary<string, string?> { ["multiselectable"] = "true" },
+            Class: _open
+                ? BsClass.Join("dropdown-menu show", Display.Block(), Sizing.W(100))
+                : "dropdown-menu")[rows]);
 
         if (_open && !disabled)
         {
@@ -240,14 +293,55 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         }
 
         return Div(Class: BsClass.Join("dropdown", Class), Id: Id, Data: BsPopover.Wrapper)[children];
-    }
 
-    private void OnBoxKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Escape")
+        // Combobox keyboard over the FILTERED list, mirroring BsSelect's OnKeyAsync: arrows move the roving
+        // cursor (skipping disabled options), Home/End jump, Enter/Space toggle the cursor option's membership,
+        // Escape closes. A local function so it captures this render's binding state (acc/ctx/fid/selected/…),
+        // exactly as the chip-remove and option-click handlers do. `fromSearch` is true when the event comes
+        // from the in-dropdown search field, where Space must type a literal space instead of toggling.
+        async Task OnKeyAsync(KeyboardEventArgs e, bool fromSearch)
         {
-            _open = false;
-            _filter = null;
+            var count = filteredList.Count;
+            if (!_open)
+            {
+                if (e.Key is "ArrowDown" or "ArrowUp" or "Enter" or " ")
+                {
+                    _cursor = BsSelectNav.Seed(firstSelected, count, optDisabled);
+                    _open = true;
+                }
+
+                return;
+            }
+
+            switch (e.Key)
+            {
+                case "Escape":
+                    _open = false;
+                    _filter = null;
+                    break;
+                case "ArrowDown":
+                    _cursor = BsSelectNav.Step(_cursor, 1, count, optDisabled);
+                    break;
+                case "ArrowUp":
+                    _cursor = BsSelectNav.Step(_cursor, -1, count, optDisabled);
+                    break;
+                case "Home":
+                    _cursor = BsSelectNav.FirstEnabled(count, optDisabled);
+                    break;
+                case "End":
+                    _cursor = BsSelectNav.LastEnabled(count, optDisabled);
+                    break;
+                case "Enter":
+                case " " when !fromSearch:
+                    if (_cursor >= 0 && _cursor < count && !optDisabled(_cursor))
+                    {
+                        var item = filteredList[_cursor];
+                        var isChecked = selected is not null && selected.Contains(item, comparer);
+                        await ToggleAsync(acc, ctx, fid, item, comparer, add: !isChecked).ConfigureAwait(false);
+                    }
+
+                    break;
+            }
         }
     }
 
