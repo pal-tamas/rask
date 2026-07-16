@@ -22,9 +22,12 @@ Dockerfile below (override with `--dockerfile`).
 - **Automatic HTTPS.** With `--domain`, Rask runs a shared [Caddy](https://caddyserver.com) reverse
   proxy on the box that obtains and renews a Let's Encrypt certificate — a live HTTPS site with nothing
   else to configure. (Point the domain's DNS `A`/`AAAA` record at the host first so the cert can issue.)
-- **Zero-downtime.** Deploys are blue-green: the new container starts alongside the old, is
-  waited on until its container is running, then Caddy is reloaded to point at it before the old one is
-  removed. A new container that fails to start leaves the previous version serving.
+- **Zero-downtime, health-gated.** Deploys are blue-green: the new container starts alongside the old,
+  is waited on until its container is running **and answers an HTTP health check** (`GET /health` by
+  default), then Caddy is reloaded to point at it before the old one is removed. A container that fails
+  to start — or that starts but fails its probe (bad config, a failed migration) — is removed and the
+  previous version keeps serving. Apps scaffolded with `rask new` ship the `/health` endpoint; probe a
+  different path with `--health-path <path>`, or skip the probe with `--no-health-check`.
 - **Many apps, one box.** Each app is a separate `--domain`; the proxy's routing is regenerated from the
   host's live containers on every deploy, so a second app never disturbs the first.
 - **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own

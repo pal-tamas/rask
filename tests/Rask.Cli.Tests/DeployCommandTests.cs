@@ -366,6 +366,142 @@ public sealed class DeployCommandTests
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("ssh://deploy@box") && i.Arguments.Contains("build"));
         Assert.Contains(runner.Invocations, i => !i.Captured && i.Arguments.Contains("9000:8080"));
     }
+
+    // ── HTTP health check ─────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void BuildHealthCheckArguments_probes_over_the_container_network_namespace()
+    {
+        var args = DeployCommand.BuildHealthCheckArguments("deploy@box", "shop-green", "/health");
+
+        Assert.Equal(
+        [
+            "-H", "ssh://deploy@box", "run", "--rm", "--network", "container:shop-green",
+            "curlimages/curl:8.11.1", "-fsS", "-m", "5", "http://localhost:8080/health",
+        ], args);
+    }
+
+    [Fact]
+    public void BuildHealthCheckArguments_uses_the_custom_path()
+    {
+        var args = DeployCommand.BuildHealthCheckArguments("deploy@box", "shop", "/ready");
+
+        Assert.Contains("http://localhost:8080/ready", args);
+    }
+
+    [Fact]
+    public async Task Blue_green_probes_http_health_before_switching_traffic()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner { CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n") };
+        var command = Create(fs, runner, new StringConsole());
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var runs = runner.Invocations.Where(i => !i.Captured).ToList();
+        int Probe = runs.FindIndex(i => i.Arguments.Contains("curlimages/curl:8.11.1"));
+        int Reload = runs.FindIndex(i => i.Arguments.Contains("reload"));
+        Assert.True(Probe >= 0, "the app is probed over HTTP");
+        Assert.True(Reload >= 0 && Probe < Reload, "readiness is confirmed before Caddy is reloaded");
+        Assert.Contains("container:demo-green", runs[Probe].Arguments); // the NEW color is probed
+    }
+
+    [Fact]
+    public async Task Failed_health_check_removes_the_new_container_and_keeps_the_old_serving()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner
+        {
+            CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n"), // running=true
+            RunHandler = args => args.Contains("curlimages/curl:8.11.1") ? 1 : 0,   // the probe fails
+        };
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        var runs = runner.Invocations.Where(i => !i.Captured).ToList();
+        Assert.Contains(runs, i => i.Arguments is ["-H", "ssh://deploy@box", "rm", "-f", "demo-green"]);       // new removed
+        Assert.DoesNotContain(runs, i => i.Arguments.Contains("reload"));                                     // never switched
+        Assert.DoesNotContain(runs, i => i.Arguments is ["-H", "ssh://deploy@box", "rm", "-f", "demo-blue"]); // old kept
+        Assert.Contains("health check", console.ErrorText);
+        Assert.Contains("--no-health-check", console.ErrorText);
+    }
+
+    [Fact]
+    public async Task No_health_check_skips_the_probe_and_is_remembered()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner { CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n") };
+        var command = Create(fs, runner, new StringConsole());
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo", "--no-health-check"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("curlimages/curl:8.11.1"));
+        Assert.True(DeployConfig.Load(fs, WorkingDir).HealthCheckDisabled);
+    }
+
+    [Fact]
+    public async Task Custom_health_path_reaches_the_probe_and_is_remembered()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner { CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n") };
+        var command = Create(fs, runner, new StringConsole());
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo", "--health-path", "/ready"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains(runner.Invocations, i => i.Arguments.Contains("http://localhost:8080/ready"));
+        Assert.Equal("/ready", DeployConfig.Load(fs, WorkingDir).HealthPath);
+    }
+
+    [Fact]
+    public async Task Health_path_with_no_health_check_is_rejected()
+    {
+        var console = new StringConsole();
+        var command = Create(new FakeFileSystem(), new FakeProcessRunner(), console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--no-health-check", "--health-path", "/ready"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("--health-path doesn't apply", console.ErrorText);
+    }
+
+    [Fact]
+    public async Task Dry_run_shows_the_health_probe_and_omits_it_when_disabled()
+    {
+        var console = new StringConsole();
+        var command = Create(new FakeFileSystem(), new FakeProcessRunner(), console);
+        await command.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--name", "shop", "--dry-run"], CancellationToken.None);
+        Assert.Contains("curlimages/curl:8.11.1", console.OutText);
+
+        var offConsole = new StringConsole();
+        var offCommand = Create(new FakeFileSystem(), new FakeProcessRunner(), offConsole);
+        await offCommand.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--name", "shop", "--no-health-check", "--dry-run"], CancellationToken.None);
+        Assert.DoesNotContain("curlimages/curl", offConsole.OutText);
+    }
+
+    [Fact]
+    public async Task Port_mode_failed_health_check_reports_and_dumps_logs()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner
+        {
+            CaptureResult = new ProcessResult(0, "true\n", string.Empty),          // container running
+            RunHandler = args => args.Contains("curlimages/curl:8.11.1") ? 1 : 0,   // the probe fails
+        };
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains(runner.Invocations, i => i.Arguments.Contains("logs"));
+        Assert.Contains("health check", console.ErrorText);
+    }
 }
 
 public sealed class ArgumentSchemaMultiOptionTests

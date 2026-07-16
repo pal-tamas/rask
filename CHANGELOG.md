@@ -8,6 +8,19 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask deploy` gates the blue-green swap on an HTTP health check.** After the new container reports
+  `Running`, deploy now probes it over HTTP (`GET /health` by default) and only reloads Caddy onto it
+  once it answers `2xx` — a container that boots but fails its first request (bad connection string,
+  failed migration, missing env var) is removed and the previous version keeps serving, instead of
+  taking live traffic while broken. The probe is an ephemeral pinned `curlimages/curl` container joined
+  to the target's network namespace, so it works in domain mode (no published port) and needs no HTTP
+  client in the app image. Apps scaffolded with `rask new` now ship an ASP.NET Core `/health` endpoint
+  (`AddHealthChecks()` + `app.UseHealthChecks("/health")`, mapped before `UseHttpsRedirection` so the
+  internal probe gets a plain-HTTP `200`). Customize the path with `--health-path <path>` or skip the
+  probe with `--no-health-check` (both remembered in `.rask/deploy.json`). **Behavior change:** an
+  existing custom app without a `/health` endpoint should deploy with `--no-health-check` (or point
+  `--health-path` at its readiness route); the failure message says so. Documented in `docs/deployment.md`
+  and `docs/cli.md`.
 - **Live demos for `BsTable` and `BsPagination`, plus unit tests for `BsBadge`.** The "Cards, lists &
   tables" guide gains a `BsTable` demo (typed style toggles over core `Thead`/`Tbody` markup) and an
   interactive `BsPagination` demo (click a page — the `.active` marker and readout follow, zero-JS). Both

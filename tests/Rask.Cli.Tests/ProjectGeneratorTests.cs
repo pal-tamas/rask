@@ -123,6 +123,22 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain("AddRaskPwa", off["Program.cs"], StringComparison.Ordinal);
     }
 
+    // Every server app ships a /health endpoint so `rask deploy` can probe readiness out of the box. It must
+    // be mapped BEFORE UseHttpsRedirection so the deploy probe (plain HTTP inside the container) gets a 200,
+    // not a 307 to a dead HTTPS port.
+    [Fact]
+    public void Health_endpoint_is_always_wired_before_https_redirection()
+    {
+        var (files, _) = Generate();
+        var program = files["Program.cs"];
+
+        Assert.Contains("AddHealthChecks()", program, StringComparison.Ordinal);
+        var health = program.IndexOf("UseHealthChecks(\"/health\")", StringComparison.Ordinal);
+        var redirect = program.IndexOf("UseHttpsRedirection()", StringComparison.Ordinal);
+        Assert.True(health >= 0, "the /health endpoint is mapped");
+        Assert.True(redirect >= 0 && health < redirect, "/health precedes UseHttpsRedirection so the probe gets plain-HTTP 200");
+    }
+
     // --cqrs is wiring-only: the mediator call + the package ref, and no sample slice to delete.
     [Fact]
     public void Cqrs_flag_toggles_the_wiring_and_package_but_scaffolds_no_sample()
@@ -529,6 +545,18 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain("App.Client/Auth/Auth.cs", off.Keys);
         Assert.DoesNotContain("record LoginRequest", off["App.Shared/Contracts.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("AddAuthentication", off["App.Server/Program.cs"], StringComparison.Ordinal);
+    }
+
+    // The hosted Server also ships /health before UseHttpsRedirection — same deploy-probe contract as server.
+    [Fact]
+    public void WasmHosted_server_wires_health_before_https_redirection()
+    {
+        var program = GenerateWasmHosted()["App.Server/Program.cs"];
+
+        Assert.Contains("AddHealthChecks()", program, StringComparison.Ordinal);
+        var health = program.IndexOf("UseHealthChecks(\"/health\")", StringComparison.Ordinal);
+        var redirect = program.IndexOf("UseHttpsRedirection()", StringComparison.Ordinal);
+        Assert.True(health >= 0 && redirect >= 0 && health < redirect, "/health precedes UseHttpsRedirection");
     }
 
     [Fact]
