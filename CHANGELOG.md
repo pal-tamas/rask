@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-07-16
+
 ### Changed
 - **The `rask` CLI now owns all scaffolding — `rask new --template wasm-hosted` is generated directly, and the
   `Rask.Templates` package is discontinued.** `wasm-hosted` was the last template still shelling out to
