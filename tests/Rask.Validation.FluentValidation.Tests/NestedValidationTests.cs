@@ -1,9 +1,7 @@
-using System.Text.Json;
 using FluentValidation;
 using FluentValidation.Results;
 using Rask.Core.Forms;
 
-#pragma warning disable RASK014 // test-only StubComponent subclass has no generated factory
 
 namespace Rask.Validation.FluentValidation.Tests;
 
@@ -148,17 +146,15 @@ public class NestedValidationTests
         var p = new Person { Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form(p)[
+        var page = RaskTest.Render(() => Form(p)[
             FluentValidationValidator(new PersonValidator()),
             Input(() => p.Address!.Street),
-            new ContextCapture(ctx => captured = ctx)
+            RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
-        var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
-        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
-        await view.TryInvokeHandlerAsync(changeId!, blur.RootElement);
+        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
 
         Assert.NotNull(captured);
         Assert.Same(p, captured!.Model);

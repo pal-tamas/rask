@@ -40,8 +40,6 @@
     <InternalsVisibleTo Include="Rask.Wasm.Tests"/>
     <InternalsVisibleTo Include="Rask.Native"/>
     <InternalsVisibleTo Include="Rask.Native.Tests"/>
-    <InternalsVisibleTo Include="Rask.Validation.DataAnnotations.Tests"/>
-    <InternalsVisibleTo Include="Rask.Validation.FluentValidation.Tests"/>
     <InternalsVisibleTo Include="Rask.Benchmarks"/>
     <InternalsVisibleTo Include="Rask.Benchmarks.VsBlazor"/>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>
