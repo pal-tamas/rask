@@ -36,6 +36,25 @@ public class BsDataGridRowTests
     }
 
     [Fact]
+    public async Task RowClass_DoesNotReachTheMasterDetailRow()
+    {
+        // RowClass styles the DATA rows. The full-width detail row is structural, not a data row, so it must
+        // not inherit the class — a table-warning band bleeding across the detail's colspan would be wrong.
+        var grid = RaskTest.Render(BsDataGrid(Id: "g", Data: Rows, Columns: Columns(), RowKey: r => r.Name,
+            RowClass: _ => "table-warning",
+            ExpandedContent: r => Div()[$"detail-{r.Name}"]));
+
+        // Non-sortable columns, no row click: the only click handlers are the per-row expanders; [0] = Banana.
+        var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
+
+        // The data row carries the class; the detail row it opened does not.
+        Assert.Contains("<tr class=\"table-warning\" data-rask-key=\"Banana\">", html, StringComparison.Ordinal);
+        Assert.Contains("<tr id=\"g-detail-0\" data-rask-key=\"Banana:detail\">", html, StringComparison.Ordinal);
+        // Both data rows are styled; the open detail row is not — so the class count equals the data-row count.
+        Assert.Equal(2, Regex.Matches(html, "table-warning").Count);
+    }
+
+    [Fact]
     public void WithoutARowClick_NoCellCarriesAHandler()
     {
         // The feature is opt-in all the way down: a grid that doesn't use it pays nothing and its markup is

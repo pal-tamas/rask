@@ -109,6 +109,50 @@ public class BsDataGridTests
     }
 
     [Fact]
+    public void FooterTemplate_RendersAComponent_IntoTheTfoot()
+    {
+        // Footer is text; FooterTemplate renders a component. The <tfoot> cell must carry the rendered markup,
+        // not a ToString() of the component.
+        BsColumn<Row>[] columns =
+        [
+            new BsColumn<Row> { Title = "Name", Value = r => r.Name },
+            new BsColumn<Row>
+            {
+                Title = "Qty", Class = "text-end", Value = r => r.Qty,
+                FooterTemplate = rows => BsBadge()[rows.Sum(r => r.Qty).ToString()],
+            },
+        ];
+
+        var html = BsDataGrid<Row>(Data: Rows, Columns: columns).ToHtml();
+
+        Assert.Contains("<tfoot>", html);
+        Assert.Contains("<td class=\"text-end\"><span class=\"badge\">9</span></td>", html); // 3 + 5 + 1
+    }
+
+    [Fact]
+    public void FooterTemplate_OverridesFooter_WhenBothAreSet()
+    {
+        // A column may set both; FooterCell checks FooterTemplate first, so it wins and the text Footer is
+        // never rendered.
+        BsColumn<Row>[] columns =
+        [
+            new BsColumn<Row> { Title = "Name", Value = r => r.Name },
+            new BsColumn<Row>
+            {
+                Title = "Qty", Class = "text-end", Value = r => r.Qty,
+                Footer = rows => rows.Sum(r => r.Qty), // text total 9, must be overridden
+                FooterTemplate = _ => BsBadge()["total"],
+            },
+        ];
+
+        var html = BsDataGrid<Row>(Data: Rows, Columns: columns).ToHtml();
+
+        Assert.Contains("<td class=\"text-end\"><span class=\"badge\">total</span></td>", html,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(">9<", html, StringComparison.Ordinal); // the text Footer never rendered
+    }
+
+    [Fact]
     public void ExpandedContent_RendersAnExpanderPerRow_AndHidesDetailUntilExpanded()
     {
         var html = BsDataGrid<Row>(Data: Rows, Columns: Columns(),
