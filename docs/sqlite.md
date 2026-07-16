@@ -126,6 +126,12 @@ For a transaction you drive yourself, `connection.BeginImmediate()` gives you a 
 that took the write lock up front (its wait, though, blocks the thread inside Microsoft.Data.Sqlite —
 use `ExecuteInImmediateTransactionAsync` when you want the non-blocking retry).
 
+Because the lock is taken through the pooled native handle, the path is defensive about connection
+reuse: it clears a leaked transaction before `BEGIN IMMEDIATE`, and never hands a mid-transaction handle
+back to the pool. If a statement genuinely fails it throws a `SqliteException` carrying the extended
+result code and the autocommit state, so a rare failure is attributable rather than an opaque
+`SQLite Error 1: 'not an error'`.
+
 ### Entity Framework Core — opt-in retry strategy
 
 Pass `configureRetry` (even empty) to register a fair-interval execution strategy so `SaveChanges`
