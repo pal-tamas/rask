@@ -529,6 +529,46 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25 14:45",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Page.Locator(".dropdown:has(#pick-datetime) .position-fixed").DispatchEventAsync("click");
+
+        // Keyboard navigation (a11y): the calendar is fully operable from the keyboard, which only a browser
+        // proves end-to-end. Focus opens the popover; ArrowRight moves a virtual cursor (aria-activedescendant
+        // on the box, not DOM focus); Enter selects it. Deterministic on any date — from the 1st, one step
+        // right lands on the 2nd of the same month (every month has a 2nd).
+        var secondIso = DateTime.Today.ToString("yyyy-MM") + "-02";
+        var kbDate = Page.Locator("#pick-date").First;
+        await kbDate.FillAsync(firstIso);
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(firstIso,
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await kbDate.FocusAsync();
+        await kbDate.PressAsync("ArrowRight");
+        await Expect(kbDate).ToHaveAttributeAsync("aria-activedescendant", $"pick-date-d-{ym}02",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
+        await kbDate.PressAsync("Enter");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(secondIso,
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Time picker keyboard: focus opens the clock; ArrowDown nudges the minute by the step (15). From
+        // 09:00 the readout's time segment moves to 09:15 — the nudge writes the bound TimeOnly, no click.
+        var kbTime = Page.Locator("#pick-time").First;
+        await kbTime.FillAsync("09:00");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("09:00",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await kbTime.FocusAsync();
+        await kbTime.PressAsync("ArrowDown");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("09:15",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator(".dropdown:has(#pick-time) .position-fixed").DispatchEventAsync("click");
+
+        // Nullable picker × clears to null: set a deadline, then click the × — the readout's last segment
+        // returns to the "—" placeholder, proving the clear writes null through the bound accessor.
+        var kbDeadline = Page.Locator("#pick-deadline").First;
+        await kbDeadline.FillAsync("2026-11-20");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-11-20",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator(".dropdown:has(#pick-deadline) .bs-picker-clear").First.ClickAsync();
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("—",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator(".dropdown:has(#pick-deadline) .position-fixed").DispatchEventAsync("click");
     }
 
     // The data-grid guide (docs/data-grid.md). BsDataGrid is the showcase's most stateful component, and its

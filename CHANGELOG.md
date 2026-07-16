@@ -33,6 +33,16 @@ them until tagged releases begin.
   (default 8080) for your own reverse proxy. `--host`/`--domain`/`--port` are remembered in
   `.rask/deploy.json` (never secrets — pass those via `--env`/`--env-file`); `--dry-run` prints the exact
   docker commands. Documented in `docs/cli.md` and `docs/deployment.md`.
+- **Date/time pickers gain keyboard navigation, seconds, time ranges and localizable chrome.** The
+  `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker` calendar and clock are now fully keyboard-operable
+  (the WAI-ARIA combobox + grid pattern the docs already described but never implemented): a first nav
+  key opens the popover, then arrows move a day/week, `PageUp`/`PageDown` a month (`Shift` a year),
+  `Home`/`End` the week edge, and `Enter` selects the navigated day — with `aria-activedescendant`
+  tracking the cursor while the box keeps focus. `BsTimePicker` takes `Min`/`Max` (`TimeOnly`); both time
+  pickers take `Seconds`/`SecondStep` to add a seconds column, and the date-time picker greys out-of-range
+  time items on a boundary day. A new `Labels` (`BsPickerLabels`) parameter translates the month-nav
+  buttons, the time-column headings and the clear button — the chrome that has no `CultureInfo` source.
+  Documented in `docs/bootstrap-pickers.md` with a new keyboard table; showcased in the pickers guide.
 - **`rask db` — EF Core migrations from the CLI.** A friendly wrapper over `dotnet ef` for the everyday
   migration lifecycle, pairing with what `rask generate feature` scaffolds: `rask db add <Name>`,
   `rask db remove`, `rask db list`, `rask db update [<target>]`, and `rask db drop [--force]`. It resolves

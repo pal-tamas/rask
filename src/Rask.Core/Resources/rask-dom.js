@@ -714,7 +714,9 @@ function applyFrameInvokes(reply, dispatchOne) {
     // picking the highlighted option. We only preventDefault, never stopPropagation: the C# keydown
     // handler is dispatched on the document bubble phase (rask-events.js), so the event must still reach
     // it to select / navigate / close. Printable keys, Space and Left/Right are left alone so typing into
-    // the filter keeps working. Capture-phase so we run before the browser commits the default action.
+    // the filter — and moving the text caret in the editable date/time picker box — keeps working; the
+    // picker's day cursor still moves on Left/Right (its C# handler runs regardless). Capture-phase so we
+    // run before the browser commits the default action.
     const CONTAIN = ["Enter", "Escape", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"];
     document.addEventListener("keydown", function (e) {
         if (!hasOpen || CONTAIN.indexOf(e.key) < 0) {
