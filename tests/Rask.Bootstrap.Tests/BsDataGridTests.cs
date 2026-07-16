@@ -73,6 +73,18 @@ public class BsDataGridTests
     }
 
     [Fact]
+    public void Paging_PrevNextArrows_CarryAnAccessibleName()
+    {
+        // The prev/next pager buttons are icon-only (a decorative chevron), so they need an explicit
+        // aria-label or a screen reader announces two unlabelled buttons. The numbered items are named
+        // by their text.
+        var html = BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2).ToHtml();
+
+        Assert.Contains("aria-label=\"Previous page\"", html);
+        Assert.Contains("aria-label=\"Next page\"", html);
+    }
+
+    [Fact]
     public void Footer_RendersTfootWithColumnTotals_OverAllRows()
     {
         BsColumn<Row>[] columns =

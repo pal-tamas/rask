@@ -41,6 +41,26 @@ public class BsPaginationTests
         Assert.DoesNotContain("aria-disabled", BsPageItem()["4"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
+    // An icon-only arrow (its only child is a decorative BsIcon) has no accessible name, so Aria lets the
+    // caller name the link itself — the aria-label lands on the <button>, not the wrapping <li>.
+    public void PageItem_Aria_NamesTheLink() =>
+        Assert.Equal(
+            "<li class=\"page-item\">" +
+            "<button class=\"page-link\" aria-label=\"Previous page\" type=\"button\"></button></li>",
+            BsPageItem(Aria: new Dictionary<string, string?> { ["label"] = "Previous page" }).ToHtml());
+
+    [Fact]
+    // A disabled arrow keeps both its name and its state: the caller's aria-label serialises first (it seeds
+    // the bag), then the component layers aria-disabled on top — so a screen reader still announces the name.
+    public void PageItem_Aria_CoexistsWithDisabled_LabelBeforeState() =>
+        Assert.Equal(
+            "<li class=\"page-item disabled\">" +
+            "<button class=\"page-link\" aria-label=\"Previous page\" aria-disabled=\"true\" type=\"button\">" +
+            "</button></li>",
+            BsPageItem(Disabled: true, Aria: new Dictionary<string, string?> { ["label"] = "Previous page" })
+                .ToHtml());
+
+    [Fact]
     public void Pagination_Size_MapsToPaginationModifier() =>
         Assert.Equal(
             "<nav aria-label=\"Page navigation\"><ul class=\"pagination pagination-lg\"></ul></nav>",

@@ -348,6 +348,9 @@ Handled for you, and worth knowing about:
   — so sorting is keyboard-operable (Tab, then Enter or Space) with no extra work.
 - The expander toggle has an accessible name and `aria-expanded`, plus `aria-controls` pointing at its detail
   row while open.
+- The pager's prev/next arrows are icon-only, so they carry an explicit `aria-label` (*"Previous page"* /
+  *"Next page"*); the numbered items are named by their own text. (`BsPageItem` takes an `Aria` bag if you
+  build your own pager and need to name an icon-only control.)
 - A selection checkbox has no visible label, so it is named from its row's first `Value` column ("Select
   Espresso Machine") rather than twenty identical "Select row"s, which read as one control repeated. The
   header's says *"select all rows on this page"* — see [selection](#select-all-covers-the-page).
