@@ -44,6 +44,39 @@ BsInput(() => model.Email, Label: "Email", Type: InputType.Email)   // .is-inval
 BsIcon(Name: BsIconName.HeartFill, Color: BsColor.Danger)
 ```
 
+## Brand colour
+
+Set `--bs-primary` (and `--bs-primary-rgb`) and every component follows — buttons, the active page in a
+pager, checked checkboxes and radios, progress bars, active list-group and dropdown items, nav pills, and
+the focus ring on every input:
+
+```css
+:root {
+    --bs-primary: #7C3AED;
+    --bs-primary-rgb: 124, 58, 237;   /* the focus rings need the rgb triplet — Bootstrap's own convention */
+    --bs-link-color: #6D28D9;
+}
+```
+
+That takes a fix on Rask's side, which `rask-bootstrap.css` carries. Bootstrap 5.3 derives *most* of a
+component from CSS variables but **bakes the literal hex `#0d6efd`** into the active/checked/selected state —
+so on stock Bootstrap, setting `--bs-primary` gives you a brand-coloured app with a blue active page, blue
+checkboxes and blue focus rings, and the only workaround is to re-declare each component's variables by hand
+in every app. Rask re-points them at the runtime variable instead.
+
+Hover and active shades follow Bootstrap's own ladder (hover = shade 15%, active = 20%, active border = 25%,
+focus border = tint 50%) computed from `--bs-primary` with `color-mix`. Override one if you want a specific
+shade:
+
+```css
+:root {
+    --rask-primary-hover: #6D28D9;    /* also: --rask-primary-active, --rask-primary-active-border,
+                                         --rask-primary-focus-border, --rask-primary-focus-ring */
+}
+```
+
+For light/dark, Bootstrap's `data-bs-theme` works as usual (`BsTheme`); these variables sit on top of it.
+
 ## Components
 
 Each component group has its own page. Every interactive component is **controlled** and runs with

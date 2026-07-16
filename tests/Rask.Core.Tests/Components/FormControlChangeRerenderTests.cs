@@ -65,6 +65,37 @@ public class FormControlChangeRerenderTests
     }
 
     [Fact]
+    public async Task ControlledInput_OnChange_CapturingALocal_StillRerendersConsumer()
+    {
+        // The closure case the original fix missed. `OnChange: v => _names[i] = v` inside a loop captures a
+        // local ALONGSIDE `this`, so Roslyn lowers it to a display class and the delegate's Target is that
+        // closure — not the component. The old `Target as Component` heuristic returned null, so nothing was
+        // notified and the consumer stayed render-cached with stale text, silently.
+        //
+        // ControlledChangeHandler now resolves the consumer through DelegateOwner, the same unwrap-the-
+        // captured-`this` rule RegisterHandler and AutoCallback already used. Rendering a list of controlled
+        // inputs is an ordinary thing to do (a data grid's per-row checkbox is exactly this shape).
+        var sp = RenderHarness.EmptyServices();
+        var host = new ListHost();
+
+        var html = host.RenderAsLiveRoot(sp);
+        Assert.Equal(1, host.Rows.RenderCount);
+        Assert.Contains("Names: a,b", html);
+
+        // The second row's input — proving the captured index, not just `this`, survives.
+        var ids = System.Text.RegularExpressions.Regex.Matches(html, "data-rask-on-change=\"([^\"]+)\"")
+            .Select(m => m.Groups[1].Value).ToArray();
+        Assert.Equal(2, ids.Length);
+
+        using var doc = JsonDocument.Parse("{\"value\":\"z\"}");
+        Assert.True(await host.TryInvokeHandlerAsync(ids[1], doc.RootElement));
+
+        var updated = host.RenderAsLiveRoot(sp);
+        Assert.Equal(2, host.Rows.RenderCount);
+        Assert.Contains("Names: a,z", updated);
+    }
+
+    [Fact]
     public async Task BoundSelect_Change_RerendersConsumer()
     {
         // Two-way Bind: the change handler is a BindingHelpers closure (Target is not a Component),
@@ -173,6 +204,53 @@ public class FormControlChangeRerenderTests
                 Span()["Echo: ", _text]
             ];
         }
+    }
+
+    private sealed class ListHost : Component
+    {
+        public readonly NameRows Rows = new();
+
+        protected override Component? Render()
+        {
+            var ctx = LiveRenderContext.Current!;
+            var r = ctx.GetOrCreate(_ => Rows);
+            ctx.NotifyParameters(r, false); // stable props ⇒ cached unless the change dirties it
+            return Div()[r];
+        }
+    }
+
+    // Two things have to be true at once for the bug to bite, and both are ordinary:
+    //
+    //   1. Each OnChange captures the loop index ALONGSIDE `this`, so Roslyn lowers it to a display class
+    //      and the delegate's Target is that closure rather than this component.
+    //   2. The controls are built here but handed as CHILDREN to a wrapper, so the element's render-owner
+    //      is the wrapper, not this component.
+    //
+    // Without (2) the fallback owner (the rendering component) happens to be the consumer anyway and the
+    // bug is masked — which is exactly why this test wraps. It is the shape every composite table/list
+    // component produces: BsDataGrid builds its cells and passes them into BsTable.
+    private sealed class NameRows : Component
+    {
+        private readonly string[] _names = ["a", "b"];
+        public int RenderCount;
+
+        protected override Component? Render()
+        {
+            RenderCount++;
+            return Div()[
+                new Wrapper { Body = [.. _names.Select((n, i) => Input<string>(Value: n, OnChange: v => _names[i] = v, Key: i))] },
+                Span()["Names: ", string.Join(",", _names)]
+            ];
+        }
+    }
+
+    // Renders someone else's elements inside its own subtree, so CurrentParent — the fallback handler owner
+    // — is this wrapper and never the component whose state the handler mutates.
+    private sealed class Wrapper : Component
+    {
+        public IReadOnlyList<Component> Body { get; set; } = [];
+
+        protected override Component? Render() => Div()[Body];
     }
 
     private sealed class BoundHost : Component

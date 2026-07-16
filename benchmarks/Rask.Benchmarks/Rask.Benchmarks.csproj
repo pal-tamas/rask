@@ -25,6 +25,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <!-- BsDataGrid is the framework's most render-heavy component and the one apps put the most rows
+         through, so its render path is benchmarked like any other hot path. -->
+    <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.SQLite\Rask.SQLite.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"

@@ -19,11 +19,26 @@ public class BsPaginationTests
             BsPageItem(Active: true)["3"].ToHtml());
 
     [Fact]
-    public void PageItem_Disabled_GreysItem() =>
+    // .disabled only greys the item and kills pointer-events — a mouse is stopped, a keyboard is not. So the
+    // control also carries aria-disabled, or it would stay focusable while announcing as enabled. It is on the
+    // <button> (what takes focus), not the <li>, and it is aria-disabled rather than the disabled attribute so
+    // that disabling an item mid-interaction doesn't drop the user's focus to <body>.
+    public void PageItem_Disabled_GreysItem_AndSaysSo() =>
         Assert.Equal(
             "<li class=\"page-item disabled\">" +
-            "<button class=\"page-link\" type=\"button\">4</button></li>",
+            "<button class=\"page-link\" aria-disabled=\"true\" type=\"button\">4</button></li>",
             BsPageItem(Disabled: true)["4"].ToHtml());
+
+    [Fact]
+    public void PageItem_Disabled_MarksALinkToo() =>
+        Assert.Equal(
+            "<li class=\"page-item disabled\">" +
+            "<a class=\"page-link\" aria-disabled=\"true\" href=\"/p/4\">4</a></li>",
+            BsPageItem(Disabled: true, Href: "/p/4")["4"].ToHtml());
+
+    [Fact]
+    public void PageItem_Enabled_CarriesNoAriaDisabled() =>
+        Assert.DoesNotContain("aria-disabled", BsPageItem()["4"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void Pagination_Size_MapsToPaginationModifier() =>
