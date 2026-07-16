@@ -55,6 +55,7 @@ rask new Shop                                             # scaffold the app
 rask generate feature Product Name:string Price:decimal   # a full CQRS + EF Core CRUD slice
 rask db add InitialCreate && rask db update                # create + apply the migration
 rask dev                                                  # run it with hot reload
+rask deploy --host you@box --domain shop.example.com       # ship it: build over SSH, auto-HTTPS
 ```
 
 **[📖 Read the doctrine → The .NET One Person Framework](docs/one-person-framework.md)**
@@ -99,7 +100,8 @@ box — no PaaS, no glue, no second language to context-switch into.
   WebAssembly, or as a native iOS/Android app. Pick the host per project; write the UI once.
 - **Batteries, not a menu.** `rask new` scaffolds the app, `rask generate feature Product Name:string Price:decimal` emits a full
   **CQRS + EF Core vertical slice** (encapsulated entity, value objects, validation, list/create/edit pages, tests),
-  `rask db add`/`update` creates and applies its migration, and `rask dev` hot-reloads it.
+  `rask db add`/`update` creates and applies its migration, `rask dev` hot-reloads it, and `rask deploy` ships it
+  to a single host over SSH — with automatic HTTPS and zero-downtime.
   **[The CLI is the front door →](docs/cli.md)**
 - **SQLite is the production database.** Correct, concurrent, continuously-backed-up SQLite by default — WAL,
   busy-timeout, streaming replication — one file, one server, no managed DB to rent.

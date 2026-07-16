@@ -23,8 +23,8 @@ Dockerfile below (override with `--dockerfile`).
   proxy on the box that obtains and renews a Let's Encrypt certificate — a live HTTPS site with nothing
   else to configure. (Point the domain's DNS `A`/`AAAA` record at the host first so the cert can issue.)
 - **Zero-downtime.** Deploys are blue-green: the new container starts alongside the old, is
-  health-checked, then Caddy is reloaded to point at it before the old one is removed. A new container
-  that fails to start leaves the previous version serving.
+  waited on until its container is running, then Caddy is reloaded to point at it before the old one is
+  removed. A new container that fails to start leaves the previous version serving.
 - **Many apps, one box.** Each app is a separate `--domain`; the proxy's routing is regenerated from the
   host's live containers on every deploy, so a second app never disturbs the first.
 - **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own

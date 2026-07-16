@@ -180,8 +180,8 @@ copy — the build context ships to the host's daemon over SSH and builds there.
 **With `--domain`** Rask runs a shared [Caddy](https://caddyserver.com) reverse proxy on the box that
 fetches an automatic Let's Encrypt certificate, so you get a live HTTPS site with nothing else to
 configure. Deploys are **zero-downtime**: the new container starts alongside the old one (blue-green),
-is health-checked, then Caddy is reloaded to point at it before the old one is removed. If the new
-container fails to start, the previous version keeps serving.
+is waited on until its container is running, then Caddy is reloaded to point at it before the old one
+is removed. If the new container fails to start, the previous version keeps serving.
 
 **Multiple apps share one box.** Each app container is labelled, so the proxy's routing is regenerated
 from the host's live containers on every deploy — deploying a second app (a different `--domain`)

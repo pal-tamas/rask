@@ -184,6 +184,83 @@ public sealed class DeployCommandTests
     }
 
     [Fact]
+    public async Task Port_mode_persists_env_file_and_project_for_the_next_deploy()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/src/Shop/Dockerfile", "FROM scratch"); // --project points here
+        fs.Seed("/proj/.env.prod", "DB=postgres\n");
+        var runner = new FakeProcessRunner { CaptureResult = new ProcessResult(0, "true\n", string.Empty) };
+        var command = Create(fs, runner, new StringConsole());
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--project", "src/Shop", "--env-file", "/proj/.env.prod"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var config = DeployConfig.Load(fs, WorkingDir);
+        Assert.Equal("/proj/.env.prod", config.EnvFile); // remembered, not dropped
+        Assert.Equal("src/Shop", config.Project);
+    }
+
+    [Fact]
+    public async Task Dry_run_hides_env_file_secret_values()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.env.prod", "DB_PASSWORD=s3cr3t\n");
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner(), console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--env-file", "/proj/.env.prod", "--dry-run"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain("s3cr3t", console.OutText);         // the secret value is never printed
+        Assert.Contains("DB_PASSWORD=…", console.OutText);        // the key is shown, redacted
+    }
+
+    [Fact]
+    public async Task Port_with_domain_is_rejected()
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner();
+        var command = Create(new FakeFileSystem(), runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "app.example.com", "--port", "9000"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("--port doesn't apply with --domain", console.ErrorText);
+    }
+
+    [Fact]
+    public async Task Port_with_a_remembered_domain_is_rejected_with_guidance()
+    {
+        var fs = new FakeFileSystem();
+        new DeployConfig { Host = "deploy@box", Name = "shop", Domain = "app.example.com" }.Save(fs, WorkingDir);
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner(), console);
+
+        var exit = await command.ExecuteAsync(["--port", "9000"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains(".rask/deploy.json", console.ErrorText);
+    }
+
+    [Fact]
+    public async Task Blue_green_frees_the_target_color_name_before_starting_it()
+    {
+        var fs = new FakeFileSystem();
+        // A prior deploy left BOTH colors behind (e.g. a failed reload); current is green → new is blue.
+        var runner = new FakeProcessRunner { CaptureHandler = Captures("demo-green\tdemo\tdemo.example.com\tgreen\n") };
+        var command = Create(fs, runner, new StringConsole());
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var runs = runner.Invocations.Where(i => !i.Captured).ToList();
+        int FreeNew = runs.FindIndex(i => i.Arguments is ["-H", "ssh://deploy@box", "rm", "-f", "demo-blue"]);
+        int StartNew = runs.FindIndex(i => i.Arguments.Contains("run") && i.Arguments.Contains("demo-blue"));
+        Assert.True(FreeNew >= 0 && StartNew >= 0 && FreeNew < StartNew, "the target-color name is removed before it is started");
+    }
+
+    [Fact]
     public async Task Env_flags_and_env_file_become_docker_e_arguments()
     {
         var fs = new FakeFileSystem();
