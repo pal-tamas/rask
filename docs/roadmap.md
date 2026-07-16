@@ -16,6 +16,7 @@ service to operate.
 | **CQRS / mediator** | ✅ | [`Rask.Cqrs`](cqrs.md) — source-generated, reflection-free. |
 | **Data layer** | ✅ | [`Rask.Data`](data-access.md) — `AggregateRoot<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
 | **Transactional outbox** | ✅ | [`Rask.Outbox`](outbox.md) — durable, crash-safe domain-event delivery on the app's own database. |
+| **Background jobs** | ✅ | [`Rask.Jobs`](jobs.md) — durable enqueued/delayed/recurring work on the app's own database, at-least-once with backoff. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **Auth** | ✅ | [`authentication.md`](authentication.md) — cookie login/session in the templates. |
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
@@ -25,11 +26,6 @@ service to operate.
 
 Each of these is designed to persist to the **same SQLite database the app already has** — no external
 broker, no Redis, no separate infrastructure for a hello-world. Ordered by leverage for shipping a product.
-
-### Background jobs
-Durable, recurring background work stored in the app's database, run by a hosted worker. At-least-once with
-retries/backoff. The worker polls the jobs table (SQLite is single-writer, so claiming is poll +
-sequential-write, not row-locking — WAL + a busy-timeout keep reads flowing during writes).
 
 ### Transactional email
 Send email from the backend, with the outbox pattern for reliable delivery, and Rask components rendered to
