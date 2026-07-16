@@ -28,8 +28,13 @@ public static class JobSerializerRegistry
     {
         ArgumentNullException.ThrowIfNull(job);
         var type = job.GetType();
-        return (type.FullName ?? type.Name, JsonSerializer.Serialize(job, type, Json));
+        return (TypeName(type), JsonSerializer.Serialize(job, type, Json));
     }
+
+    // Match the name the source generator registers (Roslyn's ToDisplayString is dot-separated even for a
+    // nested type) — Type.FullName uses '+' between a nesting type and its nested type, so normalize it,
+    // otherwise a nested IJob would be stored under a name the registry never has and silently dead-letter.
+    internal static string TypeName(Type type) => (type.FullName ?? type.Name).Replace('+', '.');
 
     /// <summary>Rehydrates a stored job as a dispatchable command, or <c>null</c> if its type isn't registered.</summary>
     public static ICommand? Deserialize(string typeName, string payload)

@@ -35,6 +35,25 @@ public sealed class JobOptionsTests
         Assert.Throws<ArgumentException>(() =>
             options.AddRecurring<TickJob>("tick", TimeSpan.FromHours(2), () => new TickJob()));
     }
+
+    [Fact]
+    public void Validate_rejects_a_non_positive_poll_interval()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new JobOptions { PollInterval = TimeSpan.Zero }.Validate());
+    }
+
+    [Fact]
+    public void Validate_rejects_a_max_retry_delay_below_the_base()
+    {
+        var options = new JobOptions { BaseRetryDelay = TimeSpan.FromMinutes(5), MaxRetryDelay = TimeSpan.FromMinutes(1) };
+        Assert.Throws<ArgumentOutOfRangeException>(options.Validate);
+    }
+}
+
+// A nested IJob: its Type.FullName uses '+', which must still match the generator's dotted registration.
+public sealed class Outer
+{
+    public sealed record NestedJob(int N) : IJob;
 }
 
 public sealed class JobSerializerRegistryTests
@@ -55,5 +74,15 @@ public sealed class JobSerializerRegistryTests
     public void Deserialize_returns_null_for_an_unregistered_type()
     {
         Assert.Null(JobSerializerRegistry.Deserialize("Nope.NotAJob", "{}"));
+    }
+
+    [Fact]
+    public void A_nested_job_type_round_trips()
+    {
+        var (type, payload) = JobSerializerRegistry.Serialize(new Outer.NestedJob(7));
+
+        Assert.DoesNotContain('+', type); // stored dotted, matching the generator's registration
+        var back = JobSerializerRegistry.Deserialize(type, payload);
+        Assert.Equal(7, Assert.IsType<Outer.NestedJob>(back).N);
     }
 }

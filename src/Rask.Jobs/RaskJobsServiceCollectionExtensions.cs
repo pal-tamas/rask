@@ -21,6 +21,7 @@ public static class RaskJobsServiceCollectionExtensions
 
         var options = new JobOptions();
         configure?.Invoke(options);
+        options.Validate();
 
         services.TryAddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);

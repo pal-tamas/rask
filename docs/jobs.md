@@ -77,9 +77,12 @@ await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(2
 
 - **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a
   browser/WASM concern.
+- **A job type must be a concrete, non-generic type** — the source generator registers concrete `IJob`
+  implementations (open-generic and abstract types are skipped), which is how a stored job is rehydrated.
 - **SQLite is single-writer**, so the processor polls and claims sequentially (there is no `SKIP LOCKED` to
-  lean on); WAL + a busy-timeout (see [Rask.SQLite](sqlite.md)) keep reads flowing while it writes. Run **one
-  processor per app**.
+  lean on). Run **one processor per app**. Because `EnqueueAsync` writes while the processor may also be
+  writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a `busy_timeout`) on your context so a concurrent enqueue
+  waits for the write lock instead of failing with `SQLITE_BUSY`.
 - **Jobs vs. the outbox.** A job is *explicitly enqueued*, so its write is its own transaction — it does not
   commit atomically with an unrelated business change. When you need an event delivered atomically *with* a
   data change, raise a domain event and use [`Rask.Outbox`](outbox.md) instead. The two pillars are

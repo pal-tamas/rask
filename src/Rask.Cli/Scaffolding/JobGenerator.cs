@@ -43,6 +43,7 @@ internal static class JobGenerator
           1. Register the services in Program.cs (once):
                builder.Services.AddRaskCqrs();
                builder.Services.AddRaskJobs<AppDbContext>();   // your DbContext
+               builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source=app.db"));
           2. Map the jobs tables in your DbContext's OnModelCreating (once):
                modelBuilder.AddRaskJobs();
           3. Create the schema:

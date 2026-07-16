@@ -96,7 +96,9 @@ public sealed class JobProcessor<TContext>(
             }
         }
 
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        // Persist with None: jobs in this batch already ran (their side effects happened), so their
+        // ProcessedAt must be written even when the host is stopping — otherwise they'd re-run on restart.
+        await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     // Record a failed attempt and push the next run out by the exponential backoff.
@@ -116,15 +118,18 @@ public sealed class JobProcessor<TContext>(
 
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var changed = false;
 
+        // Load every recurring job's state in one query rather than one round-trip per definition.
+        var names = options.Recurring.Select(r => r.Name).ToList();
+        var states = await db.Set<RecurringJobState>()
+            .Where(s => names.Contains(s.Name))
+            .ToDictionaryAsync(s => s.Name, cancellationToken)
+            .ConfigureAwait(false);
+
+        var changed = false;
         foreach (var definition in options.Recurring)
         {
-            var state = await db.Set<RecurringJobState>()
-                .FirstOrDefaultAsync(s => s.Name == definition.Name, cancellationToken)
-                .ConfigureAwait(false);
-
-            if (state is null)
+            if (!states.TryGetValue(definition.Name, out var state))
             {
                 state = new RecurringJobState { Name = definition.Name };
                 db.Set<RecurringJobState>().Add(state);
@@ -136,7 +141,13 @@ public sealed class JobProcessor<TContext>(
 
             var (type, payload) = JobSerializerRegistry.Serialize(definition.Factory());
             db.Set<Job>().Add(new Job { Type = type, Payload = payload, RunAt = now, CreatedAt = now });
-            state.LastEnqueuedAt = now;
+
+            // Anchor the next run to the schedule (last + interval), not the (late) poll time, so cadence
+            // doesn't drift by a poll interval each cycle. If we fell more than one interval behind (e.g. the
+            // app was down), reset to now so we don't burst a run of catch-up jobs.
+            state.LastEnqueuedAt = state.LastEnqueuedAt is { } prev && now - prev < definition.Interval * 2
+                ? prev + definition.Interval
+                : now;
             changed = true;
         }
 
@@ -161,21 +172,33 @@ public sealed class JobProcessor<TContext>(
 
         _lastPurge = now;
         var cutoff = now - options.RetentionPeriod;
+        const int page = 1000;
 
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        var stale = await db.Set<Job>()
-            .Where(j => j.ProcessedAt != null && j.ProcessedAt < cutoff)
-            .OrderBy(j => j.Id)
-            .Take(1000)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
 
-        if (stale.Count == 0)
+        // Delete in pages until drained, so retention keeps up even with a high completion rate rather than
+        // removing only one page per run.
+        while (!cancellationToken.IsCancellationRequested)
         {
-            return;
-        }
+            var stale = await db.Set<Job>()
+                .Where(j => j.ProcessedAt != null && j.ProcessedAt < cutoff)
+                .OrderBy(j => j.Id)
+                .Take(page)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
 
-        db.Set<Job>().RemoveRange(stale);
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            if (stale.Count == 0)
+            {
+                break;
+            }
+
+            db.Set<Job>().RemoveRange(stale);
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            if (stale.Count < page)
+            {
+                break;
+            }
+        }
     }
 }
