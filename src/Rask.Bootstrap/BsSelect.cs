@@ -24,6 +24,10 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     // Filter: (p, text) => p.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
     public Func<TItem, string, bool>? Filter { get; set; }
 
+    // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
+    // click, and the keyboard cursor skips over it; e.g. OptionDisabled: p => p.SoldOut.
+    public Func<TItem, bool>? OptionDisabled { get; set; }
+
     // Opt out of the custom popover and render the native <select> instead. Guarantees a working control
     // (and the OS picker on mobile) where the custom UI is unwanted.
     public bool? Native { get; set; }
@@ -38,8 +42,6 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     private string? _filter;
 
     private static readonly IEqualityComparer<TValue> Comparer = EqualityComparer<TValue>.Default;
-    private static readonly IReadOnlyDictionary<string, string?> SelectedAria =
-        new Dictionary<string, string?> { ["selected"] = "true" };
 
     // A nullable value-type binding (int?/DateOnly?/…) can be cleared back to null; mirrors the pickers'
     // CanClear. Reference types can't be told from their non-nullable form at runtime, so — like the
@@ -83,7 +85,10 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 
         for (var i = 0; i < opts.Count; i++)
         {
-            children.Add(Option(Value: BindingHelpers.FormatValue(ValueOf(opts[i])), Key: i)[LabelOf(opts[i])]);
+            children.Add(Option(
+                Value: BindingHelpers.FormatValue(ValueOf(opts[i])),
+                Disabled: OptionDisabled?.Invoke(opts[i]) == true ? true : null,
+                Key: i)[LabelOf(opts[i])]);
         }
 
         var control = Select<string>(
@@ -119,6 +124,16 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         var filtered = searchable && !string.IsNullOrEmpty(_filter)
             ? opts.Where(o => Filter!(o, _filter)).ToList()
             : opts;
+
+        // Per-option disable predicate over the filtered list; the keyboard cursor skips these indices.
+        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(filtered[i]) == true;
+
+        // Snap the roving cursor into the current filtered list and off any disabled option (a filter change
+        // sets _cursor loosely, and a selected-but-disabled seed must move to the nearest enabled option).
+        if (_open)
+        {
+            _cursor = BsSelectNav.Normalize(_cursor, filtered.Count, optDisabled);
+        }
 
         // The box shows the selected option's (rich) label, or the muted placeholder; blank while floating+empty.
         Component? content = selectedIdx >= 0
@@ -202,15 +217,33 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
                 var idx = i;
                 var item = filtered[i];
                 var isSelected = b.Current is not null && Comparer.Equals(ValueOf(item), b.Current);
+                var optionDisabled = optDisabled(idx);
+                // aria dict only when there's something to say (keeps the enabled/unselected option markup as
+                // it was): aria-selected first, then aria-disabled — a disabled option stays a role="option".
+                Dictionary<string, string?>? optAria = null;
+                if (isSelected || optionDisabled)
+                {
+                    optAria = new Dictionary<string, string?>();
+                    if (isSelected)
+                    {
+                        optAria["selected"] = "true";
+                    }
+
+                    if (optionDisabled)
+                    {
+                        optAria["disabled"] = "true";
+                    }
+                }
+
                 rows.Add(Button(
                     Type: "button",
                     Class: BsClass.Join("dropdown-item", isSelected || (_open && idx == _cursor) ? "active" : null),
                     Id: BsSelectNav.OptId(prefix, idx),
                     Role: "option",
-                    Aria: isSelected ? SelectedAria : null,
-                    Disabled: Disabled,
+                    Aria: optAria,
+                    Disabled: disabled || optionDisabled ? true : null,
                     Key: idx,
-                    OnClickAsync: disabled ? null : () => WriteAsync(b, ValueOf(item)))[LabelOf(item)]);
+                    OnClickAsync: disabled || optionDisabled ? null : () => WriteAsync(b, ValueOf(item)))[LabelOf(item)]);
             }
         }
 
@@ -276,7 +309,8 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         return Div(Class: BsClass.Join("dropdown", Class), Data: BsPopover.Wrapper)[children];
     }
 
-    // Clicking the display box toggles the popover; opening seeds the keyboard cursor to the selected option.
+    // Clicking the display box toggles the popover; opening seeds the keyboard cursor to the selected option
+    // (or the first enabled option when the selection is disabled/absent).
     private void Toggle(Bound b, IReadOnlyList<TItem> opts)
     {
         if (_open)
@@ -285,8 +319,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
             return;
         }
 
-        var s = SelectedIndex(b, opts);
-        _cursor = s >= 0 ? s : 0;
+        _cursor = BsSelectNav.Seed(SelectedIndex(b, opts), opts.Count, i => OptionDisabled?.Invoke(opts[i]) == true);
         _open = true;
     }
 
@@ -316,16 +349,18 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         _filter = null;
     }
 
-    // Combobox keyboard over the FILTERED list: arrows move the cursor, Home/End jump, Enter picks the
-    // cursor, Escape closes. Space is left to type into the filter. Focus already opened the popover.
+    // Combobox keyboard over the FILTERED list: arrows move the cursor (skipping disabled options), Home/End
+    // jump to the first/last enabled option, Enter picks the cursor, Escape closes. Space is left to type into
+    // the filter. Focus already opened the popover.
     private async Task OnKeyAsync(Bound b, IReadOnlyList<TItem> filtered, KeyboardEventArgs e)
     {
+        var count = filtered.Count;
+        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(filtered[i]) == true;
         if (!_open)
         {
             if (e.Key is "ArrowDown" or "ArrowUp" or "Enter" or " ")
             {
-                var s = SelectedIndex(b, filtered);
-                _cursor = s >= 0 ? s : 0;
+                _cursor = BsSelectNav.Seed(SelectedIndex(b, filtered), count, optDisabled);
                 _open = true;
             }
 
@@ -338,19 +373,19 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
                 CloseAndReset();
                 break;
             case "ArrowDown":
-                _cursor = Math.Min(_cursor + 1, filtered.Count - 1);
+                _cursor = BsSelectNav.Step(_cursor, 1, count, optDisabled);
                 break;
             case "ArrowUp":
-                _cursor = Math.Max(_cursor - 1, 0);
+                _cursor = BsSelectNav.Step(_cursor, -1, count, optDisabled);
                 break;
             case "Home":
-                _cursor = 0;
+                _cursor = BsSelectNav.FirstEnabled(count, optDisabled);
                 break;
             case "End":
-                _cursor = filtered.Count - 1;
+                _cursor = BsSelectNav.LastEnabled(count, optDisabled);
                 break;
             case "Enter":
-                if (_cursor >= 0 && _cursor < filtered.Count)
+                if (_cursor >= 0 && _cursor < count && !optDisabled(_cursor))
                 {
                     await WriteAsync(b, ValueOf(filtered[_cursor])).ConfigureAwait(false);
                 }

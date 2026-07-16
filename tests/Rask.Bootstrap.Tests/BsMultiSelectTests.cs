@@ -108,6 +108,28 @@ public class BsMultiSelectTests
             "<div id=\"m-error\" class=\"invalid-feedback d-block\" role=\"alert\">pick a tag</div>", after);
     }
 
+    [Fact]
+    public void MultiSelect_OptionDisabled_RendersAriaDisabledOption() =>
+        // A per-option-disabled row keeps role="option" + aria-selected but adds aria-disabled and the disabled
+        // attribute; the enabled rows are unaffected.
+        Assert.Contains(
+            "<button id=\"m-opt-1\" class=\"dropdown-item d-flex align-items-center gap-2\" data-rask-key=\"1\" " +
+            "role=\"option\" aria-selected=\"false\" aria-disabled=\"true\" type=\"button\" disabled>",
+            BsMultiSelect<string>(Options: ["a", "b"], Value: new List<string>(),
+                OptionDisabled: o => o == "b", Id: "m").ToHtml());
+
+    [Fact]
+    public void MultiSelect_SelectAll_RendersSelectAllHeader() =>
+        // Opt-in header row at the top of the menu; "Select all" while not everything is selected.
+        Assert.Contains("fw-semibold\" type=\"button\">Select all</button>",
+            BsMultiSelect<string>(Options: ["a", "b"], Value: new List<string>(), SelectAll: true, Id: "m").ToHtml());
+
+    [Fact]
+    public void MultiSelect_SelectAll_ShowsClearAll_WhenAllEnabledSelected() =>
+        Assert.Contains(">Clear all</button>",
+            BsMultiSelect<string>(Options: ["a", "b"], Value: new List<string> { "a", "b" }, SelectAll: true)
+                .ToHtml());
+
     private sealed class TagModel
     {
         public List<string> Tags { get; set; } = [];

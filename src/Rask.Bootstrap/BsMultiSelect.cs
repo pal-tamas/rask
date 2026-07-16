@@ -29,10 +29,19 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
 
+    // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
+    // click, and the keyboard cursor skips over it; e.g. OptionDisabled: t => t.Retired.
+    public Func<TItem, bool>? OptionDisabled { get; set; }
+
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (t, text) => t.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
     public Func<TItem, string, bool>? Filter { get; set; }
+
+    // Opt in to a "Select all / Clear all" header row at the top of the dropdown. It toggles the currently
+    // shown (filtered), enabled options in one click — adds them all, or clears them when they are already
+    // all selected — never touching a disabled option. With a Filter active it applies to the visible subset.
+    public bool? SelectAll { get; set; }
 
     // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
@@ -105,9 +114,9 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             : Options;
         var filteredList = filtered as IReadOnlyList<TItem> ?? filtered.ToList();
 
-        // No per-option disabling in this control yet — the cursor may land on any option. (PR wiring an
-        // OptionDisabled predicate replaces this so disabled options are skipped over.)
-        Func<int, bool> optDisabled = static _ => false;
+        // Per-option disable predicate over the filtered list; the keyboard cursor skips these indices and the
+        // option row takes no click.
+        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(filteredList[i]) == true;
 
         // The roving keyboard cursor lives in flat filtered-index space. Normalise it once against the current
         // list so a filter change (which may shrink the list) can't leave it dangling past the end, and seed
@@ -170,6 +179,31 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
                     OnKeyDownAsync: e => OnKeyAsync(e, fromSearch: true))]);
         }
 
+        // Opt-in "Select all / Clear all" header: toggles every shown, ENABLED option in one click (never a
+        // disabled one). Shows "Clear all" once they are all selected. Not part of the roving-cursor option
+        // space (it is a bulk-action button, not a role="option"), so arrow keys skip it.
+        if (SelectAll is true && !disabled)
+        {
+            var enabledFiltered = new List<TItem>();
+            for (var i = 0; i < filteredList.Count; i++)
+            {
+                if (!optDisabled(i))
+                {
+                    enabledFiltered.Add(filteredList[i]);
+                }
+            }
+
+            if (enabledFiltered.Count > 0)
+            {
+                var allOn = enabledFiltered.All(o => selected is not null && selected.Contains(o, comparer));
+                rows.Add(Button(
+                    Type: "button",
+                    Class: "dropdown-item d-flex align-items-center gap-2 fw-semibold",
+                    OnClickAsync: () => SelectAllAsync(acc, ctx, fid, enabledFiltered, comparer, add: !allOn))[
+                    allOn ? "Clear all" : "Select all"]);
+            }
+        }
+
         if (searchable && filteredList.Count == 0)
         {
             rows.Add(Span(Class: BsClass.Join("dropdown-item", "disabled", Txt.Muted))["No matches"]);
@@ -181,10 +215,17 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             {
                 var captured = option;
                 var isChecked = selected is not null && selected.Contains(captured, comparer);
+                var optionDisabled = disabled || optDisabled(idx);
                 // aria-selected and the read-only checkbox both derive from isChecked (never from _cursor), so
                 // they can't drift; the cursor is surfaced only as the .active highlight. role="option" +
-                // aria-selected make this a proper listbox option for assistive tech.
+                // aria-selected make this a proper listbox option for assistive tech; a per-option-disabled row
+                // adds aria-disabled and drops its click handler.
                 var optAria = new Dictionary<string, string?> { ["selected"] = isChecked ? "true" : "false" };
+                if (optionDisabled)
+                {
+                    optAria["disabled"] = "true";
+                }
+
                 rows.Add(Button(
                     Type: "button",
                     Class: BsClass.Join("dropdown-item d-flex align-items-center gap-2",
@@ -192,8 +233,10 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
                     Id: BsSelectNav.OptId(prefix, idx),
                     Role: "option",
                     Aria: optAria,
-                    Disabled: Disabled,
-                    OnClickAsync: disabled ? null : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked),
+                    Disabled: optionDisabled ? true : null,
+                    OnClickAsync: optionDisabled
+                        ? null
+                        : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked),
                     Key: idx)[
                     Input<string>(InputType.Checkbox, Class: "form-check-input m-0 pe-none", Checked: isChecked),
                     LabelOf(captured)
@@ -364,6 +407,39 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         {
             var next = Value is null ? new List<TItem>() : new List<TItem>(Value);
             BindingHelpers.SetCollectionMembership(next, item, add, comparer);
+            await ((IFormControl<ICollection<TItem>>)this).InvokeOnChangeAsync(next).ConfigureAwait(false);
+        }
+    }
+
+    // Bulk add/remove for the "Select all / Clear all" header — applies membership to every item then notifies
+    // once (bound: mutate the model collection in place; controlled: emit a fresh list), mirroring ToggleAsync.
+    private async Task SelectAllAsync(
+        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,
+        IReadOnlyList<TItem> items, IEqualityComparer<TItem> comparer, bool add)
+    {
+        if (acc is not null)
+        {
+            if (acc.Getter() is not ICollection<TItem> collection)
+            {
+                return;
+            }
+
+            foreach (var item in items)
+            {
+                BindingHelpers.SetCollectionMembership(collection, item, add, comparer);
+            }
+
+            await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid).ConfigureAwait(false);
+            await ((IFormControl<ICollection<TItem>>)this).InvokeAfterBindAsync(collection).ConfigureAwait(false);
+        }
+        else
+        {
+            var next = Value is null ? new List<TItem>() : new List<TItem>(Value);
+            foreach (var item in items)
+            {
+                BindingHelpers.SetCollectionMembership(next, item, add, comparer);
+            }
+
             await ((IFormControl<ICollection<TItem>>)this).InvokeOnChangeAsync(next).ConfigureAwait(false);
         }
     }

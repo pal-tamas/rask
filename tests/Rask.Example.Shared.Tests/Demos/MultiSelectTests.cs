@@ -362,6 +362,74 @@ public sealed class MultiSelectTests
             TestServices.Default()));
     }
 
+    [Fact]
+    public async Task OptionDisabled_NotToggleableByClick_AndSkippedByKeyboard()
+    {
+        var model = new Bag();
+        var page = RaskTest.Render(
+            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, OptionDisabled: o => o == "b")],
+            TestServices.Default());
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open, cursor seeded to option 0 ("a")
+
+        var html = page.Render();
+        Assert.Contains("aria-disabled=\"true\"", html);       // "b" is disabled
+        // the disabled "b" has no click handler: box + opt-a + opt-c + backdrop = 4 (would be 5 if b enabled)
+        Assert.Equal(4, ClickIds(html).Count);
+
+        // ArrowDown from "a" (0) skips the disabled "b" (1) and lands on "c" (2)
+        await page.InvokeAsync(page.HandlerIds("keydown")[0], "{\"key\":\"ArrowDown\"}");
+        Assert.Equal("Tags-opt-2", Markup.Attr(page.Render(), "aria-activedescendant")!);
+    }
+
+    [Fact]
+    public async Task SelectAll_AddsAllEnabled_ThenClearsAll()
+    {
+        var model = new Bag();
+        var page = RaskTest.Render(
+            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, SelectAll: true)],
+            TestServices.Default());
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open
+
+        // Empty selection → no chips, so the header is the first click handler after the box.
+        await page.InvokeAsync(ClickIds(page.Render())[1]); // "Select all"
+        Assert.Equal(["a", "b", "c"], model.Tags);
+        Assert.Contains("Clear all", page.Render());
+
+        // Now chips render before the menu rows; the header sits after box + one remove-button per chip.
+        await page.InvokeAsync(ClickIds(page.Render())[1 + model.Tags.Count]); // "Clear all"
+        Assert.Empty(model.Tags);
+    }
+
+    [Fact]
+    public async Task SelectAll_ExcludesDisabledOptions()
+    {
+        var model = new Bag();
+        var page = RaskTest.Render(
+            () => Form(model)[BsMultiSelect<string>(
+                () => model.Tags, Options, SelectAll: true, OptionDisabled: o => o == "b")],
+            TestServices.Default());
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open
+
+        await page.InvokeAsync(ClickIds(page.Render())[1]); // "Select all" — adds only the enabled options
+        Assert.Equal(["a", "c"], model.Tags);               // "b" is disabled, never added
+    }
+
+    [Fact]
+    public async Task SelectAll_Controlled_EmitsFullSelection_WithoutMutatingValue()
+    {
+        var value = new List<string>();
+        ICollection<string>? emitted = null;
+        var page = RaskTest.Render(
+            () => BsMultiSelect<string>(Options, Value: value, SelectAll: true, OnChange: next => emitted = next),
+            TestServices.Default());
+        await page.InvokeAsync(ClickIds(page.Render())[0]); // open
+
+        await page.InvokeAsync(ClickIds(page.Render())[1]); // "Select all"
+
+        Assert.Equal(["a", "b", "c"], emitted!);
+        Assert.Empty(value); // controlled mode never mutates the parent's Value in place
+    }
+
     private static IReadOnlyList<string> ClickIds(string html) =>
         Markup.Attrs(html, "data-rask-on-click");
 
