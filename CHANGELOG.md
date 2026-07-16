@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`BsSelect` and `BsMultiSelect` gain per-option disabling, and `BsMultiSelect` gains a "Select all / Clear
+  all" header.** A new `OptionDisabled` predicate (`item => bool`) on both controls marks individual options
+  non-selectable: the option renders greyed with `aria-disabled`, takes no click, and the keyboard cursor
+  skips over it (in `Native` mode it becomes a disabled `<option>`). `BsMultiSelect` also accepts
+  `SelectAll: true`, which adds a header row that toggles every shown, enabled option in one click —
+  respecting an active `Filter` and never touching a disabled option, in both bound and controlled modes.
 - **`BsMultiSelect` is now fully keyboard-operable and reaches listbox accessibility parity with `BsSelect`.**
   The multiselect dropdown previously responded only to Escape; it now has a roving highlight driven by
   **Arrow Up/Down** (with **Home/End** to jump), opens from a closed box on Arrow/Enter/Space seeding the
