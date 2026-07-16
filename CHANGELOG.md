@@ -36,6 +36,11 @@ them until tagged releases begin.
   content components — previously documented in prose only — now each have a showcase demo embedded in the
   "Cards, lists & tables" guide (`docs/bootstrap-cards.md`, code-above / live-result-below) and a dedicated
   rendered-markup unit test, bringing them to coverage parity with the other `Bs*` components.
+- **Live demos and unit tests for `BsCollapse`, `BsSpinner`, and `BsProgress`.** The disclosure and feedback
+  guides previously showed these components in prose only. Each now has a showcase demo embedded with its
+  source (code-above / live-result-below): `BsCollapse` on the "Tabs, accordion & collapse" guide with an
+  interactive toggle, and `BsSpinner`/`BsProgress` on the "Alerts, spinners & progress" guide. Each gains a
+  rendered-markup unit test, and both guide pages are now walked by the shared browser E2E journey.
 - **`BsSelect` and `BsMultiSelect` gain option groups.** A new `OptionGroup` selector (`item => string`) groups
   the options by the returned key in first-seen order — rendered as `<optgroup label>` in `Native` mode and as
   non-interactive `.dropdown-header` rows in the custom dropdown. Grouping reorders the options into group order

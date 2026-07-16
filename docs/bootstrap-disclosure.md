@@ -18,3 +18,8 @@ Tabs & accordion with controlled active/expanded state — driven entirely by Ra
 **no `bootstrap.js`**:
 
 <!-- demo:bootstrap-tabs -->
+
+A `BsCollapse` reveals its panel when you flip `Open` — the `.show` class is toggled by the live
+diff, again with **no `bootstrap.js`**:
+
+<!-- demo:bootstrap-collapse -->
