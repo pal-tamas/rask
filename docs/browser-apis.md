@@ -74,6 +74,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IBattery` | Battery Status API | Charge level + charging state (native OS backend on the shell) | one-shot + **subscription** |
 | `IMediaQuery` | `window.matchMedia` | Evaluate a query; `PrefersDarkAsync` / `PrefersReducedMotionAsync` | one-shot |
 | `ISpeechSynthesis` | `window.speechSynthesis` | Speak text aloud; cancel | one-shot |
+| `ISpeechRecognition` | `webkitSpeechRecognition` | Dictation — spoken audio → text (native OS backend on the shell) | **subscription** |
 | `IMediaSession` | `navigator.mediaSession` | Now-playing metadata + hardware media-key handlers (native-feel player) | one-shot + subscription |
 | `IDeviceOrientation` | `deviceorientation` | Gyroscope/compass tilt angles (tilt UI, AR, compass) | **subscription** |
 | `IDeviceMotion` | `devicemotion` | Accelerometer / rotation rate (shake, step counter, motion games) | **subscription** |
@@ -340,6 +341,10 @@ The push pattern above, one element at a time.
 **`ISpeechSynthesis`** — speak text aloud from C#.
 
 <!-- demo:browser-speech -->
+
+**`ISpeechRecognition`** — dictation: `StartAsync(onResult, options)` streams each recognised phrase (final and, with `InterimResults`, interim) to the callback; dispose the handle to stop. Prompts for the microphone; Chromium-only in the browser, with a native `SFSpeechRecognizer`/`SpeechRecognizer` backend in the [native shell](native.md). The counterpart to `ISpeechSynthesis`.
+
+<!-- demo:browser-speech-recognition -->
 
 **`IMediaSession`** — publish now-playing metadata to the OS and handle hardware media keys.
 

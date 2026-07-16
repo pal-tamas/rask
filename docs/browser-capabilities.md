@@ -23,6 +23,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`IBattery`](apis/battery.md) | ✅ | ✅ | ✅&nbsp;★ | UIDevice battery monitoring / BatteryManager |
 | [`IMediaQuery`](apis/media-query.md) | ✅ | ✅ | ✅ | — |
 | [`ISpeechSynthesis`](apis/speech-synthesis.md) | ✅ | ✅ | ✅&nbsp;★ | AVSpeechSynthesizer / TextToSpeech |
+| [`ISpeechRecognition`](apis/speech-recognition.md) | ✅ | ✅ | ✅&nbsp;★ | SFSpeechRecognizer / SpeechRecognizer |
 | [`IMediaSession`](apis/media-session.md) | ✅ | ✅ | ✅ | — |
 | [`IDeviceOrientation`](apis/device-orientation.md) | ✅ | ✅ | ✅&nbsp;★ | CoreMotion / SensorManager |
 | [`IDeviceMotion`](apis/device-motion.md) | ✅ | ✅ | ✅&nbsp;★ | CoreMotion / SensorManager |

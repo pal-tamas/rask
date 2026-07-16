@@ -51,6 +51,7 @@ public static class RaskBrowserApis
         services.AddBrowserApi<INetworkInfo, NetworkInfo>(lifetime);
         services.AddBrowserApi<IMediaQuery, MediaQuery>(lifetime);
         services.AddBrowserApi<ISpeechSynthesis, SpeechSynthesis>(lifetime);
+        services.AddBrowserApi<ISpeechRecognition, SpeechRecognition>(lifetime);
         services.AddBrowserApi<IScreenInfo, ScreenInfoReader>(lifetime);
         services.AddBrowserApi<IStorageEstimator, StorageEstimator>(lifetime);
         services.AddBrowserApi<IVisualViewport, VisualViewportReader>(lifetime);

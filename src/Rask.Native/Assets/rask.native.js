@@ -436,6 +436,77 @@ window.__raskBattery = window.__raskBattery || (() => {
     };
 })();
 
+// Speech Recognition (driven by ISpeechRecognition) — webkitSpeechRecognition. start() builds the
+// recognizer under the C#-minted id, wires onresult to push each result back via the shared
+// window.DotNet.invokeMethodAsync shim (static [JSInvokable] SpeechRecognitionInterop.Result in Rask.Core),
+// and begins listening; stop() ends it and releases the mic. Chromium-family only; the first start prompts
+// for microphone access.
+window.__raskSpeechRecognition = window.__raskSpeechRecognition || (() => {
+    const sessions = new Map();
+    const ctor = () => window.SpeechRecognition || window.webkitSpeechRecognition;
+    return {
+        isSupported: () => !!ctor(),
+        start: (id, options) => {
+            const C = ctor();
+            if (!C) {
+                return;
+            }
+            const rec = new C();
+            if (options.lang) {
+                rec.lang = options.lang;
+            }
+            rec.continuous = !!options.continuous;
+            rec.interimResults = !!options.interimResults;
+            rec.onresult = (e) => {
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    const r = e.results[i];
+                    const alt = r[0];
+                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskSpeechResult", id, {
+                        transcript: alt ? alt.transcript : "",
+                        isFinal: !!r.isFinal,
+                        confidence: alt && isFinite(alt.confidence) ? alt.confidence : 0
+                    });
+                }
+            };
+            rec.onerror = (e) => {
+                // A permission/service error is terminal — don't let onend restart into a loop.
+                if (e && (e.error === "not-allowed" || e.error === "service-not-allowed")) {
+                    const s = sessions.get(id);
+                    if (s) {
+                        s.stopped = true;
+                    }
+                }
+            };
+            rec.onend = () => {
+                // webkitSpeechRecognition stops on silence; in continuous mode restart until stop() is called.
+                const s = sessions.get(id);
+                if (s && s.continuous && !s.stopped) {
+                    try {
+                        rec.start();
+                    } catch (e) {
+                        void e; // already (re)starting — ignore
+                    }
+                }
+            };
+            sessions.set(id, {rec: rec, continuous: !!options.continuous, stopped: false});
+            rec.start();
+        },
+        stop: (id) => {
+            const s = sessions.get(id);
+            if (!s) {
+                return;
+            }
+            s.stopped = true;
+            sessions.delete(id);
+            try {
+                s.rec.stop();
+            } catch (e) {
+                void e; // not started — ignore
+            }
+        }
+    };
+})();
+
 // Device Orientation (driven by IDeviceOrientation). Each watch adds a window "deviceorientation"
 // listener under the C#-minted id; each reading is pushed back via the shared window.DotNet.invokeMethodAsync
 // shim (static [JSInvokable] DeviceOrientationInterop.Reading in Rask.Core).

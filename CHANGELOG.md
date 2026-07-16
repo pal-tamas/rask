@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`ISpeechRecognition` — typed speech recognition / dictation with native iOS/Android backends.** The
+  counterpart to `ISpeechSynthesis`: `StartAsync(onResult, options)` prompts for the microphone and streams
+  each recognised phrase (final, and with `InterimResults` the live hypotheses) to the callback, returning an
+  `IAsyncDisposable` that stops listening. `SpeechRecognitionOptions` sets `Lang`, `Continuous`, and
+  `InterimResults`. A Core-tier wrapper, so it works on **both transports**; browser support is Chromium-only,
+  but in the [native shell](docs/native.md) it upgrades to a real OS backend the WebView can't provide — iOS
+  `SFSpeechRecognizer` + `AVAudioEngine` and Android `SpeechRecognizer` (needs mic permission: iOS
+  `NSMicrophoneUsageDescription` + `NSSpeechRecognitionUsageDescription`, Android `RECORD_AUDIO`). Showcased on
+  the Browser APIs page and documented in [`docs/apis/speech-recognition.md`](docs/apis/speech-recognition.md).
+
+### Added
 - **`BsDataGrid` column chooser and reordering.** `ColumnChooser: true` renders a "Columns" menu above the
   grid — a checkbox to show or hide each column, and move earlier/later buttons to reorder it — and makes each
   header a drag source so a column can also be dragged onto another to reorder it. Both axes are controlled or
