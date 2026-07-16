@@ -28,8 +28,13 @@ public static class OutboxSerializerRegistry
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
         var type = domainEvent.GetType();
-        return (type.FullName ?? type.Name, JsonSerializer.Serialize(domainEvent, type, Json));
+        return (TypeName(type), JsonSerializer.Serialize(domainEvent, type, Json));
     }
+
+    // Match the name the source generator registers (Roslyn's ToDisplayString is dot-separated even for a
+    // nested type) — Type.FullName uses '+' between a nesting type and its nested type, so normalize it,
+    // otherwise a nested IOutboxEvent would be stored under a name the registry never has and never publish.
+    internal static string TypeName(Type type) => (type.FullName ?? type.Name).Replace('+', '.');
 
     /// <summary>Rehydrates a stored event, or <c>null</c> if its type isn't registered.</summary>
     public static INotification? Deserialize(string typeName, string payload)

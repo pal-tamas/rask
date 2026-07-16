@@ -22,6 +22,14 @@ them until tagged releases begin.
   `ArrowDown` nudges the second by `SecondStep` (plain arrows stay on the minute, `PageUp`/`PageDown` on the
   hour). Every nudge still clamps to `[Min, Max]`. Documented in `docs/bootstrap-pickers.md`.
 
+### Fixed
+- **`Rask.Outbox` now delivers nested `IOutboxEvent` types.** The source generator registers each event by
+  its dot-separated display name, but `OutboxSerializerRegistry.Serialize` stored `Type.FullName` — which
+  uses `+` between a nesting type and a nested type — so a nested event (a record declared inside a class)
+  was stored under a name the registry never had: it deserialized to `null` and was silently left unpublished
+  until it exhausted its attempts. `Serialize` now normalizes the name to match the generator. (Top-level
+  events were unaffected.)
+
 ## [0.18.0] - 2026-07-16
 
 ### Changed
