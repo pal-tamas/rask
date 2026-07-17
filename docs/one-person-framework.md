@@ -62,7 +62,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 |---------|--------------|
 | **[The `rask` CLI](cli.md)** | `rask new` (scaffold), `rask dev` (watch + hot reload), `rask generate` (page/component/feature). The front door. |
 | **[`rask generate feature`](cli.md)** | One command emits a full CQRS + EF Core CRUD vertical slice — encapsulated entity, value objects, validation, list/create/edit pages, and tests. |
-| **[`Rask.Data`](data-access.md)** | `AggregateRoot<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
+| **[`Rask.Data`](data-access.md)** | `Entity<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
 | **[`Rask.Cqrs`](cqrs.md)** | Source-generated, reflection-free CQRS/mediator — trim/AOT-safe, zero runtime scanning. |
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
 | **[Auth](authentication.md)** | Cookie login/session scaffolding in the templates. |

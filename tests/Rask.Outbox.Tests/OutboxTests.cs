@@ -5,8 +5,8 @@ using Microsoft.Extensions.Hosting;
 
 namespace Rask.Outbox.Tests;
 
-// An aggregate that raises an outbox event on creation.
-public sealed class Order : AggregateRoot<Guid>
+// An entity that raises an outbox event on creation.
+public sealed class Order : Entity<Guid>
 {
     private Order() { }
 

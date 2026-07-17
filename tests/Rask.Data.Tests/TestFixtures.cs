@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-// A test aggregate exercising all three opt-ins: audit stamps (via the base), soft delete, and a
+// A test entity exercising all three opt-ins: audit stamps (via the base), soft delete, and a
 // concurrency version — and it raises a domain event when renamed.
-public sealed class Widget : AggregateRoot<Guid>, ISoftDeletable, IVersioned
+public sealed class Widget : Entity<Guid>, ISoftDeletable, IVersioned
 {
     private Widget() { } // EF materialization
 

@@ -142,7 +142,7 @@ opt-in (an absent key means off).
 
 The generated code compiles as-is in any project scaffolded by `rask new` — the factory methods and the
 `Component` base come from Rask's implicit usings, and pages navigate with the type-safe generated
-`Routes.*()` URLs. Every generated entity inherits [`Rask.Data`](data.md)'s `AggregateRoot<TId>` (Id +
+`Routes.*()` URLs. Every generated entity inherits [`Rask.Data`](data.md)'s `Entity<TId>` (Id +
 audit stamps + a domain-events buffer), so a generated `feature` needs **EF Core + `Rask.Cqrs` +
 `Rask.Data`** referenced — `rask generate` **adds those packages to the project for you**
 (`dotnet add package` for EF Core + SQLite, `Rask.Cqrs`, `Rask.Data`, and — with `--bs`/`--validation` —

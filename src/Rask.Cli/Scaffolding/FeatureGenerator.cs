@@ -31,7 +31,7 @@ internal static class FeatureGenerator
         string? pluralOverride,
         string? outputOverride)
     {
-        // Both flags raise domain events on the aggregate; --outbox additionally routes them through the
+        // Both flags raise domain events on the entity; --outbox additionally routes them through the
         // durable outbox (the events then implement IOutboxEvent). Either flag turns the event machinery on.
         var useDomainEvents = useEvents || useOutbox;
         var plural = pluralOverride ?? Pluralizer.Pluralize(entityName);
@@ -89,7 +89,7 @@ internal static class FeatureGenerator
             files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "Restore" + entityName + ".cs"), Apply(useBs ? BsRestoreTemplate : RestoreTemplate, tokens)));
         }
 
-        // --events / --outbox: typed domain-event records + a sample handler stub. The aggregate raises them;
+        // --events / --outbox: typed domain-event records + a sample handler stub. The entity raises them;
         // --events publishes in-process (Rask.Data), --outbox routes them through the durable outbox.
         if (useDomainEvents)
         {
@@ -280,10 +280,10 @@ internal static class FeatureGenerator
         var sb = new StringBuilder();
         sb.Append("namespace ").Append(ns).Append(";\n\n");
 
-        // Every aggregate inherits AggregateRoot<TId> (Id + CreatedAt/UpdatedAt audit stamps + a
+        // Every entity inherits Entity<TId> (Id + CreatedAt/UpdatedAt audit stamps + a
         // domain-events buffer, from Rask.Data). --soft-delete opts into ISoftDeletable (adds DeletedAt);
         // --concurrency opts into IVersioned (adds an optimistic-concurrency Version token).
-        var bases = "AggregateRoot<" + idType + ">";
+        var bases = "Entity<" + idType + ">";
         if (useSoftDelete)
         {
             bases += ", ISoftDeletable";
@@ -664,7 +664,7 @@ internal static class FeatureGenerator
             "Microsoft.EntityFrameworkCore.Sqlite",
             "Microsoft.EntityFrameworkCore.Design",
             "Rask.Cqrs",
-            "Rask.Data", // the AggregateRoot<TId> base + interceptors every generated entity inherits
+            "Rask.Data", // the Entity<TId> base + interceptors every generated entity inherits
         };
 
         if (useOutbox)
