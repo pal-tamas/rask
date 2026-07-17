@@ -67,6 +67,23 @@ them until tagged releases begin.
   `--context`. Not yet reachable from the command line: `rask g f Post Title:string 1:n Comment Body:text` still
   refuses, because generating the entities without the relationship between them would silently drop what was
   asked for. A single-entity run is byte-for-byte unchanged.
+- **Bootstrap layout primitives: `BsContainer`, `BsRow`/`BsCol`, `BsStack`.** The typed answer to the page
+  shell and the 12-unit responsive grid, so a layout no longer means hand-writing
+  `Div(Class: "container")` / `Div(Class: "row g-4")` / `Div(Class: "d-flex gap-2")`. `BsContainer` takes
+  `Fluid` and `FluidBelow: Bp` (named for the behaviour — Bootstrap's `.container-md` is really the fluid
+  one *below* md, capped from md up). `BsRow` takes `Gutter` (`.g-0`…`.g-5`). `BsCol` takes per-breakpoint
+  spans that stack exactly as the class names do — `BsCol(Md: 6, Lg: 4)` → `.col-md-6 .col-lg-4` — plus
+  `Span` and `Auto`. `BsStack` is a flex row (or `Vertical` column) with `Gap`, `Justify`, `Align` and
+  `WrapItems`. **`BsStack` builds on `d-flex`, not Bootstrap's `.vstack`/`.hstack`**: neither shorthand is
+  a superset of `d-flex` (`.hstack` also sets `align-items:center`, `.vstack` also sets `flex:1 1 auto`,
+  and both add `align-self:stretch`), so building on them would silently restyle any plain `d-flex` they
+  replaced — `BsStack(Align: BsAlign.Center)` says that alignment out loud instead. It also means
+  responsive direction
+  composes (`BsStack(Vertical: true, Class: Flex.Row(Bp.Md))`), which the shorthands can't express at all
+  since Bootstrap ships no breakpoint variant of either. The `Grid` utility group gains
+  `Container`/`ContainerFluid`/`ContainerBelow(Bp)` and is now documented (it was missing from the group
+  table in `docs/bootstrap-utilities.md`), remaining the typed escape hatch under the components. New
+  guide `docs/bootstrap-layout.md` with a live demo.
 - **`rask deploy` gates the blue-green swap on an HTTP health check.** After the new container reports
   `Running`, deploy now probes it over HTTP (`GET /health` by default) and only reloads Caddy onto it
   once it answers `2xx` — a container that boots but fails its first request (bad connection string,

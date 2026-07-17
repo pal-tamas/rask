@@ -84,6 +84,7 @@ Each component group has its own page. Every interactive component is **controll
 
 | Guide | Components |
 |---|---|
+| **[Layout](bootstrap-layout.md)** | `BsContainer` `BsRow` `BsCol` `BsStack` — the page shell, the 12-unit responsive grid, and flex rows/columns |
 | **[Buttons & badges](bootstrap-buttons.md)** | `BsButton` `BsLink` `BsButtonGroup` `BsBadge` `BsCloseButton` |
 | **[Cards, lists & tables](bootstrap-cards.md)** | `BsCard` (+`BsCardHeader/Body/Footer/Title/Subtitle/Text/Image`) `BsListGroup`(+item) `BsPlaceholder` `BsTable` `BsPagination`(+`BsPageItem`) `BsBreadcrumb`(+item) |
 | **[Data grid](data-grid.md)** | `BsDataGrid<T>`(+`BsColumn<T>`) — typed columns, sorting, paging, footer totals, master-detail |

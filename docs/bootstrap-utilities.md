@@ -32,6 +32,7 @@ Bs.Join(Display.Flex(Bp.Lg), Margin.Bottom(4, Bp.Md))   // → "d-lg-flex mb-md-
 | `Sizing` | `W(int)` `H(int)` `WAuto` `HAuto` `MaxW100` `MaxH100` `VW100` `VH100` `MinVW100` `MinVH100` |
 | `Position` | `Static/Relative/Absolute/Fixed/Sticky` `Top0/Top50/Bottom0/Start0/…` `TranslateMiddle(+X/Y)` |
 | `Bg` | `Color(BsColor)` `Body` `BodyTertiary` `White` `Transparent` |
+| `Grid` | `Container` `ContainerFluid` `ContainerBelow(Bp)` `Row` `Col` `ColAuto` `Column(int, Bp?)` `Gutter(int)` — the escape hatch under [`BsContainer`/`BsRow`/`BsCol`](bootstrap-layout.md); prefer those components |
 
 > The text group is named `Txt` (not `Text`) to avoid clashing with the core `Text` node component.
 

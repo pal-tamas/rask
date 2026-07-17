@@ -52,6 +52,7 @@ its own page:
 | Guide | What it covers |
 |-------|----------------|
 | [Bootstrap](bootstrap.md) | Setup (`BootstrapStyles()`), color modes, the typed enums, the component map, and versioning. |
+| [Layout](bootstrap-layout.md) | `BsContainer`, `BsRow`/`BsCol`, `BsStack` — the page shell, the responsive grid, flex stacks. |
 | [Buttons & badges](bootstrap-buttons.md) | `BsButton`, `BsButtonGroup`, `BsBadge`, `BsCloseButton`. |
 | [Cards, lists & tables](bootstrap-cards.md) | `BsCard` (+ parts), `BsListGroup`, `BsPlaceholder`, `BsTable`, `BsPagination`, `BsBreadcrumb`. |
 | [Data grid](data-grid.md) | `BsDataGrid<T>` (+`BsColumn<T>`) — typed columns, sorting, paging, footer totals, master-detail. |
