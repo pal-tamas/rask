@@ -16,6 +16,8 @@ internal sealed class InfoCommand(IConsole console, IProcessRunner process) : Cl
 
     public override string Usage => "rask info";
 
+    public override IReadOnlyList<string> Examples => ["rask info"];
+
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         var sdkVersion = await CaptureSingleLineAsync(["--version"], cancellationToken).ConfigureAwait(false);

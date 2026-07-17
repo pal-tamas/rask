@@ -25,6 +25,30 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
     public override string Usage =>
         "rask db <add|remove|list|update|drop> [<name>] [--project <path>] [--startup-project <path>] [--context <Name>] [--output <dir>] [--force] [-- <ef args>]";
 
+    public override IReadOnlyList<(string Name, string Description)> Arguments =>
+    [
+        ("<add|remove|list|update|drop>", "The migration action to run."),
+        ("[<name>]", "Migration name — required for 'add', e.g. InitialCreate."),
+    ];
+
+    public override IReadOnlyList<string> Examples =>
+    [
+        "rask db add InitialCreate",
+        "rask db update",
+        "rask db list",
+        "rask db drop --force",
+    ];
+
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    private static ArgumentSchema CreateSchema() =>
+        new ArgumentSchema()
+            .Option("project", 'p', "path", "Project containing the DbContext (default: found from the current directory).")
+            .Option("startup-project", 's', "path", "Startup project (default: same as --project).")
+            .Option("context", 'c', "Name", "DbContext to use when the project defines more than one.")
+            .Option("output", 'o', "dir", "Directory for the migration files (add only).")
+            .Flag("force", 'f', "Skip the confirmation prompt (drop only).");
+
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         if (args.Count == 0)
@@ -41,12 +65,7 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
             return 1;
         }
 
-        var schema = new ArgumentSchema()
-            .Option("project", 'p')
-            .Option("startup-project", 's')
-            .Option("context", 'c')
-            .Option("output", 'o')
-            .Flag("force", 'f');
+        var schema = CreateSchema();
 
         var parsed = schema.Parse(args.Skip(1).ToArray());
         if (parsed.HasErrors)

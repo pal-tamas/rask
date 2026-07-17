@@ -109,4 +109,22 @@ public sealed class ArgumentSchemaTests
         Assert.Equal("-5", parsed.Option("output"));
         Assert.False(parsed.HasErrors);
     }
+
+    [Fact]
+    public void Declared_records_each_option_for_help()
+    {
+        var schema = new ArgumentSchema()
+            .Option("template", 't', "name", "Which template.")
+            .Flag("auth", description: "Add auth.", group: "Extras");
+
+        var template = schema.Declared.Single(o => o.LongName == "template");
+        Assert.Equal('t', template.ShortName);
+        Assert.False(template.IsFlag);
+        Assert.Equal("name", template.ValueHint);
+        Assert.Equal("Which template.", template.Description);
+
+        var auth = schema.Declared.Single(o => o.LongName == "auth");
+        Assert.True(auth.IsFlag);
+        Assert.Equal("Extras", auth.Group);
+    }
 }
