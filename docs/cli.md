@@ -201,16 +201,24 @@ package`) if it's missing.
 ## `rask deploy` — ship to a single host over SSH
 
 ```bash
-rask deploy --host deploy@box --domain app.example.com   # → https://app.example.com (auto-HTTPS)
+rask deploy --host root@box --domain app.example.com      # bare VPS → live HTTPS site (sets the box up first)
 rask deploy --host deploy@box --port 8080                 # no domain: publish a port, bring your own TLS
 rask deploy                                               # redeploy: host/domain remembered
+rask deploy --github-actions                              # write a workflow that deploys on push to main
 rask deploy --dry-run --host deploy@box --domain app.example.com   # print the docker commands, run nothing
 ```
 
-One command builds your app's Docker image **on the box** and runs it. Every step is
+One command builds your app's Docker image **on the box** and runs it. Every deploy step is
 `docker -H ssh://<host> …`, so there's no registry, no local Docker daemon, and no image tarball to
 copy — the build context ships to the host's daemon over SSH and builds there. It deploys the
 `Dockerfile` that `rask new --docker` scaffolds (point at another with `--dockerfile`).
+
+**Handed a box that isn't ready, it sets it up** — installs Docker, creates a non-root `deploy` login
+with your keys, configures a firewall, and hardens SSH — after showing you the list and asking once. So
+a fresh VPS goes live without you opening an SSH session. It's idempotent (a ready box is left alone,
+with no prompt), and nothing that could lock you out happens until a fresh connection has proved the new
+login works — with a rollback timer on the box as the backstop. See
+[deployment.md](deployment.md#the-first-deploy-to-a-bare-box) for the full story.
 
 **With `--domain`** Rask runs a shared [Caddy](https://caddyserver.com) reverse proxy on the box that
 fetches an automatic Let's Encrypt certificate, so you get a live HTTPS site with nothing else to
@@ -235,13 +243,32 @@ you put your own TLS/reverse proxy in front (there's no zero-downtime swap on a 
 | `--env KEY=VALUE` · `--env-file <path>` | Runtime environment for the app container (repeat `--env`). |
 | `--health-path <path>` | The path the readiness probe hits before switching traffic (default `/health`). Remembered in `.rask/deploy.json`. |
 | `--no-health-check` | Gate only on the container running (skip the HTTP probe) — for apps without a health endpoint. Remembered. |
+| `--github-actions` | Write `.github/workflows/deploy.yml` (deploy on push to main) and print the secrets to add. Touches no host. |
 | `--dry-run` | Print the exact docker commands without running them. |
 
-**Prerequisites.** The [Docker CLI](https://docs.docker.com/get-docker/) installed locally; on the
-host, a running Docker daemon and key-based SSH so `ssh user@box` works non-interactively. Point your
-domain's DNS `A`/`AAAA` record at the host before the first `--domain` deploy so the certificate can be
-issued. `.rask/deploy.json` remembers the host/domain/port for repeat deploys but **never stores
-secrets** — pass those via `--env`/`--env-file` each time.
+Host setup options — these only matter the first time you deploy to a box:
+
+| Option | Purpose |
+| --- | --- |
+| `--setup-host` | Prepare the host without asking. Needed when there's no terminal to confirm on. |
+| `--no-setup-host` | Never change the host; fail with instructions instead. What the generated CI workflow uses. |
+| `--deploy-user <name>` | The non-root login to create and deploy as when given a root host (default: `deploy`). |
+| `--no-deploy-user` | Keep deploying as the `--host` login instead of creating a non-root one. |
+| `--no-firewall` | Don't configure `ufw` on the host. |
+| `--no-harden-ssh` | Don't disable SSH password login and root login on the host. |
+
+**Prerequisites.** The [Docker CLI](https://docs.docker.com/get-docker/) installed locally (it's the
+client for every remote `docker` call, even though nothing builds on your machine), and key-based SSH
+to the host so `ssh user@box` works non-interactively. **The host needs nothing else** — Docker and the
+rest are installed for you on the first deploy. Point your domain's DNS `A`/`AAAA` record at the host
+before the first `--domain` deploy so the certificate can be issued. `.rask/deploy.json` remembers the
+host/domain/port for repeat deploys but **never stores secrets** — pass those via `--env`/`--env-file`
+each time.
+
+**Deploying from CI.** `rask deploy --github-actions` writes a workflow that runs this same command on
+every push to `main`, and prints the two `gh secret set` lines it needs (an SSH key and the host's
+fingerprint). Everything else comes from the committed `.rask/deploy.json`. It deploys with
+`--no-setup-host`: prepare the box once from your own machine, so CI never reconfigures a host.
 
 ## `rask info` — environment report
 

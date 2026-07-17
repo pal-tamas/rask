@@ -20,6 +20,45 @@ them until tagged releases begin.
   including a new **`BsLink`** (an anchor styled as a Bootstrap button — the link counterpart to
   `BsButton`) used for the Playground/Docs/GitHub CTAs. Monaco stays `vs-dark`; the playground's preview
   canvas stays a light "paper" so user-authored components render readably in either theme.
+- **`rask deploy` sets up a bare host for you — you never SSH in to prepare a box.** Handed a fresh VPS
+  (root, an SSH key, nothing else), deploy used to stop at a two-line hint telling you to go install
+  Docker yourself; it now checks what the box has, prints exactly what it wants to change, asks once,
+  and does it: installs Docker from [get.docker.com](https://get.docker.com), creates a non-root
+  `deploy` login with your `authorized_keys` + docker group + passwordless sudo, enables `ufw`, and
+  hardens sshd (password login off, root login off). `.rask/deploy.json` is rewritten to the new login,
+  so later deploys keep working after root SSH is disabled. **Setup only ever happens to a box that
+  can't already deploy** — once Docker runs, `rask deploy` just deploys, so a host that's fine as it is
+  (a least-privilege login with no sudo, a cloud firewall instead of `ufw`) is never prompted about or
+  touched, and re-running is a no-op. `--setup-host` prepares a host anyway. A single read-only SSH probe
+  replaces the old `docker -H ssh:// version` check (same one round-trip), so failures now say which of
+  "Docker isn't installed" / "the daemon isn't running" / "you're not in the `docker` group" / "SSH
+  itself failed" actually happened, quoting ssh's own words. Opt out per step with `--no-firewall`,
+  `--no-harden-ssh`, `--no-deploy-user`, or `--deploy-user <name>`; skip the prompt with `--setup-host`;
+  refuse to touch the host with `--no-setup-host`.
+
+  Nothing that can revoke your access happens until a **brand-new** connection (`ControlPath=none`)
+  proves the replacement works: the deploy login is tested before anything is hardened, and root SSH is
+  only disabled once a working non-root login exists. The firewall and hardening then run behind a
+  `systemd-run` rollback timer armed on the box itself, disarmed only after we prove we're still in — so
+  a lockout heals in ~5 minutes even if the CLI is killed. Anything that can't be done safely is skipped
+  **out loud**: if sshd's real listening ports can't be read, the firewall isn't enabled (Rask won't
+  guess port 22), and if `sshd_config` has no `Include` line the hardening drop-in would be ignored, so
+  it's skipped rather than reported as done.
+
+  **Behavior change:** `rask deploy` may now modify the host. It only does so after showing the plan and
+  asking; on a non-terminal (CI, piped stdin) it refuses and tells you to pass `--setup-host`, so no
+  scripted deploy starts changing a box unattended. This deliberately narrows the CLI's "we never
+  auto-install Docker" stance to your *local* machine — the remote box is what you're asking `rask
+  deploy` to manage. It also means host setup is the one remote step that isn't `docker -H ssh://…`
+  (installing Docker over Docker is chicken-and-egg), so it shells out to plain `ssh`. Documented in
+  `docs/deployment.md` and `docs/cli.md`.
+- **`rask deploy --github-actions` writes a deploy workflow.** Generates `.github/workflows/deploy.yml`
+  that runs the same `rask deploy` on every push to `main` (and on demand), and prints the two
+  `gh secret set` lines it needs — an SSH key and the host's fingerprint from `ssh-keyscan`. Everything
+  else comes from the committed `.rask/deploy.json`, so the workflow is identical for every project.
+  It's pure scaffolding: no host, no network, works before the box exists, honours `--dry-run`, and
+  won't overwrite a workflow you've edited. The generated job deploys with `--no-setup-host` on purpose —
+  a host that isn't ready should fail the build rather than be reconfigured from a runner.
 - **`rask deploy` gates the blue-green swap on an HTTP health check.** After the new container reports
   `Running`, deploy now probes it over HTTP (`GET /health` by default) and only reloads Caddy onto it
   once it answers `2xx` — a container that boots but fails its first request (bad connection string,
@@ -195,6 +234,16 @@ them until tagged releases begin.
   `/<repo>/docs/` (and boots it as the 404 deep-link fallback), and every `live demo` link across the
   README, `NUGET.md`, and the guides now targets `/docs/`.
 
+### Security
+- **`rask deploy` now validates the SSH host before it reaches the `ssh` binary.** `ssh` can't tell a
+  destination from an option, so a "host" of `-oProxyCommand=<cmd>` is read as a flag and runs `<cmd>` on
+  the machine invoking rask. Because the host is remembered in `.rask/deploy.json` — which is committed
+  and read by CI — a hostile value merged by pull request would have executed on any maintainer who ran
+  `rask deploy`, or on a runner holding the deploy secrets. Hosts that would parse as an option (or that
+  contain whitespace/control characters) are now rejected up front with a clear message, and the
+  destination is additionally passed after `--` so ssh can't reinterpret it. Found while reviewing the
+  new host-setup path; the same hardening covers the pre-existing `docker -H ssh://…` host.
+
 ### Fixed
 - **The capability matrix no longer claims `IFileSystemAccess` and `IWebPush` work on Native.**
   `docs/browser-capabilities.md` marked both ✅ in the Native column, but neither API exists in the WebView:
@@ -208,6 +257,9 @@ them until tagged releases begin.
   behind it instead of assumption. `docs/native.md` also documents *why* both origins are secure contexts —
   Android by its `https` scheme, iOS because WebKit treats a custom `WKURLSchemeHandler` scheme as
   trustworthy whatever the host, which is easy to get wrong when writing a custom `INativeWebView`.
+- **`rask deploy --help` stated the wrong default for `--health-path`.** It read `(default: /)` while the
+  probe actually uses `/health` (as `docs/cli.md` documents), so anyone trusting `--help` would think an
+  app without a root-path readiness route needed the flag when it didn't.
 - **`Rask.Outbox` now delivers nested `IOutboxEvent` types.** The source generator registers each event by
   its dot-separated display name, but `OutboxSerializerRegistry.Serialize` stored `Type.FullName` — which
   uses `+` between a nesting type and a nested type — so a nested event (a record declared inside a class)
