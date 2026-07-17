@@ -36,11 +36,26 @@ internal sealed class ParsedArguments(
 }
 
 /// <summary>
+/// A declared flag or option: its names, whether it takes a value (and a hint for it), a one-line
+/// description, and an optional <see cref="Group"/> label so help can bucket, say, <c>generate</c>'s
+/// feature-only flags apart from the common ones. This is the single source of truth that both parses
+/// arguments and documents them — <c>--help</c> renders straight from this list, so it can never drift.
+/// </summary>
+internal sealed record OptionInfo(
+    string LongName,
+    char? ShortName,
+    bool IsFlag,
+    string? ValueHint,
+    string? Description,
+    string? Group);
+
+/// <summary>
 /// A tiny, dependency-free argument parser. Each command declares its boolean <see cref="Flag"/>s and
 /// valued <see cref="Option"/>s (with optional single-char aliases); <see cref="Parse"/> then turns a
 /// raw token list into a <see cref="ParsedArguments"/>. Supports <c>--name value</c>, <c>--name=value</c>,
 /// <c>-n value</c>, and a <c>--</c> separator after which everything is passthrough. Unknown options and
-/// options missing a value are reported as errors rather than guessed at.
+/// options missing a value are reported as errors rather than guessed at. Every declaration also records
+/// an <see cref="OptionInfo"/> (see <see cref="Declared"/>) so command help documents exactly what parses.
 /// </summary>
 internal sealed class ArgumentSchema
 {
@@ -48,18 +63,24 @@ internal sealed class ArgumentSchema
     private readonly HashSet<string> _flags = new(StringComparer.Ordinal);
     private readonly HashSet<string> _options = new(StringComparer.Ordinal);
     private readonly HashSet<string> _multiOptions = new(StringComparer.Ordinal);
+    private readonly List<OptionInfo> _declared = [];
 
-    public ArgumentSchema Flag(string longName, char? shortName = null)
+    /// <summary>Every flag/option declared on this schema, in declaration order — the source for <c>--help</c>.</summary>
+    public IReadOnlyList<OptionInfo> Declared => _declared;
+
+    public ArgumentSchema Flag(string longName, char? shortName = null, string? description = null, string? group = null)
     {
         _flags.Add(longName);
         Register(longName, shortName);
+        _declared.Add(new OptionInfo(longName, shortName, IsFlag: true, ValueHint: null, description, group));
         return this;
     }
 
-    public ArgumentSchema Option(string longName, char? shortName = null)
+    public ArgumentSchema Option(string longName, char? shortName = null, string? valueHint = null, string? description = null, string? group = null)
     {
         _options.Add(longName);
         Register(longName, shortName);
+        _declared.Add(new OptionInfo(longName, shortName, IsFlag: false, valueHint, description, group));
         return this;
     }
 
@@ -67,11 +88,12 @@ internal sealed class ArgumentSchema
     /// A valued option that may be supplied more than once (e.g. <c>--env A=1 --env B=2</c>); every value is
     /// collected in order and read via <see cref="ParsedArguments.MultiOption"/> rather than overwriting.
     /// </summary>
-    public ArgumentSchema MultiOption(string longName, char? shortName = null)
+    public ArgumentSchema MultiOption(string longName, char? shortName = null, string? valueHint = null, string? description = null, string? group = null)
     {
         _options.Add(longName);
         _multiOptions.Add(longName);
         Register(longName, shortName);
+        _declared.Add(new OptionInfo(longName, shortName, IsFlag: false, valueHint, description, group));
         return this;
     }
 

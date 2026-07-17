@@ -51,8 +51,11 @@ rask info
 | `rask deploy` | Build and run the app on a single host over SSH (`docker -H ssh://…`). `--domain` fronts it with auto-HTTPS Caddy; deploys are zero-downtime and multiple apps share one box. |
 | `rask dev` | Run the app with C# Hot Reload (`dotnet watch run`); `--no-hot-reload` for a plain run. Args after `--` reach the app. |
 | `rask info` | Report the CLI version, .NET SDK version, and OS. |
+| `rask completion <bash\|zsh\|fish>` | Print a shell completion script, generated from the live command + option set. |
 
-Run `rask <command> --help` for command-specific usage, or `rask --version` for the tool version.
+Run `rask <command> --help` for a full reference — arguments, a described options table, and examples
+— or `rask --version` for the tool version. Output is colorized on a terminal and plain when piped or
+under `NO_COLOR`.
 
 ## Notes
 

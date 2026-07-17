@@ -15,11 +15,23 @@ internal sealed class DevCommand(IConsole console, IProcessRunner process) : Cli
 
     public override string Usage => "rask dev [--project <path>] [--no-hot-reload] [-- <args passed to the app>]";
 
+    public override IReadOnlyList<string> Examples =>
+    [
+        "rask dev",
+        "rask dev --project src/App",
+        "rask dev -- --urls http://localhost:5000",
+    ];
+
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    private static ArgumentSchema CreateSchema() =>
+        new ArgumentSchema()
+            .Option("project", 'p', "path", "Project to run (default: the project in the current directory).")
+            .Flag("no-hot-reload", description: "Use a plain 'dotnet run' instead of 'dotnet watch' (no hot reload).");
+
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
-        var schema = new ArgumentSchema()
-            .Option("project", 'p')
-            .Flag("no-hot-reload");
+        var schema = CreateSchema();
 
         var parsed = schema.Parse(args);
         if (parsed.HasErrors)

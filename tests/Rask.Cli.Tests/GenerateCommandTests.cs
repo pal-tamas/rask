@@ -17,7 +17,8 @@ public sealed class GenerateCommandTests
         var path = Path.GetFullPath("/proj/Features/Products/ProductsPage.cs");
         Assert.True(fs.Files.ContainsKey(path));
         Assert.Contains("namespace MyApp.Features.Products;", fs.Files[path], StringComparison.Ordinal);
-        Assert.Contains("Created", console.OutText, StringComparison.Ordinal);
+        // Written files are reported with the shared "  + <path>" marker (unified with `rask new`).
+        Assert.Contains("+ Features/Products/ProductsPage.cs", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -437,6 +438,48 @@ public sealed class GenerateCommandTests
 
         Assert.Equal(1, exit);
         Assert.Contains("Couldn't find a single .csproj", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Feature_inherits_defaults_from_dot_rask_generate_json()
+    {
+        var (console, fs, command) = Build();
+        // A team default of --bs, with no --bs on the command line.
+        fs.Seed("/proj/.rask/generate.json", "{ \"bs\": true }");
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string", "--dry-run"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        // The Bootstrap create page renders a BsAlert — proof the config default was applied.
+        Assert.Contains("BsAlert", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Save_defaults_writes_the_run_flags_to_the_config_file()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(
+            ["feature", "Product", "Name:string", "--bs", "--tests", "--no-restore", "--save-defaults"],
+            CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var configPath = Path.GetFullPath("/proj/.rask/generate.json");
+        Assert.True(fs.Files.ContainsKey(configPath));
+        Assert.Contains("\"bs\": true", fs.Files[configPath], StringComparison.Ordinal);
+        Assert.Contains("\"tests\": true", fs.Files[configPath], StringComparison.Ordinal);
+        Assert.Contains("Saved generate defaults", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Save_defaults_only_applies_to_feature()
+    {
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["page", "Dashboard", "--save-defaults"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("only apply to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
     }
 
     private static (StringConsole Console, FakeFileSystem Fs, GenerateCommand Command) Build()

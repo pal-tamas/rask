@@ -56,20 +56,33 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         "[--name <slug>] [--dockerfile <path>] [--env KEY=VALUE ...] [--env-file <path>] " +
         "[--health-path <path>] [--no-health-check] [--dry-run]";
 
+    public override IReadOnlyList<string> Examples =>
+    [
+        "rask deploy --host deploy@box.example.com --domain app.example.com",
+        "rask deploy --host deploy@box.example.com --port 8080",
+        "rask deploy --env ConnectionStrings__Db=... --env-file .env.production",
+        "rask deploy --dry-run",
+    ];
+
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    private static ArgumentSchema CreateSchema() =>
+        new ArgumentSchema()
+            .Option("host", 'h', "user@box", "SSH target to build and run on (remembered in .rask/deploy.json).")
+            .Option("domain", 'd', "host", "Public domain to serve over HTTPS via Caddy (implies ports 80/443).")
+            .Option("port", valueHint: "n", description: "Published port when not using --domain (default: 8080).")
+            .Option("project", 'p', "path", "Project to deploy (default: found from the current directory).")
+            .Option("name", 'n', "slug", "Container/app name (default: derived from the project).")
+            .Option("dockerfile", valueHint: "path", description: "Dockerfile to build (default: ./Dockerfile).")
+            .Option("env-file", valueHint: "path", description: "File of KEY=VALUE lines to pass to the container.")
+            .MultiOption("env", 'e', "KEY=VALUE", "Environment variable to pass (repeatable).")
+            .Option("health-path", valueHint: "path", description: "HTTP path probed for readiness before the blue-green swap (default: /).")
+            .Flag("no-health-check", description: "Skip the post-deploy HTTP health check.")
+            .Flag("dry-run", description: "Print the docker commands that would run without changing anything.");
+
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
-        var schema = new ArgumentSchema()
-            .Option("host", 'h')
-            .Option("domain", 'd')
-            .Option("port")
-            .Option("project", 'p')
-            .Option("name", 'n')
-            .Option("dockerfile")
-            .Option("env-file")
-            .MultiOption("env", 'e')
-            .Option("health-path")
-            .Flag("no-health-check")
-            .Flag("dry-run");
+        var schema = CreateSchema();
 
         var parsed = schema.Parse(args);
         if (parsed.HasErrors)
@@ -162,10 +175,10 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             return 1;
         }
 
-        Console.Out.WriteLine($"Building {slug}:latest on {host}…");
+        WriteHeading($"Building {slug}:latest on {host}…");
         if (await Run(BuildBuildArguments(host, slug, dockerfile, contextDir), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine("Docker build failed.");
+            Console.WriteErrorLine("Docker build failed.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -181,7 +194,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         Console.Out.WriteLine($"Starting {slug} on port {port}…");
         if (await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine("Failed to start the container.");
+            Console.WriteErrorLine("Failed to start the container.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -196,12 +209,12 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         if (healthEnabled && !await WaitUntilHealthyAsync(host, slug, healthPath, cancellationToken).ConfigureAwait(false))
         {
             await DumpLogsAsync(host, slug, cancellationToken).ConfigureAwait(false);
-            Console.Error.WriteLine(HealthFailureMessage(healthPath, rolledBack: false));
+            Console.WriteErrorLine(HealthFailureMessage(healthPath, rolledBack: false), ConsoleStyle.Error);
             return 1;
         }
 
         PersistConfig(host, domain: null, port, slug, project, envFile, healthEnabled, healthPath);
-        Console.Out.WriteLine($"Deployed. The app is live at http://{HostName(host)}:{port}");
+        Console.WriteLine($"Deployed. The app is live at http://{HostName(host)}:{port}", ConsoleStyle.Success);
         return 0;
     }
 
@@ -226,7 +239,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         // In domain mode the app is reached internally on ContainerPort; no host port is published.
         if (await Run(BuildRunArguments(host, slug, domain, newColor, ContainerPort, env), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine("Failed to start the new container.");
+            Console.WriteErrorLine("Failed to start the new container.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -236,7 +249,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         {
             await DumpLogsAsync(host, newContainer, cancellationToken).ConfigureAwait(false);
             await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false);
-            Console.Error.WriteLine("The new container exited before it was ready — left the previous version serving.");
+            Console.WriteErrorLine("The new container exited before it was ready — left the previous version serving.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -267,7 +280,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         // need a moment before `caddy reload` succeeds.
         if (await RunWithRetryAsync(BuildCaddyReloadArguments(host), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine("Caddy reload failed — the new container is running but not yet routed. Check `docker -H ssh://" + host + " logs rask-caddy`.");
+            Console.WriteErrorLine("Caddy reload failed — the new container is running but not yet routed. Check `docker -H ssh://" + host + " logs rask-caddy`.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -278,8 +291,8 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         }
 
         PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath);
-        Console.Out.WriteLine($"Deployed. The app is live at https://{domain}");
-        Console.Out.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})");
+        Console.WriteLine($"Deployed. The app is live at https://{domain}", ConsoleStyle.Success);
+        Console.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})", ConsoleStyle.Dim);
         return 0;
     }
 
@@ -299,6 +312,9 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
 
     private async Task<bool> WaitUntilRunningAsync(string host, string container, CancellationToken cancellationToken)
     {
+        // The poll is otherwise silent for up to ReadinessAttempts × ReadinessDelay — spin so an
+        // interactive user sees it's working (a no-op when stdout is redirected/piped).
+        await using var spinner = Spinner.Start(Console, $"Waiting for {container} to become healthy…");
         for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
         {
             // Inspect first, then wait only between retries — a container that's already up returns immediately.
