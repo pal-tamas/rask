@@ -4,23 +4,21 @@
    Plain global stylesheet served from wwwroot and linked from App.cs's <Head>. */
 
 :root {
-    --bs-primary: #7C3AED;
-    --bs-primary-rgb: 124, 58, 237;
-    --bs-link-color: #6D28D9;
-    --bs-link-color-rgb: 109, 40, 217;
-    --bs-link-hover-color: #512BD4;
-    --bs-link-hover-color-rgb: 81, 43, 212;
-    --rask-accent: #7C3AED;
-    --rask-accent-strong: #512BD4;
-    --rask-accent-soft: #f1ebfd;
-    --rask-gradient: linear-gradient(135deg, #7C3AED 0%, #512BD4 100%);
+    /* The violet dark-first palette + the Bootstrap --bs-* bridge now live in the shared
+       _content/Rask.Bootstrap/tokens.css (linked before this file). This block keeps only what's
+       specific to the showcase: the type system, the fixed nav height, thin --rask-* aliases so the
+       existing var(--rask-*) references across this file + GuideChrome.css resolve to the shared
+       palette, and the two fixed-dark code-surface tokens (code blocks stay dark in both themes). */
+    --rask-accent: var(--accent);
+    --rask-accent-strong: var(--accent-2);
+    --rask-accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
+    --rask-gradient: linear-gradient(135deg, var(--accent), var(--accent-2));
 
-    /* Violet-tinted neutrals — the whole surface leans into the brand hue instead of flat grey. */
-    --rask-ink: #14101f; /* deep violet-black: code panes, dark surfaces */
+    --rask-ink: #14101f; /* deep violet-black: code panes — always dark, both themes */
     --rask-ink-2: #211b30; /* one step lifted from ink */
-    --rask-mist: #f7f5fc; /* page tint */
-    --rask-line: #e8e3f3; /* hairline */
-    --rask-body: #211c2b; /* body text */
+    --rask-mist: var(--panel-2); /* faint lifted surface for boxes (Chapters TOC, etc.) */
+    --rask-line: var(--line); /* hairline */
+    --rask-body: var(--ink); /* body text */
 
     /* Type system: Space Grotesk (display) / Inter (body) / JetBrains Mono (code). Routed through
        Bootstrap's own font vars so every Bs component picks them up, plus --font-* for direct use. */
@@ -98,9 +96,11 @@ body {
     padding-right: env(safe-area-inset-right);
 }
 
-/* A faint violet wash on the page so the whole surface leans into the brand instead of flat grey. */
+/* The page ground — the deep violet-black (or light tint in light mode) from the shared tokens.
+   !important because Bootstrap's own .bg-body-tertiary is an !important utility (keyed off
+   --bs-tertiary-bg-rgb), which would otherwise win over a plain selector. */
 body.bg-body-tertiary {
-    background-color: var(--rask-mist);
+    background-color: var(--ground) !important;
 }
 
 button, a, [role="button"] {
@@ -199,9 +199,10 @@ button, a, [role="button"] {
    above — markup another component renders can't be component-scoped. The .side-nav* / .nav-group* /
    .app-* class names are specific enough not to leak. */
 
-/* Sticky top bar — glassy translucent dark surface; the brand palette comes from :root above. */
+/* Sticky top bar — a fixed violet-black glass (kept dark in both themes so the BsNavbar's Theme:Dark
+   light text stays readable), matching the marketing site's dark topbar. */
 .app-navbar {
-    background: rgba(28, 30, 36, 0.82) !important;
+    background: rgba(20, 16, 31, 0.82) !important;
     backdrop-filter: saturate(180%) blur(14px);
     -webkit-backdrop-filter: saturate(180%) blur(14px);
     padding-top: calc(0.5rem + env(safe-area-inset-top));
@@ -417,7 +418,7 @@ button, a, [role="button"] {
 .markdown-body {
     max-width: 52rem;
     line-height: 1.7;
-    color: #24232b;
+    color: var(--ink);
 }
 
 /* Clear the sticky navbar when an in-page anchor (Chapters TOC / on-this-page rail) jumps to a heading. */
@@ -519,7 +520,7 @@ button, a, [role="button"] {
 }
 
 .markdown-body th {
-    background: var(--bs-body-tertiary, #f6f4fb);
+    background: var(--panel-2);
     font-weight: 600;
 }
 

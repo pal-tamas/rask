@@ -20,9 +20,31 @@
     <script type="importmap"></script>
     <link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%237c3aed'/%3E%3Cpath d='M74 24 L38 66 L58 66 L53 104 L92 58 L70 58 Z' fill='%23fff'/%3E%3C/svg%3E"
           rel="icon" type="image/svg+xml"/>
+    <!-- Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
+         across the site/docs/playground on this origin) or the OS preference before paint; re-apply the
+         saved choice after the WASM full-document morph strips the attributes off <html> on boot, so a
+         theme chosen in the docs/playground carries over here. -->
+    <script>
+        (function () {
+            var d = document.documentElement;
+            function apply(t) {
+                d.setAttribute('data-theme', t);
+                d.setAttribute('data-bs-theme', t);
+            }
+            var saved = localStorage.getItem('rask-theme');
+            apply(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+            var prev = window.raskAfterMorph;
+            window.raskAfterMorph = function () {
+                var s = localStorage.getItem('rask-theme');
+                if (s) apply(s);
+                if (typeof prev === 'function') prev();
+            };
+        })();
+    </script>
     <style id="rask-scoped"></style>
     <style>
-        /* Dark boot screen so there's no white flash before the (dark-first) app paints. */
+        /* Dark-first boot screen so there's no white flash before the app paints; the light override
+           matches an explicit light theme carried over from the saved choice. */
         .rask-boot {
             position: fixed;
             inset: 0;
@@ -34,6 +56,11 @@
             font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
             color: #c4b5fd;
             background: #0b0b12;
+        }
+
+        :root[data-theme="light"] .rask-boot {
+            color: #6d28d9;
+            background: #fbfbfe;
         }
 
         .rask-boot svg {

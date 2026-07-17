@@ -1,11 +1,30 @@
+using Microsoft.JSInterop;
 using Rask.Core.Components;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Shared;
 
 [Route("/")]
-public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav) : Component
+public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav, IJSRuntime js)
+    : Component
 {
+    private static readonly IReadOnlyDictionary<string, string?> ThemeToggleAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Toggle light / dark theme" };
+
+    // Flip the color theme via the scoped module (sets data-theme + data-bs-theme on <html> and persists
+    // the choice). Client-only; a torn-down transport just no-ops.
+    private async Task ToggleThemeAsync()
+    {
+        try
+        {
+            await js.InvokeVoidAsync("Rask.ShowcaseLayout.toggleTheme");
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went away — nothing to toggle.
+        }
+    }
+
     // MatchPrefix: optional section prefix for parameterised links. When set, the
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
     // /realtime/BTC ↔ /realtime/ETH keeps "Live ticker" active). Null means
@@ -77,10 +96,16 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
                 // deployed only to GitHub Pages alongside this showcase. This layout is shared by the
                 // Server, WASM and native showcases (and runs locally), none of which serve a /playground
                 // route — so link to the one place it actually lives (absolute), opened in a new tab.
-                A("https://pal-tamas.github.io/rask/playground/", "_blank", Class: "btn btn-primary btn-sm")[
+                BsLink(Href: "https://pal-tamas.github.io/rask/playground/", Target: "_blank", Rel: "noopener",
+                    Color: BsColor.Primary, Size: BsSize.Sm)[
                     BsIcon(Name: BsIconName.PlayFill, Class: "me-1"), "Playground"],
-                A("https://github.com/pal-tamas/rask", "_blank", Class: "btn btn-outline-light btn-sm")[
-                    BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"]
+                BsLink(Href: "https://github.com/pal-tamas/rask", Target: "_blank", Rel: "noopener",
+                    Color: BsColor.Light, Outline: true, Size: BsSize.Sm)[
+                    BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"],
+                // Light/dark theme toggle — flips data-theme + data-bs-theme via the scoped module.
+                BsButton(Color: BsColor.Light, Outline: true, Size: BsSize.Sm,
+                    OnClickAsync: ToggleThemeAsync, Aria: ThemeToggleAria)[
+                    BsIcon(Name: BsIconName.CircleHalf)]
             ]
         ],
         Div(Class: Bs.Join(Display.Flex(), "app-shell"))[

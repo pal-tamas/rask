@@ -74,7 +74,7 @@
 
 .guide-chapter-sublink {
     font-size: .9rem;
-    color: #5b5470;
+    color: var(--muted);
 }
 
 .guide-chapter-link:hover,
@@ -125,7 +125,7 @@
     font-size: .72rem;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: #8a8399;
+    color: var(--muted);
     margin-bottom: .6rem;
 }
 
@@ -151,7 +151,7 @@
     border-left: 2px solid transparent;
     margin-left: -1rem;
     text-decoration: none;
-    color: #6b6480;
+    color: var(--ink-soft);
     transition: color .12s ease, border-color .12s ease;
 }
 
@@ -185,7 +185,7 @@
     padding: .85rem 1.1rem;
     text-decoration: none;
     color: var(--rask-body);
-    background: #fff;
+    background: var(--panel);
     border: 1px solid var(--rask-line);
     border-radius: .75rem;
     transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease;
@@ -212,7 +212,7 @@
     font-size: .7rem;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: #8a8399;
+    color: var(--muted);
 }
 
 .guide-prevnext-title {

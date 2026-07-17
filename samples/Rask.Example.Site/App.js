@@ -9,7 +9,9 @@ export function init(canvas) {
   wireHeroCanvas(canvas);
 }
 
-// ---- theme toggle: media query is the default; the toggle stamps data-theme on <html> ----
+// ---- theme toggle: the pre-boot snippet (index.html) sets the initial theme from localStorage/OS;
+// this stamps BOTH data-theme and data-bs-theme on <html> and persists the choice so it carries across
+// the site, docs and playground on the same origin. ----
 function wireThemeToggle() {
   var btn = document.getElementById('themeToggle');
   if (!btn) return;
@@ -17,7 +19,10 @@ function wireThemeToggle() {
     var root = document.documentElement;
     var cur = root.getAttribute('data-theme');
     if (!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    root.setAttribute('data-bs-theme', next);
+    try { localStorage.setItem('rask-theme', next); } catch (e) { /* private mode: session-only */ }
   });
 }
 

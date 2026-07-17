@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **One design across the site, docs and playground — dark-first, with a shared light/dark toggle.** The
+  marketing site's violet dark-first look is now the shared design language for all three GitHub Pages
+  apps. The palette + Bootstrap 5.3 `--bs-*` bridge live in one shared static asset,
+  `_content/Rask.Bootstrap/tokens.css` (linked via a new `RaskTokens()` helper), so the showcase/docs
+  (Server + WASM + native) and the playground reskin to the same tokens instead of hand-syncing per-app
+  copies. A theme toggle in the showcase navbar and the playground bar flips `data-theme` +
+  `data-bs-theme` together and persists to `localStorage`, so a light/dark choice carries across the
+  site ↔ docs ↔ playground on the same origin (re-applied after the WASM full-document morph, and set
+  pre-boot so there's no flash). The docs/playground chrome is built with `Bs*` primitives throughout,
+  including a new **`BsLink`** (an anchor styled as a Bootstrap button — the link counterpart to
+  `BsButton`) used for the Playground/Docs/GitHub CTAs. Monaco stays `vs-dark`; the playground's preview
+  canvas stays a light "paper" so user-authored components render readably in either theme.
 - **`rask deploy` gates the blue-green swap on an HTTP health check.** After the new container reports
   `Running`, deploy now probes it over HTTP (`GET /health` by default) and only reloads Caddy onto it
   once it answers `2xx` — a container that boots but fails its first request (bad connection string,

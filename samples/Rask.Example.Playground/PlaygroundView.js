@@ -104,6 +104,26 @@ export function setMarkers(host, diagnosticsJson) {
     applyMarkers(diagnosticsJson);
 }
 
+// Flip the color theme: stamp BOTH data-theme (raw tokens) and data-bs-theme (Bootstrap 5.3) on <html>
+// together and persist the choice. The key is shared with the site + docs on this origin, so the theme
+// carries across all three. The pre-boot default is set by the inline snippet in index.html; this only
+// handles the explicit toggle. (Monaco's editor pane deliberately stays vs-dark either way.)
+export function toggleTheme() {
+    const d = document.documentElement;
+    let cur = d.getAttribute("data-theme");
+    if (!cur) {
+        cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    const next = cur === "dark" ? "light" : "dark";
+    d.setAttribute("data-theme", next);
+    d.setAttribute("data-bs-theme", next);
+    try {
+        localStorage.setItem("rask-theme", next);
+    } catch (e) {
+        // Storage blocked (private mode) — the toggle still works for this session.
+    }
+}
+
 // Replace the editor's whole buffer — used by the example gallery and Reset. editor.setValue fires the
 // model's change event, so live diagnostics refresh for the new code with nothing else to trigger.
 export function setEditorValue(host, code) {
