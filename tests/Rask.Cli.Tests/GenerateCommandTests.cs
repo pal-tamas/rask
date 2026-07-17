@@ -178,8 +178,10 @@ public sealed class GenerateCommandTests
             .Where(i => i.Arguments is ["add", "package", _])
             .Select(i => i.Arguments[2])
             .ToArray();
+        // SQLitePCLRaw is really added to the project, not merely printed — it's the direct reference that
+        // lifts EF Core Sqlite's vulnerable 2.1.11 pin (CVE-2025-6965), and nothing else does.
         Assert.Equal(
-            ["Microsoft.EntityFrameworkCore.Sqlite", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data", "Rask.Bootstrap"],
+            ["Microsoft.EntityFrameworkCore.Sqlite", "SQLitePCLRaw.bundle_e_sqlite3", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data", "Rask.Bootstrap"],
             adds);
     }
 

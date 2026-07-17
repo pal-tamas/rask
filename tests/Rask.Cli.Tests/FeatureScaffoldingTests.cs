@@ -564,9 +564,12 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("AddRaskCqrs();", notes, StringComparison.Ordinal);
         Assert.Contains("AddDbContextFactory<ProductsDbContext>", notes, StringComparison.Ordinal);
         Assert.Contains("dotnet ef migrations add AddProduct", notes, StringComparison.Ordinal);
-        // The packages are added to the project automatically (not just printed).
+        // The packages are added to the project automatically (not just printed). SQLitePCLRaw is a security
+        // reference, not a convenience one: EF Core Sqlite pins the 2.1.11 family, which carries CVE-2025-6965,
+        // and only a direct reference lifts it. Don't drop it from this list without reading
+        // Directory.Packages.props.
         Assert.Equal(
-            ["Microsoft.EntityFrameworkCore.Sqlite", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data"],
+            ["Microsoft.EntityFrameworkCore.Sqlite", "SQLitePCLRaw.bundle_e_sqlite3", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data"],
             result.Packages);
     }
 
@@ -586,5 +589,141 @@ public sealed class FeatureGeneratorTests
         Assert.DoesNotContain(result.Files, f => f.Path.EndsWith("DbContext.cs", StringComparison.Ordinal));
         Assert.Contains("IDbContextFactory<AppDbContext>", File(result, "ProductsPage.cs"), StringComparison.Ordinal);
         Assert.Contains("public DbSet<Product> Products => Set<Product>();", result.Notes!, StringComparison.Ordinal);
+    }
+}
+
+/// <summary>
+/// A run that names relationship targets generates <b>every</b> entity in it, each as an independent root
+/// with its own folder, namespace and full CRUD, all sharing one DbContext. The relationships themselves
+/// (foreign keys, navigations, EF mapping) are not emitted yet — these cover the multi-entity shape only.
+/// </summary>
+public sealed class FeatureGeneratorMultiEntityTests
+{
+    private static readonly EntitySpec Post = new("Post", "Posts", [new FieldSpec("Title", "string", IsNullable: false, MaxLength: 200)]);
+    private static readonly EntitySpec Comment = new("Comment", "Comments", [new FieldSpec("Body", "string", IsNullable: false, MaxLength: 200)]);
+
+    private static ScaffoldResult Generate(string? context = null, string? output = null) =>
+        FeatureGenerator.Generate(
+            new ProjectContext("/proj", "MyApp"),
+            "/proj",
+            new FeatureSpec(Post, [new RelationshipSpec(Cardinality.OneToMany, IsOptional: false, Post, Comment)]),
+            new FeatureOptions
+            {
+                IdType = "Guid",
+                Validation = "valueobjects",
+                ContextOverride = context,
+                OutputOverride = output,
+            });
+
+    private static string File(ScaffoldResult result, string fileName) =>
+        result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
+
+    private static string Directory(ScaffoldResult result, string fileName) =>
+        Path.GetFullPath(Path.GetDirectoryName(result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Path)!);
+
+    [Fact]
+    public void Every_entity_gets_its_own_full_crud_slice()
+    {
+        var names = Generate().Files.Select(f => Path.GetFileName(f.Path)).OrderBy(n => n, StringComparer.Ordinal);
+
+        Assert.Equal(
+            [
+                "Comment.cs", "CommentBody.cs", "CommentConfiguration.cs", "CommentRequest.cs", "CommentsPage.cs",
+                "CreateComment.cs", "CreatePost.cs", "DeleteComment.cs", "DeletePost.cs",
+                "Post.cs", "PostConfiguration.cs", "PostRequest.cs", "PostTitle.cs", "PostsDbContext.cs",
+                "PostsPage.cs", "UpdateComment.cs", "UpdatePost.cs",
+            ],
+            names);
+    }
+
+    [Fact]
+    public void Each_entity_lands_in_its_own_feature_folder()
+    {
+        var result = Generate();
+
+        Assert.Equal(Path.GetFullPath("/proj/Features/Posts"), Directory(result, "Post.cs"));
+        Assert.Equal(Path.GetFullPath("/proj/Features/Comments"), Directory(result, "Comment.cs"));
+    }
+
+    [Fact]
+    public void Each_entity_gets_the_namespace_of_its_own_folder()
+    {
+        var result = Generate();
+
+        Assert.Contains("namespace MyApp.Features.Posts;", File(result, "Post.cs"), StringComparison.Ordinal);
+        Assert.Contains("namespace MyApp.Features.Comments;", File(result, "Comment.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_target_gets_its_own_route_not_one_under_the_root()
+    {
+        Assert.Contains("[Route(\"/comments\")]", File(Generate(), "CommentsPage.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void One_dbcontext_holds_a_dbset_for_every_entity()
+    {
+        var context = File(Generate(), "PostsDbContext.cs");
+
+        Assert.Contains("public DbSet<Post> Posts => Set<Post>();", context, StringComparison.Ordinal);
+        Assert.Contains("public DbSet<Comment> Comments => Set<Comment>();", context, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_dbcontext_lives_with_the_root_and_is_generated_once()
+    {
+        var result = Generate();
+
+        Assert.Single(result.Files, f => Path.GetFileName(f.Path).EndsWith("DbContext.cs", StringComparison.Ordinal));
+        Assert.Equal(Path.GetFullPath("/proj/Features/Posts"), Directory(result, "PostsDbContext.cs"));
+    }
+
+    [Fact]
+    public void The_dbcontext_usings_reach_every_entitys_namespace()
+    {
+        var context = File(Generate(), "PostsDbContext.cs");
+
+        // Its own namespace needs no using; the target's does.
+        Assert.Contains("using MyApp.Features.Comments;", context, StringComparison.Ordinal);
+        Assert.DoesNotContain("using MyApp.Features.Posts;", context, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_targets_handlers_can_see_the_shared_dbcontext()
+    {
+        var deleteComment = File(Generate(), "DeleteComment.cs");
+
+        // The context lives with the root, so a target's slice needs a using to name it.
+        Assert.Contains("using MyApp.Features.Posts;", deleteComment, StringComparison.Ordinal);
+        Assert.Contains("IDbContextFactory<PostsDbContext>", deleteComment, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_roots_own_slice_needs_no_using_for_a_context_beside_it()
+    {
+        var deletePost = File(Generate(), "DeletePost.cs");
+
+        Assert.DoesNotContain("using MyApp.Features.Posts;", deletePost, StringComparison.Ordinal);
+        Assert.Contains("IDbContextFactory<PostsDbContext>", deletePost, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void With_an_external_context_no_dbcontext_is_generated_and_nothing_is_assumed_about_where_it_lives()
+    {
+        var result = Generate(context: "AppDbContext");
+
+        Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path).EndsWith("DbContext.cs", StringComparison.Ordinal));
+        Assert.Contains("IDbContextFactory<AppDbContext>", File(result, "DeleteComment.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("using MyApp.Features.Posts;", File(result, "DeleteComment.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void With_an_output_override_every_entity_shares_one_folder_so_no_cross_usings_are_emitted()
+    {
+        var result = Generate(output: "Slice");
+
+        Assert.All(result.Files, f => Assert.Equal(Path.GetFullPath("/proj/Slice"), Path.GetFullPath(Path.GetDirectoryName(f.Path)!)));
+        Assert.DoesNotContain("using MyApp.Slice;", File(result, "DeleteComment.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("using MyApp.Slice;", File(result, "PostsDbContext.cs"), StringComparison.Ordinal);
     }
 }

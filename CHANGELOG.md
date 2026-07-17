@@ -59,6 +59,14 @@ them until tagged releases begin.
   It's pure scaffolding: no host, no network, works before the box exists, honours `--dry-run`, and
   won't overwrite a workflow you've edited. The generated job deploys with `--no-setup-host` on purpose —
   a host that isn't ready should fail the build rather than be reconfigured from a runner.
+- **`rask generate feature` can emit several entities in one run.** Groundwork for relationship support: a run
+  now scaffolds every entity its spec names, each as an independent root in its own `Features/<Plural>/` folder
+  and namespace with a full CRUD slice (entity, request, configuration, pages, CQRS handlers), all sharing one
+  generated `DbContext` that holds a `DbSet` per entity. Because `ApplyConfigurationsFromAssembly` is
+  assembly-wide, every entity's configuration is picked up with no extra wiring — so a multi-entity run needs no
+  `--context`. Not yet reachable from the command line: `rask g f Post Title:string 1:n Comment Body:text` still
+  refuses, because generating the entities without the relationship between them would silently drop what was
+  asked for. A single-entity run is byte-for-byte unchanged.
 - **`rask deploy` gates the blue-green swap on an HTTP health check.** After the new container reports
   `Running`, deploy now probes it over HTTP (`GET /health` by default) and only reloads Caddy onto it
   once it answers `2xx` — a container that boots but fails its first request (bad connection string,
@@ -252,6 +260,15 @@ them until tagged releases begin.
   contain whitespace/control characters) are now rejected up front with a clear message, and the
   destination is additionally passed after `--` so ssh can't reinterpret it. Found while reviewing the
   new host-setup path; the same hardening covers the pre-existing `docker -H ssh://…` host.
+- **`rask generate feature` no longer scaffolds a project carrying a known high-severity vulnerability.** The
+  generated slice references `Microsoft.EntityFrameworkCore.Sqlite`, which pins the `SQLitePCLRaw` 2.1.11 family;
+  its `lib.e_sqlite3` bundles SQLite 3.49.1, vulnerable to
+  [CVE-2025-6965](https://github.com/advisories/GHSA-2m69-gcr7-jv3q) (memory corruption). `generate feature` now
+  also adds `SQLitePCLRaw.bundle_e_sqlite3`, whose 3.x family drops the vulnerable package entirely in favour of
+  `SourceGear.sqlite3` — a **direct** reference being the only lever that lifts a transitive pin. Every project in
+  this repo that touches EF Core Sqlite already carried that reference; the scaffolder was missed when the CVE was
+  closed, so the framework was clean while everything it generated was not. Existing scaffolded projects can add
+  the package themselves: `dotnet add package SQLitePCLRaw.bundle_e_sqlite3`.
 
 ### Fixed
 - **The capability matrix no longer claims `IFileSystemAccess` and `IWebPush` work on Native.**
