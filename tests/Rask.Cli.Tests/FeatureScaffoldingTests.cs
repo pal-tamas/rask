@@ -120,7 +120,24 @@ public sealed class FeatureGeneratorTests
     ];
 
     private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useEvents = false, bool useOutbox = false, bool useTests = false, string? context = null, string? plural = null) =>
-        FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Product", Fields, idType, validation, useBs, useModal, useSoftDelete, useConcurrency, useEvents, useOutbox, useTests, context, plural, outputOverride: null);
+        FeatureGenerator.Generate(
+            new ProjectContext("/proj", "MyApp"),
+            "/proj",
+            new FeatureSpec(new EntitySpec("Product", plural ?? Pluralizer.Pluralize("Product"), Fields), []),
+            new FeatureOptions
+            {
+                IdType = idType,
+                Validation = validation,
+                UseBs = useBs,
+                UseModal = useModal,
+                UseSoftDelete = useSoftDelete,
+                UseConcurrency = useConcurrency,
+                UseEvents = useEvents,
+                UseOutbox = useOutbox,
+                UseTests = useTests,
+                ContextOverride = context,
+                OutputOverride = null,
+            });
 
     private static string File(ScaffoldResult result, string fileName) =>
         result.Files.Single(f => Path.GetFileName(f.Path) == fileName).Content;
@@ -488,8 +505,11 @@ public sealed class FeatureGeneratorTests
     [Fact]
     public void Plural_override_drives_names_and_route()
     {
-        var result = FeatureGenerator.Generate(new ProjectContext("/proj", "MyApp"), "/proj", "Person",
-            Fields, "Guid", "valueobjects", useBs: false, useModal: false, useSoftDelete: false, useConcurrency: false, useEvents: false, useOutbox: false, useTests: false, contextOverride: null, pluralOverride: "People", outputOverride: null);
+        var result = FeatureGenerator.Generate(
+            new ProjectContext("/proj", "MyApp"),
+            "/proj",
+            new FeatureSpec(new EntitySpec("Person", "People", Fields), []),
+            new FeatureOptions { IdType = "Guid", Validation = "valueobjects" });
 
         Assert.Contains(result.Files, f => f.Path.EndsWith("PeoplePage.cs", StringComparison.Ordinal));
         Assert.Contains("[Route(\"/people\")]", File(result, "PeoplePage.cs"), StringComparison.Ordinal);

@@ -332,7 +332,53 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["page", "Products", "--fields", "Name:string"], CancellationToken.None);
 
         Assert.Equal(1, exit);
-        Assert.Contains("only apply to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("--fields only applies to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_feature_option_only_names_itself_not_every_feature_option()
+    {
+        var (console, _, command) = Build();
+
+        await command.ExecuteAsync(["page", "Products", "--fields", "Name:string"], CancellationToken.None);
+
+        // The message is built from what was actually passed, so it can't list flags the user never typed.
+        Assert.DoesNotContain("--outbox", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task No_restore_on_a_page_is_rejected()
+    {
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["page", "Dashboard", "--no-restore"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("--no-restore only applies to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_relationship_is_refused_rather_than_silently_dropped()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Post", "Title:string", "1:n", "Comment", "Body:text"], CancellationToken.None);
+
+        // The grammar lands ahead of the emitter — until it arrives, generating Post and discarding Comment
+        // would quietly lose what was asked for. Delete this test when relationship emission ships.
+        Assert.Equal(1, exit);
+        Assert.Contains("Relationships aren't generated yet", console.ErrorText, StringComparison.Ordinal);
+        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith(".cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_relationship_is_validated_before_it_is_refused()
+    {
+        var (console, _, command) = Build();
+
+        await command.ExecuteAsync(["feature", "Post", "Title:string", "1:m", "Comment", "Body:text"], CancellationToken.None);
+
+        Assert.Contains("Unknown cardinality '1:m'", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -479,7 +525,7 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["page", "Dashboard", "--save-defaults"], CancellationToken.None);
 
         Assert.Equal(1, exit);
-        Assert.Contains("only apply to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("--save-defaults only applies to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
     }
 
     private static (StringConsole Console, FakeFileSystem Fs, GenerateCommand Command) Build()
