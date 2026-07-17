@@ -151,10 +151,10 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             return 1;
         }
 
-        Console.Out.WriteLine($"Building {slug}:latest on {host}…");
+        WriteHeading($"Building {slug}:latest on {host}…");
         if (await Run(BuildBuildArguments(host, slug, dockerfile, contextDir), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine("Docker build failed.");
+            Console.WriteErrorLine("Docker build failed.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -170,7 +170,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         Console.Out.WriteLine($"Starting {slug} on port {port}…");
         if (await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine("Failed to start the container.");
+            Console.WriteErrorLine("Failed to start the container.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -181,7 +181,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         }
 
         PersistConfig(host, domain: null, port, slug, project, envFile);
-        Console.Out.WriteLine($"Deployed. The app is live at http://{HostName(host)}:{port}");
+        Console.WriteLine($"Deployed. The app is live at http://{HostName(host)}:{port}", ConsoleStyle.Success);
         return 0;
     }
 
@@ -206,7 +206,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         // In domain mode the app is reached internally on ContainerPort; no host port is published.
         if (await Run(BuildRunArguments(host, slug, domain, newColor, ContainerPort, env), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine("Failed to start the new container.");
+            Console.WriteErrorLine("Failed to start the new container.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -216,7 +216,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         {
             await DumpLogsAsync(host, newContainer, cancellationToken).ConfigureAwait(false);
             await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false);
-            Console.Error.WriteLine("The new container exited before it was ready — left the previous version serving.");
+            Console.WriteErrorLine("The new container exited before it was ready — left the previous version serving.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -236,7 +236,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         // need a moment before `caddy reload` succeeds.
         if (await RunWithRetryAsync(BuildCaddyReloadArguments(host), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine("Caddy reload failed — the new container is running but not yet routed. Check `docker -H ssh://" + host + " logs rask-caddy`.");
+            Console.WriteErrorLine("Caddy reload failed — the new container is running but not yet routed. Check `docker -H ssh://" + host + " logs rask-caddy`.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -247,8 +247,8 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         }
 
         PersistConfig(host, domain, port: null, slug, project, envFile);
-        Console.Out.WriteLine($"Deployed. The app is live at https://{domain}");
-        Console.Out.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})");
+        Console.WriteLine($"Deployed. The app is live at https://{domain}", ConsoleStyle.Success);
+        Console.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})", ConsoleStyle.Dim);
         return 0;
     }
 
@@ -258,6 +258,9 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
 
     private async Task<bool> WaitUntilRunningAsync(string host, string container, CancellationToken cancellationToken)
     {
+        // The poll is otherwise silent for up to ReadinessAttempts × ReadinessDelay — spin so an
+        // interactive user sees it's working (a no-op when stdout is redirected/piped).
+        await using var spinner = Spinner.Start(Console, $"Waiting for {container} to become healthy…");
         for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
         {
             // Inspect first, then wait only between retries — a container that's already up returns immediately.

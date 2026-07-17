@@ -186,17 +186,17 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     {
         if (noRestore)
         {
-            Console.Out.WriteLine($"Skipped adding packages (--no-restore): {string.Join(", ", packages)}");
+            Console.WriteLine($"Skipped adding packages (--no-restore): {string.Join(", ", packages)}", ConsoleStyle.Dim);
             return;
         }
 
-        Console.Out.WriteLine($"Adding {packages.Count} package(s) to the project…");
+        Console.WriteLine($"Adding {packages.Count} package(s) to the project…", ConsoleStyle.Dim);
         foreach (var package in packages)
         {
             var exit = await _process.RunAsync("dotnet", ["add", "package", package], projectDirectory, cancellationToken).ConfigureAwait(false);
             if (exit != 0)
             {
-                Console.Error.WriteLine($"  Couldn't add {package} automatically — add it manually: dotnet add package {package}");
+                WriteWarning($"  Couldn't add {package} automatically — add it manually: dotnet add package {package}");
             }
         }
     }
@@ -329,7 +329,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             }
 
             _fileSystem.WriteAllText(file.Path, file.Content);
-            Console.Out.WriteLine($"Created {Display(file.Path)}");
+            WriteCreated(Display(file.Path));
         }
 
         WriteNotes(result.Notes);

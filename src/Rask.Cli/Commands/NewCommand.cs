@@ -161,7 +161,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return 1;
         }
 
-        Console.Out.WriteLine($"Creating {template.DisplayName} '{name}'…");
+        WriteHeading($"Creating {template.DisplayName} '{name}'…");
         foreach (var file in result.Files)
         {
             var directory = Path.GetDirectoryName(file.Path);
@@ -171,15 +171,16 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
 
             _fileSystem.WriteAllText(file.Path, file.Content);
-            Console.Out.WriteLine($"  + {Path.GetRelativePath(_workingDirectory, file.Path)}");
+            WriteCreated(Path.GetRelativePath(_workingDirectory, file.Path));
         }
 
         // Package refs are already baked into the csproj(s) at the pinned version; restore pulls them so the
         // project builds immediately. A restore failure is a warning — the files are written and correct.
+        Console.WriteLine("Restoring packages…", ConsoleStyle.Dim);
         var restore = await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false);
         if (restore != 0)
         {
-            Console.Error.WriteLine("  Couldn't restore automatically — run 'dotnet restore' in the project directory.");
+            WriteWarning("  Couldn't restore automatically — run 'dotnet restore' in the project directory.");
         }
 
         if (!string.IsNullOrEmpty(result.Notes))

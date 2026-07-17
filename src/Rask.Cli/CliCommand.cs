@@ -37,6 +37,15 @@ internal abstract class CliCommand(IConsole console)
     /// <summary>Run the command with the arguments that follow its name. Returns a process exit code.</summary>
     public abstract Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken);
 
+    /// <summary>Report a written file with the shared green <c>+ path</c> marker (used by <c>new</c> and <c>generate</c>).</summary>
+    protected void WriteCreated(string relativePath) => Console.WriteLine($"  + {relativePath}", ConsoleStyle.Success);
+
+    /// <summary>Print a bold section/action heading to stdout.</summary>
+    protected void WriteHeading(string message) => Console.WriteLine(message, ConsoleStyle.Heading);
+
+    /// <summary>Print a non-fatal caution (yellow) to stderr — the tool carries on.</summary>
+    protected void WriteWarning(string message) => Console.WriteErrorLine(message, ConsoleStyle.Warning);
+
     /// <summary>Report parse errors to stderr and return the conventional usage exit code.</summary>
     protected int Fail(IReadOnlyList<string> errors)
     {

@@ -17,7 +17,8 @@ public sealed class GenerateCommandTests
         var path = Path.GetFullPath("/proj/Features/Products/ProductsPage.cs");
         Assert.True(fs.Files.ContainsKey(path));
         Assert.Contains("namespace MyApp.Features.Products;", fs.Files[path], StringComparison.Ordinal);
-        Assert.Contains("Created", console.OutText, StringComparison.Ordinal);
+        // Written files are reported with the shared "  + <path>" marker (unified with `rask new`).
+        Assert.Contains("+ Features/Products/ProductsPage.cs", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]

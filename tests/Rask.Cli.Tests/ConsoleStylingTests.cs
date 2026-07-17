@@ -30,4 +30,18 @@ public sealed class ConsoleStylingTests
         Assert.DoesNotContain('\x1b', console.OutText);
         Assert.DoesNotContain('\x1b', console.ErrorText);
     }
+
+    [Fact]
+    public async Task Spinner_writes_nothing_when_output_is_redirected()
+    {
+        // Redirected (piped/CI/tests) → the spinner must be a silent no-op: no frames, no carriage returns.
+        var console = new StringConsole();
+
+        var spinner = Spinner.Start(console, "Working…");
+        await Task.Delay(50);
+        await spinner.DisposeAsync();
+
+        Assert.Equal(string.Empty, console.OutText);
+        Assert.DoesNotContain('\r', console.OutText);
+    }
 }

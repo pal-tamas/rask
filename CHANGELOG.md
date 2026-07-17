@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The `rask` CLI now speaks in color, with consistent output and progress feedback.** Written files
+  are reported with one shared green `+ <path>` marker across `rask new` and `rask generate` (previously
+  `  + path` vs `Created path`); action headings are bold, warnings are yellow, deploy failures are red,
+  and "Deployed. The app is live at …" is green. Otherwise-silent long operations — the `rask deploy`
+  readiness poll (up to ~20s) — now animate a spinner. All of it is **terminal-aware**: color and the
+  spinner switch off automatically when output is piped/redirected or `NO_COLOR` is set, so scripts, CI
+  logs, and captured output are byte-for-byte unchanged. Pure BCL — no new dependencies.
 - **`rask <command> --help` now teaches — an aligned options table, arguments, and examples.** Every command's
   help was three lines (summary + one usage string); it now renders a described **Options** table straight from
   the same schema that parses the arguments (so it can never drift), a **Arguments** section, and copy-pasteable
