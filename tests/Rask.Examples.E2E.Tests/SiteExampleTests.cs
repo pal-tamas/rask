@@ -9,7 +9,7 @@ namespace Rask.Examples.E2E.Tests;
 ///     host (<see cref="SiteWasmAppFixture" />) — the GitHub Pages front door. The whole page is rendered
 ///     by a Rask WASM app, so the journey proves the framework renders a full document shell, that the
 ///     live counter and install tabs are genuine stateful Rask components (click → diff → re-render), and
-///     that the demo/playground links point at the nested sub-apps.
+///     that the docs/playground links point at the nested sub-apps.
 /// </summary>
 [Collection(SiteExampleCollection.Name)]
 public sealed class SiteExampleTests
@@ -52,8 +52,14 @@ public sealed class SiteExampleTests
             await page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = "Native" }).ClickAsync();
             await Expect(page.Locator(".term")).ToContainTextAsync("net10.0-android");
 
-            // The front door links into the nested demo + playground sub-apps.
-            await Expect(page.Locator("a.btn-primary").First).ToHaveAttributeAsync("href", "demo/");
+            // The front door links into the nested docs + playground sub-apps.
+            await Expect(page.Locator("a.btn-primary").First).ToHaveAttributeAsync("href", "docs/");
+
+            // The nav "Docs" entry points at the on-site showcase (/docs/), and the old external
+            // GitHub-docs link is gone — no nav link targets the repo's markdown folder anymore.
+            await Expect(page.Locator("nav a", new PageLocatorOptions { HasTextString = "Docs" }).First)
+                .ToHaveAttributeAsync("href", "docs/");
+            await Expect(page.Locator("a[href*='tree/main/docs']")).ToHaveCountAsync(0);
         }
         finally
         {
