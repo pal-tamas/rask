@@ -7,9 +7,15 @@ namespace Rask.Cli.Commands;
 /// <summary>
 /// <c>rask deploy</c> — build the app's Docker image on a single host over SSH and run it, and (when a
 /// <c>--domain</c> is given) front it with a shared Caddy reverse proxy that fetches an automatic
-/// Let's Encrypt certificate. Every remote operation is <c>docker -H ssh://user@host …</c>, so there's no
-/// registry, no local daemon, and no image tarball — the build context ships to the box's daemon and
-/// builds there.
+/// Let's Encrypt certificate. Every <em>deploy</em> operation is <c>docker -H ssh://user@host …</c>, so
+/// there's no registry, no local daemon, and no image tarball — the build context ships to the box's
+/// daemon and builds there.
+///
+/// <para>Host setup is the one exception, and it has to be: installing Docker over
+/// <c>docker -H ssh://</c> is chicken-and-egg, so <see cref="HostSetup"/> shells out to plain
+/// <c>ssh</c>. Handed a bare box, <c>rask deploy</c> installs Docker, creates a non-root deploy login,
+/// configures a firewall and hardens SSH — so a fresh VPS reaches a live HTTPS app without the user
+/// ever opening an SSH session themselves.</para>
 ///
 /// <para>Multiple apps coexist on one box: each app container carries <c>rask.*</c> labels, so the box is
 /// self-describing and the shared proxy's Caddyfile is regenerated from the live containers on every
@@ -54,15 +60,19 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     public override string Usage =>
         "rask deploy [--host user@box] [--domain app.example.com] [--port <n>] [--project <path>] " +
         "[--name <slug>] [--dockerfile <path>] [--env KEY=VALUE ...] [--env-file <path>] " +
-        "[--health-path <path>] [--no-health-check] [--dry-run]";
+        "[--health-path <path>] [--no-health-check] [--setup-host] [--github-actions] [--dry-run]";
 
     public override IReadOnlyList<string> Examples =>
     [
-        "rask deploy --host deploy@box.example.com --domain app.example.com",
+        "rask deploy --host root@box.example.com --domain app.example.com",
         "rask deploy --host deploy@box.example.com --port 8080",
         "rask deploy --env ConnectionStrings__Db=... --env-file .env.production",
+        "rask deploy --github-actions",
         "rask deploy --dry-run",
     ];
+
+    /// <summary>Options that only matter the first time a box is deployed to — grouped so --help stays readable.</summary>
+    private const string SetupGroup = "Host setup options (first deploy to a box)";
 
     public override ArgumentSchema? OptionSchema => CreateSchema();
 
@@ -76,9 +86,16 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             .Option("dockerfile", valueHint: "path", description: "Dockerfile to build (default: ./Dockerfile).")
             .Option("env-file", valueHint: "path", description: "File of KEY=VALUE lines to pass to the container.")
             .MultiOption("env", 'e', "KEY=VALUE", "Environment variable to pass (repeatable).")
-            .Option("health-path", valueHint: "path", description: "HTTP path probed for readiness before the blue-green swap (default: /).")
+            .Option("health-path", valueHint: "path", description: "HTTP path probed for readiness before the blue-green swap (default: /health).")
             .Flag("no-health-check", description: "Skip the post-deploy HTTP health check.")
-            .Flag("dry-run", description: "Print the docker commands that would run without changing anything.");
+            .Flag("github-actions", description: "Write a .github/workflows/deploy.yml that runs this deploy on push, and print the secrets to add.")
+            .Flag("dry-run", description: "Print the docker commands that would run without changing anything.")
+            .Flag("setup-host", group: SetupGroup, description: "Prepare the host without asking (installs Docker, creates the deploy user, firewall, SSH hardening).")
+            .Flag("no-setup-host", group: SetupGroup, description: "Never change the host; fail with instructions if it isn't ready.")
+            .Option("deploy-user", valueHint: "name", group: SetupGroup, description: "Non-root login to create and deploy as when given a root host (default: deploy).")
+            .Flag("no-deploy-user", group: SetupGroup, description: "Keep deploying as the --host login instead of creating a non-root one.")
+            .Flag("no-firewall", group: SetupGroup, description: "Don't configure ufw on the host.")
+            .Flag("no-harden-ssh", group: SetupGroup, description: "Don't disable SSH password login and root login on the host.");
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -127,6 +144,15 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             return 1;
         }
 
+        // Validated here, at the boundary, because the host reaches the `ssh` binary as an argument and
+        // may come from the *committed* .rask/deploy.json — so it isn't necessarily this user's input.
+        // A value like "-oProxyCommand=…" would otherwise run commands on whoever deploys the repo.
+        if (!SshTarget.TryParse(host, out var sshTarget, out var hostError))
+        {
+            Console.WriteErrorLine(hostError!, ConsoleStyle.Error);
+            return 1;
+        }
+
         // Resolve the project directory (the build context) and the app slug used for image/container names.
         var projectSetting = parsed.Option("project") ?? config.Project;
         var located = ProjectLocator.Locate(_fileSystem, _workingDirectory);
@@ -162,17 +188,63 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             && (parsed.Option("health-path") is not null || !(config.HealthCheckDisabled ?? false));
         var healthPath = NormalizeHealthPath(parsed.Option("health-path") ?? config.HealthPath ?? DefaultHealthPath);
 
+        if (!TryResolveSetup(parsed, out var setupMode, out var bootstrapOptions, out var setupError))
+        {
+            Console.Error.WriteLine(setupError);
+            return 1;
+        }
+
+        // Pure scaffolding — never touches the host, so it works offline and before the box exists.
+        if (parsed.HasFlag("github-actions"))
+        {
+            // The workflow reads host/domain/port from .rask/deploy.json, so it must exist before the
+            // job ever runs. Writing it here means `rask deploy --github-actions` works as the FIRST
+            // thing you do in a repo, rather than emitting a workflow that can't resolve a host.
+            if (!dryRun)
+            {
+                PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath);
+            }
+
+            return WriteGitHubActionsWorkflow(sshTarget, host, dryRun);
+        }
+
         if (dryRun)
         {
             PrintPlan(host, slug, domain, port, dockerfile, contextDir, env, healthEnabled, healthPath);
             return 0;
         }
 
-        // Preflight: local docker, then a single reachability probe that covers SSH auth + the remote daemon.
-        if (!await DockerProbe.EnsureLocalAsync(_process, Console, cancellationToken).ConfigureAwait(false) ||
-            !await DockerProbe.CanReachHostAsync(_process, Console, host, cancellationToken).ConfigureAwait(false))
+        // Preflight: the local docker CLI is the client for every remote docker call, so it's required
+        // even though nothing builds locally.
+        if (!await DockerProbe.EnsureLocalAsync(_process, Console, cancellationToken).ConfigureAwait(false))
         {
             return 1;
+        }
+
+        // Probe the box and, if it isn't ready, offer to prepare it. This replaces the old
+        // `docker -H ssh:// version` reachability check rather than adding to it — same one round-trip,
+        // but it can tell "Docker isn't installed" from "you're not in the docker group".
+        var setup = new HostSetup(Console, _process) { ReadinessDelay = ReadinessDelay, ReadinessAttempts = ReadinessAttempts };
+        var ready = await setup.EnsureReadyAsync(sshTarget, bootstrapOptions with { PublishedPort = domain is null ? port : null }, setupMode, cancellationToken).ConfigureAwait(false);
+        if (ready is null)
+        {
+            return 1;
+        }
+
+        // Setting up a bare box replaces the root login with a non-root one, so everything below —
+        // and what we remember for next time — must use the new target, not what the user typed.
+        var newHost = ready.Value.ToString();
+
+        // Persisted the moment setup succeeds, NOT after a successful deploy. Host setup is
+        // irreversible from the client's side: root SSH is now off, so `--host root@box` will never
+        // work again. If we waited and the build failed (a broken Dockerfile — the likeliest outcome of
+        // a first deploy), the new login would be lost and the user would be locked out of their own
+        // box by a tool that had forgotten what it did to it.
+        if (!string.Equals(newHost, host, StringComparison.Ordinal))
+        {
+            host = newHost;
+            PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath);
+            Console.WriteLine($"  Remembered {host} in {Path.Combine(".rask", "deploy.json")} — deploy as that from now on.", ConsoleStyle.Dim);
         }
 
         WriteHeading($"Building {slug}:latest on {host}…");
@@ -293,6 +365,53 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath);
         Console.WriteLine($"Deployed. The app is live at https://{domain}", ConsoleStyle.Success);
         Console.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})", ConsoleStyle.Dim);
+        return 0;
+    }
+
+    /// <summary>
+    /// Write <c>.github/workflows/deploy.yml</c> and print the two secrets it needs. Everything the
+    /// workflow varies on already lives in <c>.rask/deploy.json</c>, so the file itself is fixed and
+    /// this needs no network — it works before the host exists.
+    /// </summary>
+    private int WriteGitHubActionsWorkflow(SshTarget target, string host, bool dryRun)
+    {
+        var path = Path.Combine(_workingDirectory, GitHubActionsWorkflow.RelativePath);
+
+        // The parsed host: no user@, no :port. ssh-keyscan takes the port as -p, so leaving it on the
+        // name would scan nothing and hand CI an empty known_hosts secret.
+        var hostName = target.Host;
+        var keyscan = target.Port is { } p
+            ? $"ssh-keyscan -p {p.ToString(CultureInfo.InvariantCulture)} {hostName}"
+            : $"ssh-keyscan {hostName}";
+
+        if (dryRun)
+        {
+            Console.Out.WriteLine($"Dry run — would write {GitHubActionsWorkflow.RelativePath}:");
+            Console.Out.WriteLine();
+            Console.Out.WriteLine(GitHubActionsWorkflow.Content);
+            return 0;
+        }
+
+        // A workflow is a thing people edit. Overwriting one silently would throw away their changes.
+        if (_fileSystem.FileExists(path))
+        {
+            Console.WriteErrorLine($"{GitHubActionsWorkflow.RelativePath} already exists — leaving it alone.", ConsoleStyle.Error);
+            Console.Error.WriteLine("Delete it first if you want a fresh one, or edit it in place.");
+            return 1;
+        }
+
+        _fileSystem.CreateDirectory(Path.GetDirectoryName(path)!);
+        _fileSystem.WriteAllText(path, GitHubActionsWorkflow.Content);
+        WriteCreated(GitHubActionsWorkflow.RelativePath);
+
+        Console.Out.WriteLine();
+        WriteHeading("Add these two repository secrets, then push to main:");
+        Console.Out.WriteLine();
+        Console.WriteLine($"  gh secret set {GitHubActionsWorkflow.KeySecret} < ~/.ssh/id_ed25519", ConsoleStyle.Code);
+        Console.WriteLine($"  gh secret set {GitHubActionsWorkflow.KnownHostsSecret} --body \"$({keyscan} 2>/dev/null)\"", ConsoleStyle.Code);
+        Console.Out.WriteLine();
+        Console.WriteLine($"  (use the private key that already logs in to {host} — the deploy runs as that user)", ConsoleStyle.Dim);
+        Console.WriteLine($"  (the workflow deploys with --no-setup-host: prepare the box once with `rask deploy --setup-host`)", ConsoleStyle.Dim);
         return 0;
     }
 
@@ -608,13 +727,15 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         + (rolledBack ? " — left the previous version serving." : ".")
         + " Fix the app, or deploy with --no-health-check (or --health-path <path> if readiness is served elsewhere).";
 
-    // The user's --host may be a bare "user@box", an "ssh://user@box" URL, or an ssh-config alias.
-    // We store and compare the bare form; HostName strips the user@ for display/DNS hints.
-    private static string HostName(string host)
-    {
-        var at = host.LastIndexOf('@');
-        return at >= 0 ? host[(at + 1)..] : host;
-    }
+    /// <summary>
+    /// Just the machine, for display, DNS hints and <c>ssh-keyscan</c> — no <c>user@</c>, and no
+    /// <c>:port</c>. Delegates to <see cref="SshTarget"/> rather than re-deriving it: hand-stripping
+    /// only the <c>user@</c> left the port attached, which silently produced a broken
+    /// <c>ssh-keyscan box:2222</c> (→ an empty known_hosts secret → every CI deploy failing) and URLs
+    /// like <c>http://box:2222:9000</c>.
+    /// </summary>
+    private static string HostName(string host) =>
+        SshTarget.TryParse(host, out var target, out _) ? target.Host : host;
 
     private string ResolveProjectDirectory(string? projectOption, ProjectContext? located)
     {
@@ -629,6 +750,48 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         // A single .csproj at/above the CWD gives the project dir; an ambiguous tree (e.g. wasm-hosted's
         // three projects) falls back to the CWD, where the solution-root Dockerfile lives.
         return located?.ProjectDirectory ?? _workingDirectory;
+    }
+
+    /// <summary>
+    /// Merge the host-setup flags into a mode and a set of options. Contradictions are rejected rather
+    /// than silently resolved — <c>--setup-host --no-setup-host</c> means the user is confused about
+    /// something that changes a production box, and guessing is the wrong answer.
+    /// </summary>
+    internal static bool TryResolveSetup(ParsedArguments parsed, out SetupMode mode, out BootstrapOptions options, out string? error)
+    {
+        mode = SetupMode.Ask;
+        options = new BootstrapOptions(BootstrapOptions.DefaultDeployUser, Firewall: true, HardenSsh: true, PublishedPort: null);
+        error = null;
+
+        var forced = parsed.HasFlag("setup-host");
+        var disabled = parsed.HasFlag("no-setup-host");
+        if (forced && disabled)
+        {
+            error = "--setup-host and --no-setup-host contradict each other.";
+            return false;
+        }
+
+        var deployUser = parsed.Option("deploy-user");
+        if (parsed.HasFlag("no-deploy-user") && deployUser is not null)
+        {
+            error = "--deploy-user doesn't apply with --no-deploy-user.";
+            return false;
+        }
+
+        if (deployUser is not null && !HostBootstrap.IsValidUserName(deployUser))
+        {
+            // Rejected before we ever connect — this name would otherwise reach a remote shell.
+            error = $"--deploy-user '{deployUser}' isn't a valid Linux user name (lower-case letters, digits, '_' and '-', not starting with a digit).";
+            return false;
+        }
+
+        mode = forced ? SetupMode.Forced : disabled ? SetupMode.Disabled : SetupMode.Ask;
+        options = new BootstrapOptions(
+            DeployUser: parsed.HasFlag("no-deploy-user") ? null : deployUser ?? BootstrapOptions.DefaultDeployUser,
+            Firewall: !parsed.HasFlag("no-firewall"),
+            HardenSsh: !parsed.HasFlag("no-harden-ssh"),
+            PublishedPort: null);
+        return true;
     }
 
     private static bool TryResolvePort(string? fromFlag, int? fromConfig, out int port, out string? error)

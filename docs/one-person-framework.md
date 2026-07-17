@@ -67,7 +67,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
 | **[Auth](authentication.md)** | Cookie login/session scaffolding in the templates. |
 | **[PWA & native](pwa.md)** | Installable offline apps and real iOS/Android from the same components. |
-| **Deploy** | `--docker` emits a production Dockerfile — ship the one server to one box. |
+| **[Deploy](deployment.md)** | `rask deploy` takes a bare VPS to a live HTTPS site — installs Docker, a non-root deploy login, a firewall and SSH hardening, then builds on the box and swaps in with zero downtime. No SSH session of your own required. |
 
 ## DB-backed by default
 
