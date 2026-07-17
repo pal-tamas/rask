@@ -22,7 +22,7 @@ enqueue would not be). And since it rides your existing database, there's nothin
 ## Use
 
 ```csharp
-public sealed record OrderPlaced(Guid Id) : IOutboxEvent;   // raised on your AggregateRoot
+public sealed record OrderPlaced(Guid Id) : IOutboxEvent;   // raised on your Entity
 
 // Program.cs
 builder.Services.AddRaskCqrs();

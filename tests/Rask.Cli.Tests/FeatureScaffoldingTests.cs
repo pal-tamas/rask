@@ -153,7 +153,7 @@ public sealed class FeatureGeneratorTests
         var entity = File(Generate(), "Product.cs");
 
         // Id (and the audit stamps + domain-events buffer) come from the Rask.Data base; a Guid is assigned up front.
-        Assert.Contains("public sealed class Product : AggregateRoot<Guid>", entity, StringComparison.Ordinal);
+        Assert.Contains("public sealed class Product : Entity<Guid>", entity, StringComparison.Ordinal);
         Assert.Contains("Id = Guid.NewGuid();", entity, StringComparison.Ordinal);
         // Create/Update take primitives; the required string becomes a value object, wrapped via Create.
         Assert.Contains("public static Product Create(string name, decimal price) => new(ProductName.Create(name), price);", entity, StringComparison.Ordinal);
@@ -200,8 +200,8 @@ public sealed class FeatureGeneratorTests
     }
 
     [Theory]
-    [InlineData("int", "AggregateRoot<int>", "{id:int}")]
-    [InlineData("long", "AggregateRoot<long>", "{id:long}")]
+    [InlineData("int", "Entity<int>", "{id:int}")]
+    [InlineData("long", "Entity<long>", "{id:long}")]
     public void Id_type_is_configurable(string idType, string baseType, string routeConstraint)
     {
         var result = Generate(idType);
@@ -297,7 +297,7 @@ public sealed class FeatureGeneratorTests
     public void Every_generated_entity_inherits_the_rask_data_base()
     {
         var entity = File(Generate(), "Product.cs");
-        Assert.Contains("public sealed class Product : AggregateRoot<Guid>", entity, StringComparison.Ordinal);
+        Assert.Contains("public sealed class Product : Entity<Guid>", entity, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -315,7 +315,7 @@ public sealed class FeatureGeneratorTests
         var result = Generate(useSoftDelete: true);
 
         var entity = File(result, "Product.cs");
-        Assert.Contains("public sealed class Product : AggregateRoot<Guid>, ISoftDeletable", entity, StringComparison.Ordinal);
+        Assert.Contains("public sealed class Product : Entity<Guid>, ISoftDeletable", entity, StringComparison.Ordinal);
         Assert.Contains("public DateTime? DeletedAt { get; private set; }", entity, StringComparison.Ordinal);
         Assert.Contains("public void Restore() => DeletedAt = null;", entity, StringComparison.Ordinal);
 
@@ -356,7 +356,7 @@ public sealed class FeatureGeneratorTests
 
         // The entity opts into IVersioned; ApplyRaskConventions marks Version the concurrency token.
         var entity = File(result, "Product.cs");
-        Assert.Contains("public sealed class Product : AggregateRoot<Guid>, IVersioned", entity, StringComparison.Ordinal);
+        Assert.Contains("public sealed class Product : Entity<Guid>, IVersioned", entity, StringComparison.Ordinal);
         Assert.Contains("public int Version { get; private set; }", entity, StringComparison.Ordinal);
 
         // The request + edit form round-trip the original Version through a hidden field.

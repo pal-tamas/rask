@@ -8,7 +8,7 @@
 
     <PackageId>Rask.Outbox</PackageId>
     <Title>Rask.Outbox — transactional outbox on your database</Title>
-    <Description>A transactional outbox for Rask.Data aggregates: domain events marked `IOutboxEvent` are written to an `OutboxMessage` table in the **same transaction** as the change that raised them (so an event is never lost and never fires for a rolled-back change), then a background `OutboxProcessor` polls the table and publishes them through Rask.Cqrs — at-least-once, crash-safe delivery, all on the app's own database (no broker, no Redis). A source generator registers each event type for reflection-free lookup. Server-side; pairs with Rask.Data.</Description>
+    <Description>A transactional outbox for Rask.Data entities: domain events marked `IOutboxEvent` are written to an `OutboxMessage` table in the **same transaction** as the change that raised them (so an event is never lost and never fires for a rolled-back change), then a background `OutboxProcessor` polls the table and publishes them through Rask.Cqrs — at-least-once, crash-safe delivery, all on the app's own database (no broker, no Redis). A source generator registers each event type for reflection-free lookup. Server-side; pairs with Rask.Data.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone server-side outbox. -->
     <PackageTags>outbox transactional-outbox domain-events messaging entity-framework-core efcore background-service sqlite dotnet net10</PackageTags>
   </PropertyGroup>

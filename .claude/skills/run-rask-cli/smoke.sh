@@ -94,7 +94,7 @@ have "$WORK/Shop/Features/Dashboard/DashboardPage.cs"
 echo "==> Generate a CRUD feature (dry-run: hermetic, shows the plan, no nuget)"
 featureout="$( cd "$WORK/Shop" && rask generate feature Product Name:string Price:decimal --dry-run 2>&1 )"
 if echo "$featureout" | grep -q "would write Features/Products/Product.cs" \
-   && echo "$featureout" | grep -q "AggregateRoot"; then
+   && echo "$featureout" | grep -q "Entity<Guid>"; then
   echo "  PASS  generate feature --dry-run (CRUD plan)"; PASS=$((PASS+1))
 else
   echo "  FAIL  generate feature --dry-run"; echo "$featureout" | sed 's/^/        | /' | head -6; FAIL=$((FAIL+1))

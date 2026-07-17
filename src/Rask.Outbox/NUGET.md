@@ -1,6 +1,6 @@
 # Rask.Outbox
 
-A **transactional outbox** for [Rask.Data](https://www.nuget.org/packages/Rask.Data) aggregates — durable,
+A **transactional outbox** for [Rask.Data](https://www.nuget.org/packages/Rask.Data) entities — durable,
 crash-safe domain-event delivery on the app's own database, with no broker or Redis.
 
 - Mark a domain event **`IOutboxEvent`** and it's written to an `OutboxMessage` table **in the same
@@ -14,7 +14,7 @@ crash-safe domain-event delivery on the app's own database, with no broker or Re
 ## Use
 
 ```csharp
-public sealed record OrderPlaced(Guid Id) : IOutboxEvent;   // raised on your AggregateRoot
+public sealed record OrderPlaced(Guid Id) : IOutboxEvent;   // raised on your Entity
 
 // Program.cs
 builder.Services.AddRaskCqrs();
@@ -29,7 +29,7 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 modelBuilder.AddRaskOutbox(); // maps the OutboxMessage table
 ```
 
-`db.SaveChanges()` now writes an `OutboxMessage` row for each `IOutboxEvent` the aggregate raised, in the
+`db.SaveChanges()` now writes an `OutboxMessage` row for each `IOutboxEvent` the entity raised, in the
 same transaction; the processor drains and publishes them just after commit. Any
 `INotificationHandler<OrderPlaced>` reacts — the same handler works whether events are delivered in-process
 (Rask.Data) or via the outbox.

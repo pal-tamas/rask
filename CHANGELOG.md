@@ -226,6 +226,15 @@ them until tagged releases begin.
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
 ### Changed
+- **Renamed `Rask.Data`'s `AggregateRoot<TId>` to `Entity<TId>` (BREAKING, pre-1.0).** The base class every
+  `rask generate feature` entity inherits is now `Entity<TId>`. The old name claimed an aggregate boundary
+  the type never enforced and the scaffolder never produced — every generated entity is an independent root
+  with its own `DbSet` and CRUD slice, so "aggregate root" described an intent, not a behaviour. `Entity<TId>`
+  says what it is: a persisted domain entity with an identity. The namespace (`Rask.Data`), the members
+  (`Id`/`CreatedAt`/`UpdatedAt`/`Raise`/`DomainEvents`/`ClearDomainEvents`), the marker interfaces
+  (`ISoftDeletable`, `IVersioned`, `ITimestamped`, `IHasDomainEvents`), and every interceptor are unchanged —
+  this is a pure rename with no behaviour change. **Migrate by replacing the type name**
+  (`: AggregateRoot<Guid>` → `: Entity<Guid>`); no alias is shipped, so the old name will not compile.
 - **The live showcase moved from `/demo/` to `/docs/` on the GitHub Pages site, and the landing page now
   leads with it as "Docs".** The showcase (`Rask.Example.Wasm`) is guides-first — the repo's `docs/*.md`
   rendered on-site with the interactive demos embedded inline — so it *is* the documentation. The marketing

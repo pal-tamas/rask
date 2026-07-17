@@ -1,7 +1,7 @@
 # Rask.Data — base entity + EF Core interceptors
 
 `Rask.Data` is a tiny, provider-agnostic data layer for **Entity Framework Core** applications. It gives
-your aggregates a shared base with identity, audit stamps, and a domain-events buffer, and drives four
+your entities a shared base with identity, audit stamps, and a domain-events buffer, and drives four
 production concerns — auditing, soft delete, optimistic concurrency, and domain-event publication —
 through EF Core interceptors and a one-line model convention, so no feature has to re-implement them.
 
@@ -12,10 +12,10 @@ It is the foundation the [`rask generate feature`](cli.md) scaffolder emits for 
 dotnet add package Rask.Data
 ```
 
-## The base aggregate
+## The base entity
 
 ```csharp
-public sealed class Product : AggregateRoot<Guid>, ISoftDeletable, IVersioned
+public sealed class Product : Entity<Guid>, ISoftDeletable, IVersioned
 {
     private Product() { } // EF materialization
 
@@ -38,7 +38,7 @@ public sealed class Product : AggregateRoot<Guid>, ISoftDeletable, IVersioned
 }
 ```
 
-`AggregateRoot<TId>` always carries `Id`, `CreatedAt`, `UpdatedAt`, and the domain-events collection
+`Entity<TId>` always carries `Id`, `CreatedAt`, `UpdatedAt`, and the domain-events collection
 (`Raise` / `DomainEvents` / `ClearDomainEvents`). The two behaviors are **opt-in** — implement a marker
 interface to turn one on:
 
@@ -73,7 +73,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 - **`SoftDeleteInterceptor`** — rewrites a `Deleted` `ISoftDeletable` to `Modified` + sets `DeletedAt`.
   Your handler just calls `db.Remove(entity)`; to restore, load with `IgnoreQueryFilters()` and clear
   `DeletedAt`.
-- **`DomainEventInterceptor`** — after the change commits, publishes each aggregate's `DomainEvents`
+- **`DomainEventInterceptor`** — after the change commits, publishes each entity's `DomainEvents`
   through `IDispatcher.PublishAsync` (in a fresh scope) and clears them. Any
   `INotificationHandler<T>` registered by `AddRaskCqrs()` reacts automatically.
 
@@ -96,6 +96,6 @@ await db.SaveChangesAsync(); // throws if someone else changed it since `form.Ve
   they are not used on the WASM client.
 - **Trim/AOT-safe.** The model convention runs at startup (not the hot path) and uses no runtime handler
   reflection; domain-event dispatch goes through `Rask.Cqrs`' source-generated registry.
-- **Durable delivery.** For at-least-once, crash-safe events, pair the aggregate with
+- **Durable delivery.** For at-least-once, crash-safe events, pair the entity with
   [`Rask.Outbox`](outbox.md), which persists events in the same transaction and drains them from a
   background worker (and disables the in-process dispatcher to avoid double delivery).
