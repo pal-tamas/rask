@@ -19,11 +19,93 @@ internal static class FeatureGenerator
         FeatureSpec spec,
         FeatureOptions options)
     {
-        // spec.Relationships is parsed and validated but not yet emitted — relationship rendering lands in a
-        // later slice. Until then a run generates its root exactly as before.
-        var entityName = spec.Root.Name;
-        var fields = spec.Root.Fields;
-        var plural = spec.Root.Plural;
+        var generateContext = options.ContextOverride is null;
+        var context = options.ContextOverride ?? spec.Root.Plural + "DbContext";
+        var entities = spec.Entities.ToArray();
+
+        // Every entity gets its own Features/<Plural>/ folder and namespace — each one has its own route and
+        // pages, so nesting a target under the root's folder would put, say, /comments in ...Features.Posts.
+        // With --output they all share one folder instead, and the cross-namespace usings below collapse away.
+        var directories = entities.ToDictionary(
+            e => e.Name,
+            e => Scaffold.TargetDirectory(baseDirectory, options.OutputOverride, "Features", e.Plural),
+            StringComparer.Ordinal);
+
+        var namespaces = entities.ToDictionary(
+            e => e.Name,
+            e => project.NamespaceFor(directories[e.Name]),
+            StringComparer.Ordinal);
+
+        // The run's single DbContext lives with the root, so every other entity's handlers reach it by name.
+        var contextNs = namespaces[spec.Root.Name];
+
+        var files = new List<ScaffoldFile>();
+        foreach (var entity in entities)
+        {
+            files.AddRange(RenderSlice(
+                project, options, entity, context, generateContext,
+                directories[entity.Name], namespaces[entity.Name], contextNs));
+        }
+
+        // One DbContext for the whole run, holding a DbSet per entity. Its ApplyConfigurationsFromAssembly is
+        // assembly-wide, so every entity's generated configuration is picked up with no further wiring —
+        // which is why a multi-entity run needs no --context.
+        if (generateContext)
+        {
+            var dbSets = string.Join(
+                "\n",
+                entities.Select(e => $"    public DbSet<{e.Name}> {e.Plural} => Set<{e.Name}>();"));
+
+            files.Add(new ScaffoldFile(
+                Path.Combine(directories[spec.Root.Name], context + ".cs"),
+                Apply(DbContextTemplate,
+                [
+                    ("__NS__", contextNs),
+                    ("__CONTEXT__", context),
+                    ("__USINGS__", Usings(contextNs, entities.Select(e => namespaces[e.Name]))),
+                    ("__DBSETS__", dbSets),
+                    ("__OUTBOXMODEL__", options.UseOutbox ? "\n                modelBuilder.AddRaskOutbox();" : ""),
+                ])));
+        }
+
+        var root = spec.Root;
+        return new ScaffoldResult(
+            files,
+            RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests, options.UseOutbox))
+        {
+            Packages = FeaturePackages(options.Validation, options.UseBs, options.UseOutbox),
+        };
+    }
+
+    /// <summary>
+    /// The <c>using</c> lines a file in <paramref name="fileNs"/> needs to see types from
+    /// <paramref name="referenced"/> — its own namespace excluded, so a single-folder run emits none.
+    /// </summary>
+    private static string Usings(string fileNs, IEnumerable<string> referenced) =>
+        string.Concat(referenced
+            .Where(n => !string.Equals(n, fileNs, StringComparison.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .Select(n => "\nusing " + n + ";"));
+
+    /// <summary>
+    /// One entity's vertical slice. Every entity in a run gets the full set — entity, request, configuration,
+    /// pages, and CQRS handlers — because each is an independent root with its own CRUD. They share the run's
+    /// single DbContext, which is why a non-root entity's handlers need a using for <paramref name="contextNs"/>.
+    /// </summary>
+    private static List<ScaffoldFile> RenderSlice(
+        ProjectContext project,
+        FeatureOptions options,
+        EntitySpec entity,
+        string context,
+        bool generateContext,
+        string targetDirectory,
+        string ns,
+        string contextNs)
+    {
+        var entityName = entity.Name;
+        var fields = entity.Fields;
+        var plural = entity.Plural;
 
         var idType = options.IdType;
         var validation = options.Validation;
@@ -38,15 +120,14 @@ internal static class FeatureGenerator
 
         var route = Identifiers.ToRoutePath(plural);
         var idConstraint = idType == "Guid" ? "guid" : idType;
-        var generateContext = options.ContextOverride is null;
-        var context = options.ContextOverride ?? plural + "DbContext";
 
-        var targetDirectory = Scaffold.TargetDirectory(baseDirectory, options.OutputOverride, "Features", plural);
-        var ns = project.NamespaceFor(targetDirectory);
+        // The handlers name the DbContext, which lives with the root. An --context DbContext is the user's own
+        // and they wire it themselves (see the next-steps), so nothing is assumed about where it lives.
+        var usings = generateContext ? Usings(ns, [contextNs]) : "";
 
         var tokens = new (string, string)[]
         {
-            ("__NS__", ns), ("__ENTITY__", entityName), ("__PLURAL__", plural), ("__CONTEXT__", context),
+            ("__NS__", ns), ("__USINGS__", usings), ("__ENTITY__", entityName), ("__PLURAL__", plural), ("__CONTEXT__", context),
             ("__ROUTE__", route), ("__IDTYPE__", idType), ("__IDCONSTRAINT__", idConstraint),
             ("__CREATEARGS__", RequestArgs(fields, "command.Request")),
             ("__HEADERS__", TableHeaders(fields)), ("__CELLS__", TableCells(fields, useValueObjects)),
@@ -113,11 +194,6 @@ internal static class FeatureGenerator
                 Apply(FluentValidatorTemplate, tokens).Replace("__RULES__", FluentRules(fields), StringComparison.Ordinal)));
         }
 
-        if (generateContext)
-        {
-            files.Insert(2, new ScaffoldFile(Path.Combine(targetDirectory, context + ".cs"), Apply(DbContextTemplate, tokens)));
-        }
-
         // --tests: a sibling <Project>.Tests project gets a domain test (Create/Update + value-object
         // validation) and, when we own the DbContext, a SQLite round-trip persistence test.
         if (useTests)
@@ -135,14 +211,11 @@ internal static class FeatureGenerator
             {
                 files.Add(new ScaffoldFile(
                     Path.Combine(testDirectory, plural + "PersistenceTests.cs"),
-                    RenderPersistenceTests(testNamespace, ns, entityName, plural, context, idType, fields, useValueObjects)));
+                    RenderPersistenceTests(testNamespace, ns, contextNs, entityName, plural, context, idType, fields, useValueObjects)));
             }
         }
 
-        return new ScaffoldResult(files, RenderNextSteps(context, entityName, plural, route, generateContext, validation, useBs, useTests, useOutbox))
-        {
-            Packages = FeaturePackages(validation, useBs, useOutbox),
-        };
+        return files;
     }
 
     // The form-level validator component wired at the top of the create/edit forms (empty for the
@@ -483,11 +556,14 @@ internal static class FeatureGenerator
 
     // Persistence test: the entity round-trips through a real SQLite file, proving the configuration's
     // columns + value-object converters persist and rehydrate.
-    private static string RenderPersistenceTests(string testNs, string featureNs, string entity, string plural, string context, string idType, IReadOnlyList<FieldSpec> fields, bool useValueObjects)
+    private static string RenderPersistenceTests(string testNs, string featureNs, string contextNs, string entity, string plural, string context, string idType, IReadOnlyList<FieldSpec> fields, bool useValueObjects)
     {
         var sb = new StringBuilder();
-        sb.Append("using Microsoft.EntityFrameworkCore;\n");
-        sb.Append("using ").Append(featureNs).Append(";\n\n");
+        sb.Append("using Microsoft.EntityFrameworkCore;");
+
+        // The test names both the entity and the DbContext, which live in different namespaces when this
+        // entity isn't the run's root.
+        sb.Append(Usings(testNs, [featureNs, contextNs])).Append("\n\n");
         sb.Append("namespace ").Append(testNs).Append(";\n\n");
         sb.Append("public sealed class ").Append(plural).Append("PersistenceTests : IDisposable\n{\n");
         sb.Append("    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $\"rask-test-{Guid.NewGuid():N}.db\");\n\n");
@@ -662,6 +738,14 @@ internal static class FeatureGenerator
         var packages = new List<string>
         {
             "Microsoft.EntityFrameworkCore.Sqlite",
+
+            // Security: EF Core Sqlite pins the SQLitePCLRaw 2.1.11 family, whose lib.e_sqlite3 bundles
+            // SQLite 3.49.1 — vulnerable to CVE-2025-6965 (memory corruption). The 3.x bundle drops that
+            // package entirely for SourceGear.sqlite3 (SQLite 3.50.4+). A direct reference is the only lever
+            // that lifts it: transitive pinning does not move it. Every project in this repo that touches EF
+            // Core Sqlite carries the same reference — see Directory.Packages.props.
+            "SQLitePCLRaw.bundle_e_sqlite3",
+
             "Microsoft.EntityFrameworkCore.Design",
             "Rask.Cqrs",
             "Rask.Data", // the Entity<TId> base + interceptors every generated entity inherits
@@ -776,13 +860,13 @@ internal static class FeatureGenerator
 
     private const string DbContextTemplate =
         """
-        using Microsoft.EntityFrameworkCore;
+        using Microsoft.EntityFrameworkCore;__USINGS__
 
         namespace __NS__;
 
         public sealed class __CONTEXT__(DbContextOptions<__CONTEXT__> options) : DbContext(options)
         {
-            public DbSet<__ENTITY__> __PLURAL__ => Set<__ENTITY__>();
+        __DBSETS__
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
@@ -837,7 +921,7 @@ internal static class FeatureGenerator
 
     private const string FluentValidatorTemplate =
         """
-        using FluentValidation;
+        using FluentValidation;__USINGS__
 
         namespace __NS__;
 
@@ -854,7 +938,7 @@ internal static class FeatureGenerator
     private const string ConfigurationTemplate =
         """
         using Microsoft.EntityFrameworkCore;
-        using Microsoft.EntityFrameworkCore.Metadata.Builders;
+        using Microsoft.EntityFrameworkCore.Metadata.Builders;__USINGS__
 
         namespace __NS__;
 
@@ -873,7 +957,7 @@ internal static class FeatureGenerator
     // --events: a sample notification handler so the extension point is obvious. Auto-registered by AddRaskCqrs().
     private const string EventHandlerTemplate =
         """
-        using Microsoft.Extensions.Logging;
+        using Microsoft.Extensions.Logging;__USINGS__
 
         namespace __NS__;
 
@@ -894,7 +978,7 @@ internal static class FeatureGenerator
     private const string ListPageTemplate =
         """
         using Microsoft.EntityFrameworkCore;
-        using Rask.Core.Routing;
+        using Rask.Core.Routing;__USINGS__
 
         namespace __NS__;
 
@@ -952,7 +1036,7 @@ internal static class FeatureGenerator
 
     private const string DeleteTemplate =
         """
-        using Microsoft.EntityFrameworkCore;
+        using Microsoft.EntityFrameworkCore;__USINGS__
 
         namespace __NS__;
 
@@ -995,7 +1079,7 @@ internal static class FeatureGenerator
     // global filter), clears DeletedAt via the entity's Restore(), and saves.
     private const string RestoreTemplate =
         """
-        using Microsoft.EntityFrameworkCore;
+        using Microsoft.EntityFrameworkCore;__USINGS__
 
         namespace __NS__;
 
@@ -1043,7 +1127,7 @@ internal static class FeatureGenerator
 
     private const string BsRestoreTemplate =
         """
-        using Microsoft.EntityFrameworkCore;
+        using Microsoft.EntityFrameworkCore;__USINGS__
 
         namespace __NS__;
 
@@ -1090,7 +1174,7 @@ internal static class FeatureGenerator
     private const string CreateTemplate =
         """
         using Microsoft.EntityFrameworkCore;
-        using Rask.Core.Routing;
+        using Rask.Core.Routing;__USINGS__
 
         namespace __NS__;
 
@@ -1151,7 +1235,7 @@ internal static class FeatureGenerator
     private const string UpdateTemplate =
         """
         using Microsoft.EntityFrameworkCore;
-        using Rask.Core.Routing;
+        using Rask.Core.Routing;__USINGS__
 
         namespace __NS__;
 
@@ -1259,7 +1343,7 @@ internal static class FeatureGenerator
     private const string BsListPageTemplate =
         """
         using Microsoft.EntityFrameworkCore;
-        using Rask.Core.Routing;
+        using Rask.Core.Routing;__USINGS__
 
         namespace __NS__;
 
@@ -1321,7 +1405,7 @@ internal static class FeatureGenerator
 
     private const string BsDeleteTemplate =
         """
-        using Microsoft.EntityFrameworkCore;
+        using Microsoft.EntityFrameworkCore;__USINGS__
 
         namespace __NS__;
 
@@ -1361,7 +1445,7 @@ internal static class FeatureGenerator
     private const string BsCreateTemplate =
         """
         using Microsoft.EntityFrameworkCore;
-        using Rask.Core.Routing;
+        using Rask.Core.Routing;__USINGS__
 
         namespace __NS__;
 
@@ -1422,7 +1506,7 @@ internal static class FeatureGenerator
     private const string BsUpdateTemplate =
         """
         using Microsoft.EntityFrameworkCore;
-        using Rask.Core.Routing;
+        using Rask.Core.Routing;__USINGS__
 
         namespace __NS__;
 
@@ -1529,7 +1613,7 @@ internal static class FeatureGenerator
     private const string BsModalListTemplate =
         """
         using Microsoft.EntityFrameworkCore;
-        using Rask.Core.Routing;
+        using Rask.Core.Routing;__USINGS__
 
         namespace __NS__;
 
