@@ -37,7 +37,7 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       # The Pages site is three Rask WASM apps: the marketing landing page (Rask.Example.Site) at the
-      # root /<repo>/, the live feature showcase (Rask.Example.Wasm) at /<repo>/demo/, and the live
+      # root /<repo>/, the live feature showcase (Rask.Example.Wasm) at /<repo>/docs/, and the live
       # playground at /<repo>/playground/. Each is published with /p:RaskPathBase so the framework's
       # _RaskRewriteBaseHref target rewrites its <base href> to the sub-path; every other asset URL +
       # the SRI-pinned import map stays document-relative, so the corrected base resolves them all
@@ -46,11 +46,11 @@ jobs:
       - name: Publish the landing site (Rask.Example.Site → /)
         run: dotnet publish samples/Rask.Example.Site -c Release /p:RaskPathBase=/${{ github.event.repository.name }}
 
-      - name: Publish the live demo (Rask.Example.Wasm → /demo/)
-        run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/${{ github.event.repository.name }}/demo
+      - name: Publish the live showcase / docs (Rask.Example.Wasm → /docs/)
+        run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/${{ github.event.repository.name }}/docs
 
       # The playground is untrimmed (Roslyn needs full assembly metadata as references), so it is kept
-      # out of the size-tuned demo bundle and published to its own output dir.
+      # out of the size-tuned docs bundle and published to its own output dir.
       - name: Publish the playground (→ /playground/)
         run: dotnet publish samples/Rask.Example.Playground -c Release /p:RaskPathBase=/${{ github.event.repository.name }}/playground -o playground-publish
 
@@ -61,13 +61,13 @@ jobs:
       # post-publish: the runtime JS is SRI-pinned in the import map (see #63), so changing its bytes
       # breaks the integrity check. Shipping the 270 KB map to silence a DevTools-only 404 isn't worth
       # it on a size-tuned bundle (we already drop ICU).
-      - name: Assemble the Pages bundle (landing at root, demo + playground nested)
+      - name: Assemble the Pages bundle (landing at root, docs + playground nested)
         id: bundle
         run: |
           LANDING=samples/Rask.Example.Site/bin/Release/net10.0-browser/publish/wwwroot
-          DEMO=samples/Rask.Example.Wasm/bin/Release/net10.0-browser/publish/wwwroot
+          DOCS=samples/Rask.Example.Wasm/bin/Release/net10.0-browser/publish/wwwroot
           PLAYGROUND=playground-publish/wwwroot
-          for d in "$LANDING" "$DEMO" "$PLAYGROUND"; do
+          for d in "$LANDING" "$DOCS" "$PLAYGROUND"; do
             if [ ! -d "$d" ]; then
               echo "Could not locate published wwwroot: $d" >&2
               find . -maxdepth 6 -type d -name wwwroot
@@ -77,14 +77,14 @@ jobs:
           SITE="$RUNNER_TEMP/site"
           mkdir -p "$SITE"
           cp -r "$LANDING"/. "$SITE"/                 # marketing landing app at the root
-          cp -r "$DEMO" "$SITE/demo"
+          cp -r "$DOCS" "$SITE/docs"
           cp -r "$PLAYGROUND" "$SITE/playground"
-          # GitHub Pages serves /404.html for any unknown path; boot the demo SPA (its <base href> is
-          # /<repo>/demo/, so it client-routes correctly) as the deep-link fallback — the landing page
+          # GitHub Pages serves /404.html for any unknown path; boot the docs SPA (its <base href> is
+          # /<repo>/docs/, so it client-routes correctly) as the deep-link fallback — the landing page
           # itself is a single route, so it needs none.
-          cp "$SITE/demo/index.html" "$SITE/404.html"
+          cp "$SITE/docs/index.html" "$SITE/404.html"
           echo "--- landing <base> ---";      grep -i "<base"   "$SITE/index.html" || true
-          echo "--- demo <base> ---";         grep -i "<base"   "$SITE/demo/index.html" || true
+          echo "--- docs <base> ---";         grep -i "<base"   "$SITE/docs/index.html" || true
           echo "--- playground <base> ---";   grep -i "<base"   "$SITE/playground/index.html" || true
           echo "dir=$SITE" >> "$GITHUB_OUTPUT"
 

@@ -174,6 +174,15 @@ them until tagged releases begin.
   Core-tier wrapper, so it works on **both transports** (no user gesture needed). Showcased on the Browser APIs
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
+### Changed
+- **The live showcase moved from `/demo/` to `/docs/` on the GitHub Pages site, and the landing page now
+  leads with it as "Docs".** The showcase (`Rask.Example.Wasm`) is guides-first — the repo's `docs/*.md`
+  rendered on-site with the interactive demos embedded inline — so it *is* the documentation. The marketing
+  landing page's "Demo" nav entry is renamed "Docs" and points at that showcase; the redundant external
+  "Docs → GitHub markdown folder" links were removed. The Pages workflow now publishes the showcase to
+  `/<repo>/docs/` (and boots it as the 404 deep-link fallback), and every `live demo` link across the
+  README, `NUGET.md`, and the guides now targets `/docs/`.
+
 ### Fixed
 - **`Rask.Outbox` now delivers nested `IOutboxEvent` types.** The source generator registers each event by
   its dot-separated display name, but `OutboxSerializerRegistry.Serialize` stored `Type.FullName` — which
