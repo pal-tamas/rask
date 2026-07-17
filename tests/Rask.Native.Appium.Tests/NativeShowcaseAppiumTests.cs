@@ -2,6 +2,7 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Android;
 using OpenQA.Selenium.Appium.iOS;
+using Xunit.Abstractions;
 
 namespace Rask.Native.Appium.Tests;
 
@@ -12,7 +13,7 @@ namespace Rask.Native.Appium.Tests;
 // projected to REAL platform bars (iOS UINavigationBar/UITabBar, Android top/bottom bars), and tapping a
 // native tab drives the WebView's route over the bridge. This is the device-level replacement for the old
 // headless shim.
-public sealed class NativeShowcaseAppiumTests
+public sealed class NativeShowcaseAppiumTests(ITestOutputHelper output)
 {
     // Appium's synthetic context for the app's native view tree (vs. the WEBVIEW_*/CHROMIUM contexts).
     private const string NativeContext = "NATIVE_APP";
@@ -78,7 +79,7 @@ public sealed class NativeShowcaseAppiumTests
     // Switch into the app's WebView and assert the showcase rendered with its assets — the same evidence
     // the headless suite used to check, now against a real on-device WebView. Returns the WebView context
     // name so the native-chrome flow can hop back into it to read the route.
-    private static string AssertShowcaseRendered(AppiumDriver driver)
+    private string AssertShowcaseRendered(AppiumDriver driver)
     {
         var webContext = WaitForWebViewContext(driver);
         driver.Context = webContext;
@@ -113,7 +114,55 @@ public sealed class NativeShowcaseAppiumTests
         Assert.Contains("Rask", bodyText, StringComparison.OrdinalIgnoreCase);
         // Scoped CSS + Bootstrap were served through NativeOriginAssets → stylesheets are present.
         Assert.True(sheets > 0, "Scoped/Bootstrap stylesheets should have loaded via NativeOriginAssets." + diag);
+        AssertSecureContext(driver);
+        ProbeWebViewCapabilities(driver);
         return webContext;
+    }
+
+    // Both heads serve a secure-context origin, but for different reasons — Android by its https scheme,
+    // iOS because WebKit treats a custom WKURLSchemeHandler scheme as trustworthy whatever the host (see
+    // docs/native.md). Neither is obvious, and losing it costs the whole secure-context tier — crypto.subtle,
+    // navigator.credentials, storage.estimate, Web Locks — silently, as `undefined` rather than an error.
+    // Pin it on device so a change to the scheme or origin can't quietly take those APIs away.
+    private static void AssertSecureContext(AppiumDriver driver)
+    {
+        var isSecure = ExecuteScript(driver, "return String(window.isSecureContext)");
+        var subtle = ExecuteScript(driver, "return typeof (window.crypto && window.crypto.subtle)");
+        var origin = ExecuteScript(driver, "return document.location ? document.location.origin : '?'");
+        var diag = $" [origin={origin}; isSecureContext={isSecure}; typeof crypto.subtle={subtle}]";
+
+        Assert.True(
+            string.Equals(isSecure, "true", StringComparison.Ordinal),
+            "The app origin must be a secure context or the whole secure-context API tier is undefined "
+            + "on device." + diag);
+        Assert.Equal("object", subtle);
+    }
+
+    // Report what the WebView-only wrappers (the ones with no ★ native backend) actually resolve to on
+    // device. docs/browser-capabilities.md's Native column can only be as honest as what a real WebView
+    // reports — it claimed IFileSystemAccess/IWebPush worked here until this was checked. Print rather than
+    // assert: the point is to surface drift for a human to fold back into the matrix, not to freeze a
+    // vendor's support table into a red build.
+    private void ProbeWebViewCapabilities(AppiumDriver driver)
+    {
+        var probes = new (string Api, string Script)[]
+        {
+            ("IFileSystemAccess → showOpenFilePicker", "return typeof window.showOpenFilePicker"),
+            ("IWebPush → PushManager", "return typeof window.PushManager"),
+            ("IWebPush → serviceWorker", "return String('serviceWorker' in navigator)"),
+            ("IWebAuthn → navigator.credentials", "return typeof navigator.credentials"),
+            ("IWebLocks → navigator.locks", "return typeof navigator.locks"),
+            ("IStorageEstimator → storage.estimate", "return typeof (navigator.storage && navigator.storage.estimate)"),
+            ("IPermissions → navigator.permissions", "return typeof navigator.permissions"),
+            ("IMediaSession → navigator.mediaSession", "return typeof navigator.mediaSession"),
+            ("IGamepad → navigator.getGamepads", "return typeof navigator.getGamepads"),
+            ("IIndexedDb → indexedDB", "return typeof window.indexedDB")
+        };
+
+        foreach (var (api, script) in probes)
+        {
+            output.WriteLine($"[capability] {api} = {ExecuteScript(driver, script)}");
+        }
     }
 
     // Assert NativeShowcaseApp's native chrome projected to REAL platform bars, then prove a native tab tap

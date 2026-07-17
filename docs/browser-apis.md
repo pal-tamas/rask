@@ -11,8 +11,11 @@ This page is the **map of the whole surface**. For an at-a-glance view of *where
 [**capability matrix**](browser-capabilities.md) — it links to a dedicated reference page per API
 under [`docs/apis/`](apis/). For the deeper "why" — user activation, the transport seam, element
 refs — see [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis); for the mobile/PWA
-angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in the **Browser APIs**
-section of the [showcase](https://pal-tamas.github.io/rask/docs/).
+angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in the
+[showcase](https://pal-tamas.github.io/rask/docs/), under **Browser APIs** — except the WASM-only tier
+plus `IWakeLock` and `IWebPush`, which get their own pages under **PWA** because they need something the
+Server transport can't give them. (The six activation-gated ones appear in both: as gesture components
+under Browser APIs, and as injectable services under PWA.)
 
 ## Three homes, one rule
 
