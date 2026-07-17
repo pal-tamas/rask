@@ -19,7 +19,7 @@ public sealed class GeolocationWatchDemo(IGeolocation geolocation) : Component, 
     protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
                     _watch is null
                         ? Button(Class: "btn btn-primary btn-sm", Id: "geowatch-start", OnClickAsync: Start)[
                             "Start watching"]

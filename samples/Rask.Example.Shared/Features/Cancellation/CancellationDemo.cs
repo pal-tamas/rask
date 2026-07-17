@@ -11,7 +11,7 @@ public sealed class CancellationDemo : Component
 
     protected override Component? Render() =>
         Div()[
-            Div(Class: "d-flex gap-2 mb-3")[
+            BsStack(Gap: 2, Class: Margin.Bottom(3))[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "cancel-mount", Disabled: _mounted, OnClick: Mount)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount probe"],
                 BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "cancel-unmount", Disabled: !_mounted, OnClick: Unmount)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount probe"]
             ],

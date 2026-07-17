@@ -52,7 +52,7 @@ public sealed class NestedListIndexerDemo : Component
                     Thead()[Tr()[Th(Style: "width: 3rem;")["#"], Th()["SKU"], Th()["Price"], Th()]],
                     Tbody()[rows]
                 ],
-                Div(Class: "d-flex gap-2")[
+                BsStack(Gap: 2)[
                     BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "nf-idx-add", OnClick: () => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
                         BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "Add row"],
                     BsButton(Type: "submit", Color: BsColor.Primary, Size: BsSize.Sm, Id: "nf-idx-submit")[

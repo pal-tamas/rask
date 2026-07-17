@@ -242,7 +242,7 @@ public static class DemoRegistry
                 ["ElementRefDemo.cs", "ElementRefDemo.js"], Result: ElementRefDemo()),
             ["js-interop-scoped-css"] = () => CodeSample(
                 ["ScopedRed.cs", "ScopedBlue.cs", "ScopedRed.css", "ScopedBlue.css"],
-                Result: Div(Class: "d-flex flex-column gap-2")[ScopedRed(), ScopedBlue()]),
+                Result: BsStack(Vertical: true, Gap: 2)[ScopedRed(), ScopedBlue()]),
             ["js-interop-jsruntime"] = () => CodeSample(["JsRuntimeDemo.cs"], Result: JsRuntimeDemo()),
             ["js-interop-thirdparty"] = () => CodeSample(
                 ["GanttDemo.cs", "Gantt.cs", "Gantt.js"],
@@ -269,7 +269,7 @@ public static class DemoRegistry
                 ["BasicScopedCss.cs", "BasicScopedCss.css"], Result: BasicScopedCss()),
             ["asset-js-only"] = () => CodeSample(["JsOnlyDemo.cs", "JsOnlyDemo.js"], Result: JsOnlyDemo()),
             ["asset-twin-bundle"] = () => CodeSample(
-                ["TwinA.cs", "TwinA.css"], Result: Div(Class: "d-flex gap-2 flex-wrap")[TwinA(), TwinB()]),
+                ["TwinA.cs", "TwinA.css"], Result: BsStack(Gap: 2, WrapItems: true)[TwinA(), TwinB()]),
             ["asset-lazy-mount"] = () => CodeSample(
                 ["LazyMount.cs", "LazyChild.cs", "LazyChild.css"], Result: LazyMount()),
 

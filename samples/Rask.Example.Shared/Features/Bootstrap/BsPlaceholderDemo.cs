@@ -6,8 +6,8 @@ namespace Rask.Example.Shared.Features;
 public sealed class BsPlaceholderDemo : Component
 {
     protected override Component? Render() =>
-        Div(Class: "row g-3")[
-            Div(Class: "col-md-6")[
+        BsRow(Gutter: 3)[
+            BsCol(Md: 6)[
                 BsCard()[
                     BsCardBody()[
                         BsCardTitle()[BsPlaceholder(Col: 6, Animation: BsPlaceholderAnimation.Glow)],
@@ -21,7 +21,7 @@ public sealed class BsPlaceholderDemo : Component
                     ]
                 ]
             ],
-            Div(Class: "col-md-6 d-flex flex-column gap-2")[
+            BsCol(Md: 6, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(2)))[
                 BsPlaceholder(Col: 12, Color: BsColor.Primary, Animation: BsPlaceholderAnimation.Wave),
                 BsPlaceholder(Col: 8, Color: BsColor.Success, Size: BsSize.Lg, Animation: BsPlaceholderAnimation.Wave),
                 BsPlaceholder(Col: 6, Color: BsColor.Danger, Size: BsSize.Sm, Animation: BsPlaceholderAnimation.Wave)

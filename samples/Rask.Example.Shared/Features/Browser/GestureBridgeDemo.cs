@@ -21,7 +21,7 @@ public sealed class GestureBridgeDemo : Component
     protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Div(Class: "d-flex gap-2 flex-wrap align-items-center mb-3")[
+                BsStack(Gap: 2, Align: BsAlign.Center, WrapItems: true, Class: Margin.Bottom(3))[
                     // Headless: we render our own buttons; the triggers just supply the gesture attribute.
                     FullscreenTrigger(g =>
                         Button(Type: "button", Class: "btn btn-primary btn-sm", Id: "fullscreen-btn", Data: g)[
@@ -44,7 +44,7 @@ public sealed class GestureBridgeDemo : Component
                         ? Span(Class: "small text-secondary")["not prompted"]
                         : Span(Class: "small")["install: ", Code(Id: "install-outcome")[_install]]
                 ],
-                Div(Class: "d-flex gap-2 flex-wrap align-items-center mb-2")[
+                BsStack(Gap: 2, Align: BsAlign.Center, WrapItems: true, Class: Margin.Bottom(2))[
                     EyeDropperTrigger(
                         OnColor: hex =>
                         {
@@ -65,7 +65,7 @@ public sealed class GestureBridgeDemo : Component
                 ],
                 // MediaCaptureTrigger fills this <video> from the camera; PictureInPictureTrigger then pops
                 // that same element out — both resolve the element from its ElementRef.
-                Div(Class: "d-flex gap-2 flex-wrap align-items-center")[
+                BsStack(Gap: 2, Align: BsAlign.Center, WrapItems: true)[
                     MediaCaptureTrigger(For: _preview, Video: true, FacingMode: "user",
                         Template: g =>
                             Button(Type: "button", Class: "btn btn-outline-secondary btn-sm", Id: "camera-btn",

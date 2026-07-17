@@ -10,8 +10,8 @@ public sealed class FormControlsTextareaDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        Div(Class: "row g-4")[
-            Div(Class: "col-md-6")[
+        BsRow(Gutter: 4)[
+            BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold")["Controlled (Value + OnChange)"],
                 Textarea<string>(
                     Value: _controlled,
@@ -24,7 +24,7 @@ public sealed class FormControlsTextareaDemo : Component
                     "Length: ", Strong()[_controlled.Length.ToString()]
                 ]
             ],
-            Div(Class: "col-md-6")[
+            BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold")["Bound (two-way)"],
                 Form(_model)[
                     Textarea(() => _model.Bio, Class: "form-control mb-2", Rows: 3, Placeholder: "Type…",

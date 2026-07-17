@@ -11,7 +11,7 @@ public sealed class LifecycleCycleDemo : Component
 
     protected override Component? Render() =>
         Div()[
-            Div(Class: "d-flex gap-2 mb-3")[
+            BsStack(Gap: 2, Class: Margin.Bottom(3))[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "lifecycle-cycle-mount", Disabled: _cycleMounted, OnClick: MountCycle)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount probe"],
                 BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "lifecycle-cycle-unmount", Disabled: !_cycleMounted, OnClick: UnmountCycle)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount probe"]
             ],

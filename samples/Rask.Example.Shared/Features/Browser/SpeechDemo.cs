@@ -16,7 +16,7 @@ public sealed class SpeechDemo(ISpeechSynthesis speech) : Component
                     Class: "form-control form-control-sm mb-2",
                     Value: _text,
                     OnInput: v => _text = v),
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
                     BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "speech-speak", OnClickAsync: Speak)["Speak"],
                     BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "speech-cancel", OnClickAsync: Cancel)["Stop"]
                 ],

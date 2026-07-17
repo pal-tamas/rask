@@ -27,7 +27,7 @@ public sealed class LifecycleProbe : Component
 
     protected override Component? Render() =>
         [
-            Div(Class: "d-flex align-items-center gap-3 mb-3")[
+            BsStack(Gap: 3, Align: BsAlign.Center, Class: Margin.Bottom(3))[
                 BsBadge(Color: BsColor.Primary, Class: "fs-6")[$"Render #{++_renderCount}"],
                 // The handler just records the click; Rask re-renders the component that owns the
                 // callback (this probe — the lambda closes over its state) right after it runs, so the
