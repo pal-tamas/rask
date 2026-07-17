@@ -14,9 +14,31 @@
     <script type="importmap"></script>
     <link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='22 6 80 108'%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C3AED'/%3E%3Cstop offset='1' stop-color='%23512BD4'/%3E%3C/linearGradient%3E%3Cpath d='M72 14 L30 64 L54 64 L48 106 L94 54 L68 54 Z' fill='url(%23b)'/%3E%3C/svg%3E" rel="icon"
           type="image/svg+xml"/>
+    <!-- Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
+         across the site/docs/playground on this origin) or the OS preference before paint; re-apply the
+         saved choice after the WASM full-document morph strips the attributes off <html> on boot. Mirrors
+         the showcase index.html / App.cs snippet. -->
+    <script>
+        (function () {
+            var d = document.documentElement;
+            function apply(t) {
+                d.setAttribute('data-theme', t);
+                d.setAttribute('data-bs-theme', t);
+            }
+            var saved = localStorage.getItem('rask-theme');
+            apply(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+            var prev = window.raskAfterMorph;
+            window.raskAfterMorph = function () {
+                var s = localStorage.getItem('rask-theme');
+                if (s) apply(s);
+                if (typeof prev === 'function') prev();
+            };
+        })();
+    </script>
     <style id="rask-scoped"></style>
     <style>
         html, body { height: 100%; margin: 0; }
+        /* Dark-first boot screen (token ground); the light override matches an explicit light theme. */
         .rask-boot {
             position: fixed;
             inset: 0;
@@ -27,7 +49,12 @@
             gap: 1.25rem;
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
             color: #c4b5fd;
-            background: #181825;
+            background: #0b0b12;
+        }
+
+        :root[data-theme="light"] .rask-boot {
+            color: #512BD4;
+            background: #fbfbfe;
         }
         .rask-boot svg { width: 60px; height: 60px; animation: rask-pulse 1.4s ease-in-out infinite; }
         .rask-boot .rask-spin {

@@ -26,3 +26,13 @@ public sealed class BootstrapStyles : Component
             : [core, Link(Rel: "stylesheet", Href: prefix + Base + "icons/bootstrap-icons.min.css"), fixes];
     }
 }
+
+// Links the shared Rask design tokens (_content/Rask.Bootstrap/tokens.css) — the violet, dark-first
+// palette plus the Bootstrap 5.3 --bs-* bridge that reskins every Bs* component to it. Link this AFTER
+// BootstrapStyles() (so the --bs-* bridge wins the cascade) and BEFORE the app's own global.css (so app
+// CSS can still override the tokens). URLs are PathBase-prefixed so sub-path deploys resolve.
+public sealed class RaskTokens : Component
+{
+    protected override Component? Render() =>
+        Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/_content/Rask.Bootstrap/tokens.css");
+}

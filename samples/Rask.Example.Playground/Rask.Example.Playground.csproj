@@ -35,6 +35,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Bring the generated Bs* factories into scope unqualified (BsButton()/BsLink()/BsBadge()/BsIcon()/
+         BootstrapStyles()/RaskTokens()), matching how the other samples consume Rask.Bootstrap. -->
+    <Using Include="Rask.Bootstrap.Generated" Static="true"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
     <!-- Rask.Wasm references Rask.Core with PrivateAssets="all" (kept out of its nuspec), so it doesn't
          flow transitively — reference it directly, as any Rask app that doesn't go through the showcase
@@ -43,6 +49,11 @@
     <!-- Rask.Wasm also references Rask.Client with PrivateAssets="all" and needs it at runtime, so an app
          referencing the host by ProjectReference (rather than the NuGet package) must pull it in directly. -->
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
+    <!-- Typed Bootstrap primitives for the IDE chrome (topbar buttons/badge/theme toggle), so the
+         playground shares the same Bs* component language + the shared design tokens as the docs. Bundles
+         Bootstrap's CSS as static web assets under _content/Rask.Bootstrap — negligible next to the
+         untrimmed multi-MB Roslyn payload this sub-app already ships. -->
+    <ProjectReference Include="..\..\src\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
     <PackageReference Include="Microsoft.JSInterop"/>
     <!-- Roslyn, shipped to the browser (a normal reference, so Microsoft.CodeAnalysis.* land in
          _framework and load at runtime). This is the ~15-20 MB the sub-app isolation exists to contain.

@@ -1,4 +1,5 @@
 using Microsoft.JSInterop;
+using Rask.Bootstrap;
 using Rask.Core.Components;
 using Rask.Example.Playground.Compiler;
 
@@ -60,6 +61,32 @@ public sealed class PlaygroundView : Component
         Unavailable
     }
 
+    // The Rask brand mark (violet-gradient bolt), matching the marketing site + docs. Inlined here
+    // because RaskLogo lives in Rask.Example.Shared, which the isolated playground doesn't reference.
+    private const string BoltSvg =
+        "<svg viewBox=\"0 0 128 128\" aria-hidden=\"true\" class=\"pg-mark\"><defs>" +
+        "<linearGradient id=\"pgb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">" +
+        "<stop offset=\"0\" stop-color=\"#8b5cf6\"/><stop offset=\"1\" stop-color=\"#7c3aed\"/></linearGradient></defs>" +
+        "<rect width=\"128\" height=\"128\" rx=\"28\" fill=\"url(#pgb)\"/>" +
+        "<path d=\"M74 24 L38 66 L58 66 L53 104 L92 58 L70 58 Z\" fill=\"#fff\"/></svg>";
+
+    private static readonly IReadOnlyDictionary<string, string?> ThemeToggleAria =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Toggle light / dark theme" };
+
+    // Flip the color theme (data-theme + data-bs-theme on <html>, persisted to localStorage so it carries
+    // across the site/docs/playground). Client-only; a torn-down transport just no-ops.
+    private async Task ToggleThemeAsync()
+    {
+        try
+        {
+            await _js.InvokeVoidAsync("Rask.PlaygroundView.toggleTheme");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Nothing to toggle on a gone transport.
+        }
+    }
+
     protected override async Task OnRenderedAsync(bool firstRender)
     {
         if (!firstRender)
@@ -119,20 +146,27 @@ public sealed class PlaygroundView : Component
         Div(Class: "pg")[
             Header(Class: "pg-bar")[
                 Div(Class: "pg-brand")[
-                    Span(Class: "pg-bolt")["⚡"],
+                    Raw(BoltSvg),
                     Span(Class: "pg-title")["Rask Playground"],
                     IdeBadge()
                 ],
                 Div(Class: "pg-actions")[
                     Span(Class: "pg-phase")[_phase],
-                    Button(
-                        Class: "pg-reset",
-                        Disabled: _busy || !_editorReady,
-                        OnClickAsync: ResetAsync)["Reset"],
-                    Button(
-                        Class: _busy ? "pg-run is-busy" : "pg-run",
-                        Disabled: _busy || !_editorReady,
-                        OnClickAsync: RunAsync)[_busy ? "Running…" : "Run ▸"]
+                    // Reset / Run — the same Bs* button language as the docs; the pg-run class stays a hook
+                    // for the Ctrl/Cmd+Enter shortcut (PlaygroundView.js) and the E2E.
+                    BsButton(Class: "pg-reset", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
+                        Disabled: _busy || !_editorReady, OnClickAsync: ResetAsync)["Reset"],
+                    BsButton(Class: "pg-run", Color: BsColor.Primary, Size: BsSize.Sm,
+                        Disabled: _busy || !_editorReady, OnClickAsync: RunAsync)[_busy ? "Running…" : "Run ▸"],
+                    // Cross-app links back to the docs + repo, and the shared light/dark toggle.
+                    BsLink(Href: "https://pal-tamas.github.io/rask/docs/", Target: "_blank", Rel: "noopener",
+                        Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm)[
+                        BsIcon(Name: BsIconName.Book, Class: "me-1"), "Docs"],
+                    BsLink(Href: "https://github.com/pal-tamas/rask", Target: "_blank", Rel: "noopener",
+                        Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm)[
+                        BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
+                        OnClickAsync: ToggleThemeAsync, Aria: ThemeToggleAria)[BsIcon(Name: BsIconName.CircleHalf)]
                 ]
             ],
             Div(Class: "pg-body")[
@@ -168,14 +202,14 @@ public sealed class PlaygroundView : Component
 
     private Component? IdeBadge()
     {
-        var (cls, text) = _ide switch
+        var (color, text) = _ide switch
         {
-            IdeState.Ready => ("pg-ide is-ready", "IntelliSense ready"),
-            IdeState.Unavailable => ("pg-ide is-off", "IntelliSense unavailable"),
-            _ => ("pg-ide is-loading", "Loading IntelliSense…")
+            IdeState.Ready => (BsColor.Success, "IntelliSense ready"),
+            IdeState.Unavailable => (BsColor.Danger, "IntelliSense unavailable"),
+            _ => (BsColor.Secondary, "Loading IntelliSense…")
         };
 
-        return Span(Class: cls)[text];
+        return BsBadge(Color: color, Pill: true, Class: "pg-ide")[text];
     }
 
     private Component PreviewBody()
