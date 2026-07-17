@@ -20,6 +20,19 @@ public class RaskClientBrowserApisTests
         Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
     }
 
+    // IShare is the whole tier. The test above would still pass if a second wrapper were added and left
+    // unpinned, so pin the size too — the Core tier's list had silently fallen three behind its registrar.
+    [Fact]
+    public void AddClientBrowserApis_RegistersNothingBeyondShare()
+    {
+        var services = new ServiceCollection();
+
+        services.AddClientBrowserApis(ServiceLifetime.Singleton);
+
+        var registered = Assert.Single(services);
+        Assert.Equal(typeof(IShare), registered.ServiceType);
+    }
+
     [Fact]
     public void AddClientBrowserApis_IsFallbackOnly_ANativeShareRegisteredFirstWins()
     {
