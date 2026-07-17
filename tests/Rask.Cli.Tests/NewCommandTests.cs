@@ -202,6 +202,36 @@ public sealed class NewCommandTests
         Assert.Contains("--frobnicate", console.ErrorText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task No_name_on_a_terminal_walks_the_wizard_and_scaffolds()
+    {
+        var (console, fs, runner, command) = Build();
+        // Simulate a terminal (InputLines flips the console to interactive) and script the answers:
+        // name → template select (2 = wasm) → --auth? no → --pwa? yes → --docker? no.
+        console.InputLines = ["Spa", "2", "n", "y", "n"];
+
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.True(fs.FileExists("/proj/Spa/Spa.csproj"));
+        Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html")); // wasm template
+        Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg"));   // --pwa answered yes
+        Assert.False(fs.FileExists("/proj/Spa/Auth/CredentialStore.cs")); // --auth answered no
+        Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
+    }
+
+    [Fact]
+    public async Task No_name_without_a_terminal_still_hard_errors()
+    {
+        var (console, _, runner, command) = Build();
+        // StringConsole defaults to redirected stdin (non-interactive) — the wizard must not run.
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("name is required", console.ErrorText, StringComparison.Ordinal);
+        Assert.Empty(runner.Invocations);
+    }
+
     private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Runner, NewCommand Command) Build()
     {
         var console = new StringConsole();

@@ -56,7 +56,10 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.");
 
-    public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
+    public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
+        ExecuteAsync(args, allowWizard: true, cancellationToken);
+
+    private async Task<int> ExecuteAsync(IReadOnlyList<string> args, bool allowWizard, CancellationToken cancellationToken)
     {
         var schema = CreateSchema();
 
@@ -69,6 +72,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var name = parsed.Option("name") ?? parsed.Positionals.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(name))
         {
+            // No name given. On a terminal, walk an interactive wizard and re-run with the answers
+            // (allowWizard:false bounds this to one hop); piped/scripted, keep the hard-error contract.
+            var prompt = new Prompt(Console);
+            if (allowWizard && prompt.Interactive)
+            {
+                return await ExecuteAsync(RunWizard(prompt), allowWizard: false, cancellationToken).ConfigureAwait(false);
+            }
+
             Console.Error.WriteLine("A project name is required.");
             Console.Error.WriteLine($"Usage: {Usage}");
             return 1;
@@ -136,6 +147,41 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 };
             },
             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Walk the interactive first-run flow (name → template → applicable feature flags) and return the
+    /// equivalent argument list, so the answers flow back through the exact same validation and generation
+    /// path as a fully-typed command line. Only reached on a terminal.
+    /// </summary>
+    private static IReadOnlyList<string> RunWizard(Prompt prompt)
+    {
+        var name = prompt.Ask("Project name");
+        var templateKey = prompt.Select(
+            "Template",
+            [.. TemplateCatalog.All.Select(t => (t.Key, $"{t.Key} — {t.DisplayName}"))],
+            TemplateCatalog.Default.Key);
+
+        var args = new List<string> { name, "--template", templateKey };
+        _ = TemplateCatalog.TryGet(templateKey, out var template);
+
+        if (templateKey == "native")
+        {
+            var host = prompt.Select("Host", [("local", "local — self-hosted app"), ("server", "server — thin client of a Rask server")], "local");
+            args.Add("--host");
+            args.Add(host);
+            return args;
+        }
+
+        foreach (var flag in FeatureFlags.Where(template.SupportedFlags.Contains))
+        {
+            if (prompt.Confirm($"Add --{flag}?", @default: false))
+            {
+                args.Add("--" + flag);
+            }
+        }
+
+        return args;
     }
 
     private async Task<int> GenerateDirectAsync(

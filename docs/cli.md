@@ -35,12 +35,18 @@ set — so `rask info | cat` and CI logs stay clean.
 ## `rask new` — scaffold a project
 
 ```bash
+rask new                             # interactive: prompts for name, template, and features
 rask new MyApp                       # a server-rendered app (the default template)
 rask new MyApp --auth --docker       # + cookie auth + a production Dockerfile
 rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Field --template native     # a native iOS + Android app
 ```
+
+Run `rask new` on its own (no name) and — on a terminal — it walks you through a short wizard: the
+project name, a numbered template picker, and a yes/no for each feature the template supports. It then
+scaffolds exactly as if you'd passed the flags. Piped or in a script (no terminal), a missing name is a
+plain error instead, so automation stays predictable.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`

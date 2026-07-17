@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask new` with no name starts an interactive wizard.** On a terminal, running `rask new` (no project
+  name) now prompts for the name, a numbered template picker, and a yes/no for each feature flag the chosen
+  template supports — then scaffolds exactly as if you'd typed the flags. The answers flow back through the
+  same validation and generation path, so nothing new can drift. **Non-interactive is unchanged**: when
+  stdin is piped/redirected (scripts, CI), a missing name is still the same hard error, so automation is
+  unaffected. Backed by a new dependency-free `Prompt` helper (Ask/Confirm/Select), EOF-safe so a command
+  can never hang.
 - **The `rask` CLI now speaks in color, with consistent output and progress feedback.** Written files
   are reported with one shared green `+ <path>` marker across `rask new` and `rask generate` (previously
   `  + path` vs `Created path`); action headings are bold, warnings are yellow, deploy failures are red,
