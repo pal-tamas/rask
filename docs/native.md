@@ -214,6 +214,29 @@ serves a **real origin** (a `WKUrlSchemeHandler` on iOS, `WebViewClient.ShouldIn
 so secure-context device APIs (`localStorage`, `crypto.subtle`) work, and marshals `ApplyRenderAsync`/
 `EvaluateJavaScriptAsync` onto the UI thread.
 
+### Why both origins are secure contexts
+
+`crypto.subtle`, `navigator.credentials`, `navigator.locks` and `navigator.storage.estimate` only exist on a
+**potentially trustworthy** origin, and an origin that misses that bar doesn't fail loudly — those APIs are
+simply `undefined`. Each head clears it a different way, and only one of them is obvious:
+
+| Head | Origin | Secure context because |
+|------|--------|------------------------|
+| Android | `https://appassets.rask/` | the `https` scheme — the ordinary rule |
+| iOS | `raskapp://local/` | WebKit treats a **custom `WKURLSchemeHandler` scheme** as trustworthy |
+
+The iOS row surprises people (`raskapp://` is not `https`, and the host isn't `localhost`, so the
+[W3C algorithm][secure-contexts] alone would say no). WebKit goes further than the spec's baseline and
+grants scheme-handler origins a secure context regardless of host — verified directly against `WKWebView`:
+`raskapp://local/` reports `isSecureContext === true` and a live `crypto.subtle`. The Appium suite asserts
+this on device, so a future change to the scheme or origin can't quietly cost you the whole secure-context
+API tier.
+
+> If you write your own `INativeWebView`, this is the thing to preserve. Serving the app from `file://` or a
+> plain-`http` non-loopback origin would silently drop those APIs.
+
+[secure-contexts]: https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
+
 ## Wiring a platform head
 
 The app head (a `net10.0-ios` / `net10.0-android` project) is just an entry point that composes the shipped

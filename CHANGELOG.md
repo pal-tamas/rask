@@ -184,6 +184,18 @@ them until tagged releases begin.
   README, `NUGET.md`, and the guides now targets `/docs/`.
 
 ### Fixed
+- **The capability matrix no longer claims `IFileSystemAccess` and `IWebPush` work on Native.**
+  `docs/browser-capabilities.md` marked both ✅ in the Native column, but neither API exists in the WebView:
+  `window.showOpenFilePicker` is `undefined` on WebKit (the File System Access API is effectively
+  Chromium-desktop-only), and `window.PushManager` is `undefined`, so there is nothing to subscribe with
+  (service workers do register — push specifically is missing). Both are now ⬜ with a note pointing at the
+  alternative (`<input type="file">`) and the tracked APNs/FCM follow-up. `INotifications` is unaffected — it
+  has a native backend, so local notifications work on device. No code changed: these APIs never worked on
+  Native, the matrix just said they did. The on-device Appium suite now asserts the app origin is a secure
+  context and prints what each WebView-only wrapper actually resolves to, so the Native column has evidence
+  behind it instead of assumption. `docs/native.md` also documents *why* both origins are secure contexts —
+  Android by its `https` scheme, iOS because WebKit treats a custom `WKURLSchemeHandler` scheme as
+  trustworthy whatever the host, which is easy to get wrong when writing a custom `INativeWebView`.
 - **`Rask.Outbox` now delivers nested `IOutboxEvent` types.** The source generator registers each event by
   its dot-separated display name, but `OutboxSerializerRegistry.Serialize` stored `Type.FullName` — which
   uses `+` between a nesting type and a nested type — so a nested event (a record declared inside a class)
