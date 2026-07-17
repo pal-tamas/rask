@@ -60,7 +60,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 
 ## Notes
 
-- **Web / Server** is the ASP.NET host (per-session, over WebSocket). The 31 transport-agnostic
+- **Web / Server** is the ASP.NET host (per-session, over WebSocket). The 34 transport-agnostic
   wrappers register there; the activation-gated ones (🟡) can't be injected but are reachable through
   declarative **gesture components** that run the call inside the click gesture. All six ship:
   [`FullscreenTrigger`](apis/fullscreen.md), [`ScreenOrientationTrigger`](apis/screen-orientation.md),
