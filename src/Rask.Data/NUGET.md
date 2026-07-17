@@ -3,7 +3,7 @@
 A tiny, provider-agnostic data layer for **Entity Framework Core** apps — the DDD building blocks the
 [`rask generate feature`](https://github.com/pal-tamas/rask) scaffolder emits, packaged for reuse.
 
-- **`AggregateRoot<TId>`** — a base aggregate with `Id`, audit stamps (`CreatedAt`/`UpdatedAt`), and a
+- **`Entity<TId>`** — a base entity with `Id`, audit stamps (`CreatedAt`/`UpdatedAt`), and a
   domain-events buffer.
 - **Opt-in markers** — implement `ISoftDeletable` (adds `DeletedAt`) or `IVersioned` (adds a `Version`
   concurrency token) on your entity to turn on the behavior.
@@ -14,7 +14,7 @@ A tiny, provider-agnostic data layer for **Entity Framework Core** apps — the 
 ## Use
 
 ```csharp
-public sealed class Product : AggregateRoot<Guid>, ISoftDeletable, IVersioned
+public sealed class Product : Entity<Guid>, ISoftDeletable, IVersioned
 {
     public string Name { get; private set; } = "";
     public DateTime? DeletedAt { get; private set; }
@@ -40,6 +40,6 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 `db.Remove(product)` now soft-deletes; deleted rows drop out of queries (use `IgnoreQueryFilters()` to
 restore); a save against a stale `Version` throws `DbUpdateConcurrencyException`; and any
-`INotification` raised on the aggregate is published after the change commits.
+`INotification` raised on the entity is published after the change commits.
 
 Part of the [Rask](https://github.com/pal-tamas/rask) framework. MIT licensed.

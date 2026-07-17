@@ -7,14 +7,14 @@ using Rask.Cqrs;
 namespace Rask.Data;
 
 /// <summary>
-/// Publishes each aggregate's <see cref="IHasDomainEvents.DomainEvents"/> in-process <b>after</b> the change
+/// Publishes each entity's <see cref="IHasDomainEvents.DomainEvents"/> in-process <b>after</b> the change
 /// commits, through <c>Rask.Cqrs</c>' <see cref="IDispatcher.PublishAsync{TNotification}"/>. Events are
 /// resolved by their runtime type, so a stored <see cref="INotificationHandler{TNotification}"/> reacts with
 /// no extra wiring. Handlers run in a fresh DI scope. Not wired when a transactional outbox owns delivery —
 /// see <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>.
 /// </summary>
 /// <remarks>
-/// Events are drained off the tracked aggregates in <c>SavingChanges</c> (before a delete detaches its
+/// Events are drained off the tracked entities in <c>SavingChanges</c> (before a delete detaches its
 /// entity) and published in <c>SavedChanges</c> (after the change commits). A failed save discards them, so a
 /// rolled-back change never fires its events.
 /// </remarks>
@@ -73,7 +73,7 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
             return;
         }
 
-        // Drain the events off the tracked aggregates now — a Deleted entity is detached once the save
+        // Drain the events off the tracked entities now — a Deleted entity is detached once the save
         // completes, so collecting after SaveChanges would lose its events.
         var events = new List<INotification>();
         foreach (var entry in context.ChangeTracker.Entries<IHasDomainEvents>())

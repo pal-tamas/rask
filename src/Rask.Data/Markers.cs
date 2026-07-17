@@ -5,7 +5,7 @@ namespace Rask.Data;
 /// <summary>
 /// An entity that records when it was created and last changed. The <see cref="AuditingInterceptor"/>
 /// stamps <see cref="CreatedAt"/> on insert and <see cref="UpdatedAt"/> on every insert/update, so the
-/// application never sets them by hand. <see cref="AggregateRoot{TId}"/> implements this for free.
+/// application never sets them by hand. <see cref="Entity{TId}"/> implements this for free.
 /// </summary>
 public interface ITimestamped
 {
@@ -40,12 +40,12 @@ public interface IVersioned
 }
 
 /// <summary>
-/// An aggregate that records domain events for the <see cref="DomainEventInterceptor"/> to publish (via
-/// <c>Rask.Cqrs</c>) after the change commits. <see cref="AggregateRoot{TId}"/> implements this for free.
+/// An entity that records domain events for the <see cref="DomainEventInterceptor"/> to publish (via
+/// <c>Rask.Cqrs</c>) after the change commits. <see cref="Entity{TId}"/> implements this for free.
 /// </summary>
 public interface IHasDomainEvents
 {
-    /// <summary>The events raised since the aggregate was loaded, in the order they were raised.</summary>
+    /// <summary>The events raised since the entity was loaded, in the order they were raised.</summary>
     IReadOnlyList<INotification> DomainEvents { get; }
 
     /// <summary>Clears the recorded events (called by the interceptor after they are published).</summary>

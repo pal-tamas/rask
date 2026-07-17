@@ -356,7 +356,7 @@ public sealed class GenerateCommandTests
 
         Assert.Equal(0, exit);
         var entity = fs.Files.Single(f => Path.GetFileName(f.Key) == "Product.cs").Value;
-        Assert.Contains("public sealed class Product : AggregateRoot<int>", entity, StringComparison.Ordinal);
+        Assert.Contains("public sealed class Product : Entity<int>", entity, StringComparison.Ordinal);
     }
 
     [Fact]

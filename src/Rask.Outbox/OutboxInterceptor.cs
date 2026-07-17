@@ -5,7 +5,7 @@ using Rask.Data;
 namespace Rask.Outbox;
 
 /// <summary>
-/// Before each save, drains every tracked aggregate's <see cref="IOutboxEvent"/> domain events into
+/// Before each save, drains every tracked entity's <see cref="IOutboxEvent"/> domain events into
 /// <see cref="OutboxMessage"/> rows on the same <see cref="DbContext"/> — so the events commit in the same
 /// transaction as the change that raised them (atomic; a rolled-back change writes no messages). The
 /// background <see cref="OutboxProcessor{TContext}"/> publishes them afterwards.
