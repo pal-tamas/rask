@@ -269,6 +269,12 @@ them until tagged releases begin.
 - **`rask deploy --help` stated the wrong default for `--health-path`.** It read `(default: /)` while the
   probe actually uses `/health` (as `docs/cli.md` documents), so anyone trusting `--help` would think an
   app without a root-path readiness route needed the flag when it didn't.
+- **`rask generate page --no-restore` (and any other feature-only option) is now rejected instead of silently
+  accepted.** The guard that keeps feature options off a page/component/job/email was a hand-kept list that had
+  drifted from the option schema, so `--no-restore` — declared as a feature option — slipped through and did
+  nothing. The check now derives from the schema's own grouping, which closes the drift for good. The message
+  also names only the options you actually passed (`--no-restore only applies to 'generate feature'.`) rather
+  than reciting all thirteen.
 - **`Rask.Outbox` now delivers nested `IOutboxEvent` types.** The source generator registers each event by
   its dot-separated display name, but `OutboxSerializerRegistry.Serialize` stored `Type.FullName` — which
   uses `+` between a nesting type and a nested type — so a nested event (a record declared inside a class)

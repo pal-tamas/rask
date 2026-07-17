@@ -32,8 +32,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
     public override string Summary => "Scaffold a page, component, CRUD feature, background job, or email into the current project.";
 
+    // The shape only — the option list lives in the schema, which --help renders directly. Spelling the
+    // flags out here is what let this string go stale before.
     public override string Usage =>
-        "rask generate <page|component|feature|job|email> <Name> [<field:type> ...] [--id guid|int|long] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
+        "rask generate <page|component|feature|job|email> <Name> [<field:type> ...] [options]";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
     [
@@ -76,6 +78,22 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Flag("tests", description: "Generate a sibling <Project>.Tests project with domain + persistence tests.", group: FeatureGroup)
             .Flag("no-restore", description: "Write files without adding packages or restoring.", group: FeatureGroup)
             .Flag("save-defaults", description: "Remember this run's feature flags in .rask/generate.json for next time.", group: FeatureGroup);
+
+    /// <summary>The feature-only options this run actually supplied, in declaration order.</summary>
+    private static List<string> FeatureOnly(ArgumentSchema schema, ParsedArguments parsed) =>
+        schema.Declared
+            .Where(o => o.Group == FeatureGroup)
+            .Where(o => o.IsFlag ? parsed.HasFlag(o.LongName) : parsed.Option(o.LongName) is not null)
+            .Select(o => "--" + o.LongName)
+            .ToList();
+
+    /// <summary>"--a" / "--a and --b" / "--a, --b, and --c".</summary>
+    private static string Humanize(IReadOnlyList<string> items) => items.Count switch
+    {
+        1 => items[0],
+        2 => $"{items[0]} and {items[1]}",
+        _ => $"{string.Join(", ", items.Take(items.Count - 1))}, and {items[^1]}",
+    };
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -130,14 +148,12 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             }
         }
 
-        if (kind != "feature"
-            && (parsed.Option("fields") is not null || parsed.Option("context") is not null
-                || parsed.Option("plural") is not null || parsed.Option("id") is not null
-                || parsed.Option("validation") is not null || parsed.HasFlag("bs") || parsed.HasFlag("modal")
-                || parsed.HasFlag("soft-delete") || parsed.HasFlag("concurrency") || parsed.HasFlag("events")
-                || parsed.HasFlag("outbox") || parsed.HasFlag("tests") || parsed.HasFlag("save-defaults")))
+        // Derived from the schema's own grouping rather than a hand-kept list, so a new feature option can't
+        // be forgotten here (--no-restore was, and slipped through on a page for exactly that reason).
+        if (kind != "feature" && FeatureOnly(schema, parsed) is { Count: > 0 } misapplied)
         {
-            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, --bs, --modal, --soft-delete, --concurrency, --events, --outbox, --tests, and --save-defaults only apply to 'generate feature'.");
+            var verb = misapplied.Count == 1 ? "applies" : "apply";
+            Console.Error.WriteLine($"{Humanize(misapplied)} only {verb} to 'generate feature'.");
             return 1;
         }
 
@@ -234,38 +250,44 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 return true;
 
             default: // feature
-                // Fields are positional: `generate feature Product Name:string Price:decimal`. The legacy
-                // `--fields "Name:string,Price:decimal"` form still works, but not both at once.
-                var positionalFields = parsed.Positionals.Skip(1).ToArray();
+                // Fields and relationships are positional: `generate feature Post Title:string 1:n Comment Body:text`.
+                // The legacy `--fields "Title:string,1:n,Comment,Body:text"` form still works, but not both at once.
+                var positionalTokens = parsed.Positionals.Skip(1).ToArray();
                 var fieldsOption = parsed.Option("fields");
-                if (positionalFields.Length > 0 && fieldsOption is not null)
+                if (positionalTokens.Length > 0 && fieldsOption is not null)
                 {
                     result = null!;
                     error = "Specify fields positionally (e.g. Name:string Price:decimal) or with --fields, not both.";
                     return false;
                 }
 
-                // Positional tokens use the same grammar as one --fields entry, so join them and reuse the parser.
-                var fieldsSpec = positionalFields.Length > 0 ? string.Join(",", positionalFields) : fieldsOption;
-                if (string.IsNullOrWhiteSpace(fieldsSpec))
+                // --fields is the same token stream, comma-separated — so relationships work in both forms.
+                var tokens = positionalTokens.Length > 0
+                    ? positionalTokens
+                    : (fieldsOption ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                if (tokens.Length == 0)
                 {
                     result = null!;
                     error = "'generate feature' needs fields, e.g. rask generate feature Product Name:string Price:decimal.";
                     return false;
                 }
 
-                if (!FieldSpecParser.TryParse(fieldsSpec, out var fields, out var fieldError))
+                if (!FeatureSpecParser.TryParse(name, parsed.Option("plural"), tokens, out var spec, out var specError))
                 {
                     result = null!;
-                    error = fieldError;
+                    error = specError;
                     return false;
                 }
 
-                var collision = fields.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-                if (collision is not null)
+                // The grammar parses and validates ahead of the emitter that will consume it. Refuse rather
+                // than generate the root and drop the targets on the floor — silently discarding what was
+                // asked for is worse than not supporting it yet.
+                if (spec.Relationships.Count > 0)
                 {
+                    var relationship = spec.Relationships[0];
                     result = null!;
-                    error = $"Field '{collision.Name}' can't share the entity's name '{name}' (a member can't match its type).";
+                    error = $"Relationships aren't generated yet — '{relationship.Token} {relationship.To.Name}' parses, but emitting it isn't implemented. Scaffold the entities separately for now.";
                     return false;
                 }
 
@@ -295,16 +317,27 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     return false;
                 }
 
-                // --modal puts create/update in a BsModal on the list page, so it implies --bs.
-                var useModal = parsed.HasFlag("modal") || (config.Modal ?? false);
-                var useBs = useModal || parsed.HasFlag("bs") || (config.Bs ?? false);
-                var softDelete = parsed.HasFlag("soft-delete") || (config.SoftDelete ?? false);
-                var concurrency = parsed.HasFlag("concurrency") || (config.Concurrency ?? false);
-                var events = parsed.HasFlag("events") || (config.Events ?? false);
-                var outbox = parsed.HasFlag("outbox") || (config.Outbox ?? false);
-                var tests = parsed.HasFlag("tests") || (config.Tests ?? false);
+                // A flag set here or defaulted on in .rask/generate.json turns the option on; explicit wins.
+                bool Flag(string longName, bool? configured) => parsed.HasFlag(longName) || (configured ?? false);
 
-                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, useBs, useModal, softDelete, concurrency, events, outbox, tests, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
+                // --modal puts create/update in a BsModal on the list page, so it implies --bs.
+                var useModal = Flag("modal", config.Modal);
+                var options = new FeatureOptions
+                {
+                    IdType = idType,
+                    Validation = validation,
+                    UseModal = useModal,
+                    UseBs = useModal || Flag("bs", config.Bs),
+                    UseSoftDelete = Flag("soft-delete", config.SoftDelete),
+                    UseConcurrency = Flag("concurrency", config.Concurrency),
+                    UseEvents = Flag("events", config.Events),
+                    UseOutbox = Flag("outbox", config.Outbox),
+                    UseTests = Flag("tests", config.Tests),
+                    ContextOverride = parsed.Option("context"),
+                    OutputOverride = parsed.Option("output"),
+                };
+
+                result = FeatureGenerator.Generate(project, _workingDirectory, spec, options);
                 return true;
         }
     }

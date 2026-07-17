@@ -16,32 +16,32 @@ internal static class FeatureGenerator
     public static ScaffoldResult Generate(
         ProjectContext project,
         string baseDirectory,
-        string entityName,
-        IReadOnlyList<FieldSpec> fields,
-        string idType,
-        string validation,
-        bool useBs,
-        bool useModal,
-        bool useSoftDelete,
-        bool useConcurrency,
-        bool useEvents,
-        bool useOutbox,
-        bool useTests,
-        string? contextOverride,
-        string? pluralOverride,
-        string? outputOverride)
+        FeatureSpec spec,
+        FeatureOptions options)
     {
-        // Both flags raise domain events on the entity; --outbox additionally routes them through the
-        // durable outbox (the events then implement IOutboxEvent). Either flag turns the event machinery on.
-        var useDomainEvents = useEvents || useOutbox;
-        var plural = pluralOverride ?? Pluralizer.Pluralize(entityName);
+        // spec.Relationships is parsed and validated but not yet emitted — relationship rendering lands in a
+        // later slice. Until then a run generates its root exactly as before.
+        var entityName = spec.Root.Name;
+        var fields = spec.Root.Fields;
+        var plural = spec.Root.Plural;
+
+        var idType = options.IdType;
+        var validation = options.Validation;
+        var useBs = options.UseBs;
+        var useModal = options.UseModal;
+        var useSoftDelete = options.UseSoftDelete;
+        var useConcurrency = options.UseConcurrency;
+        var useOutbox = options.UseOutbox;
+        var useTests = options.UseTests;
+        var useDomainEvents = options.UseDomainEvents;
+        var useValueObjects = options.UseValueObjects;
+
         var route = Identifiers.ToRoutePath(plural);
         var idConstraint = idType == "Guid" ? "guid" : idType;
-        var generateContext = contextOverride is null;
-        var context = contextOverride ?? plural + "DbContext";
-        var useValueObjects = validation == "valueobjects";
+        var generateContext = options.ContextOverride is null;
+        var context = options.ContextOverride ?? plural + "DbContext";
 
-        var targetDirectory = Scaffold.TargetDirectory(baseDirectory, outputOverride, "Features", plural);
+        var targetDirectory = Scaffold.TargetDirectory(baseDirectory, options.OutputOverride, "Features", plural);
         var ns = project.NamespaceFor(targetDirectory);
 
         var tokens = new (string, string)[]
