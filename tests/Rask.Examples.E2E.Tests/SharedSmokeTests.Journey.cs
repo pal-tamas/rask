@@ -54,6 +54,22 @@ public abstract partial class SharedSmokeTests
         // reload happened and the SPA context survived).
         await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
 
+        // Theme toggle: the navbar toggle flips BOTH data-theme and data-bs-theme on <html> together (the
+        // raw-token layer + the Bootstrap bridge stay in lockstep). Toggle, assert the flip, then toggle
+        // back so the rest of the journey runs at the original theme.
+        var themeToggle = Page.Locator("nav button:has(.bi-circle-half)").First;
+        var themeBefore = await Page.EvaluateAsync<string>(
+            "() => document.documentElement.getAttribute('data-bs-theme') || ''");
+        await themeToggle.ClickAsync();
+        await Page.WaitForFunctionAsync(
+            "p => { const t = document.documentElement.getAttribute('data-bs-theme');"
+            + " return t && t !== p && document.documentElement.getAttribute('data-theme') === t; }",
+            themeBefore, new PageWaitForFunctionOptions { Timeout = 15_000 });
+        await themeToggle.ClickAsync();
+        await Page.WaitForFunctionAsync(
+            "p => document.documentElement.getAttribute('data-bs-theme') === p",
+            themeBefore, new PageWaitForFunctionOptions { Timeout = 15_000 });
+
         await TestSidebarNavAsync();
         await WalkUserComponentsGuideAsync();
         await TestCompositionGuideAsync();

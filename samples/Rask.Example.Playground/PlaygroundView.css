@@ -15,20 +15,24 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 0.6rem 1rem;
-    background: var(--pg-bar, #1e1e2e);
-    color: #f5f5ff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--panel-2);
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
 }
 
 .pg-brand {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-weight: 600;
+    font-family: var(--mono);
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
-.pg-bolt {
-    color: #c4b5fd;
+.pg-mark {
+    width: 22px;
+    height: 22px;
+    display: block;
 }
 
 .pg-title {
@@ -38,82 +42,21 @@
 .pg-actions {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
 }
 
 .pg-phase {
     font-size: 0.8125rem;
-    opacity: 0.75;
+    color: var(--muted);
     font-variant-numeric: tabular-nums;
 }
 
-.pg-run {
-    border: 0;
-    border-radius: 6px;
-    padding: 0.45rem 1.1rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #fff;
-    background: #7c3aed;
-    cursor: pointer;
-    transition: background 0.15s ease;
-}
-
-.pg-run:hover {
-    background: #6d28d9;
-}
-
-.pg-run.is-busy,
-.pg-run[disabled] {
-    background: #4c1d95;
-    cursor: default;
-}
-
-.pg-reset {
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 6px;
-    padding: 0.4rem 0.85rem;
-    font-weight: 500;
-    font-size: 0.85rem;
-    color: #e5e5f5;
-    background: transparent;
-    cursor: pointer;
-    transition: background 0.15s ease;
-}
-
-.pg-reset:hover {
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.pg-reset[disabled] {
-    opacity: 0.4;
-    cursor: default;
-}
-
-/* IntelliSense/diagnostics readiness pill next to the title. */
+/* Reset / Run / Docs / GitHub / theme-toggle are Bs* buttons (BsButton / BsLink) — Bootstrap styles
+   them via the shared --bs-* token bridge, so there are no bespoke .pg-run / .pg-reset rules. The
+   .pg-run class stays purely as a hook for the Ctrl/Cmd+Enter shortcut + the E2E. The IntelliSense
+   readiness pill is a BsBadge (.pg-ide is just a positioning hook). */
 .pg-ide {
-    font-size: 0.68rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.12rem 0.5rem;
-    border-radius: 999px;
-    border: 1px solid transparent;
-}
-
-.pg-ide.is-loading {
-    color: #c4b5fd;
-    border-color: rgba(196, 181, 253, 0.4);
-}
-
-.pg-ide.is-ready {
-    color: #86efac;
-    border-color: rgba(134, 239, 172, 0.4);
-}
-
-.pg-ide.is-off {
-    color: #fca5a5;
-    border-color: rgba(252, 165, 165, 0.4);
 }
 
 .pg-body {
@@ -128,17 +71,18 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    background: #181825;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--panel);
+    border-right: 1px solid var(--line);
 }
 
 .pg-examples-head {
     padding: 0.55rem 1rem;
+    font-family: var(--mono);
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #a1a1c0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
 }
 
 .pg-example-list {
@@ -158,19 +102,19 @@
     border: 1px solid transparent;
     border-radius: 8px;
     padding: 0.55rem 0.7rem;
-    color: #e6e6f0;
-    background: rgba(255, 255, 255, 0.02);
+    color: var(--ink);
+    background: transparent;
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .pg-example:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .pg-example.is-active {
-    background: rgba(124, 58, 237, 0.18);
-    border-color: rgba(124, 58, 237, 0.55);
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 .pg-example[disabled] {
@@ -186,7 +130,7 @@
 .pg-example-blurb {
     font-size: 0.74rem;
     line-height: 1.35;
-    color: #a1a1c0;
+    color: var(--muted);
 }
 
 @media (max-width: 900px) {
@@ -198,7 +142,7 @@
     /* Collapse the gallery into a horizontal strip so the editor keeps the full width below it. */
     .pg-examples {
         border-right: 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: 1px solid var(--line);
     }
 
     .pg-example-list {
@@ -241,10 +185,14 @@
     outline: none;
 }
 
+/* The preview ("output") pane is a fixed light "paper" with fixed dark text in BOTH themes, so a
+   user-authored component always renders readably regardless of the global light/dark choice — the
+   chrome around it themes, the canvas the user's component paints on stays a stable surface. */
 .pg-output {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    color: #1f2430;
     background: #faf9fe;
 }
 

@@ -43,8 +43,33 @@
           type="image/svg+xml"/>
     <!-- PWA: the <link rel="manifest"> + <meta name="theme-color"> are injected at boot from the typed
          WebAppManifest (host.UseManifest in Program.cs). The service worker is registered below. -->
+    <!-- Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
+         across the site/docs/playground on this origin) or the OS preference, BEFORE the boot screen or
+         any stylesheet paints — so there's no flash of the wrong theme. The WASM full-document morph
+         (boot AND every cross-route nav) strips these attributes off <html>, so we also re-apply the
+         SAVED choice from window.raskAfterMorph; a no-choice visitor is left attribute-less so the page
+         keeps auto-following the OS theme via prefers-color-scheme. Mirrors App.cs's SSR snippet. -->
+    <script>
+        (function () {
+            var d = document.documentElement;
+            function apply(t) {
+                d.setAttribute('data-theme', t);
+                d.setAttribute('data-bs-theme', t);
+            }
+            var saved = localStorage.getItem('rask-theme');
+            apply(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+            var prev = window.raskAfterMorph;
+            window.raskAfterMorph = function () {
+                var s = localStorage.getItem('rask-theme');
+                if (s) apply(s);
+                if (typeof prev === 'function') prev();
+            };
+        })();
+    </script>
     <style id="rask-scoped"></style>
     <style>
+        /* Dark-first boot screen so there's no white flash before the (dark-first) app paints; the light
+           override matches an explicit light theme chosen via the toggle. */
         .rask-boot {
             position: fixed;
             inset: 0;
@@ -54,8 +79,13 @@
             justify-content: center;
             gap: 1.25rem;
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            color: #c4b5fd;
+            background: #0b0b12;
+        }
+
+        :root[data-theme="light"] .rask-boot {
             color: #512BD4;
-            background: #faf9fe;
+            background: #fbfbfe;
         }
 
         .rask-boot svg {
