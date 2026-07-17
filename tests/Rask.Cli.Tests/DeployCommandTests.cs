@@ -116,9 +116,49 @@ public sealed class DeployCommandTests
         return new DeployCommand(console, fs, runner, WorkingDir) { ReadinessDelay = TimeSpan.Zero, ReadinessAttempts = 1 };
     }
 
-    /// <summary>A capture handler for the domain flow: ok preflight, a given `docker ps` listing, container up.</summary>
-    private static Func<IReadOnlyList<string>, ProcessResult> Captures(string psListing) => args =>
-        args.Contains("ps") ? new ProcessResult(0, psListing, string.Empty)
+    /// <summary>
+    /// A host that's already set up, as the probe would report it. Every deploy test that isn't
+    /// *about* host setup starts from one, so the bootstrap path stays a no-op and the assertions are
+    /// about deploying.
+    /// </summary>
+    internal const string ReadyHostProbe = """
+        user=deploy
+        uid=1000
+        systemd=yes
+        docker=yes
+        dockerok=yes
+        dockergroup=yes
+        sudo=yes
+        apt=yes
+        ufw=yes
+        ufwactive=active
+        sshinclude=yes
+        sshdread=yes
+        sshport=22
+        sshrootlogin=no
+        sshpasswordauth=no
+        sshkbdauth=no
+        end=ok
+        """;
+
+    /// <summary>The command's own option schema — the same one --help and completion render from.</summary>
+    private static ArgumentSchema Schema() =>
+        new DeployCommand(new StringConsole(), new FakeFileSystem(), new FakeProcessRunner(), WorkingDir).OptionSchema!;
+
+    /// <summary>Either host-setup gate: docker-capable before the risky steps, reachable after.</summary>
+    internal static bool IsHostVerify(IReadOnlyList<string> args) =>
+        args.Count > 0
+        && (string.Equals(args[^1], HostSetup.VerifyScript, StringComparison.Ordinal)
+            || string.Equals(args[^1], HostSetup.ReachableScript, StringComparison.Ordinal));
+
+    /// <summary>The host probe is the ssh invocation whose last argument is the probe script.</summary>
+    internal static bool IsHostProbe(IReadOnlyList<string> args) =>
+        args.Count > 0 && string.Equals(args[^1], HostProbe.ProbeScript, StringComparison.Ordinal);
+
+    /// <summary>A capture handler for the deploy flow: a ready host, a given `docker ps` listing, container up.</summary>
+    private static Func<IReadOnlyList<string>, ProcessResult> Captures(string psListing = "") => args =>
+        IsHostProbe(args) ? new ProcessResult(0, ReadyHostProbe, string.Empty)
+        : args.Contains("ps") ? new ProcessResult(0, psListing, string.Empty)
         : args.Contains("inspect") ? new ProcessResult(0, "true\n", string.Empty)
         : new ProcessResult(0, string.Empty, string.Empty);
 
@@ -170,7 +210,7 @@ public sealed class DeployCommandTests
     public async Task Port_mode_publishes_the_port_and_persists_config()
     {
         var fs = new FakeFileSystem();
-        var runner = new FakeProcessRunner { CaptureResult = new ProcessResult(0, "true\n", string.Empty) };
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
         var console = new StringConsole();
         var command = Create(fs, runner, console);
 
@@ -189,7 +229,7 @@ public sealed class DeployCommandTests
         var fs = new FakeFileSystem();
         fs.Seed("/proj/src/Shop/Dockerfile", "FROM scratch"); // --project points here
         fs.Seed("/proj/.env.prod", "DB=postgres\n");
-        var runner = new FakeProcessRunner { CaptureResult = new ProcessResult(0, "true\n", string.Empty) };
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
         var command = Create(fs, runner, new StringConsole());
 
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--project", "src/Shop", "--env-file", "/proj/.env.prod"], CancellationToken.None);
@@ -265,7 +305,7 @@ public sealed class DeployCommandTests
     {
         var fs = new FakeFileSystem();
         fs.Seed("/proj/.env.prod", "# comment\nDB=postgres\n\nTOKEN=abc\n");
-        var runner = new FakeProcessRunner { CaptureResult = new ProcessResult(0, "true\n", string.Empty) };
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
         var command = Create(fs, runner, new StringConsole());
 
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--env-file", "/proj/.env.prod", "--env", "EXTRA=1"], CancellationToken.None);
@@ -336,7 +376,8 @@ public sealed class DeployCommandTests
         {
             // ps returns the existing blue; inspect reports the new container never became Running.
             CaptureHandler = args =>
-                args.Contains("ps") ? new ProcessResult(0, "demo-blue\tdemo\tdemo.example.com\tblue\n", string.Empty)
+                IsHostProbe(args) ? new ProcessResult(0, ReadyHostProbe, string.Empty)
+                : args.Contains("ps") ? new ProcessResult(0, "demo-blue\tdemo\tdemo.example.com\tblue\n", string.Empty)
                 : args.Contains("inspect") ? new ProcessResult(0, "false\n", string.Empty)
                 : new ProcessResult(0, string.Empty, string.Empty),
         };
@@ -357,7 +398,7 @@ public sealed class DeployCommandTests
     {
         var fs = new FakeFileSystem();
         new DeployConfig { Host = "deploy@box", Name = "shop", Port = 9000 }.Save(fs, WorkingDir);
-        var runner = new FakeProcessRunner { CaptureResult = new ProcessResult(0, "true\n", string.Empty) };
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
         var command = Create(fs, runner, new StringConsole());
 
         var exit = await command.ExecuteAsync([], CancellationToken.None);
@@ -490,7 +531,7 @@ public sealed class DeployCommandTests
         var fs = new FakeFileSystem();
         var runner = new FakeProcessRunner
         {
-            CaptureResult = new ProcessResult(0, "true\n", string.Empty),          // container running
+            CaptureHandler = Captures(),                                            // ready host, container running
             RunHandler = args => args.Contains("curlimages/curl:8.11.1") ? 1 : 0,   // the probe fails
         };
         var console = new StringConsole();
@@ -501,6 +542,287 @@ public sealed class DeployCommandTests
         Assert.Equal(1, exit);
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("logs"));
         Assert.Contains("health check", console.ErrorText);
+    }
+
+    // ── Host setup (see HostSetupTests for the bootstrap flow itself) ───────────────────────────────
+
+    /// <summary>A bare VPS: root over SSH and nothing else.</summary>
+    private const string BareHostProbe = """
+        user=root
+        uid=0
+        systemd=yes
+        docker=no
+        dockerok=no
+        dockergroup=no
+        sudo=root
+        apt=yes
+        ufw=no
+        ufwactive=
+        sshinclude=yes
+        sshdread=yes
+        sshport=22
+        sshrootlogin=yes
+        sshpasswordauth=yes
+        sshkbdauth=yes
+        end=ok
+        """;
+
+    [Fact]
+    public async Task Setting_up_a_bare_box_remembers_the_new_login_not_the_one_we_were_given()
+    {
+        // The deploy user replaces root, and root SSH is then disabled — so persisting "root@box"
+        // would break every later deploy.
+        var fs = new FakeFileSystem();
+        var console = new StringConsole { InputLines = ["y"] };
+        var runner = new FakeProcessRunner
+        {
+            CaptureHandler = args =>
+                IsHostProbe(args) ? new ProcessResult(0, BareHostProbe, string.Empty)
+                : args.Contains("inspect") ? new ProcessResult(0, "true\n", string.Empty)
+                : IsHostVerify(args) ? new ProcessResult(0, "rask-ok\n", string.Empty)
+                : new ProcessResult(0, string.Empty, string.Empty),
+        };
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "root@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("\"host\": \"deploy@box\"", fs.ReadAllText("/proj/.rask/deploy.json"), StringComparison.Ordinal);
+        // And the deploy itself must have gone to the new login too.
+        Assert.Contains(runner.Invocations, i => i.FileName == "docker" && i.Arguments.Contains("ssh://deploy@box"));
+        Assert.DoesNotContain(runner.Invocations, i => i.FileName == "docker" && i.Arguments.Contains("ssh://root@box"));
+    }
+
+    [Fact]
+    public async Task The_new_login_is_remembered_even_when_the_build_then_fails()
+    {
+        // Host setup is irreversible from here: root SSH is now off, so `--host root@box` will never
+        // work again. If the build fails (a broken Dockerfile — the likeliest first-deploy outcome) and
+        // we hadn't persisted, `rask deploy` would say "no host" and `--host root@box` would be
+        // refused by the box: locked out by a tool that forgot what it did.
+        var fs = new FakeFileSystem();
+        var console = new StringConsole { InputLines = ["y"] };
+        var runner = new FakeProcessRunner
+        {
+            CaptureHandler = args =>
+                IsHostProbe(args) ? new ProcessResult(0, BareHostProbe, string.Empty)
+                : IsHostVerify(args) ? new ProcessResult(0, "rask-ok\n", string.Empty)
+                : new ProcessResult(0, string.Empty, string.Empty),
+            RunHandler = args => args.Contains("build") ? 1 : 0, // the Docker build fails
+        };
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "root@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("\"host\": \"deploy@box\"", fs.ReadAllText("/proj/.rask/deploy.json"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_bare_box_without_a_terminal_fails_before_docker_is_touched()
+    {
+        var console = new StringConsole(); // piped: nobody to confirm with
+        var runner = new FakeProcessRunner
+        {
+            CaptureHandler = args => IsHostProbe(args) ? new ProcessResult(0, BareHostProbe, string.Empty) : new ProcessResult(0, string.Empty, string.Empty),
+        };
+        var command = Create(new FakeFileSystem(), runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "root@box", "--name", "shop"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("--setup-host", console.ErrorText, StringComparison.Ordinal);
+        Assert.DoesNotContain(runner.Invocations, i => i.FileName == "docker" && i.Arguments.Contains("build"));
+    }
+
+    [Fact]
+    public async Task A_host_that_would_be_read_as_an_ssh_option_is_refused()
+    {
+        // ssh can't tell a destination from an option, so "-oProxyCommand=…" as a host runs that
+        // command on THIS machine — and the host comes from the *committed* .rask/deploy.json, so a
+        // hostile value could arrive by pull request and own anyone who deploys (or the CI runner).
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.rask/deploy.json", """{"host":"-oProxyCommand=touch /tmp/pwned","name":"shop","port":9000}""");
+        var runner = new FakeProcessRunner();
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("would be read as an ssh option", console.ErrorText, StringComparison.Ordinal);
+        Assert.Empty(runner.Invocations); // nothing was launched at all
+    }
+
+    [Fact]
+    public async Task The_live_url_names_the_machine_not_the_ssh_port()
+    {
+        // "http://box:2222:9000" is not a URL. The SSH port has nothing to do with the app's.
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var console = new StringConsole();
+        var command = Create(new FakeFileSystem(), runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box:2222", "--name", "shop", "--port", "9000"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("http://box:9000", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("box:2222:9000", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(new[] { "--setup-host", "--no-setup-host" }, "contradict")]
+    [InlineData(new[] { "--no-deploy-user", "--deploy-user", "svc" }, "doesn't apply")]
+    [InlineData(new[] { "--deploy-user", "root; rm -rf /" }, "isn't a valid Linux user name")]
+    [InlineData(new[] { "--deploy-user", "1bad" }, "isn't a valid Linux user name")]
+    public async Task Contradictory_or_unusable_setup_flags_are_rejected_before_we_connect(string[] flags, string expected)
+    {
+        var runner = new FakeProcessRunner();
+        var console = new StringConsole();
+        var command = Create(new FakeFileSystem(), runner, console);
+
+        var exit = await command.ExecuteAsync([.. new[] { "--host", "root@box", "--name", "shop" }, .. flags], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains(expected, console.ErrorText, StringComparison.Ordinal);
+        Assert.Empty(runner.Invocations); // nothing reached the network
+    }
+
+    [Fact]
+    public void Setup_flags_default_to_preparing_the_box_fully()
+    {
+        var parsed = Schema().Parse(["--host", "root@box"]);
+
+        Assert.True(DeployCommand.TryResolveSetup(parsed, out var mode, out var options, out _));
+        Assert.Equal(SetupMode.Ask, mode);
+        Assert.Equal("deploy", options.DeployUser);
+        Assert.True(options.Firewall);
+        Assert.True(options.HardenSsh);
+    }
+
+    [Fact]
+    public void Each_setup_step_can_be_opted_out_of_individually()
+    {
+        var parsed = Schema().Parse(["--no-deploy-user", "--no-firewall", "--no-harden-ssh", "--setup-host"]);
+
+        Assert.True(DeployCommand.TryResolveSetup(parsed, out var mode, out var options, out _));
+        Assert.Equal(SetupMode.Forced, mode);
+        Assert.Null(options.DeployUser);
+        Assert.False(options.Firewall);
+        Assert.False(options.HardenSsh);
+    }
+
+    // ── GitHub Actions ──────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Github_actions_writes_a_workflow_and_names_the_secrets_to_set()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner();
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box.example.com", "--name", "shop", "--github-actions"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(runner.Invocations); // pure scaffolding — works offline, before the box exists
+        var workflow = fs.ReadAllText("/proj/.github/workflows/deploy.yml");
+        Assert.Contains("rask deploy --no-setup-host", workflow, StringComparison.Ordinal);
+        Assert.Contains("cancel-in-progress: false", workflow, StringComparison.Ordinal);
+        Assert.Contains("gh secret set RASK_SSH_PRIVATE_KEY", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("ssh-keyscan box.example.com", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Github_actions_writes_the_config_the_workflow_will_read()
+    {
+        // The workflow resolves host/domain from .rask/deploy.json. Generating a workflow before the
+        // first successful deploy — the obvious order to work in — would otherwise emit a job that
+        // fails on its first run with "No host to deploy to".
+        var fs = new FakeFileSystem();
+        var command = Create(fs, new FakeProcessRunner(), new StringConsole());
+
+        var exit = await command.ExecuteAsync(
+            ["--host", "deploy@box.example.com", "--domain", "shop.example.com", "--name", "shop", "--github-actions"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var config = fs.ReadAllText("/proj/.rask/deploy.json");
+        Assert.Contains("\"host\": \"deploy@box.example.com\"", config, StringComparison.Ordinal);
+        Assert.Contains("\"domain\": \"shop.example.com\"", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Github_actions_dry_run_writes_no_config_either()
+    {
+        var fs = new FakeFileSystem();
+        var command = Create(fs, new FakeProcessRunner(), new StringConsole());
+
+        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--github-actions", "--dry-run"], CancellationToken.None);
+
+        Assert.False(fs.FileExists("/proj/.rask/deploy.json"));
+    }
+
+    [Fact]
+    public async Task The_keyscan_hint_passes_a_custom_ssh_port_as_a_flag_not_part_of_the_host()
+    {
+        // `ssh-keyscan box:2222` scans nothing, so RASK_SSH_KNOWN_HOSTS would be set to an empty
+        // string and every CI deploy would fail host-key verification.
+        var console = new StringConsole();
+        var command = Create(new FakeFileSystem(), new FakeProcessRunner(), console);
+
+        await command.ExecuteAsync(["--host", "deploy@box.example.com:2222", "--name", "shop", "--github-actions"], CancellationToken.None);
+
+        Assert.Contains("ssh-keyscan -p 2222 box.example.com", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("box.example.com:2222 2>", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Github_actions_never_provisions_the_host_from_ci()
+    {
+        // A box that isn't ready must fail the job, not be silently reconfigured from a runner.
+        var fs = new FakeFileSystem();
+        var command = Create(fs, new FakeProcessRunner(), new StringConsole());
+
+        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--github-actions"], CancellationToken.None);
+
+        // Every line the runner actually executes must opt out of host setup. Comments may still
+        // mention `rask deploy --setup-host` — that's the instruction to run it from your own machine.
+        var executable = fs.ReadAllText("/proj/.github/workflows/deploy.yml")
+            .Split('\n')
+            .Select(l => l.Trim())
+            .Where(l => !l.StartsWith('#') && l.Contains("rask deploy", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.NotEmpty(executable);
+        Assert.All(executable, line => Assert.Contains("--no-setup-host", line, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Github_actions_dry_run_prints_the_workflow_without_writing_it()
+    {
+        var fs = new FakeFileSystem();
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner(), console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--github-actions", "--dry-run"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.False(fs.FileExists("/proj/.github/workflows/deploy.yml"));
+        Assert.Contains("name: Deploy", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Github_actions_wont_overwrite_a_workflow_youve_edited()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.github/workflows/deploy.yml", "# mine, hand-tuned");
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner(), console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--github-actions"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Equal("# mine, hand-tuned", fs.ReadAllText("/proj/.github/workflows/deploy.yml"));
+        Assert.Contains("already exists", console.ErrorText, StringComparison.Ordinal);
     }
 }
 

@@ -42,26 +42,20 @@ public sealed class DockerProbeTests
     }
 
     [Fact]
-    public async Task CanReachHost_probes_the_remote_daemon_over_ssh()
+    public async Task EnsureLocal_names_a_command_to_run_not_just_a_page_to_read()
     {
-        var runner = new FakeProcessRunner { CaptureResult = new ProcessResult(0, string.Empty, string.Empty) };
-
-        var ok = await DockerProbe.CanReachHostAsync(runner, new StringConsole(), "deploy@box", CancellationToken.None);
-
-        Assert.True(ok);
-        Assert.Contains(runner.Invocations, i => i is { Captured: true, Arguments: ["-H", "ssh://deploy@box", "version"] });
-    }
-
-    [Fact]
-    public async Task CanReachHost_false_with_ssh_and_daemon_guidance_on_failure()
-    {
-        var runner = new FakeProcessRunner { CaptureResult = new ProcessResult(1, string.Empty, "connection refused") };
+        var runner = new FakeProcessRunner { CaptureResult = new ProcessResult(127, string.Empty, "not found") };
         var console = new StringConsole();
 
-        var ok = await DockerProbe.CanReachHostAsync(runner, console, "deploy@box", CancellationToken.None);
+        await DockerProbe.EnsureLocalAsync(runner, console, CancellationToken.None);
 
-        Assert.False(ok);
-        Assert.Contains("ssh deploy@box", console.ErrorText);
-        Assert.Contains("docker", console.ErrorText, StringComparison.OrdinalIgnoreCase);
+        // Whichever platform the tests run on, the hint must be actionable.
+        Assert.Contains("docker.com/get-docker", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains(
+            new[] { "brew install", "winget install", "get.docker.com | sh" },
+            hint => console.ErrorText.Contains(hint, StringComparison.Ordinal));
     }
+
+    // Remote reachability is no longer DockerProbe's job — HostProbe covers it in the same round-trip
+    // and can tell "Docker isn't installed" from "you're not in the docker group". See HostProbeTests.
 }

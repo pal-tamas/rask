@@ -1,11 +1,21 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 
 namespace Rask.Cli;
 
 /// <summary>
-/// Detects the Docker CLI that <c>rask deploy</c> drives, and checks that a remote host's Docker daemon
-/// is reachable over SSH. Unlike the EF tools (<see cref="EfToolProbe"/>), Docker is a heavyweight system
-/// dependency we never auto-install — a missing docker prints install guidance and stops.
+/// Detects the local Docker CLI that <c>rask deploy</c> drives.
+///
+/// <para><strong>We never auto-install Docker here</strong>, and unlike the EF tools
+/// (<see cref="EfToolProbe"/>) that isn't inconsistency: on a developer machine Docker means Docker
+/// Desktop or a system package manager, and silently installing either onto someone's laptop isn't
+/// ours to do. A missing local docker prints the right command for the platform and stops.</para>
+///
+/// <para>The <em>remote</em> host is the opposite case, and <see cref="HostBootstrap"/> does install
+/// Docker there: the box is precisely the thing the user is asking <c>rask deploy</c> to manage, and
+/// making them SSH in to prepare it by hand is the seam this tool exists to close. Reachability is no
+/// longer checked here either — <see cref="HostProbe"/> covers it in the same round-trip, and can tell
+/// the four failure modes apart.</para>
 /// </summary>
 internal static class DockerProbe
 {
@@ -29,26 +39,31 @@ internal static class DockerProbe
             return true;
         }
 
+        // Nothing is built locally — the build context ships to the host's daemon — but the CLI is
+        // still the client for every `docker -H ssh://` call, so it has to be here.
         console.Error.WriteLine("Docker isn't installed or isn't on your PATH. `rask deploy` uses the Docker CLI to build and run your app on the host.");
-        console.Error.WriteLine("  Install Docker: https://docs.docker.com/get-docker/");
+        console.Error.WriteLine($"  Install Docker: {InstallHint()}");
         return false;
     }
 
-    /// <summary>
-    /// True when the remote Docker daemon answers over SSH. <c>docker -H ssh://&lt;host&gt; version</c>
-    /// exercises SSH auth and the remote daemon in one call, so a single check covers both failure modes.
-    /// </summary>
-    public static async Task<bool> CanReachHostAsync(IProcessRunner process, IConsole console, string host, CancellationToken cancellationToken)
+    /// <summary>The install command for this machine — a command to paste beats a page to go read.</summary>
+    private static string InstallHint()
     {
-        var result = await process.CaptureAsync("docker", ["-H", $"ssh://{host}", "version"], null, cancellationToken).ConfigureAwait(false);
-        if (result.ExitCode == 0)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            return true;
+            return "brew install --cask docker (or https://docs.docker.com/get-docker/)";
         }
 
-        console.Error.WriteLine($"Couldn't reach the Docker daemon on '{host}' over SSH.");
-        console.Error.WriteLine($"  • Make sure `ssh {host}` works non-interactively (key-based auth, host key already trusted).");
-        console.Error.WriteLine("  • Make sure Docker is installed and running on the host, and your user can use it (member of the `docker` group).");
-        return false;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return "winget install Docker.DockerDesktop (or https://docs.docker.com/get-docker/)";
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return "curl -fsSL https://get.docker.com | sh (or https://docs.docker.com/get-docker/)";
+        }
+
+        return "https://docs.docker.com/get-docker/";
     }
 }
