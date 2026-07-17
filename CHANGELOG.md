@@ -275,6 +275,15 @@ them until tagged releases begin.
   nothing. The check now derives from the schema's own grouping, which closes the drift for good. The message
   also names only the options you actually passed (`--no-restore only applies to 'generate feature'.`) rather
   than reciting all thirteen.
+- **`rask new --template wasm --auth` scaffolded a project that couldn't build.** The wasm auth scaffold pins
+  `Microsoft.JSInterop` / `Microsoft.AspNetCore.Authorization` itself (a browser-wasm app has no
+  `Microsoft.AspNetCore.App` framework reference to supply them), but the pinned version had drifted to `10.0.9`
+  while `Rask.Wasm` — which references the same two packages — moved to `10.0.10`. That put the generated project
+  *below* its own dependency, so NuGet reported a package downgrade (`NU1605`): a warning on a plain build, and a
+  hard error under `-warnaserror`. The scaffold now pins the same version the repo does, and a test holds the two
+  in sync so they can't drift apart again. The build gate missed this because it compiled generated projects
+  against the latest *published* packages (whose deps were still `10.0.9`) rather than the ones in the same
+  commit — it now uses a local feed packed from the repo, so a break surfaces in the commit that causes it.
 - **`Rask.Outbox` now delivers nested `IOutboxEvent` types.** The source generator registers each event by
   its dot-separated display name, but `OutboxSerializerRegistry.Serialize` stored `Type.FullName` — which
   uses `+` between a nesting type and a nested type — so a nested event (a record declared inside a class)
