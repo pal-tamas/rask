@@ -21,8 +21,16 @@ fi
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
-echo "==> Build the E2E graph once (Release, serial: the nested WASM publish double-builds Rask.Core.dll)"
-dotnet build Rask.slnx -c Release -m:1
+# WasmBuildNative=false: build every WASM sample against the prebuilt .NET-WASM runtime, the same mode
+# the fixtures serve (Site/Playground/Standalone all publish with it below) and the CI unit gate uses.
+# Without it, the slnx build compiles Rask.Example.Wasm with the native relink (unset WasmBuildNative →
+# InvariantGlobalization forces it) while the other WASM builds stay no-native — two modes writing the
+# same obj/, so the fingerprinted _framework assets can drift out of sync with the SRI hashes the boot
+# import map pins. The browser then blocks the mismatched asset and the runtime hangs at "Loading… 96%"
+# (WasmExampleAppFixture boots this build with `dotnet run --no-build`). One consistent mode = no drift,
+# and it skips the slow, flaky relink. Serial (-m:1): the nested WASM publish double-builds Rask.Core.dll.
+echo "==> Build the E2E graph once (Release, serial, prebuilt WASM runtime)"
+dotnet build Rask.slnx -c Release -m:1 -p:WasmBuildNative=false
 
 echo "==> Publish the samples the E2E fixtures boot"
 # Server shard boots the *published* host; the WASM static-host shards need their published wwwroot bundle.
