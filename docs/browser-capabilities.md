@@ -33,7 +33,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`ICrypto`](apis/crypto.md) | ✅ | ✅ | ✅ | — |
 | [`IPerformance`](apis/performance.md) | ✅ | ✅ | ✅ | — |
 | [`IIndexedDb`](apis/indexeddb.md) | ✅ | ✅ | ✅ | — |
-| [`IFileSystemAccess`](apis/file-system-access.md) | ✅ | ✅ | ✅ | — |
+| [`IFileSystemAccess`](apis/file-system-access.md) | ✅ | ✅ | ⬜ | — |
 | [`IWebAuthn`](apis/webauthn.md) | ✅ | ✅ | ✅ | — |
 | [`IWebLocks`](apis/web-locks.md) | ✅ | ✅ | ✅ | — |
 | [`IBroadcastChannel`](apis/broadcast-channel.md) | ✅ | ✅ | ✅ | — |
@@ -41,7 +41,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`IResizeObserver`](apis/resize-observer.md) | ✅ | ✅ | ✅ | — |
 | [`IMutationObserver`](apis/mutation-observer.md) | ✅ | ✅ | ✅ | — |
 | [`IGamepad`](apis/gamepad.md) | ✅ | ✅ | ✅ | — |
-| [`IWebPush`](apis/web-push.md) | ✅ | ✅ | ✅ | — |
+| [`IWebPush`](apis/web-push.md) | ✅ | ✅ | ⬜ | — |
 | [`INotifications`](apis/notifications.md) | ✅ | ✅ | ✅&nbsp;★ | UNUserNotificationCenter / NotificationManager |
 | [`IBadge`](apis/badge.md) | ✅ | ✅ | ✅&nbsp;★ | SetBadgeCount / badge notification |
 | [`IWakeLock`](apis/wake-lock.md) | ✅ | ✅ | ✅&nbsp;★ | IdleTimerDisabled / FLAG_KEEP_SCREEN_ON |
@@ -69,6 +69,16 @@ Native column marks an API with a native C# backend (the rest run through the We
   (plus the generic `GestureTrigger`). The last two target a `<video>` via its `ElementRef`.
 - **PWA / WASM** is the in-browser WebAssembly host, which registers the full set.
 - **Native** is the `Rask.Native` host. Every ★ API has a first-class native backend wired by
-  `ApplePlatform` / `AndroidPlatform` (see [native.md](native.md)); the rest run through the WebView.
+  `ApplePlatform` / `AndroidPlatform` (see [native.md](native.md)); the rest run through the WebView, so
+  their Native cell is whatever the WebView's own JS engine exposes — which is *not* the same set a
+  desktop browser has. The ★ backends exist precisely where that gap bites, so the two ⬜ rows below are
+  the ones nothing covers yet:
+  - **`IFileSystemAccess` — ⬜ on Native.** `window.showOpenFilePicker` is `undefined` on WebKit; the File
+    System Access API is effectively Chromium-desktop-only. Use a plain `<input type="file">` instead.
+  - **`IWebPush` — ⬜ on Native.** `window.PushManager` is `undefined` in the WebView, so there is nothing
+    to subscribe with (service workers *do* register — it's push specifically that's missing). Native push
+    needs an APNs/FCM backend behind the same interface, which is a tracked follow-up
+    ([native.md](native.md#roadmap)). `INotifications` is unaffected: it has a ★ native backend, so
+    *local* notifications work on device.
 - Push subscription (`IWebPush`) and the PWA APIs (`INotifications`, `IBadge`, `IWakeLock`) work on
   Server too, but their JS helpers ship only under `AddRaskPwa` — see [pwa.md](pwa.md).
