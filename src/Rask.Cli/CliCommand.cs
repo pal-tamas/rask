@@ -22,18 +22,40 @@ internal abstract class CliCommand(IConsole console)
     /// <summary>A one-line usage string shown in the command's own help and on errors.</summary>
     public abstract string Usage { get; }
 
+    /// <summary>Positional arguments (name + description) documented in <c>--help</c>. Empty by default.</summary>
+    public virtual IReadOnlyList<(string Name, string Description)> Arguments => [];
+
+    /// <summary>Copy-pasteable example invocations shown in <c>--help</c>. Empty by default.</summary>
+    public virtual IReadOnlyList<string> Examples => [];
+
+    /// <summary>
+    /// The command's flag/option schema, used by <c>--help</c> to render the options table. Commands that
+    /// take options override this to return the same schema they parse with, so help never drifts.
+    /// </summary>
+    public virtual ArgumentSchema? OptionSchema => null;
+
     /// <summary>Run the command with the arguments that follow its name. Returns a process exit code.</summary>
     public abstract Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken);
+
+    /// <summary>Report a written file with the shared green <c>+ path</c> marker (used by <c>new</c> and <c>generate</c>).</summary>
+    protected void WriteCreated(string relativePath) => Console.WriteLine($"  + {relativePath}", ConsoleStyle.Success);
+
+    /// <summary>Print a bold section/action heading to stdout.</summary>
+    protected void WriteHeading(string message) => Console.WriteLine(message, ConsoleStyle.Heading);
+
+    /// <summary>Print a non-fatal caution (yellow) to stderr — the tool carries on.</summary>
+    protected void WriteWarning(string message) => Console.WriteErrorLine(message, ConsoleStyle.Warning);
 
     /// <summary>Report parse errors to stderr and return the conventional usage exit code.</summary>
     protected int Fail(IReadOnlyList<string> errors)
     {
         foreach (var error in errors)
         {
-            Console.Error.WriteLine(error);
+            Console.WriteErrorLine(error, ConsoleStyle.Error);
         }
 
         Console.Error.WriteLine($"Usage: {Usage}");
+        Console.Error.WriteLine($"Run 'rask {Name} --help' for details.");
         return 1;
     }
 }

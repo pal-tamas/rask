@@ -21,6 +21,37 @@ them until tagged releases begin.
   existing custom app without a `/health` endpoint should deploy with `--no-health-check` (or point
   `--health-path` at its readiness route); the failure message says so. Documented in `docs/deployment.md`
   and `docs/cli.md`.
+- **`rask completion <bash|zsh|fish>` prints a shell completion script.** Generated from the live command
+  list and each command's option schema, so it always matches the CLI — new commands and flags are completed
+  without a separate list to maintain. Install e.g. `rask completion fish > ~/.config/fish/completions/rask.fish`.
+- **`rask generate feature` reads team defaults from `.rask/generate.json`.** Persist a project's preferred
+  `--bs` / `--validation` / `--id` / `--tests` (etc.) once and every `generate feature` inherits them;
+  explicit flags on the command line always win. `--save-defaults` writes the current run's feature flags
+  back to the file. Booleans are opt-in (absent = off), and the file is trim-safe (source-generated JSON).
+- **`rask new --dry-run` previews the project plan without writing anything.** Prints the files it would
+  create (and skips `dotnet restore`), matching `rask generate --dry-run`.
+- **`rask new` with no name starts an interactive wizard.** On a terminal, running `rask new` (no project
+  name) now prompts for the name, a numbered template picker, and a yes/no for each feature flag the chosen
+  template supports — then scaffolds exactly as if you'd typed the flags. The answers flow back through the
+  same validation and generation path, so nothing new can drift. **Non-interactive is unchanged**: when
+  stdin is piped/redirected (scripts, CI), a missing name is still the same hard error, so automation is
+  unaffected. Backed by a new dependency-free `Prompt` helper (Ask/Confirm/Select), EOF-safe so a command
+  can never hang.
+- **The `rask` CLI now speaks in color, with consistent output and progress feedback.** Written files
+  are reported with one shared green `+ <path>` marker across `rask new` and `rask generate` (previously
+  `  + path` vs `Created path`); action headings are bold, warnings are yellow, deploy failures are red,
+  and "Deployed. The app is live at …" is green. Otherwise-silent long operations — the `rask deploy`
+  readiness poll (up to ~20s) — now animate a spinner. All of it is **terminal-aware**: color and the
+  spinner switch off automatically when output is piped/redirected or `NO_COLOR` is set, so scripts, CI
+  logs, and captured output are byte-for-byte unchanged. Pure BCL — no new dependencies.
+- **`rask <command> --help` now teaches — an aligned options table, arguments, and examples.** Every command's
+  help was three lines (summary + one usage string); it now renders a described **Options** table straight from
+  the same schema that parses the arguments (so it can never drift), a **Arguments** section, and copy-pasteable
+  **Examples**. This surfaces `rask generate`'s previously **undiscoverable** feature flags — `--bs`, `--modal`,
+  `--soft-delete`, `--concurrency`, `--events`, `--outbox`, `--tests`, `--validation`, `--no-restore` — grouped
+  under "Feature options". Output is colorized when writing to a terminal and stays plain when piped or when
+  `NO_COLOR` is set (so `rask info | cat` and CI logs are unaffected). Parse errors now point at
+  `rask <command> --help`. No new dependencies — the styling and help layers are pure BCL.
 - **Live demos for `BsTable` and `BsPagination`, plus unit tests for `BsBadge`.** The "Cards, lists &
   tables" guide gains a `BsTable` demo (typed style toggles over core `Thead`/`Tbody` markup) and an
   interactive `BsPagination` demo (click a page — the `.active` marker and readout follow, zero-JS). Both

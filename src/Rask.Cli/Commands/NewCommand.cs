@@ -31,17 +31,38 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     public override string Usage =>
         "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--docker] [--host local|server] [--output <dir>]";
 
-    public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
+    public override IReadOnlyList<(string Name, string Description)> Arguments =>
+        [("<name>", "Name of the project to create (scaffolds ./<name>/).")];
+
+    public override IReadOnlyList<string> Examples =>
+    [
+        "rask new Shop",
+        "rask new Shop --template wasm --pwa",
+        "rask new Api --template server --auth --docker",
+        "rask new MyApp --template native --host server",
+    ];
+
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    /// <summary>The flag/option schema — shared by <see cref="ExecuteAsync"/> and <c>--help</c> so they can't drift.</summary>
+    private static ArgumentSchema CreateSchema() =>
+        new ArgumentSchema()
+            .Option("template", 't', "name", "Template to scaffold: server (default), wasm, wasm-hosted, or native.")
+            .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
+            .Option("name", 'n', "name", "Project name, if not given positionally.")
+            .Option("host", valueHint: "local|server", description: "Native host mode: local (default) or server. Native template only.")
+            .Flag("auth", description: "Add cookie authentication (login + members pages).")
+            .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
+            .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
+            .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
+            .Flag("dry-run", description: "Print the files that would be written without touching disk.");
+
+    public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
+        ExecuteAsync(args, allowWizard: true, cancellationToken);
+
+    private async Task<int> ExecuteAsync(IReadOnlyList<string> args, bool allowWizard, CancellationToken cancellationToken)
     {
-        var schema = new ArgumentSchema()
-            .Option("template", 't')
-            .Option("output", 'o')
-            .Option("name", 'n')
-            .Option("host")
-            .Flag("auth")
-            .Flag("pwa")
-            .Flag("cqrs")
-            .Flag("docker");
+        var schema = CreateSchema();
 
         var parsed = schema.Parse(args);
         if (parsed.HasErrors)
@@ -52,6 +73,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var name = parsed.Option("name") ?? parsed.Positionals.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(name))
         {
+            // No name given. On a terminal, walk an interactive wizard and re-run with the answers
+            // (allowWizard:false bounds this to one hop); piped/scripted, keep the hard-error contract.
+            var prompt = new Prompt(Console);
+            if (allowWizard && prompt.Interactive)
+            {
+                return await ExecuteAsync(RunWizard(prompt), allowWizard: false, cancellationToken).ConfigureAwait(false);
+            }
+
             Console.Error.WriteLine("A project name is required.");
             Console.Error.WriteLine($"Usage: {Usage}");
             return 1;
@@ -98,7 +127,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
 
             return await GenerateDirectAsync(
-                template, name, parsed.Option("output"),
+                template, name, parsed.Option("output"), parsed.HasFlag("dry-run"),
                 (dir, version) => ProjectGenerator.GenerateNative(dir, name, host, version),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -106,7 +135,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // Every web template is generated directly by the CLI (server, wasm, wasm-hosted). native is handled
         // above with its own shape; the key here is one of those three (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
-            template, name, parsed.Option("output"),
+            template, name, parsed.Option("output"), parsed.HasFlag("dry-run"),
             (dir, version) =>
             {
                 bool auth = requestedFlags.Contains("auth"), pwa = requestedFlags.Contains("pwa"),
@@ -121,8 +150,43 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Walk the interactive first-run flow (name → template → applicable feature flags) and return the
+    /// equivalent argument list, so the answers flow back through the exact same validation and generation
+    /// path as a fully-typed command line. Only reached on a terminal.
+    /// </summary>
+    private static IReadOnlyList<string> RunWizard(Prompt prompt)
+    {
+        var name = prompt.Ask("Project name");
+        var templateKey = prompt.Select(
+            "Template",
+            [.. TemplateCatalog.All.Select(t => (t.Key, $"{t.Key} — {t.DisplayName}"))],
+            TemplateCatalog.Default.Key);
+
+        var args = new List<string> { name, "--template", templateKey };
+        _ = TemplateCatalog.TryGet(templateKey, out var template);
+
+        if (templateKey == "native")
+        {
+            var host = prompt.Select("Host", [("local", "local — self-hosted app"), ("server", "server — thin client of a Rask server")], "local");
+            args.Add("--host");
+            args.Add(host);
+            return args;
+        }
+
+        foreach (var flag in FeatureFlags.Where(template.SupportedFlags.Contains))
+        {
+            if (prompt.Confirm($"Add --{flag}?", @default: false))
+            {
+                args.Add("--" + flag);
+            }
+        }
+
+        return args;
+    }
+
     private async Task<int> GenerateDirectAsync(
-        TemplateInfo template, string name, string? output,
+        TemplateInfo template, string name, string? output, bool dryRun,
         Func<string, string, ScaffoldResult> build, CancellationToken cancellationToken)
     {
         // rask new MyApp → ./MyApp/ ; --output overrides the destination directory.
@@ -134,6 +198,18 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var version = ResolvePackageVersion(CliMetadata.Version);
         var result = build(targetDirectory, version);
 
+        // --dry-run previews the plan without touching disk or restoring — same spirit as `rask generate --dry-run`.
+        if (dryRun)
+        {
+            WriteHeading($"Would create {template.DisplayName} '{name}':");
+            foreach (var file in result.Files)
+            {
+                Console.Out.WriteLine($"  [dry-run] would write {Path.GetRelativePath(_workingDirectory, file.Path)}");
+            }
+
+            return 0;
+        }
+
         var restoreTarget = result.RestoreTarget is { } relative
             ? Path.Combine(targetDirectory, relative)
             : Path.Combine(targetDirectory, name + ".csproj");
@@ -144,7 +220,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return 1;
         }
 
-        Console.Out.WriteLine($"Creating {template.DisplayName} '{name}'…");
+        WriteHeading($"Creating {template.DisplayName} '{name}'…");
         foreach (var file in result.Files)
         {
             var directory = Path.GetDirectoryName(file.Path);
@@ -154,15 +230,16 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
 
             _fileSystem.WriteAllText(file.Path, file.Content);
-            Console.Out.WriteLine($"  + {Path.GetRelativePath(_workingDirectory, file.Path)}");
+            WriteCreated(Path.GetRelativePath(_workingDirectory, file.Path));
         }
 
         // Package refs are already baked into the csproj(s) at the pinned version; restore pulls them so the
         // project builds immediately. A restore failure is a warning — the files are written and correct.
+        Console.WriteLine("Restoring packages…", ConsoleStyle.Dim);
         var restore = await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false);
         if (restore != 0)
         {
-            Console.Error.WriteLine("  Couldn't restore automatically — run 'dotnet restore' in the project directory.");
+            WriteWarning("  Couldn't restore automatically — run 'dotnet restore' in the project directory.");
         }
 
         if (!string.IsNullOrEmpty(result.Notes))

@@ -16,15 +16,37 @@ That puts a `rask` command on your `PATH`. Update it later with `dotnet tool upd
 > `rask generate`), and shells out to `dotnet` for the rest — `rask dev` wraps `dotnet watch`, `rask db`
 > wraps `dotnet ef`.
 
+## Getting help
+
+`rask` on its own lists the commands. `rask <command> --help` (or `-h`) prints that command's full
+reference — its arguments, an aligned table of every option with a one-line description, and
+copy-pasteable examples:
+
+```bash
+rask                       # list all commands
+rask new --help            # arguments, options, and examples for `new`
+rask generate feature --help
+```
+
+Help (and other output) is colorized when `rask` is writing to a terminal, and falls back to plain
+text when the output is piped or when the [`NO_COLOR`](https://no-color.org) environment variable is
+set — so `rask info | cat` and CI logs stay clean.
+
 ## `rask new` — scaffold a project
 
 ```bash
+rask new                             # interactive: prompts for name, template, and features
 rask new MyApp                       # a server-rendered app (the default template)
 rask new MyApp --auth --docker       # + cookie auth + a production Dockerfile
 rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Field --template native     # a native iOS + Android app
 ```
+
+Run `rask new` on its own (no name) and — on a terminal — it walks you through a short wizard: the
+project name, a numbered template picker, and a yes/no for each feature the template supports. It then
+scaffolds exactly as if you'd passed the flags. Piped or in a script (no terminal), a missing name is a
+plain error instead, so automation stays predictable.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
@@ -54,6 +76,7 @@ page, styled with Bootstrap. Add pages and components to taste — `rask generat
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
 | `--host` | `local` (default) or `server` — which native mode to scaffold (the `native` template only). |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
+| `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore`). |
 
 The flags wire a feature up; they don't scaffold sample pages for you to delete.
 
@@ -108,6 +131,14 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 | `--output`, `-o` | Write into this folder instead of the default (the namespace follows the folder). |
 | `--force` | Overwrite existing file(s). |
 | `--dry-run` | Print the file(s) that would be written, and write nothing. |
+| `--save-defaults` | `feature` only: remember this run's feature flags in `.rask/generate.json` (see below). |
+
+**Team defaults (`.rask/generate.json`).** So a project doesn't retype the same feature flags every
+time, `rask generate feature` reads defaults from `.rask/generate.json` at the project root — e.g.
+`{ "bs": true, "validation": "fluent", "tests": true }`. Explicit flags on the command line always win.
+Write the file by hand, or let the CLI record your choices: `rask generate feature Order Total:decimal
+--bs --tests --save-defaults` scaffolds *and* remembers `--bs`/`--tests` for next time. Booleans are
+opt-in (an absent key means off).
 
 The generated code compiles as-is in any project scaffolded by `rask new` — the factory methods and the
 `Component` base come from Rask's implicit usings, and pages navigate with the type-safe generated
@@ -226,6 +257,18 @@ rask info
 
 A quick check when diagnosing a machine: the tool version, the .NET SDK version, and the OS.
 `rask --version` prints just the tool version.
+
+## `rask completion` — shell completion
+
+```bash
+rask completion bash >> ~/.bashrc
+rask completion zsh  > "${fpath[1]}/_rask"
+rask completion fish > ~/.config/fish/completions/rask.fish
+```
+
+Prints a completion script for `bash`, `zsh`, or `fish`. It's generated from the live command list and
+each command's option schema, so it always matches the installed CLI — completing command names and
+their `--options`. Re-run it after upgrading `rask` to pick up new commands and flags.
 
 ## Roadmap
 

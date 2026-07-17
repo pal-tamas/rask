@@ -35,6 +35,48 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     public override string Usage =>
         "rask generate <page|component|feature|job|email> <Name> [<field:type> ...] [--id guid|int|long] [--route <path>] [--context <Name>] [--plural <Name>] [--output <dir>] [--force] [--dry-run]";
 
+    public override IReadOnlyList<(string Name, string Description)> Arguments =>
+    [
+        ("<page|component|feature|job|email>", "What to scaffold (aliases: p, c, f, j, e)."),
+        ("<Name>", "The type name, e.g. Product or Dashboard."),
+        ("[<field:type> ...]", "Fields for a feature, e.g. Name:string Price:decimal."),
+    ];
+
+    public override IReadOnlyList<string> Examples =>
+    [
+        "rask generate page Dashboard --route /dashboard",
+        "rask generate component UserCard",
+        "rask generate feature Product Name:string Price:decimal",
+        "rask generate feature Order Total:decimal --bs --modal --tests",
+        "rask g j SendWelcomeEmail",
+    ];
+
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    private const string FeatureGroup = "Feature options (rask generate feature)";
+
+    /// <summary>The flag/option schema — shared by <see cref="ExecuteAsync"/> and <c>--help</c> so they can't drift.</summary>
+    private static ArgumentSchema CreateSchema() =>
+        new ArgumentSchema()
+            .Option("output", 'o', "dir", "Directory to write into (default: derived from the artifact).")
+            .Flag("force", description: "Overwrite existing files instead of refusing.")
+            .Flag("dry-run", description: "Print what would be written without touching disk.")
+            .Option("route", 'r', "path", "URL route for the page.", group: "Page options")
+            .Option("fields", 'f', "list", "Fields as Name:type,... (or pass them positionally).", FeatureGroup)
+            .Option("context", 'c', "Name", "Reuse an existing DbContext instead of generating one.", FeatureGroup)
+            .Option("plural", 'p', "Name", "Plural name for the feature folder/route (default: auto-pluralized).", FeatureGroup)
+            .Option("id", valueHint: "guid|int|long", description: "Primary-key type (default: guid).", group: FeatureGroup)
+            .Option("validation", valueHint: "mode", description: "Validation style: valueobjects (default), dataannotations, or fluent.", group: FeatureGroup)
+            .Flag("bs", description: "Render pages with Rask.Bootstrap (Bs*) components.", group: FeatureGroup)
+            .Flag("modal", description: "Fold create/edit into a modal on the list page (implies --bs).", group: FeatureGroup)
+            .Flag("soft-delete", description: "Soft-delete rows and add a Restore command.", group: FeatureGroup)
+            .Flag("concurrency", description: "Add optimistic-concurrency (row version) handling.", group: FeatureGroup)
+            .Flag("events", description: "Raise domain events on create/update/delete.", group: FeatureGroup)
+            .Flag("outbox", description: "Persist domain events via the transactional outbox (implies --events).", group: FeatureGroup)
+            .Flag("tests", description: "Generate a sibling <Project>.Tests project with domain + persistence tests.", group: FeatureGroup)
+            .Flag("no-restore", description: "Write files without adding packages or restoring.", group: FeatureGroup)
+            .Flag("save-defaults", description: "Remember this run's feature flags in .rask/generate.json for next time.", group: FeatureGroup);
+
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         if (args.Count == 0)
@@ -51,24 +93,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return 1;
         }
 
-        var schema = new ArgumentSchema()
-            .Option("route", 'r')
-            .Option("output", 'o')
-            .Option("fields", 'f')
-            .Option("context", 'c')
-            .Option("plural", 'p')
-            .Option("id")
-            .Option("validation")
-            .Flag("bs")
-            .Flag("modal")
-            .Flag("soft-delete")
-            .Flag("concurrency")
-            .Flag("events")
-            .Flag("outbox")
-            .Flag("tests")
-            .Flag("no-restore")
-            .Flag("force")
-            .Flag("dry-run");
+        var schema = CreateSchema();
 
         var parsed = schema.Parse(args.Skip(1).ToArray());
         if (parsed.HasErrors)
@@ -109,9 +134,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             && (parsed.Option("fields") is not null || parsed.Option("context") is not null
                 || parsed.Option("plural") is not null || parsed.Option("id") is not null
                 || parsed.Option("validation") is not null || parsed.HasFlag("bs") || parsed.HasFlag("modal")
-                || parsed.HasFlag("soft-delete") || parsed.HasFlag("concurrency") || parsed.HasFlag("events") || parsed.HasFlag("outbox") || parsed.HasFlag("tests")))
+                || parsed.HasFlag("soft-delete") || parsed.HasFlag("concurrency") || parsed.HasFlag("events")
+                || parsed.HasFlag("outbox") || parsed.HasFlag("tests") || parsed.HasFlag("save-defaults")))
         {
-            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, --bs, --modal, --soft-delete, --concurrency, --events, --outbox, and --tests only apply to 'generate feature'.");
+            Console.Error.WriteLine("--fields, --context, --plural, --id, --validation, --bs, --modal, --soft-delete, --concurrency, --events, --outbox, --tests, and --save-defaults only apply to 'generate feature'.");
             return 1;
         }
 
@@ -147,9 +173,17 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
         var dryRun = parsed.HasFlag("dry-run");
         var written = Write(result, parsed.HasFlag("force"), dryRun);
-        if (written == 0 && !dryRun && result.Packages.Count > 0)
+        if (written == 0 && !dryRun)
         {
-            await AddPackagesAsync(project.ProjectDirectory, result.Packages, parsed.HasFlag("no-restore"), cancellationToken).ConfigureAwait(false);
+            if (parsed.HasFlag("save-defaults"))
+            {
+                SaveDefaults(project.ProjectDirectory, parsed);
+            }
+
+            if (result.Packages.Count > 0)
+            {
+                await AddPackagesAsync(project.ProjectDirectory, result.Packages, parsed.HasFlag("no-restore"), cancellationToken).ConfigureAwait(false);
+            }
         }
 
         return written;
@@ -162,17 +196,17 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     {
         if (noRestore)
         {
-            Console.Out.WriteLine($"Skipped adding packages (--no-restore): {string.Join(", ", packages)}");
+            Console.WriteLine($"Skipped adding packages (--no-restore): {string.Join(", ", packages)}", ConsoleStyle.Dim);
             return;
         }
 
-        Console.Out.WriteLine($"Adding {packages.Count} package(s) to the project…");
+        Console.WriteLine($"Adding {packages.Count} package(s) to the project…", ConsoleStyle.Dim);
         foreach (var package in packages)
         {
             var exit = await _process.RunAsync("dotnet", ["add", "package", package], projectDirectory, cancellationToken).ConfigureAwait(false);
             if (exit != 0)
             {
-                Console.Error.WriteLine($"  Couldn't add {package} automatically — add it manually: dotnet add package {package}");
+                WriteWarning($"  Couldn't add {package} automatically — add it manually: dotnet add package {package}");
             }
         }
     }
@@ -235,7 +269,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     return false;
                 }
 
-                var idType = parsed.Option("id")?.ToLowerInvariant() switch
+                // Team defaults from .rask/generate.json fill in what wasn't passed; explicit flags always win.
+                var config = GenerateConfig.Load(_fileSystem, project.ProjectDirectory);
+
+                var idType = (parsed.Option("id") ?? config.Id)?.ToLowerInvariant() switch
                 {
                     null or "guid" => "Guid",
                     "int" => "int",
@@ -250,7 +287,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     return false;
                 }
 
-                var validation = parsed.Option("validation")?.ToLowerInvariant() ?? "valueobjects";
+                var validation = (parsed.Option("validation") ?? config.Validation)?.ToLowerInvariant() ?? "valueobjects";
                 if (validation is not ("valueobjects" or "dataannotations" or "fluent"))
                 {
                     result = null!;
@@ -259,10 +296,15 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 }
 
                 // --modal puts create/update in a BsModal on the list page, so it implies --bs.
-                var useModal = parsed.HasFlag("modal");
-                var useBs = useModal || parsed.HasFlag("bs");
+                var useModal = parsed.HasFlag("modal") || (config.Modal ?? false);
+                var useBs = useModal || parsed.HasFlag("bs") || (config.Bs ?? false);
+                var softDelete = parsed.HasFlag("soft-delete") || (config.SoftDelete ?? false);
+                var concurrency = parsed.HasFlag("concurrency") || (config.Concurrency ?? false);
+                var events = parsed.HasFlag("events") || (config.Events ?? false);
+                var outbox = parsed.HasFlag("outbox") || (config.Outbox ?? false);
+                var tests = parsed.HasFlag("tests") || (config.Tests ?? false);
 
-                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, useBs, useModal, parsed.HasFlag("soft-delete"), parsed.HasFlag("concurrency"), parsed.HasFlag("events"), parsed.HasFlag("outbox"), parsed.HasFlag("tests"), parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
+                result = FeatureGenerator.Generate(project, _workingDirectory, name, fields, idType, validation, useBs, useModal, softDelete, concurrency, events, outbox, tests, parsed.Option("context"), parsed.Option("plural"), parsed.Option("output"));
                 return true;
         }
     }
@@ -305,11 +347,66 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             }
 
             _fileSystem.WriteAllText(file.Path, file.Content);
-            Console.Out.WriteLine($"Created {Display(file.Path)}");
+            WriteCreated(Display(file.Path));
         }
 
         WriteNotes(result.Notes);
         return 0;
+    }
+
+    // Overlay this run's explicit feature flags/options onto any existing .rask/generate.json and save it —
+    // so the next `rask generate feature` inherits them. Only sets values the user actually passed (booleans
+    // are never written false), keeping the file to the team's deliberate choices.
+    private void SaveDefaults(string projectDirectory, ParsedArguments parsed)
+    {
+        var config = GenerateConfig.Load(_fileSystem, projectDirectory);
+        if (parsed.HasFlag("bs"))
+        {
+            config.Bs = true;
+        }
+
+        if (parsed.HasFlag("modal"))
+        {
+            config.Modal = true;
+        }
+
+        if (parsed.HasFlag("soft-delete"))
+        {
+            config.SoftDelete = true;
+        }
+
+        if (parsed.HasFlag("concurrency"))
+        {
+            config.Concurrency = true;
+        }
+
+        if (parsed.HasFlag("events"))
+        {
+            config.Events = true;
+        }
+
+        if (parsed.HasFlag("outbox"))
+        {
+            config.Outbox = true;
+        }
+
+        if (parsed.HasFlag("tests"))
+        {
+            config.Tests = true;
+        }
+
+        if (parsed.Option("validation") is { } validation)
+        {
+            config.Validation = validation;
+        }
+
+        if (parsed.Option("id") is { } id)
+        {
+            config.Id = id;
+        }
+
+        config.Save(_fileSystem, projectDirectory);
+        Console.WriteLine($"Saved generate defaults to {Display(GenerateConfig.PathFor(projectDirectory))}.", ConsoleStyle.Success);
     }
 
     private void WriteNotes(string? notes)
