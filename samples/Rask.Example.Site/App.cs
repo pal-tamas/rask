@@ -64,9 +64,8 @@ public class App : Component
             Div(Class: "wrap")[
                 Span(Class: "brand")[Raw(BrandSvg), " Rask"],
                 Nav()[
-                    A(Class: "hide-sm", Href: "demo/", Target: "_blank", Rel: "noopener")["Demo"],
+                    A(Class: "hide-sm", Href: "docs/", Target: "_blank", Rel: "noopener")["Docs"],
                     A(Class: "hide-sm", Href: "playground/", Target: "_blank", Rel: "noopener")["Playground"],
-                    A(Class: "hide-sm", Href: "https://github.com/pal-tamas/rask/tree/main/docs", Target: "_blank", Rel: "noopener")["Docs"],
                     A(Href: "https://github.com/pal-tamas/rask", Target: "_blank", Rel: "noopener")["GitHub ↗"],
                     Button(Id: "themeToggle", Type: "button", Aria: Attr("label", "Toggle color theme"))["◐ theme"]
                 ]
@@ -84,7 +83,7 @@ public class App : Component
                         P(Class: "lede")["One component model for the browser and the phone — no ", Code()[".razor"], ", no XAML, no JSX, no JavaScript, no Swift or Kotlin."],
                         P(Class: "sub")["The same component runs server-rendered over a WebSocket, fully client-side on WebAssembly, or as a native iOS/Android app. One codebase; pick the host per project."],
                         Div(Class: "cta-row")[
-                            A(Class: "btn btn-primary", Href: "demo/", Target: "_blank", Rel: "noopener")["▶ Try the live demo"],
+                            A(Class: "btn btn-primary", Href: "docs/", Target: "_blank", Rel: "noopener")["▶ Try the live demo"],
                             A(Class: "btn btn-ghost", Href: "playground/", Target: "_blank", Rel: "noopener")["🛝 Playground"]
                         ],
                         Div(Class: "badges")[
@@ -258,16 +257,15 @@ public class App : Component
         Footer()[
             Div(Class: "wrap")[
                 Div(Class: "foot-cta reveal")[
-                    H2()["The docs and the live demo are the real tour."],
+                    H2()["The live docs and the playground are the real tour."],
                     P()["This is just the front door. Click through a full multi-page Rask app in the browser, or write a component live in the playground."],
                     Div(Class: "cta-row", Style: "justify-content:center;")[
-                        A(Class: "btn btn-primary", Href: "demo/", Target: "_blank", Rel: "noopener")["▶ Open the live demo"],
+                        A(Class: "btn btn-primary", Href: "docs/", Target: "_blank", Rel: "noopener")["▶ Open the live demo"],
                         A(Class: "btn btn-ghost", Href: "https://github.com/pal-tamas/rask", Target: "_blank", Rel: "noopener")["★ Star on GitHub"]
                     ],
                     Div(Class: "foot-links")[
-                        A(Href: "demo/", Target: "_blank", Rel: "noopener")["Live demo"],
+                        A(Href: "docs/", Target: "_blank", Rel: "noopener")["Docs"],
                         A(Href: "playground/", Target: "_blank", Rel: "noopener")["Playground"],
-                        A(Href: "https://github.com/pal-tamas/rask/tree/main/docs", Target: "_blank", Rel: "noopener")["Docs"],
                         A(Href: "https://www.nuget.org/packages/Rask.Server", Target: "_blank", Rel: "noopener")["NuGet"],
                         A(Href: "https://github.com/pal-tamas/rask", Target: "_blank", Rel: "noopener")["GitHub"]
                     ],

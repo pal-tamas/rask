@@ -6,7 +6,7 @@ squiggles included, before you ever press Run), and a **gallery of ready-to-run 
 live — nothing is sent to a server, the C# is compiled entirely in WebAssembly.
 
 The playground is the `samples/Rask.Example.Playground` app, published to GitHub Pages next to the
-[feature showcase](https://pal-tamas.github.io/rask/demo/) (the showcase's navbar links to it).
+[feature showcase](https://pal-tamas.github.io/rask/docs/) (the showcase's navbar links to it).
 
 ## How it works
 

@@ -15,7 +15,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
-# ▶ **[Try the live demo ↗](https://pal-tamas.github.io/rask/demo/)** &nbsp;·&nbsp; 🛝 **[Playground ↗](https://pal-tamas.github.io/rask/playground/)** &nbsp;·&nbsp; 📖 **[Read the docs ↗](docs/)** &nbsp;·&nbsp; 🧪 **[Browse the examples ↗](samples/)**
+# ▶ **[Try the live demo ↗](https://pal-tamas.github.io/rask/docs/)** &nbsp;·&nbsp; 🛝 **[Playground ↗](https://pal-tamas.github.io/rask/playground/)** &nbsp;·&nbsp; 📖 **[Read the docs ↗](docs/)** &nbsp;·&nbsp; 🧪 **[Browse the examples ↗](samples/)**
 
 </div>
 
@@ -46,7 +46,7 @@ public sealed class Counter : Component
 ```
 
 <sub>☝️ A complete, live, interactive component — routing, state, and event handling in a single C# class.
-**[See it running, and dozens more, in the live demo ↗](https://pal-tamas.github.io/rask/demo/)**</sub>
+**[See it running, and dozens more, in the live demo ↗](https://pal-tamas.github.io/rask/docs/)**</sub>
 
 **Ship a whole feature in one command:**
 
@@ -75,7 +75,7 @@ device — **vibration, share sheet, geolocation, clipboard, orientation** — t
 rask new MyApp --template wasm --pwa     # → an installable, offline PWA, ready to deploy
 ```
 
-**[📖 Build mobile apps with Rask →](docs/pwa.md)**  ·  **[Try the installable demo ↗](https://pal-tamas.github.io/rask/demo/)**
+**[📖 Build mobile apps with Rask →](docs/pwa.md)**  ·  **[Try the installable demo ↗](https://pal-tamas.github.io/rask/docs/)**
 
 Going further than a PWA? **`Rask.Native`** *(preview)* ships the *same* component code as a real
 **native iOS/Android app** for App Store / Play Store distribution — a WebView hybrid where your C#
@@ -138,7 +138,7 @@ xychart-beta
 The full byte-for-byte table — including where and why each scenario lands — is in the
 **[Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)**.
 
-*Rask* is the Norwegian/Danish/Swedish word for **fast**. **The [docs ↗](docs/) and the [live demo ↗](https://pal-tamas.github.io/rask/demo/)
+*Rask* is the Norwegian/Danish/Swedish word for **fast**. **The [docs ↗](docs/) and the [live demo ↗](https://pal-tamas.github.io/rask/docs/)
 are the real tour — this README is just the front door.**
 
 ## 📦 Install
@@ -205,7 +205,7 @@ host trade-offs, and sub-path hosting are covered in **[getting started](docs/ge
 
 **The fastest way to understand Rask is to click through a real app and read its source.**
 
-- **[Live demo ↗](https://pal-tamas.github.io/rask/demo/)** — `Rask.Example.Wasm` is published to GitHub Pages on every push
+- **[Live demo ↗](https://pal-tamas.github.io/rask/docs/)** — `Rask.Example.Wasm` is published to GitHub Pages on every push
   to `main`; click through a full multi-page Rask app in the browser before cloning anything.
 - **[Playground ↗](https://pal-tamas.github.io/rask/playground/)** — write Rask component C# in the browser with a real
   IDE: Roslyn-powered IntelliSense, as-you-type diagnostics, and a gallery of ready-to-run examples — then see it
@@ -257,7 +257,7 @@ Rask is released under the [MIT License](LICENSE).
 
 ⚡ **Rask** — *Norwegian/Danish/Swedish for "fast".*
 
-**[Live demo ↗](https://pal-tamas.github.io/rask/demo/)** · **[Docs ↗](docs/)** · **[Examples ↗](samples/)** · **[NuGet ↗](https://www.nuget.org/packages/Rask.Server)**
+**[Live demo ↗](https://pal-tamas.github.io/rask/docs/)** · **[Docs ↗](docs/)** · **[Examples ↗](samples/)** · **[NuGet ↗](https://www.nuget.org/packages/Rask.Server)**
 
 Built with .NET 10. Issues and PRs welcome.
 
