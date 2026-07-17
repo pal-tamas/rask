@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
@@ -598,5 +599,37 @@ public sealed class ProjectGeneratorTests
             Assert.DoesNotContain("Company.RaskServer", content, StringComparison.Ordinal);
             Assert.DoesNotContain("Company.RaskServer", path, StringComparison.Ordinal);
         }
+    }
+
+    /// <summary>
+    /// The wasm <c>--auth</c> scaffold pins Microsoft.JSInterop / Microsoft.AspNetCore.Authorization itself.
+    /// Rask.Wasm references the same two packages, so its nuspec demands <c>&gt;=</c> whatever
+    /// Directory.Packages.props pins — scaffolding anything lower puts the generated project below its own
+    /// dependency, which NuGet reports as a downgrade (NU1605) and <c>-warnaserror</c> turns into a failed
+    /// build. The two drifted apart once already (10.0.9 vs 10.0.10); this keeps them married.
+    /// </summary>
+    [Theory]
+    [InlineData("Microsoft.JSInterop")]
+    [InlineData("Microsoft.AspNetCore.Authorization")]
+    public void Wasm_auth_framework_version_matches_the_repo_pin(string package)
+    {
+        var props = File.ReadAllText(Path.Combine(FindRepoRoot(), "Directory.Packages.props"));
+        var match = Regex.Match(props, $"""<PackageVersion\s+Include="{Regex.Escape(package)}"\s+Version="([^"]+)"\s*/>""");
+
+        Assert.True(match.Success, $"{package} is not pinned in Directory.Packages.props.");
+        Assert.Equal(ProjectGenerator.AspNetCoreFrameworkVersion, match.Groups[1].Value);
+    }
+
+    private static string FindRepoRoot()
+    {
+        for (var dir = AppContext.BaseDirectory; dir is not null; dir = Path.GetDirectoryName(dir))
+        {
+            if (File.Exists(Path.Combine(dir, "Rask.slnx")))
+            {
+                return dir;
+            }
+        }
+
+        throw new InvalidOperationException("Could not locate the repo root (Rask.slnx) from the test base directory.");
     }
 }

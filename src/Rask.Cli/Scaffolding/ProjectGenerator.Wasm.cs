@@ -48,7 +48,12 @@ internal static partial class ProjectGenerator
     // The JWT auth scaffold uses IJSRuntime (localStorage) + [AllowAnonymous]. On a browser-wasm app there's
     // no Microsoft.AspNetCore.App framework reference to supply them and the transitive compile assets from
     // Rask.Core don't flow through the published package chain, so the --auth scaffold references them directly.
-    private const string AspNetCoreFrameworkVersion = "10.0.9";
+    //
+    // This MUST match what Directory.Packages.props pins, because Rask.Wasm references the same two packages
+    // and its nuspec therefore demands `>= <that pin>`. Scaffolding a lower version puts the generated project
+    // *below* its own dependency and NuGet reports a downgrade (NU1605) — an error under -warnaserror.
+    // ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin holds the two in sync.
+    internal const string AspNetCoreFrameworkVersion = "10.0.10";
 
     // The WebAssembly SDK <PropertyGroup> — byte-identical for the standalone `wasm` template and the
     // `wasm-hosted` client project. Shared here so the two csproj builders (WasmCsproj and
