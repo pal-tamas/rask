@@ -1,0 +1,6946 @@
+=== asset-basic-css ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .basic-card
+p
+code
+code
+code
+code
+
+=== asset-js-only ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .align-items-center .d-flex .gap-3
+button .btn .btn-outline-primary .js-only-btn
+span .text-secondary
+strong
+
+=== asset-lazy-mount ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+button .btn .btn-outline-secondary .mb-3
+div
+
+=== asset-twin-bundle ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .d-flex .flex-wrap .gap-2
+div .twin-tag
+div .twin-tag
+
+=== auth-authorize ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-flex .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+button .btn .btn-sm .btn-warning
+button .btn .btn-outline-secondary .btn-sm
+div .alert .alert-secondary .mb-0 .py-2
+
+=== auth-user-gate ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+p .text-secondary
+div .d-flex .gap-2
+button .btn .btn-primary .btn-sm
+button .btn .btn-sm .btn-warning
+
+=== background-metrics ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-4 .row
+div .col-lg-5
+div .border-0 .card .h-100 .shadow-sm
+div .card-body
+div .align-items-baseline .d-flex .justify-content-between .mb-3
+h3 .h6 .mb-0 .small .text-secondary .text-uppercase
+span .badge .rounded-pill .text-bg-secondary
+div .g-3 .row .text-center
+div .col-6
+div .fs-3 .fw-bold
+div .small .text-secondary
+div .col-6
+div .fs-3 .fw-bold
+div .small .text-secondary
+p .mb-0 .mt-3 .small .text-secondary
+code
+div .col-lg-7
+div .border-0 .card .h-100 .shadow-sm
+div .card-body
+h3 .h6 .mb-3 .small .text-secondary .text-uppercase
+div .metrics-chart-container
+svg .metrics-chart-svg
+line
+line
+line
+polygon
+text
+text
+circle
+title
+
+=== binding-afterbind ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .mb-3
+label .form-label .small
+select .form-select
+option
+option
+option
+div .mb-3
+label .form-label .small
+select .form-select
+option
+option
+option
+pre .bg-light .border .mb-0 .p-3 .rounded .small
+code
+
+=== binding-afterbind-async ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .mb-3
+label .form-label .small
+select .form-select
+option
+option
+option
+option
+div .mb-3
+label .form-label .small
+select .form-select
+option
+pre .bg-light .border .mb-0 .p-3 .rounded .small
+code
+
+=== binding-clear-default ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .mb-3
+label .form-label .small
+input .form-control
+div .mb-3
+label .form-label .small
+input .form-control
+pre .bg-light .border .mb-0 .p-3 .rounded .small
+code
+
+=== binding-manual ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+input .form-control .mb-2
+p .mb-0 .small
+code
+
+=== binding-multi ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .form-check .mb-3
+input .form-check-input
+label .form-check-label .ms-1
+div .mb-3
+label .form-label .small
+input .form-control
+div .mb-3
+label .form-label .small
+input .form-control
+div .mb-3
+label .form-label .small
+select .form-select
+option
+option
+option
+pre .bg-light .border .mb-0 .p-3 .rounded .small
+code
+
+=== binding-nullable ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .mb-3
+label .form-label .small
+input .form-control
+div .mb-3
+label .form-label .small
+input .form-control
+div .mb-3
+label .form-label .small
+select .form-select
+option
+option
+option
+option
+div .mb-3
+label .form-label .small
+input .form-control
+pre .bg-light .border .mb-0 .p-3 .rounded .small
+code
+
+=== binding-textarea ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+textarea .form-control .mb-2
+pre .bg-light .border .mb-0 .p-3 .rounded .small
+code
+
+=== binding-typed ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+input .form-control .mb-2
+p .mb-0 .small
+strong
+
+=== boom-handler ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .bg-white .border .p-3 .rounded
+p .mb-2 .small .text-secondary
+button .btn .btn-danger
+i .bi .bi-exclamation-triangle .me-2
+
+=== boom-nested ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .bg-white .border .p-3 .rounded
+p .mb-2 .small .text-secondary
+div .bg-light .border .p-3 .rounded
+p .mb-2 .small .text-secondary
+button .btn .btn-danger .btn-sm
+i .bi .bi-exclamation-triangle .me-2
+
+=== boom-render ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .bg-white .border .p-3 .rounded
+p .mb-2 .small .text-secondary
+button .btn .btn-warning
+i .bi .bi-bug .me-2
+
+=== bootstrap-alerts ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-2 .vstack
+div .alert .alert-primary
+div .alert .alert-success
+i .bi .bi-check-circle .me-2
+div .alert .alert-dismissible .alert-warning
+button .btn-close
+
+=== bootstrap-breadcrumb ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .d-flex .flex-column .gap-3
+nav
+ol .breadcrumb
+li .breadcrumb-item
+a
+li .breadcrumb-item
+a
+li .active .breadcrumb-item
+nav
+ol .breadcrumb
+li .breadcrumb-item
+a
+li .active .breadcrumb-item
+
+=== bootstrap-buttons ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div .flex-wrap .gap-2 .hstack
+button .btn .btn-primary
+button .btn .btn-secondary
+button .btn .btn-success
+button .btn .btn-danger
+button .btn .btn-warning
+button .btn .btn-info
+div .flex-wrap .gap-2 .hstack
+button .btn .btn-outline-primary
+button .btn .btn-primary .btn-sm
+button .btn .btn-lg .btn-primary
+button .btn .btn-primary
+div .btn-group
+button .btn .btn-primary
+button .btn .btn-primary
+button .btn .btn-primary
+div .align-items-center .gap-2 .hstack
+span .badge .text-bg-primary
+span .badge .rounded-pill .text-bg-success
+button .btn .btn-primary
+span .badge .text-bg-light
+
+=== bootstrap-cards ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-3 .row
+div .col-md-6
+div .card
+div .card-body
+h5 .card-title
+h6 .card-subtitle .mb-2 .text-body-secondary
+p .card-text
+button .btn .btn-primary
+div .col-md-6
+div .card .text-bg-dark
+div .card-header
+div .card-body
+h5 .card-title
+p .card-text
+div .card-footer
+
+=== bootstrap-collapse ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+button .btn .btn-primary
+div .collapse
+div .card .card-body .mt-2
+
+=== bootstrap-confirm ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .align-items-start .gap-2 .vstack
+button .btn .btn-danger
+p .mb-0 .text-body-secondary
+
+=== bootstrap-dropdown ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .d-flex .flex-wrap .gap-3
+div .dropdown
+button .btn .btn-primary .dropdown-toggle
+ul .dropdown-menu
+li
+h6 .dropdown-header
+li
+button .dropdown-item
+li
+button .dropdown-item
+li
+hr .dropdown-divider
+li
+button .dropdown-item
+div .dropdown
+button .btn .btn-secondary .dropdown-toggle
+ul .dropdown-menu .dropdown-menu-end
+li
+button .dropdown-item
+li
+button .dropdown-item
+div .alert .alert-info .mb-0 .mt-3
+span
+strong
+
+=== bootstrap-forms ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label
+input .form-control
+div
+label .form-label
+input .form-control
+div .form-text
+div .dropdown
+div .bs-floating .form-floating .position-relative
+div .form-select
+label
+div .dropdown-menu
+button .dropdown-item
+button .dropdown-item
+button .dropdown-item
+div .dropdown
+label .form-label
+div .form-select
+span .text-secondary
+div .dropdown-menu
+button .dropdown-item
+button .dropdown-item
+button .dropdown-item
+button .dropdown-item
+div .dropdown
+label .form-label
+div .form-select
+span .text-secondary
+div .dropdown-menu
+button .dropdown-item
+button .dropdown-item
+button .dropdown-item
+div
+label .form-label
+select .form-select
+option
+option
+option
+div .form-check .form-switch
+input .form-check-input
+label .form-check-label
+button .btn .btn-primary
+div .alert .alert-secondary .mb-0 .mt-3
+span
+
+=== bootstrap-icons ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div .flex-wrap .fs-2 .gap-3 .hstack
+i .bi .bi-house-door
+i .bi .bi-heart-fill .text-danger
+i .bi .bi-star-fill .text-warning
+i .bi .bi-github
+i .bi .bi-check2-circle .text-success
+i .bi .bi-bell .text-primary
+div .gap-2 .hstack
+button .btn .btn-primary
+i .bi .bi-download .me-1
+button .btn .btn-outline-success
+i .bi .bi-arrow-right
+
+=== bootstrap-listgroup ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-3 .row
+div .col-md-6
+ul .list-group
+li .active .list-group-item
+li .list-group-item
+li .disabled .list-group-item
+li .list-group-item .list-group-item-success
+a .list-group-item .list-group-item-action
+div .col-md-6 .d-flex .flex-column .gap-3
+ol .list-group .list-group-numbered
+li .list-group-item
+li .list-group-item
+li .list-group-item
+ul .list-group .list-group-flush
+li .list-group-item
+li .list-group-item
+
+=== bootstrap-modal ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .d-flex .gap-2
+button .btn .btn-primary
+button .btn .btn-secondary
+
+=== bootstrap-multiselect ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div .dropdown
+label .form-label
+div .align-items-center .d-flex .flex-wrap .form-select .gap-1 .h-auto
+span .text-secondary
+div .dropdown-menu
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+div .dropdown
+label .form-label
+div .align-items-center .d-flex .flex-wrap .form-select .gap-1 .h-auto
+span .text-secondary
+div .dropdown-menu
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+div .dropdown
+div .bs-floating .form-floating .position-relative
+div .align-items-center .d-flex .flex-wrap .form-select .gap-1 .h-auto
+label
+div .dropdown-menu
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+div .dropdown
+label .form-label
+div .align-items-center .d-flex .disabled .flex-wrap .form-select .gap-1 .h-auto .pe-none
+span .align-items-center .badge .d-inline-flex .text-bg-primary
+button .btn-close .btn-close-white .ms-1
+span .align-items-center .badge .d-inline-flex .text-bg-primary
+button .btn-close .btn-close-white .ms-1
+div .dropdown-menu
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+div .dropdown
+label .form-label
+div .align-items-center .d-flex .flex-wrap .form-select .gap-1 .h-auto
+span .text-secondary
+div .dropdown-menu
+button .align-items-center .d-flex .dropdown-item .fw-semibold .gap-2
+div .dropdown-header
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+div .dropdown-header
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+div .dropdown-header
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+div .alert .alert-secondary .mb-0 .mt-3
+span
+
+=== bootstrap-nav ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-4 .vstack
+nav .bg-dark .navbar .rounded
+div .container-fluid
+span .mb-0 .navbar-brand
+i .bi .bi-lightning .me-1
+div .d-flex .ms-auto
+button .btn .btn-light .btn-sm
+ul .flex-column .nav .nav-pills
+li .nav-item
+a .active .nav-link
+i .bi .bi-house .me-2
+li .nav-item
+a .nav-link
+i .bi .bi-bootstrap .me-2
+li .nav-item
+a .nav-link
+i .bi .bi-diagram-3 .me-2
+li .nav-item
+span .disabled .nav-link
+i .bi .bi-hourglass .me-2
+
+=== bootstrap-offcanvas ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+button .btn .btn-primary
+div .offcanvas .offcanvas-end
+div .offcanvas-header
+h5 .offcanvas-title
+button .btn-close
+div .offcanvas-body
+p
+button .btn .btn-secondary
+
+=== bootstrap-pagination ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+nav
+ul .pagination
+li .disabled .page-item
+button .page-link
+li .active .page-item
+button .page-link
+li .page-item
+button .page-link
+li .page-item
+button .page-link
+li .page-item
+button .page-link
+li .page-item
+button .page-link
+li .page-item
+button .page-link
+p .mb-0 .mt-2 .text-body-secondary
+
+=== bootstrap-pickers ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div .dropdown .position-relative
+label .form-label
+div .position-relative
+input .form-control
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .align-items-center .d-flex .justify-content-between .mb-2
+button .btn .btn-outline-secondary .btn-sm
+span .fw-semibold
+button .btn .btn-outline-secondary .btn-sm
+div .bs-cal
+div
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .dropdown .position-relative
+div .bs-floating .bs-floating-filled .form-floating .position-relative
+input .form-control
+label
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .align-items-center .d-flex .justify-content-between .mb-2
+button .btn .btn-outline-secondary .btn-sm
+span .fw-semibold
+button .btn .btn-outline-secondary .btn-sm
+div .bs-cal
+div
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div
+label .form-label
+input .form-control
+div .dropdown .position-relative
+label .form-label
+div .position-relative
+input .form-control
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .align-items-center .d-flex .justify-content-between .mb-2
+button .btn .btn-outline-secondary .btn-sm
+span .fw-semibold
+button .btn .btn-outline-secondary .btn-sm
+div .bs-cal
+div
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div
+div .bs-cal-cell .bs-cal-muted .disabled
+div .bs-cal-cell .bs-cal-muted .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .disabled
+div .bs-cal-cell .disabled
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .bs-cal-muted .disabled
+div .bs-cal-cell .bs-cal-muted .disabled
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted .disabled
+div .bs-cal-cell .bs-cal-muted .disabled
+div .dropdown .position-relative
+label .form-label
+div .position-relative
+input .form-control
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .align-items-center .d-flex .justify-content-between .mb-2
+button .btn .btn-outline-secondary .btn-sm
+span .fw-semibold
+button .btn .btn-outline-secondary .btn-sm
+div .bs-cal
+div
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .dropdown .position-relative
+label .form-label
+div .position-relative
+input .form-control
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .align-items-center .d-flex .justify-content-between .mb-2
+button .btn .btn-outline-secondary .btn-sm
+span .fw-semibold
+button .btn .btn-outline-secondary .btn-sm
+div .bs-cal
+div
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .dropdown .position-relative
+label .form-label
+div .position-relative
+input .form-control
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .bs-time .d-flex .gap-1
+div .bs-time-col
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+span .bs-time-sep
+div .bs-time-col
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+div
+label .form-label
+input .form-control
+div .dropdown .position-relative
+label .form-label
+div .position-relative
+input .form-control
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .bs-time .d-flex .gap-1
+div .bs-time-col
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+button .bs-time-item .disabled .dropdown-item
+span .bs-time-sep
+div .bs-time-col
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+span .bs-time-sep
+div .bs-time-col
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+div .dropdown .position-relative
+label .form-label
+div .position-relative
+input .form-control
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .align-items-center .d-flex .justify-content-between .mb-2
+button .btn .btn-outline-secondary .btn-sm
+span .fw-semibold
+button .btn .btn-outline-secondary .btn-sm
+div .bs-datetime .d-flex .gap-2
+div .bs-cal
+div
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-time .d-flex .gap-1
+div .bs-time-col
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+span .bs-time-sep
+div .bs-time-col
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+div .dropdown .position-relative
+div .bs-floating .bs-floating-filled .form-floating .position-relative
+input .form-control
+label
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .align-items-center .d-flex .justify-content-between .mb-2
+button .btn .btn-outline-secondary .btn-sm
+span .fw-semibold
+button .btn .btn-outline-secondary .btn-sm
+div .bs-datetime .d-flex .gap-2
+div .bs-cal
+div
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-time .d-flex .gap-1
+div .bs-time-col
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+span .bs-time-sep
+div .bs-time-col
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+div
+label .form-label
+input .form-control
+div .dropdown .position-relative
+label .form-label
+div .position-relative
+input .form-control
+span .bs-picker-caret .end-0 .me-3 .position-absolute .top-50 .translate-middle-y
+div .dropdown-menu .p-2
+div .align-items-center .d-flex .justify-content-between .mb-2
+button .btn .btn-outline-secondary .btn-sm
+span .fw-semibold
+button .btn .btn-outline-secondary .btn-sm
+div .bs-datetime .d-flex .gap-2
+div .bs-cal
+div
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div .bs-cal-head .text-body-secondary
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell .bs-cal-muted
+div .bs-time .d-flex .gap-1
+div .bs-time-col
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+span .bs-time-sep
+div .bs-time-col
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+span .bs-time-sep
+div .bs-time-col
+button .active .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+button .bs-time-item .dropdown-item
+div .alert .alert-info .mb-0 .mt-3
+span
+
+=== bootstrap-placeholder ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-3 .row
+div .col-md-6
+div .card
+div .card-body
+h5 .card-title
+span .placeholder-glow
+span .col-6 .placeholder
+p .card-text
+span .placeholder-glow
+span .col-7 .placeholder
+span .placeholder-glow
+span .col-4 .placeholder
+span .placeholder-glow
+span .col-4 .placeholder
+span .placeholder-glow
+span .col-6 .placeholder
+span .placeholder-glow
+span .col-8 .placeholder
+div .col-md-6 .d-flex .flex-column .gap-2
+span .placeholder-wave
+span .bg-primary .col-12 .placeholder
+span .placeholder-wave
+span .bg-success .col-8 .placeholder .placeholder-lg
+span .placeholder-wave
+span .bg-danger .col-6 .placeholder .placeholder-sm
+
+=== bootstrap-progress ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div .progress
+div .progress-bar
+div .progress
+div .bg-success .progress-bar
+div .progress
+div .bg-info .progress-bar .progress-bar-striped
+div .progress
+div .bg-warning .progress-bar .progress-bar-animated .progress-bar-striped
+
+=== bootstrap-select ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div .dropdown
+label .form-label
+div .form-select
+span .text-secondary
+div .dropdown-menu
+button .dropdown-item
+button .dropdown-item
+button .dropdown-item
+div .dropdown
+div .bs-floating .bs-floating-filled .form-floating .position-relative
+div .form-select
+label
+div .dropdown-menu
+button .dropdown-item
+button .active .dropdown-item
+button .dropdown-item
+div .dropdown
+label .form-label
+div .form-select
+span .text-secondary
+div .dropdown-menu
+button .dropdown-item
+button .dropdown-item
+button .dropdown-item
+div .dropdown
+label .form-label
+div .form-select
+span .text-secondary
+div .dropdown-menu
+button .dropdown-item
+button .dropdown-item
+button .dropdown-item
+button .dropdown-item
+div .dropdown
+label .form-label
+div .form-select
+span .text-secondary
+div .dropdown-menu
+button .dropdown-item
+button .dropdown-item
+button .dropdown-item
+div
+label .form-label
+select .form-select
+option
+option
+option
+div
+label .form-label
+select .form-select
+option
+option
+option
+option
+option
+div .dropdown
+label .form-label
+div .disabled .form-select .pe-none
+div .dropdown-menu
+button .dropdown-item
+button .dropdown-item
+button .active .dropdown-item
+div .dropdown
+label .form-label
+div .form-select
+span .text-secondary
+div .dropdown-menu
+div .dropdown-header
+button .dropdown-item
+button .dropdown-item
+div .dropdown-header
+button .dropdown-item
+div .alert .alert-secondary .mb-0 .mt-3
+span
+
+=== bootstrap-spinner ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .hstack
+div .spinner-border .text-primary
+span .visually-hidden
+div .spinner-grow .text-secondary
+span .visually-hidden
+div .spinner-border .spinner-border-sm .text-success
+span .visually-hidden
+div .spinner-grow .spinner-grow-sm .text-danger
+span .visually-hidden
+
+=== bootstrap-table ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+table .table .table-bordered .table-hover .table-striped
+thead
+tr
+th
+th
+th
+tbody
+tr
+td
+td
+td
+tr
+td
+td
+td
+tr
+td
+td
+td
+
+=== bootstrap-tabs ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-4 .vstack
+div
+ul .nav .nav-tabs
+li .nav-item
+button .active .nav-link
+li .nav-item
+button .nav-link
+li .nav-item
+button .nav-link
+div .tab-content
+div .active .show .tab-pane
+p .mb-0 .pt-3
+div .accordion
+div .accordion-item
+h2 .accordion-header
+button .accordion-button
+div .accordion-collapse .collapse .show
+div .accordion-body
+p .mb-0
+div .accordion-item
+h2 .accordion-header
+button .accordion-button .collapsed
+div .accordion-collapse .collapse
+div .accordion-body
+p .mb-0
+
+=== bootstrap-toast ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-flex .flex-wrap .gap-2
+button .btn .btn-primary
+i .bi .bi-bell .me-1
+button .btn .btn-success
+button .btn .btn-danger
+button .btn .btn-warning
+button .btn .btn-outline-secondary .ms-auto
+i .bi .bi-trash .me-1
+div .align-items-center .d-flex .flex-wrap .gap-3 .mt-3
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-square .me-1
+div .btn-group .btn-group-sm
+button .btn .btn-outline-secondary
+button .btn .btn-outline-secondary
+button .btn .btn-secondary
+button .btn .btn-outline-secondary
+button .btn .btn-outline-secondary
+button .btn .btn-outline-secondary
+div .bg-body-tertiary .border .mt-3 .overflow-hidden .position-relative .rounded
+div .position-absolute .small .start-50 .text-secondary .top-50 .translate-middle
+div .end-0 .p-3 .position-absolute .toast-container .top-0
+
+=== bootstrap-utilities ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .d-flex .flex-column .gap-4
+div
+h6 .fw-bold .mb-2 .text-body-secondary .text-uppercase
+div .d-flex .flex-wrap .gap-3
+div .bg-white .p-3 .rounded .shadow-sm
+div .bg-white .p-3 .rounded .shadow
+div .bg-white .p-3 .rounded .shadow-lg
+div
+h6 .fw-bold .mb-2 .text-body-secondary .text-uppercase
+div .align-items-start .d-flex .gap-3
+div .bg-primary .p-1 .rounded
+div .bg-white .p-3
+div .bg-body-tertiary .border .mt-4 .p-3 .rounded .text-center
+div
+h6 .fw-bold .mb-2 .text-body-secondary .text-uppercase
+div .align-items-center .border .d-flex .justify-content-between .p-2 .rounded
+span
+span .badge .text-bg-secondary
+div
+h6 .fw-bold .mb-2 .text-body-secondary .text-uppercase
+div .d-flex .flex-column .gap-1
+p .fw-bold .mb-0 .text-center
+p .mb-0 .text-danger .text-end
+p .fs-6 .mb-0 .text-body-secondary .text-uppercase
+div
+h6 .fw-bold .mb-2 .text-body-secondary .text-uppercase
+div .d-flex .flex-wrap .gap-2
+span .bg-primary .px-3 .py-2 .rounded-pill .text-light
+span .bg-success .px-3 .py-2 .rounded .text-light
+span .bg-dark .px-3 .py-2 .rounded-0 .text-light
+div
+h6 .fw-bold .mb-2 .text-body-secondary .text-uppercase
+div .d-flex .flex-column .gap-2
+div .bg-info .p-2 .text-light .w-25
+div .bg-info .p-2 .text-light .w-50
+div .bg-info .p-2 .text-light .w-100
+div
+h6 .fw-bold .mb-2 .text-body-secondary .text-uppercase
+div .bg-body-tertiary .border .p-3 .rounded .text-center .text-md-center
+
+=== browser-battery ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+div .mb-1 .small .text-secondary
+code
+div .mb-1 .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-broadcast-channel ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-primary .btn-sm .mb-2
+div .mb-1 .small .text-secondary
+div .fst-italic .small .text-secondary
+
+=== browser-clipboard ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .input-group .input-group-sm .mb-2
+div
+input .form-control
+button .btn .btn-primary
+button .btn .btn-outline-primary
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-cookies ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .input-group .input-group-sm .mb-2
+input .form-control
+button .btn .btn-primary
+button .btn .btn-outline-primary
+button .btn .btn-outline-danger
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-crypto ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+div .small .text-secondary
+code
+div .mb-2 .small .text-secondary
+code
+input .form-control .form-control-sm .mb-2
+button .btn .btn-primary .btn-sm .mb-2
+div .small .text-break .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-device-sensors ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-primary .btn-sm .mb-3
+div .mb-2 .small .text-secondary
+code
+div .g-3 .row
+div .col-sm-6
+div .fw-semibold .mb-1 .small
+div .small .text-secondary
+code
+code
+code
+div .col-sm-6
+div .fw-semibold .mb-1 .small
+div .small .text-secondary
+code
+code
+code
+
+=== browser-file-system ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+i .bi .bi-folder2-open .me-1
+button .btn .btn-outline-primary .btn-sm
+i .bi .bi-save .me-1
+button .btn .btn-outline-primary .btn-sm
+div .mb-2 .small .text-secondary
+code
+textarea .form-control .mb-2
+div .small .text-secondary
+code
+
+=== browser-gamepad ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .mb-2 .small .text-secondary
+code
+div .mb-2 .small .text-secondary
+code
+div .small .text-secondary
+
+=== browser-geolocation ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-geolocation-watch ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+div .small .text-secondary
+code
+span .ms-2
+div .small .text-secondary
+code
+
+=== browser-gesture-bridge ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .align-items-center .d-flex .flex-wrap .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-success .btn-sm
+span .small .text-secondary
+div .align-items-center .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-outline-secondary .btn-sm
+span .small .text-secondary
+div .align-items-center .d-flex .flex-wrap .gap-2
+button .btn .btn-outline-secondary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+video
+div .mt-3 .small .text-secondary
+code
+
+=== browser-indexeddb ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .g-2 .mb-2 .row
+div .col-sm-4
+input .form-control .form-control-sm
+div .col-sm-8
+input .form-control .form-control-sm
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+button .btn .btn-outline-danger .btn-sm
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-intersection ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .align-items-center .d-flex .gap-2 .mb-2
+span .badge .text-bg-secondary
+span .small .text-secondary
+p .mb-2 .small .text-secondary
+div
+div .bg-light .p-4 .rounded .text-center
+
+=== browser-media-query ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-media-session ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-danger .btn-sm
+p .mb-2 .small .text-secondary
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-mutation ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+div .border .mb-3 .p-3 .rounded
+ul .mb-0
+li
+div .small .text-secondary
+code
+code
+div .small .text-secondary
+code
+
+=== browser-navigator-info ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-network ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-notifications ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+button .btn .btn-outline-danger .btn-sm
+div .small .text-secondary
+code
+
+=== browser-page-visibility ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-performance ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-permissions ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-resize ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .mb-2 .small .text-secondary
+code
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .bg-light .p-4 .rounded .text-center .w-100
+
+=== browser-screen ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-share ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+div .small .text-secondary
+code
+
+=== browser-speech ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+input .form-control .form-control-sm .mb-2
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-danger .btn-sm
+div .small .text-secondary
+code
+
+=== browser-speech-recognition ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-danger .btn-sm
+div .mb-1 .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-storage ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .input-group .input-group-sm .mb-2
+div
+input .form-control
+button .btn .btn-primary
+button .btn .btn-outline-primary
+button .btn .btn-outline-danger
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-storage-estimate ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-vibration ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-danger .btn-sm
+div .small .text-secondary
+code
+
+=== browser-visual-viewport ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+button .btn .btn-outline-primary .btn-sm .mb-2
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== browser-web-locks ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+div .mb-1 .small .text-secondary
+code
+div .fst-italic .small .text-secondary
+
+=== browser-webauthn ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+i .bi .bi-fingerprint .me-1
+button .btn .btn-outline-primary .btn-sm
+div .small .text-secondary
+code
+div .small .text-secondary
+code
+
+=== callback-rating ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-inline-flex .gap-1
+button .btn .btn-link .fs-3 .lh-1 .p-0 .text-decoration-none
+button .btn .btn-link .fs-3 .lh-1 .p-0 .text-decoration-none
+button .btn .btn-link .fs-3 .lh-1 .p-0 .text-decoration-none
+button .btn .btn-link .fs-3 .lh-1 .p-0 .text-decoration-none
+button .btn .btn-link .fs-3 .lh-1 .p-0 .text-decoration-none
+p .mb-0 .mt-2 .small .text-secondary
+
+=== cancellation ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-flex .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+i .bi .bi-play-circle .me-1
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-stop-circle .me-1
+p .fst-italic .mb-0 .text-secondary
+h3 .h6 .mt-4 .small .text-secondary .text-uppercase
+p .mb-0 .small .text-secondary
+
+=== component-tiers ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-3 .row
+div .col-md-4
+div .card .h-100
+div .card-body
+h6 .fw-semibold .mb-1
+p .small .text-secondary
+div .d-flex .gap-2
+span .badge .text-bg-secondary
+span .badge .text-bg-secondary
+span .badge .text-bg-secondary
+div .col-md-4
+div .card .h-100
+div .card-body
+h6 .fw-semibold .mb-1
+p .small .text-secondary
+p .mb-0
+strong
+div .col-md-4
+div .card .h-100
+div .card-body
+h6 .fw-semibold .mb-1
+p .small .text-secondary
+button .btn .btn-primary .btn-sm
+
+=== components-di ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+
+=== components-greeting ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+p .mb-0
+strong
+
+=== components-skipfactory ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+button .btn .btn-outline-primary
+i .bi .bi-hand-index .me-2
+
+=== context-theme ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border .p-3 .rounded
+button .btn .btn-outline-secondary .btn-sm .mb-3
+div .align-items-center .d-flex .gap-2
+span .small .text-secondary
+span .badge .bg-warning-subtle .text-dark
+
+=== cqrs-counter ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div .align-items-center .d-flex .gap-3
+span .display-6 .fw-semibold
+button .btn .btn-primary
+ul .list-group
+li .list-group-item .py-1 .small
+
+=== data-download ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+button .btn .btn-primary
+i .bi .bi-file-earmark-text .me-2
+div .mt-2 .small .text-secondary
+
+=== data-grid ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .table-responsive
+table .table .table-hover .table-striped
+thead
+tr
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th .text-end
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th .text-end
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+tbody
+tr
+td
+td
+td .text-end
+span .badge .text-bg-success
+td .text-end
+tr
+td
+td
+td .text-end
+span .badge .text-bg-success
+td .text-end
+tr
+td
+td
+td .text-end
+span .badge .text-bg-danger
+td .text-end
+tr
+td
+td
+td .text-end
+span .badge .text-bg-success
+td .text-end
+tr
+td
+td
+td .text-end
+span .badge .text-bg-warning
+td .text-end
+tfoot
+tr
+td
+td
+td .text-end
+td .text-end
+div .align-items-center .d-flex .justify-content-between
+span .small .text-secondary
+nav
+ul .mb-0 .pagination .pagination-sm
+li .disabled .page-item
+button .page-link
+i .bi .bi-chevron-left
+li .active .page-item
+button .page-link
+li .page-item
+button .page-link
+li .page-item
+button .page-link
+li .page-item
+button .page-link
+i .bi .bi-chevron-right
+
+=== data-grid-columns ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .bs-grid-columnchooser .mb-2 .position-relative
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-columns .me-1
+div .table-responsive
+table .table .table-hover .table-striped
+thead
+tr
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th .text-end
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+tbody
+tr
+td
+td
+td
+td .text-end
+tr
+td
+td
+td
+td .text-end
+tr
+td
+td
+td
+td .text-end
+tr
+td
+td
+td
+td .text-end
+tr
+td
+td
+td
+td .text-end
+tr
+td
+td
+td
+td .text-end
+tfoot
+tr
+td
+td
+td
+td .text-end
+
+=== data-grid-detail ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .table-responsive
+table .table .table-hover .table-striped
+thead
+tr
+th
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th .text-end
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+tbody
+tr
+td
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-chevron-right
+td
+td
+td
+td .text-end
+tr
+td
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-chevron-right
+td
+td
+td
+td .text-end
+tr
+td
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-chevron-right
+td
+td
+td
+td .text-end
+
+=== data-grid-empty ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .d-flex .flex-column .gap-3
+div .d-flex .gap-2
+button .btn .btn-outline-secondary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+div .table-responsive
+table .table .table-hover .table-striped
+thead
+tr
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+tbody
+tr
+td
+td
+tr
+td
+td
+tr
+td
+td
+
+=== data-grid-group ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-flex .gap-2 .mb-3
+button .active .btn .btn-outline-secondary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+div .align-items-center .bs-grid-grouppanel .d-flex .gap-2 .mb-2
+span .small .text-secondary
+div .align-items-center .badge .bs-grid-chip .d-flex .gap-1 .text-bg-secondary
+span
+button .btn .btn-link .btn-sm .lh-1 .p-0 .text-decoration-none .text-reset
+i .bi .bi-chevron-left
+button .btn .btn-link .btn-sm .lh-1 .p-0 .text-decoration-none .text-reset
+i .bi .bi-chevron-right
+button .btn .btn-link .btn-sm .lh-1 .p-0 .text-decoration-none .text-reset
+i .bi .bi-x
+div .table-responsive
+table .table .table-hover .table-striped
+thead
+tr
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+button .btn .btn-link .btn-sm .ms-1 .p-0 .text-decoration-none .text-secondary
+i .bi .bi-diagram-3
+th .text-end
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+tbody
+tr .table-group-divider
+td
+button .btn .btn-outline-secondary .btn-sm .me-2
+i .bi .bi-chevron-down
+span .fw-semibold
+span .ms-2 .small .text-secondary
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr .table-light
+td .fw-semibold
+td .fw-semibold
+td .fw-semibold .text-end
+tr .table-group-divider
+td
+button .btn .btn-outline-secondary .btn-sm .me-2
+i .bi .bi-chevron-down
+span .fw-semibold
+span .ms-2 .small .text-secondary
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr .table-light
+td .fw-semibold
+td .fw-semibold
+td .fw-semibold .text-end
+tr .table-group-divider
+td
+button .btn .btn-outline-secondary .btn-sm .me-2
+i .bi .bi-chevron-down
+span .fw-semibold
+span .ms-2 .small .text-secondary
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr .table-light
+td .fw-semibold
+td .fw-semibold
+td .fw-semibold .text-end
+tfoot
+tr
+td
+td
+td .text-end
+
+=== data-grid-loading ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .position-relative
+div .table-responsive
+table .table .table-hover .table-striped
+thead
+tr
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th .text-end
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+tbody
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+div .align-items-center .d-flex .justify-content-between
+span .small .text-secondary
+nav
+ul .mb-0 .pagination .pagination-sm
+li .disabled .page-item
+button .page-link
+i .bi .bi-chevron-left
+li .active .page-item
+button .page-link
+li .page-item
+button .page-link
+li .page-item
+button .page-link
+li .page-item
+button .page-link
+i .bi .bi-chevron-right
+
+=== data-grid-row ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .table-responsive
+table .table .table-hover .table-striped
+thead
+tr
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th .text-end
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th .text-end
+tbody
+tr
+td .bs-grid-click
+td .bs-grid-click
+td .bs-grid-click .text-end
+td .text-end
+button .btn .btn-outline-primary .btn-sm
+tr .table-warning
+td .bs-grid-click
+td .bs-grid-click
+td .bs-grid-click .text-end
+td .text-end
+button .btn .btn-outline-primary .btn-sm
+tr
+td .bs-grid-click
+td .bs-grid-click
+td .bs-grid-click .text-end
+td .text-end
+button .btn .btn-outline-primary .btn-sm
+tr .table-danger
+td .bs-grid-click
+td .bs-grid-click
+td .bs-grid-click .text-end
+td .text-end
+button .btn .btn-outline-primary .btn-sm
+tr
+td .bs-grid-click
+td .bs-grid-click
+td .bs-grid-click .text-end
+td .text-end
+button .btn .btn-outline-primary .btn-sm
+
+=== data-grid-selection ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .align-items-center .d-flex .gap-2 .mb-3
+button .btn .btn-danger
+div .table-responsive
+table .table .table-hover .table-striped
+thead
+tr
+th .bs-grid-check
+input .form-check-input
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+tbody
+tr
+td .bs-grid-check
+input .form-check-input
+td
+td
+td
+span .badge .text-bg-secondary
+tr
+td .bs-grid-check
+input .form-check-input
+td
+td
+td
+span .badge .text-bg-warning
+tr
+td .bs-grid-check
+input .form-check-input
+td
+td
+td
+span .badge .text-bg-secondary
+tr
+td .bs-grid-check
+input .form-check-input
+td
+td
+td
+span .badge .text-bg-success
+tr
+td .bs-grid-check
+input .form-check-input
+td
+td
+td
+span .badge .text-bg-warning
+tr
+td .bs-grid-check
+input .form-check-input
+td
+td
+td
+span .badge .text-bg-secondary
+
+=== data-grid-sticky ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .table-responsive
+table .bs-table-sticky .table .table-hover .table-striped
+thead
+tr
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+th .text-end
+button .btn .btn-link .btn-sm .fw-semibold .p-0 .text-decoration-none
+tbody
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+tr
+td
+td
+td .text-end
+
+=== data-http-fetch ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .align-items-center .d-flex .text-secondary
+span .me-2 .spinner-border .spinner-border-sm
+
+=== data-http-register ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .bg-light .border-0 .card
+div .card-body
+div .mb-1 .small .text-secondary .text-uppercase
+p .mb-0 .small
+code
+
+=== data-upload ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+input .form-control .mb-3
+div .small .text-secondary
+
+=== disposal-async ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-flex .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+i .bi .bi-play-circle .me-1
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-stop-circle .me-1
+p .fst-italic .mb-0 .text-secondary
+h3 .h6 .mt-4 .small .text-secondary .text-uppercase
+p .mb-0 .small .text-secondary
+
+=== disposal-sync ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-flex .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+i .bi .bi-play-circle .me-1
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-stop-circle .me-1
+p .fst-italic .mb-0 .text-secondary
+h3 .h6 .mt-4 .small .text-secondary .text-uppercase
+p .mb-0 .small .text-secondary
+
+=== disposal-unmount ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-flex .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+i .bi .bi-play-circle .me-1
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-stop-circle .me-1
+p .fst-italic .mb-0 .text-secondary
+h3 .h6 .mt-4 .small .text-secondary .text-uppercase
+p .mb-0 .small .text-secondary
+
+=== drag-drop-kanban ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .dd-board .g-3 .row
+div .col
+div .dd-column .h-100
+div .align-items-center .d-flex .dd-column-header .justify-content-between
+span .fw-semibold
+span .badge .rounded-pill .text-bg-secondary
+div .dd-column-body
+div .card .dd-card
+div .align-items-center .card-body .d-flex .gap-2 .p-2
+i .bi .bi-grip-vertical .text-secondary
+span
+div .card .dd-card
+div .align-items-center .card-body .d-flex .gap-2 .p-2
+i .bi .bi-grip-vertical .text-secondary
+span
+div .card .dd-card
+div .align-items-center .card-body .d-flex .gap-2 .p-2
+i .bi .bi-grip-vertical .text-secondary
+span
+div .col
+div .dd-column .h-100
+div .align-items-center .d-flex .dd-column-header .justify-content-between
+span .fw-semibold
+span .badge .rounded-pill .text-bg-secondary
+div .dd-column-body
+div .card .dd-card
+div .align-items-center .card-body .d-flex .gap-2 .p-2
+i .bi .bi-grip-vertical .text-secondary
+span
+div .col
+div .dd-column .h-100
+div .align-items-center .d-flex .dd-column-header .justify-content-between
+span .fw-semibold
+span .badge .rounded-pill .text-bg-secondary
+div .dd-column-body
+div .card .dd-card
+div .align-items-center .card-body .d-flex .gap-2 .p-2
+i .bi .bi-grip-vertical .text-secondary
+span
+
+=== drag-drop-sortable ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+ul .dd-list .list-group
+li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+i .bi .bi-grip-vertical .text-secondary
+span .fw-semibold
+li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+i .bi .bi-grip-vertical .text-secondary
+span .fw-semibold
+li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+i .bi .bi-grip-vertical .text-secondary
+span .fw-semibold
+li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+i .bi .bi-grip-vertical .text-secondary
+span .fw-semibold
+li .align-items-center .d-flex .dd-item .gap-2 .list-group-item
+i .bi .bi-grip-vertical .text-secondary
+span .fw-semibold
+
+=== elements-forms ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+fieldset .border .p-3 .rounded
+legend .float-none .fs-6 .px-2 .w-auto
+div .mb-2
+label .form-label .mb-1 .small
+input .form-control .form-control-sm
+datalist
+option
+option
+div .mb-2
+label .form-label .mb-1 .small
+select .form-select .form-select-sm
+optgroup
+option
+option
+optgroup
+option
+div .mb-0
+label .form-label .mb-1 .small
+textarea .form-control .form-control-sm
+div .align-items-center .g-3 .row
+div .col-auto
+label .form-label .mb-1 .small
+br
+progress
+div .col-auto
+label .form-label .mb-1 .small
+br
+meter
+div .col-auto
+label .form-label .mb-1 .small
+br
+output
+div
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+
+=== elements-grouping ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+p
+code
+pre .bg-light .border .mb-0 .p-2 .rounded
+blockquote .blockquote .border-start .fs-6 .ps-3
+hr
+div .row
+div .col
+p .fw-semibold .mb-1
+ol .mb-0
+li
+li
+li
+div .col
+p .fw-semibold .mb-1
+ul .mb-0
+li
+li
+li
+div .col
+p .fw-semibold .mb-1
+dl .mb-0
+dt
+dd .mb-1
+dt
+dd .mb-0
+figure .figure .mb-0
+pre .bg-dark .p-2 .rounded .text-light
+figcaption .figure-caption
+
+=== elements-interactive ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+details .border .p-2 .rounded
+summary .fw-semibold
+p .mb-0 .mt-2 .text-secondary
+dialog .border .d-block .m-0 .p-3 .position-static .rounded .shadow-sm
+p .mb-0
+code
+div
+p .mb-1 .small .text-secondary
+menu .list-inline .mb-0
+li .list-inline-item
+button .btn .btn-outline-secondary .btn-sm
+li .list-inline-item
+button .btn .btn-outline-secondary .btn-sm
+li .list-inline-item
+button .btn .btn-outline-secondary .btn-sm
+
+=== elements-media ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div .align-items-start .d-flex .flex-wrap .gap-3
+figure .figure .m-0
+picture
+source
+img .border .rounded
+figcaption .figure-caption
+figure .figure .m-0
+canvas .border .rounded
+figcaption .figure-caption
+figure .figure .m-0
+iframe .border .rounded
+figcaption .figure-caption
+div .align-items-start .d-flex .flex-wrap .gap-3
+figure .figure .m-0
+embed
+figcaption .figure-caption
+figure .figure .m-0
+object
+figcaption .figure-caption
+figure .figure .m-0
+img .border .rounded
+map
+area
+figcaption .figure-caption
+div .g-3 .row
+div .col-md-6
+p .mb-1 .small .text-secondary
+audio .w-100
+div .col-md-6
+p .mb-1 .small .text-secondary
+video .border .rounded
+track
+
+=== elements-metadata ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span
+script
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div
+p .mb-1 .small .text-secondary
+pre .bg-dark .mb-0 .p-3 .rounded .text-light
+code
+div
+p .mb-1 .small .text-secondary
+div .border .p-2 .rounded
+template
+li
+slot
+p .mb-0 .mt-1 .small .text-secondary
+code
+
+=== elements-sections ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+article .border .p-3 .rounded
+header
+hgroup
+h1 .h4 .mb-1
+p .mb-0 .text-secondary
+nav .small
+a .me-2
+a
+search .my-2
+input .form-control .form-control-sm
+div .row
+main .col-8
+section
+h2 .h6
+p .mb-1
+code
+code
+h3 .h6 .mb-0
+h4 .h6 .mb-0
+h5 .h6 .mb-0
+h6 .h6 .mb-0
+aside .col-4 .small .text-secondary
+code
+footer .border-top .mt-2 .pt-2 .small .text-secondary
+address .d-inline .fst-italic
+
+=== elements-tables ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+table .mb-0 .table .table-bordered .table-sm
+caption .caption-top
+colgroup
+col .table-light
+col
+thead
+tr
+th
+th
+th
+tbody
+tr
+th
+td
+td
+tr
+th
+td
+td
+tfoot
+tr
+th
+td .fw-bold .text-end
+
+=== elements-text ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-2 .vstack
+p
+a
+strong
+b
+em
+i
+u
+s
+small
+mark
+span .text-accent
+p
+code
+kbd
+kbd
+samp
+sub
+sup
+p
+dfn
+abbr
+cite
+q
+data
+time
+p
+bdi
+bdo
+ruby
+rp
+rt
+rp
+p .mb-0
+wbr
+wbr
+br
+ins
+del
+
+=== events ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-3 .row
+div .col-md-6
+div .border .p-4 .rounded .text-center .user-select-none
+strong
+div .mt-2 .text-secondary
+div .col-md-6
+button .btn .btn-outline-primary .py-4 .w-100
+div .mt-2 .text-secondary
+div .col-md-6
+div .border .p-4 .rounded
+strong
+div .mt-2 .text-secondary
+div .col-md-6
+div .border .p-4 .rounded
+strong
+div .mt-2 .text-secondary
+
+=== events-click ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+button .btn .btn-primary
+i .bi .bi-hand-index .me-2
+
+=== events-form ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .mb-2
+div .input-group
+input .form-control
+button .btn .btn-primary
+i .bi .bi-send .me-1
+p .mb-0 .small
+strong
+
+=== events-input ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+input .form-control .mb-2
+p .mb-0 .small
+code
+
+=== events-select ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+select .form-select .mb-2
+option
+option
+option
+p .mb-0 .small
+strong
+
+=== floating-labels ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-2 .vstack
+div .form-floating .mb-3
+input .form-control
+label
+div .form-floating .mb-3
+input .form-control
+label
+div .form-floating .mb-3
+input .form-control
+label
+div .form-floating .mb-3
+select .form-select
+option
+option
+option
+option
+label
+div .form-floating .mb-3
+textarea .form-control
+label
+div .mt-1
+button .btn .btn-primary
+i .bi .bi-person-plus .me-1
+
+=== form-controls-checkbox ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-4 .row
+div .col-md-6
+label .d-block .form-label .fw-semibold
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+p .mb-0 .small .text-secondary
+strong
+div .col-md-6
+label .d-block .form-label .fw-semibold
+form
+fieldset .border-0 .m-0 .p-0
+legend .form-label .fs-6
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+p .mb-0 .small .text-secondary
+strong
+
+=== form-controls-input ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-4 .row
+div .col-md-6
+label .form-label .fw-semibold
+input .form-control .mb-2
+p .mb-0 .small .text-secondary
+strong
+div .col-md-6
+label .form-label .fw-semibold
+form
+input .form-control .mb-2
+p .mb-0 .small .text-secondary
+strong
+
+=== form-controls-multiselect ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-4 .row
+div .col-md-6
+label .d-block .form-label .fw-semibold
+div .dropdown
+div .align-items-center .d-flex .flex-wrap .form-select .gap-1 .h-auto
+span .text-secondary
+div .dropdown-menu
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+p .mb-0 .mt-2 .small .text-secondary
+strong
+div .col-md-6
+label .d-block .form-label .fw-semibold
+form
+div .dropdown
+div .align-items-center .d-flex .flex-wrap .form-select .gap-1 .h-auto
+span .text-secondary
+div .dropdown-menu
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+p .mb-0 .mt-2 .small .text-secondary
+strong
+
+=== form-controls-radio ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-4 .row
+div .col-md-6
+label .d-block .form-label .fw-semibold
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+p .mb-0 .small .text-secondary
+strong
+div .col-md-6
+label .d-block .form-label .fw-semibold
+form
+fieldset .border-0 .m-0 .p-0
+legend .form-label .fs-6
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+p .mb-0 .small .text-secondary
+strong
+
+=== form-controls-select ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-4 .row
+div .col-md-6
+label .form-label .fw-semibold
+select .form-select .mb-2
+option
+option
+option
+p .mb-0 .small .text-secondary
+strong
+div .col-md-6
+label .form-label .fw-semibold
+form
+select .form-select .mb-2
+option
+option
+option
+p .mb-0 .small .text-secondary
+strong
+
+=== form-controls-textarea ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .g-4 .row
+div .col-md-6
+label .form-label .fw-semibold
+textarea .form-control .mb-2
+p .mb-0 .small .text-secondary
+strong
+div .col-md-6
+label .form-label .fw-semibold
+form
+textarea .form-control .mb-2
+p .mb-0 .small .text-secondary
+strong
+
+=== form-groups ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div
+label .d-block .form-label .fw-semibold
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div
+label .d-block .form-label .fw-semibold
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+p .mb-0 .small .text-secondary
+
+=== js-interop-elementref ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+input .form-control .mb-2
+div .d-flex .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+div .bg-light .border .p-3 .rounded
+
+=== js-interop-jsruntime ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .mb-3
+label .form-label
+input .form-control
+div .d-flex .flex-wrap .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+i .bi .bi-save .me-1
+button .btn .btn-outline-primary .btn-sm
+i .bi .bi-arrow-clockwise .me-1
+button .btn .btn-outline-danger .btn-sm
+i .bi .bi-trash .me-1
+div .mb-2
+span .small .text-secondary .text-uppercase
+div
+code .fs-6
+div
+span .small .text-secondary .text-uppercase
+div
+code .fs-6
+
+=== js-interop-scoped-css ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .d-flex .flex-column .gap-2
+div .box
+span .dot
+div .box
+span .dot
+
+=== js-interop-thirdparty ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-tab
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div .align-items-center .d-flex .flex-wrap .gap-2
+div .btn-group .btn-group-sm
+button .btn .btn-outline-secondary
+button .btn .btn-outline-secondary
+button .btn .btn-outline-secondary
+button .active .btn .btn-secondary
+button .btn .btn-outline-secondary
+button .btn .btn-outline-secondary
+button .btn .btn-outline-secondary
+button .btn .btn-outline-primary .btn-sm
+i .bi .bi-plus
+button .btn .btn-outline-danger .btn-sm
+div .rask-gantt
+div .card .gantt-log
+div .card-body .py-2
+div .mb-1 .small .text-secondary
+div .fst-italic .small .text-secondary
+table .align-middle .mb-0 .table .table-sm
+thead
+tr
+th
+th
+th
+th .text-end
+tbody
+tr
+td
+td .font-monospace .small
+td .font-monospace .small
+td .text-end
+span .badge .text-bg-success
+tr
+td
+td .font-monospace .small
+td .font-monospace .small
+td .text-end
+span .badge .text-bg-info
+tr
+td
+td .font-monospace .small
+td .font-monospace .small
+td .text-end
+span .badge .text-bg-info
+tr
+td
+td .font-monospace .small
+td .font-monospace .small
+td .text-end
+span .badge .text-bg-secondary
+
+=== keyed-lists-reorder ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .align-items-center .d-flex .flex-wrap .gap-2 .mb-3
+button .btn .btn-sm .btn-success
+i .bi .bi-key-fill .me-1
+span .mx-1 .vr
+button .btn .btn-outline-primary .btn-sm
+i .bi .bi-arrow-down-up .me-1
+button .btn .btn-outline-primary .btn-sm
+i .bi .bi-arrow-repeat .me-1
+button .btn .btn-outline-primary .btn-sm
+i .bi .bi-plus-lg .me-1
+button .btn .btn-outline-danger .btn-sm
+i .bi .bi-dash-lg .me-1
+ul .list-group
+li .align-items-center .d-flex .gap-3 .list-group-item
+span .badge .rounded-pill .text-bg-secondary
+span .fw-semibold
+input .form-control .form-control-sm .kl-note
+li .align-items-center .d-flex .gap-3 .list-group-item
+span .badge .rounded-pill .text-bg-secondary
+span .fw-semibold
+input .form-control .form-control-sm .kl-note
+li .align-items-center .d-flex .gap-3 .list-group-item
+span .badge .rounded-pill .text-bg-secondary
+span .fw-semibold
+input .form-control .form-control-sm .kl-note
+li .align-items-center .d-flex .gap-3 .list-group-item
+span .badge .rounded-pill .text-bg-secondary
+span .fw-semibold
+input .form-control .form-control-sm .kl-note
+li .align-items-center .d-flex .gap-3 .list-group-item
+span .badge .rounded-pill .text-bg-secondary
+span .fw-semibold
+input .form-control .form-control-sm .kl-note
+
+=== lifecycle-cycle ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-flex .gap-2 .mb-3
+button .btn .btn-primary .btn-sm
+i .bi .bi-play-circle .me-1
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-stop-circle .me-1
+p .fst-italic .mb-0 .text-secondary
+h3 .h6 .mt-4 .small .text-secondary .text-uppercase
+p .mb-0 .small .text-secondary
+
+=== lifecycle-hooks ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .align-items-center .d-flex .gap-3 .mb-3
+span .badge .fs-6 .text-bg-primary
+button .btn .btn-primary .btn-sm
+i .bi .bi-arrow-clockwise .me-1
+h3 .h6 .small .text-secondary .text-uppercase
+ol .list-group .list-group-flush .list-group-numbered
+li .list-group-item .ps-2 .small
+code .small
+li .list-group-item .ps-2 .small
+code .small
+li .list-group-item .ps-2 .small
+code .small
+li .list-group-item .ps-2 .small
+code .small
+
+=== lifecycle-ticker ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .btn-group .mb-3
+button .btn .btn-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+div .g-4 .row
+div .col-lg-7
+div .border-0 .card .shadow-sm
+div .card-body
+div .align-items-baseline .d-flex .justify-content-between .mb-3
+h3 .fw-semibold .h4 .mb-0
+span .small .text-secondary
+div .align-items-baseline .d-flex .gap-3 .mb-3
+span .fs-3 .text-secondary
+div .ticker-chart-container
+p .mb-0 .small .text-secondary
+div .col-lg-5
+div .bg-light .border-0 .card .h-100
+div .card-body
+div .align-items-baseline .d-flex .justify-content-between .mb-3
+h3 .h6 .mb-0 .small .text-secondary .text-uppercase
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+ol .list-group .list-group-flush .list-group-numbered
+li .bg-transparent .list-group-item .ps-2 .small
+code .small
+li .bg-transparent .list-group-item .ps-2 .small
+code .small
+li .bg-transparent .list-group-item .ps-2 .small
+code .small
+
+=== master-detail ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .table-responsive
+table .align-middle .mb-0 .table .table-hover
+thead .table-light
+tr
+th
+th
+button .align-items-center .btn .btn-link .d-inline-flex .fw-semibold .gap-1 .p-0 .text-dark .text-decoration-none
+span
+i .bi .bi-chevron-expand .opacity-50 .small .text-secondary
+th
+button .align-items-center .btn .btn-link .d-inline-flex .fw-semibold .gap-1 .p-0 .text-dark .text-decoration-none
+span
+i .bi .bi-chevron-expand .opacity-50 .small .text-secondary
+th
+button .align-items-center .btn .btn-link .d-inline-flex .fw-semibold .gap-1 .p-0 .text-dark .text-decoration-none
+span
+i .bi .bi-chevron-expand .opacity-50 .small .text-secondary
+th
+button .align-items-center .btn .btn-link .d-inline-flex .fw-semibold .gap-1 .p-0 .text-dark .text-decoration-none
+span
+i .bi .bi-chevron-expand .opacity-50 .small .text-secondary
+th
+button .align-items-center .btn .btn-link .d-inline-flex .fw-semibold .gap-1 .p-0 .text-dark .text-decoration-none
+span
+i .bi .bi-chevron-expand .opacity-50 .small .text-secondary
+tbody
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-primary
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-warning
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-danger
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-success
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-primary
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-success
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-primary
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-danger
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-warning
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-warning
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-danger
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-danger
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-success
+td .text-secondary
+td
+tr .md-row
+td
+button .btn .btn-link .btn-sm .p-0 .text-decoration-none
+i .bi .bi-chevron-right
+td .fw-semibold
+td .small .text-secondary
+td
+span .badge .text-bg-success
+td .text-secondary
+td
+
+=== multi-select ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .fw-semibold
+div .dropdown
+div .align-items-center .d-flex .flex-wrap .form-select .gap-1 .h-auto
+span .text-secondary
+div .dropdown-menu
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+div
+button .btn .btn-primary
+i .bi .bi-check2-circle .me-1
+
+=== multi-select-checkbox ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div
+label .d-block .form-label .fw-semibold
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+p .mb-0 .small .text-secondary
+
+=== multi-select-controlled ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div
+label .form-label .fw-semibold
+div .dropdown
+div .align-items-center .d-flex .flex-wrap .form-select .gap-1 .h-auto
+span .text-secondary
+div .dropdown-menu
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+button .align-items-center .d-flex .dropdown-item .gap-2
+input .form-check-input .m-0 .pe-none
+p .mb-0 .small .text-secondary
+
+=== multi-select-radio ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .gap-3 .vstack
+div
+label .d-block .form-label .fw-semibold
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+div .form-check .form-check-inline
+input .form-check-input
+label .form-check-label
+p .mb-0 .small .text-secondary
+
+=== nested-fluent ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+fieldset .border .p-3 .rounded
+legend .fw-semibold .h6
+div .gap-2 .vstack
+div
+input .form-control
+div
+input .form-control
+table .align-middle .mb-0 .mt-2 .table .table-sm
+thead
+tr
+th
+th
+th
+tbody
+tr
+td
+input .form-control .form-control-sm
+td
+input .form-control .form-control-sm
+td
+button .btn .btn-outline-danger .btn-sm
+i .bi .bi-x-lg
+div .d-flex .gap-2
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-plus-lg .me-1
+button .btn .btn-primary .btn-sm
+i .bi .bi-check2-circle .me-1
+
+=== nested-list-foreach ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+table .align-middle .mb-0 .table .table-sm
+thead
+tr
+th
+th
+th
+tbody
+tr
+td
+input .form-control .form-control-sm
+td
+input .form-control .form-control-sm
+td
+button .btn .btn-outline-danger .btn-sm
+i .bi .bi-x-lg
+div .d-flex .gap-2
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-plus-lg .me-1
+button .btn .btn-primary .btn-sm
+i .bi .bi-check2-circle .me-1
+
+=== nested-list-indexer ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+table .align-middle .mb-0 .table .table-sm
+thead
+tr
+th
+th
+th
+th
+tbody
+tr
+td .small .text-secondary
+td
+input .form-control .form-control-sm
+td
+input .form-control .form-control-sm
+td
+button .btn .btn-outline-secondary .btn-sm .me-1
+i .bi .bi-arrow-up
+button .btn .btn-outline-danger .btn-sm
+i .bi .bi-x-lg
+div .d-flex .gap-2
+button .btn .btn-outline-secondary .btn-sm
+i .bi .bi-plus-lg .me-1
+button .btn .btn-primary .btn-sm
+i .bi .bi-check2-circle .me-1
+
+=== nested-subobject ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+fieldset .border .mt-2 .p-3 .rounded
+legend .fw-semibold .h6
+div .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-check2-circle .me-1
+
+=== primitives-children ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .mb-0
+strong
+
+=== primitives-doctype ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+span .text-secondary
+code
+
+=== primitives-fragment ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+h3 .h5
+p .mb-0
+
+=== primitives-raw ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+p .mb-0
+strong
+
+=== primitives-text ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+p .mb-0
+
+=== props-aria ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+button .btn .btn-outline-primary
+i .bi .bi-moon-stars .me-1
+
+=== props-attribute-order ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+a .link .link-primary
+
+=== props-data ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .bg-light .border .p-2 .rounded
+
+=== props-id-class-style ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-primary .card
+
+=== routing-navigator ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .border-0 .card .mb-3 .shadow-sm
+div .card-body
+div .g-3 .row
+div .col-md-6
+span .small .text-secondary .text-uppercase
+div
+code .fs-6
+div .col-md-6
+span .small .text-secondary .text-uppercase
+div
+code .fs-6
+div .btn-group .flex-wrap
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+button .btn .btn-outline-danger .btn-sm
+
+=== routing-nested-layout ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+
+=== routing-querytable ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+h5 .fw-semibold .mb-0
+p .mb-0 .mt-1 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+
+=== routing-route-state ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+
+=== svg-clickable ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+svg
+circle
+circle
+circle
+circle
+p .mb-0 .mt-2 .small .text-secondary
+strong
+
+=== svg-gradient ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+svg
+title
+defs
+linearGradient
+stop
+stop
+path
+
+=== svg-shapes ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+svg
+rect
+circle
+line
+
+=== svg-text ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+svg
+text
+tspan
+
+=== tags-form ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form
+div .mb-2
+label .form-label .mb-1 .small
+input .form-control .form-control-sm
+button .btn .btn-primary .btn-sm
+
+=== tags-media ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+img .rounded .shadow-sm
+
+=== tags-table ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+table .mb-0 .table .table-sm
+thead
+tr
+th
+th
+tbody
+tr
+td
+td
+code
+tr
+td
+td
+code
+
+=== tags-text ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+article
+h1 .h4
+p
+strong
+em
+blockquote .blockquote .fs-6
+
+=== tags-void ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+p .mb-2
+hr
+p .mb-0
+
+=== toaster ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div
+div .d-flex .flex-wrap .gap-2
+button .btn .btn-info
+button .btn .btn-success
+button .btn .btn-warning
+button .btn .btn-danger
+div .mt-3
+
+=== validation-async ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-check2-circle .me-1
+
+=== validation-cross-field ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-airplane .me-1
+
+=== validation-custom-attribute ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-shield-check .me-1
+
+=== validation-fields ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+select .form-select
+option
+option
+option
+option
+div
+button .btn .btn-primary
+i .bi .bi-check2-circle .me-1
+
+=== validation-first-error-wins ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-unlock .me-1
+
+=== validation-fluent ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-bag-check .me-1
+
+=== validation-fluent-async ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-ticket-perforated .me-1
+
+=== validation-inline ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .bg-white .border-bottom .card-header
+p .mb-0 .small .text-secondary
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-check2-circle .me-1
+
+=== validation-inline-async ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-gift .me-1
+
+=== validation-nested-async ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+span .text-muted
+input .form-control
+div .border .p-3 .rounded
+div .fw-semibold .mb-2 .small
+div .align-items-center .g-2 .mb-2 .row
+div .col-6
+input .form-control .form-control-sm
+div .col-3
+input .form-control .form-control-sm
+div .col-3
+input .form-control .form-control-sm
+div .align-items-center .g-2 .row
+div .col-6
+input .form-control .form-control-sm
+div .col-3
+input .form-control .form-control-sm
+div .col-3
+input .form-control .form-control-sm
+div
+label .form-label .mb-1 .small
+span .text-muted
+input .form-control
+div .bg-light .p-3 .rounded .small
+div .d-flex .justify-content-between
+span
+span
+div .d-flex .justify-content-between
+span
+span
+div .d-flex .justify-content-between
+span
+span
+hr .my-2
+div .d-flex .fw-bold .justify-content-between
+span
+span
+div
+button .btn .btn-primary
+i .bi .bi-credit-card .me-1
+
+=== validation-programmatic ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div .d-flex .gap-2
+button .btn .btn-outline-secondary
+i .bi .bi-search .me-1
+button .btn .btn-primary
+i .bi .bi-check2-circle .me-1
+
+=== validation-summary ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+select .form-select
+option
+option
+option
+option
+div
+button .btn .btn-primary
+i .bi .bi-check2-circle .me-1
+
+=== validation-validatable-object ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+label .form-label .mb-1 .small
+input .form-control
+div
+button .btn .btn-primary
+i .bi .bi-calendar-check .me-1
+
+=== virtualize-items ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .bg-white .border .rounded
+table .mb-0 .table .table-sm
+thead
+tr
+th
+th
+th
+th
+tbody
+tr
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+td
+td
+td
+tr
+td
+
+=== virtualize-provider ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .bg-white .border .rounded
+table .mb-0 .table .table-sm
+thead
+tr
+th
+th
+th
+th
+tbody
+tr
+td
+tr
+td
+
