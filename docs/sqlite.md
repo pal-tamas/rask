@@ -1,5 +1,7 @@
 # SQLite production pragmas (`Rask.SQLite`)
 
+> **In practice:** [Tutorial Ch 8](tutorial/08-production-sqlite.md) · recipe [turn on production SQLite](recipes.md#turn-on-production-sqlite) · [cheat sheet](cheatsheet.md).
+
 SQLite's stock configuration is tuned for a single embedded process, not a web app. Out of the box a
 connection uses the rollback journal (not WAL), does **not** enforce foreign keys, has **no**
 `busy_timeout`, and fsyncs on every commit — so the moment two requests write at once you get

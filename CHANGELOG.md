@@ -278,6 +278,18 @@ them until tagged releases begin.
   Core-tier wrapper, so it works on **both transports** (no user gesture needed). Showcased on the Browser APIs
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
+### Documentation
+- **A cheat sheet and a recipes cookbook for faster day-to-day DX.** New [`docs/cheatsheet.md`](docs/cheatsheet.md)
+  puts every CLI command, feature field token, `AddRask…` wiring one-liner, and code idiom on one scannable
+  page; new [`docs/recipes.md`](docs/recipes.md) answers "how do I do X?" (add a feature to an existing
+  database, gate a page, run a job, cache a query, deploy an update, …) with the command, the wiring line, and
+  links to the reference + the tutorial chapter that teaches it. Both are linked from the docs index, and each
+  pillar reference (`jobs`/`mail`/`cache`/`outbox`/`data`/`sqlite`/`authentication`/`deployment`/`cli`) now
+  carries an "In practice" pointer back to its tutorial chapter and recipe, so every entry point leads to the
+  others. Also corrected two drifted lines: the Chapter 1 goal box (`rask new Shop --auth --docker`) and the
+  CLI reference (`rask generate` now **writes** the DI registration into `Program.cs`, printing only as a
+  fallback).
+
 ### Changed
 - **Renamed `Rask.Data`'s `AggregateRoot<TId>` to `Entity<TId>` (BREAKING, pre-1.0).** The base class every
   `rask generate feature` entity inherits is now `Entity<TId>`. The old name claimed an aggregate boundary

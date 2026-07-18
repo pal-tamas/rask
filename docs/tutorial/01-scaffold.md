@@ -1,13 +1,14 @@
 # Chapter 1 — Scaffold the app
 
 > **Goal:** create the Shop project, run it, and understand what the template gave you.
-> **You'll run:** `rask new Shop --auth`
+> **You'll run:** `rask new Shop --auth --docker`
 
 ## Create the project
 
 The `rask` CLI scaffolds projects. We'll use the default **server** template (one ASP.NET project,
 components render on the server, live updates ship over a WebSocket) and add `--auth` up front, because
 Chapter 3 will lock the catalog behind a login and it's easiest to have that wiring from the start.
+`--docker` writes a production Dockerfile now so [Chapter 9](09-deploy.md)'s `rask deploy` has one ready.
 
 ```bash
 rask new Shop --auth --docker

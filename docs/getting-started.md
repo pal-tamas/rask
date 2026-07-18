@@ -357,3 +357,6 @@ Read **[the doctrine](one-person-framework.md)** for the why. Reference guides f
 - **Test your components** → [testing](testing.md) — unit-testing components and rendered HTML.
 - **Write idiomatic Rask** → [best practices](best-practices.md) — patterns and pitfalls that keep an app correct, secure, and fast.
 - **Decode a build error** → [diagnostics](diagnostics.md) — every RASK0xx analyzer ID and its fix.
+
+**Keep handy while you build:** the [cheat sheet](cheatsheet.md) (every command + wiring line on one
+page) and the [recipes](recipes.md) (task-first "how do I do X?").

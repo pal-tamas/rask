@@ -1,5 +1,7 @@
 # Rask.Mail — durable transactional email on your database
 
+> **In practice:** [Tutorial Ch 5](tutorial/05-email.md) · recipe [send a transactional email](recipes.md#send-a-transactional-email) · [cheat sheet](cheatsheet.md).
+
 `Rask.Mail` sends **transactional email off the request thread**, queued in the app's own database — no message
 broker, no Redis. Compose an email whose body is a **Rask component rendered to HTML**, call
 `SendAsync`, and a hosted worker delivers it later over SMTP, **at-least-once**, with exponential-backoff

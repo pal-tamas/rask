@@ -6,7 +6,8 @@ whole product solo, in C#, on one server. **New to Rask?** Read
 interactive app. **Ready to build something real?** The [**Tutorial**](tutorial/00-overview.md) takes you
 from an empty folder to a deployed, database-backed product that uses every pillar. Want the philosophy
 first? Read **[The .NET One Person Framework](one-person-framework.md)**. Want the pitch and a quick demo?
-See the project [README](../README.md).
+See the project [README](../README.md). Already building? Keep the [**Cheat sheet**](cheatsheet.md) open
+and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 
 ## Start here
 
@@ -14,6 +15,8 @@ See the project [README](../README.md).
 |-------|----------------|
 | [**The .NET One Person Framework**](one-person-framework.md) | The doctrine: one developer, a whole product, one C# codebase, one server, SQLite-first — and the batteries that make it real. |
 | [**Tutorial: zero to deploy**](tutorial/00-overview.md) | Build the "Shop" app end to end — scaffold → first DB-backed feature → auth → jobs → email → cache → events → production SQLite → deploy to one box. One chapter per pillar. |
+| [**Cheat sheet**](cheatsheet.md) | The one page to keep open — every CLI command, feature field token, wiring one-liner (`AddRask…`), and code idiom, dense and scannable. |
+| [**Recipes**](recipes.md) | Task-first "how do I do X?" — add a feature to an existing database, gate a page, run a job, cache a query, deploy an update — the command, the wiring line, and where to go deeper. |
 | [Roadmap](roadmap.md) | The One Person Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache) and what's next (broadcast). |
 
 ## Guides
