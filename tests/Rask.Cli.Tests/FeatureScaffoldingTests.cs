@@ -629,13 +629,57 @@ public sealed class FeatureGeneratorTests
 
 /// <summary>
 /// A run that names relationship targets generates <b>every</b> entity in it, each as an independent root
-/// with its own folder, namespace and full CRUD, all sharing one DbContext. The relationships themselves
-/// (foreign keys, navigations, EF mapping) are not emitted yet — these cover the multi-entity shape only.
+/// with its own folder, namespace and full CRUD, all sharing one DbContext — and emits the relationship
+/// itself: the foreign key on the dependent, navigation properties both ways, and the EF mapping.
 /// </summary>
 public sealed class FeatureGeneratorMultiEntityTests
 {
     private static readonly EntitySpec Post = new("Post", "Posts", [new FieldSpec("Title", "string", IsNullable: false, MaxLength: 200)]);
     private static readonly EntitySpec Comment = new("Comment", "Comments", [new FieldSpec("Body", "string", IsNullable: false, MaxLength: 200)]);
+    private static readonly EntitySpec Tag = new("Tag", "Tags", [new FieldSpec("Name", "string", IsNullable: false, MaxLength: 200)]);
+
+    private static ScaffoldResult GenerateRelationship(Cardinality card, bool optional = false) =>
+        FeatureGenerator.Generate(
+            new ProjectContext("/proj", "MyApp"),
+            "/proj",
+            new FeatureSpec(Post, [new RelationshipSpec(card, optional, Post, card is Cardinality.ManyToMany ? Tag : Comment)]),
+            new FeatureOptions { IdType = "Guid", Validation = "dataannotations" });
+
+    [Fact]
+    public void One_to_many_puts_the_fk_and_reference_nav_on_the_dependent_and_a_collection_on_the_principal()
+    {
+        var result = GenerateRelationship(Cardinality.OneToMany);
+
+        var comment = File(result, "Comment.cs");
+        Assert.Contains("public Guid PostId { get; private set; }", comment, StringComparison.Ordinal);
+        Assert.Contains("public Post? Post { get; private set; }", comment, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Posts;", comment, StringComparison.Ordinal);
+
+        Assert.Contains("public ICollection<Comment> Comments { get; } = new List<Comment>();", File(result, "Post.cs"), StringComparison.Ordinal);
+        Assert.Contains("entity.HasOne(x => x.Post).WithMany(p => p.Comments).HasForeignKey(x => x.PostId);", File(result, "CommentConfiguration.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Many_to_many_maps_from_two_collection_navs_with_no_foreign_key()
+    {
+        var result = GenerateRelationship(Cardinality.ManyToMany);
+
+        Assert.Contains("public ICollection<Tag> Tags { get; } = new List<Tag>();", File(result, "Post.cs"), StringComparison.Ordinal);
+        Assert.Contains("public ICollection<Post> Posts { get; } = new List<Post>();", File(result, "Tag.cs"), StringComparison.Ordinal);
+        Assert.Contains("entity.HasMany(x => x.Tags).WithMany(y => y.Posts);", File(result, "PostConfiguration.cs"), StringComparison.Ordinal);
+        // No foreign-key column — the join table is implicit.
+        Assert.DoesNotContain("TagId", File(result, "Post.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void One_to_one_uses_a_reference_nav_both_ways()
+    {
+        var result = GenerateRelationship(Cardinality.OneToOne);
+
+        Assert.Contains("public Post? Post { get; private set; }", File(result, "Comment.cs"), StringComparison.Ordinal);
+        Assert.Contains("public Comment? Comment { get; private set; }", File(result, "Post.cs"), StringComparison.Ordinal);
+        Assert.Contains("entity.HasOne(x => x.Post).WithOne(p => p.Comment).HasForeignKey<Comment>(x => x.PostId);", File(result, "CommentConfiguration.cs"), StringComparison.Ordinal);
+    }
 
     private static ScaffoldResult Generate(string? context = null, string? output = null) =>
         FeatureGenerator.Generate(
@@ -743,13 +787,14 @@ public sealed class FeatureGeneratorMultiEntityTests
     }
 
     [Fact]
-    public void With_an_external_context_no_dbcontext_is_generated_and_nothing_is_assumed_about_where_it_lives()
+    public void With_an_external_context_no_dbcontext_is_generated_and_the_handlers_name_it()
     {
         var result = Generate(context: "AppDbContext");
 
         Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path).EndsWith("DbContext.cs", StringComparison.Ordinal));
         Assert.Contains("IDbContextFactory<AppDbContext>", File(result, "DeleteComment.cs"), StringComparison.Ordinal);
-        Assert.DoesNotContain("using MyApp.Features.Posts;", File(result, "DeleteComment.cs"), StringComparison.Ordinal);
+        // (The Comment slice does import MyApp.Features.Posts now — but for the Post navigation, not the
+        // context, whose location stays unassumed until the command resolves it.)
     }
 
     [Fact]

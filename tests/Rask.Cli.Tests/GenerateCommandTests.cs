@@ -517,17 +517,22 @@ public sealed class GenerateCommandTests
     }
 
     [Fact]
-    public async Task A_relationship_is_refused_rather_than_silently_dropped()
+    public async Task A_relationship_generates_both_entities_with_the_foreign_key_and_navigations()
     {
-        var (console, fs, command) = Build();
+        var (_, fs, command) = Build();
 
         var exit = await command.ExecuteAsync(["feature", "Post", "Title:string", "1:n", "Comment", "Body:text"], CancellationToken.None);
 
-        // The grammar lands ahead of the emitter — until it arrives, generating Post and discarding Comment
-        // would quietly lose what was asked for. Delete this test when relationship emission ships.
-        Assert.Equal(1, exit);
-        Assert.Contains("Relationships aren't generated yet", console.ErrorText, StringComparison.Ordinal);
-        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith(".cs", StringComparison.Ordinal));
+        Assert.Equal(0, exit);
+        // Both entities are scaffolded (not one generated and the other dropped).
+        Assert.Contains(fs.Files, f => f.Key.EndsWith(Path.Combine("Posts", "Post.cs"), StringComparison.Ordinal));
+        Assert.Contains(fs.Files, f => f.Key.EndsWith(Path.Combine("Comments", "Comment.cs"), StringComparison.Ordinal));
+        // The dependent carries the FK + a reference navigation; the principal a collection.
+        var comment = fs.Files.Single(f => f.Key.EndsWith(Path.Combine("Comments", "Comment.cs"), StringComparison.Ordinal)).Value;
+        Assert.Contains("public Guid PostId { get; private set; }", comment, StringComparison.Ordinal);
+        Assert.Contains("public Post? Post { get; private set; }", comment, StringComparison.Ordinal);
+        var post = fs.Files.Single(f => f.Key.EndsWith(Path.Combine("Posts", "Post.cs"), StringComparison.Ordinal)).Value;
+        Assert.Contains("public ICollection<Comment> Comments", post, StringComparison.Ordinal);
     }
 
     [Fact]

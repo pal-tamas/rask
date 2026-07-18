@@ -24,10 +24,12 @@ It found `ProductsDbContext`, added `public DbSet<Order> Orders => Set<Order>();
 `using` it needs), and the generated `Orders` pages import the context's namespace — so it compiles as-is, no
 hand-edits. Your one `ProductsDbContext` now holds both `Products` and `Orders`: one database, one context.
 
-> **Relationships aren't generated yet.** You might expect `Order 1:n Product` — the CLI can parse that
-> grammar, but it doesn't emit relationships today ([#479](https://github.com/pal-tamas/rask/issues/479)).
-> So we model the link the simple way: a plain `ProductId:guid` field on `Order`. That's a normal foreign
-> key; you just wire the navigation yourself if you want one.
+> **Relating entities.** When you scaffold related entities *together* in one command, Rask generates the
+> foreign key, the navigation properties, and the EF mapping for you — e.g.
+> `rask generate feature Post Title:string 1:n Comment Body:text` gives `Comment` a `PostId` + `Post` and
+> `Post` a `Comments` collection (`n:1`, `1:1`, and `n:n` work too). Here, though, `Product` already exists
+> from Chapter 2, so we just add a plain `ProductId:guid` field to `Order` — a normal foreign key you can
+> wire a navigation onto yourself.
 
 ### Migrate
 

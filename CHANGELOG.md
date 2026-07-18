@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask generate feature` now generates relationships.** The `<card> <Target> <fields…>` grammar
+  (`rask g f Post Title:string 1:n Comment Body:text`) is no longer parse-only — it scaffolds the related
+  entity *and* emits the relationship: `1:n`/`n:1`/`1:1` add the foreign key (as a real column + form input),
+  navigation properties both ways, and the EF `HasOne`/`WithMany`/`HasForeignKey` mapping; `n:n` maps a
+  many-to-many through EF Core's implicit join table (no join entity to generate). Verified end to end —
+  every cardinality (and a multi-relationship star like `Post 1:n Comment n:n Tag`) generates compiling
+  code. (Closes #479.)
 - **`rask generate feature` produces compiling, wired code — no manual paste.** The generator no longer just
   *prints* the `AddRaskCqrs()` / `AddRaskData()` / `AddDbContextFactory<Ctx>()` registrations — it inserts
   them (and the `using`s they need) into `Program.cs` idempotently. **`--context` now works too:** it locates

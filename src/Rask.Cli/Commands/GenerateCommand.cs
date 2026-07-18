@@ -545,17 +545,6 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     return false;
                 }
 
-                // The grammar parses and validates ahead of the emitter that will consume it. Refuse rather
-                // than generate the root and drop the targets on the floor — silently discarding what was
-                // asked for is worse than not supporting it yet.
-                if (spec.Relationships.Count > 0)
-                {
-                    var relationship = spec.Relationships[0];
-                    result = null!;
-                    error = $"Relationships aren't generated yet — '{relationship.Token} {relationship.To.Name}' parses, but emitting it isn't implemented. Scaffold the entities separately for now.";
-                    return false;
-                }
-
                 // Team defaults from .rask/generate.json fill in what wasn't passed; explicit flags always win.
                 var config = GenerateConfig.Load(_fileSystem, project.ProjectDirectory);
 

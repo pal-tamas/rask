@@ -43,12 +43,14 @@ internal static class FeatureGenerator
         // be found, in which case the slice emits no using (the pre-fix best-effort behaviour: assume nothing).
         string? contextNs = generateContext ? rootNs : options.ContextNamespace;
 
+        var contributions = RelationshipContributions(spec, options.IdType, namespaces);
+
         var files = new List<ScaffoldFile>();
         foreach (var entity in entities)
         {
             files.AddRange(RenderSlice(
                 project, options, entity, context, generateContext,
-                directories[entity.Name], namespaces[entity.Name], contextNs));
+                directories[entity.Name], namespaces[entity.Name], contextNs, contributions[entity.Name]));
         }
 
         // One DbContext for the whole run, holding a DbSet per entity. Its ApplyConfigurationsFromAssembly is
@@ -187,6 +189,73 @@ internal static class FeatureGenerator
             .Select(n => "\nusing " + n + ";"));
 
     /// <summary>
+    /// What a relationship adds to one entity: a foreign-key field (folded into the entity's fields so the
+    /// existing pipeline emits its column, form input and config), navigation-property declarations, EF
+    /// relationship config lines, and the namespaces the navigations reference (for cross-folder usings).
+    /// </summary>
+    private sealed class RelationshipContribution
+    {
+        public List<FieldSpec> ForeignKeys { get; } = [];
+
+        public List<string> Navigations { get; } = [];
+
+        public List<string> Configuration { get; } = [];
+
+        public HashSet<string> Namespaces { get; } = new(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Per-entity relationship contributions for the whole run, derived from <see cref="RelationshipSpec"/> and
+    /// the run's key type. <c>1:n</c>/<c>n:1</c> put the FK + a reference nav on the dependent and a collection
+    /// nav on the principal; <c>1:1</c> uses a reference both ways; <c>n:n</c> maps from two collection navs
+    /// (EF Core's implicit join table — no join entity to generate).
+    /// </summary>
+    private static IReadOnlyDictionary<string, RelationshipContribution> RelationshipContributions(
+        FeatureSpec spec, string idType, IReadOnlyDictionary<string, string> namespaces)
+    {
+        var byEntity = spec.Entities.ToDictionary(e => e.Name, _ => new RelationshipContribution(), StringComparer.Ordinal);
+
+        static string CollectionNav(EntitySpec target) =>
+            $"public ICollection<{target.Name}> {target.Plural} {{ get; }} = new List<{target.Name}>();";
+
+        foreach (var rel in spec.Relationships)
+        {
+            if (rel.Cardinality is Cardinality.ManyToMany)
+            {
+                byEntity[rel.From.Name].Navigations.Add(CollectionNav(rel.To));
+                byEntity[rel.From.Name].Configuration.Add($"entity.HasMany(x => x.{rel.To.Plural}).WithMany(y => y.{rel.From.Plural});");
+                byEntity[rel.From.Name].Namespaces.Add(namespaces[rel.To.Name]);
+                byEntity[rel.To.Name].Navigations.Add(CollectionNav(rel.From));
+                byEntity[rel.To.Name].Namespaces.Add(namespaces[rel.From.Name]);
+                continue;
+            }
+
+            var principal = rel.Principal;
+            var dependent = rel.Dependent;
+
+            var dep = byEntity[dependent.Name];
+            dep.ForeignKeys.Add(new FieldSpec(rel.ForeignKeyName, idType, rel.IsOptional, null));
+            dep.Navigations.Add($"public {principal.Name}? {principal.Name} {{ get; private set; }}");
+            dep.Namespaces.Add(namespaces[principal.Name]);
+
+            var prin = byEntity[principal.Name];
+            prin.Namespaces.Add(namespaces[dependent.Name]);
+            if (rel.Cardinality is Cardinality.OneToOne)
+            {
+                prin.Navigations.Add($"public {dependent.Name}? {dependent.Name} {{ get; private set; }}");
+                dep.Configuration.Add($"entity.HasOne(x => x.{principal.Name}).WithOne(p => p.{dependent.Name}).HasForeignKey<{dependent.Name}>(x => x.{rel.ForeignKeyName});");
+            }
+            else
+            {
+                prin.Navigations.Add(CollectionNav(dependent));
+                dep.Configuration.Add($"entity.HasOne(x => x.{principal.Name}).WithMany(p => p.{dependent.Plural}).HasForeignKey(x => x.{rel.ForeignKeyName});");
+            }
+        }
+
+        return byEntity;
+    }
+
+    /// <summary>
     /// One entity's vertical slice. Every entity in a run gets the full set — entity, request, configuration,
     /// pages, and CQRS handlers — because each is an independent root with its own CRUD. They share the run's
     /// single DbContext, which is why a non-root entity's handlers need a using for <paramref name="contextNs"/>.
@@ -199,10 +268,13 @@ internal static class FeatureGenerator
         bool generateContext,
         string targetDirectory,
         string ns,
-        string? contextNs)
+        string? contextNs,
+        RelationshipContribution rel)
     {
         var entityName = entity.Name;
-        var fields = entity.Fields;
+        // Fold the relationship's foreign keys into the fields so the whole pipeline (column, form input,
+        // request, config, tests) emits them for free; the navigations + relationship config are added on top.
+        var fields = rel.ForeignKeys.Count == 0 ? entity.Fields : [.. entity.Fields, .. rel.ForeignKeys];
         var plural = entity.Plural;
 
         var idType = options.IdType;
@@ -219,10 +291,18 @@ internal static class FeatureGenerator
         var route = Identifiers.ToRoutePath(plural);
         var idConstraint = idType == "Guid" ? "guid" : idType;
 
-        // The handlers name the DbContext. Emit the using for its namespace whenever it differs from this
-        // slice's own (Usings drops it when they match) — including an --context class resolved elsewhere.
-        // A null contextNs means an --context class we couldn't locate: assume nothing, emit no using.
-        var usings = contextNs is null ? "" : Usings(ns, [contextNs]);
+        // The handlers name the DbContext, and the config/navigations name related entities in other folders.
+        // __USINGS__ (config + pages) imports the context namespace plus the related namespaces; the entity file
+        // needs only the related ones. A null contextNs means an --context class we couldn't locate — omit it.
+        var referenced = contextNs is null ? rel.Namespaces : rel.Namespaces.Append(contextNs);
+        var usings = Usings(ns, referenced);
+        var entityUsings = Usings(ns, rel.Namespaces);
+
+        // Entity-config lines: the string-length rules from the fields, then any relationship (HasOne/HasMany).
+        var configProps = string.Join(
+            "\n",
+            new[] { ConfigProperties(entityName, fields, useValueObjects), string.Join("\n", rel.Configuration.Select(c => "        " + c)) }
+                .Where(s => s.Length > 0));
 
         var tokens = new (string, string)[]
         {
@@ -231,7 +311,7 @@ internal static class FeatureGenerator
             ("__CREATEARGS__", RequestArgs(fields, "command.Request")),
             ("__HEADERS__", TableHeaders(fields)), ("__CELLS__", TableCells(fields, useValueObjects)),
             ("__FORMFIELDS__", FormFields(entityName, fields, useValueObjects, useBs, useConcurrency)), ("__COPYTOFORM__", CopyToForm(fields, useValueObjects, useConcurrency)),
-            ("__CONFIGPROPS__", ConfigProperties(entityName, fields, useValueObjects)),
+            ("__CONFIGPROPS__", configProps),
             ("__VALIDATOR__", FormValidator(entityName, validation)),
             ("__DELETEBODY__", DeleteHandlerBody(plural, useDomainEvents)),
             ("__OUTBOXMODEL__", useOutbox ? "\n                modelBuilder.AddRaskOutbox();" : ""),
@@ -249,7 +329,7 @@ internal static class FeatureGenerator
         var listTemplate = useModal ? BsModalListTemplate : useBs ? BsListPageTemplate : ListPageTemplate;
         var files = new List<ScaffoldFile>
         {
-            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete, useConcurrency, useDomainEvents)),
+            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete, useConcurrency, useDomainEvents, entityUsings, rel.Navigations)),
             new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields, validation, useConcurrency)),
             new(Path.Combine(targetDirectory, entityName + "Configuration.cs"), Apply(ConfigurationTemplate, tokens)),
             new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(listTemplate, tokens)),
@@ -448,9 +528,14 @@ internal static class FeatureGenerator
     private static string EntityPropertyType(string entity, FieldSpec f, bool useValueObjects) =>
         IsValueObject(f, useValueObjects) ? ValueObjectName(entity, f) : f.PropertyType;
 
-    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects, bool useSoftDelete, bool useConcurrency, bool useEvents)
+    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects, bool useSoftDelete, bool useConcurrency, bool useEvents, string usings = "", IReadOnlyList<string>? navigations = null)
     {
         var sb = new StringBuilder();
+        if (usings.Length > 0)
+        {
+            sb.Append(usings.TrimStart('\n')).Append("\n\n");
+        }
+
         sb.Append("namespace ").Append(ns).Append(";\n\n");
 
         // Every entity inherits Entity<TId> (Id + CreatedAt/UpdatedAt audit stamps + a
@@ -503,6 +588,13 @@ internal static class FeatureGenerator
             }
 
             sb.Append('\n');
+        }
+
+        // Navigation properties from relationships (EF-managed; not Create/Update parameters — the foreign key
+        // that carries the relationship is a normal field above).
+        foreach (var navigation in navigations ?? [])
+        {
+            sb.Append("\n    ").Append(navigation).Append('\n');
         }
 
         var createParams = string.Join(", ", fields.Select(f => $"{f.PropertyType} {Identifiers.ToCamelCase(f.Name)}"));
