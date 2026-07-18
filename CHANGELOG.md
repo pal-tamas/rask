@@ -16,6 +16,11 @@ them until tagged releases begin.
   missing `DbSet`/`using`. When a file can't be found or safely edited, the change is printed as a fallback.
   The migration next-steps now point at `rask db add`/`rask db update` instead of raw `dotnet ef`.
   (Closes #475, #476, #477.)
+- **`rask generate feature --tests` scaffolds a runnable test project.** The first `--tests` run now creates
+  the sibling `<Project>.Tests` project — its `.csproj` and a `GlobalUsings.cs`, wired with the test SDK,
+  xUnit, and a reference back to the app (and added to the solution if there is one) — so the generated
+  domain + SQLite-persistence tests build and `dotnet test` passes with no manual setup. Later runs reuse the
+  project. (Closes #480.)
 - **A zero-to-deploy tutorial — build a whole product, one pillar per chapter.** New `docs/tutorial/`
   series (10 chapters) walks a beginner from an empty folder to a deployed, database-backed "Shop":
   scaffold (`rask new`), the first DB-backed feature (`rask generate feature` → the `Program.cs` DI wiring

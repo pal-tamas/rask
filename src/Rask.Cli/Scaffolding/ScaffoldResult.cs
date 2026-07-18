@@ -11,6 +11,19 @@ internal sealed record ScaffoldResult(IReadOnlyList<ScaffoldFile> Files, string?
     public IReadOnlyList<string> Packages { get; init; } = [];
 
     /// <summary>
+    /// Files written only when they don't already exist (never overwritten, even with <c>--force</c>) — e.g. a
+    /// sibling test project's <c>.csproj</c> and <c>GlobalUsings.cs</c>, which the first <c>--tests</c> run
+    /// creates and later runs reuse.
+    /// </summary>
+    public IReadOnlyList<ScaffoldFile> CreateIfAbsent { get; init; } = [];
+
+    /// <summary>
+    /// A sibling test project to wire up when its <c>.csproj</c> is first created: its path, the packages it
+    /// needs (<c>dotnet add package</c>), and a reference back to the app. <c>null</c> when the run has no tests.
+    /// </summary>
+    public TestProjectWiring? TestProject { get; init; }
+
+    /// <summary>
     /// <c>using</c> namespaces the <see cref="ProgramRegistrations"/> need. The command adds any that are
     /// missing to <c>Program.cs</c> when it wires the registrations in. Empty for generators that don't
     /// register services.
@@ -49,3 +62,8 @@ internal sealed record ScaffoldResult(IReadOnlyList<ScaffoldFile> Files, string?
 
     public static ScaffoldResult Single(ScaffoldFile file) => new([file]);
 }
+
+/// <summary>A sibling <c>&lt;Project&gt;.Tests</c> project the command wires up on first creation.</summary>
+/// <param name="ProjectPath">Absolute path of the test project's <c>.csproj</c>.</param>
+/// <param name="Packages">Packages to add to it (test SDK, xUnit, and EF SQLite for persistence tests).</param>
+internal sealed record TestProjectWiring(string ProjectPath, IReadOnlyList<string> Packages);

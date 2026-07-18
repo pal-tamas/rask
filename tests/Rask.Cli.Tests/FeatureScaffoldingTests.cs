@@ -498,6 +498,27 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Tests_flag_scaffolds_a_test_project_csproj_and_global_usings()
+    {
+        var result = Generate(useTests: true);
+
+        Assert.Contains(result.CreateIfAbsent, f => Path.GetFileName(f.Path) == "proj.Tests.csproj" && f.Content.Contains("<IsTestProject>true</IsTestProject>", StringComparison.Ordinal));
+        Assert.Contains(result.CreateIfAbsent, f => Path.GetFileName(f.Path) == "GlobalUsings.cs" && f.Content.Contains("global using Xunit;", StringComparison.Ordinal));
+        Assert.NotNull(result.TestProject);
+        Assert.Contains("xunit", result.TestProject!.Packages);
+        Assert.Contains("Microsoft.NET.Test.Sdk", result.TestProject.Packages);
+    }
+
+    [Fact]
+    public void Without_tests_no_test_project_is_scaffolded()
+    {
+        var result = Generate();
+
+        Assert.Empty(result.CreateIfAbsent);
+        Assert.Null(result.TestProject);
+    }
+
+    [Fact]
     public void Without_tests_flag_no_test_files_are_generated()
     {
         Assert.DoesNotContain(Generate().Files, f => Path.GetFileName(f.Path).EndsWith("Tests.cs", StringComparison.Ordinal));

@@ -188,6 +188,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return 1;
         }
 
+        // Whether a --tests run needs to wire a *new* test project (vs reuse one an earlier run created) must be
+        // decided before Write, which is what creates the .csproj.
+        var testProjectIsNew = result.TestProject is not null && !_fileSystem.FileExists(result.TestProject.ProjectPath);
+
         var dryRun = parsed.HasFlag("dry-run");
         var written = Write(result, parsed.HasFlag("force"), dryRun);
         if (written == 0 && !dryRun)
@@ -204,6 +208,11 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
             WireProgramCs(project.ProjectDirectory, result);
             AddDbSetsToContext(result);
+
+            if (testProjectIsNew && result.TestProject is not null)
+            {
+                await WireTestProjectAsync(project, result.TestProject, parsed.HasFlag("no-restore"), cancellationToken).ConfigureAwait(false);
+            }
         }
 
         if (written == 0)
@@ -428,6 +437,61 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         }
     }
 
+    // Wire a freshly-created <Project>.Tests project: reference the app, add the test SDK + xUnit packages, and
+    // register it in the solution if there is one. Failures are warnings — the files are written regardless.
+    private async Task WireTestProjectAsync(ProjectContext project, TestProjectWiring test, bool noRestore, CancellationToken cancellationToken)
+    {
+        var appCsproj = _fileSystem.ListFiles(project.ProjectDirectory, "*.csproj").FirstOrDefault();
+        if (appCsproj is null)
+        {
+            return;
+        }
+
+        if (noRestore)
+        {
+            Console.WriteLine($"Skipped wiring {Display(test.ProjectPath)} (--no-restore): reference {Display(appCsproj)} + add {string.Join(", ", test.Packages)}, then dotnet restore.", ConsoleStyle.Dim);
+            return;
+        }
+
+        Console.WriteLine($"Wiring the test project ({Display(test.ProjectPath)})…", ConsoleStyle.Dim);
+        await RunDotnetAsync(["add", test.ProjectPath, "reference", appCsproj], project.ProjectDirectory, cancellationToken).ConfigureAwait(false);
+        foreach (var package in test.Packages)
+        {
+            await RunDotnetAsync(["add", test.ProjectPath, "package", package], project.ProjectDirectory, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (FindSolution(project.ProjectDirectory) is { } solution)
+        {
+            await RunDotnetAsync(["sln", solution, "add", test.ProjectPath], project.ProjectDirectory, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task RunDotnetAsync(IReadOnlyList<string> args, string workingDirectory, CancellationToken cancellationToken)
+    {
+        var exit = await _process.RunAsync("dotnet", args, workingDirectory, cancellationToken).ConfigureAwait(false);
+        if (exit != 0)
+        {
+            WriteWarning($"  `dotnet {string.Join(' ', args)}` failed — run it yourself if the test project needs it.");
+        }
+    }
+
+    // The nearest .sln/.slnx at or above the project, so a generated test project joins the same solution.
+    private string? FindSolution(string startDirectory)
+    {
+        var dir = startDirectory;
+        for (var depth = 0; depth < 6 && !string.IsNullOrEmpty(dir); depth++)
+        {
+            if ((_fileSystem.ListFiles(dir, "*.sln").FirstOrDefault() ?? _fileSystem.ListFiles(dir, "*.slnx").FirstOrDefault()) is { } solution)
+            {
+                return solution;
+            }
+
+            dir = Path.GetDirectoryName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        }
+
+        return null;
+    }
+
     private bool TryBuild(string kind, string name, ProjectContext project, ParsedArguments parsed, out ScaffoldResult result, out string? error)
     {
         error = null;
@@ -574,7 +638,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
         if (dryRun)
         {
-            foreach (var file in result.Files)
+            foreach (var file in result.Files.Concat(result.CreateIfAbsent.Where(f => !_fileSystem.FileExists(f.Path))))
             {
                 Console.Out.WriteLine($"[dry-run] would write {Display(file.Path)}:");
                 Console.Out.WriteLine();
@@ -586,6 +650,25 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
         foreach (var file in result.Files)
         {
+            var directory = Path.GetDirectoryName(file.Path);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                _fileSystem.CreateDirectory(directory);
+            }
+
+            _fileSystem.WriteAllText(file.Path, file.Content);
+            WriteCreated(Display(file.Path));
+        }
+
+        // Create-if-absent files (e.g. the test project's .csproj) are written only when missing — never
+        // overwritten, so a second --tests run reuses the project the first one created.
+        foreach (var file in result.CreateIfAbsent)
+        {
+            if (_fileSystem.FileExists(file.Path))
+            {
+                continue;
+            }
+
             var directory = Path.GetDirectoryName(file.Path);
             if (!string.IsNullOrEmpty(directory))
             {

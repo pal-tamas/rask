@@ -87,6 +87,12 @@ internal static class FeatureGenerator
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
 
+        // --tests: a sibling <Project>.Tests project. Create its .csproj + GlobalUsings once (never overwritten);
+        // the command wires the test SDK, xUnit, and a reference back to the app on first creation.
+        var (createIfAbsent, testProject) = options.UseTests
+            ? TestProjectScaffold(project)
+            : ([], null);
+
         return new ScaffoldResult(
             files,
             RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests))
@@ -96,8 +102,41 @@ internal static class FeatureGenerator
             ProgramRegistrations = programRegistrations,
             ContextDbSets = contextDbSets,
             ContextUsings = contextUsings,
+            CreateIfAbsent = createIfAbsent,
+            TestProject = testProject,
         };
     }
+
+    // The sibling <Project>.Tests project's .csproj + a GlobalUsings.cs (xUnit is used unqualified in the
+    // generated tests). Test SDK / xUnit packages and the ProjectReference are added by the command via
+    // `dotnet add` so their versions resolve rather than being pinned here; EF Core SQLite flows transitively
+    // through the reference to the app, so the persistence tests need no extra package.
+    private static (IReadOnlyList<ScaffoldFile>, TestProjectWiring) TestProjectScaffold(ProjectContext project)
+    {
+        var trimmed = project.ProjectDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var name = Path.GetFileName(trimmed) + ".Tests";
+        var dir = Path.Combine(Path.GetDirectoryName(trimmed) ?? trimmed, name);
+        var csproj = Path.Combine(dir, name + ".csproj");
+
+        var files = new List<ScaffoldFile>
+        {
+            new(csproj, TestProjectCsproj),
+            new(Path.Combine(dir, "GlobalUsings.cs"), "global using Xunit;\n"),
+        };
+        var packages = new[] { "Microsoft.NET.Test.Sdk", "xunit", "xunit.runner.visualstudio", "coverlet.collector" };
+        return (files, new TestProjectWiring(csproj, packages));
+    }
+
+    private const string TestProjectCsproj =
+        "<Project Sdk=\"Microsoft.NET.Sdk\">\n\n"
+        + "  <PropertyGroup>\n"
+        + "    <TargetFramework>net10.0</TargetFramework>\n"
+        + "    <Nullable>enable</Nullable>\n"
+        + "    <ImplicitUsings>enable</ImplicitUsings>\n"
+        + "    <IsPackable>false</IsPackable>\n"
+        + "    <IsTestProject>true</IsTestProject>\n"
+        + "  </PropertyGroup>\n\n"
+        + "</Project>\n";
 
     /// <summary>
     /// The <c>Program.cs</c> service registrations (and the <c>using</c>s they need) for a feature run. When
@@ -875,14 +914,7 @@ internal static class FeatureGenerator
         steps.Append("  ").Append(++step).Append(". Run the app (rask dev) and browse to ").Append(route).Append('.');
         if (generatedTests)
         {
-            steps.Append("\n  ").Append(++step).Append(". The generated tests live in a sibling <Project>.Tests project — it needs xunit,\n");
-            steps.Append("     Microsoft.NET.Test.Sdk");
-            if (generatedContext)
-            {
-                steps.Append(" + Microsoft.EntityFrameworkCore.Sqlite");
-            }
-
-            steps.Append(", and a project reference to this app. Then: dotnet test");
+            steps.Append("\n  ").Append(++step).Append(". The sibling <Project>.Tests project is created and wired up — run: dotnet test");
         }
 
         return steps.ToString();

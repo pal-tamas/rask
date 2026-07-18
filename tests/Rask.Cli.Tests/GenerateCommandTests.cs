@@ -279,6 +279,39 @@ public sealed class GenerateCommandTests
         Assert.Contains("Added 1 DbSet", console.OutText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Tests_flag_creates_and_wires_the_test_project()
+    {
+        var (_, fs, process, command) = BuildWithProcess();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string", "--tests"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        // The test project's .csproj + GlobalUsings were created.
+        Assert.Contains(fs.Files, f => f.Key.EndsWith("proj.Tests.csproj", StringComparison.Ordinal));
+        Assert.Contains(fs.Files, f => f.Key.EndsWith(Path.Combine("proj.Tests", "GlobalUsings.cs"), StringComparison.Ordinal));
+        // …and it was referenced to the app and given the test packages via dotnet add.
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", _, "reference", _]);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", _, "package", "xunit"]);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", _, "package", "Microsoft.NET.Test.Sdk"]);
+    }
+
+    [Fact]
+    public async Task Tests_flag_reuses_an_existing_test_project_without_rewiring()
+    {
+        var (_, fs, process, command) = BuildWithProcess();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed(Path.Combine("/proj.Tests", "proj.Tests.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        var exit = await command.ExecuteAsync(["feature", "Order", "Total:decimal", "--tests"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        // The pre-existing project file is left untouched, and its reference/packages aren't re-added.
+        Assert.Equal("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>", fs.Files[Path.GetFullPath(Path.Combine("/proj.Tests", "proj.Tests.csproj"))]);
+        Assert.DoesNotContain(process.Invocations, i => i.Arguments.Contains("reference"));
+    }
+
     private static int Occurrences(string haystack, string needle)
     {
         var count = 0;
