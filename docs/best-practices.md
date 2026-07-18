@@ -214,7 +214,7 @@ mistake, the rule notes the ID.
   strict **Content-Security-Policy** as middleware before `UseRask` — Rask needs no
   `script-src 'unsafe-inline'` (only `style-src 'unsafe-inline'` for `Style:` attributes, plus
   `'wasm-unsafe-eval'` on WASM). Full flows and the [security
-  checklist](authentication.md#security-checklist) live in [authentication](authentication.md).
+  checklist](authentication-hardening.md#security-checklist) live in [authentication](authentication.md).
 
 ## Accessibility
 
