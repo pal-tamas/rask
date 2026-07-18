@@ -5,7 +5,7 @@ collects the patterns that keep a Rask app correct, secure, and fast as it grows
 framework rewards, the foot-guns it can't stop for you, and where each one is enforced.
 
 Every item is short on purpose: a rule, *why* it matters, and a link to the deep dive. Many of these
-are also compile-time diagnostics ([RASK001–031](diagnostics.md)) — when the analyzer can catch a
+are also compile-time diagnostics ([RASK001–034](diagnostics.md)) — when the analyzer can catch a
 mistake, the rule notes the ID.
 
 - [Component design](#component-design)
@@ -44,7 +44,7 @@ mistake, the rule notes the ID.
   marking it `required` so it reads as intentional); nullable → optional defaulting to `null`; an
   initializer (`= ...`), `[SkipFactory]`, or `Children` → excluded. Reach for an initializer or
   `[SkipFactory]` to keep internal state out of the factory signature. See
-  [getting started §5](getting-started.md#5-factory-generation-rules).
+  [getting started §6](getting-started.md#6-why-homepage-already-exists-factory-generation).
 
 ## Rendering, keys & encoding
 
@@ -56,7 +56,7 @@ mistake, the rule notes the ID.
   entity IDs, not loop indices. See [composition](composition.md#children--fragments).
 - **Trust `Text` for anything user-supplied; reserve `Raw` for markup you control.** A plain string
   becomes a `Text` node and is **HTML-encoded**; `Raw(...)` emits verbatim. User input through `Raw`
-  is an XSS hole. See [getting started → Text vs. Raw](getting-started.md#text-vs-raw).
+  is an XSS hole. See [getting started → your first component](getting-started.md#4-your-first-component).
 - **Render the full shell from the page root.** The `TApp` root must render
   `Doctype`/`Html`/`Head`/`Body` — both `<head>` and `<body>` are framework-managed (the runtime
   `<script>` is appended to `<body>`, `<head>` is filled from each component's `Head` override). A
@@ -64,7 +64,7 @@ mistake, the rule notes the ID.
 - **Contribute to `<head>` via the `Head` override, not `Head()` children.** `Head()` is a managed
   slot; passing it children is **RASK019**. Override `protected override Component? Head` instead;
   `<title>`/`<base>` are singletons where the last contributor wins. See
-  [getting started §6](getting-started.md#6-the-page-root-shell-and-the-head-override).
+  [getting started §7](getting-started.md#7-the-page-shell-and-the-head-override).
 - **Don't fight the attribute order.** Universal attributes always render
   `id, class, style, data-*, role, tabindex, aria-*`, then tag-specific. Tests assert it and it's
   stable across releases — match it when asserting on HTML.

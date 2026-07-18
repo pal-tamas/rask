@@ -3,11 +3,23 @@
 SQLite's stock configuration is tuned for a single embedded process, not a web app. Out of the box a
 connection uses the rollback journal (not WAL), does **not** enforce foreign keys, has **no**
 `busy_timeout`, and fsyncs on every commit — so the moment two requests write at once you get
-`database is locked`, and a bad delete silently orphans rows. Ruby on Rails 8 fixed this by applying
-a tuned pragma set to every connection. **`Rask.SQLite`** brings that same set to .NET, applied to
-every connection you open, so you get correct, concurrent, production-ready SQLite by default.
+`database is locked`, and a bad delete silently orphans rows. The fix is well understood: apply a tuned
+pragma set to every connection. **`Rask.SQLite`** does exactly that, applied to every connection you
+open, so you get correct, concurrent, production-ready SQLite by default.
 
 The runnable reference is [`samples/Rask.Example.Sqlite`](../samples/Rask.Example.Sqlite).
+
+## Why one server, no PaaS
+
+Tuned like this, SQLite is a real production database, not a test double — and that changes the shape of
+what one person has to run. The database is a **file on the same box as the app**: no separate database
+tier to provision and pay for, no network hop on every query, no connection pool to a remote server to
+size. Reads don't block the writer (WAL), writes wait politely instead of failing (`busy_timeout`), and
+[continuous backup](#continuous-backup-with-litestream) streams the file off-box so durability doesn't
+depend on that one machine. The result is the One-Person-Framework payoff: **one server runs the whole
+product** — app, data, and background work — with nothing to rent or wire together. See
+[the doctrine](one-person-framework.md) for the bigger picture, and
+[Limitations & when to outgrow SQLite](#limitations--when-to-outgrow-sqlite) for the honest edges.
 
 > Two packages: **`Rask.SQLite`** is the pragma engine — it depends only on `Microsoft.Data.Sqlite`, is
 > reflection-free, and so works server-side, on mobile, and under trimming/AOT.
@@ -45,8 +57,7 @@ builder.Services.AddDbContextFactory<AppDb>(o =>
 
 ## The defaults
 
-The defaults are exactly what a modern Rails 8 app runs (verified against
-[rails/rails#49349](https://github.com/rails/rails/pull/49349)):
+The defaults are the battle-tested production set for a web-facing SQLite database:
 
 | Pragma | Default | Why |
 |--------|---------|-----|
@@ -57,7 +68,7 @@ The defaults are exactly what a modern Rails 8 app runs (verified against
 | `cache_size` | `2000` pages (~8 MB) | fewer disk reads per connection |
 | `mmap_size` | `128 MiB` | memory-mapped I/O |
 | `journal_size_limit` | `64 MiB` | cap WAL growth |
-| `temp_store` | *unset* | Rails core leaves it on disk; opt in with `SqliteTempStore.Memory` |
+| `temp_store` | *unset* | left on disk by default; opt in with `SqliteTempStore.Memory` |
 
 Override any of them, or set one to `null` to leave SQLite's own default:
 
@@ -83,23 +94,23 @@ connections. Running them once at startup would silently lose them on the next p
 
 ## Transactions: `BEGIN IMMEDIATE` + a non-blocking, fair-interval retry
 
-The other half of Rails' concurrency story is *how* you take the write lock. A deferred `BEGIN`
+The other half of the concurrency story is *how* you take the write lock. A deferred `BEGIN`
 becomes a reader on its first `SELECT` and only upgrades to a writer on its first write — so two
 read-then-write transactions can each hold a read lock and then dead-lock trying to upgrade. That
 `SQLITE_BUSY` is **unretryable**: SQLite doesn't even invoke the busy handler, because retrying can
 never win. `BEGIN IMMEDIATE` takes the write lock up front, turning that dead-lock into a plain,
 waitable lock wait.
 
-Rails then waits on that lock with a **busy handler that releases the GVL** between retries at a
-**constant 1 ms interval** (not exponential backoff, which has far worse tail latency). `Rask.SQLite`
-ports both halves.
+The established fix is to wait on that lock with a busy handler that **yields instead of blocking**,
+retrying at a **constant 1 ms interval** (not exponential backoff, which has far worse tail latency).
+`Rask.SQLite` implements both halves.
 
 ### Raw ADO.NET — genuinely non-blocking
 
 `ExecuteInImmediateTransactionAsync` runs your work inside a `BEGIN IMMEDIATE` transaction and
 acquires the write lock through the raw `sqlite3` handle with the native busy handler off — so the
-only waiting is an `await Task.Delay` at the fair interval, which **frees the thread** (the .NET
-equivalent of releasing the GVL). It commits when your callback returns and rolls back if it throws:
+only waiting is an `await Task.Delay` at the fair interval, which **frees the thread** rather than
+blocking it inside native code. It commits when your callback returns and rolls back if it throws:
 
 ```csharp
 await factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
@@ -111,7 +122,7 @@ await factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
 });
 ```
 
-Tune the retry when registering (defaults: 5 s timeout, 1 ms interval — Rails' values):
+Tune the retry when registering (defaults: 5 s timeout, 1 ms interval):
 
 ```csharp
 builder.Services.AddRaskSqlite($"Data Source={dbPath}",

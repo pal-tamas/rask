@@ -22,7 +22,7 @@ builder.Services.AddDbContextFactory<CatalogDbContext>(options =>
 ```
 
 > Production tip: swap `UseSqlite` for `UseRaskSqlite` (the standalone `Rask.SQLite` package) to apply
-> the Rails-style production pragma set — WAL, `foreign_keys=ON`, a `busy_timeout`, `synchronous=NORMAL`
+> the production pragma set — WAL, `foreign_keys=ON`, a `busy_timeout`, `synchronous=NORMAL`
 > — on every connection. Pass `configureRetry:` for an opt-in fair-interval busy-retry on `SaveChanges`,
 > and use the raw-path `ExecuteInImmediateTransactionAsync` for a genuinely non-blocking `BEGIN IMMEDIATE`
 > write. See [SQLite production pragmas](sqlite.md#transactions-begin-immediate--a-non-blocking-fair-interval-retry).

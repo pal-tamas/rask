@@ -350,7 +350,7 @@ one **inserts a keyed detail `<tr>`** right after it. The diff reconciles that a
 
 ## Toast messages
 
-`IToaster` is Rask's take on Rails' `flash` — transient, consumed-once user messages that survive a
+`IToaster` is Rask's take on flash messages — transient, consumed-once user messages that survive a
 client-side navigation. Inject it and queue a message; a single `ToastOutlet` shows it once.
 
 ```csharp

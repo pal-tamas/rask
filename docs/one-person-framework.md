@@ -28,7 +28,7 @@ component code runs on three hosts — you pick per project, not per component:
 - **Native** — the same component shipped as a real iOS/Android app via `Rask.Native`.
 
 Behind the UI, features are **vertical slices**: [`Rask.Cqrs`](cqrs.md) gives you source-generated
-commands/queries/notifications, and [`Rask.Data`](data-access.md) gives every aggregate a base with identity,
+commands/queries/notifications, and [`Rask.Data`](data.md) gives every aggregate a base with identity,
 audit stamps, soft delete, optimistic concurrency, and domain events — driven by EF Core interceptors, not
 boilerplate you copy into each feature. You don't wire a mediator or write a repository; you describe the
 slice and the framework assembles it.
@@ -62,7 +62,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 |---------|--------------|
 | **[The `rask` CLI](cli.md)** | `rask new` (scaffold), `rask dev` (watch + hot reload), `rask generate` (page/component/feature). The front door. |
 | **[`rask generate feature`](cli.md)** | One command emits a full CQRS + EF Core CRUD vertical slice — encapsulated entity, value objects, validation, list/create/edit pages, and tests. |
-| **[`Rask.Data`](data-access.md)** | `Entity<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
+| **[`Rask.Data`](data.md)** | `Entity<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
 | **[`Rask.Cqrs`](cqrs.md)** | Source-generated, reflection-free CQRS/mediator — trim/AOT-safe, zero runtime scanning. |
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
 | **[Auth](authentication.md)** | Cookie login/session scaffolding in the templates. |
@@ -80,7 +80,8 @@ See the **[roadmap](roadmap.md)** for what's shipped and what's next along this 
 
 ## Where to go next
 
+- **[Tutorial: zero to deploy](tutorial/00-overview.md)** — build a whole product, one pillar per chapter.
 - **[Getting started](getting-started.md)** — zero to a running, routed, interactive app.
 - **[The `rask` CLI](cli.md)** — scaffold and run.
-- **[Why one server, no PaaS](sqlite.md)** — the SQLite production story.
+- **[Why one server, no PaaS](sqlite.md#why-one-server-no-paas)** — the SQLite production story.
 - **[Roadmap](roadmap.md)** — the DB-backed pillars, shipped vs planned.

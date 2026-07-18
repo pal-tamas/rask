@@ -14,7 +14,7 @@ service to operate.
 | **The `rask` CLI** | ✅ | [`cli.md`](cli.md) — `new` / `dev` / `generate` / `db` / `deploy`. |
 | **CRUD scaffolder** | ✅ | [`rask generate feature`](cli.md) — CQRS + EF Core vertical slice, value objects, validation, pages, tests. |
 | **CQRS / mediator** | ✅ | [`Rask.Cqrs`](cqrs.md) — source-generated, reflection-free. |
-| **Data layer** | ✅ | [`Rask.Data`](data-access.md) — `Entity<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
+| **Data layer** | ✅ | [`Rask.Data`](data.md) — `Entity<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
 | **Transactional outbox** | ✅ | [`Rask.Outbox`](outbox.md) — durable, crash-safe domain-event delivery on the app's own database. |
 | **Background jobs** | ✅ | [`Rask.Jobs`](jobs.md) — durable enqueued/delayed/recurring work on the app's own database, at-least-once with backoff. |
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database and delivered off the request thread over SMTP (MailKit), at-least-once with backoff; bodies are Rask components rendered to HTML. |

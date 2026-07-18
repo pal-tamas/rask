@@ -610,7 +610,7 @@ asc → desc → unsorted, which the grid's own two-state toggle doesn't do.
 in the query behind it), and reset to page 1 when the filter changes.
 
 The complete worked example — filter, sort, page and page size all in the URL — is the data table at
-[`/table`](/table); its source is on the page, verbatim. See also [routing.md](routing.md#query-parameters).
+`/table`; its source is on the page, verbatim. See also [routing.md](routing.md#route-and-query-parameters).
 
 ## When not to use it
 

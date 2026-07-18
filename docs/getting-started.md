@@ -66,9 +66,9 @@ dotnet run            # server / wasm
 # wasm-hosted: run the host project — dotnet run --project MyApp.Server
 ```
 
-Open the URL printed in the console. **You should see** a small nav bar (`Home | Counter | Weather`)
-above three working pages: a welcome card, a counter you can click, and a weather table that shows a
-*"Loading…"* placeholder for a moment before async data fills in.
+Open the URL printed in the console. **You should see** a single **"Hello, Rask! 👋"** welcome card that
+lists the `rask` commands you'll use next. The starter app is deliberately minimal — a clean shell with one
+page — so there's nothing to delete before you start building.
 
 > **Edit-and-refresh with `dotnet watch`.** Run `dotnet watch` instead of `dotnet run` for a live
 > inner loop: edit a component's `Render()` (or its scoped `.css`/`.js`) and save, and **C# Hot Reload**
@@ -83,31 +83,26 @@ above three working pages: a welcome card, a counter you can click, and a weathe
 
 ## 3. Tour of what the template generated
 
-Before writing code, here's what's in the project and why. This is the `server` template layout (the WASM
-templates differ only in `Program.cs`):
+Before writing code, here's what's in the project and why. The `server` template is small on purpose (the
+WASM templates differ mainly in `Program.cs`):
 
-- **`Program.cs`** — the host setup. `builder.Services.AddRask()` registers the framework, and
-  `app.UseRask<App>()` mounts your root component (`App`) as the whole site. Your own services go in
-  here too — the template registers `IWeatherForecastService` so the Weather page can inject it.
+- **`Program.cs`** — the host setup. `builder.Services.AddRask()` registers the framework,
+  `app.UseRask<App>()` mounts your root component (`App`) as the whole site, and a `/health` endpoint is
+  wired for deployment probes. Your own services go here too.
 
-- **`App.cs`** — the **root component**, and the one place that renders the full HTML page shell
-  (`Doctype` / `Html` / `Head` / `Body`). It holds the nav bar and drops a `Router()` where the current
-  page should appear. `<head>` is framework-managed — app-wide tags (title, charset, viewport) go
-  through its `Head` override, not by passing children to `Head()`. More on this in
-  [section 7](#7-the-page-shell-and-the-head-override).
+- **`App.cs`** — two things live here. First, the **root component** `App`: the one place that renders the
+  full HTML page shell (`Doctype` / `Html` / `Head` / `Body`) and drops a `Router()` where the current page
+  appears. `<head>` is framework-managed — app-wide tags (title, charset, viewport) go through its `Head`
+  override, not by passing children to `Head()` (more in [section 7](#7-the-page-shell-and-the-head-override)).
+  Second, the **`HomePage`** component — the `/` route, a small welcome card. Edit or replace it; it's your
+  starting point.
 
-- **`HomePage.cs`** + **`HomePage.css`** — the `/` route. The sibling `.css` file is **auto-scoped** to
-  this component: drop a `{Component}.css` next to a `{Component}.cs` and its selectors only apply to
-  that component — no class-name discipline, no leaks. (Same idea for a sibling `{Component}.js`.)
+- **`{Project}.csproj`** and **`Properties/launchSettings.json`** — the project file (framework package
+  references, source generators) and the local run profile (URLs, environment).
 
-- **`Counter.cs`** — the `/counter` route: local state in a field, a click handler, automatic re-render.
-  You'll write something like it in [section 5](#5-add-interactivity).
-
-- **`Weather.cs`** (+ `WeatherForecast.cs`, `LocalWeatherForecastService.cs`) — the `/weather` route.
-  Shows the canonical async-data pattern: a service injected through the **constructor**, loaded in an
-  `OnMountAsync` lifecycle hook, with a loading placeholder until the data arrives.
-
-Open these side by side as you read the next sections — each one is a live example of a concept below.
+That's the whole starter app — no example `Counter` or `Weather` pages to clean up. You'll add your own
+screens next; a **scoped `.css`** or **`.js`** file is as easy as dropping `{Component}.css` next to a
+`{Component}.cs` (same folder, same base name) — its selectors apply only to that component, no leaks.
 
 ## 4. Your first component
 
@@ -231,8 +226,8 @@ Live — a `Greeting` with a required `Name` and an optional `Title`, called thr
 
 **Inject framework services (`HttpClient`, `Navigator`, `RouteState`, `IJSRuntime`) through the
 constructor, not as properties** — a non-nullable settable property would become a *required* factory
-parameter (and `required` on a property with a DI-only constructor is the **RASK002** warning). The
-template's `Weather` page is the model to copy:
+parameter (and `required` on a property with a DI-only constructor is the **RASK002** warning). Inject
+through the primary constructor instead:
 
 ```csharp
 public sealed class Weather(IWeatherForecastService service) : Component { ... }
@@ -317,8 +312,7 @@ pages (`[NotFound]`), and the full routing model, see [routing](routing.md).
 
 ## Troubleshooting
 
-The snags you're most likely to hit on a fresh project (the README has a
-[fuller list](../README.md#-troubleshooting)):
+The snags you're most likely to hit on a fresh project:
 
 - **The IDE flags `HomePage()`, `Counter()`, or `NavLink(...)` as undefined.** These are
   *source-generated* — the factory for every component, the URL builder for every `[Route]`. They don't
@@ -340,7 +334,8 @@ The snags you're most likely to hit on a fresh project (the README has a
 ## Next steps
 
 You now have a running, routed, interactive app. From here, the One-Person-Framework path takes it to a
-shipped product:
+shipped product — and the **[zero-to-deploy tutorial](tutorial/00-overview.md)** walks that whole path
+step by step (database, auth, jobs, email, cache, events, and deployment). In short:
 
 1. **Scaffold a feature** → [`rask generate feature`](cli.md) emits a full CQRS + EF Core CRUD vertical
    slice (entity, value objects, validation, list/create/edit pages, tests) in one command.
