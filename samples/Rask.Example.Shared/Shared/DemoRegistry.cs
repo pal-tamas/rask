@@ -275,6 +275,7 @@ public static class DemoRegistry
 
             // --- Bootstrap guide: the Rask.Bootstrap component showcase (its standalone example pages
             //     folded into docs/bootstrap.md). Each demo already lived in its own Bs*Demo.cs. ---
+            ["bootstrap-layout"] = () => CodeSample(["BsLayoutDemo.cs"], Result: BsLayoutDemo()),
             ["bootstrap-nav"] = () => CodeSample(["BsNavDemo.cs"], Result: BsNavDemo()),
             ["bootstrap-buttons"] = () => CodeSample(["BsButtonsDemo.cs"], Result: BsButtonsDemo()),
             ["bootstrap-cards"] = () => CodeSample(["BsCardsDemo.cs"], Result: BsCardsDemo()),

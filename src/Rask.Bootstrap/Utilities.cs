@@ -259,6 +259,15 @@ public static class Grid
     public const string ColAuto = "col-auto";
     public static string Column(int n, Bp? bp = null) => $"col-{bp.Infix()}{n}";
     public static string Gutter(int size) => $"g-{size}";
+
+    // .container / .container-fluid / .container-{bp} — the grid's outer wrapper. It lives in this group
+    // rather than one of its own because it's the other half of the grid: its side padding is what a
+    // nested .row's negative side margins cancel against. ContainerBelow(bp) is Bootstrap's
+    // .container-{bp}: full width BELOW the breakpoint and width-capped from it up — named for the
+    // behaviour, because the class name reads backwards.
+    public const string Container = "container";
+    public const string ContainerFluid = "container-fluid";
+    public static string ContainerBelow(Bp bp) => $"container-{bp.Token()}";
 }
 
 // position-* and edge/translate helpers.

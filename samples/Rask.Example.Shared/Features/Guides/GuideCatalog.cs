@@ -33,6 +33,8 @@ public static class GuideCatalog
 
         new("bootstrap", "Bootstrap", "Setup, color modes, the component map, and versioning.",
             "bi-bootstrap", "Bootstrap"),
+        new("bootstrap-layout", "Layout", "BsContainer, BsRow/BsCol, BsStack — the page shell and grid.",
+            "bi-grid-3x2-gap", "Bootstrap"),
         new("bootstrap-buttons", "Buttons & badges", "BsButton, BsButtonGroup, BsBadge, BsCloseButton.",
             "bi-hand-index", "Bootstrap"),
         new("bootstrap-cards", "Cards, lists & tables",
