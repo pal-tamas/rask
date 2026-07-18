@@ -5,7 +5,8 @@ product — the UI, the data, the auth, the background work, and the deployment 
 one server.** No PaaS to rent, no stack of services to assemble and glue, no second language to
 context-switch into. That is what "One Person Framework" means here, and every design decision serves it.
 
-This page is the doctrine. The [getting-started tutorial](getting-started.md) is the hands-on path; the
+This page is the doctrine. The [getting-started guide](getting-started.md) is the hands-on UI path, the
+[zero-to-deploy tutorial](tutorial/00-overview.md) builds a whole product end to end, and the
 [docs index](README.md) is the full map.
 
 ## The problem it removes
@@ -25,10 +26,10 @@ component code runs on three hosts — you pick per project, not per component:
 
 - **Server** — rendered server-side, updated live over a WebSocket with a minimal diff.
 - **WASM** — the same component running fully client-side in the browser (and installable as an offline PWA).
-- **Native** — the same component shipped as a real iOS/Android app via `Rask.Native`.
+- **Native** — the same component shipped as a real iOS/Android app via `Rask.Native` *(preview)*.
 
 Behind the UI, features are **vertical slices**: [`Rask.Cqrs`](cqrs.md) gives you source-generated
-commands/queries/notifications, and [`Rask.Data`](data-access.md) gives every aggregate a base with identity,
+commands/queries/notifications, and [`Rask.Data`](data.md) gives every aggregate a base with identity,
 audit stamps, soft delete, optimistic concurrency, and domain events — driven by EF Core interceptors, not
 boilerplate you copy into each feature. You don't wire a mediator or write a repository; you describe the
 slice and the framework assembles it.
@@ -61,11 +62,11 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | Battery | What it does |
 |---------|--------------|
 | **[The `rask` CLI](cli.md)** | `rask new` (scaffold), `rask dev` (watch + hot reload), `rask generate` (page/component/feature). The front door. |
-| **[`rask generate feature`](cli.md)** | One command emits a full CQRS + EF Core CRUD vertical slice — encapsulated entity, value objects, validation, list/create/edit pages, and tests. |
-| **[`Rask.Data`](data-access.md)** | `Entity<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
+| **[`rask generate feature`](cli.md)** | One command emits a full CQRS + EF Core CRUD vertical slice — encapsulated entity, value objects, validation, list/create/edit pages (and, with `--tests`, a test project) — and wires the DI into `Program.cs`. |
+| **[`Rask.Data`](data.md)** | `Entity<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
 | **[`Rask.Cqrs`](cqrs.md)** | Source-generated, reflection-free CQRS/mediator — trim/AOT-safe, zero runtime scanning. |
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
-| **[Auth](authentication.md)** | Cookie login/session scaffolding in the templates. |
+| **[Auth](authentication.md)** | Cookie & JWT login/session scaffolding in the templates. |
 | **[PWA & native](pwa.md)** | Installable offline apps and real iOS/Android from the same components. |
 | **[Deploy](deployment.md)** | `rask deploy` takes a bare VPS to a live HTTPS site — installs Docker, a non-root deploy login, a firewall and SSH hardening, then builds on the box and swaps in with zero downtime. No SSH session of your own required. |
 
@@ -80,7 +81,8 @@ See the **[roadmap](roadmap.md)** for what's shipped and what's next along this 
 
 ## Where to go next
 
+- **[Tutorial: zero to deploy](tutorial/00-overview.md)** — build a whole product, one pillar per chapter.
 - **[Getting started](getting-started.md)** — zero to a running, routed, interactive app.
 - **[The `rask` CLI](cli.md)** — scaffold and run.
-- **[Why one server, no PaaS](sqlite.md)** — the SQLite production story.
+- **[Why one server, no PaaS](sqlite.md#why-one-server-no-paas)** — the SQLite production story.
 - **[Roadmap](roadmap.md)** — the DB-backed pillars, shipped vs planned.

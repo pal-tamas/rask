@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Commands;
@@ -187,6 +188,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return 1;
         }
 
+        // Whether a --tests run needs to wire a *new* test project (vs reuse one an earlier run created) must be
+        // decided before Write, which is what creates the .csproj.
+        var testProjectIsNew = result.TestProject is not null && !_fileSystem.FileExists(result.TestProject.ProjectPath);
+
         var dryRun = parsed.HasFlag("dry-run");
         var written = Write(result, parsed.HasFlag("force"), dryRun);
         if (written == 0 && !dryRun)
@@ -200,9 +205,214 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             {
                 await AddPackagesAsync(project.ProjectDirectory, result.Packages, parsed.HasFlag("no-restore"), cancellationToken).ConfigureAwait(false);
             }
+
+            WireProgramCs(project.ProjectDirectory, result);
+            AddDbSetsToContext(result);
+
+            if (testProjectIsNew && result.TestProject is not null)
+            {
+                await WireTestProjectAsync(project, result.TestProject, parsed.HasFlag("no-restore"), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        if (written == 0)
+        {
+            WriteNotes(result.Notes);
         }
 
         return written;
+    }
+
+    // Insert the generator's service registrations into Program.cs so the output is runnable without a manual
+    // paste. Idempotent: a statement (or using) already present is left alone, so a second feature adds only
+    // what's new. If Program.cs isn't found or isn't top-level statements we can't safely edit, the same block
+    // is printed as a manual fallback — the files are already written, so this is never fatal.
+    private void WireProgramCs(string projectDirectory, ScaffoldResult result)
+    {
+        if (result.ProgramRegistrations.Count == 0)
+        {
+            return;
+        }
+
+        var path = Path.Combine(projectDirectory, "Program.cs");
+        if (!_fileSystem.FileExists(path))
+        {
+            PrintManualRegistrations(result, "Couldn't find Program.cs — register these services yourself:");
+            return;
+        }
+
+        var text = _fileSystem.ReadAllText(path);
+        if (!text.Contains("WebApplication.CreateBuilder", StringComparison.Ordinal))
+        {
+            PrintManualRegistrations(result, "Program.cs isn't top-level statements — register these services yourself:");
+            return;
+        }
+
+        var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
+
+        // Add missing usings after the last existing using directive (or at the very top).
+        var addedUsings = 0;
+        var lastUsing = lines.FindLastIndex(l => l.TrimStart().StartsWith("using ", StringComparison.Ordinal) && l.TrimEnd().EndsWith(';'));
+        var usingAt = lastUsing >= 0 ? lastUsing + 1 : 0;
+        foreach (var ns in result.ProgramUsings)
+        {
+            var directive = $"using {ns};";
+            if (!lines.Any(l => l.Trim() == directive))
+            {
+                lines.Insert(usingAt++, directive);
+                addedUsings++;
+            }
+        }
+
+        // Insert registrations after the last existing builder.Services line, else right after the builder.
+        var added = new List<string>();
+        foreach (var registration in result.ProgramRegistrations)
+        {
+            var firstLine = registration.Split('\n')[0];
+            if (lines.Any(l => l.Trim() == firstLine.Trim()))
+            {
+                continue; // already registered (e.g. a second feature re-adding AddRaskCqrs)
+            }
+
+            var anchor = lines.FindLastIndex(l => l.TrimStart().StartsWith("builder.Services.", StringComparison.Ordinal));
+            if (anchor < 0)
+            {
+                anchor = lines.FindLastIndex(l => l.Contains("WebApplication.CreateBuilder", StringComparison.Ordinal));
+            }
+
+            lines.InsertRange(anchor + 1, registration.Split('\n'));
+            added.Add(firstLine);
+        }
+
+        if (added.Count == 0 && addedUsings == 0)
+        {
+            return; // everything was already wired
+        }
+
+        _fileSystem.WriteAllText(path, string.Join(newline, lines));
+        var names = string.Join(", ", added.Select(RegistrationName));
+        Console.WriteLine($"Registered {added.Count} service(s) in Program.cs: {names}.", ConsoleStyle.Success);
+    }
+
+    // Find an existing DbContext class by name anywhere in the project, returning its namespace + file so an
+    // --context run compiles (the slice imports it) and its DbSet can be added. (null, null) if not found.
+    private (string? Namespace, string? FilePath) ResolveContext(ProjectContext project, string contextName)
+    {
+        var declaration = new Regex($@"\b(?:class|record)\s+{Regex.Escape(contextName)}\b");
+        var namespaceOf = new Regex(@"\bnamespace\s+([\w.]+)");
+        foreach (var file in _fileSystem.ListFilesRecursive(project.ProjectDirectory, "*.cs"))
+        {
+            var text = _fileSystem.ReadAllText(file);
+            if (!declaration.IsMatch(text))
+            {
+                continue;
+            }
+
+            var match = namespaceOf.Match(text);
+            return (match.Success ? match.Groups[1].Value : project.RootNamespace, file);
+        }
+
+        return (null, null);
+    }
+
+    // Add the --context run's DbSet properties (and the usings they need) to the user's existing DbContext, so
+    // EF maps the new entities without a hand-edit. Idempotent; a set/using already present is left alone. When
+    // the context file couldn't be located the printed next-steps carry the same instruction as a fallback.
+    private void AddDbSetsToContext(ScaffoldResult result)
+    {
+        if (result.ContextDbSets.Count == 0)
+        {
+            return;
+        }
+
+        if (result.ContextFilePath is null || !_fileSystem.FileExists(result.ContextFilePath))
+        {
+            // The context class wasn't found in the project — tell the user what to add to it themselves.
+            Console.WriteLine("Add these to your DbContext:", ConsoleStyle.Dim);
+            foreach (var set in result.ContextDbSets)
+            {
+                Console.WriteLine(set, ConsoleStyle.Dim);
+            }
+
+            return;
+        }
+
+        var text = _fileSystem.ReadAllText(result.ContextFilePath);
+        var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
+
+        var addedUsings = 0;
+        var lastUsing = lines.FindLastIndex(l => l.TrimStart().StartsWith("using ", StringComparison.Ordinal) && l.TrimEnd().EndsWith(';'));
+        var usingAt = lastUsing >= 0 ? lastUsing + 1 : 0;
+        foreach (var ns in result.ContextUsings)
+        {
+            var directive = $"using {ns};";
+            if (!lines.Any(l => l.Trim() == directive))
+            {
+                lines.Insert(usingAt++, directive);
+                addedUsings++;
+            }
+        }
+
+        var addedSets = 0;
+        foreach (var set in result.ContextDbSets)
+        {
+            if (lines.Any(l => l.Trim() == set.Trim()))
+            {
+                continue;
+            }
+
+            // After the last existing DbSet property (the generated context always has at least one), else after
+            // the class body's opening brace.
+            var anchor = lines.FindLastIndex(l => l.TrimStart().StartsWith("public DbSet<", StringComparison.Ordinal));
+            if (anchor < 0)
+            {
+                anchor = lines.FindIndex(l => l.TrimEnd().EndsWith('{'));
+            }
+
+            if (anchor < 0)
+            {
+                continue;
+            }
+
+            lines.Insert(anchor + 1, set);
+            addedSets++;
+        }
+
+        if (addedSets == 0 && addedUsings == 0)
+        {
+            return;
+        }
+
+        _fileSystem.WriteAllText(result.ContextFilePath, string.Join(newline, lines));
+        Console.WriteLine($"Added {addedSets} DbSet(s) to {Display(result.ContextFilePath)}.", ConsoleStyle.Success);
+    }
+
+    // A short display name for a registration line, e.g. "builder.Services.AddRaskCqrs();" -> "AddRaskCqrs".
+    private static string RegistrationName(string firstLine)
+    {
+        var call = firstLine.Trim();
+        var open = call.IndexOf('(');
+        var dot = open > 0 ? call.LastIndexOf('.', open) : call.LastIndexOf('.');
+        return dot >= 0 && open > dot ? call[(dot + 1)..open] : call;
+    }
+
+    private void PrintManualRegistrations(ScaffoldResult result, string heading)
+    {
+        Console.WriteLine(heading, ConsoleStyle.Dim);
+        foreach (var ns in result.ProgramUsings)
+        {
+            Console.WriteLine($"  using {ns};", ConsoleStyle.Dim);
+        }
+
+        foreach (var registration in result.ProgramRegistrations)
+        {
+            foreach (var line in registration.Split('\n'))
+            {
+                Console.WriteLine("  " + line, ConsoleStyle.Dim);
+            }
+        }
     }
 
     // Add the packages the generated code needs straight into the project (dotnet add package). A failure
@@ -225,6 +435,61 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 WriteWarning($"  Couldn't add {package} automatically — add it manually: dotnet add package {package}");
             }
         }
+    }
+
+    // Wire a freshly-created <Project>.Tests project: reference the app, add the test SDK + xUnit packages, and
+    // register it in the solution if there is one. Failures are warnings — the files are written regardless.
+    private async Task WireTestProjectAsync(ProjectContext project, TestProjectWiring test, bool noRestore, CancellationToken cancellationToken)
+    {
+        var appCsproj = _fileSystem.ListFiles(project.ProjectDirectory, "*.csproj").FirstOrDefault();
+        if (appCsproj is null)
+        {
+            return;
+        }
+
+        if (noRestore)
+        {
+            Console.WriteLine($"Skipped wiring {Display(test.ProjectPath)} (--no-restore): reference {Display(appCsproj)} + add {string.Join(", ", test.Packages)}, then dotnet restore.", ConsoleStyle.Dim);
+            return;
+        }
+
+        Console.WriteLine($"Wiring the test project ({Display(test.ProjectPath)})…", ConsoleStyle.Dim);
+        await RunDotnetAsync(["add", test.ProjectPath, "reference", appCsproj], project.ProjectDirectory, cancellationToken).ConfigureAwait(false);
+        foreach (var package in test.Packages)
+        {
+            await RunDotnetAsync(["add", test.ProjectPath, "package", package], project.ProjectDirectory, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (FindSolution(project.ProjectDirectory) is { } solution)
+        {
+            await RunDotnetAsync(["sln", solution, "add", test.ProjectPath], project.ProjectDirectory, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task RunDotnetAsync(IReadOnlyList<string> args, string workingDirectory, CancellationToken cancellationToken)
+    {
+        var exit = await _process.RunAsync("dotnet", args, workingDirectory, cancellationToken).ConfigureAwait(false);
+        if (exit != 0)
+        {
+            WriteWarning($"  `dotnet {string.Join(' ', args)}` failed — run it yourself if the test project needs it.");
+        }
+    }
+
+    // The nearest .sln/.slnx at or above the project, so a generated test project joins the same solution.
+    private string? FindSolution(string startDirectory)
+    {
+        var dir = startDirectory;
+        for (var depth = 0; depth < 6 && !string.IsNullOrEmpty(dir); depth++)
+        {
+            if ((_fileSystem.ListFiles(dir, "*.sln").FirstOrDefault() ?? _fileSystem.ListFiles(dir, "*.slnx").FirstOrDefault()) is { } solution)
+            {
+                return solution;
+            }
+
+            dir = Path.GetDirectoryName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        }
+
+        return null;
     }
 
     private bool TryBuild(string kind, string name, ProjectContext project, ParsedArguments parsed, out ScaffoldResult result, out string? error)
@@ -280,17 +545,6 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     return false;
                 }
 
-                // The grammar parses and validates ahead of the emitter that will consume it. Refuse rather
-                // than generate the root and drop the targets on the floor — silently discarding what was
-                // asked for is worse than not supporting it yet.
-                if (spec.Relationships.Count > 0)
-                {
-                    var relationship = spec.Relationships[0];
-                    result = null!;
-                    error = $"Relationships aren't generated yet — '{relationship.Token} {relationship.To.Name}' parses, but emitting it isn't implemented. Scaffold the entities separately for now.";
-                    return false;
-                }
-
                 // Team defaults from .rask/generate.json fill in what wasn't passed; explicit flags always win.
                 var config = GenerateConfig.Load(_fileSystem, project.ProjectDirectory);
 
@@ -322,6 +576,13 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
                 // --modal puts create/update in a BsModal on the list page, so it implies --bs.
                 var useModal = Flag("modal", config.Modal);
+                // Locate an --context DbContext so the slice can import its namespace and the DbSet can be added
+                // to it. Best-effort: a class we can't find leaves the generator's pre-fix behaviour intact.
+                var contextOverride = parsed.Option("context");
+                var (contextNamespace, contextFilePath) = contextOverride is null
+                    ? (null, null)
+                    : ResolveContext(project, contextOverride);
+
                 var options = new FeatureOptions
                 {
                     IdType = idType,
@@ -333,11 +594,17 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     UseEvents = Flag("events", config.Events),
                     UseOutbox = Flag("outbox", config.Outbox),
                     UseTests = Flag("tests", config.Tests),
-                    ContextOverride = parsed.Option("context"),
+                    ContextOverride = contextOverride,
+                    ContextNamespace = contextNamespace,
                     OutputOverride = parsed.Option("output"),
                 };
 
                 result = FeatureGenerator.Generate(project, _workingDirectory, spec, options);
+                if (contextFilePath is not null)
+                {
+                    result = result with { ContextFilePath = contextFilePath };
+                }
+
                 return true;
         }
     }
@@ -360,14 +627,13 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
         if (dryRun)
         {
-            foreach (var file in result.Files)
+            foreach (var file in result.Files.Concat(result.CreateIfAbsent.Where(f => !_fileSystem.FileExists(f.Path))))
             {
                 Console.Out.WriteLine($"[dry-run] would write {Display(file.Path)}:");
                 Console.Out.WriteLine();
                 Console.Out.WriteLine(file.Content);
             }
 
-            WriteNotes(result.Notes);
             return 0;
         }
 
@@ -383,7 +649,25 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             WriteCreated(Display(file.Path));
         }
 
-        WriteNotes(result.Notes);
+        // Create-if-absent files (e.g. the test project's .csproj) are written only when missing — never
+        // overwritten, so a second --tests run reuses the project the first one created.
+        foreach (var file in result.CreateIfAbsent)
+        {
+            if (_fileSystem.FileExists(file.Path))
+            {
+                continue;
+            }
+
+            var directory = Path.GetDirectoryName(file.Path);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                _fileSystem.CreateDirectory(directory);
+            }
+
+            _fileSystem.WriteAllText(file.Path, file.Content);
+            WriteCreated(Display(file.Path));
+        }
+
         return 0;
     }
 

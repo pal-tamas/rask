@@ -166,6 +166,163 @@ public sealed class GenerateCommandTests
         Assert.Contains("Next steps:", console.OutText, StringComparison.Ordinal);
     }
 
+    private const string ProgramCs =
+        "using MyApp;\n" +
+        "var builder = WebApplication.CreateBuilder(args);\n" +
+        "builder.Services.AddRask();\n" +
+        "var app = builder.Build();\n" +
+        "app.Run();\n";
+
+    [Fact]
+    public async Task Feature_wires_the_service_registrations_into_Program_cs()
+    {
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string,Price:decimal"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        // Framework services + the run's DbContext factory are inserted, not just printed.
+        Assert.Contains("builder.Services.AddRaskCqrs();", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o", program, StringComparison.Ordinal);
+        Assert.Contains(".AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));", program, StringComparison.Ordinal);
+        // The usings the registrations need are added too.
+        Assert.Contains("using Rask.Cqrs;", program, StringComparison.Ordinal);
+        Assert.Contains("using Rask.Data;", program, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Products;", program, StringComparison.Ordinal);
+        Assert.Contains("using Microsoft.EntityFrameworkCore.Diagnostics;", program, StringComparison.Ordinal);
+        Assert.Contains("Registered", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("Program.cs", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Program_wiring_is_idempotent()
+    {
+        var (_, fs, command) = Build();
+        // A Program.cs already carrying the registrations (e.g. a re-run) must not gain duplicates.
+        fs.Seed("/proj/Program.cs", ProgramCs +
+            "builder.Services.AddRaskCqrs();\n" +
+            "builder.Services.AddRaskData();\n" +
+            "builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o\n" +
+            "    .UseSqlite(\"Data Source=app.db\")\n" +
+            "    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));\n");
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--force"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        Assert.Equal(1, Occurrences(program, "builder.Services.AddRaskCqrs();"));
+        Assert.Equal(1, Occurrences(program, "builder.Services.AddDbContextFactory<ProductsDbContext>"));
+    }
+
+    [Fact]
+    public async Task Feature_prints_a_manual_fallback_when_there_is_no_Program_cs()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.False(fs.Files.ContainsKey(Path.GetFullPath("/proj/Program.cs")));
+        Assert.Contains("Couldn't find Program.cs", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskCqrs();", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Explicit_context_wires_framework_services_but_not_a_dbcontext()
+    {
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--context", "AppDbContext"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        Assert.Contains("builder.Services.AddRaskCqrs();", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
+        // The context is the user's own — we don't register a factory for it.
+        Assert.DoesNotContain("AddDbContextFactory", program, StringComparison.Ordinal);
+        // The context class isn't in the project here, so the DbSet to add is printed as a fallback.
+        Assert.Contains("public DbSet<Product> Products => Set<Product>();", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Explicit_context_adds_the_dbset_and_usings_to_the_resolved_context()
+    {
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Features/Products/ProductsDbContext.cs",
+            "using Microsoft.EntityFrameworkCore;\n\n" +
+            "namespace MyApp.Features.Products;\n\n" +
+            "public sealed class ProductsDbContext(DbContextOptions<ProductsDbContext> options) : DbContext(options)\n" +
+            "{\n" +
+            "    public DbSet<Product> Products => Set<Product>();\n\n" +
+            "    protected override void OnModelCreating(ModelBuilder modelBuilder)\n" +
+            "    {\n" +
+            "        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ProductsDbContext).Assembly);\n" +
+            "        modelBuilder.ApplyRaskConventions();\n" +
+            "    }\n" +
+            "}\n");
+
+        var exit = await command.ExecuteAsync(["feature", "Order", "--fields", "Total:decimal", "--context", "ProductsDbContext"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var ctx = fs.Files[Path.GetFullPath("/proj/Features/Products/ProductsDbContext.cs")];
+        // The DbSet + the using it needs are inserted into the user's existing context — no manual edit.
+        Assert.Contains("public DbSet<Order> Orders => Set<Order>();", ctx, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Orders;", ctx, StringComparison.Ordinal);
+        // …and the generated slice imports the context's namespace so it compiles.
+        var page = fs.Files[Path.GetFullPath("/proj/Features/Orders/OrdersPage.cs")];
+        Assert.Contains("using MyApp.Features.Products;", page, StringComparison.Ordinal);
+        Assert.Contains("Added 1 DbSet", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Tests_flag_creates_and_wires_the_test_project()
+    {
+        var (_, fs, process, command) = BuildWithProcess();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string", "--tests"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        // The test project's .csproj + GlobalUsings were created.
+        Assert.Contains(fs.Files, f => f.Key.EndsWith("proj.Tests.csproj", StringComparison.Ordinal));
+        Assert.Contains(fs.Files, f => f.Key.EndsWith(Path.Combine("proj.Tests", "GlobalUsings.cs"), StringComparison.Ordinal));
+        // …and it was referenced to the app and given the test packages via dotnet add.
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", _, "reference", _]);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", _, "package", "xunit"]);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", _, "package", "Microsoft.NET.Test.Sdk"]);
+    }
+
+    [Fact]
+    public async Task Tests_flag_reuses_an_existing_test_project_without_rewiring()
+    {
+        var (_, fs, process, command) = BuildWithProcess();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed(Path.Combine("/proj.Tests", "proj.Tests.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        var exit = await command.ExecuteAsync(["feature", "Order", "Total:decimal", "--tests"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        // The pre-existing project file is left untouched, and its reference/packages aren't re-added.
+        Assert.Equal("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>", fs.Files[Path.GetFullPath(Path.Combine("/proj.Tests", "proj.Tests.csproj"))]);
+        Assert.DoesNotContain(process.Invocations, i => i.Arguments.Contains("reference"));
+    }
+
+    private static int Occurrences(string haystack, string needle)
+    {
+        var count = 0;
+        for (var i = haystack.IndexOf(needle, StringComparison.Ordinal); i >= 0; i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
     [Fact]
     public async Task Feature_adds_the_required_nuget_packages_automatically()
     {
@@ -360,17 +517,22 @@ public sealed class GenerateCommandTests
     }
 
     [Fact]
-    public async Task A_relationship_is_refused_rather_than_silently_dropped()
+    public async Task A_relationship_generates_both_entities_with_the_foreign_key_and_navigations()
     {
-        var (console, fs, command) = Build();
+        var (_, fs, command) = Build();
 
         var exit = await command.ExecuteAsync(["feature", "Post", "Title:string", "1:n", "Comment", "Body:text"], CancellationToken.None);
 
-        // The grammar lands ahead of the emitter — until it arrives, generating Post and discarding Comment
-        // would quietly lose what was asked for. Delete this test when relationship emission ships.
-        Assert.Equal(1, exit);
-        Assert.Contains("Relationships aren't generated yet", console.ErrorText, StringComparison.Ordinal);
-        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith(".cs", StringComparison.Ordinal));
+        Assert.Equal(0, exit);
+        // Both entities are scaffolded (not one generated and the other dropped).
+        Assert.Contains(fs.Files, f => f.Key.EndsWith(Path.Combine("Posts", "Post.cs"), StringComparison.Ordinal));
+        Assert.Contains(fs.Files, f => f.Key.EndsWith(Path.Combine("Comments", "Comment.cs"), StringComparison.Ordinal));
+        // The dependent carries the FK + a reference navigation; the principal a collection.
+        var comment = fs.Files.Single(f => f.Key.EndsWith(Path.Combine("Comments", "Comment.cs"), StringComparison.Ordinal)).Value;
+        Assert.Contains("public Guid PostId { get; private set; }", comment, StringComparison.Ordinal);
+        Assert.Contains("public Post? Post { get; private set; }", comment, StringComparison.Ordinal);
+        var post = fs.Files.Single(f => f.Key.EndsWith(Path.Combine("Posts", "Post.cs"), StringComparison.Ordinal)).Value;
+        Assert.Contains("public ICollection<Comment> Comments", post, StringComparison.Ordinal);
     }
 
     [Fact]

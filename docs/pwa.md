@@ -10,7 +10,7 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 > subscribe, local notifications, app badge, and wake lock all work — but it is **not an offline app**:
 > it renders over a live WebSocket, so offline navigations show a static offline page, and there is no
 > background sync or install-prompt replay (those stay WASM-only). See
-> [When to use Server vs WASM](../README.md#-when-to-use-server-vs-wasm) and
+> [choosing a host template](getting-started.md#1-scaffold-a-project) and
 > [PWA on the Server host](#pwa-on-the-server-host) below.
 
 - [Make your app a PWA](#make-your-app-a-pwa)

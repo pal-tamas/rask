@@ -36,15 +36,21 @@ internal static class FeatureGenerator
             e => project.NamespaceFor(directories[e.Name]),
             StringComparer.Ordinal);
 
-        // The run's single DbContext lives with the root, so every other entity's handlers reach it by name.
-        var contextNs = namespaces[spec.Root.Name];
+        var rootNs = namespaces[spec.Root.Name];
+
+        // Namespace of the DbContext the handlers import. A generated context lives with the root; an --context
+        // class lives elsewhere and its namespace was resolved by scanning the project — null when it couldn't
+        // be found, in which case the slice emits no using (the pre-fix best-effort behaviour: assume nothing).
+        string? contextNs = generateContext ? rootNs : options.ContextNamespace;
+
+        var contributions = RelationshipContributions(spec, options.IdType, namespaces);
 
         var files = new List<ScaffoldFile>();
         foreach (var entity in entities)
         {
             files.AddRange(RenderSlice(
                 project, options, entity, context, generateContext,
-                directories[entity.Name], namespaces[entity.Name], contextNs));
+                directories[entity.Name], namespaces[entity.Name], contextNs, contributions[entity.Name]));
         }
 
         // One DbContext for the whole run, holding a DbSet per entity. Its ApplyConfigurationsFromAssembly is
@@ -60,21 +66,115 @@ internal static class FeatureGenerator
                 Path.Combine(directories[spec.Root.Name], context + ".cs"),
                 Apply(DbContextTemplate,
                 [
-                    ("__NS__", contextNs),
+                    ("__NS__", rootNs),
                     ("__CONTEXT__", context),
-                    ("__USINGS__", Usings(contextNs, entities.Select(e => namespaces[e.Name]))),
+                    ("__USINGS__", Usings(rootNs, entities.Select(e => namespaces[e.Name]))),
                     ("__DBSETS__", dbSets),
                     ("__OUTBOXMODEL__", options.UseOutbox ? "\n                modelBuilder.AddRaskOutbox();" : ""),
                 ])));
         }
 
         var root = spec.Root;
+        var (programUsings, programRegistrations) = ProgramWiring(context, rootNs, generateContext, options.UseOutbox);
+
+        // With --context, the sets the user must add to their own DbContext so EF maps the new entities, plus
+        // the usings those sets reference (the entity types live in the feature's namespace, not the context's).
+        var contextDbSets = generateContext
+            ? []
+            : entities.Select(e => $"    public DbSet<{e.Name}> {e.Plural} => Set<{e.Name}>();").ToArray();
+        var contextUsings = generateContext
+            ? []
+            : entities.Select(e => namespaces[e.Name])
+                .Where(n => !string.Equals(n, contextNs, StringComparison.Ordinal))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+        // --tests: a sibling <Project>.Tests project. Create its .csproj + GlobalUsings once (never overwritten);
+        // the command wires the test SDK, xUnit, and a reference back to the app on first creation.
+        var (createIfAbsent, testProject) = options.UseTests
+            ? TestProjectScaffold(project)
+            : ([], null);
+
         return new ScaffoldResult(
             files,
-            RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests, options.UseOutbox))
+            RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests))
         {
             Packages = FeaturePackages(options.Validation, options.UseBs, options.UseOutbox),
+            ProgramUsings = programUsings,
+            ProgramRegistrations = programRegistrations,
+            ContextDbSets = contextDbSets,
+            ContextUsings = contextUsings,
+            CreateIfAbsent = createIfAbsent,
+            TestProject = testProject,
         };
+    }
+
+    // The sibling <Project>.Tests project's .csproj + a GlobalUsings.cs (xUnit is used unqualified in the
+    // generated tests). Test SDK / xUnit packages and the ProjectReference are added by the command via
+    // `dotnet add` so their versions resolve rather than being pinned here; EF Core SQLite flows transitively
+    // through the reference to the app, so the persistence tests need no extra package.
+    private static (IReadOnlyList<ScaffoldFile>, TestProjectWiring) TestProjectScaffold(ProjectContext project)
+    {
+        var trimmed = project.ProjectDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var name = Path.GetFileName(trimmed) + ".Tests";
+        var dir = Path.Combine(Path.GetDirectoryName(trimmed) ?? trimmed, name);
+        var csproj = Path.Combine(dir, name + ".csproj");
+
+        var files = new List<ScaffoldFile>
+        {
+            new(csproj, TestProjectCsproj),
+            new(Path.Combine(dir, "GlobalUsings.cs"), "global using Xunit;\n"),
+        };
+        var packages = new[] { "Microsoft.NET.Test.Sdk", "xunit", "xunit.runner.visualstudio", "coverlet.collector" };
+        return (files, new TestProjectWiring(csproj, packages));
+    }
+
+    private const string TestProjectCsproj =
+        "<Project Sdk=\"Microsoft.NET.Sdk\">\n\n"
+        + "  <PropertyGroup>\n"
+        + "    <TargetFramework>net10.0</TargetFramework>\n"
+        + "    <Nullable>enable</Nullable>\n"
+        + "    <ImplicitUsings>enable</ImplicitUsings>\n"
+        + "    <IsPackable>false</IsPackable>\n"
+        + "    <IsTestProject>true</IsTestProject>\n"
+        + "  </PropertyGroup>\n\n"
+        + "</Project>\n";
+
+    /// <summary>
+    /// The <c>Program.cs</c> service registrations (and the <c>using</c>s they need) for a feature run. When
+    /// the run owns the DbContext, that includes the <c>AddDbContextFactory</c>; with <c>--context</c> the
+    /// user already registers their own context, so only the framework services are added.
+    /// </summary>
+    private static (IReadOnlyList<string> Usings, IReadOnlyList<string> Registrations) ProgramWiring(
+        string context, string contextNs, bool generateContext, bool useOutbox)
+    {
+        var usings = new List<string> { "Rask.Cqrs", "Rask.Data" };
+        var registrations = new List<string> { "builder.Services.AddRaskCqrs();" };
+
+        if (useOutbox)
+        {
+            usings.Add("Rask.Outbox");
+            // The outbox owns delivery — disable Rask.Data's in-process publisher to avoid double-dispatch.
+            registrations.Add("builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);");
+            registrations.Add($"builder.Services.AddRaskOutbox<{context}>();");
+        }
+        else
+        {
+            registrations.Add("builder.Services.AddRaskData();");
+        }
+
+        if (generateContext)
+        {
+            usings.Add("Microsoft.EntityFrameworkCore");
+            usings.Add("Microsoft.EntityFrameworkCore.Diagnostics");
+            usings.Add(contextNs);
+            registrations.Add(
+                $"builder.Services.AddDbContextFactory<{context}>((sp, o) => o\n"
+                + "    .UseSqlite(\"Data Source=app.db\")\n"
+                + "    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));");
+        }
+
+        return (usings, registrations);
     }
 
     /// <summary>
@@ -89,6 +189,73 @@ internal static class FeatureGenerator
             .Select(n => "\nusing " + n + ";"));
 
     /// <summary>
+    /// What a relationship adds to one entity: a foreign-key field (folded into the entity's fields so the
+    /// existing pipeline emits its column, form input and config), navigation-property declarations, EF
+    /// relationship config lines, and the namespaces the navigations reference (for cross-folder usings).
+    /// </summary>
+    private sealed class RelationshipContribution
+    {
+        public List<FieldSpec> ForeignKeys { get; } = [];
+
+        public List<string> Navigations { get; } = [];
+
+        public List<string> Configuration { get; } = [];
+
+        public HashSet<string> Namespaces { get; } = new(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Per-entity relationship contributions for the whole run, derived from <see cref="RelationshipSpec"/> and
+    /// the run's key type. <c>1:n</c>/<c>n:1</c> put the FK + a reference nav on the dependent and a collection
+    /// nav on the principal; <c>1:1</c> uses a reference both ways; <c>n:n</c> maps from two collection navs
+    /// (EF Core's implicit join table — no join entity to generate).
+    /// </summary>
+    private static IReadOnlyDictionary<string, RelationshipContribution> RelationshipContributions(
+        FeatureSpec spec, string idType, IReadOnlyDictionary<string, string> namespaces)
+    {
+        var byEntity = spec.Entities.ToDictionary(e => e.Name, _ => new RelationshipContribution(), StringComparer.Ordinal);
+
+        static string CollectionNav(EntitySpec target) =>
+            $"public ICollection<{target.Name}> {target.Plural} {{ get; }} = new List<{target.Name}>();";
+
+        foreach (var rel in spec.Relationships)
+        {
+            if (rel.Cardinality is Cardinality.ManyToMany)
+            {
+                byEntity[rel.From.Name].Navigations.Add(CollectionNav(rel.To));
+                byEntity[rel.From.Name].Configuration.Add($"entity.HasMany(x => x.{rel.To.Plural}).WithMany(y => y.{rel.From.Plural});");
+                byEntity[rel.From.Name].Namespaces.Add(namespaces[rel.To.Name]);
+                byEntity[rel.To.Name].Navigations.Add(CollectionNav(rel.From));
+                byEntity[rel.To.Name].Namespaces.Add(namespaces[rel.From.Name]);
+                continue;
+            }
+
+            var principal = rel.Principal;
+            var dependent = rel.Dependent;
+
+            var dep = byEntity[dependent.Name];
+            dep.ForeignKeys.Add(new FieldSpec(rel.ForeignKeyName, idType, rel.IsOptional, null));
+            dep.Navigations.Add($"public {principal.Name}? {principal.Name} {{ get; private set; }}");
+            dep.Namespaces.Add(namespaces[principal.Name]);
+
+            var prin = byEntity[principal.Name];
+            prin.Namespaces.Add(namespaces[dependent.Name]);
+            if (rel.Cardinality is Cardinality.OneToOne)
+            {
+                prin.Navigations.Add($"public {dependent.Name}? {dependent.Name} {{ get; private set; }}");
+                dep.Configuration.Add($"entity.HasOne(x => x.{principal.Name}).WithOne(p => p.{dependent.Name}).HasForeignKey<{dependent.Name}>(x => x.{rel.ForeignKeyName});");
+            }
+            else
+            {
+                prin.Navigations.Add(CollectionNav(dependent));
+                dep.Configuration.Add($"entity.HasOne(x => x.{principal.Name}).WithMany(p => p.{dependent.Plural}).HasForeignKey(x => x.{rel.ForeignKeyName});");
+            }
+        }
+
+        return byEntity;
+    }
+
+    /// <summary>
     /// One entity's vertical slice. Every entity in a run gets the full set — entity, request, configuration,
     /// pages, and CQRS handlers — because each is an independent root with its own CRUD. They share the run's
     /// single DbContext, which is why a non-root entity's handlers need a using for <paramref name="contextNs"/>.
@@ -101,10 +268,13 @@ internal static class FeatureGenerator
         bool generateContext,
         string targetDirectory,
         string ns,
-        string contextNs)
+        string? contextNs,
+        RelationshipContribution rel)
     {
         var entityName = entity.Name;
-        var fields = entity.Fields;
+        // Fold the relationship's foreign keys into the fields so the whole pipeline (column, form input,
+        // request, config, tests) emits them for free; the navigations + relationship config are added on top.
+        var fields = rel.ForeignKeys.Count == 0 ? entity.Fields : [.. entity.Fields, .. rel.ForeignKeys];
         var plural = entity.Plural;
 
         var idType = options.IdType;
@@ -121,9 +291,18 @@ internal static class FeatureGenerator
         var route = Identifiers.ToRoutePath(plural);
         var idConstraint = idType == "Guid" ? "guid" : idType;
 
-        // The handlers name the DbContext, which lives with the root. An --context DbContext is the user's own
-        // and they wire it themselves (see the next-steps), so nothing is assumed about where it lives.
-        var usings = generateContext ? Usings(ns, [contextNs]) : "";
+        // The handlers name the DbContext, and the config/navigations name related entities in other folders.
+        // __USINGS__ (config + pages) imports the context namespace plus the related namespaces; the entity file
+        // needs only the related ones. A null contextNs means an --context class we couldn't locate — omit it.
+        var referenced = contextNs is null ? rel.Namespaces : rel.Namespaces.Append(contextNs);
+        var usings = Usings(ns, referenced);
+        var entityUsings = Usings(ns, rel.Namespaces);
+
+        // Entity-config lines: the string-length rules from the fields, then any relationship (HasOne/HasMany).
+        var configProps = string.Join(
+            "\n",
+            new[] { ConfigProperties(entityName, fields, useValueObjects), string.Join("\n", rel.Configuration.Select(c => "        " + c)) }
+                .Where(s => s.Length > 0));
 
         var tokens = new (string, string)[]
         {
@@ -132,7 +311,7 @@ internal static class FeatureGenerator
             ("__CREATEARGS__", RequestArgs(fields, "command.Request")),
             ("__HEADERS__", TableHeaders(fields)), ("__CELLS__", TableCells(fields, useValueObjects)),
             ("__FORMFIELDS__", FormFields(entityName, fields, useValueObjects, useBs, useConcurrency)), ("__COPYTOFORM__", CopyToForm(fields, useValueObjects, useConcurrency)),
-            ("__CONFIGPROPS__", ConfigProperties(entityName, fields, useValueObjects)),
+            ("__CONFIGPROPS__", configProps),
             ("__VALIDATOR__", FormValidator(entityName, validation)),
             ("__DELETEBODY__", DeleteHandlerBody(plural, useDomainEvents)),
             ("__OUTBOXMODEL__", useOutbox ? "\n                modelBuilder.AddRaskOutbox();" : ""),
@@ -150,7 +329,7 @@ internal static class FeatureGenerator
         var listTemplate = useModal ? BsModalListTemplate : useBs ? BsListPageTemplate : ListPageTemplate;
         var files = new List<ScaffoldFile>
         {
-            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete, useConcurrency, useDomainEvents)),
+            new(Path.Combine(targetDirectory, entityName + ".cs"), RenderEntity(ns, entityName, fields, idType, useValueObjects, useSoftDelete, useConcurrency, useDomainEvents, entityUsings, rel.Navigations)),
             new(Path.Combine(targetDirectory, entityName + "Request.cs"), RenderRequest(ns, entityName, fields, validation, useConcurrency)),
             new(Path.Combine(targetDirectory, entityName + "Configuration.cs"), Apply(ConfigurationTemplate, tokens)),
             new(Path.Combine(targetDirectory, plural + "Page.cs"), Apply(listTemplate, tokens)),
@@ -209,9 +388,10 @@ internal static class FeatureGenerator
 
             if (generateContext)
             {
+                // generateContext ⇒ contextNs is the root namespace (never null; only --context leaves it null).
                 files.Add(new ScaffoldFile(
                     Path.Combine(testDirectory, plural + "PersistenceTests.cs"),
-                    RenderPersistenceTests(testNamespace, ns, contextNs, entityName, plural, context, idType, fields, useValueObjects)));
+                    RenderPersistenceTests(testNamespace, ns, contextNs!, entityName, plural, context, idType, fields, useValueObjects)));
             }
         }
 
@@ -348,9 +528,14 @@ internal static class FeatureGenerator
     private static string EntityPropertyType(string entity, FieldSpec f, bool useValueObjects) =>
         IsValueObject(f, useValueObjects) ? ValueObjectName(entity, f) : f.PropertyType;
 
-    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects, bool useSoftDelete, bool useConcurrency, bool useEvents)
+    internal static string RenderEntity(string ns, string entity, IReadOnlyList<FieldSpec> fields, string idType, bool useValueObjects, bool useSoftDelete, bool useConcurrency, bool useEvents, string usings = "", IReadOnlyList<string>? navigations = null)
     {
         var sb = new StringBuilder();
+        if (usings.Length > 0)
+        {
+            sb.Append(usings.TrimStart('\n')).Append("\n\n");
+        }
+
         sb.Append("namespace ").Append(ns).Append(";\n\n");
 
         // Every entity inherits Entity<TId> (Id + CreatedAt/UpdatedAt audit stamps + a
@@ -403,6 +588,13 @@ internal static class FeatureGenerator
             }
 
             sb.Append('\n');
+        }
+
+        // Navigation properties from relationships (EF-managed; not Create/Update parameters — the foreign key
+        // that carries the relationship is a normal field above).
+        foreach (var navigation in navigations ?? [])
+        {
+            sb.Append("\n    ").Append(navigation).Append('\n');
         }
 
         var createParams = string.Join(", ", fields.Select(f => $"{f.PropertyType} {Identifiers.ToCamelCase(f.Name)}"));
@@ -773,16 +965,13 @@ internal static class FeatureGenerator
         return packages;
     }
 
-    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests, bool useOutbox)
+    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests)
     {
         var steps = new StringBuilder();
+        var step = 0;
         steps.Append("Next steps:\n");
-        steps.Append("  1. The required packages were added for you (EF Core + SQLite, Rask.Cqrs");
-        if (useOutbox)
-        {
-            steps.Append(", Rask.Outbox");
-        }
 
+        steps.Append("  ").Append(++step).Append(". The required packages were added for you (EF Core + SQLite, Rask.Cqrs, Rask.Data");
         if (useBs)
         {
             steps.Append(", Rask.Bootstrap");
@@ -797,50 +986,27 @@ internal static class FeatureGenerator
             steps.Append(", Rask.Validation.FluentValidation");
         }
 
-        steps.Append(", Rask.Data").Append(").\n");
+        steps.Append(").\n");
         if (useBs)
         {
             steps.Append("     Link BootstrapStyles() in your Head.\n");
         }
 
-        steps.Append("  2. Register services in Program.cs:\n");
-        steps.Append("       builder.Services.AddRaskCqrs();\n");
-        if (useOutbox)
+        // The framework services and the DbSet are wired in automatically. With --context on a hand-written
+        // DbContext, its OnModelCreating still needs the Rask conventions to pick up the generated config.
+        if (!generatedContext)
         {
-            // The outbox owns delivery — disable Rask.Data's in-process publisher to avoid double-dispatch.
-            steps.Append("       builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);\n");
-            steps.Append("       builder.Services.AddRaskOutbox<").Append(context).Append(">();\n");
-        }
-        else
-        {
-            steps.Append("       builder.Services.AddRaskData();\n");
-        }
-        if (generatedContext)
-        {
-            steps.Append("       builder.Services.AddDbContextFactory<").Append(context).Append(">((sp, o) => o\n");
-            steps.Append("           .UseSqlite(\"Data Source=app.db\")\n");
-            steps.Append("           .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));\n");
-        }
-        else
-        {
-            steps.Append("       // in your ").Append(context).Append(": add `public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();`,\n");
-            steps.Append("       // call modelBuilder.ApplyConfigurationsFromAssembly(...) + modelBuilder.ApplyRaskConventions() in OnModelCreating,\n");
-            steps.Append("       // and add .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()) where you register it.\n");
+            steps.Append("  ").Append(++step).Append(". If ").Append(context).Append(" is your own, ensure its OnModelCreating calls\n");
+            steps.Append("     modelBuilder.ApplyConfigurationsFromAssembly(...) + modelBuilder.ApplyRaskConventions().\n");
         }
 
-        steps.Append("  3. Create the schema (EF Core migrations):\n");
-        steps.Append("       dotnet ef migrations add Add").Append(entity).Append(" && dotnet ef database update\n");
-        steps.Append("  4. Run the app and browse to ").Append(route).Append('.');
+        steps.Append("  ").Append(++step).Append(". Create the schema (EF Core migrations):\n");
+        steps.Append("       rask db add Add").Append(entity).Append('\n');
+        steps.Append("       rask db update\n");
+        steps.Append("  ").Append(++step).Append(". Run the app (rask dev) and browse to ").Append(route).Append('.');
         if (generatedTests)
         {
-            steps.Append("\n  5. The generated tests live in a sibling <Project>.Tests project — it needs xunit,\n");
-            steps.Append("     Microsoft.NET.Test.Sdk");
-            if (generatedContext)
-            {
-                steps.Append(" + Microsoft.EntityFrameworkCore.Sqlite");
-            }
-
-            steps.Append(", and a project reference to this app. Then: dotnet test");
+            steps.Append("\n  ").Append(++step).Append(". The sibling <Project>.Tests project is created and wired up — run: dotnet test");
         }
 
         return steps.ToString();

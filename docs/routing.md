@@ -73,7 +73,7 @@ public sealed class UserPage : Component
 ```
 
 `RouteUrl` is a small `readonly record struct` carrying `Path` and an optional `QueryString`. It converts implicitly
-to and from `string`, so you can pass it straight to `NavLink`, `Navigator.NavigateToTo`, or anywhere a path string is
+to and from `string`, so you can pass it straight to `NavLink`, `Navigator.NavigateTo`, or anywhere a path string is
 expected:
 
 ```csharp
@@ -124,7 +124,7 @@ Other binding-related analyzers worth knowing:
 Route/query binding feeds the lifecycle: `OnPropsChanged*` fires on first render and whenever a bound param actually
 changes value. See [lifecycle.md](lifecycle.md).
 
-A worked example: the **data table** at [`/table`](/table) holds *all* of its UI state — the search filter,
+A worked example: the **data table** at `/table` holds *all* of its UI state — the search filter,
 the sort column and direction, the current page and page size — in `[QueryParam]` properties, and writes each
 header click and pager button back through `Navigator.SetQuery`. Because the state lives in the URL, it's
 shareable and bookmarkable, and browser back/forward replay it for free. The source (the whole page, verbatim):

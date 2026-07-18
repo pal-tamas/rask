@@ -23,9 +23,9 @@ you already use for pages — no separate templating language.
 ## Use
 
 ```csharp
-public sealed class WelcomeEmail(string name) : Element
+public sealed class WelcomeEmail(string name) : Component
 {
-    protected override Component Render() =>
+    protected override Component? Render() =>
         Div()[H1()[$"Welcome, {name}!"], P()["Thanks for signing up."]];
 }
 
