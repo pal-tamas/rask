@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 public sealed class NavigatorDemo(Navigator nav) : Component
 {
     protected override Component? Render() =>
-        Div(Class: "d-flex flex-column gap-2")[
+        BsStack(Vertical: true, Gap: 2)[
             Button(
                 OnClick: () => nav.NavigateTo("/dashboard"))["Open dashboard"],
 

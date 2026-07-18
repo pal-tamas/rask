@@ -12,8 +12,8 @@ public sealed class FormControlsCheckboxDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        Div(Class: "row g-4")[
-            Div(Class: "col-md-6", Id: "fc-checkbox-controlled")[
+        BsRow(Gutter: 4)[
+            BsCol(Md: 6, Id: "fc-checkbox-controlled")[
                 Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
                 BsCheckboxGroup<string>(
                     AllInterests,
@@ -25,7 +25,7 @@ public sealed class FormControlsCheckboxDemo : Component
                     "Interests: ", Strong()[_controlled.Count == 0 ? "none" : string.Join(", ", _controlled)]
                 ]
             ],
-            Div(Class: "col-md-6", Id: "fc-checkbox-bound")[
+            BsCol(Md: 6, Id: "fc-checkbox-bound")[
                 Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
                     // Label: names the group — the options render inside a <fieldset>/<legend> for the

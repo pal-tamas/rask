@@ -18,14 +18,14 @@ public sealed class LiveTickerDemo : Component
             SwitchButton("ETH"),
             SwitchButton("SOL")
         ],
-        Div(Class: "row g-4")[
-            Div(Class: "col-lg-7")[
+        BsRow(Gutter: 4)[
+            BsCol(Lg: 7)[
                 LiveTicker(_symbol, Log: AppendLog)
             ],
-            Div(Class: "col-lg-5")[
+            BsCol(Lg: 5)[
                 BsCard(Class: "border-0 bg-light h-100")[
                     BsCardBody()[
-                        Div(Class: "d-flex justify-content-between align-items-baseline mb-3")[
+                        BsStack(Justify: BsJustify.Between, Align: BsAlign.Baseline, Class: Margin.Bottom(3))[
                             H3(Class: "h6 text-secondary text-uppercase small mb-0")["Hook activity"],
                             BsButton(Size: BsSize.Sm, Class: "btn-link p-0 text-decoration-none",
                                 Id: "ticker-clear-log", OnClick: ClearLog)["clear"]

@@ -94,7 +94,7 @@ public sealed class TablePage(Navigator nav) : Component
                                 KeyValuePair.Create<string, string?>("filter", v ?? string.Empty),
                                 KeyValuePair.Create<string, string?>("page", "1")))
                     ],
-                    Div(Class: "d-flex align-items-center gap-2")[
+                    BsStack(Gap: 2, Align: BsAlign.Center)[
                         Label(Class: "small text-secondary mb-0")["Rows per page"],
                         Select<string>(
                             Class: "form-select form-select-sm",

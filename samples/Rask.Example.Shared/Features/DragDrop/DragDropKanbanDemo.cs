@@ -88,7 +88,7 @@ public sealed class DragDropKanbanDemo : Component
             ]);
         }
 
-        return Div(Class: "row g-3 dd-board")[cols];
+        return BsRow(Gutter: 3, Class: "dd-board")[cols];
     }
 
     private void MoveCard(DragDropMove move)

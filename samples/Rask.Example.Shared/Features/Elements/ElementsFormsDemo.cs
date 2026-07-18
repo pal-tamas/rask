@@ -25,16 +25,16 @@ public sealed class ElementsFormsDemo : Component
                 Textarea<string>(Id: "bio", Class: "form-control form-control-sm", Placeholder: "About you…")
             ]
         ],
-        Div(Class: "row align-items-center g-3")[
-            Div(Class: "col-auto")[
+        BsRow(Gutter: 3, Class: Flex.Align(BsAlign.Center))[
+            BsCol(Auto: true)[
                 Label(Class: "form-label small mb-1")["Progress"], Br(),
                 Progress(Value: 0.6, Max: 1.0)
             ],
-            Div(Class: "col-auto")[
+            BsCol(Auto: true)[
                 Label(Class: "form-label small mb-1")["Meter"], Br(),
                 Meter(Value: 0.8, Min: 0, Max: 1, Low: 0.2, High: 0.9, Optimum: 1)
             ],
-            Div(Class: "col-auto")[
+            BsCol(Auto: true)[
                 Label(Class: "form-label small mb-1")["Output"], Br(),
                 Output(For: "fruit")["Pear"]
             ]

@@ -11,7 +11,7 @@ public sealed class ToasterDemo(IToaster toast) : Component
 {
     protected override Component? Render() =>
         Div()[
-            Div(Class: "d-flex flex-wrap gap-2")[
+            BsStack(Gap: 2, WrapItems: true)[
                 BsButton(Color: BsColor.Info, OnClick: () => toast.Info("Just so you know.", "Info"))["Info"],
                 BsButton(Color: BsColor.Success,
                     OnClick: () => toast.Success("Your changes were saved.", "Saved"))["Success"],

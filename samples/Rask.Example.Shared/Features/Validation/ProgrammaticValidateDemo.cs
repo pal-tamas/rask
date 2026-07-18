@@ -38,7 +38,7 @@ public sealed class ProgrammaticValidateDemo : Component
                 ValidatingIndicator(() => _model.Title, Checking),
                 ValidationMessage(() => _model.Title, FieldError)
             ],
-            Div(Class: "d-flex gap-2")[
+            BsStack(Gap: 2)[
                 BsButton(Color: BsColor.Secondary, Outline: true, Id: "v6-validate-now", OnClickAsync: ValidateNowAsync)[
                     BsIcon(Name: BsIconName.Search, Class: "me-1"), "Validate now"
                 ],

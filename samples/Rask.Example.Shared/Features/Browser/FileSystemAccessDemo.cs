@@ -16,7 +16,7 @@ public sealed class FileSystemAccessDemo(IFileSystemAccess files) : Component, I
     protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
                     Button(Class: "btn btn-primary btn-sm", Id: "fs-open", OnClickAsync: Open)[
                         I(Class: "bi bi-folder2-open me-1"), "Open file"],
                     Button(Class: "btn btn-outline-primary btn-sm", Id: "fs-save", Disabled: _handle is null,

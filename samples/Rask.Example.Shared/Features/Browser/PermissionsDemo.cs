@@ -15,7 +15,7 @@ public sealed class PermissionsDemo(IPermissions permissions) : Component
     protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
                     BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "perm-geo", OnClickAsync: QueryGeo)[
                         "Query geolocation"],
                     BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "perm-clip", OnClickAsync: QueryClipboard)[

@@ -22,12 +22,12 @@ public static class GuideCards
 
             yield return H2(Class: Bs.Join(Font.Bold, Txt.Uppercase, Txt.Color(BsColor.Secondary),
                 Margin.Top(4), Margin.Bottom(3), "h6", "feature-section"))[group];
-            yield return Div(Class: "row g-3")[cards.Select(c => (Component)Card(c))];
+            yield return BsRow(Gutter: 3)[cards.Select(c => (Component)Card(c))];
         }
     }
 
     private static Component Card(GuideEntry g) =>
-        Div(Class: "col-md-6 col-lg-4", Key: g.Slug)[
+        BsCol(Md: 6, Lg: 4, Key: g.Slug)[
             NavLink(Href: Features.Routes.GuidePage(g.Slug), ActiveClass: "", Class: "text-decoration-none")[
                 BsCard(Class: Bs.Join(Sizing.H(100), Border.None, Shadow.Sm, "feature-card"))[
                     BsCardBody(Class: "p-4")[

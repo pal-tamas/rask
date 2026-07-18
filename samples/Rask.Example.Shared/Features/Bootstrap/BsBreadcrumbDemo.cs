@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 public sealed class BsBreadcrumbDemo : Component
 {
     protected override Component? Render() =>
-        Div(Class: "d-flex flex-column gap-3")[
+        BsStack(Vertical: true, Gap: 3)[
             BsBreadcrumb()[
                 BsBreadcrumbItem(Href: "#")["Home"],
                 BsBreadcrumbItem(Href: "#")["Library"],

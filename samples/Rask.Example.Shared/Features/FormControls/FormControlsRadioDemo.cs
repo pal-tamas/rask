@@ -12,8 +12,8 @@ public sealed class FormControlsRadioDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        Div(Class: "row g-4")[
-            Div(Class: "col-md-6", Id: "fc-radio-controlled")[
+        BsRow(Gutter: 4)[
+            BsCol(Md: 6, Id: "fc-radio-controlled")[
                 Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
                 BsRadioGroup(
                     AllPlans,
@@ -25,7 +25,7 @@ public sealed class FormControlsRadioDemo : Component
                     "Plan: ", Strong()[_controlled.ToString()]
                 ]
             ],
-            Div(Class: "col-md-6", Id: "fc-radio-bound")[
+            BsCol(Md: 6, Id: "fc-radio-bound")[
                 Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
                     // Label: names the group — the options render inside a <fieldset>/<legend> for the

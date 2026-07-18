@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 public sealed class ThemeCard : Component
 {
     protected override Component? Render() =>
-        Div(Class: "d-flex align-items-center gap-2")[
+        BsStack(Gap: 2, Align: BsAlign.Center)[
             Span(Class: "small text-secondary")["Deeply nested, no theme prop passed in:"],
             ThemeBadge()
         ];

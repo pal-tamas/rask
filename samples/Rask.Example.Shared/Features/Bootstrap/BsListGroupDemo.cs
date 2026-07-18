@@ -6,8 +6,8 @@ namespace Rask.Example.Shared.Features;
 public sealed class BsListGroupDemo : Component
 {
     protected override Component? Render() =>
-        Div(Class: "row g-3")[
-            Div(Class: "col-md-6")[
+        BsRow(Gutter: 3)[
+            BsCol(Md: 6)[
                 BsListGroup()[
                     BsListGroupItem(Active: true)["Active item"],
                     BsListGroupItem()["A second item"],
@@ -16,7 +16,7 @@ public sealed class BsListGroupDemo : Component
                     BsListGroupItem(Href: "#")["A linked action item"]
                 ]
             ],
-            Div(Class: "col-md-6 d-flex flex-column gap-3")[
+            BsCol(Md: 6, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
                 BsListGroup(Numbered: true)[
                     BsListGroupItem()["First"],
                     BsListGroupItem()["Second"],

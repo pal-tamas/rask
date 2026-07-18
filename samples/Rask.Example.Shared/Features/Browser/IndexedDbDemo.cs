@@ -20,14 +20,14 @@ public sealed class IndexedDbDemo(IIndexedDb indexedDb) : Component
     protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
-                Div(Class: "row g-2 mb-2")[
-                    Div(Class: "col-sm-4")[
+                BsRow(Gutter: 2, Class: Margin.Bottom(2))[
+                    BsCol(Sm: 4)[
                         Input(Id: "idb-key", Class: "form-control form-control-sm", Value: _key, OnInput: v => _key = v)],
-                    Div(Class: "col-sm-8")[
+                    BsCol(Sm: 8)[
                         Input(Id: "idb-value", Class: "form-control form-control-sm", Value: _value,
                             OnInput: v => _value = v)]
                 ],
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
                     Button(Class: "btn btn-primary btn-sm", Id: "idb-set", OnClickAsync: Set)["Set"],
                     Button(Class: "btn btn-outline-primary btn-sm", Id: "idb-get", OnClickAsync: Get)["Get"],
                     Button(Class: "btn btn-outline-secondary btn-sm", Id: "idb-keys", OnClickAsync: Keys)["List keys"],

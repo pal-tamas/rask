@@ -5,8 +5,8 @@ namespace Rask.Example.Shared.Features;
 public sealed class BsCardsDemo : Component
 {
     protected override Component? Render() =>
-        Div(Class: "row g-3")[
-            Div(Class: "col-md-6")[
+        BsRow(Gutter: 3)[
+            BsCol(Md: 6)[
                 BsCard()[
                     BsCardBody()[
                         BsCardTitle()["Card title"],
@@ -16,7 +16,7 @@ public sealed class BsCardsDemo : Component
                     ]
                 ]
             ],
-            Div(Class: "col-md-6")[
+            BsCol(Md: 6)[
                 BsCard(Color: BsColor.Dark)[
                     BsCardHeader()["Featured"],
                     BsCardBody()[

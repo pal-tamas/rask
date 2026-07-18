@@ -12,8 +12,8 @@ public sealed class FormControlsMultiSelectDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        Div(Class: "row g-4")[
-            Div(Class: "col-md-6")[
+        BsRow(Gutter: 4)[
+            BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
                 BsMultiSelect<string>(
                     AllTopics,
@@ -25,7 +25,7 @@ public sealed class FormControlsMultiSelectDemo : Component
                     "Selected: ", Strong()[_controlled.Count == 0 ? "none" : string.Join(", ", _controlled)]
                 ]
             ],
-            Div(Class: "col-md-6")[
+            BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
                     BsMultiSelect(() => _model.Topics, AllTopics, Id: "fc-multiselect-bound",
