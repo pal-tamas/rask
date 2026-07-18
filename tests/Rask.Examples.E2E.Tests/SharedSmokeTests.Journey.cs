@@ -279,6 +279,46 @@ public abstract partial class SharedSmokeTests
             await Page.Locator(".markdown-body a[data-rask-nav][href$='/guides/bootstrap-buttons']").CountAsync() > 0,
             "expected the Bootstrap hub to link out to the per-group pages");
 
+        // === Layout — BsContainer/BsRow/BsCol/BsStack. The primitives' rendered classes are unit-tested
+        //     exactly; what only a browser can settle is that those classes actually reflow, because the
+        //     breakpoints are real CSS media queries. So this measures a BsCol(Md: 6, Lg: 4) against its
+        //     BsRow at three widths and asserts it really is full / half / a third. That also proves the
+        //     design call that a spanned column omits a companion .col: below md it's `.row > *` at
+        //     width:100% that makes it full-width, and nothing else. ===
+        await SideAsync("Layout", "layout", "main .markdown-body h1");
+        var responsiveRow = Page.Locator("#bs-layout-responsive");
+        await Expect(responsiveRow).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions
+        {
+            Timeout = 45_000,
+        });
+        await Expect(Page.Locator(".guide-demo .sample-result-body .d-flex.gap-2").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        var firstCol = responsiveRow.Locator("> .col-md-6.col-lg-4").First;
+        foreach (var (width, divisor, label) in new[]
+                 {
+                     (390, 1d, "below md → full width"),
+                     (850, 2d, "md → half"),
+                     (1280, 3d, "lg → a third"),
+                 })
+        {
+            await Page.SetViewportSizeAsync(width, 800);
+            // The gutter (.g-2) is column padding inside the same border box, so the column's box is an
+            // exact 1/N of the row's regardless of gutter — 2% tolerance absorbs sub-pixel rounding only.
+            var rowBox = await responsiveRow.BoundingBoxAsync();
+            var colBox = await firstCol.BoundingBoxAsync();
+            Assert.NotNull(rowBox);
+            Assert.NotNull(colBox);
+
+            var ratio = colBox!.Width / rowBox!.Width;
+            Assert.True(Math.Abs(ratio - (1d / divisor)) < 0.02,
+                $"at {width}px a BsCol(Md: 6, Lg: 4) should be {label} of its BsRow "
+                + $"(expected ~{1d / divisor:F3}, measured {ratio:F3})");
+        }
+
+        // Restore the desktop viewport the rest of the walk assumes.
+        await Page.SetViewportSizeAsync(1280, 720);
+
         // === Buttons & badges — Bootstrap CSS applied (the _content bundle served): .btn-primary renders. ===
         await SideAsync("Buttons & badges", "buttons & badges", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 1,
@@ -1915,9 +1955,17 @@ public abstract partial class SharedSmokeTests
         // read — poll for each rather than asserting once.
         await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // The brand palette actually overrides Bootstrap's :root defaults (global.css loads after it).
+        // The brand palette actually overrides Bootstrap's :root defaults: tokens.css (linked after
+        // bootstrap.min.css) maps --bs-primary onto the violet --accent through the Bootstrap 5.3
+        // --bs-*-rgb bridge. The exact shade tracks the active theme — dark rgb(139,92,246) / light
+        // rgb(124,58,237) — so assert the primary is one of the two brand violets and NOT Bootstrap's
+        // default blue, rather than a single hard-coded hex. Read --bs-primary-rgb (a literal triplet)
+        // rather than --bs-primary (a var(--accent) whose computed spelling varies), and normalise
+        // whitespace so the comma spacing the browser returns doesn't matter.
         await Page.WaitForFunctionAsync(
-            "() => getComputedStyle(document.documentElement).getPropertyValue('--bs-primary').trim() === '#7C3AED'",
+            "() => { const p = getComputedStyle(document.documentElement)"
+            + ".getPropertyValue('--bs-primary-rgb').replace(/\\s+/g, '');"
+            + " return p === '139,92,246' || p === '124,58,237'; }",
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 
