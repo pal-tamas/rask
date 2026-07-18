@@ -10,7 +10,7 @@ public sealed class DisposalAsyncDemo : Component
 
     protected override Component? Render() =>
         Div()[
-            Div(Class: "d-flex gap-2 mb-3")[
+            BsStack(Gap: 2, Class: Margin.Bottom(3))[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-async-mount", Disabled: _asyncMounted, OnClick: MountAsync)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount async probe"],
                 BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-async-unmount", Disabled: !_asyncMounted, OnClick: UnmountAsync)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount async probe"]
             ],

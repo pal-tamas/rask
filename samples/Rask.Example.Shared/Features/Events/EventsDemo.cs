@@ -20,9 +20,9 @@ public sealed class EventsDemo : Component
     private static string Fmt(double d) => d.ToString("0", CultureInfo.InvariantCulture);
 
     protected override Component? Render() =>
-        Div(Class: "row g-3")[
+        BsRow(Gutter: 3)[
             // Pointer tracking pad: mousemove + enter/leave + wheel, all typed.
-            Div(Class: "col-md-6")[
+            BsCol(Md: 6)[
                 Div(Class: "border rounded p-4 text-center user-select-none",
                     Style: _hovering ? "background:#eef6ff" : null,
                     OnMouseMove: e => { _x = e.OffsetX; _y = e.OffsetY; },
@@ -35,7 +35,7 @@ public sealed class EventsDemo : Component
                 ]
             ],
             // Double-click + context menu (preventDefault'd client-side so the native menu is suppressed).
-            Div(Class: "col-md-6")[
+            BsCol(Md: 6)[
                 Button(Class: "btn btn-outline-primary w-100 py-4", OnDoubleClick: _ => _doubleClicks++,
                     OnContextMenu: _ => _contextMenu = !_contextMenu)[
                     "Double-click or right-click me"],
@@ -43,7 +43,7 @@ public sealed class EventsDemo : Component
                     $"double-clicks: {_doubleClicks} · context-menu toggled: {_contextMenu}"]
             ],
             // Focus / blur + keyboard on a focusable div.
-            Div(Class: "col-md-6")[
+            BsCol(Md: 6)[
                 Div(Class: "border rounded p-4",
                     TabIndex: 0,
                     Style: _focused ? "outline:2px solid #0d6efd" : null,
@@ -56,7 +56,7 @@ public sealed class EventsDemo : Component
                 ]
             ],
             // Clipboard: paste into the box and read the text server-side.
-            Div(Class: "col-md-6")[
+            BsCol(Md: 6)[
                 Div(Class: "border rounded p-4",
                     OnPaste: e => _pasted = e.Text)[
                     Strong()["Paste text here"],

@@ -21,7 +21,7 @@ public sealed class CqrsCounterDemo(IDispatcher dispatcher) : Component
 
     protected override Component? Render() =>
         Div(Id: "cqrs-counter", Class: "vstack gap-3")[
-            Div(Class: "d-flex align-items-center gap-3")[
+            BsStack(Gap: 3, Align: BsAlign.Center)[
                 Span(Id: "cqrs-count", Class: "display-6 fw-semibold")[$"{_view.Count}"],
                 BsButton(Color: BsColor.Primary, Id: "cqrs-increment", OnClickAsync: IncrementAsync)["Increment"]
             ],

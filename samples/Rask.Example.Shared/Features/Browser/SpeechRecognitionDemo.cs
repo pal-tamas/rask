@@ -21,7 +21,7 @@ public sealed class SpeechRecognitionDemo(ISpeechRecognition recognition) : Comp
     protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
                     BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "speech-recognize-start",
                         Disabled: Listening, OnClickAsync: Start)["Start listening"],
                     BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "speech-recognize-stop",

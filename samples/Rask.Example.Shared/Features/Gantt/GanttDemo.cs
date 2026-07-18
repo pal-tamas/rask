@@ -34,7 +34,7 @@ public sealed class GanttDemo : Component
 
     protected override Component? Render() =>
         Div(Class: "vstack gap-3")[
-            Div(Class: "d-flex flex-wrap gap-2 align-items-center")[
+            BsStack(Gap: 2, Align: BsAlign.Center, WrapItems: true)[
                 BsButtonGroup(Size: BsSize.Sm)[
                     Enum.GetValues<GanttViewMode>().Select(mode =>
                         BsButton(

@@ -198,12 +198,12 @@ public sealed class LiveTicker : Component
 
         return BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Div(Class: "d-flex align-items-baseline justify-content-between mb-3")[
+                BsStack(Justify: BsJustify.Between, Align: BsAlign.Baseline, Class: Margin.Bottom(3))[
                     H3(Class: "h4 mb-0 fw-semibold", Id: "ticker-symbol")[Symbol],
                     Span(Class: "text-secondary small")[
                         $"poll {IntervalMs} ms · {_history.Count}/{HistoryCapacity} pts"]
                 ],
-                Div(Class: "d-flex align-items-baseline gap-3 mb-3")[
+                BsStack(Gap: 3, Align: BsAlign.Baseline, Class: Margin.Bottom(3))[
                     _history.Count == 0
                         ? Span(Class: "fs-3 text-secondary", Id: "ticker-price")["Waiting for first tick…"]
                         : Span(Class: "fs-2 fw-bold", Id: "ticker-price")[

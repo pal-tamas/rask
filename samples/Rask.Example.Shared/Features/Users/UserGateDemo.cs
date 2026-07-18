@@ -25,7 +25,7 @@ public sealed class UserGateDemo : Component
                     BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: _auth.SignOut)["Sign out"]]
                 : [
                     P(Class: "text-secondary")["You are signed out."],
-                    Div(Class: "d-flex gap-2")[
+                    BsStack(Gap: 2)[
                         BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _auth.SignIn("alice", "user"))[
                             "Sign in as user"],
                         BsButton(Color: BsColor.Warning, Size: BsSize.Sm, OnClick: () => _auth.SignIn("rootadmin", "admin"))[

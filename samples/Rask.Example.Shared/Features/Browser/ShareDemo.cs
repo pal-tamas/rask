@@ -14,7 +14,7 @@ public sealed class ShareDemo : Component
     protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
                     // Headless: we render our own button; Shareable just supplies the share attribute.
                     Shareable(
                         new ShareData

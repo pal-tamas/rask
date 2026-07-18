@@ -21,7 +21,7 @@ public sealed class KeyedListsReorderDemo : Component
 
     protected override Component? Render() =>
         Div()[
-            Div(Class: "d-flex flex-wrap align-items-center gap-2 mb-3")[
+            BsStack(Gap: 2, Align: BsAlign.Center, WrapItems: true, Class: Margin.Bottom(3))[
                 Button(
                     Class: _useKeys ? "btn btn-success btn-sm" : "btn btn-outline-secondary btn-sm",
                     Id: "kl-toggle-keys",

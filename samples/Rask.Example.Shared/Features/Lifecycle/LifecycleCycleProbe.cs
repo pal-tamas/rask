@@ -25,7 +25,7 @@ public sealed class LifecycleCycleProbe : Component
     }
 
     protected override Component? Render() =>
-        Div(Class: "d-flex align-items-center gap-2")[
+        BsStack(Gap: 2, Align: BsAlign.Center)[
             BsBadge(Color: BsColor.Success)[$"#{InstanceId} alive"],
             Span(Class: "text-secondary small")["Unmount me to fire OnUnmount / OnUnmountAsync."]
         ];

@@ -67,7 +67,7 @@ public sealed class ToastDemo : Component
         var toasts = Snapshot();
         return Div()[
             // Trigger buttons — each pushes a toast onto the stack.
-            Div(Class: "d-flex flex-wrap gap-2")[
+            BsStack(Gap: 2, WrapItems: true)[
                 BsButton(Color: BsColor.Primary, OnClick: () =>
                     Add("Rask", "Hello, world! This is a toast message.", null, null))[
                     BsIcon(Name: BsIconName.Bell, Class: "me-1"), "Show toast"],
@@ -83,7 +83,7 @@ public sealed class ToastDemo : Component
             ],
 
             // Options — auto-hide toggle + placement picker.
-            Div(Class: "d-flex flex-wrap align-items-center gap-3 mt-3")[
+            BsStack(Gap: 3, Align: BsAlign.Center, WrapItems: true, Class: Margin.Top(3))[
                 Button(
                     Class: _autoHide ? "btn btn-sm btn-success" : "btn btn-sm btn-outline-secondary",
                     OnClick: () => _autoHide = !_autoHide)[

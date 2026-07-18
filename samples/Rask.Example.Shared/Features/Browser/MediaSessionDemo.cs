@@ -56,7 +56,7 @@ public sealed class MediaSessionDemo(IMediaSession media) : Component, IAsyncDis
     protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
-                Div(Class: "d-flex flex-wrap gap-2 mb-3")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(3))[
                     Button(Class: "btn btn-sm btn-primary", Id: "ms-publish", OnClickAsync: Publish)["Publish metadata"],
                     Button(Class: "btn btn-sm btn-outline-primary", Id: "ms-playing",
                         OnClickAsync: () => SetState(PlaybackState.Playing, "playing"))["Mark playing"],

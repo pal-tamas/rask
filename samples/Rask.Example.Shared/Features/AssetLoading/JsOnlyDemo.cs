@@ -13,7 +13,7 @@ public sealed class JsOnlyDemo(IJSRuntime js) : Component
     private string _clicks = "0";
 
     protected override Component? Render() =>
-        Div(Class: "d-flex align-items-center gap-3")[
+        BsStack(Gap: 3, Align: BsAlign.Center)[
             BsButton(Color: BsColor.Primary, Outline: true, Class: "js-only-btn", OnClickAsync: HandleClickAsync)[
                 "Click to bump (via scoped JS)"],
             Span(Class: "text-secondary")["Bumped ", Strong()[_clicks], " times"]

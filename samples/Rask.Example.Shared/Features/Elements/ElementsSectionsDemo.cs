@@ -17,7 +17,7 @@ public sealed class ElementsSectionsDemo : Component
         Search(Class: "my-2")[
             Input<string>(InputType.Search, Class: "form-control form-control-sm", Placeholder: "Search…")
         ],
-        Div(Class: "row")[
+        BsRow()[
             Main(Class: "col-8")[
                 Section(Id: "a")[H2(Class: "h6")["Section heading levels"],
                     P(Class: "mb-1")["Headings ", Code()["H1"], "–", Code()["H6"], ":"],

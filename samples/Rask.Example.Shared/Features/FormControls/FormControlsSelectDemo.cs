@@ -11,8 +11,8 @@ public sealed class FormControlsSelectDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        Div(Class: "row g-4")[
-            Div(Class: "col-md-6")[
+        BsRow(Gutter: 4)[
+            BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold")["Controlled (Value + OnChange)"],
                 Select<string>(
                     Value: _controlled,
@@ -25,7 +25,7 @@ public sealed class FormControlsSelectDemo : Component
                     "Picked: ", Strong()[_controlled]
                 ]
             ],
-            Div(Class: "col-md-6")[
+            BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold")["Bound (two-way)"],
                 Form(_model)[
                     Select(() => _model.Framework, Class: "form-select mb-2", Id: "fc-select-bound")[

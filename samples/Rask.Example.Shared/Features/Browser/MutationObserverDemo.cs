@@ -48,7 +48,7 @@ public sealed class MutationObserverDemo(IMutationObserver observer) : Component
     protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
-                Div(Class: "d-flex flex-wrap gap-2 mb-3")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(3))[
                     Button(Class: "btn btn-sm btn-primary", Id: "mo-add", OnClick: () => _items++)["Add item"],
                     Button(Class: "btn btn-sm btn-outline-primary", Id: "mo-remove",
                         OnClick: () => { if (_items > 0) _items--; })["Remove item"],

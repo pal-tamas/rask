@@ -12,12 +12,12 @@ public sealed class NavigatorQueryDemo(Navigator nav, RouteState route) : Compon
         Div()[
             BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(3)))[
                 BsCardBody()[
-                    Div(Class: "row g-3")[
-                        Div(Class: "col-md-6")[
+                    BsRow(Gutter: 3)[
+                        BsCol(Md: 6)[
                             Span(Class: "text-secondary small text-uppercase")["Path"],
                             Div()[Code(Class: "fs-6", Id: "nav-path")[route.Path]]
                         ],
-                        Div(Class: "col-md-6")[
+                        BsCol(Md: 6)[
                             Span(Class: "text-secondary small text-uppercase")["Query"],
                             Div()[
                                 Code(Class: "fs-6", Id: "nav-query")[

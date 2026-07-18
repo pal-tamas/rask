@@ -18,7 +18,7 @@ public sealed class WebLocksDemo(IWebLocks locks) : Component
     protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
+                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
                     BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "locks-hold", OnClickAsync: Hold)[
                         "Hold exclusive for 2s"],
                     BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "locks-try", OnClickAsync: TryHold)[

@@ -14,7 +14,7 @@ public sealed class AuthorizeDemo : Component
 
     protected override Component? Render() =>
         Div(Id: "authorize-demo")[
-            Div(Class: "d-flex gap-2 mb-3")[
+            BsStack(Gap: 2, Class: Margin.Bottom(3))[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _auth.SignIn("alice", "user"))[
                     "Sign in as user"],
                 BsButton(Color: BsColor.Warning, Size: BsSize.Sm, OnClick: () => _auth.SignIn("rootadmin", "admin"))[

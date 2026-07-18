@@ -103,30 +103,30 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
                 ],
                 Div(Class: "border rounded p-3")[
                     Div(Class: "fw-semibold small mb-2")["Items"],
-                    Div(Class: "row g-2 mb-2 align-items-center")[
-                        Div(Class: "col-6")[
+                    BsRow(Gutter: 2, Class: Bs.Join(Margin.Bottom(2), Flex.Align(BsAlign.Center)))[
+                        BsCol(Span: 6)[
                             Input(() => _model.Items[0].Name,
                                 Id: "v-nlive-item0-name", Class: "form-control form-control-sm")
                         ],
-                        Div(Class: "col-3")[
+                        BsCol(Span: 3)[
                             Input(() => _model.Items[0].Quantity,
                                 Id: "v-nlive-item0-qty", Class: "form-control form-control-sm", Min: "0")
                         ],
-                        Div(Class: "col-3")[
+                        BsCol(Span: 3)[
                             Input(() => _model.Items[0].UnitPrice,
                                 Id: "v-nlive-item0-price", Class: "form-control form-control-sm", Step: "0.01")
                         ]
                     ],
-                    Div(Class: "row g-2 align-items-center")[
-                        Div(Class: "col-6")[
+                    BsRow(Gutter: 2, Class: Flex.Align(BsAlign.Center))[
+                        BsCol(Span: 6)[
                             Input(() => _model.Items[1].Name,
                                 Id: "v-nlive-item1-name", Class: "form-control form-control-sm")
                         ],
-                        Div(Class: "col-3")[
+                        BsCol(Span: 3)[
                             Input(() => _model.Items[1].Quantity,
                                 Id: "v-nlive-item1-qty", Class: "form-control form-control-sm", Min: "0")
                         ],
-                        Div(Class: "col-3")[
+                        BsCol(Span: 3)[
                             Input(() => _model.Items[1].UnitPrice,
                                 Id: "v-nlive-item1-price", Class: "form-control form-control-sm", Step: "0.01")
                         ]
@@ -139,22 +139,22 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
                     Input(() => _model.DiscountCode, Id: "v-nlive-promo", Class: "form-control")
                 ],
                 Div(Id: "v-nlive-totals", Class: "bg-light rounded p-3 small")[
-                    Div(Class: "d-flex justify-content-between")[
+                    BsStack(Justify: BsJustify.Between)[
                         Span()["Subtotal"],
                         Span("v-nlive-subtotal")[$"${subtotal.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ],
-                    Div(Class: "d-flex justify-content-between")[
+                    BsStack(Justify: BsJustify.Between)[
                         Span()[discountPct > 0m
                             ? $"Discount ({(int)(discountPct * 100)}%)"
                             : "Discount"],
                         Span("v-nlive-discount")[$"-${discount.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ],
-                    Div(Class: "d-flex justify-content-between")[
+                    BsStack(Justify: BsJustify.Between)[
                         Span()["Tax (8%)"],
                         Span("v-nlive-tax")[$"${tax.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ],
                     Hr(Class: "my-2"),
-                    Div(Class: "d-flex justify-content-between fw-bold")[
+                    BsStack(Justify: BsJustify.Between, Class: Font.Bold)[
                         Span()["Total"],
                         Span("v-nlive-total")[$"${total.ToString("F2", CultureInfo.InvariantCulture)}"]
                     ]

@@ -47,7 +47,7 @@ public sealed class NestedListForeachDemo : Component
                     Thead()[Tr()[Th()["Description"], Th()["Quantity"], Th()]],
                     Tbody()[rows]
                 ],
-                Div(Class: "d-flex gap-2")[
+                BsStack(Gap: 2)[
                     BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "nf-list-add", OnClick: () =>
                             _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[
                         BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "Add row"],
