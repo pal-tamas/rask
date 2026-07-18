@@ -515,7 +515,7 @@ dynamic or external target, use `RouteUrl.External("…")`, or suppress with `#p
 
 A [`BsDataGrid`](data-grid.md) that turns on the column chooser or reordering — `ColumnChooser`, or the
 controlled `HiddenColumns`/`ColumnOrder` (and their callbacks) — addresses each column by the token read off
-its [`Field`](data-grid.md#field-names-the-column) expression (`Field = r => r.Region` → `"region"`). A
+its [`Field`](data-grid-advanced.md#field-names-the-column) expression (`Field = r => r.Region` → `"region"`). A
 column with **no `Field`** has no token, so it can never be hidden or reordered: it stays pinned in the table
 with no menu row, silently. The analyzer flags any `BsColumn` in an **inline** `Columns:` list that sets no
 `Field` while the chooser is in use.

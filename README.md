@@ -21,14 +21,39 @@
 
 ---
 
-**Rask is the .NET One Person Framework: one developer builds, runs, and ships a complete product — UI, data,
-auth, background work, deployment — from a single C# codebase on one server, with SQLite as the production
-database.** No PaaS, no assembled stack of services, no second language.
+## One person. One codebase. One server. A whole product.
 
-It starts with the UI — write components as plain C# classes that return a tree of HTML from `Render()`, **no
-`.razor`, no JSX, no JavaScript to write** — and the *same* component runs server-rendered over a WebSocket,
-client-side on WebAssembly, or as a native iOS/Android app. Then come the batteries: a `rask` CLI that scaffolds a
-full CRUD vertical slice in one command, production-grade SQLite, auth, and one-command Docker deploy.
+**Rask is the .NET One Person Framework.** A single developer builds, runs, and ships a *complete* product —
+the UI, the data, the auth, the background work, and the deployment — from **one C# codebase on one server**,
+with **SQLite as the production database**. No PaaS to rent. No stack of services to assemble and glue. No
+second language to context-switch into.
+
+That's the whole pitch, and here's the whole workflow — an empty folder to a live, HTTPS, database-backed
+product, by one person in one sitting:
+
+```bash
+dotnet tool install -g Rask.Cli
+
+rask new Shop --auth --docker                              # scaffold: UI + cookie auth + a Dockerfile
+rask generate feature Product Name:string Price:decimal    # a full CQRS + EF Core CRUD slice — DI wired for you
+rask db add InitialCreate && rask db update                # create + apply the SQLite migration
+rask dev                                                   # run it, hot-reloading, at /products
+rask deploy --host root@box --domain shop.example.com      # ship it: bare box → Docker + auto-HTTPS, zero-downtime
+```
+
+Every one of those steps is a first-party command, and every stateful pillar it touches — auth, jobs, mail,
+cache, events — rides the app's **own SQLite database**. The **[zero-to-deploy tutorial](docs/tutorial/00-overview.md)**
+walks this exact path, one pillar per chapter.
+
+**[📖 Read the doctrine → The .NET One Person Framework](docs/one-person-framework.md)**
+
+---
+
+## It starts with the UI — plain C#, no `.razor`, no JavaScript
+
+You write components as plain C# classes that return a tree of HTML from `Render()`. State is a field, an
+event handler is a delegate, and the component re-renders itself — no `.razor`, no JSX, nothing to write in
+another language:
 
 ```csharp
 [Route("/counter")]
@@ -45,20 +70,41 @@ public sealed class Counter : Component
 }
 ```
 
-<sub>☝️ A complete, live, interactive component — routing, state, and event handling in a single C# class.
+<sub>☝️ A complete, live, interactive component — routing, state, and event handling in one C# class.
 **[See it running, and dozens more, in the live demo ↗](https://pal-tamas.github.io/rask/docs/)**</sub>
 
-**Ship a whole feature in one command:**
+**One codebase, every surface.** That *same* component runs three ways — pick the host per project, write the
+UI once:
 
-```bash
-rask new Shop                                             # scaffold the app
-rask generate feature Product Name:string Price:decimal   # a full CQRS + EF Core CRUD slice
-rask db add InitialCreate && rask db update                # create + apply the migration
-rask dev                                                  # run it with hot reload
-rask deploy --host root@box --domain shop.example.com       # ship it: sets the bare box up, auto-HTTPS
-```
+- **Server** — rendered on the server, live updates streamed over a WebSocket as minimal diffs.
+- **WASM** — fully client-side on WebAssembly, installable as an **offline PWA**.
+- **Native** *(preview)* — a real **iOS / Android** app for the App Store / Play Store.
 
-**[📖 Read the doctrine → The .NET One Person Framework](docs/one-person-framework.md)**
+---
+
+## The batteries — one person's whole back end
+
+The hard part of shipping solo isn't the UI; it's everything behind it. Rask's back half is a set of thin,
+opinionated, trim/AOT-safe packages that each **ride the app's own SQLite database** — no Redis, no broker,
+no separate server to run. Add one with a package reference and a line of DI; the CLI wires most of it for you.
+
+| Pillar | What one command / one line gives you | |
+|---|---|---|
+| **The `rask` CLI** | `new` · `generate` · `db` · `dev` · `deploy` — the whole lifecycle, one tool. | [→](docs/cli.md) |
+| **CRUD scaffolder** | `rask generate feature` emits an encapsulated entity, CQRS commands/queries, and list/create/edit pages — and **writes the DI into `Program.cs`**. | [→](docs/cli.md) |
+| **Data** (`Rask.Data`) | `Entity<TId>` + EF interceptors: audit stamps, soft delete, optimistic concurrency, domain events. | [→](docs/data.md) |
+| **CQRS** (`Rask.Cqrs`) | Source-generated, trim-safe queries / commands / notifications via `IDispatcher`. | [→](docs/cqrs.md) |
+| **Auth** | Cookie & JWT, Server & WASM, a declarative `Authorize` gate + route guards. | [→](docs/authentication.md) |
+| **Background jobs** (`Rask.Jobs`) | Durable enqueued / delayed / recurring work on the app DB, with retries. | [→](docs/jobs.md) |
+| **Transactional email** (`Rask.Mail`) | Durable email over SMTP, off the request thread — bodies are Rask components. | [→](docs/mail.md) |
+| **Cache** (`Rask.Cache`) | `IDistributedCache` + a typed `ICache.GetOrCreateAsync` on the app DB. | [→](docs/cache.md) |
+| **Outbox** (`Rask.Outbox`) | Crash-safe domain events, committed in the same transaction as your data. | [→](docs/outbox.md) |
+| **Production SQLite** (`Rask.SQLite`) | WAL, busy-timeout, non-blocking write retries, continuous Litestream backup. | [→](docs/sqlite.md) |
+| **Deploy** | `rask deploy` takes a **bare VPS** to a live HTTPS site — Docker, a non-root login, firewall, SSH hardening, zero-downtime swaps. | [→](docs/deployment.md) |
+
+**Everything stateful lives in one file, on one box.** That's what makes "one server" safe rather than
+scary: nothing to provision, nothing to network, and a database you can back up by copying a file (or
+streaming it off-box continuously). **[Why one server, no PaaS →](docs/sqlite.md#why-one-server-no-paas)**
 
 ---
 
@@ -66,10 +112,10 @@ rask deploy --host root@box --domain shop.example.com       # ship it: sets the 
 
 ## 📱 Build mobile apps in C# — no Swift, Kotlin, React Native, or MAUI
 
-**The same component above ships as an installable, offline mobile app.** A Rask **WASM** app is a
-Progressive Web App: it **installs to the home screen**, **launches full-screen**, **works offline**,
-sends **push notifications**, badges its **app icon**, keeps the **screen awake**, and reaches the
-device — **vibration, share sheet, geolocation, clipboard, orientation** — through typed C#.
+**The same component ships as an installable, offline mobile app.** A Rask **WASM** app is a Progressive Web
+App: it **installs to the home screen**, **launches full-screen**, **works offline**, sends **push
+notifications**, badges its **app icon**, keeps the **screen awake**, and reaches the device —
+**vibration, share sheet, geolocation, clipboard, orientation** — through typed C#.
 
 ```bash
 rask new MyApp --template wasm --pwa     # → an installable, offline PWA, ready to deploy
@@ -77,11 +123,9 @@ rask new MyApp --template wasm --pwa     # → an installable, offline PWA, read
 
 **[📖 Build mobile apps with Rask →](docs/pwa.md)**  ·  **[Try the installable demo ↗](https://pal-tamas.github.io/rask/docs/)**
 
-Going further than a PWA? **`Rask.Native`** *(preview)* ships the *same* component code as a real
-**native iOS/Android app** for App Store / Play Store distribution — a WebView hybrid where your C#
-runs natively on the device. Scaffold it with `rask new MyApp --template native` and run on an emulator with
-`dotnet build -t:Run -f net10.0-android` — or run the full in-repo showcase, the native peers of the
-Server/WASM samples: `samples/Rask.Example.Native` (in-process) and `samples/Rask.Example.Native.Server`.
+Going further than a PWA? **`Rask.Native`** *(preview)* ships the *same* component code as a real **native
+iOS/Android app** — a WebView hybrid where your C# runs natively on the device. Scaffold with
+`rask new MyApp --template native` and run on an emulator with `dotnet build -t:Run -f net10.0-android`.
 
 **[📱 Native mobile with Rask →](docs/native.md)**
 
@@ -89,36 +133,28 @@ Server/WASM samples: `samples/Rask.Example.Native` (in-process) and `samples/Ras
 
 ---
 
-## ✨ Why Rask
+## Why the One Person Framework
 
-Building a product used to mean assembling a stack: a frontend framework in another language, a backend, a managed
-database, a queue, a cache, a blob store, a deploy pipeline — each rented, glued, and maintained. Rask collapses that
-into **one C# codebase on one server**. A single developer scaffolds a feature, stores it in SQLite, and ships it to a
-box — no PaaS, no glue, no second language to context-switch into.
+Building a product used to mean assembling a stack: a frontend framework in another language, a backend, a
+managed database, a queue, a cache, a blob store, a deploy pipeline — each rented, glued, and maintained. For
+a team that's overhead; for one person it's the whole job. Rask collapses it into **one C# codebase on one
+server**: scaffold a feature, store it in SQLite, ship it to a box — no PaaS, no glue, no second language.
 
-- **One codebase, every surface.** The *same* component runs server-rendered over a WebSocket, client-side on
-  WebAssembly, or as a native iOS/Android app. Pick the host per project; write the UI once.
-- **Batteries, not a menu.** `rask new` scaffolds the app, `rask generate feature Product Name:string Price:decimal` emits a full
-  **CQRS + EF Core vertical slice** (encapsulated entity, value objects, validation, list/create/edit pages, tests),
-  `rask db add`/`update` creates and applies its migration, `rask dev` hot-reloads it, and `rask deploy` ships it
-  to a single host over SSH — with automatic HTTPS and health-checked, zero-downtime swaps. Point it at a **bare
-  VPS** and it sets the box up too (Docker, a non-root deploy login, firewall, SSH hardening), so you never SSH in
-  to prepare anything; `rask deploy --github-actions` then does the same on every push.
-  **[The CLI is the front door →](docs/cli.md)**
-- **SQLite is the production database.** Correct, concurrent, continuously-backed-up SQLite by default — WAL,
-  busy-timeout, streaming replication — one file, one server, no managed DB to rent.
-  **[Why one server, no PaaS →](docs/sqlite.md)**
-- **It's the .NET One Person Framework.** **[Read the doctrine →](docs/one-person-framework.md)**
+- **You write the product, not the plumbing.** `rask generate feature` emits the vertical slice *and* wires
+  the DI; the pillars register in a line; `rask deploy` even prepares the bare server for you.
+- **DB-backed by default.** Jobs, mail, cache, outbox — all persist to the app's own SQLite DB. Adding one is
+  a package reference, not a new service to operate.
+- **Correct, concurrent, backed-up SQLite.** WAL, busy-timeout, non-blocking write retries, and continuous
+  streaming replication make one file a real production database.
+- **The same UI everywhere.** Server, WASM/PWA, or native — one component model, three hosts.
 
-### Why it's serious: the UI reach + the numbers
+### And it happens to be the fastest .NET UI, too
 
-A component is just a C# class that returns a tree — `Div(...)[Span(...), "hi"]` is plain, refactor-safe, IDE-native
-C#, no `.razor`, no template language. And Rask treats the network as the real bottleneck: after first paint, a state
-change ships a minimal diff — a counter tick on a 24 KB page goes out as **~41 bytes**, not 24 KB. Rask ships **fewer
-bytes on the wire than Blazor on *every* scenario** in the head-to-head suite (typically 2–5×, up to **56×**),
-allocates **~40× less per update**, and — because a pure-element page keeps a compact frame snapshot instead of an
-object-per-element graph — even holds a **~30% leaner *retained* tree per mounted page**, the one axis Blazor used to
-lead. **Rask leads on every measured axis.**
+The One Person Framework story is the headline; the engine underneath is genuinely fast. Rask treats the
+network as the real bottleneck: after first paint, a state change ships a minimal diff — a counter tick on a
+24 KB page goes out as ~41 bytes, not 24 KB. It ships fewer bytes on the wire than Blazor on *every* scenario
+in the head-to-head suite (typically 2–5×, up to 56×), allocates ~40× less per update, and holds a ~30%
+leaner retained tree per mounted page — the one axis Blazor used to lead. **Rask leads on every measured axis.**
 
 | Per-render axis | Rask | Blazor | Rask advantage |
 |---|---:|---:|---|
@@ -129,26 +165,17 @@ lead. **Rask leads on every measured axis.**
 
 <sub>CI-enforced [Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md) — Apple M4, .NET 10. Every wire scenario is a Rask win; the widest gap is removing 100 rows (**37 B vs 2,080 B = 56×**).</sub>
 
-```mermaid
-xychart-beta
-    title "Bytes on the wire — how many × fewer than Blazor (taller is better)"
-    x-axis ["Counter / 24 KB page", "Deep-tree tick", "Deep mutation ×200", "Remove 100 rows"]
-    y-axis "× fewer than Blazor" 0 --> 60
-    bar [4.5, 12.6, 14.8, 56.2]
-```
-
-The full byte-for-byte table — including where and why each scenario lands — is in the
-**[Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)**.
-
-*Rask* is the Norwegian/Danish/Swedish word for **fast**. **The [docs ↗](docs/) and the [live demo ↗](https://pal-tamas.github.io/rask/docs/)
-are the real tour — this README is just the front door.**
+*Rask* is the Norwegian/Danish/Swedish word for **fast** — but the point isn't a faster Blazor. It's that one
+person can build the *whole* thing. **The [docs ↗](docs/) and the [live demo ↗](https://pal-tamas.github.io/rask/docs/)
+are the real tour.**
 
 ## 📦 Install
 
 > **Prerequisites:** the **.NET 10 SDK** (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload
 > (`dotnet workload install wasm-tools`) for the WASM templates, or the `ios android` workloads
 > (`dotnet workload install ios android`) for the native template. New to Rask? The
-> **[getting started guide](docs/getting-started.md)** walks the whole path end to end.
+> **[getting started guide](docs/getting-started.md)** teaches the UI, and the
+> **[zero-to-deploy tutorial](docs/tutorial/00-overview.md)** builds a whole product end to end.
 
 ### Scaffold a new project (recommended)
 
@@ -226,18 +253,19 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 
 | Guide | What it covers |
 |-------|----------------|
-| **[Getting started](docs/getting-started.md)** | Scaffold, first component, interactivity, routing — the end-to-end path. |
+| **[The .NET One Person Framework](docs/one-person-framework.md)** | The doctrine: one developer, a whole product, one C# codebase, one server, SQLite-first. |
+| **[Getting started](docs/getting-started.md)** | Scaffold, first component, interactivity, routing — the UI, end to end. |
+| **[Tutorial: zero to deploy](docs/tutorial/00-overview.md)** | Build a whole product end to end — one OPF pillar per chapter, from `rask new` to `rask deploy`. |
+| **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `generate` / `db` / `dev` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup. |
 | **[Best practices](docs/best-practices.md)** | The patterns and pitfalls that keep an app correct, secure, and fast. |
 | **[Elements & the DSL](docs/elements.md)** | Primitives, tag factories, universal props, and typed SVG — the render surface. |
 | **[Composition](docs/composition.md)** · **[Lifecycle](docs/lifecycle.md)** | Component tiers (static/stateless/stateful), context, callbacks, children; mount/update/dispose. |
 | **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** | URLs, route params, the form pipeline, custom `IFormControl<T>` inputs. |
-| **[Authentication](docs/authentication.md)** · **[Data access](docs/data-access.md)** · **[HTTP & files](docs/http-and-files.md)** · **[CQRS](docs/cqrs.md)** · **[Background jobs](docs/jobs.md)** · **[Email](docs/mail.md)** · **[Cache](docs/cache.md)** | Cookie/JWT on Server & WASM; EF Core + SQLite; a DI'd `HttpClient` + file upload/download; source-generated CQRS; durable background jobs; transactional email; a database-backed cache. |
-| **[Bootstrap](docs/bootstrap.md)** | Typed Bootstrap 5.3 components (incl. the zero-JS, fully keyboard-accessible [`BsSelect`/`BsMultiSelect`](docs/bootstrap-select.md) comboboxes — `Filter` search, `OptionGroup`, `OptionDisabled`, `SelectAll`), zero-JS interactivity, typed utility classes. |
-| **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** | The mobile & devices track: 43 typed Web-API wrappers, installable offline PWAs, and native iOS/Android apps. |
+| **The back half** — **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[Email](docs/mail.md)** · **[Cache](docs/cache.md)** · **[Outbox](docs/outbox.md)** · **[SQLite](docs/sqlite.md)** | The DB-backed pillars: a DDD base entity, source-generated CQRS, cookie/JWT auth, durable jobs, transactional email, a database-backed cache, a transactional outbox, and production SQLite + backup. |
+| **[Bootstrap](docs/bootstrap.md)** | Typed Bootstrap 5.3 components (incl. the zero-JS, fully keyboard-accessible [`BsSelect`/`BsMultiSelect`](docs/bootstrap-select.md) comboboxes), zero-JS interactivity, typed utility classes. |
+| **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** | The mobile & devices track: 46 typed Web-API wrappers, installable offline PWAs, and native iOS/Android apps. |
 | **[JS interop](docs/js-interop.md)** · **[Accessibility](docs/accessibility.md)** · **[AOT](docs/aot.md)** · **[Testing](docs/testing.md)** | Scoped JS + element refs; a11y; opt-in full WASM AOT; unit + E2E. |
-| **[Migrating from Blazor](docs/migration-from-blazor.md)** | How the day-to-day differs, side by side. |
-| **[Diagnostics](docs/diagnostics.md)** | Every RASK build error/warning and its fix. |
-| **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** | How the runtime works under the hood. |
+| **[Migrating from Blazor](docs/migration-from-blazor.md)** · **[Diagnostics](docs/diagnostics.md)** | How the day-to-day differs, side by side; every RASK build error/warning and its fix. |
 
 </details>
 
@@ -245,9 +273,9 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 
 Rask is pre-1.0. APIs may change between minor versions. It targets **.NET 10** (`net10.0` for ASP.NET hosts,
 `net10.0-browser` for WASM, `net10.0-ios;net10.0-android` for native app heads). Unit suites cover the core,
-generators, hosts (Server, WASM, Native), and validation packages, plus a Playwright E2E smoke suite;
-`Rask.Example.Wasm` publishes with zero IL trimming warnings. The native host is preview-stage. Production use at your
-own discretion — issues and PRs welcome.
+generators, hosts (Server, WASM, Native), the back-half packages, and validation, plus a Playwright E2E smoke
+suite; `Rask.Example.Wasm` publishes with zero IL trimming warnings. The native host is preview-stage.
+Production use at your own discretion — issues and PRs welcome.
 
 ## 📄 License
 
@@ -257,10 +285,10 @@ Rask is released under the [MIT License](LICENSE).
 
 <div align="center">
 
-⚡ **Rask** — *Norwegian/Danish/Swedish for "fast".*
+⚡ **Rask** — *the .NET One Person Framework.*
 
 **[Live demo ↗](https://pal-tamas.github.io/rask/docs/)** · **[Docs ↗](docs/)** · **[Examples ↗](samples/)** · **[NuGet ↗](https://www.nuget.org/packages/Rask.Server)**
 
-Built with .NET 10. Issues and PRs welcome.
+Build, run, and ship a whole product solo, in C#, on one server. Issues and PRs welcome.
 
 </div>

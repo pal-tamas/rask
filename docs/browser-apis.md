@@ -61,7 +61,7 @@ the API's `IsSupported`/permission check and wrap calls in `try/catch`.
 
 Work identically on Server and WASM. **Shape** is *one-shot* (a request/response call) or
 *subscription* (you hold an `IAsyncDisposable` and the browser **pushes** updates to a C# handler — see
-[Subscriptions](#subscriptions-the-push-pattern)).
+[Subscriptions](#subscriptions--the-push-pattern)).
 
 | Service | Wraps | What it does | Shape |
 | --- | --- | --- | --- |
@@ -394,7 +394,7 @@ shell. For a code-driven share on the in-process hosts, inject **`IShare`** (`Ra
 element the `data-rask-gesture` attribute and its click runs an activation-gated API in the gesture, so it works
 on Server too, where the imperative service can't be injected. Ships `FullscreenTrigger`,
 `ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`, `MediaCaptureTrigger`, and
-`PictureInPictureTrigger`. See [Gesture bridge](#gesture-bridge-activation-gated-apis-on-the-server-host).
+`PictureInPictureTrigger`. See [Gesture bridge](#gesture-bridge--activation-gated-apis-on-the-server-host).
 
 <!-- demo:browser-gesture-bridge -->
 

@@ -112,6 +112,16 @@ internal sealed class FakeFileSystem : IFileSystem
             .ToArray();
     }
 
+    public IReadOnlyList<string> ListFilesRecursive(string directory, string searchPattern)
+    {
+        var dir = Normalize(directory);
+        var suffix = searchPattern.StartsWith('*') ? searchPattern[1..] : searchPattern;
+        return _files.Keys
+            .Where(f => (f.StartsWith(dir + Path.DirectorySeparatorChar, StringComparison.Ordinal) || Normalize(Path.GetDirectoryName(f)!) == dir)
+                && f.EndsWith(suffix, StringComparison.Ordinal))
+            .ToArray();
+    }
+
     public string ReadAllText(string path) => _files[Normalize(path)];
 
     public void CreateDirectory(string path) => _directories.Add(Normalize(path));

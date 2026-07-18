@@ -8,6 +8,34 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask generate feature` now generates relationships.** The `<card> <Target> <fields…>` grammar
+  (`rask g f Post Title:string 1:n Comment Body:text`) is no longer parse-only — it scaffolds the related
+  entity *and* emits the relationship: `1:n`/`n:1`/`1:1` add the foreign key (as a real column + form input),
+  navigation properties both ways, and the EF `HasOne`/`WithMany`/`HasForeignKey` mapping; `n:n` maps a
+  many-to-many through EF Core's implicit join table (no join entity to generate). Verified end to end —
+  every cardinality (and a multi-relationship star like `Post 1:n Comment n:n Tag`) generates compiling
+  code. (Closes #479.)
+- **`rask generate feature` produces compiling, wired code — no manual paste.** The generator no longer just
+  *prints* the `AddRaskCqrs()` / `AddRaskData()` / `AddDbContextFactory<Ctx>()` registrations — it inserts
+  them (and the `using`s they need) into `Program.cs` idempotently. **`--context` now works too:** it locates
+  the target `DbContext` in the project, adds the new `DbSet<Entity>` (and its `using`) to it, and imports the
+  context's namespace in the generated slice — so an `--context` run compiles as-is instead of erroring on a
+  missing `DbSet`/`using`. When a file can't be found or safely edited, the change is printed as a fallback.
+  The migration next-steps now point at `rask db add`/`rask db update` instead of raw `dotnet ef`.
+  (Closes #475, #476, #477.)
+- **`rask generate feature --tests` scaffolds a runnable test project.** The first `--tests` run now creates
+  the sibling `<Project>.Tests` project — its `.csproj` and a `GlobalUsings.cs`, wired with the test SDK,
+  xUnit, and a reference back to the app (and added to the solution if there is one) — so the generated
+  domain + SQLite-persistence tests build and `dotnet test` passes with no manual setup. Later runs reuse the
+  project. (Closes #480.)
+- **A zero-to-deploy tutorial — build a whole product, one pillar per chapter.** New `docs/tutorial/`
+  series (10 chapters) walks a beginner from an empty folder to a deployed, database-backed "Shop":
+  scaffold (`rask new`), the first DB-backed feature (`rask generate feature` → the `Program.cs` DI wiring
+  → `rask db add`/`update`), auth (`[Authorize]` + the `Authorize` component), background jobs, transactional
+  email, cache, domain events + outbox, production SQLite (`UseRaskSqlite` + Litestream), and
+  `rask deploy` to one box. Every step is a real command, the code it generates, and a verify check; each
+  command was run against the current CLI. Linked from the docs index, getting-started, the doctrine, the
+  README, and `llms.txt`.
 - **One design across the site, docs and playground — dark-first, with a shared light/dark toggle.** The
   marketing site's violet dark-first look is now the shared design language for all three GitHub Pages
   apps. The palette + Bootstrap 5.3 `--bs-*` bridge live in one shared static asset,
@@ -288,6 +316,16 @@ them until tagged releases begin.
   the package themselves: `dotnet add package SQLitePCLRaw.bundle_e_sqlite3`.
 
 ### Fixed
+- **Docs correctness pass across every page.** Getting-started's §2–§3 "tour" no longer describes a
+  Counter/Weather starter the template stopped generating (it now matches the real single-welcome-page
+  scaffold); fixed broken/stale cross-links and anchors (best-practices → getting-started sections,
+  `browser-apis` self-anchors, `data-grid`/`routing` `/table` and query-param links, mislabeled `Rask.Data`
+  links that pointed at `data-access.md`); reconciled the Web-API wrapper count (46) and the diagnostic range
+  (RASK001–034) across `docs/README.md`, `README.md`, and `llms.txt`; corrected the `mail.md` email-body
+  base type (`Component`, not `Element`) and stale `rask-*` template ids; and reorganized the docs index to
+  group the DB-backed One-Person-Framework pillars into their own section. Also removed Ruby/Rails framing
+  from user-facing docs in favor of .NET-native wording, and added a "Why one server, no PaaS" section to
+  `sqlite.md`.
 - **The capability matrix no longer claims `IFileSystemAccess` and `IWebPush` work on Native.**
   `docs/browser-capabilities.md` marked both ✅ in the Native column, but neither API exists in the WebView:
   `window.showOpenFilePicker` is `undefined` on WebKit (the File System Access API is effectively

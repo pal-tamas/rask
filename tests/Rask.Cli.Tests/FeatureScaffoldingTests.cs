@@ -119,7 +119,7 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useEvents = false, bool useOutbox = false, bool useTests = false, string? context = null, string? plural = null) =>
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useEvents = false, bool useOutbox = false, bool useTests = false, string? context = null, string? contextNamespace = null, string? plural = null) =>
         FeatureGenerator.Generate(
             new ProjectContext("/proj", "MyApp"),
             "/proj",
@@ -136,6 +136,7 @@ public sealed class FeatureGeneratorTests
                 UseOutbox = useOutbox,
                 UseTests = useTests,
                 ContextOverride = context,
+                ContextNamespace = contextNamespace,
                 OutputOverride = null,
             });
 
@@ -434,11 +435,11 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("public sealed record ProductCreated(Guid Id) : IOutboxEvent;", File(result, "ProductEvents.cs"), StringComparison.Ordinal);
         Assert.Contains("entity.Raise(new ProductCreated(entity.Id));", File(result, "Product.cs"), StringComparison.Ordinal);
 
-        // The DbContext maps the outbox table; the package + DI wiring are in the next-steps.
+        // The DbContext maps the outbox table; the package + DI wiring are applied to Program.cs.
         Assert.Contains("modelBuilder.AddRaskOutbox();", File(result, "ProductsDbContext.cs"), StringComparison.Ordinal);
         Assert.Contains("Rask.Outbox", result.Packages);
-        Assert.Contains("AddRaskOutbox<ProductsDbContext>();", result.Notes!, StringComparison.Ordinal);
-        Assert.Contains("DispatchDomainEventsInProcess = false", result.Notes!, StringComparison.Ordinal);
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddRaskOutbox<ProductsDbContext>();", StringComparison.Ordinal));
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("DispatchDomainEventsInProcess = false", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -494,6 +495,27 @@ public sealed class FeatureGeneratorTests
 
         Assert.Contains(result.Files, f => Path.GetFileName(f.Path) == "ProductTests.cs");
         Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) == "ProductsPersistenceTests.cs");
+    }
+
+    [Fact]
+    public void Tests_flag_scaffolds_a_test_project_csproj_and_global_usings()
+    {
+        var result = Generate(useTests: true);
+
+        Assert.Contains(result.CreateIfAbsent, f => Path.GetFileName(f.Path) == "proj.Tests.csproj" && f.Content.Contains("<IsTestProject>true</IsTestProject>", StringComparison.Ordinal));
+        Assert.Contains(result.CreateIfAbsent, f => Path.GetFileName(f.Path) == "GlobalUsings.cs" && f.Content.Contains("global using Xunit;", StringComparison.Ordinal));
+        Assert.NotNull(result.TestProject);
+        Assert.Contains("xunit", result.TestProject!.Packages);
+        Assert.Contains("Microsoft.NET.Test.Sdk", result.TestProject.Packages);
+    }
+
+    [Fact]
+    public void Without_tests_no_test_project_is_scaffolded()
+    {
+        var result = Generate();
+
+        Assert.Empty(result.CreateIfAbsent);
+        Assert.Null(result.TestProject);
     }
 
     [Fact]
@@ -561,9 +583,10 @@ public sealed class FeatureGeneratorTests
         var result = Generate();
         var notes = result.Notes!;
 
-        Assert.Contains("AddRaskCqrs();", notes, StringComparison.Ordinal);
-        Assert.Contains("AddDbContextFactory<ProductsDbContext>", notes, StringComparison.Ordinal);
-        Assert.Contains("dotnet ef migrations add AddProduct", notes, StringComparison.Ordinal);
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddRaskCqrs();", StringComparison.Ordinal));
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddDbContextFactory<ProductsDbContext>", StringComparison.Ordinal));
+        Assert.Contains("rask db add AddProduct", notes, StringComparison.Ordinal);
+        Assert.Contains("rask db update", notes, StringComparison.Ordinal);
         // The packages are added to the project automatically (not just printed). SQLitePCLRaw is a security
         // reference, not a convenience one: EF Core Sqlite pins the 2.1.11 family, which carries CVE-2025-6965,
         // and only a direct reference lifts it. Don't drop it from this list without reading
@@ -588,19 +611,75 @@ public sealed class FeatureGeneratorTests
 
         Assert.DoesNotContain(result.Files, f => f.Path.EndsWith("DbContext.cs", StringComparison.Ordinal));
         Assert.Contains("IDbContextFactory<AppDbContext>", File(result, "ProductsPage.cs"), StringComparison.Ordinal);
-        Assert.Contains("public DbSet<Product> Products => Set<Product>();", result.Notes!, StringComparison.Ordinal);
+        // The DbSet the user's context needs is surfaced for the command to insert (not baked into a new file).
+        Assert.Contains(result.ContextDbSets, s => s.Contains("public DbSet<Product> Products => Set<Product>();", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Explicit_context_with_a_resolved_namespace_emits_the_cross_namespace_using()
+    {
+        // When the command resolves the --context class to another namespace, the slice imports it so it compiles.
+        var result = Generate(context: "AppDbContext", contextNamespace: "MyApp.Data");
+
+        Assert.Contains("using MyApp.Data;", File(result, "ProductsPage.cs"), StringComparison.Ordinal);
+        // The DbSet references Product (in the feature namespace), so the context needs that using added too.
+        Assert.Contains("MyApp.Features.Products", result.ContextUsings);
     }
 }
 
 /// <summary>
 /// A run that names relationship targets generates <b>every</b> entity in it, each as an independent root
-/// with its own folder, namespace and full CRUD, all sharing one DbContext. The relationships themselves
-/// (foreign keys, navigations, EF mapping) are not emitted yet — these cover the multi-entity shape only.
+/// with its own folder, namespace and full CRUD, all sharing one DbContext — and emits the relationship
+/// itself: the foreign key on the dependent, navigation properties both ways, and the EF mapping.
 /// </summary>
 public sealed class FeatureGeneratorMultiEntityTests
 {
     private static readonly EntitySpec Post = new("Post", "Posts", [new FieldSpec("Title", "string", IsNullable: false, MaxLength: 200)]);
     private static readonly EntitySpec Comment = new("Comment", "Comments", [new FieldSpec("Body", "string", IsNullable: false, MaxLength: 200)]);
+    private static readonly EntitySpec Tag = new("Tag", "Tags", [new FieldSpec("Name", "string", IsNullable: false, MaxLength: 200)]);
+
+    private static ScaffoldResult GenerateRelationship(Cardinality card, bool optional = false) =>
+        FeatureGenerator.Generate(
+            new ProjectContext("/proj", "MyApp"),
+            "/proj",
+            new FeatureSpec(Post, [new RelationshipSpec(card, optional, Post, card is Cardinality.ManyToMany ? Tag : Comment)]),
+            new FeatureOptions { IdType = "Guid", Validation = "dataannotations" });
+
+    [Fact]
+    public void One_to_many_puts_the_fk_and_reference_nav_on_the_dependent_and_a_collection_on_the_principal()
+    {
+        var result = GenerateRelationship(Cardinality.OneToMany);
+
+        var comment = File(result, "Comment.cs");
+        Assert.Contains("public Guid PostId { get; private set; }", comment, StringComparison.Ordinal);
+        Assert.Contains("public Post? Post { get; private set; }", comment, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Posts;", comment, StringComparison.Ordinal);
+
+        Assert.Contains("public ICollection<Comment> Comments { get; } = new List<Comment>();", File(result, "Post.cs"), StringComparison.Ordinal);
+        Assert.Contains("entity.HasOne(x => x.Post).WithMany(p => p.Comments).HasForeignKey(x => x.PostId);", File(result, "CommentConfiguration.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Many_to_many_maps_from_two_collection_navs_with_no_foreign_key()
+    {
+        var result = GenerateRelationship(Cardinality.ManyToMany);
+
+        Assert.Contains("public ICollection<Tag> Tags { get; } = new List<Tag>();", File(result, "Post.cs"), StringComparison.Ordinal);
+        Assert.Contains("public ICollection<Post> Posts { get; } = new List<Post>();", File(result, "Tag.cs"), StringComparison.Ordinal);
+        Assert.Contains("entity.HasMany(x => x.Tags).WithMany(y => y.Posts);", File(result, "PostConfiguration.cs"), StringComparison.Ordinal);
+        // No foreign-key column — the join table is implicit.
+        Assert.DoesNotContain("TagId", File(result, "Post.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void One_to_one_uses_a_reference_nav_both_ways()
+    {
+        var result = GenerateRelationship(Cardinality.OneToOne);
+
+        Assert.Contains("public Post? Post { get; private set; }", File(result, "Comment.cs"), StringComparison.Ordinal);
+        Assert.Contains("public Comment? Comment { get; private set; }", File(result, "Post.cs"), StringComparison.Ordinal);
+        Assert.Contains("entity.HasOne(x => x.Post).WithOne(p => p.Comment).HasForeignKey<Comment>(x => x.PostId);", File(result, "CommentConfiguration.cs"), StringComparison.Ordinal);
+    }
 
     private static ScaffoldResult Generate(string? context = null, string? output = null) =>
         FeatureGenerator.Generate(
@@ -708,13 +787,14 @@ public sealed class FeatureGeneratorMultiEntityTests
     }
 
     [Fact]
-    public void With_an_external_context_no_dbcontext_is_generated_and_nothing_is_assumed_about_where_it_lives()
+    public void With_an_external_context_no_dbcontext_is_generated_and_the_handlers_name_it()
     {
         var result = Generate(context: "AppDbContext");
 
         Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path).EndsWith("DbContext.cs", StringComparison.Ordinal));
         Assert.Contains("IDbContextFactory<AppDbContext>", File(result, "DeleteComment.cs"), StringComparison.Ordinal);
-        Assert.DoesNotContain("using MyApp.Features.Posts;", File(result, "DeleteComment.cs"), StringComparison.Ordinal);
+        // (The Comment slice does import MyApp.Features.Posts now — but for the Post navigation, not the
+        // context, whose location stays unassumed until the command resolves it.)
     }
 
     [Fact]

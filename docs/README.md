@@ -3,15 +3,18 @@
 Guides and references for building with Rask, **the .NET One Person Framework** — build, run, and ship a
 whole product solo, in C#, on one server. **New to Rask?** Read
 [Getting started](getting-started.md) start to finish — it goes from zero to a running, routed,
-interactive app. Want the philosophy first? Read **[The .NET One Person Framework](one-person-framework.md)**.
-Want the pitch and a quick demo? See the project [README](../README.md).
+interactive app. **Ready to build something real?** The [**Tutorial**](tutorial/00-overview.md) takes you
+from an empty folder to a deployed, database-backed product that uses every pillar. Want the philosophy
+first? Read **[The .NET One Person Framework](one-person-framework.md)**. Want the pitch and a quick demo?
+See the project [README](../README.md).
 
 ## Start here
 
 | Guide | What it covers |
 |-------|----------------|
 | [**The .NET One Person Framework**](one-person-framework.md) | The doctrine: one developer, a whole product, one C# codebase, one server, SQLite-first — and the batteries that make it real. |
-| [Roadmap](roadmap.md) | The One-Person-Framework pillars — shipped vs planned (DB-backed jobs, outbox, mail, cache, broadcast). |
+| [**Tutorial: zero to deploy**](tutorial/00-overview.md) | Build the "Shop" app end to end — scaffold → first DB-backed feature → auth → jobs → email → cache → events → production SQLite → deploy to one box. One chapter per pillar. |
+| [Roadmap](roadmap.md) | The One Person Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache) and what's next (broadcast). |
 
 ## Guides
 
@@ -24,24 +27,36 @@ Want the pitch and a quick demo? See the project [README](../README.md).
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), toast messages (`IToaster`/`ToastOutlet`), `VirtualizeModel`, drag-and-drop. |
 | [JS interop](js-interop.md) | Scoped CSS & JS conventions, calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
-| [Browser APIs](browser-apis.md) | The map of all 43 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
-| [Capability matrix](browser-capabilities.md) | Where each of the 43 APIs works (Web / PWA / Native) and which have a native iOS/Android backend — links to a reference page per API under [`apis/`](apis/). |
+| [Browser APIs](browser-apis.md) | The map of all 46 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
+| [Capability matrix](browser-capabilities.md) | Where each of the 46 APIs works (Web / PWA / Native) and which have a native iOS/Android backend — links to a reference page per API under [`apis/`](apis/). |
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (`IWebPush`), `rask new MyApp --template wasm --pwa`. |
-| [📱 Native mobile (iOS/Android)](native.md) | Ship the same components as a native iOS/Android app with `Rask.Native` (preview): the WebView-hybrid host, the `rask-native` template + platform heads, `NativeAppHost` Local/Server modes, `INativeWebView`, safe-area insets. |
+| [📱 Native mobile (iOS/Android)](native.md) | Ship the same components as a native iOS/Android app with `Rask.Native` (preview): the WebView-hybrid host, the `native` template + platform heads, `NativeAppHost` Local/Server modes, `INativeWebView`, safe-area insets. |
 | [AOT compilation](aot.md) | Opt-in full WASM AOT (`-p:RaskWasmAot=true`): the reflection-free binding registry, registering custom `IParsable` types, `InvokeAsync<T>` under AOT, and the continuous analyzer gate. |
 | [Forms & validation](forms.md) | Two-way binding, `Form<T>`/`EditContext`, inline / DataAnnotations / FluentValidation / async validators, radio & checkbox groups. |
 | [Lifecycle](lifecycle.md) | `OnMount` / `OnPropsChanged` / `OnRendered` / `OnUnmount`, async-hook rules, cancellation, common gotchas. |
-| [Data access (EF Core)](data-access.md) | EF Core + SQLite in a Server app: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
-| [SQLite production pragmas](sqlite.md) | Rails-style production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open. |
-| [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / notifications and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |
-| [Background jobs](jobs.md) | Durable enqueued / delayed / recurring work on the app's own database via `AddRaskJobs<Ctx>()` + `IJobQueue` (standalone `Rask.Jobs`) — at-least-once, with backoff. |
-| [Transactional email](mail.md) | Durable email queued on the app's own database via `AddRaskMail<Ctx>()` + `IMailQueue` (standalone `Rask.Mail`) — delivered off the request thread over SMTP with backoff; bodies are Rask components. |
-| [Cache](cache.md) | A developer-facing cache on the app's own database via `AddRaskCache<Ctx>()` (standalone `Rask.Cache`) — standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync`, absolute/sliding expiry. |
 | [Authentication](authentication.md) | Production auth: cookie & JWT, Server & WASM, `Authorize`, route guards, Identity / Keycloak / Auth0 / Cognito / Duende. |
 | [Accessibility](accessibility.md) | Setting ARIA attributes, `Role`/`TabIndex`, and focus on any element; the `Img` alt-text analyzer (RASK023). |
 | [Testing](testing.md) | Unit-testing components with `Rask.TestSupport`, driving event handlers, when to reach for E2E. |
 | [Migrating from Blazor](migration-from-blazor.md) | Concept mapping, behavioural gotchas, and what stays the same. |
 | [Building with AI assistants](ai-agents.md) | The `AGENTS.md` / `llms.txt` artifacts that let AI tools scaffold and extend Rask apps. |
+
+## The One Person Framework batteries (the back half)
+
+The opinionated, DB-backed pillars that make a solo developer productive — each a thin, trim/AOT-safe package
+that rides the app's own SQLite database. No Redis, no broker, no second server. Walk through them in order
+in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
+
+| Guide | What it covers |
+|-------|----------------|
+| [Data access (EF Core)](data-access.md) | EF Core + SQLite in a Server app: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
+| [Rask.Data](data.md) | The `Entity<TId>` base + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, and domain events — via `AddRaskData()` + `ApplyRaskConventions()`. |
+| [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, plus Litestream backup. |
+| [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / notifications and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |
+| [Background jobs](jobs.md) | Durable enqueued / delayed / recurring work on the app's own database via `AddRaskJobs<Ctx>()` + `IJobQueue` (standalone `Rask.Jobs`) — at-least-once, with backoff. |
+| [Transactional email](mail.md) | Durable email queued on the app's own database via `AddRaskMail<Ctx>()` + `IMailQueue` (standalone `Rask.Mail`) — delivered off the request thread over SMTP with backoff; bodies are Rask components. |
+| [Cache](cache.md) | A developer-facing cache on the app's own database via `AddRaskCache<Ctx>()` (standalone `Rask.Cache`) — standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync`, absolute/sliding expiry. |
+| [Outbox](outbox.md) | Durable, crash-safe domain-event delivery via `AddRaskOutbox<Ctx>()` (standalone `Rask.Outbox`) — events committed in the same transaction as your data, delivered post-commit with retries. |
+| [Deployment](deployment.md) | Ship to a single box with `rask deploy`: Docker over SSH, a shared Caddy proxy for automatic HTTPS, zero-downtime blue-green swaps gated on `/health`, and bare-VPS setup. |
 
 ## Bootstrap components
 
@@ -71,7 +86,7 @@ its own page:
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–031)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–034)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 
 ## Contributing
