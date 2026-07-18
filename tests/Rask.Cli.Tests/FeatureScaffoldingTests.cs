@@ -434,11 +434,11 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("public sealed record ProductCreated(Guid Id) : IOutboxEvent;", File(result, "ProductEvents.cs"), StringComparison.Ordinal);
         Assert.Contains("entity.Raise(new ProductCreated(entity.Id));", File(result, "Product.cs"), StringComparison.Ordinal);
 
-        // The DbContext maps the outbox table; the package + DI wiring are in the next-steps.
+        // The DbContext maps the outbox table; the package + DI wiring are applied to Program.cs.
         Assert.Contains("modelBuilder.AddRaskOutbox();", File(result, "ProductsDbContext.cs"), StringComparison.Ordinal);
         Assert.Contains("Rask.Outbox", result.Packages);
-        Assert.Contains("AddRaskOutbox<ProductsDbContext>();", result.Notes!, StringComparison.Ordinal);
-        Assert.Contains("DispatchDomainEventsInProcess = false", result.Notes!, StringComparison.Ordinal);
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddRaskOutbox<ProductsDbContext>();", StringComparison.Ordinal));
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("DispatchDomainEventsInProcess = false", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -561,9 +561,10 @@ public sealed class FeatureGeneratorTests
         var result = Generate();
         var notes = result.Notes!;
 
-        Assert.Contains("AddRaskCqrs();", notes, StringComparison.Ordinal);
-        Assert.Contains("AddDbContextFactory<ProductsDbContext>", notes, StringComparison.Ordinal);
-        Assert.Contains("dotnet ef migrations add AddProduct", notes, StringComparison.Ordinal);
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddRaskCqrs();", StringComparison.Ordinal));
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddDbContextFactory<ProductsDbContext>", StringComparison.Ordinal));
+        Assert.Contains("rask db add AddProduct", notes, StringComparison.Ordinal);
+        Assert.Contains("rask db update", notes, StringComparison.Ordinal);
         // The packages are added to the project automatically (not just printed). SQLitePCLRaw is a security
         // reference, not a convenience one: EF Core Sqlite pins the 2.1.11 family, which carries CVE-2025-6965,
         // and only a direct reference lifts it. Don't drop it from this list without reading

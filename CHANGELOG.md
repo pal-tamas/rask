@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask generate feature` wires the DI into `Program.cs` for you.** The generator no longer just *prints*
+  the `AddRaskCqrs()` / `AddRaskData()` / `AddDbContextFactory<Ctx>()` registrations — it inserts them (and
+  the `using`s they need) into `Program.cs` idempotently, so a fresh feature is runnable with no manual
+  paste. If it can't find or safely edit `Program.cs` it prints the block as a fallback. The migration
+  next-steps now point at `rask db add`/`rask db update` instead of raw `dotnet ef`. (Closes #475, #477.)
 - **A zero-to-deploy tutorial — build a whole product, one pillar per chapter.** New `docs/tutorial/`
   series (10 chapters) walks a beginner from an empty folder to a deployed, database-backed "Shop":
   scaffold (`rask new`), the first DB-backed feature (`rask generate feature` → the `Program.cs` DI wiring

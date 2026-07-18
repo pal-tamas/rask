@@ -200,9 +200,114 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             {
                 await AddPackagesAsync(project.ProjectDirectory, result.Packages, parsed.HasFlag("no-restore"), cancellationToken).ConfigureAwait(false);
             }
+
+            WireProgramCs(project.ProjectDirectory, result);
+        }
+
+        if (written == 0)
+        {
+            WriteNotes(result.Notes);
         }
 
         return written;
+    }
+
+    // Insert the generator's service registrations into Program.cs so the output is runnable without a manual
+    // paste. Idempotent: a statement (or using) already present is left alone, so a second feature adds only
+    // what's new. If Program.cs isn't found or isn't top-level statements we can't safely edit, the same block
+    // is printed as a manual fallback — the files are already written, so this is never fatal.
+    private void WireProgramCs(string projectDirectory, ScaffoldResult result)
+    {
+        if (result.ProgramRegistrations.Count == 0)
+        {
+            return;
+        }
+
+        var path = Path.Combine(projectDirectory, "Program.cs");
+        if (!_fileSystem.FileExists(path))
+        {
+            PrintManualRegistrations(result, "Couldn't find Program.cs — register these services yourself:");
+            return;
+        }
+
+        var text = _fileSystem.ReadAllText(path);
+        if (!text.Contains("WebApplication.CreateBuilder", StringComparison.Ordinal))
+        {
+            PrintManualRegistrations(result, "Program.cs isn't top-level statements — register these services yourself:");
+            return;
+        }
+
+        var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
+
+        // Add missing usings after the last existing using directive (or at the very top).
+        var addedUsings = 0;
+        var lastUsing = lines.FindLastIndex(l => l.TrimStart().StartsWith("using ", StringComparison.Ordinal) && l.TrimEnd().EndsWith(';'));
+        var usingAt = lastUsing >= 0 ? lastUsing + 1 : 0;
+        foreach (var ns in result.ProgramUsings)
+        {
+            var directive = $"using {ns};";
+            if (!lines.Any(l => l.Trim() == directive))
+            {
+                lines.Insert(usingAt++, directive);
+                addedUsings++;
+            }
+        }
+
+        // Insert registrations after the last existing builder.Services line, else right after the builder.
+        var added = new List<string>();
+        foreach (var registration in result.ProgramRegistrations)
+        {
+            var firstLine = registration.Split('\n')[0];
+            if (lines.Any(l => l.Trim() == firstLine.Trim()))
+            {
+                continue; // already registered (e.g. a second feature re-adding AddRaskCqrs)
+            }
+
+            var anchor = lines.FindLastIndex(l => l.TrimStart().StartsWith("builder.Services.", StringComparison.Ordinal));
+            if (anchor < 0)
+            {
+                anchor = lines.FindLastIndex(l => l.Contains("WebApplication.CreateBuilder", StringComparison.Ordinal));
+            }
+
+            lines.InsertRange(anchor + 1, registration.Split('\n'));
+            added.Add(firstLine);
+        }
+
+        if (added.Count == 0 && addedUsings == 0)
+        {
+            return; // everything was already wired
+        }
+
+        _fileSystem.WriteAllText(path, string.Join(newline, lines));
+        var names = string.Join(", ", added.Select(RegistrationName));
+        Console.WriteLine($"Registered {added.Count} service(s) in Program.cs: {names}.", ConsoleStyle.Success);
+    }
+
+    // A short display name for a registration line, e.g. "builder.Services.AddRaskCqrs();" -> "AddRaskCqrs".
+    private static string RegistrationName(string firstLine)
+    {
+        var call = firstLine.Trim();
+        var open = call.IndexOf('(');
+        var dot = open > 0 ? call.LastIndexOf('.', open) : call.LastIndexOf('.');
+        return dot >= 0 && open > dot ? call[(dot + 1)..open] : call;
+    }
+
+    private void PrintManualRegistrations(ScaffoldResult result, string heading)
+    {
+        Console.WriteLine(heading, ConsoleStyle.Dim);
+        foreach (var ns in result.ProgramUsings)
+        {
+            Console.WriteLine($"  using {ns};", ConsoleStyle.Dim);
+        }
+
+        foreach (var registration in result.ProgramRegistrations)
+        {
+            foreach (var line in registration.Split('\n'))
+            {
+                Console.WriteLine("  " + line, ConsoleStyle.Dim);
+            }
+        }
     }
 
     // Add the packages the generated code needs straight into the project (dotnet add package). A failure
@@ -367,7 +472,6 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 Console.Out.WriteLine(file.Content);
             }
 
-            WriteNotes(result.Notes);
             return 0;
         }
 
@@ -383,7 +487,6 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             WriteCreated(Display(file.Path));
         }
 
-        WriteNotes(result.Notes);
         return 0;
     }
 

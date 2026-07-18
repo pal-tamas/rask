@@ -166,6 +166,99 @@ public sealed class GenerateCommandTests
         Assert.Contains("Next steps:", console.OutText, StringComparison.Ordinal);
     }
 
+    private const string ProgramCs =
+        "using MyApp;\n" +
+        "var builder = WebApplication.CreateBuilder(args);\n" +
+        "builder.Services.AddRask();\n" +
+        "var app = builder.Build();\n" +
+        "app.Run();\n";
+
+    [Fact]
+    public async Task Feature_wires_the_service_registrations_into_Program_cs()
+    {
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string,Price:decimal"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        // Framework services + the run's DbContext factory are inserted, not just printed.
+        Assert.Contains("builder.Services.AddRaskCqrs();", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o", program, StringComparison.Ordinal);
+        Assert.Contains(".AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));", program, StringComparison.Ordinal);
+        // The usings the registrations need are added too.
+        Assert.Contains("using Rask.Cqrs;", program, StringComparison.Ordinal);
+        Assert.Contains("using Rask.Data;", program, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Products;", program, StringComparison.Ordinal);
+        Assert.Contains("using Microsoft.EntityFrameworkCore.Diagnostics;", program, StringComparison.Ordinal);
+        Assert.Contains("Registered", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("Program.cs", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Program_wiring_is_idempotent()
+    {
+        var (_, fs, command) = Build();
+        // A Program.cs already carrying the registrations (e.g. a re-run) must not gain duplicates.
+        fs.Seed("/proj/Program.cs", ProgramCs +
+            "builder.Services.AddRaskCqrs();\n" +
+            "builder.Services.AddRaskData();\n" +
+            "builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o\n" +
+            "    .UseSqlite(\"Data Source=app.db\")\n" +
+            "    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));\n");
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--force"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        Assert.Equal(1, Occurrences(program, "builder.Services.AddRaskCqrs();"));
+        Assert.Equal(1, Occurrences(program, "builder.Services.AddDbContextFactory<ProductsDbContext>"));
+    }
+
+    [Fact]
+    public async Task Feature_prints_a_manual_fallback_when_there_is_no_Program_cs()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.False(fs.Files.ContainsKey(Path.GetFullPath("/proj/Program.cs")));
+        Assert.Contains("Couldn't find Program.cs", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskCqrs();", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Explicit_context_wires_framework_services_but_not_a_dbcontext()
+    {
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--context", "AppDbContext"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        Assert.Contains("builder.Services.AddRaskCqrs();", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
+        // The context is the user's own — we don't register a factory for it.
+        Assert.DoesNotContain("AddDbContextFactory", program, StringComparison.Ordinal);
+        // …but the next-steps still remind them to surface the entity on their context.
+        Assert.Contains("public DbSet<Product> Products => Set<Product>();", console.OutText, StringComparison.Ordinal);
+    }
+
+    private static int Occurrences(string haystack, string needle)
+    {
+        var count = 0;
+        for (var i = haystack.IndexOf(needle, StringComparison.Ordinal); i >= 0; i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
     [Fact]
     public async Task Feature_adds_the_required_nuget_packages_automatically()
     {

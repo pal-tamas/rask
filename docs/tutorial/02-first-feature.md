@@ -4,8 +4,8 @@
 > delete — persisted in SQLite.
 > **You'll run:** `rask generate feature Product …`, then `rask db add` / `rask db update`.
 
-This is the most important chapter. Once you've done it once, every other feature is the same three moves:
-**generate → wire → migrate.**
+This is the most important chapter. Once you've done it once, every other feature is the same two moves:
+**generate → migrate** (the CLI wires the services in for you in between).
 
 > **`rask new` gives you no database on purpose.** The starter app has no `DbContext` and no SQLite. The
 > database arrives the moment you generate your first feature — the generator adds the packages, writes the
@@ -49,11 +49,16 @@ It also **adds the packages** the slice needs (EF Core + SQLite, `Rask.Cqrs`, `R
 Open `Features/Products/Product.cs` and `ProductsPage.cs` now — the generated code is the best documentation
 of the patterns this tutorial uses.
 
-## 2. Wire it into `Program.cs`
+## 2. The services are wired for you
 
-The one thing the generator can't do for you is edit `Program.cs` (it's your composition root). When it
-finishes it prints the exact block to add — paste it into `Program.cs`, next to the other
-`builder.Services…` lines:
+The generator also **registers the services in `Program.cs`** — you'll see it report:
+
+```
+Registered 3 service(s) in Program.cs: AddRaskCqrs, AddRaskData, AddDbContextFactory<ProductsDbContext>.
+```
+
+so `Program.cs` now has these lines (and the `using`s they need) added next to your other
+`builder.Services…` registrations:
 
 ```csharp
 builder.Services.AddRaskCqrs();
@@ -69,9 +74,8 @@ builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o
   long-lived and may render concurrently, so each unit of work creates its own short-lived context rather
   than sharing one scoped instance. `Data Source=app.db` is a SQLite file created next to the app.
 
-Add the `using` directives the IDE prompts for — `Microsoft.EntityFrameworkCore` (for `UseSqlite` /
-`AddInterceptors`), `Microsoft.EntityFrameworkCore.Diagnostics` (for `ISaveChangesInterceptor`), and your
-`Shop.Features.Products` namespace.
+The insert is idempotent, so generating a second feature only adds what's new. (If the CLI can't find or
+safely edit your `Program.cs`, it prints the block instead for you to paste — same result.)
 
 ## 3. Create the database
 
@@ -105,8 +109,9 @@ still there, because it's on disk in `app.db`.
 - Creating a product then restarting the app still shows it (it's persisted, not in-memory).
 
 > **Troubleshooting.** `rask generate` / `rask db` can't find the project → make sure you `cd`'d into
-> `Shop` first. Build errors after pasting the DI block → you're missing a `using` (see step 2). `rask db
-> update` fails with "no migrations" → you skipped `rask db add`.
+> `Shop` first. Saw "Couldn't find Program.cs" instead of the "Registered …" line → the CLI printed the
+> registrations for you to paste (e.g. a non-standard host layout). `rask db update` fails with "no
+> migrations" → you skipped `rask db add`.
 
 **Learn more:** [data access](../data-access.md) · [Rask.Data](../data.md) · [CQRS](../cqrs.md) ·
 [the `rask` CLI](../cli.md)

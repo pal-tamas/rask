@@ -69,12 +69,52 @@ internal static class FeatureGenerator
         }
 
         var root = spec.Root;
+        var (programUsings, programRegistrations) = ProgramWiring(context, contextNs, generateContext, options.UseOutbox);
         return new ScaffoldResult(
             files,
-            RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests, options.UseOutbox))
+            RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests))
         {
             Packages = FeaturePackages(options.Validation, options.UseBs, options.UseOutbox),
+            ProgramUsings = programUsings,
+            ProgramRegistrations = programRegistrations,
         };
+    }
+
+    /// <summary>
+    /// The <c>Program.cs</c> service registrations (and the <c>using</c>s they need) for a feature run. When
+    /// the run owns the DbContext, that includes the <c>AddDbContextFactory</c>; with <c>--context</c> the
+    /// user already registers their own context, so only the framework services are added.
+    /// </summary>
+    private static (IReadOnlyList<string> Usings, IReadOnlyList<string> Registrations) ProgramWiring(
+        string context, string contextNs, bool generateContext, bool useOutbox)
+    {
+        var usings = new List<string> { "Rask.Cqrs", "Rask.Data" };
+        var registrations = new List<string> { "builder.Services.AddRaskCqrs();" };
+
+        if (useOutbox)
+        {
+            usings.Add("Rask.Outbox");
+            // The outbox owns delivery — disable Rask.Data's in-process publisher to avoid double-dispatch.
+            registrations.Add("builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);");
+            registrations.Add($"builder.Services.AddRaskOutbox<{context}>();");
+        }
+        else
+        {
+            registrations.Add("builder.Services.AddRaskData();");
+        }
+
+        if (generateContext)
+        {
+            usings.Add("Microsoft.EntityFrameworkCore");
+            usings.Add("Microsoft.EntityFrameworkCore.Diagnostics");
+            usings.Add(contextNs);
+            registrations.Add(
+                $"builder.Services.AddDbContextFactory<{context}>((sp, o) => o\n"
+                + "    .UseSqlite(\"Data Source=app.db\")\n"
+                + "    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));");
+        }
+
+        return (usings, registrations);
     }
 
     /// <summary>
@@ -773,16 +813,13 @@ internal static class FeatureGenerator
         return packages;
     }
 
-    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests, bool useOutbox)
+    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests)
     {
         var steps = new StringBuilder();
+        var step = 0;
         steps.Append("Next steps:\n");
-        steps.Append("  1. The required packages were added for you (EF Core + SQLite, Rask.Cqrs");
-        if (useOutbox)
-        {
-            steps.Append(", Rask.Outbox");
-        }
 
+        steps.Append("  ").Append(++step).Append(". The required packages were added for you (EF Core + SQLite, Rask.Cqrs, Rask.Data");
         if (useBs)
         {
             steps.Append(", Rask.Bootstrap");
@@ -797,43 +834,27 @@ internal static class FeatureGenerator
             steps.Append(", Rask.Validation.FluentValidation");
         }
 
-        steps.Append(", Rask.Data").Append(").\n");
+        steps.Append(").\n");
         if (useBs)
         {
             steps.Append("     Link BootstrapStyles() in your Head.\n");
         }
 
-        steps.Append("  2. Register services in Program.cs:\n");
-        steps.Append("       builder.Services.AddRaskCqrs();\n");
-        if (useOutbox)
+        // The framework services are wired into Program.cs automatically (see above). With --context the
+        // DbContext is the user's own, so remind them to surface the new entity on it.
+        if (!generatedContext)
         {
-            // The outbox owns delivery — disable Rask.Data's in-process publisher to avoid double-dispatch.
-            steps.Append("       builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);\n");
-            steps.Append("       builder.Services.AddRaskOutbox<").Append(context).Append(">();\n");
-        }
-        else
-        {
-            steps.Append("       builder.Services.AddRaskData();\n");
-        }
-        if (generatedContext)
-        {
-            steps.Append("       builder.Services.AddDbContextFactory<").Append(context).Append(">((sp, o) => o\n");
-            steps.Append("           .UseSqlite(\"Data Source=app.db\")\n");
-            steps.Append("           .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));\n");
-        }
-        else
-        {
-            steps.Append("       // in your ").Append(context).Append(": add `public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();`,\n");
-            steps.Append("       // call modelBuilder.ApplyConfigurationsFromAssembly(...) + modelBuilder.ApplyRaskConventions() in OnModelCreating,\n");
-            steps.Append("       // and add .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()) where you register it.\n");
+            steps.Append("  ").Append(++step).Append(". In your ").Append(context).Append(", add `public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();`\n");
+            steps.Append("     (and make sure OnModelCreating calls ApplyConfigurationsFromAssembly(...) + ApplyRaskConventions()).\n");
         }
 
-        steps.Append("  3. Create the schema (EF Core migrations):\n");
-        steps.Append("       dotnet ef migrations add Add").Append(entity).Append(" && dotnet ef database update\n");
-        steps.Append("  4. Run the app and browse to ").Append(route).Append('.');
+        steps.Append("  ").Append(++step).Append(". Create the schema (EF Core migrations):\n");
+        steps.Append("       rask db add Add").Append(entity).Append('\n');
+        steps.Append("       rask db update\n");
+        steps.Append("  ").Append(++step).Append(". Run the app (rask dev) and browse to ").Append(route).Append('.');
         if (generatedTests)
         {
-            steps.Append("\n  5. The generated tests live in a sibling <Project>.Tests project — it needs xunit,\n");
+            steps.Append("\n  ").Append(++step).Append(". The generated tests live in a sibling <Project>.Tests project — it needs xunit,\n");
             steps.Append("     Microsoft.NET.Test.Sdk");
             if (generatedContext)
             {
