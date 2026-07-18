@@ -16,7 +16,7 @@ what one person has to run. The database is a **file on the same box as the app*
 tier to provision and pay for, no network hop on every query, no connection pool to a remote server to
 size. Reads don't block the writer (WAL), writes wait politely instead of failing (`busy_timeout`), and
 [continuous backup](#continuous-backup-with-litestream) streams the file off-box so durability doesn't
-depend on that one machine. The result is the One-Person-Framework payoff: **one server runs the whole
+depend on that one machine. The result is the One Person Framework payoff: **one server runs the whole
 product** — app, data, and background work — with nothing to rent or wire together. See
 [the doctrine](one-person-framework.md) for the bigger picture, and
 [Limitations & when to outgrow SQLite](#limitations--when-to-outgrow-sqlite) for the honest edges.

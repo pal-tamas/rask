@@ -5,7 +5,7 @@
 
 ## 1. A second feature in the same database
 
-The One-Person-Framework idea is *one* database for the whole product. So instead of letting the generator
+The One Person Framework idea is *one* database for the whole product. So instead of letting the generator
 create a second `DbContext`, we point the new feature at the one we already have with `--context`:
 
 ```bash
@@ -71,7 +71,7 @@ login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`)
 already uses in `Auth/MembersPage.cs`:
 
 ```csharp
-Authorize[                                   // only rendered for signed-in users
+Authorize()[                                 // only rendered for signed-in users
     NavLink(CreateProduct())["New product"]
 ]
 ```

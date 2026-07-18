@@ -4,8 +4,8 @@
 > delete — persisted in SQLite.
 > **You'll run:** `rask generate feature Product …`, then `rask db add` / `rask db update`.
 
-This is the most important chapter. Once you've done it once, every other feature is the same two moves:
-**generate → migrate** (the CLI wires the services in for you in between).
+This chapter sets the pattern every later feature repeats — **generate → migrate**, with the CLI wiring the
+services in for you in between. Do it once here and the rest of the tutorial is variations on it.
 
 > **`rask new` gives you no database on purpose.** The starter app has no `DbContext` and no SQLite. The
 > database arrives the moment you generate your first feature — the generator adds the packages, writes the

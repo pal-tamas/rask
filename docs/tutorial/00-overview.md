@@ -30,18 +30,18 @@ whole product.
 
 | # | Chapter | Pillar | You'll run |
 |---|---------|--------|-----------|
-| 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop --auth` |
+| 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop --auth --docker` |
 | 2 | [Your first feature](02-first-feature.md) | Data · CQRS · SQLite | `rask generate feature Product …` · `rask db` |
 | 3 | [A second feature + locking it down](03-orders-and-auth.md) | Auth | `rask generate feature Order …` |
 | 4 | [Background jobs](04-background-jobs.md) | Jobs | `rask generate job …` |
 | 5 | [Transactional email](05-email.md) | Mail | `rask generate email …` |
-| 6 | [Caching the catalog](06-cache.md) | Cache | `AddRaskCache()` |
-| 7 | [Domain events + outbox](07-outbox-events.md) | Outbox | `rask generate feature … --outbox` |
+| 6 | [Caching the catalog](06-cache.md) | Cache | `AddRaskCache<ProductsDbContext>()` |
+| 7 | [Domain events + the outbox](07-outbox-events.md) | Outbox | `rask generate feature … --outbox` |
 | 8 | [Production SQLite](08-production-sqlite.md) | SQLite | `UseRaskSqlite()` · Litestream |
-| 9 | [Deploy to one box](09-deploy.md) | Deploy | `rask deploy --domain …` |
+| 9 | [Deploy to one box](09-deploy.md) | Deploy | `rask deploy --host … --domain …` |
 
 Read them in order — each chapter builds on the app the previous one left behind. Every chapter ends with
-a **Verify** box (how to confirm it works) and a **Learn more** link to that pillar's reference doc.
+a **Verify** section (how to confirm it works) and a **Learn more** link to that pillar's reference doc.
 
 ## Before you start
 
@@ -54,7 +54,7 @@ dotnet tool install -g Rask.Cli       # installs the `rask` command (one-time)
 
 If `dotnet --version` prints an older version, install the .NET 10 SDK from
 [dotnet.microsoft.com](https://dotnet.microsoft.com/download) first. To upgrade an already-installed CLI
-later, run `dotnet tool update -g Rask.Cli` (or `rask update`).
+later, run `dotnet tool update -g Rask.Cli`.
 
 This tutorial assumes you're comfortable with C#. It does **not** assume you know EF Core, CQRS, or Rask —
 each idea is introduced where it first appears. If you've never built a Rask UI, skim

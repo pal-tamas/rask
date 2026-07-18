@@ -150,12 +150,11 @@ server**: scaffold a feature, store it in SQLite, ship it to a box — no PaaS, 
 
 ### And it happens to be the fastest .NET UI, too
 
-The One-Person-Framework story is the headline; the engine underneath is genuinely fast. Rask treats the
+The One Person Framework story is the headline; the engine underneath is genuinely fast. Rask treats the
 network as the real bottleneck: after first paint, a state change ships a minimal diff — a counter tick on a
-24 KB page goes out as **~41 bytes**, not 24 KB. It ships **fewer bytes on the wire than Blazor on *every*
-scenario** in the head-to-head suite (typically 2–5×, up to **56×**), allocates **~40× less per update**, and
-holds a **~30% leaner retained tree per mounted page** — the one axis Blazor used to lead. **Rask leads on
-every measured axis.**
+24 KB page goes out as ~41 bytes, not 24 KB. It ships fewer bytes on the wire than Blazor on *every* scenario
+in the head-to-head suite (typically 2–5×, up to 56×), allocates ~40× less per update, and holds a ~30%
+leaner retained tree per mounted page — the one axis Blazor used to lead. **Rask leads on every measured axis.**
 
 | Per-render axis | Rask | Blazor | Rask advantage |
 |---|---:|---:|---|

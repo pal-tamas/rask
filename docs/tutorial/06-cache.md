@@ -66,6 +66,9 @@ public sealed class ListProductsQueryHandler(
 Then update the page's field to match the new type — `private IReadOnlyList<ProductListItem> _items = [];`.
 The rest of `ProductsPage` already reads `x.Id`, `x.Name`, `x.Price`, `x.InStock`, so nothing else changes.
 
+(`DistributedCacheEntryOptions` lives in `Microsoft.Extensions.Caching.Distributed` — add the `using` if the
+IDE prompts for it.)
+
 ## 3. Invalidate when the catalog changes
 
 A cache is only correct if you clear it when the underlying data changes. In the create / update / delete

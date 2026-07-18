@@ -85,6 +85,7 @@ public sealed class SendOrderReceiptHandler(
         var order = await db.Orders.FindAsync([job.OrderId], ct);
         if (order is null) return;
 
+        // Hard-coded recipient for now — Order has no customer-email field yet; add one and use it here.
         await mail.SendAsync(
             Email.To("customer@example.com")
                  .Subject($"Your order {order.Id}")

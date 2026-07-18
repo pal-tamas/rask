@@ -5,7 +5,7 @@
 > **You'll add:** `UseRaskSqlite(…)` and `AddRaskSqliteLitestream(…)`.
 
 Everything so far — products, orders, jobs, mail, cache, outbox — lives in a single `app.db`. That's the
-One-Person-Framework bet: **SQLite is your production database.** Two things make that safe: the right
+One Person Framework bet: **SQLite is your production database.** Two things make that safe: the right
 connection pragmas, and continuous backup.
 
 ## 1. Swap in the production pragmas

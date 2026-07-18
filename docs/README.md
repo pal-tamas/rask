@@ -14,7 +14,7 @@ See the project [README](../README.md).
 |-------|----------------|
 | [**The .NET One Person Framework**](one-person-framework.md) | The doctrine: one developer, a whole product, one C# codebase, one server, SQLite-first — and the batteries that make it real. |
 | [**Tutorial: zero to deploy**](tutorial/00-overview.md) | Build the "Shop" app end to end — scaffold → first DB-backed feature → auth → jobs → email → cache → events → production SQLite → deploy to one box. One chapter per pillar. |
-| [Roadmap](roadmap.md) | The One-Person-Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache) and what's next (broadcast). |
+| [Roadmap](roadmap.md) | The One Person Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache) and what's next (broadcast). |
 
 ## Guides
 
