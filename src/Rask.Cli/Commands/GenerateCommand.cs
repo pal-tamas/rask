@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Commands;
@@ -202,6 +203,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             }
 
             WireProgramCs(project.ProjectDirectory, result);
+            AddDbSetsToContext(result);
         }
 
         if (written == 0)
@@ -282,6 +284,100 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         _fileSystem.WriteAllText(path, string.Join(newline, lines));
         var names = string.Join(", ", added.Select(RegistrationName));
         Console.WriteLine($"Registered {added.Count} service(s) in Program.cs: {names}.", ConsoleStyle.Success);
+    }
+
+    // Find an existing DbContext class by name anywhere in the project, returning its namespace + file so an
+    // --context run compiles (the slice imports it) and its DbSet can be added. (null, null) if not found.
+    private (string? Namespace, string? FilePath) ResolveContext(ProjectContext project, string contextName)
+    {
+        var declaration = new Regex($@"\b(?:class|record)\s+{Regex.Escape(contextName)}\b");
+        var namespaceOf = new Regex(@"\bnamespace\s+([\w.]+)");
+        foreach (var file in _fileSystem.ListFilesRecursive(project.ProjectDirectory, "*.cs"))
+        {
+            var text = _fileSystem.ReadAllText(file);
+            if (!declaration.IsMatch(text))
+            {
+                continue;
+            }
+
+            var match = namespaceOf.Match(text);
+            return (match.Success ? match.Groups[1].Value : project.RootNamespace, file);
+        }
+
+        return (null, null);
+    }
+
+    // Add the --context run's DbSet properties (and the usings they need) to the user's existing DbContext, so
+    // EF maps the new entities without a hand-edit. Idempotent; a set/using already present is left alone. When
+    // the context file couldn't be located the printed next-steps carry the same instruction as a fallback.
+    private void AddDbSetsToContext(ScaffoldResult result)
+    {
+        if (result.ContextDbSets.Count == 0)
+        {
+            return;
+        }
+
+        if (result.ContextFilePath is null || !_fileSystem.FileExists(result.ContextFilePath))
+        {
+            // The context class wasn't found in the project — tell the user what to add to it themselves.
+            Console.WriteLine("Add these to your DbContext:", ConsoleStyle.Dim);
+            foreach (var set in result.ContextDbSets)
+            {
+                Console.WriteLine(set, ConsoleStyle.Dim);
+            }
+
+            return;
+        }
+
+        var text = _fileSystem.ReadAllText(result.ContextFilePath);
+        var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
+
+        var addedUsings = 0;
+        var lastUsing = lines.FindLastIndex(l => l.TrimStart().StartsWith("using ", StringComparison.Ordinal) && l.TrimEnd().EndsWith(';'));
+        var usingAt = lastUsing >= 0 ? lastUsing + 1 : 0;
+        foreach (var ns in result.ContextUsings)
+        {
+            var directive = $"using {ns};";
+            if (!lines.Any(l => l.Trim() == directive))
+            {
+                lines.Insert(usingAt++, directive);
+                addedUsings++;
+            }
+        }
+
+        var addedSets = 0;
+        foreach (var set in result.ContextDbSets)
+        {
+            if (lines.Any(l => l.Trim() == set.Trim()))
+            {
+                continue;
+            }
+
+            // After the last existing DbSet property (the generated context always has at least one), else after
+            // the class body's opening brace.
+            var anchor = lines.FindLastIndex(l => l.TrimStart().StartsWith("public DbSet<", StringComparison.Ordinal));
+            if (anchor < 0)
+            {
+                anchor = lines.FindIndex(l => l.TrimEnd().EndsWith('{'));
+            }
+
+            if (anchor < 0)
+            {
+                continue;
+            }
+
+            lines.Insert(anchor + 1, set);
+            addedSets++;
+        }
+
+        if (addedSets == 0 && addedUsings == 0)
+        {
+            return;
+        }
+
+        _fileSystem.WriteAllText(result.ContextFilePath, string.Join(newline, lines));
+        Console.WriteLine($"Added {addedSets} DbSet(s) to {Display(result.ContextFilePath)}.", ConsoleStyle.Success);
     }
 
     // A short display name for a registration line, e.g. "builder.Services.AddRaskCqrs();" -> "AddRaskCqrs".
@@ -427,6 +523,13 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
                 // --modal puts create/update in a BsModal on the list page, so it implies --bs.
                 var useModal = Flag("modal", config.Modal);
+                // Locate an --context DbContext so the slice can import its namespace and the DbSet can be added
+                // to it. Best-effort: a class we can't find leaves the generator's pre-fix behaviour intact.
+                var contextOverride = parsed.Option("context");
+                var (contextNamespace, contextFilePath) = contextOverride is null
+                    ? (null, null)
+                    : ResolveContext(project, contextOverride);
+
                 var options = new FeatureOptions
                 {
                     IdType = idType,
@@ -438,11 +541,17 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     UseEvents = Flag("events", config.Events),
                     UseOutbox = Flag("outbox", config.Outbox),
                     UseTests = Flag("tests", config.Tests),
-                    ContextOverride = parsed.Option("context"),
+                    ContextOverride = contextOverride,
+                    ContextNamespace = contextNamespace,
                     OutputOverride = parsed.Option("output"),
                 };
 
                 result = FeatureGenerator.Generate(project, _workingDirectory, spec, options);
+                if (contextFilePath is not null)
+                {
+                    result = result with { ContextFilePath = contextFilePath };
+                }
+
                 return true;
         }
     }

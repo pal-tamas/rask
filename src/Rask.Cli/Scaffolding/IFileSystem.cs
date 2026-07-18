@@ -11,6 +11,9 @@ internal interface IFileSystem
     /// <summary>Files directly in <paramref name="directory"/> matching <paramref name="searchPattern"/> (non-recursive).</summary>
     IReadOnlyList<string> ListFiles(string directory, string searchPattern);
 
+    /// <summary>Files under <paramref name="directory"/> matching <paramref name="searchPattern"/>, recursively.</summary>
+    IReadOnlyList<string> ListFilesRecursive(string directory, string searchPattern);
+
     string ReadAllText(string path);
 
     void CreateDirectory(string path);
@@ -26,6 +29,11 @@ internal sealed class SystemFileSystem : IFileSystem
     public IReadOnlyList<string> ListFiles(string directory, string searchPattern) =>
         Directory.Exists(directory)
             ? Directory.GetFiles(directory, searchPattern, SearchOption.TopDirectoryOnly)
+            : [];
+
+    public IReadOnlyList<string> ListFilesRecursive(string directory, string searchPattern) =>
+        Directory.Exists(directory)
+            ? Directory.GetFiles(directory, searchPattern, SearchOption.AllDirectories)
             : [];
 
     public string ReadAllText(string path) => File.ReadAllText(path);

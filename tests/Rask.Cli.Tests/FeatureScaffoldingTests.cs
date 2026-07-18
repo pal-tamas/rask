@@ -119,7 +119,7 @@ public sealed class FeatureGeneratorTests
         new("Price", "decimal", IsNullable: false, MaxLength: null),
     ];
 
-    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useEvents = false, bool useOutbox = false, bool useTests = false, string? context = null, string? plural = null) =>
+    private static ScaffoldResult Generate(string idType = "Guid", string validation = "valueobjects", bool useBs = false, bool useModal = false, bool useSoftDelete = false, bool useConcurrency = false, bool useEvents = false, bool useOutbox = false, bool useTests = false, string? context = null, string? contextNamespace = null, string? plural = null) =>
         FeatureGenerator.Generate(
             new ProjectContext("/proj", "MyApp"),
             "/proj",
@@ -136,6 +136,7 @@ public sealed class FeatureGeneratorTests
                 UseOutbox = useOutbox,
                 UseTests = useTests,
                 ContextOverride = context,
+                ContextNamespace = contextNamespace,
                 OutputOverride = null,
             });
 
@@ -589,7 +590,19 @@ public sealed class FeatureGeneratorTests
 
         Assert.DoesNotContain(result.Files, f => f.Path.EndsWith("DbContext.cs", StringComparison.Ordinal));
         Assert.Contains("IDbContextFactory<AppDbContext>", File(result, "ProductsPage.cs"), StringComparison.Ordinal);
-        Assert.Contains("public DbSet<Product> Products => Set<Product>();", result.Notes!, StringComparison.Ordinal);
+        // The DbSet the user's context needs is surfaced for the command to insert (not baked into a new file).
+        Assert.Contains(result.ContextDbSets, s => s.Contains("public DbSet<Product> Products => Set<Product>();", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Explicit_context_with_a_resolved_namespace_emits_the_cross_namespace_using()
+    {
+        // When the command resolves the --context class to another namespace, the slice imports it so it compiles.
+        var result = Generate(context: "AppDbContext", contextNamespace: "MyApp.Data");
+
+        Assert.Contains("using MyApp.Data;", File(result, "ProductsPage.cs"), StringComparison.Ordinal);
+        // The DbSet references Product (in the feature namespace), so the context needs that using added too.
+        Assert.Contains("MyApp.Features.Products", result.ContextUsings);
     }
 }
 

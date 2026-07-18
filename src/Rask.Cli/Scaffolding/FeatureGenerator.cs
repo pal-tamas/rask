@@ -36,8 +36,12 @@ internal static class FeatureGenerator
             e => project.NamespaceFor(directories[e.Name]),
             StringComparer.Ordinal);
 
-        // The run's single DbContext lives with the root, so every other entity's handlers reach it by name.
-        var contextNs = namespaces[spec.Root.Name];
+        var rootNs = namespaces[spec.Root.Name];
+
+        // Namespace of the DbContext the handlers import. A generated context lives with the root; an --context
+        // class lives elsewhere and its namespace was resolved by scanning the project — null when it couldn't
+        // be found, in which case the slice emits no using (the pre-fix best-effort behaviour: assume nothing).
+        string? contextNs = generateContext ? rootNs : options.ContextNamespace;
 
         var files = new List<ScaffoldFile>();
         foreach (var entity in entities)
@@ -60,16 +64,29 @@ internal static class FeatureGenerator
                 Path.Combine(directories[spec.Root.Name], context + ".cs"),
                 Apply(DbContextTemplate,
                 [
-                    ("__NS__", contextNs),
+                    ("__NS__", rootNs),
                     ("__CONTEXT__", context),
-                    ("__USINGS__", Usings(contextNs, entities.Select(e => namespaces[e.Name]))),
+                    ("__USINGS__", Usings(rootNs, entities.Select(e => namespaces[e.Name]))),
                     ("__DBSETS__", dbSets),
                     ("__OUTBOXMODEL__", options.UseOutbox ? "\n                modelBuilder.AddRaskOutbox();" : ""),
                 ])));
         }
 
         var root = spec.Root;
-        var (programUsings, programRegistrations) = ProgramWiring(context, contextNs, generateContext, options.UseOutbox);
+        var (programUsings, programRegistrations) = ProgramWiring(context, rootNs, generateContext, options.UseOutbox);
+
+        // With --context, the sets the user must add to their own DbContext so EF maps the new entities, plus
+        // the usings those sets reference (the entity types live in the feature's namespace, not the context's).
+        var contextDbSets = generateContext
+            ? []
+            : entities.Select(e => $"    public DbSet<{e.Name}> {e.Plural} => Set<{e.Name}>();").ToArray();
+        var contextUsings = generateContext
+            ? []
+            : entities.Select(e => namespaces[e.Name])
+                .Where(n => !string.Equals(n, contextNs, StringComparison.Ordinal))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
         return new ScaffoldResult(
             files,
             RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests))
@@ -77,6 +94,8 @@ internal static class FeatureGenerator
             Packages = FeaturePackages(options.Validation, options.UseBs, options.UseOutbox),
             ProgramUsings = programUsings,
             ProgramRegistrations = programRegistrations,
+            ContextDbSets = contextDbSets,
+            ContextUsings = contextUsings,
         };
     }
 
@@ -141,7 +160,7 @@ internal static class FeatureGenerator
         bool generateContext,
         string targetDirectory,
         string ns,
-        string contextNs)
+        string? contextNs)
     {
         var entityName = entity.Name;
         var fields = entity.Fields;
@@ -161,9 +180,10 @@ internal static class FeatureGenerator
         var route = Identifiers.ToRoutePath(plural);
         var idConstraint = idType == "Guid" ? "guid" : idType;
 
-        // The handlers name the DbContext, which lives with the root. An --context DbContext is the user's own
-        // and they wire it themselves (see the next-steps), so nothing is assumed about where it lives.
-        var usings = generateContext ? Usings(ns, [contextNs]) : "";
+        // The handlers name the DbContext. Emit the using for its namespace whenever it differs from this
+        // slice's own (Usings drops it when they match) — including an --context class resolved elsewhere.
+        // A null contextNs means an --context class we couldn't locate: assume nothing, emit no using.
+        var usings = contextNs is null ? "" : Usings(ns, [contextNs]);
 
         var tokens = new (string, string)[]
         {
@@ -249,9 +269,10 @@ internal static class FeatureGenerator
 
             if (generateContext)
             {
+                // generateContext ⇒ contextNs is the root namespace (never null; only --context leaves it null).
                 files.Add(new ScaffoldFile(
                     Path.Combine(testDirectory, plural + "PersistenceTests.cs"),
-                    RenderPersistenceTests(testNamespace, ns, contextNs, entityName, plural, context, idType, fields, useValueObjects)));
+                    RenderPersistenceTests(testNamespace, ns, contextNs!, entityName, plural, context, idType, fields, useValueObjects)));
             }
         }
 
@@ -840,12 +861,12 @@ internal static class FeatureGenerator
             steps.Append("     Link BootstrapStyles() in your Head.\n");
         }
 
-        // The framework services are wired into Program.cs automatically (see above). With --context the
-        // DbContext is the user's own, so remind them to surface the new entity on it.
+        // The framework services and the DbSet are wired in automatically. With --context on a hand-written
+        // DbContext, its OnModelCreating still needs the Rask conventions to pick up the generated config.
         if (!generatedContext)
         {
-            steps.Append("  ").Append(++step).Append(". In your ").Append(context).Append(", add `public DbSet<").Append(entity).Append("> ").Append(plural).Append(" => Set<").Append(entity).Append(">();`\n");
-            steps.Append("     (and make sure OnModelCreating calls ApplyConfigurationsFromAssembly(...) + ApplyRaskConventions()).\n");
+            steps.Append("  ").Append(++step).Append(". If ").Append(context).Append(" is your own, ensure its OnModelCreating calls\n");
+            steps.Append("     modelBuilder.ApplyConfigurationsFromAssembly(...) + modelBuilder.ApplyRaskConventions().\n");
         }
 
         steps.Append("  ").Append(++step).Append(". Create the schema (EF Core migrations):\n");

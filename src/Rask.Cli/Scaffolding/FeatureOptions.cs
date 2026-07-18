@@ -30,6 +30,13 @@ internal sealed record FeatureOptions
     /// <summary>An existing DbContext to attach to, instead of generating one.</summary>
     public string? ContextOverride { get; init; }
 
+    /// <summary>
+    /// The namespace the <see cref="ContextOverride"/> class lives in, resolved by scanning the project. Lets
+    /// the generated slice emit the cross-namespace <c>using</c> it needs to see the context. <c>null</c> when
+    /// there's no override, or the context couldn't be located.
+    /// </summary>
+    public string? ContextNamespace { get; init; }
+
     public string? OutputOverride { get; init; }
 
     /// <summary>

@@ -25,6 +25,22 @@ internal sealed record ScaffoldResult(IReadOnlyList<ScaffoldFile> Files, string?
     public IReadOnlyList<string> ProgramRegistrations { get; init; } = [];
 
     /// <summary>
+    /// For an <c>--context</c> run: the <c>DbSet</c> property lines to add to the user's existing DbContext so
+    /// the new entities are mapped. Empty when the run generates its own context (the sets are baked in there).
+    /// </summary>
+    public IReadOnlyList<string> ContextDbSets { get; init; } = [];
+
+    /// <summary>For an <c>--context</c> run: namespaces the added <see cref="ContextDbSets"/> reference, so the
+    /// command can add any missing <c>using</c> to the context file.</summary>
+    public IReadOnlyList<string> ContextUsings { get; init; } = [];
+
+    /// <summary>
+    /// For an <c>--context</c> run: the resolved path of the file declaring that DbContext, so the command can
+    /// insert the <see cref="ContextDbSets"/>. <c>null</c> when the class couldn't be located in the project.
+    /// </summary>
+    public string? ContextFilePath { get; init; }
+
+    /// <summary>
     /// The project/solution the command should restore (and guard against overwriting), relative to the target
     /// directory. <c>null</c> means the single-project default (<c>{name}.csproj</c> at the target root). A
     /// multi-project template (e.g. <c>wasm-hosted</c>) sets this to its <c>{name}.sln</c>, which has no root csproj.

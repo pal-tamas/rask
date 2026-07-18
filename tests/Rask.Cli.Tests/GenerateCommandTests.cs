@@ -244,8 +244,39 @@ public sealed class GenerateCommandTests
         Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
         // The context is the user's own — we don't register a factory for it.
         Assert.DoesNotContain("AddDbContextFactory", program, StringComparison.Ordinal);
-        // …but the next-steps still remind them to surface the entity on their context.
+        // The context class isn't in the project here, so the DbSet to add is printed as a fallback.
         Assert.Contains("public DbSet<Product> Products => Set<Product>();", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Explicit_context_adds_the_dbset_and_usings_to_the_resolved_context()
+    {
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Features/Products/ProductsDbContext.cs",
+            "using Microsoft.EntityFrameworkCore;\n\n" +
+            "namespace MyApp.Features.Products;\n\n" +
+            "public sealed class ProductsDbContext(DbContextOptions<ProductsDbContext> options) : DbContext(options)\n" +
+            "{\n" +
+            "    public DbSet<Product> Products => Set<Product>();\n\n" +
+            "    protected override void OnModelCreating(ModelBuilder modelBuilder)\n" +
+            "    {\n" +
+            "        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ProductsDbContext).Assembly);\n" +
+            "        modelBuilder.ApplyRaskConventions();\n" +
+            "    }\n" +
+            "}\n");
+
+        var exit = await command.ExecuteAsync(["feature", "Order", "--fields", "Total:decimal", "--context", "ProductsDbContext"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var ctx = fs.Files[Path.GetFullPath("/proj/Features/Products/ProductsDbContext.cs")];
+        // The DbSet + the using it needs are inserted into the user's existing context — no manual edit.
+        Assert.Contains("public DbSet<Order> Orders => Set<Order>();", ctx, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Orders;", ctx, StringComparison.Ordinal);
+        // …and the generated slice imports the context's namespace so it compiles.
+        var page = fs.Files[Path.GetFullPath("/proj/Features/Orders/OrdersPage.cs")];
+        Assert.Contains("using MyApp.Features.Products;", page, StringComparison.Ordinal);
+        Assert.Contains("Added 1 DbSet", console.OutText, StringComparison.Ordinal);
     }
 
     private static int Occurrences(string haystack, string needle)

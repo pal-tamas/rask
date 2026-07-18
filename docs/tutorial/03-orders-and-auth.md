@@ -13,39 +13,21 @@ rask generate feature Order Total:decimal ProductId:guid Placed:datetime \
   --context ProductsDbContext --validation dataannotations
 ```
 
-This writes `Features/Orders/` (entity, request, pages, CQRS handlers) **without** a new `DbContext`.
+This writes `Features/Orders/` (entity, request, pages, CQRS handlers) **without** a new `DbContext` —
+because we pointed it at the one we already have. The CLI reports:
+
+```
+Added 1 DbSet(s) to Features/Products/ProductsDbContext.cs.
+```
+
+It found `ProductsDbContext`, added `public DbSet<Order> Orders => Set<Order>();` next to `Products` (with the
+`using` it needs), and the generated `Orders` pages import the context's namespace — so it compiles as-is, no
+hand-edits. Your one `ProductsDbContext` now holds both `Products` and `Orders`: one database, one context.
 
 > **Relationships aren't generated yet.** You might expect `Order 1:n Product` — the CLI can parse that
 > grammar, but it doesn't emit relationships today ([#479](https://github.com/pal-tamas/rask/issues/479)).
 > So we model the link the simple way: a plain `ProductId:guid` field on `Order`. That's a normal foreign
 > key; you just wire the navigation yourself if you want one.
-
-### Add the DbSet by hand
-
-Because we shared a context, the generator can't map `Order` on its own — it prints one line for you to add.
-Open `Features/Products/ProductsDbContext.cs` and add the `Orders` set next to `Products`:
-
-```csharp
-public sealed class ProductsDbContext(DbContextOptions<ProductsDbContext> options) : DbContext(options)
-{
-    public DbSet<Product> Products => Set<Product>();
-    public DbSet<Order> Orders => Set<Order>();   // ← add this (and: using Shop.Features.Orders;)
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ProductsDbContext).Assembly);
-        modelBuilder.ApplyRaskConventions();
-    }
-}
-```
-
-(`ApplyConfigurationsFromAssembly` already picks up the generated `OrderConfiguration`, so that's all.)
-
-> **One more import.** Because `Order` shares the context that lives in the `Products` folder, the generated
-> `Orders` files (`OrdersPage`, `CreateOrder`, …) reference `ProductsDbContext` across namespaces but don't
-> import it yet ([#476](https://github.com/pal-tamas/rask/issues/476)). Add `using Shop.Features.Products;`
-> to the top of those files — or, simplest, add a project-wide `global using Shop.Features.Products;` in a
-> `GlobalUsings.cs` — so they compile.
 
 ### Migrate
 
