@@ -1955,9 +1955,17 @@ public abstract partial class SharedSmokeTests
         // read — poll for each rather than asserting once.
         await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // The brand palette actually overrides Bootstrap's :root defaults (global.css loads after it).
+        // The brand palette actually overrides Bootstrap's :root defaults: tokens.css (linked after
+        // bootstrap.min.css) maps --bs-primary onto the violet --accent through the Bootstrap 5.3
+        // --bs-*-rgb bridge. The exact shade tracks the active theme — dark rgb(139,92,246) / light
+        // rgb(124,58,237) — so assert the primary is one of the two brand violets and NOT Bootstrap's
+        // default blue, rather than a single hard-coded hex. Read --bs-primary-rgb (a literal triplet)
+        // rather than --bs-primary (a var(--accent) whose computed spelling varies), and normalise
+        // whitespace so the comma spacing the browser returns doesn't matter.
         await Page.WaitForFunctionAsync(
-            "() => getComputedStyle(document.documentElement).getPropertyValue('--bs-primary').trim() === '#7C3AED'",
+            "() => { const p = getComputedStyle(document.documentElement)"
+            + ".getPropertyValue('--bs-primary-rgb').replace(/\\s+/g, '');"
+            + " return p === '139,92,246' || p === '124,58,237'; }",
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 
