@@ -1,5 +1,7 @@
 # Rask.Outbox — a transactional outbox on your database
 
+> **In practice:** [Tutorial Ch 7](tutorial/07-outbox-events.md) · recipe [publish a domain event through the outbox](recipes.md#publish-a-domain-event-through-the-outbox) · [cheat sheet](cheatsheet.md).
+
 `Rask.Outbox` gives [`Rask.Data`](data.md) aggregates **durable, crash-safe domain-event delivery** on the
 app's own database — no message broker, no Redis. It's the durable counterpart to `Rask.Data`'s in-process
 publisher, and what `rask generate feature --outbox` wires up.

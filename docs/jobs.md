@@ -1,5 +1,7 @@
 # Rask.Jobs — durable background jobs on your database
 
+> **In practice:** [Tutorial Ch 4](tutorial/04-background-jobs.md) · recipe [run work off the request thread](recipes.md#run-work-off-the-request-thread) · [cheat sheet](cheatsheet.md).
+
 `Rask.Jobs` runs **background work off the request thread**, stored in the app's own database — no message
 broker, no Redis. Enqueue a job and a hosted worker runs it later, **at-least-once**, with exponential-backoff
 retries; it also runs **delayed** and durable **interval-recurring** jobs. Scaffold one with

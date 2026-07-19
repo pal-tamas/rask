@@ -1,5 +1,7 @@
 # Rask.Cache — a developer-facing cache on your database
 
+> **In practice:** [Tutorial Ch 6](tutorial/06-cache.md) · recipe [cache an expensive query](recipes.md#cache-an-expensive-query) · [cheat sheet](cheatsheet.md).
+
 `Rask.Cache` caches computed values in the app's own database — no message broker, no Redis. It implements
 the standard **`IDistributedCache`** (so it drops straight into ASP.NET session state, output caching, and
 anything else built on the abstraction) and adds a typed **`ICache`** convenience layer with a read-through

@@ -4,6 +4,9 @@
 Rask a short, task-focused command line on top of the .NET SDK. It is dependency-free, it generates or
 shells out to `dotnet` for everything it does, and it never gets in the way of the tools you already use.
 
+> **In a hurry?** The [cheat sheet](cheatsheet.md) lists every command on one page, and the
+> [recipes](recipes.md) answer "how do I do X?" with the command and the wiring line.
+
 ## Install
 
 ```bash
@@ -147,9 +150,10 @@ The generated code compiles as-is in any project scaffolded by `rask new` — th
 audit stamps + a domain-events buffer), so a generated `feature` needs **EF Core + `Rask.Cqrs` +
 `Rask.Data`** referenced — `rask generate` **adds those packages to the project for you**
 (`dotnet add package` for EF Core + SQLite, `Rask.Cqrs`, `Rask.Data`, and — with `--bs`/`--validation` —
-`Rask.Bootstrap` / the validation library; pass `--no-restore` to skip). It then prints the DI
-registration (`AddRaskCqrs()` + `AddRaskData()` + `AddDbContextFactory` with the interceptors) and the
-migration to create and apply with [`rask db`](#rask-db--ef-core-migrations) before it works.
+`Rask.Bootstrap` / the validation library; pass `--no-restore` to skip). It then **writes the DI
+registration** (`AddRaskCqrs()` + `AddRaskData()` + `AddDbContextFactory` with the interceptors) into
+`Program.cs` for you — falling back to printing it if it can't find the file — and prints the migration
+to create and apply with [`rask db`](#rask-db--ef-core-migrations) before it works.
 
 Every command has short aliases: `rask g` = `rask generate`, and `g f` / `g c` / `g p` scaffold a
 feature / component / page.
