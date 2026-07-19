@@ -1,5 +1,7 @@
 # Rask.Data — base entity + EF Core interceptors
 
+> **In practice:** [Tutorial Ch 2](tutorial/02-first-feature.md) · recipe [add a feature to an existing database](recipes.md#add-a-feature-to-an-existing-database) · [cheat sheet](cheatsheet.md).
+
 `Rask.Data` is a tiny, provider-agnostic data layer for **Entity Framework Core** applications. It gives
 your entities a shared base with identity, audit stamps, and a domain-events buffer, and drives four
 production concerns — auditing, soft delete, optimistic concurrency, and domain-event publication —

@@ -1,5 +1,7 @@
 # Authentication in Rask
 
+> **In practice:** [Tutorial Ch 3](tutorial/03-orders-and-auth.md) · recipe [require login on a page](recipes.md#require-login-on-a-page) · [cheat sheet](cheatsheet.md).
+
 Rask ships the *plumbing* for authentication — a scoped current-user, a sign-in/out handshake, route
 guards, and a declarative gate — and lets you bring any backing store (a cookie, a JWT, ASP.NET Identity,
 Keycloak/OIDC, …). This guide shows the complete, copy-pasteable flow for each combination.
