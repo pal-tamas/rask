@@ -4,13 +4,13 @@ namespace Rask.SQLite;
 
 /// <summary>
 /// Entity Framework Core entry point: a drop-in replacement for <c>UseSqlite</c> that also wires the
-/// Rails-style production pragmas onto every connection the context opens.
+/// production pragmas onto every connection the context opens.
 /// </summary>
 public static class RaskSqliteDbContextOptionsExtensions
 {
     /// <summary>
     /// Configures the context to use SQLite with <paramref name="connectionString"/> and applies the
-    /// <see cref="SqlitePragmaOptions"/> (Rails production defaults, overridable via
+    /// <see cref="SqlitePragmaOptions"/> (production defaults, overridable via
     /// <paramref name="configure"/>) on every connection open. Swap your <c>UseSqlite(cs)</c> for
     /// <c>UseRaskSqlite(cs)</c> and you are done.
     /// </summary>
@@ -18,7 +18,7 @@ public static class RaskSqliteDbContextOptionsExtensions
     /// <param name="connectionString">The SQLite connection string.</param>
     /// <param name="configure">Overrides for the production pragma defaults.</param>
     /// <param name="configureRetry">
-    /// When supplied (even as an empty <c>_ =&gt; { }</c>), registers the Rails-style fair-interval
+    /// When supplied (even as an empty <c>_ =&gt; { }</c>), registers the fair-interval
     /// <see cref="RaskSqliteExecutionStrategy"/> so <c>SaveChanges</c> and queries retry on
     /// <c>SQLITE_BUSY</c>/<c>SQLITE_LOCKED</c>. Enabling it turns SQLite's native busy handler off
     /// (<c>busy_timeout=0</c>) and lowers Microsoft.Data.Sqlite's own blocking command-timeout so the

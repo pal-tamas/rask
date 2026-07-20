@@ -14,22 +14,18 @@ unchanged.
 > pre-1.0: APIs may shift. **Native device *backends*** ship for share, geolocation, clipboard, vibration,
 > wake lock, and network info — one `host.UsePlatform(new ApplePlatform(…))` / `new AndroidPlatform(this)`
 > wires them all, and the framework resolves each native-first over the WebView's JS (see
-> [Native device backends](#native-device-backends)) — with biometrics/push still to come. The native client
+> [Native device backends](native-devices.md#native-device-backends)) — with biometrics/push still to come. The native client
 > now shares the
 > transport-neutral DOM behaviour — rAF input/scroll coalescing, keyboard + drag events, and
 > scoped-CSS FOUC gating — with the Server and WASM clients (see [Roadmap](#roadmap)); only the
 > scoped-JS invoke gate and file uploads remain host-specific.
 
-- [How it fits](#how-it-fits)
-- [Get started](#get-started)
-- [Safe-area insets (notch / status bar)](#safe-area-insets-notch--status-bar)
-- [Two modes: Local and Server](#two-modes-local-and-server)
-- [The `INativeWebView` bridge](#the-inativewebview-bridge)
-- [Wiring a platform head](#wiring-a-platform-head)
-- [Device capabilities](#device-capabilities)
-- [Native device backends](#native-device-backends)
-- [Honest framing](#honest-framing)
-- [Roadmap](#roadmap)
+## On this page
+
+- [Modes & the JS bridge](native-bridge.md) — Local vs Server, INativeWebView, platform heads, asset serving.
+- [Device capabilities & chrome](native-devices.md) — safe-area insets, device backends, native header/footer.
+
+Also in this doc: [How it fits](#how-it-fits), [Get started](#get-started), [Honest framing](#honest-framing), [Roadmap](#roadmap).
 
 ---
 
@@ -52,7 +48,7 @@ The render → diff → payload pipeline lives in `LiveSessionBase` (Rask.Core) 
 and turns WebView events back into handler/navigate dispatches — structurally a mirror of
 `WasmLiveSession`. Because the C# host is transport-agnostic, the `Rask.Native` library targets plain
 `net10.0` and builds/tests with **no iOS/Android SDK workloads**; the WebView itself is abstracted behind
-[`INativeWebView`](#the-inativewebview-bridge), implemented per platform in the app head.
+[`INativeWebView`](native-bridge.md#the-inativewebview-bridge), implemented per platform in the app head.
 
 ## Get started
 
@@ -68,9 +64,9 @@ dotnet build -t:Run -f net10.0-android       # Android emulator
 dotnet build -t:Run -f net10.0-ios           # iOS simulator (macOS + Xcode)
 ```
 
-The **`--host`** parameter picks the mode (see [Two modes](#two-modes-local-and-server)):
+The **`--host`** parameter picks the mode (see [Two modes](native-bridge.md#two-modes-local-and-server)):
 `--host local` (default) scaffolds the in-process app below; `--host server` scaffolds a thin shell over a
-remote Rask Server with the [native capability bridge](#native-device-apis-from-a-server-app-the-capability-bridge)
+remote Rask Server with the [native capability bridge](native-bridge.md#native-device-apis-from-a-server-app-the-capability-bridge)
 (its heads are `Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`, and there are no `App.cs`
 components — the server renders them).
 
@@ -95,7 +91,7 @@ calls `RunLocalAsync<App>(webView)`, and provides the WebView bridge.
 > `net10.0-ios;net10.0-android` (so they sit outside `Rask.slnx`). Build/run either directly — the
 > `-p:RaskNativeHeads=true` makes `Rask.Native` build its platform heads from source:
 > `dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android -p:RaskNativeHeads=true`
-> (or `-f net10.0-ios`). The Local one shows how [a full app's assets](#serving-a-full-apps-assets) are
+> (or `-f net10.0-ios`). The Local one shows how [a full app's assets](native-bridge.md#serving-a-full-apps-assets) are
 > served on-device. (Template users don't need the flag — the published package already carries the heads.)
 
 Two ordering rules the generated heads already follow — keep them if you edit a head:
@@ -110,350 +106,6 @@ Two ordering rules the generated heads already follow — keep them if you edit 
   Source={sandboxPath}")` on `host.Services` (the raw, reflection-free path — safe under iOS AOT) and
   inject `IRaskSqliteConnectionFactory`. The showcase's **Todos** tab does exactly this
   (`SqliteTodoStore`), so it survives an app restart on device while staying in-memory on Server/WASM.
-
-## Safe-area insets (notch / status bar)
-
-The boot shell requests an **edge-to-edge viewport** (`viewport-fit=cover`), so without padding the
-UI would render *under* the status bar, notch / Dynamic Island, and home indicator. The template's
-`App.cs` pads `Body` by the device safe-area insets so content always clears them:
-
-```csharp
-protected override Component? Head =>
-[
-    Title()["Rask App"],
-    Meta("utf-8"),
-    Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover")
-];
-
-protected override Component? Render() =>
-[
-    Doctype(),
-    Html("en")[
-        Head(),
-        // Pad the body by the device safe-area insets so content clears the status bar / notch /
-        // home indicator (the boot shell requests an edge-to-edge viewport with viewport-fit=cover).
-        Body(Style: "margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
-                    "env(safe-area-inset-bottom) env(safe-area-inset-left)")[
-            /* nav, router, … */
-        ]
-    ];
-```
-
-If you restructure `App.cs`, keep the `viewport-fit=cover` meta and the `env(safe-area-inset-*)`
-padding together — dropping either brings content back under the notch.
-
-## Two modes: Local and Server
-
-```csharp
-using Rask.Native;
-
-// Native + Local — the app runs in-process on the device (offline, store-distributable).
-var host = NativeAppHost.CreateDefault();
-// host.Services.AddSingleton<IMyService, MyService>();   // register app services
-NativeApp app = await host.RunLocalAsync<App>(webView);   // webView: your INativeWebView
-
-// Native + Server — the WebView is a thin native shell over a remote Rask Server (wss://).
-NativeServerShell shell = NativeAppHost.ConnectToServer(new Uri("https://app.example.com/"));
-// the platform head navigates its WebView to shell.ServerBaseUrl; the server serves its own client.
-```
-
-- **Local** is the offline native app: the whole app (routing, state, handlers) runs on-device; navigations
-  and state changes never touch the network. `RunLocalAsync` builds the DI container, wraps your `App` in a
-  `RootErrorBoundary`, seeds the route, and wires the WebView. The first render fires when the WebView's
-  client posts its `ready` message, so it's safe to call before the WebView finishes loading.
-- **Server** makes the device a native, store-distributable shell over a server-driven app — the same
-  `Rask.Server` app, now installable with native device APIs available to the page (see below).
-
-### Native device APIs from a Server app (the capability bridge)
-
-In Server mode the C# runs on the server and the device is a WebView, so a mid-handler `IShare` call can't
-work — but a plain **`Shareable`** button still pops the **native** sheet, because the head injects the
-[capability bridge](#native-device-backends) into the page. Scaffold the Server-mode head with the
-`--host` parameter:
-
-```bash
-rask new MyApp --template native --host server   # (--host local is the default)
-```
-
-The generated head (`Platforms/Android/ServerActivity.cs`, `Platforms/iOS/ServerAppDelegate.cs`) points its
-WebView at your `ConnectToServer(...)` URL and wires the bridge with the two `NativeCapabilities` helpers:
-
-- **`NativeCapabilities.BridgeScript`** — injected at each navigation **only for your trusted origin**, so
-  the page sees `window.__raskNative.capabilities` + `invoke(name, data)`.
-- **`NativeCapabilities.TryHandleAsync(messageJson, share)`** — the WebView's script-message handler routes
-  every posted message here with a native `IShare` (the scaffold's `NativeShare`).
-
-Now the *same* `Shareable` component that renders on the server fires the device's native
-`UIActivityViewController` / `Intent.ACTION_SEND` when run in the shell — the "superpower". **Security:** the
-generated head injects `BridgeScript` only for your origin and opens off-origin links in the system browser
-(`WKNavigationDelegate.decidePolicyForNavigationAction` / `shouldOverrideUrlLoading`), so the WebView never
-leaves your origin and no other page can reach native; the bridge is a fixed component envelope, not open
-native RPC. (For a local `http://10.0.2.2:<port>` dev server, allow cleartext in `AndroidManifest.xml`.)
-
-## The `INativeWebView` bridge
-
-`Rask.Native` **ships the platform WebView heads** — `RaskWkWebView` (iOS, `WKWebView`) and
-`RaskAndroidWebView` (Android, `android.webkit.WebView`) — under `Platforms/{iOS,Android}`, built when the
-package is packed with the mobile workloads. Your app head just news one up, so you almost never implement
-the bridge yourself. Both are the platform-specific implementation of one contract:
-
-```csharp
-public interface INativeWebView
-{
-    ValueTask ApplyRenderAsync(ReadOnlyMemory<byte> frameUtf8);   // .NET → WebView: push a rendered frame
-    ValueTask EvaluateJavaScriptAsync(string javaScript);         // .NET → WebView: IJSRuntime interop
-    Func<byte[], Task>? OnMessage { get; set; }                   // WebView → .NET: events / jsResult / …
-}
-```
-
-`ApplyRenderAsync` hands a frame (UTF-8 JSON) to the WebView's `window.__raskNative.applyRender`.
-`OnMessage` is invoked by the platform whenever the page posts back (a component event, a `navigate`, a
-`ready` handshake, an IJSRuntime `jsResult`). Both sides speak the same wire format the WASM host uses over
-its `Dispatch` boundary. Implement it yourself only for a custom WebView; the shipped heads already do — each
-serves a **real origin** (a `WKUrlSchemeHandler` on iOS, `WebViewClient.ShouldInterceptRequest` on Android)
-so secure-context device APIs (`localStorage`, `crypto.subtle`) work, and marshals `ApplyRenderAsync`/
-`EvaluateJavaScriptAsync` onto the UI thread.
-
-### Why both origins are secure contexts
-
-`crypto.subtle`, `navigator.credentials`, `navigator.locks` and `navigator.storage.estimate` only exist on a
-**potentially trustworthy** origin, and an origin that misses that bar doesn't fail loudly — those APIs are
-simply `undefined`. Each head clears it a different way, and only one of them is obvious:
-
-| Head | Origin | Secure context because |
-|------|--------|------------------------|
-| Android | `https://appassets.rask/` | the `https` scheme — the ordinary rule |
-| iOS | `raskapp://local/` | WebKit treats a **custom `WKURLSchemeHandler` scheme** as trustworthy |
-
-The iOS row surprises people (`raskapp://` is not `https`, and the host isn't `localhost`, so the
-[W3C algorithm][secure-contexts] alone would say no). WebKit goes further than the spec's baseline and
-grants scheme-handler origins a secure context regardless of host — verified directly against `WKWebView`:
-`raskapp://local/` reports `isSecureContext === true` and a live `crypto.subtle`. The Appium suite asserts
-this on device, so a future change to the scheme or origin can't quietly cost you the whole secure-context
-API tier.
-
-> If you write your own `INativeWebView`, this is the thing to preserve. Serving the app from `file://` or a
-> plain-`http` non-loopback origin would silently drop those APIs.
-
-[secure-contexts]: https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
-
-## Wiring a platform head
-
-The app head (a `net10.0-ios` / `net10.0-android` project) is just an entry point that composes the shipped
-pieces — the WebView bridge, the [native share backend](#native-device-backends), and (Local mode) the host:
-
-```csharp
-// Android MainActivity / iOS AppDelegate (Native + Local):
-var webView = new RaskAndroidWebView(this);          // or new RaskWkWebView() on iOS
-var host = NativeAppHost.CreateDefault();
-host.UsePlatform(new AndroidPlatform(this));         // native backends: share, geolocation, clipboard, …
-var app = await host.RunLocalAsync<App>(webView);
-webView.LoadShell();
-```
-
-The heads serve the boot shell + client + your bundled assets through
-[`NativeOriginAssets`](#serving-a-full-apps-assets) (below), so there is nothing else to wire. See
-`samples/Rask.Example.Native` for a complete head, and the `rask-native` template for a fresh one.
-
-## Serving a full app's assets
-
-The boot shell + client are only two files; a real app also loads **scoped CSS/JS** (`/_rask/a/{hash}.{ext}`),
-your `wwwroot` static files, Bootstrap (`/_content/Rask.Bootstrap/*`) and fetches `data/*.json`. `Rask.Native`
-ships the request table so your scheme handler is a one-liner — **`NativeOriginAssets.Resolve`**:
-
-```csharp
-// In your WebViewClient.ShouldInterceptRequest / WKUrlSchemeHandler:
-var path = new Uri(url).AbsolutePath;
-if (NativeOriginAssets.Resolve(path, ReadBundledAsset) is { } asset)
-    return Respond(asset.Body, asset.ContentType);   // shell/client + scoped assets + your static files
-return EmptyOk();                                     // under-origin miss → don't hang the page
-```
-
-It resolves the shell/client (`NativeClientAssets`) and scoped assets (`ScopedAssetRegistry`) itself, and
-delegates everything else to your `Func<string, byte[]?>` reader — typically the app's **bundled assets**
-(Android `AssetManager.Open`, iOS a path under `NSBundle.MainBundle`), so it all works **offline**. For the
-in-process demo `HttpClient` (so data-driven pages resolve `data/*.json` off the network too), register it
-over **`NativeAssetHttpHandler`** with the same reader and `BaseAddress` = your app origin. See
-`samples/Rask.Example.Native` for a complete working head.
-
-## Device capabilities
-
-The `IJSRuntime`-backed browser wrappers in `Rask.Core.Browser` (storage, media query, the observers,
-crypto, …) work **through the WebView's JS engine** with no extra code — `NativeAppHost` registers them and
-`NativeJSRuntime` dispatches them over the bridge. On top of that, `Rask.Native` **ships native C# backends**
-for the interfaces where a native API beats the WebView (or the WebView doesn't expose one at all); the
-framework wires them ahead of the JS defaults, so you inject the ordinary interface and get the native
-implementation. See [Native device backends](#native-device-backends).
-
-## Native device backends
-
-A **native backend** is a C# class that implements a `Rask.Core.Browser` (or `Rask.Client.Browser`)
-interface against the platform SDK — `CLLocationManager`, `UIPasteboard`, `ClipboardManager`, and friends —
-instead of the WebView's JS. These live in `Rask.Native/Platforms/{iOS,Android}` and compile only for the
-head TFMs (the base `net10.0` build stays workload-free). You never register them one by one: a **platform
-module** does it, and the framework resolves native-first.
-
-```csharp
-// Platforms/iOS/AppDelegate.cs — before RunLocalAsync
-host.UsePlatform(new ApplePlatform(() => Window?.RootViewController));
-
-// Platforms/Android/MainActivity.cs — before RunLocalAsync
-host.UsePlatform(new AndroidPlatform(this));
-```
-
-`ApplePlatform` / `AndroidPlatform` implement `INativePlatform`; `NativeAppHost.RunLocalAsync` invokes them
-**before** wiring the JS-backed fallbacks, and every registration uses `TryAdd`. So an interface a platform
-backs natively **wins** (native-first), an explicit `host.Services` registration you add yourself wins over
-even that, and every interface no one backed falls back to the WebView's JS — the framework picks the best
-implementation per interface with no per-API wiring.
-
-The shipped native backends (both platforms):
-
-| Interface | iOS | Android |
-|---|---|---|
-| `IShare` | `UIActivityViewController` | `Intent.ACTION_SEND` |
-| `IGeolocation` | `CLLocationManager` | `LocationManager` |
-| `IClipboard` | `UIPasteboard` | `ClipboardManager` |
-| `IVibration` | system vibration (AudioToolbox) | `Vibrator` / `VibratorManager` |
-| `IWakeLock` | `UIApplication.IdleTimerDisabled` | window `FLAG_KEEP_SCREEN_ON` |
-| `INetworkInfo` | `NWPathMonitor` | `ConnectivityManager` |
-| `IBattery` | `UIDevice` battery monitoring | `BatteryManager` |
-| `ISpeechSynthesis` | `AVSpeechSynthesizer` | `TextToSpeech` |
-| `ISpeechRecognition` | `SFSpeechRecognizer` + `AVAudioEngine` | `SpeechRecognizer` |
-| `IScreenInfo` | `UIScreen` | `DisplayMetrics` |
-| `IDeviceOrientation` | CoreMotion (`CMMotionManager`) | `SensorManager` (rotation vector) |
-| `IDeviceMotion` | CoreMotion (`CMMotionManager`) | `SensorManager` (accelerometer + gyroscope) |
-| `INotifications` | `UNUserNotificationCenter` | `NotificationManager` (+ channel) |
-| `IBadge` | `UNUserNotificationCenter.SetBadgeCount` | badge notification (`setNumber`) |
-
-So `await geolocation.GetCurrentPositionAsync()` returns a native fix (real permission prompt +
-`CLLocationManager` / `LocationManager` accuracy) instead of `navigator.geolocation`, `clipboard.WriteTextAsync`
-hits `UIPasteboard` / `ClipboardManager` (no WebView gesture gate), `notifications.ShowAsync(...)` raises a real
-OS notification where a WebView has no `Notification` API at all, and so on. Some backends need platform
-permissions — add `ACCESS_FINE_LOCATION` / `ACCESS_NETWORK_STATE` / `POST_NOTIFICATIONS` (Android) and
-`NSLocationWhenInUseUsageDescription` (iOS), and the head requests the location and notification runtime grants.
-
-The **declarative** `Shareable` still reaches the native share sheet through the **capability bridge**: the
-native client advertises `window.__raskNative.capabilities` and an `invoke(name, data)` that posts a
-`{ type: "capability" }` message; `NativeAppHost` routes it (via `NativeCapabilities.TryHandleAsync`) to the
-resolved `IShare` (`invoke("share", …)` → `IShare.ShareAsync`) — so a plain `Shareable` button pops the
-native sheet with no host-specific code. The **same** `NativeCapabilities` toolkit lets a **Native + Server**
-head inject the bridge into a remote page, so a plain Server app reaches device natives too — see
-[Native device APIs from a Server app](#native-device-apis-from-a-server-app-the-capability-bridge).
-
-**To add your own backend** (or override a shipped one), implement the interface in your head and register it
-on `host.Services` before `RunLocalAsync` — it wins over the platform module's version. Further native
-backends behind the *same* interfaces (biometrics, native push via APNs/FCM) are a follow-up (see
-[Roadmap](#roadmap)).
-
-## Native header & footer
-
-A native page is a small **composed tree**: the native bars (`NativeHeaderBar` / `NativeTabBar` /
-`NativeToolbar`) as siblings of a **`NativeWebView`**, which hosts the ordinary page shell
-(`Doctype`/`Html`/`Head`/`Body`). The native host projects the bars to a **real `UINavigationBar` +
-`UITabBar`/`UIToolbar`** on iOS, and a top bar + bottom tab/tool bar on Android, and serializes the
-`NativeWebView`'s HTML into the WebView between them. The bars are ordinary factory-built components — you
-compose them in `Render()`, they work like any other component:
-
-```csharp
-protected override Component? Render() =>
-[
-    NativeHeaderBar(Title: "Dashboard", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: OnAdd)]),
-    NativeWebView()[
-        Doctype(),
-        Html("en")[Head(), Body()[Router()]]
-    ],
-    NativeTabBar(Tabs: [
-        NativeTab(Title: "Home", Icon: NativeIcon.Home, To: Features.Routes.HomePage()),
-        NativeTab(Title: "Me",   Icon: NativeIcon.Person, To: Features.Routes.MePage()),
-    ], Selected: 0)
-];
-```
-
-- **`NativeWebView` hosts the HTML** — its children are the normal page shell; only native bars may sit outside
-  it. A bar nested inside the HTML (an element child, or inside `NativeWebView`'s content) is a **RASK032**
-  compile error — bars belong at the layout level, as siblings of `NativeWebView`.
-- **Type-safe icons** — `NativeIcon` pairs an iOS SF Symbol with an Android drawable/Material name; use a
-  curated member (`NativeIcon.Home`) or an escape hatch (`NativeIcon.Custom(sfSymbol, drawable)` /
-  `NativeIcon.SfSymbol(...)` / `NativeIcon.Drawable(...)`). Routes are type-safe too (`Features.Routes.*`).
-- **Tab badges** — a `NativeTab` takes an optional `Badge` string (an unread count like `"3"` / `"99+"`),
-  projected to `UITabBarItem.BadgeValue` (iOS) / a small overlay on the icon (Android). Leave it `null`/empty
-  for no badge; bind it to live state (e.g. `Badge: unread.ToString()`) and it updates on the next render.
-- **Segmented control** — `NativeHeaderBar` takes optional `Segments` (2–3 short labels) shown in place of the
-  title — a `UISegmentedControl` as the nav bar's `titleView` (iOS) / an equivalent row (Android). It is
-  controlled: bind `SelectedSegment` to state and handle `OnSegmentChanged(int)` (which runs on the render
-  thread and re-renders, like any callback). Use it for a small mode/sub-section switch:
-  `NativeHeaderBar(Segments: ["All", "Active", "Done"], SelectedSegment: filter, OnSegmentChanged: i => filter = i)`.
-- **Back button** — a `NativeBackButton` in the header's `Leading` slot pops the WebView history (like the
-  hardware Back button) — the platform back chevron on iOS, a "‹" on Android. Compose it on a drill-down page
-  (e.g. a detail route) to return to the previous screen; the initial route replaces the boot shell URL in
-  history so Back from the first navigation lands on the app's first screen, not the shell.
-- **Overflow menu** — a `NativeMenuButton` is a bar item (header `Leading`/`Trailing` or a toolbar's `Items`)
-  that opens a native pull-down of `NativeMenuItem`s — an iOS `UIMenu` on a `UIBarButtonItem`, an Android
-  `PopupMenu` — for secondary actions. It defaults to a "⋯" (ellipsis) icon; each entry has a `Title`, an
-  optional `Icon`, an `OnClick`, and an optional `Destructive: true` (iOS renders it in red). Menu selections
-  re-enter the ordinary handler path, so `OnClick` runs on the render thread and re-renders:
-  `NativeMenuButton(Items: [NativeMenuItem(Title: "Refresh", OnClick: OnRefresh), NativeMenuItem(Title: "Delete", Destructive: true, OnClick: OnDelete)])`.
-- **Bar buttons** run their `OnClick` on the render thread and re-render, like any Rask callback. **Tabs**
-  navigate to their route; the page recomputes `Selected` from the current route on the next render. Each
-  projected bar view carries a stable **accessibility identifier** (the tab/button title, or
-  `rask-native-header`), so screen readers — and UI tests like the Appium on-device E2E — can address it.
-- **Bars render no HTML** — they are collected during the render walk (so their factories are DI-correct and
-  callbacks wire to their owner); the last bar of a kind wins. Only the settled build's chrome is pushed, and
-  an unchanged bar never re-pushes (no flicker on a counter tick).
-- **Opt-in + inert elsewhere** — register an `INativeChrome` backend on `host.Services` before `RunLocalAsync`
-  (the platform WebView heads implement it; assign `webView.ChromeView` instead of `webView.View`), exactly
-  like `IShare`. With no backend registered the bars render nothing. Sharing an app across web + native? Branch
-  with `IsNative`: compose the native tree under the native shell and return the plain shell on Server/WASM.
-  This is a **bounded native-widget surface** (a header + footer), not a general native-control renderer.
-
-### Styling the bars
-
-The HTML inside `NativeWebView` is styled the usual way — scoped CSS, `global.css`, Bootstrap. The **bars**
-are real platform views, so they take **native** colors through a small, type-safe surface. `NativeColor` is
-the color sibling of `NativeIcon` — one authored value the platform head resolves to a `UIColor` (iOS) /
-`Color` (Android):
-
-```csharp
-NativeColor.Hex("#1E88E5")                                  // fixed
-NativeColor.Rgba(30, 136, 229)                              // fixed, from channels
-NativeColor.Adaptive(NativeColor.Black, NativeColor.White)  // light / dark — tracks the system theme
-NativeColor.System                                          // the platform default (the unset value)
-```
-
-Set colors **per bar** — every slot is optional, and an unset slot keeps the platform default (so styling is
-fully opt-in and backward compatible):
-
-```csharp
-NativeHeaderBar(Title: "Home",
-    Background: NativeColor.Hex("#1E88E5"),
-    Tint: NativeColor.White,                                 // leading/trailing button color
-    TitleColor: NativeColor.White),
-NativeTabBar(Tabs: [...],
-    Tint: NativeColor.Hex("#1E88E5"),                        // the selected tab
-    UnselectedTint: NativeColor.Hex("#6B7280")),
-```
-
-For an app-wide default, register a **`NativeTheme`** on `host.Services` (like `INativeChrome`); a per-bar
-color wins, the theme fills the slots a bar left unset, and a slot unset in both keeps the platform default:
-
-```csharp
-host.Services.AddSingleton(new NativeTheme
-{
-    Background = NativeColor.Hex("#1E88E5"),
-    Tint       = NativeColor.White,
-    TitleColor = NativeColor.White,
-});
-```
-
-- **Dark mode** — an `Adaptive(light, dark)` color resolves per appearance: on iOS via a dynamic `UIColor`
-  (it switches live); on Android against the current night mode (the Activity re-runs on a uiMode change).
-- **`NativeColor.System` vs. leaving it null** — omitting a color inherits the theme (then the platform
-  default); passing `NativeColor.System` explicitly *overrides* the theme and forces the platform default for
-  that one slot.
-- **Colors, not CSS** — this is a deliberately small surface (background, tint, title color). Bar fonts,
-  heights, and richer Material chrome are out of scope; the palette is kept in C#, so align it with your web
-  theme's tokens by hand (the showcase sources both from one `Brand` constant).
 
 ## Honest framing
 
@@ -489,10 +141,10 @@ sandbox, and real background execution — without giving up "the same component
    pairing, both mounting the **same** `Rask.Example.Shared.App`: `samples/Rask.Example.Native`
    (Native + Local, in-process) and `samples/Rask.Example.Native.Server` (Native + Server, a thin shell
    over `Rask.Example.Server`). They serve the full showcase's assets on-device through the framework's
-   [`NativeOriginAssets`](#serving-a-full-apps-assets). E2E is **Appium** (`tests/Rask.Native.Appium.Tests`):
+   [`NativeOriginAssets`](native-bridge.md#serving-a-full-apps-assets). E2E is **Appium** (`tests/Rask.Native.Appium.Tests`):
    it installs and drives the *real* app on an Android emulator / iOS simulator. In the **WebView** context it
    asserts the showcase rendered with its scoped CSS + Bootstrap; in the **native** context it asserts the
-   [native header/tab bar](#native-header--footer) projected to real platform bars and that **tapping a native
+   [native header/tab bar](native-devices.md#native-header--footer) projected to real platform bars and that **tapping a native
    tab navigates the WebView** (the round trip through the bridge into the router, read back from
    `document.location`). The Appium suite runs **locally, before push** (it needs a booted Android
    emulator / iOS simulator + an Appium server, so it isn't part of CI): boot a device, start
@@ -509,7 +161,7 @@ sandbox, and real background execution — without giving up "the same component
    `UIActivityViewController` / Android `Intent.ACTION_SEND`) and **native geolocation** (`IGeolocation`, iOS
    `CLLocationManager` / Android `LocationManager`) both have native head backends that override the
    JS-backed default via a head registration before `RunLocalAsync` (see
-   [Native device backends](#native-device-backends)) — the second proving the pattern holds for a
+   [Native device backends](native-devices.md#native-device-backends)) — the second proving the pattern holds for a
    request/response + subscription capability, not just fire-and-forget. This establishes the reusable
    framework-default-→-native-head-override seam; biometrics and native push (APNs/FCM) follow behind it.
 6. **In-process interop + history** — ✅ *fixed (surfaced by item 4's E2E).* (a) An out-of-render

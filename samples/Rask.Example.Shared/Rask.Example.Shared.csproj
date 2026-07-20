@@ -45,9 +45,14 @@
        Guides section. GuideContent reads them as raskdoc/{leaf} and renders to HTML with Markdig at
        render time (cached). The bare leaf is the slug, e.g. raskdoc/routing.md -> /guides/routing. -->
   <ItemGroup>
-    <EmbeddedResource Include="..\..\docs\*.md">
+    <!-- Recurse so subfolder guides (tutorial/, apis/, architecture/) are surfaced too. LogicalName is
+         the bare leaf (raskdoc/{leaf}.md), so the slug is the file name with no folder — matching how
+         Markdown.RewriteLinks routes an in-doc "dir/foo.md" link to /guides/foo. Leaf names are unique
+         across docs/, and the VerifyUniqueEmbeddedSourceNames guard below fails the build if that ever
+         breaks. GuideCatalog carries each subfolder guide's real path for the "edit on GitHub" link. -->
+    <EmbeddedResource Include="..\..\docs\**\*.md">
       <LogicalName>raskdoc/%(Filename)%(Extension)</LogicalName>
-      <Link>Docs/%(Filename)%(Extension)</Link>
+      <Link>Docs/%(RecursiveDir)%(Filename)%(Extension)</Link>
     </EmbeddedResource>
   </ItemGroup>
 

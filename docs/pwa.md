@@ -196,6 +196,8 @@ and shows a notification from the JSON payload (`{ title, body, icon, tag, data:
 
 ### Sending from your backend (`Rask.WebPush`)
 
+> Full reference: **[Rask.WebPush](webpush.md)**. The essentials:
+
 `Rask.WebPush` is a small, server-side package (it has no UI and no transport dependency, so it works
 from a `Rask.Server` app or the ASP.NET host behind a WASM PWA alike). Add it and register a sender:
 
@@ -356,7 +358,7 @@ from the running page — `RequestPermissionAsync()` then `ShowAsync(title, new 
 Use it for in-app alerts. For notifications delivered while the app is **closed**, use
 [`IWebPush`](#push-notifications-iwebpush) — those go through the service worker.
 
-See [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis) for the full surface.
+See [JS interop → Typed browser APIs](js-interop-runtime.md#typed-browser-apis) for the full surface.
 
 ---
 

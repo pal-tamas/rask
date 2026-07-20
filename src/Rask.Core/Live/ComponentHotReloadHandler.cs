@@ -10,7 +10,7 @@ namespace Rask.Core.Live;
 // calls) and save, C# Hot Reload applies the new IL to the running process — but the live session,
 // having no pending state change, wouldn't repaint until the next interaction. UpdateApplication closes
 // that gap by re-rendering every active session, so component edits show up on save (the closest a
-// compiled framework gets to Rails' no-build, edit-and-refresh loop).
+// compiled framework gets to a no-build, edit-and-refresh loop).
 //
 // Invoked only under `dotnet watch` (hot reload is a debug-time feature; a normal/published run never
 // calls MetadataUpdateHandlers), so it adds nothing to production.

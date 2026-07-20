@@ -7,7 +7,7 @@ namespace Rask.Core.Components;
 
 /// <summary>
 ///     Headless renderer for <see cref="IToaster" /> messages — the display half of Rask's toasts
-///     (Rails' <c>flash</c>). Mount <b>one</b> in the app layout (so it persists across client-side
+///     (a flash-message pattern). Mount <b>one</b> in the app layout (so it persists across client-side
 ///     navigations): it resolves the scoped <see cref="IToaster" />, subscribes to
 ///     <see cref="IToaster.Changed" />, and <see cref="IToaster.Consume" />s the queue into its own list.
 ///     The caller owns the markup via <see cref="Template" /> — Core ships no visual (see

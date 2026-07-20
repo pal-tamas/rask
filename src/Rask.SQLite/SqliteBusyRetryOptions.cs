@@ -8,8 +8,9 @@ namespace Rask.SQLite;
 /// package.
 /// </summary>
 /// <remarks>
-/// Ported from Ruby on Rails' SQLite busy handler (<a href="https://github.com/rails/rails/pull/51958">
-/// rails/rails#51958</a>): a <b>constant poll interval</b> — not exponential backoff, which measured up
+/// A constant-poll-interval busy handler (reference:
+/// <a href="https://github.com/rails/rails/pull/51958">https://github.com/rails/rails/pull/51958</a>):
+/// a <b>constant poll interval</b> — not exponential backoff, which measured up
 /// to 5× worse tail latency — that <b>yields the calling thread</b> between attempts (via
 /// <see cref="Task.Delay(TimeSpan, TimeProvider, CancellationToken)"/>), giving up once the total wait
 /// reaches <see cref="Timeout"/>. On the raw path the write lock is acquired through the native
@@ -23,13 +24,13 @@ public sealed class SqliteBusyRetryOptions
 {
     /// <summary>
     /// How long to keep retrying a contended write lock before giving up and surfacing
-    /// <c>SQLITE_BUSY</c>. Defaults to 5 seconds (Rails' default <c>timeout</c>).
+    /// <c>SQLITE_BUSY</c>. Defaults to 5 seconds.
     /// </summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// The constant wait between retries — the "fair interval". Defaults to 1 millisecond, matching
-    /// Rails' <c>busy_handler { sleep 0.001 }</c>. Keep it small: a uniform interval treats every waiter
+    /// The constant wait between retries — the "fair interval". Defaults to 1 millisecond.
+    /// Keep it small: a uniform interval treats every waiter
     /// equally and minimises tail latency.
     /// </summary>
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromMilliseconds(1);

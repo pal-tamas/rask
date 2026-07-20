@@ -79,7 +79,7 @@ mistake, the rule notes the ID.
   RatingStars(Value: _rating, OnRate: n => _rating = n)   // lambda captures this → parent re-renders
   ```
   A lambda over a plain local or a static method isn't wrapped and won't trigger a re-render. See
-  [composition → callbacks](composition.md#callbacks-child--parent).
+  [composition → callbacks](composition-callbacks-context.md#callbacks-child--parent).
 - **Don't expect a handler-only re-render to refire `OnPropsChanged`.** Auto-wrapped delegates are
   excluded from the `propsChanged` diff — changing only the lambda's identity doesn't refire it.
   `OnPropsChanged*` fires when a *bound* value (a prop, a route/query param) actually changes. See
@@ -95,7 +95,7 @@ mistake, the rule notes the ID.
   ```csharp
   Button(OnClickAsync: async () => _rows = await _api.LoadAsync(CancellationToken))["Load"]
   ```
-  See [composition → cancelling async work](composition.md#callbacks-child--parent) and
+  See [composition → cancelling async work](composition-callbacks-context.md#callbacks-child--parent) and
   [lifecycle → cancellation](lifecycle.md#cancellation-tied-to-component-lifetime).
 
 ## Context & dependency injection
@@ -104,7 +104,7 @@ mistake, the rule notes the ID.
   near the top, then `Context.Get<T>()` / `Required<T>()` / `Has<T>()` *inside `Render()`* below.
   Reading a context value latches the consumer out of the render cache, so it stays reactive even
   through a render-cached intermediate — that's the point. Provide a concrete type and consume by an
-  interface if you like. See [composition → context](composition.md#context-provide--consume).
+  interface if you like. See [composition → context](composition-callbacks-context.md#context-provide--consume).
 - **Always pair a manual subscription with its teardown.** If a component *above* the `Router()` (a
   sidebar, breadcrumb) needs to react to navigation or a store, subscribe in `OnMount` and
   unsubscribe in `OnUnmount` — otherwise the publisher keeps a strong reference to the unmounted
@@ -133,7 +133,7 @@ mistake, the rule notes the ID.
   ```
   Only reach for the indexer style (`() => _model.Items[i].Name`) when you need the row number or
   replace records rather than mutate them — and then copy the loop index into a per-iteration local.
-  See [forms §7](forms.md#7-nested--complex-models).
+  See [forms §7](forms-advanced.md#nested--complex-models).
 - **Reuse one validation rule across the form and the domain.** A value object that exposes its rule
   as a `static IEnumerable<string> Validate(T value)` (the shape of an inline validator) can be
   passed as a method group to `Input(Validate: Money.Validate)` *and* enforced inside the aggregate —
@@ -183,7 +183,7 @@ mistake, the rule notes the ID.
 
 - **Mint element refs with `ElementRef.New()` stored in a field.** A field keeps the ref id stable
   across renders (a local resets each render). Pass it via `Ref:`, then hand it to JS or a built-in
-  helper (`_input.FocusAsync(_js)`). See [JS interop → element refs](js-interop.md#element-refs).
+  helper (`_input.FocusAsync(_js)`). See [JS interop → element refs](js-interop-runtime.md#element-refs).
 - **Inject `IJSRuntime` through the constructor and call from a hook or handler** — interop is only
   live once the session is up (after `OnMount`, or inside handlers). One scoped `{Component}.css` /
   `{Component}.js` sits next to `{Component}.cs` and is auto-included and isolated; orphan or
@@ -232,7 +232,7 @@ mistake, the rule notes the ID.
 
 - **Key your lists — it's a performance rule too.** Keyed insert/remove/move ship as small *trusted*
   diff ops that preserve DOM identity; keyless structural changes fall back to a full-HTML morph. See
-  [architecture → keyed reconciliation](architecture/live-rendering.md#keyed-reconciliation-trusted-structural-ops).
+  [architecture → keyed reconciliation](architecture/live-rendering-codec.md#keyed-reconciliation-trusted-structural-ops).
 - **Treat `Key` as identity, not a reactive signal.** Changing a key mounts a fresh instance; it
   doesn't refire `OnPropsChanged`.
 - **Use a `[...]` collection expression to avoid a wrapper node** for sibling lists, and `null` for a

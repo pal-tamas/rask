@@ -6,7 +6,7 @@ namespace Rask.SQLite;
 
 /// <summary>
 /// An Entity Framework Core <see cref="ExecutionStrategy"/> that retries a contended write
-/// (<c>SQLITE_BUSY</c>/<c>SQLITE_LOCKED</c>) using Rails' fair interval: a <b>constant</b>
+/// (<c>SQLITE_BUSY</c>/<c>SQLITE_LOCKED</c>) using a fair interval: a <b>constant</b>
 /// <see cref="SqliteBusyRetryOptions.PollInterval"/> — not exponential backoff — awaited between
 /// attempts (so the thread is freed while waiting), giving up after
 /// <see cref="SqliteBusyRetryOptions.Timeout"/>. Registered for you by

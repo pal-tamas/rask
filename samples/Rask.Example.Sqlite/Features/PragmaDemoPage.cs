@@ -28,7 +28,7 @@ public sealed class PragmaDemoPage(
         """;
 
     // The non-blocking write path: BEGIN IMMEDIATE + a constant 1 ms fair-interval retry that yields the
-    // thread while it waits for the write lock (Rails' busy handler, ported).
+    // thread while it waits for the write lock (a fair-interval busy handler).
     private const string ImmediateSnippet =
         """
         await connectionFactory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
@@ -154,7 +154,7 @@ public sealed class PragmaDemoPage(
             H1(Class: "h3 mb-1")["SQLite production pragmas"],
             P(Class: "text-secondary mb-0")[
                 "One line — ", Code()["UseRaskSqlite"],
-                " — puts the Rails 8 production pragma set on every connection."
+                " — puts the production pragma set (WAL, foreign_keys, busy_timeout, …) on every connection."
             ]
         ],
 
@@ -229,7 +229,7 @@ public sealed class PragmaDemoPage(
                             Code()["ExecuteInImmediateTransactionAsync"],
                             ". Each takes the write lock with ", Code()["BEGIN IMMEDIATE"],
                             " and, when it's contended, polls every 1 ms — yielding the thread while it waits, ",
-                            "the .NET port of Rails' busy handler — so every writer commits with no thread blocked."
+                            "a fair-interval busy handler — so every writer commits with no thread blocked."
                         ],
                         Button("button", Class: "btn btn-primary", OnClickAsync: RunImmediateWritersAsync)[
                             I(Class: "bi bi-lightning-charge me-1"),
