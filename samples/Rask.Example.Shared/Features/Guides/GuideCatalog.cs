@@ -71,6 +71,8 @@ public static class GuideCatalog
         new("native", "Native (iOS/Android)",
             "WebView-hybrid native host — INativeWebView bridge, safe-area insets, native bars.",
             "bi-phone-fill", "Mobile & devices"),
+        new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPushSender, delivery results.",
+            "bi-send", "Mobile & devices"),
 
         new("authentication", "Authentication", "Cookie/JWT/OIDC on Server and WASM, route guards.",
             "bi-shield-lock", "Integration"),

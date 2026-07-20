@@ -279,6 +279,13 @@ them until tagged releases begin.
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
 ### Documentation
+- **A dedicated Web Push guide, and a fuller outbox guide.** New [`docs/webpush.md`](docs/webpush.md) documents
+  the shipped `Rask.WebPush` pillar as a first-class guide — `VapidKeys.Generate()`, `AddRaskWebPush(...)`,
+  storing the client `PushSubscription`, `IWebPushSender.SendAsync` and acting on the `WebPushResult`
+  (`ShouldDelete`/`ShouldRetry`), the default-service-worker payload shape and the `RawPayload` escape hatch —
+  and is wired into the docs index, the roadmap, the One Person Framework batteries table, the guides catalog,
+  `llms.txt`, and a pointer from `pwa.md`. [`docs/outbox.md`](docs/outbox.md) gains an ordering/idempotency note
+  and an explicit "outbox vs. jobs" pointer to round it out to the depth of its sibling pillar guides.
 - **OPF positioning fixes and independent-brand cleanup.** Removed every third-party-framework reference from
   user-facing surfaces — the showcase guides index no longer says it "reads like a Rails guide", the SQLite
   showcase page and the whole `Rask.SQLite`/`Rask.SQLite.EntityFrameworkCore` published metadata (package
