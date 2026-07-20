@@ -16,7 +16,7 @@ namespace Rask.Example.Playground;
 // the only path that Emits + loads an assembly (see PlaygroundCompiler); typing never does, so it can't leak.
 //
 // Scoped assets: PlaygroundView.js (editor mount + value, language-feature registration, framework-assembly
-// discovery) and PlaygroundView.css (layout + Rails-ish IDE chrome).
+// discovery) and PlaygroundView.css (layout + editor-style IDE chrome).
 public sealed class PlaygroundView : Component
 {
     private readonly IJSRuntime _js;

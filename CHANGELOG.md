@@ -279,6 +279,18 @@ them until tagged releases begin.
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
 ### Documentation
+- **OPF positioning fixes and independent-brand cleanup.** Removed every third-party-framework reference from
+  user-facing surfaces — the showcase guides index no longer says it "reads like a Rails guide", the SQLite
+  showcase page and the whole `Rask.SQLite`/`Rask.SQLite.EntityFrameworkCore` published metadata (package
+  `Title`/`Description`/`PackageTags`, both `NUGET.md`s, and the XML-doc comments) now describe the tuned
+  production pragma set and the fair-interval busy handler on their own terms (the two upstream PR links are
+  kept as bare provenance URLs), and the "flash" toast analogies across Core/Server/WASM/Bootstrap are stated
+  independently. Also corrected drifted docs: the docs index and guides catalog named `Rask.TestSupport`
+  (the in-repo helper) for the shipped **`Rask.Testing`** unit-testing package; the One Person Framework
+  batteries table now lists Jobs/Mail/Cache/Outbox (previously prose-only); the cheat sheet's
+  `AddDbContextFactory` one-liner now includes the required `.AddInterceptors(...)`; and the roadmap's auth
+  row matches the doctrine ("cookie & JWT"). The root README trims the four hero links to one and shows a
+  badge for every published NuGet package.
 - **A cheat sheet and a recipes cookbook for faster day-to-day DX.** New [`docs/cheatsheet.md`](docs/cheatsheet.md)
   puts every CLI command, feature field token, `AddRask…` wiring one-liner, and code idiom on one scannable
   page; new [`docs/recipes.md`](docs/recipes.md) answers "how do I do X?" (add a feature to an existing

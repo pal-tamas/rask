@@ -8,9 +8,9 @@
 
     <PackageId>Rask.SQLite.EntityFrameworkCore</PackageId>
     <Title>Rask.SQLite.EntityFrameworkCore — production pragmas for EF Core</Title>
-    <Description>The Entity Framework Core integration for Rask.SQLite: `UseRaskSqlite(...)`, a drop-in replacement for `UseSqlite` that also registers a `ConnectionOpened` interceptor applying the Rails-style production pragma set (WAL, `synchronous=NORMAL`, `foreign_keys=ON`, a `busy_timeout`, `mmap_size`, `journal_size_limit`) to every connection the context opens. Split out from Rask.SQLite so apps that only need the raw `Microsoft.Data.Sqlite` path (or run on mobile/AOT) don't pull in Entity Framework Core.</Description>
+    <Description>The Entity Framework Core integration for Rask.SQLite: `UseRaskSqlite(...)`, a drop-in replacement for `UseSqlite` that also registers a `ConnectionOpened` interceptor applying the production pragma set (WAL, `synchronous=NORMAL`, `foreign_keys=ON`, a `busy_timeout`, `mmap_size`, `journal_size_limit`) to every connection the context opens. Split out from Rask.SQLite so apps that only need the raw `Microsoft.Data.Sqlite` path (or run on mobile/AOT) don't pull in Entity Framework Core.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone data-layer helper. -->
-    <PackageTags>sqlite pragma wal rails entity-framework-core efcore interceptor dotnet net10</PackageTags>
+    <PackageTags>sqlite pragma wal entity-framework-core efcore interceptor dotnet net10</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

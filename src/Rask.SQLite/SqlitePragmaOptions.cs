@@ -55,8 +55,8 @@ public enum SqliteTempStore
 /// The SQLite pragmas <see cref="IRaskSqliteConnectionFactory"/> (for raw ADO.NET) — and the Entity
 /// Framework Core interceptor in the <c>Rask.SQLite.EntityFrameworkCore</c> package — apply to every
 /// connection they open.
-/// Every property defaults to the value a modern <b>Ruby on Rails 8</b> app runs
-/// (see <a href="https://github.com/rails/rails/pull/49349">rails/rails#49349</a>); set any property to
+/// Every property defaults to a tuned production value
+/// (reference: <a href="https://github.com/rails/rails/pull/49349">https://github.com/rails/rails/pull/49349</a>); set any property to
 /// <see langword="null"/> to leave that pragma unset and fall back to SQLite's own default.
 /// </summary>
 /// <remarks>
@@ -85,7 +85,7 @@ public sealed class SqlitePragmaOptions
     /// <summary>
     /// <c>cache_size</c> — the per-connection page cache. Follows SQLite's sign convention: a
     /// <b>positive</b> value is a number of pages, a <b>negative</b> value is kibibytes. Defaults to
-    /// <c>2000</c> pages (Rails' value; ~8&#160;MB at the default 4&#160;KiB page size).
+    /// <c>2000</c> pages (~8&#160;MB at the default 4&#160;KiB page size).
     /// </summary>
     public int? CacheSize { get; set; } = 2000;
 
@@ -99,8 +99,8 @@ public sealed class SqlitePragmaOptions
     public long? JournalSizeLimit { get; set; } = 67_108_864;
 
     /// <summary>
-    /// <c>temp_store</c>. Defaults to <see langword="null"/> (unset — SQLite's own default), matching
-    /// Rails core, which does not set it. Set to <see cref="SqliteTempStore.Memory"/> as a common
+    /// <c>temp_store</c>. Defaults to <see langword="null"/> (unset — SQLite's own default). Set to
+    /// <see cref="SqliteTempStore.Memory"/> as a common
     /// performance extra if your temp objects fit in RAM.
     /// </summary>
     public SqliteTempStore? TempStore { get; set; }

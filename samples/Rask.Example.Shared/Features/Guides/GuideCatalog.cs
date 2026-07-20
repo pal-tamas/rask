@@ -87,7 +87,7 @@ public static class GuideCatalog
         new("configuration", "Configuration", "App configuration and settings.",
             "bi-sliders", "Integration"),
 
-        new("testing", "Testing", "Unit testing with Rask.TestSupport, event handlers, E2E.",
+        new("testing", "Testing", "Unit testing with Rask.Testing, event handlers, E2E.",
             "bi-clipboard-check", "Advanced"),
         new("building-form-controls", "Building form controls", "Author your own IFormControl<T>.",
             "bi-tools", "Advanced"),

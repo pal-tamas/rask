@@ -6,8 +6,8 @@ using Rask.Example.Shared.Features;
 
 namespace Rask.Example.Shared;
 
-// The Rails-guides-style chrome around a single guide's prose. Given a slug it reads docs/{slug}.md and
-// lays it out like rubyonrails.org/docs: a slim version/source banner, a numbered "Chapters" table of
+// The narrative-guide chrome around a single guide's prose. Given a slug it reads docs/{slug}.md and
+// lays it out as a classic docs page: a slim version/source banner, a numbered "Chapters" table of
 // contents built from the guide's headings, the guide body (Markdown, which mounts any inline demos),
 // a sticky "On this page" rail that scroll-spies the current section, and prev/next book-navigation
 // following the GuideCatalog order. The scroll-spy runs entirely on the client (GuideChrome.js) — no
@@ -105,7 +105,7 @@ public sealed class GuideChrome : Component
         ];
 
     // The numbered Chapters TOC: each ## is a chapter; the ### under it become a nested sub-list. Mirrors
-    // the "Chapters" box at the top of every Rails guide.
+    // the "Chapters" box at the top of each guide.
     private static Component? Chapters(IReadOnlyList<Markdown.Heading> headings)
     {
         if (headings.Count == 0)

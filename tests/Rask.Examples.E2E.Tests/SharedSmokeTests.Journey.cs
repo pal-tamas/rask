@@ -235,7 +235,7 @@ public abstract partial class SharedSmokeTests
     // _content/Rask.Bootstrap and that the interactive components run with ZERO bootstrap.js —
     // the modal opens and closes purely through Rask's live runtime.
     // The Guides section: the repo's docs/*.md rendered on-site by the Markdown component, now in the
-    // Rails-guides-style chrome (Chapters TOC, on-this-page rail, prev/next) with live demos embedded
+    // Narrative-guide chrome (Chapters TOC, on-this-page rail, prev/next) with live demos embedded
     // inline via <!-- demo:key --> markers. Verify a guide renders to a .markdown-body, cross-links are
     // SPA-routed, the Chapters TOC is present, and an embedded demo actually mounted its live result.
     protected async Task TestGuidesAsync()
@@ -249,7 +249,7 @@ public abstract partial class SharedSmokeTests
         Assert.True(await Page.Locator(".markdown-body a[data-rask-nav][href^='/guides/']").CountAsync() > 0,
             "expected the rendered guide to carry SPA-routed cross-links");
 
-        // The Rails-style chrome: a Chapters TOC linking in-page anchors, and prev/next book-nav.
+        // The guide chrome: a Chapters TOC linking in-page anchors, and prev/next book-nav.
         await Expect(Page.Locator(".guide-chapters .guide-chapters-list a[href^='#']").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         Assert.True(await Page.Locator(".guide-prevnext .guide-prevnext-link").CountAsync() > 0,

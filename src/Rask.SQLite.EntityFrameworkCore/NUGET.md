@@ -2,7 +2,7 @@
 
 **The Entity Framework Core integration for [`Rask.SQLite`](https://www.nuget.org/packages/Rask.SQLite).**
 `UseRaskSqlite(...)` is a drop-in replacement for `UseSqlite` that also wires a `ConnectionOpened`
-interceptor applying the Rails-style production pragma set — WAL, `synchronous=NORMAL`,
+interceptor applying the production pragma set — WAL, `synchronous=NORMAL`,
 `foreign_keys=ON`, a `busy_timeout`, `mmap_size`, `journal_size_limit` — to every connection the context
 opens.
 
@@ -34,7 +34,7 @@ o.UseRaskSqlite($"Data Source={dbPath}", p =>
 
 ## Busy-retry for `SaveChanges`
 
-Pass `configureRetry` (even empty) to register a Rails-style fair-interval execution strategy so
+Pass `configureRetry` (even empty) to register a fair-interval execution strategy so
 `SaveChanges`/queries retry on `SQLITE_BUSY`/`SQLITE_LOCKED` at a constant 1 ms interval, awaiting
 (not blocking) between attempts:
 

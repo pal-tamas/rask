@@ -4,7 +4,7 @@ using SQLitePCL;
 namespace Rask.SQLite;
 
 /// <summary>
-/// Transaction helpers that complete Rails' SQLite concurrency story on top of the production pragmas:
+/// Transaction helpers that complete the SQLite concurrency story on top of the production pragmas:
 /// starting write transactions with <c>BEGIN IMMEDIATE</c>, and a non-blocking, fair-interval busy-retry
 /// for the contended write lock.
 /// </summary>
@@ -31,7 +31,7 @@ public static class SqliteConnectionExtensions
     /// <summary>
     /// Runs <paramref name="work"/> inside a <c>BEGIN IMMEDIATE</c> transaction, acquiring (and, if
     /// contended, committing) the write lock through a <b>non-blocking, fair-interval</b> retry that
-    /// yields the calling thread between attempts — the .NET equivalent of Rails' GVL-releasing busy
+    /// yields the calling thread between attempts — a genuinely non-blocking busy
     /// handler. Commits when <paramref name="work"/> returns; rolls back if it throws.
     /// </summary>
     /// <remarks>
@@ -71,7 +71,7 @@ public static class SqliteConnectionExtensions
         // SqliteTransaction bookkeeping, and the underlying sqlite3 handle is pooled and reused. If an
         // earlier lease left a transaction open on it, BEGIN IMMEDIATE here would hit "cannot start a
         // transaction within a transaction" (SQLITE_ERROR) — a non-retryable fast failure. Clear any
-        // leaked transaction first so BEGIN always starts from autocommit (Rails' transaction_active? guard).
+        // leaked transaction first so BEGIN always starts from autocommit (guarding against a leaked transaction).
         if (raw.sqlite3_get_autocommit(handle) == 0)
         {
             raw.sqlite3_exec(handle, "ROLLBACK;");

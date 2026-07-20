@@ -76,7 +76,7 @@ public sealed class GuidesTests
         var html = RaskTest.Render(new GuidePage { Slug = "routing" }, TestServices.Default()).Html;
         Assert.Contains("markdown-body", html);
         Assert.Contains("All guides", html); // the back link
-        Assert.Contains("guide-chapters", html); // the Rails-style Chapters TOC
+        Assert.Contains("guide-chapters", html); // the Chapters TOC
     }
 
     [Fact]

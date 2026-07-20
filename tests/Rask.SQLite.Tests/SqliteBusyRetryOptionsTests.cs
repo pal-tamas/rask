@@ -6,7 +6,7 @@ namespace Rask.SQLite.Tests;
 public sealed class SqliteBusyRetryOptionsTests
 {
     [Fact]
-    public void Defaults_match_the_Rails_busy_handler()
+    public void Defaults_match_the_production_busy_handler()
     {
         var options = new SqliteBusyRetryOptions();
 

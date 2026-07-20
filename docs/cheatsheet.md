@@ -68,7 +68,9 @@ feature / component / page / job / email.
 ```csharp
 builder.Services.AddRaskCqrs();                        // the mediator (IDispatcher)
 builder.Services.AddRaskData();                        // EF interceptors: audit/soft-delete/events
-builder.Services.AddDbContextFactory<ProductsDbContext>(o => o.UseSqlite("Data Source=app.db"));
+builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o
+    .UseSqlite("Data Source=app.db")
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));   // audit/soft-delete/events/outbox
 ```
 
 The other pillars are **one registration + one `modelBuilder` line + a migration** you add by hand:

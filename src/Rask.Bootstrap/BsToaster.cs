@@ -2,7 +2,7 @@ using Rask.Core.Messaging;
 
 namespace Rask.Bootstrap;
 
-// Ready-made Bootstrap surface for Rask's toasts (Rails' flash). Wraps the headless core ToastOutlet:
+// Ready-made Bootstrap surface for Rask's toasts (a flash-message pattern). Wraps the headless core ToastOutlet:
 // it drains the scoped IToaster and renders each message as a BsToast in a fixed toast-container, mapping
 // ToastLevel onto Bootstrap colour + icon. Mount ONE in the app layout (persists across client-side
 // navigations); a message queued before a NavigateTo shows once on arrival.

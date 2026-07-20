@@ -45,7 +45,7 @@ internal static class SqliteBusyRetry
                 throw Failure(handle, rc);
             }
 
-            // The thread is free here — this is the whole point (Rails releases the GVL at this step).
+            // The thread is free here — this is the whole point (the wait is genuinely non-blocking).
             await Task.Delay(options.PollInterval, timeProvider, cancellationToken).ConfigureAwait(false);
         }
     }

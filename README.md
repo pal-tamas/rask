@@ -7,15 +7,35 @@
 
 ### The .NET One Person Framework — build, run, and ship a whole product solo, in C#, on one server.
 
-[![NuGet Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=Rask.Server)](https://www.nuget.org/packages/Rask.Server)
-[![NuGet Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=Rask.Wasm)](https://www.nuget.org/packages/Rask.Wasm)
-[![NuGet Rask.Native](https://img.shields.io/nuget/v/Rask.Native.svg?label=Rask.Native)](https://www.nuget.org/packages/Rask.Native)
-[![NuGet Rask.Cli](https://img.shields.io/nuget/v/Rask.Cli.svg?label=Rask.Cli)](https://www.nuget.org/packages/Rask.Cli)
-[![NuGet Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=Rask.Bootstrap)](https://www.nuget.org/packages/Rask.Bootstrap)
+<!-- Hosts & tooling -->
+[![Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=Rask.Server)](https://www.nuget.org/packages/Rask.Server)
+[![Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=Rask.Wasm)](https://www.nuget.org/packages/Rask.Wasm)
+[![Rask.Wasm.Hosting](https://img.shields.io/nuget/v/Rask.Wasm.Hosting.svg?label=Rask.Wasm.Hosting)](https://www.nuget.org/packages/Rask.Wasm.Hosting)
+[![Rask.Native](https://img.shields.io/nuget/v/Rask.Native.svg?label=Rask.Native)](https://www.nuget.org/packages/Rask.Native)
+[![Rask.Cli](https://img.shields.io/nuget/v/Rask.Cli.svg?label=Rask.Cli)](https://www.nuget.org/packages/Rask.Cli)
+[![Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=Rask.Bootstrap)](https://www.nuget.org/packages/Rask.Bootstrap)
+[![Rask.Testing](https://img.shields.io/nuget/v/Rask.Testing.svg?label=Rask.Testing)](https://www.nuget.org/packages/Rask.Testing)
+<!-- Vertical-slice back end -->
+[![Rask.Cqrs](https://img.shields.io/nuget/v/Rask.Cqrs.svg?label=Rask.Cqrs)](https://www.nuget.org/packages/Rask.Cqrs)
+[![Rask.Data](https://img.shields.io/nuget/v/Rask.Data.svg?label=Rask.Data)](https://www.nuget.org/packages/Rask.Data)
+[![Rask.Outbox](https://img.shields.io/nuget/v/Rask.Outbox.svg?label=Rask.Outbox)](https://www.nuget.org/packages/Rask.Outbox)
+[![Rask.Jobs](https://img.shields.io/nuget/v/Rask.Jobs.svg?label=Rask.Jobs)](https://www.nuget.org/packages/Rask.Jobs)
+[![Rask.Mail](https://img.shields.io/nuget/v/Rask.Mail.svg?label=Rask.Mail)](https://www.nuget.org/packages/Rask.Mail)
+[![Rask.Cache](https://img.shields.io/nuget/v/Rask.Cache.svg?label=Rask.Cache)](https://www.nuget.org/packages/Rask.Cache)
+<!-- Production SQLite -->
+[![Rask.SQLite](https://img.shields.io/nuget/v/Rask.SQLite.svg?label=Rask.SQLite)](https://www.nuget.org/packages/Rask.SQLite)
+[![Rask.SQLite.EntityFrameworkCore](https://img.shields.io/nuget/v/Rask.SQLite.EntityFrameworkCore.svg?label=Rask.SQLite.EntityFrameworkCore)](https://www.nuget.org/packages/Rask.SQLite.EntityFrameworkCore)
+[![Rask.SQLite.Litestream](https://img.shields.io/nuget/v/Rask.SQLite.Litestream.svg?label=Rask.SQLite.Litestream)](https://www.nuget.org/packages/Rask.SQLite.Litestream)
+[![Rask.SQLite.Snapshots](https://img.shields.io/nuget/v/Rask.SQLite.Snapshots.svg?label=Rask.SQLite.Snapshots)](https://www.nuget.org/packages/Rask.SQLite.Snapshots)
+<!-- Forms & push -->
+[![Rask.Validation.DataAnnotations](https://img.shields.io/nuget/v/Rask.Validation.DataAnnotations.svg?label=Rask.Validation.DataAnnotations)](https://www.nuget.org/packages/Rask.Validation.DataAnnotations)
+[![Rask.Validation.FluentValidation](https://img.shields.io/nuget/v/Rask.Validation.FluentValidation.svg?label=Rask.Validation.FluentValidation)](https://www.nuget.org/packages/Rask.Validation.FluentValidation)
+[![Rask.WebPush](https://img.shields.io/nuget/v/Rask.WebPush.svg?label=Rask.WebPush)](https://www.nuget.org/packages/Rask.WebPush)
+<!-- Meta -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
-# ▶ **[Try the live demo ↗](https://pal-tamas.github.io/rask/docs/)** &nbsp;·&nbsp; 🛝 **[Playground ↗](https://pal-tamas.github.io/rask/playground/)** &nbsp;·&nbsp; 📖 **[Read the docs ↗](docs/)** &nbsp;·&nbsp; 🧪 **[Browse the examples ↗](samples/)**
+# ▶ **[Try the live demo ↗](https://pal-tamas.github.io/rask/docs/)**
 
 </div>
 

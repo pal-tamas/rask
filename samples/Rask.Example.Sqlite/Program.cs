@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRask();
 
 // The whole point of the sample: swap `UseSqlite` for `UseRaskSqlite` and every connection this
-// context opens gets the Rails production pragma set (WAL, foreign_keys, busy_timeout, …) applied
+// context opens gets the production pragma set (WAL, foreign_keys, busy_timeout, …) applied
 // on open. RASK_DB_PATH lets the E2E fixture point at an isolated temp file.
 var dbPath = builder.Configuration["RASK_DB_PATH"] ?? "raskExampleSqlite.db";
 builder.Services.AddDbContextFactory<DemoDbContext>(options =>
@@ -17,7 +17,7 @@ builder.Services.AddDbContextFactory<DemoDbContext>(options =>
 
 // The raw ADO.NET counterpart to the EF context above (same database file): AddRaskSqlite registers an
 // IRaskSqliteConnectionFactory whose ExecuteInImmediateTransactionAsync runs each write in a
-// BEGIN IMMEDIATE transaction, acquiring the write lock through a non-blocking, Rails-style fair-interval
+// BEGIN IMMEDIATE transaction, acquiring the write lock through a non-blocking, fair-interval
 // retry — no thread is held while it waits. The second demo card exercises it.
 builder.Services.AddRaskSqlite($"Data Source={dbPath}");
 

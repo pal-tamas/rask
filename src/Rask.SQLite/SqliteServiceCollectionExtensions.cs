@@ -8,7 +8,7 @@ public static class SqliteServiceCollectionExtensions
 {
     /// <summary>
     /// Registers an <see cref="IRaskSqliteConnectionFactory"/> that opens connections for
-    /// <paramref name="connectionString"/> with the Rails-style production pragmas applied on every
+    /// <paramref name="connectionString"/> with the production pragmas applied on every
     /// open (overridable via <paramref name="configure"/>). For Entity Framework Core use
     /// <c>UseRaskSqlite</c> on the <c>DbContextOptionsBuilder</c> instead — this is for code that uses
     /// SQLite directly. Idempotent: a second call is a no-op.

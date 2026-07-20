@@ -8,7 +8,7 @@ using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Guides;
 
-// The Rails-guides chrome: heading extraction (Chapters TOC + on-this-page rail), prev/next reading
+// The narrative-guide chrome: heading extraction (Chapters TOC + on-this-page rail), prev/next reading
 // order, and the end-to-end render of a guide with an embedded live demo.
 public sealed class GuideChromeTests
 {
