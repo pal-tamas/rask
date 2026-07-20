@@ -12,7 +12,7 @@ service to operate.
 |--------|--------|-------|
 | **UI across three hosts** | ✅ | Server (WebSocket live diff), WASM (client-side + PWA), Native iOS/Android *(preview)* — one component. |
 | **The `rask` CLI** | ✅ | [`cli.md`](cli.md) — `new` / `dev` / `generate` / `db` / `deploy`. |
-| **CRUD scaffolder** | ✅ | [`rask generate feature`](cli.md) — CQRS + EF Core vertical slice, value objects, validation, pages (tests with `--tests`); wires the DI into `Program.cs`. |
+| **CRUD scaffolder** | ✅ | [`rask generate feature`](cli.md) — CQRS + EF Core vertical slice, value objects, validation, pages (tests with `--tests`); wires the DI into `Program.cs`. `rask generate job`/`email` scaffold `Rask.Jobs`/`Rask.Mail` handlers too. |
 | **CQRS / mediator** | ✅ | [`Rask.Cqrs`](cqrs.md) — source-generated, reflection-free. |
 | **Data layer** | ✅ | [`Rask.Data`](data.md) — `Entity<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
 | **Transactional outbox** | ✅ | [`Rask.Outbox`](outbox.md) — durable, crash-safe domain-event delivery on the app's own database. |
