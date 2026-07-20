@@ -33,9 +33,9 @@ public sealed class SiteExampleTests
             await page.GotoAsync("/index.html");
 
             // The hero is rendered by the WASM app and morphs onto the shell — wait for it to boot.
-            await Expect(page.Locator("h1")).ToContainTextAsync("pure C#",
+            await Expect(page.Locator("h1")).ToContainTextAsync("C#",
                 new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
-            await Expect(page.Locator("h1")).ToContainTextAsync("Web and native apps");
+            await Expect(page.Locator("h1")).ToContainTextAsync("Ship a whole product");
 
             // The live counter is a real stateful Rask component: each click ships a diff and re-renders.
             var count = page.Locator(".count");

@@ -279,6 +279,11 @@ them until tagged releases begin.
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
 ### Documentation
+- **The landing site leads with the One Person Framework.** `samples/Rask.Example.Site` reframed its hero
+  from "web and native apps in pure C#" to the OPF thesis — *Ship a whole product. Just you, and C#.* — and
+  added a "One person's whole back end" section covering the DB-backed pillars (generate feature, background
+  jobs, transactional email, outbox, cache, production SQLite, one-command deploy, Web Push). The three-hosts
+  and Rask-vs-Blazor sections are unchanged; the front door now sells what the docs sell.
 - **Every doc is now on the docs site.** The showcase guides catalog surfaced only a curated ~37 of the
   60 top-level `docs/*.md`, and none of the subfolders. It now surfaces **every** `docs/**/*.md` — the OPF
   doctrine, the full 10-chapter tutorial, all the back-half pillars (`cli`/`data`/`cqrs`/`jobs`/`mail`/
