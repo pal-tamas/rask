@@ -7,6 +7,13 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **OPF docs & landing-site polish.** The landing site now advertises **46** typed browser APIs (was a stale
+  "43", matching `docs/apis/` and the docs index); the roadmap's CRUD-scaffolder entry now credits the
+  `rask generate job`/`email` scaffolders alongside `feature`; the tutorial's Chapter 2 `--validation` note
+  leads with the flag being optional and the `valueobjects` default; and the One Person Framework manifesto no
+  longer implies a blob-store pillar Rask doesn't ship.
+
 ## [0.19.0] - 2026-07-20
 
 ### Added

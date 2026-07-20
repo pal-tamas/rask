@@ -12,7 +12,7 @@ This page is the doctrine. The [getting-started guide](getting-started.md) is th
 ## The problem it removes
 
 Shipping a product the conventional way means assembling a stack: a frontend framework in one language, a
-backend in another, a managed database, a queue for background jobs, a cache, a blob store, and a
+backend in another, a managed database, a queue for background jobs, a cache, and a
 deployment pipeline to tie them together. Each piece is rented, integrated, monitored, and paid for. For a
 team that division of labor pays off. For **one person**, it is mostly overhead — the integration seams,
 the context-switching, and the monthly bill for capacity you don't yet need.

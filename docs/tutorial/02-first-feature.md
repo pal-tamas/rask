@@ -24,10 +24,11 @@ Read the field list as `name:type`. Rask understands `string`, `int`, `long`, `d
 `datetime`, `date`, `time`, and `guid`. A trailing `?` makes a field optional (`Description:string?`), and
 `string(100)` caps a string's length. `Id` is added for you — don't list it.
 
-> **`--validation dataannotations`** keeps the form validation familiar: `[Required]`, `[MaxLength]`, and a
-> `DataAnnotationsValidator()` on the form. Leave it off and Rask's default (`valueobjects`) wraps each
-> required string in a small DDD value-object type instead — nice for a real domain, more than a first
-> feature needs. See [Rask.Data](../data.md) when you want it.
+> **`--validation` is optional; we pass `dataannotations`** here to keep the form validation familiar:
+> `[Required]`, `[MaxLength]`, and a `DataAnnotationsValidator()` on the form. Drop the flag and you get
+> Rask's default (`valueobjects`), which wraps each required string in a small DDD value-object type
+> instead — nice for a real domain, more than a first feature needs. See [Rask.Data](../data.md) when you
+> want it.
 >
 > **Quote fields that contain `?` or `()`** so your shell doesn't try to interpret them:
 > `"Description:string?"`.
