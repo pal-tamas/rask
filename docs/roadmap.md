@@ -20,8 +20,9 @@ service to operate.
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database, delivered off the request thread over SMTP; bodies are Rask components. |
 | **Cache** | ✅ | [`Rask.Cache`](cache.md) — a developer-facing cache on the app's own database; standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync`, absolute/sliding expiry. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
-| **Auth** | ✅ | [`authentication.md`](authentication.md) — cookie login/session in the templates. |
+| **Auth** | ✅ | [`authentication.md`](authentication.md) — cookie & JWT login/session in the templates. |
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
+| **Web Push (server send)** | ✅ | [`webpush.md`](webpush.md) — `Rask.WebPush`: VAPID (RFC 8292) + aes128gcm (RFC 8291), zero deps. |
 | **Deploy to one box** | ✅ | [`rask deploy`](cli.md) — bare-VPS setup (Docker, deploy login, firewall, SSH hardening), build over SSH, zero-downtime, auto-HTTPS (Caddy), multi-app on one host, GitHub Actions. |
 
 ## Planned — DB-backed pillars

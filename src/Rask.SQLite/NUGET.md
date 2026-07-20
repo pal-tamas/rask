@@ -1,7 +1,7 @@
 # Rask.SQLite
 
-**Rails-style production SQLite for .NET.** Applies the same tuned pragma set a modern Ruby on
-Rails 8 app runs — WAL journaling, `synchronous=NORMAL`, `foreign_keys=ON`, a `busy_timeout`, a
+**Production-ready SQLite for .NET.** Applies a tuned production pragma set — WAL journaling,
+`synchronous=NORMAL`, `foreign_keys=ON`, a `busy_timeout`, a
 shared `mmap_size`, and a capped `journal_size_limit` — to **every** SQLite connection, so your app
 gets correct, concurrent, production-ready SQLite by default instead of the lock-prone stock config.
 
@@ -23,7 +23,7 @@ builder.Services.AddRaskSqlite($"Data Source={dbPath}");
 await using var connection = await factory.CreateOpenAsync(ct);   // pragmas already applied
 ```
 
-The Rails production defaults are on out of the box; override any of them:
+The production defaults are on out of the box; override any of them:
 
 ```csharp
 builder.Services.AddRaskSqlite($"Data Source={dbPath}", p =>
@@ -37,8 +37,8 @@ builder.Services.AddRaskSqlite($"Data Source={dbPath}", p =>
 ## Concurrent writes: IMMEDIATE transactions + a non-blocking retry
 
 For the write path under concurrency, `ExecuteInImmediateTransactionAsync` runs your work in a
-`BEGIN IMMEDIATE` transaction and acquires the write lock through a **non-blocking, Rails-style
-fair-interval retry** — a constant 1 ms poll that *yields the thread* while it waits (no blocked
+`BEGIN IMMEDIATE` transaction and acquires the write lock through a **non-blocking, fair-interval
+retry** — a constant 1 ms poll that *yields the thread* while it waits (no blocked
 thread, no spurious `database is locked`):
 
 ```csharp
@@ -59,7 +59,7 @@ Add [`Rask.SQLite.EntityFrameworkCore`](https://www.nuget.org/packages/Rask.SQLi
 for the one-line `UseRaskSqlite(...)` (a drop-in for `UseSqlite` that wires the pragma interceptor).
 It's a separate package so the pragma engine stays free of an EF Core dependency.
 
-## Defaults (verified against rails/rails#49349)
+## Defaults
 
 | Pragma | Default |
 |---|---|

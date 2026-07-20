@@ -20,10 +20,10 @@ public class App : Component
 
     protected override Component? Head =>
     [
-        Title()["Rask — web and native apps in pure C#"],
+        Title()["Rask — the .NET One Person Framework"],
         Meta("utf-8"),
         Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-        Meta(Name: "description", Content: "Rask is a C# component framework: one component model for the browser — server-rendered over WebSockets or client-side on WebAssembly — and native iOS/Android. No .razor, no XAML, no JSX, no JavaScript."),
+        Meta(Name: "description", Content: "Rask is the .NET One Person Framework: one developer builds, runs, and ships a whole product — UI, data, auth, background work, and deploy — from one C# codebase on one SQLite-backed server. The same components run on Server, WebAssembly, and native iOS/Android."),
         Meta(Name: "theme-color", Content: "#7c3aed"),
         Link(Rel: "icon", Type: "image/svg+xml", Href: LiveOptions.PathBase + "/icon.svg"),
         Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/global.css")
@@ -52,6 +52,7 @@ public class App : Component
                 BytesSection(),
                 HostsSection(),
                 FeaturesSection(),
+                WholeBackEndSection(),
                 InstallSection(),
                 FooterSection()
             ]
@@ -78,10 +79,10 @@ public class App : Component
             Div(Class: "wrap")[
                 Div(Class: "hero-grid")[
                     Div()[
-                        P(Class: "eyebrow")["A C# component framework"],
-                        H1()["Web and native apps,", Br(), "in ", Span(Class: "lit")["pure C#"], "."],
-                        P(Class: "lede")["One component model for the browser and the phone — no ", Code()[".razor"], ", no XAML, no JSX, no JavaScript, no Swift or Kotlin."],
-                        P(Class: "sub")["The same component runs server-rendered over a WebSocket, fully client-side on WebAssembly, or as a native iOS/Android app. One codebase; pick the host per project."],
+                        P(Class: "eyebrow")["The .NET One Person Framework"],
+                        H1()["Ship a whole product.", Br(), "Just you, and ", Span(Class: "lit")["C#"], "."],
+                        P(Class: "lede")["Build, run, and ship a complete product — the UI, the data, the auth, the background work, and the deploy — from one C# codebase on one server."],
+                        P(Class: "sub")["The same components run server-rendered over a WebSocket, fully client-side on WebAssembly, or as a native iOS/Android app — no ", Code()[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
                         Div(Class: "cta-row")[
                             A(Class: "btn btn-primary", Href: "docs/", Target: "_blank", Rel: "noopener")["▶ Try the live demo"],
                             A(Class: "btn btn-ghost", Href: "playground/", Target: "_blank", Rel: "noopener")["🛝 Playground"]
@@ -90,7 +91,7 @@ public class App : Component
                             Span(Class: "badge")[B()[".NET 10"]],
                             Span(Class: "badge")["MIT"],
                             Span(Class: "badge")[B()["Server"], " · WASM · Native"],
-                            Span(Class: "badge")["Leads on ", B()["every measured axis"]]
+                            Span(Class: "badge")[B()["SQLite"], " · production DB"]
                         ]
                     ],
                     Div(Class: "wire")[
@@ -236,6 +237,28 @@ public class App : Component
                     Feature("◈", "43 typed browser APIs", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
                     Feature("⌂", "Secure by default", "Strings are HTML-encoded, URL attributes are scheme-sanitized (", Code()["javascript:"], " → ", Code()["about:blank"], "). Safe output is the default, not a flag."),
                     Feature("↻", "C# Hot Reload", "Edit ", Code()["Render()"], " or scoped css/js under ", Code()["dotnet watch"], " and it re-renders live — the closest a compiled framework gets to a no-build loop.")
+                ]
+            ]
+        ];
+
+    // ---- one person's whole back end ----
+    private Component WholeBackEndSection() =>
+        Section()[
+            Div(Class: "wrap")[
+                Div(Class: "sec-head reveal")[
+                    P(Class: "eyebrow")["DB-backed by default · no external services"],
+                    H2()["One person's whole back end."],
+                    P()["Behind the same C# UI, every stateful pillar rides the app's own SQLite database — no broker, no Redis, no second service to run. Adding one is a package reference, not a new box to operate."]
+                ],
+                Div(Class: "feat reveal")[
+                    Feature("⊞", "Generate a feature", Code()["rask generate feature"], " emits a full CQRS + EF Core CRUD slice — entity, validation, list/create/edit pages, and tests — and wires the DI into ", Code()["Program.cs"], "."),
+                    Feature("◷", "Background jobs", "Durable enqueued, delayed, and recurring work on your database, run by a hosted worker — at-least-once, with exponential backoff."),
+                    Feature("✉", "Transactional email", "Email queued on the same database and delivered over SMTP off the request thread; bodies are Rask components."),
+                    Feature("⤴", "Transactional outbox", "Domain events captured in the same transaction as your data and relayed at-least-once — crash-safe, no message broker."),
+                    Feature("⚡", "Cache", "A database-backed ", Code()["IDistributedCache"], " plus a typed ", Code()["ICache"], " with ", Code()["GetOrCreateAsync"], " and sliding/absolute expiry."),
+                    Feature("⬢", "Production SQLite", "SQLite as the production database — WAL + busy-timeout pragmas (~99k ops/s on a laptop), continuous Litestream backup, scheduled snapshots."),
+                    Feature("⬈", "One-command deploy", Code()["rask deploy"], " takes a bare VPS to a live HTTPS site — Docker, a non-root deploy user, firewall + SSH hardening, and zero-downtime swaps."),
+                    Feature("◎", "Web Push", "Send Web Push from your backend on your own VAPID keys (RFC 8292/8291) — zero external dependencies.")
                 ]
             ]
         ];

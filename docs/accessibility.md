@@ -104,7 +104,7 @@ document-unique and every `aria-describedby`/`for` resolves to the right field.
 
 Building your own control from the core `Input`/`ValidationMessage` primitives? Mirror the same three
 attributes: `Aria: new() { ["invalid"] = "true", ["describedby"] = errorId }` on the control, and render
-the message in a `Div(Id: errorId, Role: "alert")`. See [forms.md](forms.md#accessible-validation).
+the message in a `Div(Id: errorId, Role: "alert")`. See [forms.md](forms-validation.md#accessible-validation).
 
 ## Focus trapping (overlays)
 

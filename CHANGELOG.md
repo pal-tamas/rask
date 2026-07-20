@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-07-20
+
 ### Added
 - **`rask generate feature` now generates relationships.** The `<card> <Target> <fields…>` grammar
   (`rask g f Post Title:string 1:n Comment Body:text`) is no longer parse-only — it scaffolds the related
@@ -279,6 +281,45 @@ them until tagged releases begin.
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
 ### Documentation
+- **Split the eight largest guides into focused pages.** The oversized narrative guides — `authentication`
+  (787 lines), `forms` (588), `native` (532), `architecture/live-rendering` (468), `composition` (426),
+  `js-interop` (411), `browser-apis` (411), and `data-grid` (405) — were each split along their H2 seams into
+  a slim hub plus focused sub-pages (14 new pages), so no guide is a wall of text. Each **original slug stays a
+  hub** with an "On this page" index, so every existing inbound link still resolves; anchored links that
+  pointed into moved sections were repointed to the new sub-pages. All 14 sub-pages are in the guides catalog
+  (the reverse-parity guard enforces it), and every moved live demo still mounts.
+- **The landing site leads with the One Person Framework.** `samples/Rask.Example.Site` reframed its hero
+  from "web and native apps in pure C#" to the OPF thesis — *Ship a whole product. Just you, and C#.* — and
+  added a "One person's whole back end" section covering the DB-backed pillars (generate feature, background
+  jobs, transactional email, outbox, cache, production SQLite, one-command deploy, Web Push). The three-hosts
+  and Rask-vs-Blazor sections are unchanged; the front door now sells what the docs sell.
+- **Every doc is now on the docs site.** The showcase guides catalog surfaced only a curated ~37 of the
+  60 top-level `docs/*.md`, and none of the subfolders. It now surfaces **every** `docs/**/*.md` — the OPF
+  doctrine, the full 10-chapter tutorial, all the back-half pillars (`cli`/`data`/`cqrs`/`jobs`/`mail`/
+  `cache`/`outbox`/`sqlite`/`deployment`), the 46 browser-API reference pages, and the contributor/internals
+  docs — grouped in an OPF-led order (Start here → Tutorial → One Person Framework → … → Browser API
+  reference → Contributing & internals). Subfolder docs are embedded via a recursive glob with a bare-leaf
+  slug (matching the in-doc link rewriter), and a new reverse-parity test fails the build if a doc is ever
+  added to the repo without a catalog entry — so the site can't silently hide a doc again.
+- **A dedicated Web Push guide, and a fuller outbox guide.** New [`docs/webpush.md`](docs/webpush.md) documents
+  the shipped `Rask.WebPush` pillar as a first-class guide — `VapidKeys.Generate()`, `AddRaskWebPush(...)`,
+  storing the client `PushSubscription`, `IWebPushSender.SendAsync` and acting on the `WebPushResult`
+  (`ShouldDelete`/`ShouldRetry`), the default-service-worker payload shape and the `RawPayload` escape hatch —
+  and is wired into the docs index, the roadmap, the One Person Framework batteries table, the guides catalog,
+  `llms.txt`, and a pointer from `pwa.md`. [`docs/outbox.md`](docs/outbox.md) gains an ordering/idempotency note
+  and an explicit "outbox vs. jobs" pointer to round it out to the depth of its sibling pillar guides.
+- **OPF positioning fixes and independent-brand cleanup.** Removed every third-party-framework reference from
+  user-facing surfaces — the showcase guides index no longer says it "reads like a Rails guide", the SQLite
+  showcase page and the whole `Rask.SQLite`/`Rask.SQLite.EntityFrameworkCore` published metadata (package
+  `Title`/`Description`/`PackageTags`, both `NUGET.md`s, and the XML-doc comments) now describe the tuned
+  production pragma set and the fair-interval busy handler on their own terms (the two upstream PR links are
+  kept as bare provenance URLs), and the "flash" toast analogies across Core/Server/WASM/Bootstrap are stated
+  independently. Also corrected drifted docs: the docs index and guides catalog named `Rask.TestSupport`
+  (the in-repo helper) for the shipped **`Rask.Testing`** unit-testing package; the One Person Framework
+  batteries table now lists Jobs/Mail/Cache/Outbox (previously prose-only); the cheat sheet's
+  `AddDbContextFactory` one-liner now includes the required `.AddInterceptors(...)`; and the roadmap's auth
+  row matches the doctrine ("cookie & JWT"). The root README trims the four hero links to one and shows a
+  badge for every published NuGet package.
 - **A cheat sheet and a recipes cookbook for faster day-to-day DX.** New [`docs/cheatsheet.md`](docs/cheatsheet.md)
   puts every CLI command, feature field token, `AddRask…` wiring one-liner, and code idiom on one scannable
   page; new [`docs/recipes.md`](docs/recipes.md) answers "how do I do X?" (add a feature to an existing

@@ -26,7 +26,7 @@ public interface IRaskSqliteConnectionFactory
     /// <summary>
     /// Opens a connection and runs <paramref name="work"/> inside a <c>BEGIN IMMEDIATE</c> transaction,
     /// acquiring the write lock through the <b>non-blocking, fair-interval</b> retry configured on this
-    /// factory (Rails-style: a constant poll that yields the thread while it waits). Commits when
+    /// factory (a constant poll that yields the thread while it waits). Commits when
     /// <paramref name="work"/> returns; rolls back if it throws; disposes the connection either way. This
     /// is the recommended write path under concurrency. Issue statements with
     /// <see cref="SqliteConnection.CreateCommand"/> inside <paramref name="work"/>.

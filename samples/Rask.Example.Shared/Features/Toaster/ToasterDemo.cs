@@ -2,7 +2,7 @@ using Rask.Core.Messaging;
 
 namespace Rask.Example.Shared.Features;
 
-// Producer + display of Rask's toasts (Rails' flash). A component injects IToaster through the ctor and
+// Producer + display of Rask's toasts (a flash-message pattern). A component injects IToaster through the ctor and
 // raises a message; the headless ToastOutlet — subscribed to IToaster.Changed — drains it and hands it to
 // this Template, rendered here as a dismissible BsAlert stack. In a real app you mount ONE BsToaster in the
 // layout and raise toasts just before Navigator.NavigateTo(...): scoped per session, the message survives

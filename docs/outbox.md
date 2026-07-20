@@ -74,6 +74,12 @@ Add a migration for the new table before running — `rask db add AddOutbox && r
   browser/WASM concern.
 - **SQLite is single-writer**, so the processor polls (there is no `SKIP LOCKED` to lean on); WAL + a
   busy-timeout (see [Rask.SQLite](sqlite.md)) keep reads flowing while it writes. One processor per app.
+- **Ordering is per-poll, not globally strict.** Each poll publishes the oldest unprocessed batch in insertion
+  order, but because delivery is **at-least-once** with retries, a message that fails and is retried can land
+  after later ones. Make handlers **idempotent** and don't rely on strict cross-message ordering.
 - **In-process vs. durable.** `--events` (in-process) is fast and simple; `--outbox` is durable and
   crash-safe. Use the outbox when losing an event on a crash is unacceptable; keep the in-process publisher
   disabled when the outbox is on, so events aren't delivered twice.
+- **Outbox vs. jobs.** The outbox delivers events *derived from a transaction* (atomic with the data change);
+  [`Rask.Jobs`](jobs.md) runs work you *explicitly enqueue*. Reach for the outbox when an event must commit
+  with its change; reach for jobs when you're scheduling work.

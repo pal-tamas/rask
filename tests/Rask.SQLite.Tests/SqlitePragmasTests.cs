@@ -3,7 +3,7 @@ namespace Rask.SQLite.Tests;
 public sealed class SqlitePragmasTests
 {
     [Fact]
-    public void BuildScript_emits_the_rails_defaults()
+    public void BuildScript_emits_the_production_defaults()
     {
         var script = SqlitePragmas.BuildScript(new SqlitePragmaOptions());
 

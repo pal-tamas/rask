@@ -1,7 +1,7 @@
 namespace Rask.Core.Messaging;
 
 /// <summary>
-///     Transient, consumed-once user messages — Rask's answer to Rails' <c>flash</c>. Registered
+///     Transient, consumed-once user messages — a flash-message pattern. Registered
 ///     <b>scoped</b> per session (a Server WebSocket session or a WASM app instance); because a
 ///     client-side navigation does not recreate the session, a message queued before
 ///     <c>Navigator.NavigateTo(...)</c> survives the navigation and is shown once on the destination.

@@ -65,9 +65,14 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[`rask generate feature`](cli.md)** | One command emits a full CQRS + EF Core CRUD vertical slice — encapsulated entity, value objects, validation, list/create/edit pages (and, with `--tests`, a test project) — and wires the DI into `Program.cs`. |
 | **[`Rask.Data`](data.md)** | `Entity<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
 | **[`Rask.Cqrs`](cqrs.md)** | Source-generated, reflection-free CQRS/mediator — trim/AOT-safe, zero runtime scanning. |
+| **[`Rask.Jobs`](jobs.md)** | Durable background jobs on the app's own database — enqueue, delayed, and recurring, run by a hosted worker. |
+| **[`Rask.Mail`](mail.md)** | Transactional email queued in the same database and delivered by a background worker (SMTP/MailKit). |
+| **[`Rask.Cache`](cache.md)** | A database-backed cache: the standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync` and absolute/sliding expiry. |
+| **[`Rask.Outbox`](outbox.md)** | Transactional outbox — domain events captured in the same transaction and relayed at-least-once, no external broker. |
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
 | **[Auth](authentication.md)** | Cookie & JWT login/session scaffolding in the templates. |
 | **[PWA & native](pwa.md)** | Installable offline apps and real iOS/Android from the same components. |
+| **[Web Push](webpush.md)** | Server-sent Web Push on your own VAPID keys (RFC 8292/8291), zero external deps — pairs with the client `IWebPush`. |
 | **[Deploy](deployment.md)** | `rask deploy` takes a bare VPS to a live HTTPS site — installs Docker, a non-root deploy login, a firewall and SSH hardening, then builds on the box and swaps in with zero downtime. No SSH session of your own required. |
 
 ## DB-backed by default

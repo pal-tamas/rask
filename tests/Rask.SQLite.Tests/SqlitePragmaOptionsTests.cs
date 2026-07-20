@@ -5,7 +5,7 @@ namespace Rask.SQLite.Tests;
 public sealed class SqlitePragmaOptionsTests
 {
     [Fact]
-    public void Defaults_match_the_rails_production_pragma_set()
+    public void Defaults_match_the_production_pragma_set()
     {
         var options = new SqlitePragmaOptions();
 

@@ -1,7 +1,7 @@
-/* Scoped styles for the Rails-guides-style guide chrome. These rules attach to GuideChrome's own
+/* Scoped styles for the narrative-guide chrome. These rules attach to GuideChrome's own
    elements (the banner, Chapters TOC, on-this-page rail, prev/next) — the guide prose itself is Raw
    HTML under .markdown-body and is styled globally (wwwroot/global.css). Reuses the showcase's brand
-   tokens (violet accent, Space Grotesk display), so it stays on-brand while adopting the Rails IA. */
+   tokens (violet accent, Space Grotesk display), so it stays on-brand while using a classic docs IA. */
 
 .guide {
     max-width: 100%;
