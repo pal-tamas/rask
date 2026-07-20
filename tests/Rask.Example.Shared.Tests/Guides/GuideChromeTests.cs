@@ -115,7 +115,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void FormsGuide_MountsLiveBindingAndValidationDemos()
+    public void FormsGuide_MountsLiveBindingDemo()
     {
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
@@ -125,11 +125,25 @@ public sealed class GuideChromeTests
         // Every marker resolved and mounted — no leftover comment, no unknown-demo warning.
         Assert.DoesNotContain("<!-- demo:", html);
         Assert.DoesNotContain("Unknown demo", html);
-        // A live binding demo (interactive input + echo) and a validation demo both mounted their
-        // CodeSample + result, proving the forms guide is now the destination, not the old /binding page.
+        // The live binding demo (interactive input + echo) mounted its CodeSample + result on the hub.
         Assert.Contains("guide-demo", html);
         Assert.Contains("sample-result-body", html);
         Assert.Contains("BindingTypedDemo", html);
+    }
+
+    [Fact]
+    public void FormsValidationGuide_MountsLiveValidationDemo()
+    {
+        var sp = TestServices.Default();
+        var js = sp.GetRequiredService<IJSRuntime>();
+
+        // The validation sections (and their demos) moved to the forms-validation sub-page in the split.
+        var html = RaskTest.Render(new GuideChrome(js) { Slug = "forms-validation" }, sp).Html;
+
+        Assert.DoesNotContain("<!-- demo:", html);
+        Assert.DoesNotContain("Unknown demo", html);
+        Assert.Contains("guide-demo", html);
+        Assert.Contains("sample-result-body", html);
         Assert.Contains("FluentValidationDemo", html);
     }
 

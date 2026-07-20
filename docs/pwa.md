@@ -358,7 +358,7 @@ from the running page — `RequestPermissionAsync()` then `ShowAsync(title, new 
 Use it for in-app alerts. For notifications delivered while the app is **closed**, use
 [`IWebPush`](#push-notifications-iwebpush) — those go through the service worker.
 
-See [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis) for the full surface.
+See [JS interop → Typed browser APIs](js-interop-runtime.md#typed-browser-apis) for the full surface.
 
 ---
 

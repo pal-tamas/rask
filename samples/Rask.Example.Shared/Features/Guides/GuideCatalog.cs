@@ -83,11 +83,21 @@ public static class GuideCatalog
             "bi-signpost-2", "Core"),
         new("composition", "Composition", "Children, fragments, callbacks, context, virtualize.",
             "bi-diagram-3", "Core"),
+        new("composition-callbacks-context", "Composition — callbacks & context", "Child→parent callbacks and provide/consume context.",
+            "bi-diagram-3", "Core"),
+        new("composition-lists", "Composition — lists & more", "Virtualize, keyed lists, toasts, drag-and-drop, error boundaries.",
+            "bi-diagram-3", "Core"),
         new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.",
             "bi-arrow-repeat", "Core"),
         new("forms", "Forms & validation", "Two-way binding, Form<T>, inline/DataAnnotations/Fluent.",
             "bi-input-cursor-text", "Core"),
+        new("forms-validation", "Forms — validation", "Inline, DataAnnotations, FluentValidation, and async validators.",
+            "bi-input-cursor-text", "Core"),
+        new("forms-advanced", "Forms — advanced", "Nested/complex models, radio & checkbox groups, custom controls.",
+            "bi-input-cursor-text", "Core"),
         new("js-interop", "JavaScript interop", "Scoped CSS/JS, element refs, IJSRuntime, typed APIs.",
+            "bi-braces", "Core"),
+        new("js-interop-runtime", "JS interop — runtime", "Calling JS, the typed browser-API layer, element refs, third-party libs.",
             "bi-braces", "Core"),
 
         // ---- Bootstrap ----
@@ -101,6 +111,8 @@ public static class GuideCatalog
             "BsCard, BsListGroup, BsPlaceholder, BsTable, BsPagination, BsBreadcrumb.", "bi-card-heading", "Bootstrap"),
         new("data-grid", "Data grid",
             "BsDataGrid — typed columns, sorting, paging, footer totals, master-detail.", "bi-table", "Bootstrap"),
+        new("data-grid-server", "Data grid — server-side", "Server paging/sorting, loading state, URL-driven grid state.",
+            "bi-table", "Bootstrap"),
         new("data-grid-advanced", "Data grid — advanced",
             "Master-detail, footer totals, custom cell templates, and column features.", "bi-table", "Bootstrap"),
         new("bootstrap-feedback", "Alerts, spinners & progress", "BsAlert, BsSpinner, BsProgress.",
@@ -127,6 +139,10 @@ public static class GuideCatalog
         // ---- Integration ----
         new("authentication", "Authentication", "Cookie/JWT/OIDC on Server and WASM, route guards.",
             "bi-shield-lock", "Integration"),
+        new("authentication-cookie", "Auth — cookie", "Cookie login and session on Server and on a WASM SPA with an API host.",
+            "bi-shield-lock", "Integration"),
+        new("authentication-jwt", "Auth — JWT", "Bearer-token JWT auth on Server, WASM+host, and standalone static WASM.",
+            "bi-shield-lock", "Integration"),
         new("authentication-providers", "Auth — providers", "Identity, Keycloak, Auth0, and other OIDC providers.",
             "bi-people", "Integration"),
         new("authentication-hardening", "Auth — hardening", "Production hardening for cookies, tokens, and sessions.",
@@ -145,10 +161,18 @@ public static class GuideCatalog
         // ---- Mobile & devices ----
         new("browser-apis", "Browser APIs", "The typed wrappers over the platform's browser APIs.",
             "bi-globe", "Mobile & devices"),
+        new("browser-apis-sharing", "Browser APIs — sharing model", "Where wrappers live; declarative vs imperative; subscriptions.",
+            "bi-globe", "Mobile & devices"),
+        new("browser-apis-reference", "Browser APIs — reference & demos", "Every typed browser wrapper with a runnable live demo.",
+            "bi-globe", "Mobile & devices"),
         new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.",
             "bi-phone", "Mobile & devices"),
         new("native", "Native (iOS/Android)",
             "WebView-hybrid native host — INativeWebView bridge, safe-area insets, native bars.",
+            "bi-phone-fill", "Mobile & devices"),
+        new("native-bridge", "Native — modes & bridge", "Local vs Server, INativeWebView, platform heads, asset serving.",
+            "bi-phone-fill", "Mobile & devices"),
+        new("native-devices", "Native — device capabilities", "Safe-area insets, device backends, native header/footer.",
             "bi-phone-fill", "Mobile & devices"),
         new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPushSender, delivery results.",
             "bi-send", "Mobile & devices"),
@@ -225,7 +249,11 @@ public static class GuideCatalog
         new("ai-agents", "Building with AI assistants", "Conventions for AI coding agents working on Rask.",
             "bi-robot", "Contributing & internals"),
         new("live-rendering", "Live-rendering internals", "The diff codec and the live-render pipeline.",
-            "bi-cpu-fill", "Contributing & internals", "architecture/live-rendering.md")
+            "bi-cpu-fill", "Contributing & internals", "architecture/live-rendering.md"),
+        new("live-rendering-codec", "Live rendering — walk & codec", "Parallel HTML+frame walk, the edit-op diff codec, keyed reconciliation.",
+            "bi-cpu-fill", "Contributing & internals", "architecture/live-rendering-codec.md"),
+        new("live-rendering-runtime", "Live rendering — cache & dispatch", "SessionRenderCache, head/query-nav, handler ordering, slow-connection.",
+            "bi-cpu-fill", "Contributing & internals", "architecture/live-rendering-runtime.md")
     ];
 
     public static readonly string[] GroupOrder =

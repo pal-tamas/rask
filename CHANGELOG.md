@@ -279,6 +279,13 @@ them until tagged releases begin.
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
 ### Documentation
+- **Split the eight largest guides into focused pages.** The oversized narrative guides — `authentication`
+  (787 lines), `forms` (588), `native` (532), `architecture/live-rendering` (468), `composition` (426),
+  `js-interop` (411), `browser-apis` (411), and `data-grid` (405) — were each split along their H2 seams into
+  a slim hub plus focused sub-pages (14 new pages), so no guide is a wall of text. Each **original slug stays a
+  hub** with an "On this page" index, so every existing inbound link still resolves; anchored links that
+  pointed into moved sections were repointed to the new sub-pages. All 14 sub-pages are in the guides catalog
+  (the reverse-parity guard enforces it), and every moved live demo still mounts.
 - **The landing site leads with the One Person Framework.** `samples/Rask.Example.Site` reframed its hero
   from "web and native apps in pure C#" to the OPF thesis — *Ship a whole product. Just you, and C#.* — and
   added a "One person's whole back end" section covering the DB-backed pillars (generate feature, background

@@ -128,7 +128,7 @@ BsDataGrid(Data: deals, ColumnChooser: true,
 Both axes are **token lists of `Field` names**, exactly like `Grouped` — `HiddenColumns: ["region"]` and
 `ColumnOrder: ["amount", "name", "region"]`. Set them (with the change callbacks) to control the layout the way
 `Grouped` controls grouping, or leave them null and the grid owns its own. Because they are just tokens they are
-URL-serialisable, which is the whole point (see [Putting the state in the URL](data-grid.md#putting-the-state-in-the-url)):
+URL-serialisable, which is the whole point (see [Putting the state in the URL](data-grid-server.md#putting-the-state-in-the-url)):
 `?hide=region&cols=amount,name,region` restores a laid-out grid on reload or share.
 
 **Every action is a real `<button>` or checkbox**, so the menu works from the keyboard alone. Dragging a header
