@@ -279,6 +279,14 @@ them until tagged releases begin.
   page and documented in [`docs/apis/web-locks.md`](docs/apis/web-locks.md).
 
 ### Documentation
+- **Every doc is now on the docs site.** The showcase guides catalog surfaced only a curated ~37 of the
+  60 top-level `docs/*.md`, and none of the subfolders. It now surfaces **every** `docs/**/*.md` — the OPF
+  doctrine, the full 10-chapter tutorial, all the back-half pillars (`cli`/`data`/`cqrs`/`jobs`/`mail`/
+  `cache`/`outbox`/`sqlite`/`deployment`), the 46 browser-API reference pages, and the contributor/internals
+  docs — grouped in an OPF-led order (Start here → Tutorial → One Person Framework → … → Browser API
+  reference → Contributing & internals). Subfolder docs are embedded via a recursive glob with a bare-leaf
+  slug (matching the in-doc link rewriter), and a new reverse-parity test fails the build if a doc is ever
+  added to the repo without a catalog entry — so the site can't silently hide a doc again.
 - **A dedicated Web Push guide, and a fuller outbox guide.** New [`docs/webpush.md`](docs/webpush.md) documents
   the shipped `Rask.WebPush` pillar as a first-class guide — `VapidKeys.Generate()`, `AddRaskWebPush(...)`,
   storing the client `PushSubscription`, `IWebPushSender.SendAsync` and acting on the `WebPushResult`

@@ -70,6 +70,24 @@ public sealed class GuidesTests
     }
 
     [Fact]
+    public void GuideCatalog_EveryEmbeddedDoc_IsCataloged()
+    {
+        // The reverse guard: every user-facing doc embedded from docs/**/*.md must appear in the catalog,
+        // so a doc can't be added to the repo yet silently hidden from the site. docs/README.md is the
+        // docs index (the guides index page itself is its on-site equivalent) — the one exception.
+        var slugs = GuideCatalog.All.Select(g => g.Slug).ToHashSet(StringComparer.Ordinal);
+        var embedded = typeof(GuideCatalog).Assembly.GetManifestResourceNames()
+            .Where(n => n.StartsWith("raskdoc/", StringComparison.Ordinal) && n.EndsWith(".md", StringComparison.Ordinal))
+            .Select(n => n["raskdoc/".Length..^".md".Length])
+            .Where(leaf => leaf != "README");
+
+        foreach (var leaf in embedded)
+        {
+            Assert.True(slugs.Contains(leaf), $"docs/{leaf}.md is embedded but missing from GuideCatalog.All.");
+        }
+    }
+
+    [Fact]
     public void GuidePage_KnownSlug_RendersGuideChromeWithMarkdownBody()
     {
         // GuidePage delegates to GuideChrome (a DI-ctor component), so it renders through a live context.

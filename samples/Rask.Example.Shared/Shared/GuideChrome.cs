@@ -98,7 +98,7 @@ public sealed class GuideChrome : Component
         Div(Class: "guide-banner")[
             BsIcon(Name: BsIconName.InfoCircle, Class: "me-2"),
             Span()[$"You're reading the Rask v{RaskVersion.Current} guides."],
-            A(Href: $"https://github.com/pal-tamas/rask/blob/main/docs/{Slug}.md", Target: "_blank",
+            A(Href: $"https://github.com/pal-tamas/rask/blob/main/docs/{Features.GuideCatalog.SourcePath(Slug)}", Target: "_blank",
                 Rel: "noopener", Class: "guide-banner-src")[
                 BsIcon(Name: BsIconName.Github, Class: "me-1"), "View source"
             ]
