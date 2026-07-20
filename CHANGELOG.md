@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-07-20
+
 ### Added
 - **`rask generate feature` now generates relationships.** The `<card> <Target> <fields…>` grammar
   (`rask g f Post Title:string 1:n Comment Body:text`) is no longer parse-only — it scaffolds the related
