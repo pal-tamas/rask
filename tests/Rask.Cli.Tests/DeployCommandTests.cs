@@ -27,7 +27,10 @@ public sealed class DeployCommandTests
         [
             "-H", "ssh://deploy@box", "run", "-d", "--name", "shop-green", "--restart", "unless-stopped",
             "--network", "rask", "--label", "rask.managed=true", "--label", "rask.app=shop",
-            "--label", "rask.domain=shop.example.com", "--label", "rask.color=green", "-e", "A=1", "shop:latest",
+            "--label", "rask.domain=shop.example.com", "--label", "rask.color=green",
+            // The persistent DB volume + connection string come before the user env, so --env A=1 still wins.
+            "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
+            "-e", "A=1", "shop:latest",
         ], args);
     }
 
@@ -39,9 +42,17 @@ public sealed class DeployCommandTests
         Assert.Equal(
         [
             "-H", "ssh://deploy@box", "run", "-d", "--name", "shop", "--restart", "unless-stopped",
-            "-p", "9000:8080", "shop:latest",
+            "-p", "9000:8080",
+            "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
+            "shop:latest",
         ], args);
     }
+
+    [Fact]
+    public void Stop_arguments_use_a_graceful_timeout() =>
+        Assert.Equal(
+            ["-H", "ssh://deploy@box", "stop", "-t", "20", "shop-blue"],
+            DeployCommand.BuildStopArguments("deploy@box", "shop-blue"));
 
     [Theory]
     [InlineData(null, "blue")]
@@ -361,11 +372,15 @@ public sealed class DeployCommandTests
         var runs = runner.Invocations.Where(i => !i.Captured).ToList();
         int StartNew = runs.FindIndex(i => i.Arguments.Contains("run") && i.Arguments.Contains("demo-green"));
         int Reload = runs.FindIndex(i => i.Arguments.Contains("reload"));
+        int StopOld = runs.FindIndex(i => i.Arguments is ["-H", "ssh://deploy@box", "stop", "-t", "20", "demo-blue"]);
         int RemoveOld = runs.FindIndex(i => i.Arguments is ["-H", "ssh://deploy@box", "rm", "-f", "demo-blue"]);
 
-        Assert.True(StartNew >= 0 && Reload >= 0 && RemoveOld >= 0);
+        Assert.True(StartNew >= 0 && Reload >= 0 && StopOld >= 0 && RemoveOld >= 0);
         Assert.True(StartNew < Reload, "new container must start before Caddy is reloaded");
-        Assert.True(Reload < RemoveOld, "the old container must be removed only after the switch");
+        Assert.True(Reload < StopOld, "the old container is retired only after the switch");
+        // Graceful stop (SIGTERM → Litestream flush + WAL checkpoint) before the force-remove, so the last
+        // writes reach the replica instead of being SIGKILLed.
+        Assert.True(StopOld < RemoveOld, "the old container is stopped gracefully before it's removed");
     }
 
     [Fact]

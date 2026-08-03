@@ -48,25 +48,36 @@ rask deploy --github-actions
 That writes `.github/workflows/deploy.yml` and prints the repository secrets to add. Push to your default
 branch and the workflow runs the same deploy.
 
-## 4. Don't forget the backup
+## 4. Where your data lives
 
-You configured Litestream in Chapter 8 — make sure its `ReplicaUrl` credentials reach the container. Pass
-them at deploy time:
+Two layers keep the SQLite database safe, and you should understand both:
+
+- **Across redeploys — a persistent volume.** Every `rask deploy` runs a *fresh* container, so the database
+  can't live inside it. `rask deploy` mounts a per-app Docker volume and points the app at it
+  (`ConnectionStrings:App` → `Data Source=/data/app.db`); the volume — and your data — persists across
+  container replacements. The old container is stopped gracefully (SIGTERM) before removal, so in-flight
+  writes are checkpointed first rather than killed. *(Bringing your own Dockerfile? Give the runtime a
+  writable `/data`: `RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`. The one `rask new --docker`
+  scaffolds already does this.)*
+- **Off the box — Litestream.** The volume survives redeploys; Litestream (Chapter 8) survives losing the
+  *box*, streaming the database off-site continuously so you can restore onto a new machine.
+
+Litestream needs its replica credentials in the container. A bare `rask deploy` re-run doesn't remember
+one-shot `--env` values — they're secrets, so only the `--env-file` **path** is persisted — so pass them via a
+file, and every deploy will have them:
 
 ```bash
-rask deploy --env AWS_ACCESS_KEY_ID=… --env AWS_SECRET_ACCESS_KEY=…
+rask deploy --env-file .env.production   # AWS_ACCESS_KEY_ID=… / AWS_SECRET_ACCESS_KEY=… inside
 ```
-
-(or `--env-file .env.production`). With the replica reachable, your one box is fully disposable: the database
-streams off-site continuously and restores on a fresh box automatically.
 
 ## Verify
 
 - `https://shop.example.com` serves the app over HTTPS with a valid certificate.
 - `/products` and `/orders` work; signing in gates the edit pages; placing an order fires the job → email →
   outbox chain.
-- A second `rask deploy` swaps in a new build with no downtime; a deliberately broken build fails the
-  `/health` check and leaves the running app untouched.
+- A second `rask deploy` swaps in a new build with no downtime **and your data is still there** (the volume
+  persists across the container swap); a deliberately broken build fails the `/health` check and leaves the
+  running app untouched.
 
 ## You shipped it
 

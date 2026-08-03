@@ -44,6 +44,10 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     /// <summary>The default path the HTTP readiness probe hits — the endpoint <c>rask new</c> scaffolds.</summary>
     internal const string DefaultHealthPath = "/health";
 
+    /// <summary>Seconds a graceful <c>docker stop</c> waits after SIGTERM before SIGKILL — long enough for the
+    /// app's Litestream flush + SQLite WAL checkpoint (Litestream's default shutdown grace is 10s).</summary>
+    internal const int StopTimeoutSeconds = 20;
+
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
@@ -262,6 +266,9 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
     private async Task<int> DeployPortAsync(string host, string slug, int port, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken)
     {
+        // Retire the old container gracefully (SIGTERM → Litestream flush + WAL checkpoint) before removing it,
+        // so the last writes reach the replica; both no-op on the first deploy (no container yet).
+        await Run(BuildStopArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         await Run(BuildRemoveArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         Console.Out.WriteLine($"Starting {slug} on port {port}…");
         if (await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env), cancellationToken).ConfigureAwait(false) != 0)
@@ -356,9 +363,12 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             return 1;
         }
 
-        // Traffic is on the new color: retire the old container(s) of this app.
+        // Traffic is on the new color: retire the old container(s) of this app. Graceful stop first so the
+        // retiring container's Litestream replicator flushes and SQLite checkpoints the WAL before removal — a
+        // plain rm -f (SIGKILL) would drop the last synced frames.
         foreach (var stale in apps.Where(a => a.App == slug && a.Container != newContainer))
         {
+            await Run(BuildStopArguments(host, stale.Container), cancellationToken).ConfigureAwait(false);
             await Run(BuildRemoveArguments(host, stale.Container), cancellationToken).ConfigureAwait(false);
         }
 
@@ -583,6 +593,13 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             args.AddRange(["--label", "rask.managed=true", "--label", $"rask.app={slug}", "--label", $"rask.domain={domain}", "--label", $"rask.color={color}"]);
         }
 
+        // Persist the SQLite database on a per-app named volume so it survives container replacement — every
+        // deploy runs a fresh container, and without this the DB (in the container's writable layer) would be
+        // destroyed on every redeploy. Point the app at it via ConnectionStrings:App, which Rask-scaffolded
+        // apps honour; the volume is shared by both blue/green colors so the swap keeps the same database. A
+        // user-supplied --env / --env-file value is appended after, so an explicit override still wins.
+        args.AddRange(["-v", $"{slug}-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db"]);
+
         foreach (var entry in env)
         {
             args.AddRange(["-e", entry]);
@@ -591,6 +608,14 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         args.Add($"{slug}:latest");
         return args;
     }
+
+    /// <summary>
+    /// Gracefully stop a container: SIGTERM, then SIGKILL after <see cref="StopTimeoutSeconds"/>. Used before
+    /// retiring a container that's serving, so its in-process Litestream replicator flushes and SQLite
+    /// checkpoints the WAL cleanly before exit — a plain <c>rm -f</c> (SIGKILL) would lose the last frames.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildStopArguments(string host, string container) =>
+        [.. Prefix(host), "stop", "-t", StopTimeoutSeconds.ToString(CultureInfo.InvariantCulture), container];
 
     internal static IReadOnlyList<string> BuildCaddyRunArguments(string host, string network) =>
     [

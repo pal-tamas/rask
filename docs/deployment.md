@@ -32,6 +32,13 @@ Dockerfile below (override with `--dockerfile`).
   to start — or that starts but fails its probe (bad config, a failed migration) — is removed and the
   previous version keeps serving. Apps scaffolded with `rask new` ship the `/health` endpoint; probe a
   different path with `--health-path <path>`, or skip the probe with `--no-health-check`.
+- **Durable SQLite database.** Every deploy runs a fresh container, so the database can't live inside it.
+  `rask deploy` mounts a per-app named volume and points the app at it (`ConnectionStrings:App` →
+  `Data Source=/data/app.db`), so your data persists across redeploys; the old container is stopped
+  gracefully (SIGTERM) before removal so in-flight writes are checkpointed first. The `rask new --docker`
+  Dockerfile prepares a writable `/data`; a custom Dockerfile needs the same
+  (`RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`). Pair it with `Rask.SQLite.Litestream` to also
+  stream the database off the box for machine-loss recovery.
 - **Many apps, one box.** Each app is a separate `--domain`; the proxy's routing is regenerated from the
   host's live containers on every deploy, so a second app never disturbs the first.
 - **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own
