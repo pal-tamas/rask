@@ -23,10 +23,11 @@ internal static partial class ProjectGenerator
             ($"{NameToken}.Shared/{NameToken}.Shared.csproj", SharedCsproj),
             ($"{NameToken}.Shared/Contracts.cs", auth ? WasmHostedSharedContractsAuth : WasmHostedSharedContracts),
 
-            // Client — the browser-WASM SPA.
+            // Client — the browser-WASM SPA (shell in Features/Shared, welcome page in Features/Home).
             ($"{NameToken}.Client/{NameToken}.Client.csproj", WasmHostedClientCsproj(version)),
             ($"{NameToken}.Client/Program.cs", WasmHostedClientProgram(auth, pwa)),
-            ($"{NameToken}.Client/App.cs", WasmHostedClientApp),
+            ($"{NameToken}.Client/Features/Shared/App.cs", WasmHostedClientAppShell),
+            ($"{NameToken}.Client/Features/Home/HomePage.cs", WasmHostedClientHomePage),
             ($"{NameToken}.Client/wwwroot/index.html", WasmIndexHtml(pwa)),
             ($"{NameToken}.Client/runtimeconfig.template.json", WasmRuntimeConfig),
 
@@ -38,10 +39,10 @@ internal static partial class ProjectGenerator
 
         if (auth)
         {
-            files.Add(($"{NameToken}.Client/Auth/Auth.cs", WasmHostedClientAuth));
-            files.Add(($"{NameToken}.Client/Auth/LoginPage.cs", WasmHostedClientLoginPage));
-            files.Add(($"{NameToken}.Client/Auth/MembersPage.cs", WasmHostedClientMembersPage));
-            files.Add(($"{NameToken}.Server/Auth/CredentialStore.cs", WasmHostedServerCredentialStore));
+            files.Add(($"{NameToken}.Client/Features/Auth/Auth.cs", WasmHostedClientAuth));
+            files.Add(($"{NameToken}.Client/Features/Auth/LoginPage.cs", WasmHostedClientLoginPage));
+            files.Add(($"{NameToken}.Client/Features/Auth/MembersPage.cs", WasmHostedClientMembersPage));
+            files.Add(($"{NameToken}.Server/Features/Auth/CredentialStore.cs", WasmHostedServerCredentialStore));
         }
 
         if (pwa)
@@ -65,19 +66,23 @@ internal static partial class ProjectGenerator
         };
     }
 
-    // The welcome shell + home page are exactly the server/wasm one, only in the .Client namespace so the
-    // Server's cross-project reference and the client's own types line up. Reuse keeps the three in sync.
-    private static string WasmHostedClientApp =>
-        AppCs.Replace($"namespace {NameToken};", $"namespace {NameToken}.Client;", StringComparison.Ordinal);
+    // The shell + welcome page are exactly the server/wasm ones, only re-homed into the .Client namespace so
+    // the Server's cross-project reference and the client's own types line up. Reuse keeps the three in sync.
+    private static string WasmHostedClientAppShell =>
+        AppShellCs.Replace($"namespace {NameToken}.Features.Shared;", $"namespace {NameToken}.Client.Features.Shared;", StringComparison.Ordinal);
+
+    private static string WasmHostedClientHomePage =>
+        HomePageCs.Replace($"namespace {NameToken}.Features.Home;", $"namespace {NameToken}.Client.Features.Home;", StringComparison.Ordinal);
 
     private static string WasmHostedClientProgram(bool auth, bool pwa)
     {
         var sb = new StringBuilder();
-        sb.Append($"using {NameToken}.Client;\n");
+        sb.Append($"using {NameToken}.Client.Features.Shared;\n"); // App lives in the client's Features/Shared bucket.
         sb.Append("using Microsoft.Extensions.DependencyInjection;\n");
         sb.Append("using Rask.Wasm;\n");
         if (auth)
         {
+            sb.Append($"using {NameToken}.Client.Features.Auth;\n");
             sb.Append("using Rask.Core.Authentication;\n");
         }
 
@@ -136,7 +141,7 @@ internal static partial class ProjectGenerator
         var sb = new StringBuilder();
         if (auth)
         {
-            sb.Append($"using {NameToken}.Server;\n");
+            sb.Append($"using {NameToken}.Server.Features.Auth;\n"); // ICredentialStore / DemoCredentialStore
             sb.Append($"using {NameToken}.Shared;\n");
             sb.Append("using System.Security.Claims;\n");
             sb.Append("using Microsoft.AspNetCore.Authentication;\n");
@@ -405,7 +410,7 @@ internal static partial class ProjectGenerator
         """
         using System.Security.Claims;
 
-        namespace Company.RaskServer.Server;
+        namespace Company.RaskServer.Server.Features.Auth;
 
         // Demo credential store — replace with your real user store (ASP.NET Identity, a database, etc.).
         public interface ICredentialStore
@@ -435,7 +440,7 @@ internal static partial class ProjectGenerator
         using Rask.Core.Authentication;
         using Rask.Core.Routing;
 
-        namespace Company.RaskServer.Client;
+        namespace Company.RaskServer.Client.Features.Auth;
 
         public sealed class LoginModel
         {
@@ -527,7 +532,7 @@ internal static partial class ProjectGenerator
         using Rask.Core.Components;
         using Rask.Core.Routing;
 
-        namespace Company.RaskServer.Client;
+        namespace Company.RaskServer.Client.Features.Auth;
 
         [Route("login")]
         [AllowAnonymous]
@@ -568,7 +573,7 @@ internal static partial class ProjectGenerator
         using Rask.Core.Components;
         using Rask.Core.Routing;
 
-        namespace Company.RaskServer.Client;
+        namespace Company.RaskServer.Client.Features.Auth;
 
         // On WASM there's no server route guard — the Authorize component gates the content off the principal
         // (hydrated from /api/me). The signed-in view is a child component so it reads the fresh principal when

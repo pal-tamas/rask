@@ -1,14 +1,16 @@
 namespace Rask.Cli.Scaffolding;
 
 /// <summary>
-/// Scaffolds a background job under <c>Jobs/</c> (or an explicit output dir): an <c>IJob</c> record and its
+/// Scaffolds a background job under <c>Features/Shared/</c> — or into a feature slice <c>Features/&lt;Feature&gt;/</c>
+/// when <c>--feature</c> names one (or an explicit <c>--output</c> dir): an <c>IJob</c> record and its
 /// <c>ICommandHandler</c>, plus the <c>Rask.Jobs</c> / <c>Rask.Cqrs</c> packages and the registration steps.
 /// </summary>
 internal static class JobGenerator
 {
-    public static ScaffoldResult Generate(ProjectContext project, string baseDirectory, string name, string? outputOverride)
+    public static ScaffoldResult Generate(
+        ProjectContext project, string baseDirectory, string name, string? feature, string? outputOverride)
     {
-        var targetDirectory = Scaffold.TargetDirectory(baseDirectory, outputOverride, "Jobs");
+        var targetDirectory = Scaffold.TargetDirectory(baseDirectory, outputOverride, Scaffold.FeatureOrShared(feature));
         var file = new ScaffoldFile(Path.Combine(targetDirectory, name + ".cs"), Render(project.NamespaceFor(targetDirectory), name));
         return new ScaffoldResult([file], Notes(name))
         {

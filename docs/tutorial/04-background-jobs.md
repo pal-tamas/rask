@@ -14,7 +14,7 @@ same `app.db`.
 rask generate job SendOrderReceipt
 ```
 
-That writes `Jobs/SendOrderReceipt.cs` — a job record and its handler:
+That writes `Features/Shared/SendOrderReceipt.cs` — a job record and its handler:
 
 ```csharp
 public sealed record SendOrderReceipt : IJob;

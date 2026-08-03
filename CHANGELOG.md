@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask generate` gains a `--feature <Name>` flag.** `component`, `job`, and `email` now default to the
+  cross-cutting `Features/Shared/` bucket; `--feature <Name>` (`-F`) co-locates the file into that feature's
+  slice (`Features/<Name>/`) instead — for a job or email that belongs to one feature. The namespace follows
+  the folder either way. Rejected on `page`/`feature` (a page derives its slice from the class name; a feature
+  *is* a slice).
 - **`rask new --data` scaffolds a database-ready app.** The `server` template gains a `--data` flag that
   pre-wires SQLite + EF Core: an empty `AppDbContext` (applying Rask conventions so generated feature configs
   are picked up), `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout` production pragmas)
@@ -18,6 +23,16 @@ them until tagged releases begin.
   builds under `-warnaserror`. (Closes #478.)
 
 ### Changed
+- **Everything the CLI generates now lives under `Features/` — one consistent vertical-slice layout.**
+  Previously `rask generate component`/`job`/`email` wrote to root-level `Components/`, `Jobs/`, and `Emails/`
+  folders while `page`/`feature` already used `Features/`, and `rask new` scattered `App.cs`, `Auth/`, and
+  `Data/` at the project root. Now a screen is its own `Features/<Name>/` slice and cross-cutting code (the app
+  shell, components, jobs, emails, the `DbContext`) sits in `Features/Shared/`, matching the layout Rask's own
+  samples use. Concretely: `generate component/job/email` default to `Features/Shared/<Name>.cs` (namespace
+  `<Root>.Features.Shared`; use `--feature` to co-locate in a slice), and `rask new` emits the shell at
+  `Features/Shared/App.cs`, the welcome page at `Features/Home/HomePage.cs`, `--auth` under `Features/Auth/`,
+  and `--data`'s `AppDbContext` under `Features/Shared/`. Verified end to end: every `rask new` flag
+  combination (server, wasm, wasm-hosted) builds under `-warnaserror` with the reorganized namespaces.
 - **Generated features use `UseRaskSqlite` (production pragmas) instead of raw `UseSqlite`.** A `rask generate
   feature` run that owns its `DbContext` now registers it with `UseRaskSqlite` — the WAL + `busy_timeout` +
   `foreign_keys` pragma set — so a generated app survives concurrent writers (jobs, email, outbox) instead of

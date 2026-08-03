@@ -4,14 +4,14 @@ namespace Rask.Cli.Scaffolding;
 // namespace token replaced centrally (see ProjectGenerator.Materialize).
 internal static partial class ProjectGenerator
 {
-    // The whole app surface a new project gets: the shell (which every page renders through, RASK021) and a
-    // welcome home page that teaches the CLI. Both live in App.cs — a new project is deliberately one file of
-    // components, not a folder of demos to delete. Styled with Bootstrap so there is no scoped .css to pair.
-    private const string AppCs =
+    // The app shell every page renders through (RASK021), living in Features/Shared/ — the cross-cutting
+    // bucket a new project shares across its feature slices. Styled with Bootstrap so there is no scoped
+    // .css to pair. The welcome home page is its own Features/Home slice (see HomePageCs).
+    private const string AppShellCs =
         """
         using Rask.Core.Routing;
 
-        namespace Company.RaskServer;
+        namespace Company.RaskServer.Features.Shared;
 
         public sealed class App : Component
         {
@@ -36,6 +36,16 @@ internal static partial class ProjectGenerator
                 ];
         }
 
+        """;
+
+    // The welcome home page that teaches the CLI — a Features/Home slice, so a new project already models
+    // the "screens are feature slices" convention the CLI generates into.
+    private const string HomePageCs =
+        """
+        using Rask.Core.Routing;
+
+        namespace Company.RaskServer.Features.Home;
+
         [Route("/")]
         public sealed class HomePage : Component
         {
@@ -55,7 +65,7 @@ internal static partial class ProjectGenerator
                             ],
                             P(Class: "mb-0 small text-body-secondary")[
                                 "Edit this page in ",
-                                Code()["App.cs"],
+                                Code()["HomePage.cs"],
                                 ". Full guides at ",
                                 A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
                                 "."
@@ -88,7 +98,7 @@ internal static partial class ProjectGenerator
         """
         using System.Security.Claims;
 
-        namespace Company.RaskServer;
+        namespace Company.RaskServer.Features.Auth;
 
         // Demo credential store — replace with your real user store (ASP.NET Identity, a database, etc.).
         public interface ICredentialStore
