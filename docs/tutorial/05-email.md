@@ -25,15 +25,19 @@ public sealed class OrderReceipt : Component
 }
 ```
 
-Give it the order data and build a real body:
+Give it the order data and build a real body. A component carries data on **public properties** (that's what
+the generated factory fills in), so add an `OrderId` and a `Total` and render them:
 
 ```csharp
-public sealed class OrderReceipt(Guid orderId, decimal total) : Component
+public sealed class OrderReceipt : Component
 {
+    public Guid OrderId { get; set; }
+    public decimal Total { get; set; }
+
     protected override Component? Render() =>
         Div()[
             H1()["Thanks for your order!"],
-            P()[$"Order {orderId} — total ", Strong()[$"{total:C}"], "."],
+            P()[$"Order {OrderId} — total ", Strong()[$"{Total:C}"], "."],
             P()["We'll email again when it ships."]
         ];
 }
@@ -93,16 +97,18 @@ public sealed class SendOrderReceiptHandler(
         await mail.SendAsync(
             Email.To("customer@example.com")
                  .Subject($"Your order {order.Id}")
-                 .Body(new OrderReceipt(order.Id, order.Total)),
+                 .Body(OrderReceipt(OrderId: order.Id, Total: order.Total)),
             ct);
     }
 }
 ```
 
 `Email.To(...)` is a fluent builder — chain `Subject(...)`, `Cc/Bcc`, `Attach(...)`, and `Body(component)`,
-which renders your component to HTML right there. `SendAsync` just queues the row; the background sender
-delivers it. You now have the full chain: **place order → enqueue job → job sends email**, none of it on the
-customer's request.
+which renders your component to HTML right there. Note `Body(OrderReceipt(OrderId: …, Total: …))` calls the
+**generated `OrderReceipt` factory**, not `new OrderReceipt(...)` — every Rask component is built through its
+factory (the framework enforces this), and the factory takes one named argument per public property. `SendAsync`
+just queues the row; the background sender delivers it. You now have the full chain: **place order → enqueue job
+→ job sends email**, none of it on the customer's request.
 
 ## Verify
 

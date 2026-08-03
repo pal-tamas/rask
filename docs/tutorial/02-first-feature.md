@@ -21,8 +21,9 @@ rask generate feature Product Name:string Price:decimal InStock:bool --validatio
 ```
 
 Read the field list as `name:type`. Rask understands `string`, `int`, `long`, `decimal`, `double`, `bool`,
-`datetime`, `date`, `time`, and `guid`. A trailing `?` makes a field optional (`Description:string?`), and
-`string(100)` caps a string's length. `Id` is added for you — don't list it.
+`datetime`, `date`, `time`, and `guid` — plus a few aliases (`text` → `string`, `money` → `decimal`). A
+trailing `?` makes a field optional (`Description:string?`), and `string(100)` caps a string's length. `Id` is
+added for you — don't list it.
 
 > **`--validation` is optional; we pass `dataannotations`** here to keep the form validation familiar:
 > `[Required]`, `[MaxLength]`, and a `DataAnnotationsValidator()` on the form. Drop the flag and you get
