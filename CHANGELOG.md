@@ -54,6 +54,14 @@ them until tagged releases begin.
   owned by the non-root runtime user so the volume is writable (a custom Dockerfile needs the same:
   `RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`). Deploy/tutorial docs now explain the persistence
   model and steer replica credentials to `--env-file` (a one-shot `--env` isn't remembered on the next deploy).
+- **The `Program.cs` DI splice is now compile-gated.** `rask generate feature`'s one runtime-critical edit —
+  inserting the `AddRaskCqrs`/`AddRaskData`/`AddDbContextFactory` registrations + their usings into `Program.cs`
+  — was only verified by string assertions; the build E2E wrote the feature files but never ran the splice.
+  The splice is extracted to a pure `SpliceProgramCs` (unit-tested for anchor placement + idempotency), and the
+  multi-entity build E2E now applies the real splice to the scaffolded `Program.cs` and compiles it under
+  `-warnaserror`, so the edit that turns generated files into a running app can't silently produce
+  uncompilable code. Also corrected a stale `llms.txt` line that still described the feature DI as a "manual
+  paste" (it's been auto-written since #482).
 
 ## [0.19.0] - 2026-07-20
 

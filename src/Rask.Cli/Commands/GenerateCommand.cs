@@ -255,6 +255,28 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return;
         }
 
+        var (updated, added) = SpliceProgramCs(text, result.ProgramUsings, result.ProgramRegistrations);
+        if (updated == text)
+        {
+            return; // everything was already wired
+        }
+
+        _fileSystem.WriteAllText(path, updated);
+        var names = string.Join(", ", added.Select(RegistrationName));
+        Console.WriteLine($"Registered {added.Count} service(s) in Program.cs: {names}.", ConsoleStyle.Success);
+    }
+
+    /// <summary>
+    /// Pure splice: insert any missing <paramref name="usings"/> (after the last using) and
+    /// <paramref name="registrations"/> (after the last <c>builder.Services.</c> line) into a top-level-statements
+    /// <paramref name="text"/>, idempotently — a directive or registration already present is left alone. Returns
+    /// the rewritten text (the original instance when nothing changed) and the registration first-lines added.
+    /// Extracted so the exact splice can be unit-tested and compile-gated. Caller guards for
+    /// <c>WebApplication.CreateBuilder</c> before calling.
+    /// </summary>
+    internal static (string Text, IReadOnlyList<string> Added) SpliceProgramCs(
+        string text, IReadOnlyList<string> usings, IReadOnlyList<string> registrations)
+    {
         var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
         var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
 
@@ -262,7 +284,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         var addedUsings = 0;
         var lastUsing = lines.FindLastIndex(l => l.TrimStart().StartsWith("using ", StringComparison.Ordinal) && l.TrimEnd().EndsWith(';'));
         var usingAt = lastUsing >= 0 ? lastUsing + 1 : 0;
-        foreach (var ns in result.ProgramUsings)
+        foreach (var ns in usings)
         {
             var directive = $"using {ns};";
             if (!lines.Any(l => l.Trim() == directive))
@@ -274,7 +296,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
         // Insert registrations after the last existing builder.Services line, else right after the builder.
         var added = new List<string>();
-        foreach (var registration in result.ProgramRegistrations)
+        foreach (var registration in registrations)
         {
             var firstLine = registration.Split('\n')[0];
             if (lines.Any(l => l.Trim() == firstLine.Trim()))
@@ -292,14 +314,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             added.Add(firstLine);
         }
 
-        if (added.Count == 0 && addedUsings == 0)
-        {
-            return; // everything was already wired
-        }
-
-        _fileSystem.WriteAllText(path, string.Join(newline, lines));
-        var names = string.Join(", ", added.Select(RegistrationName));
-        Console.WriteLine($"Registered {added.Count} service(s) in Program.cs: {names}.", ConsoleStyle.Success);
+        return added.Count == 0 && addedUsings == 0 ? (text, added) : (string.Join(newline, lines), added);
     }
 
     // Find an existing DbContext class by name anywhere in the project, returning its namespace + file so an
