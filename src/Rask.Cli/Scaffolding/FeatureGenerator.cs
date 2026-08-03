@@ -99,7 +99,7 @@ internal static class FeatureGenerator
             files,
             RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests))
         {
-            Packages = FeaturePackages(options.Validation, options.UseBs, options.UseOutbox),
+            Packages = FeaturePackages(options.Validation, options.UseBs, options.UseOutbox, generateContext),
             ProgramUsings = programUsings,
             ProgramRegistrations = programRegistrations,
             ContextDbSets = contextDbSets,
@@ -167,10 +167,15 @@ internal static class FeatureGenerator
         {
             usings.Add("Microsoft.EntityFrameworkCore");
             usings.Add("Microsoft.EntityFrameworkCore.Diagnostics");
+            usings.Add("Rask.SQLite");
             usings.Add(contextNs);
+            // UseRaskSqlite is a drop-in for UseSqlite that also applies the production pragma set (WAL,
+            // busy_timeout, foreign_keys), so the app survives concurrent writers (jobs/mail/outbox) instead of
+            // hitting "database is locked". The connection string falls back to a local file but honours a
+            // ConnectionStrings:App override, so `rask deploy` can point it at a mounted volume that survives redeploys.
             registrations.Add(
                 $"builder.Services.AddDbContextFactory<{context}>((sp, o) => o\n"
-                + "    .UseSqlite(\"Data Source=app.db\")\n"
+                + "    .UseRaskSqlite(builder.Configuration.GetConnectionString(\"App\") ?? \"Data Source=app.db\")\n"
                 + "    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));");
         }
 
@@ -925,7 +930,7 @@ internal static class FeatureGenerator
     }
 
     // The NuGet packages the generated slice references — the command adds these to the project.
-    private static IReadOnlyList<string> FeaturePackages(string validation, bool useBs, bool useOutbox)
+    private static IReadOnlyList<string> FeaturePackages(string validation, bool useBs, bool useOutbox, bool generateContext)
     {
         var packages = new List<string>
         {
@@ -942,6 +947,13 @@ internal static class FeatureGenerator
             "Rask.Cqrs",
             "Rask.Data", // the Entity<TId> base + interceptors every generated entity inherits
         };
+
+        // When the run owns the DbContext it registers UseRaskSqlite (production pragmas); with --context the
+        // existing context's project already carries this reference.
+        if (generateContext)
+        {
+            packages.Add("Rask.SQLite.EntityFrameworkCore");
+        }
 
         if (useOutbox)
         {

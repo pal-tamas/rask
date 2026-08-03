@@ -22,6 +22,15 @@ internal static class Identifiers
         "void", "volatile", "while",
     };
 
+    /// <summary>
+    /// True if <paramref name="value"/> is usable as a namespace: every dot-separated segment is a valid,
+    /// non-keyword C# identifier. A generated project's name becomes its root namespace (and csproj name), so
+    /// this gates <c>rask new</c> — <c>Shop</c> and <c>Contoso.Shop</c> pass; <c>my-app</c>, <c>9Lives</c>,
+    /// and a trailing dot don't (they'd emit <c>namespace my-app;</c> and never compile).
+    /// </summary>
+    public static bool IsValidNamespaceName(string value) =>
+        !string.IsNullOrEmpty(value) && value.Split('.').All(IsValidTypeName);
+
     /// <summary>True if <paramref name="value"/> is a valid, non-keyword C# identifier (a usable type name).</summary>
     public static bool IsValidTypeName(string value)
     {

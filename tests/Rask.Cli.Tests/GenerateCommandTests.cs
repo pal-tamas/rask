@@ -45,8 +45,9 @@ public sealed class GenerateCommandTests
         Assert.Contains("namespace MyApp.Jobs;", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("record SendWelcomeEmail : IJob", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("ICommandHandler<SendWelcomeEmail>", fs.Files[path], StringComparison.Ordinal);
-        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Jobs"]);
-        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Cqrs"]);
+        // Rask.* packages are pinned to the CLI version (see the dedicated pinning test); assert the shape here.
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Jobs", "--version", _]);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Cqrs", "--version", _]);
         Assert.Contains("AddRaskJobs", console.OutText, StringComparison.Ordinal);
     }
 
@@ -74,8 +75,26 @@ public sealed class GenerateCommandTests
         Assert.Contains("namespace MyApp.Emails;", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("class WelcomeEmail : Component", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("Body(new WelcomeEmail())", fs.Files[path], StringComparison.Ordinal);
-        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Mail"]);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Mail", "--version", _]);
         Assert.Contains("AddRaskMail", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Feature_pins_rask_packages_to_the_cli_version_but_floats_others()
+    {
+        var (_, _, process, command) = BuildWithProcess();
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var version = NewCommand.ResolvePackageVersion(CliMetadata.Version);
+        // Rask.* are pinned to the CLI version so a generated feature can't float them past the Rask.Server the
+        // template baked (a locally/CI-built CLI would otherwise mix versions from nuget.org).
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Data", "--version", var v] && v == version);
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.SQLite.EntityFrameworkCore", "--version", var v2] && v2 == version);
+        // EF Core / SQLitePCLRaw version independently of Rask — added without a pin so NuGet resolves the latest compatible.
+        Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Microsoft.EntityFrameworkCore.Sqlite"]);
+        Assert.DoesNotContain(process.Invocations, i => i.Arguments is ["add", "package", "Microsoft.EntityFrameworkCore.Sqlite", "--version", _]);
     }
 
     [Fact]
@@ -187,10 +206,14 @@ public sealed class GenerateCommandTests
         Assert.Contains("builder.Services.AddRaskCqrs();", program, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o", program, StringComparison.Ordinal);
+        // UseRaskSqlite (production pragmas), honouring a ConnectionStrings:App override so a deploy volume works.
+        Assert.Contains(".UseRaskSqlite(", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Configuration.GetConnectionString(\"App\")", program, StringComparison.Ordinal);
         Assert.Contains(".AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));", program, StringComparison.Ordinal);
         // The usings the registrations need are added too.
         Assert.Contains("using Rask.Cqrs;", program, StringComparison.Ordinal);
         Assert.Contains("using Rask.Data;", program, StringComparison.Ordinal);
+        Assert.Contains("using Rask.SQLite;", program, StringComparison.Ordinal);
         Assert.Contains("using MyApp.Features.Products;", program, StringComparison.Ordinal);
         Assert.Contains("using Microsoft.EntityFrameworkCore.Diagnostics;", program, StringComparison.Ordinal);
         Assert.Contains("Registered", console.OutText, StringComparison.Ordinal);
@@ -206,7 +229,7 @@ public sealed class GenerateCommandTests
             "builder.Services.AddRaskCqrs();\n" +
             "builder.Services.AddRaskData();\n" +
             "builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o\n" +
-            "    .UseSqlite(\"Data Source=app.db\")\n" +
+            "    .UseRaskSqlite(builder.Configuration.GetConnectionString(\"App\") ?? \"Data Source=app.db\")\n" +
             "    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));\n");
 
         var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--force"], CancellationToken.None);
@@ -331,14 +354,15 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string,Price:decimal", "--bs"], CancellationToken.None);
 
         Assert.Equal(0, exit);
+        // Match both shapes: non-Rask float (`add package X`) and Rask.* pinned (`add package X --version V`).
         var adds = process.Invocations
-            .Where(i => i.Arguments is ["add", "package", _])
+            .Where(i => i.Arguments.Count >= 3 && i.Arguments[0] == "add" && i.Arguments[1] == "package")
             .Select(i => i.Arguments[2])
             .ToArray();
         // SQLitePCLRaw is really added to the project, not merely printed — it's the direct reference that
         // lifts EF Core Sqlite's vulnerable 2.1.11 pin (CVE-2025-6965), and nothing else does.
         Assert.Equal(
-            ["Microsoft.EntityFrameworkCore.Sqlite", "SQLitePCLRaw.bundle_e_sqlite3", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data", "Rask.Bootstrap"],
+            ["Microsoft.EntityFrameworkCore.Sqlite", "SQLitePCLRaw.bundle_e_sqlite3", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data", "Rask.SQLite.EntityFrameworkCore", "Rask.Bootstrap"],
             adds);
     }
 

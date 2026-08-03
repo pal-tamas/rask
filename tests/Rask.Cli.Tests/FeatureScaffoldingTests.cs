@@ -452,6 +452,30 @@ public sealed class FeatureGeneratorTests
     }
 
     [Fact]
+    public void Owned_context_registers_UseRaskSqlite_and_adds_the_package()
+    {
+        var result = Generate();
+
+        // The generated DbContext factory uses UseRaskSqlite (production pragmas), honouring a
+        // ConnectionStrings:App override so a deploy volume works — not the pragma-less raw UseSqlite.
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains(".UseRaskSqlite(", StringComparison.Ordinal));
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("builder.Configuration.GetConnectionString(\"App\")", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.ProgramRegistrations, r => r.Contains(".UseSqlite(\"Data Source", StringComparison.Ordinal));
+        Assert.Contains("Rask.SQLite", result.ProgramUsings);
+        Assert.Contains("Rask.SQLite.EntityFrameworkCore", result.Packages);
+    }
+
+    [Fact]
+    public void Explicit_context_does_not_register_a_factory_or_the_sqlite_package()
+    {
+        // With --context the existing context owns the registration + the Rask.SQLite.EntityFrameworkCore ref.
+        var result = Generate(context: "AppDbContext");
+
+        Assert.DoesNotContain(result.ProgramRegistrations, r => r.Contains("AddDbContextFactory", StringComparison.Ordinal));
+        Assert.DoesNotContain("Rask.SQLite.EntityFrameworkCore", result.Packages);
+    }
+
+    [Fact]
     public void Mutation_pages_handle_errors_gracefully_with_an_inline_alert()
     {
         var create = File(Generate(), "CreateProduct.cs");
@@ -592,7 +616,7 @@ public sealed class FeatureGeneratorTests
         // and only a direct reference lifts it. Don't drop it from this list without reading
         // Directory.Packages.props.
         Assert.Equal(
-            ["Microsoft.EntityFrameworkCore.Sqlite", "SQLitePCLRaw.bundle_e_sqlite3", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data"],
+            ["Microsoft.EntityFrameworkCore.Sqlite", "SQLitePCLRaw.bundle_e_sqlite3", "Microsoft.EntityFrameworkCore.Design", "Rask.Cqrs", "Rask.Data", "Rask.SQLite.EntityFrameworkCore"],
             result.Packages);
     }
 
