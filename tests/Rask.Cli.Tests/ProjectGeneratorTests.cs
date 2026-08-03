@@ -205,6 +205,9 @@ public sealed class ProjectGeneratorTests
         Assert.True(on.ContainsKey("Dockerfile"));
         Assert.True(on.ContainsKey(".dockerignore"));
         Assert.Contains("App.dll", on["Dockerfile"], StringComparison.Ordinal); // name substituted
+        // A writable /data dir owned by the non-root runtime user, so `rask deploy`'s named volume (mounted
+        // there) is writable and the SQLite DB survives redeploys.
+        Assert.Contains("mkdir -p /data && chown $APP_UID:$APP_UID /data", on["Dockerfile"], StringComparison.Ordinal);
 
         var (off, _) = Generate(docker: false);
         Assert.DoesNotContain("Dockerfile", off.Keys);

@@ -38,6 +38,15 @@ them until tagged releases begin.
   filename, so a value like `my-app` or `9Lives` (a dash, a leading digit, a keyword, an empty dotted segment)
   used to scaffold a project that never compiled. It's now validated before any files are written, with a clear
   message; dotted names like `Contoso.Shop` are still accepted.
+- **`rask deploy` no longer destroys the SQLite database on every deploy.** The app's database lived in the
+  container's writable layer, so each deploy — which always runs a fresh container — wiped it. `rask deploy`
+  now mounts a per-app named volume and points the app at it (`ConnectionStrings:App` → `Data Source=/data/app.db`),
+  so the database persists across redeploys, and it stops the retiring container **gracefully** (SIGTERM,
+  `docker stop -t 20`) before removing it, so the in-process Litestream replicator flushes and SQLite
+  checkpoints the WAL instead of being SIGKILLed. The `rask new --docker` image now prepares a writable `/data`
+  owned by the non-root runtime user so the volume is writable (a custom Dockerfile needs the same:
+  `RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`). Deploy/tutorial docs now explain the persistence
+  model and steer replica credentials to `--env-file` (a one-shot `--env` isn't remembered on the next deploy).
 
 ## [0.19.0] - 2026-07-20
 
