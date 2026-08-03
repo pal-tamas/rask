@@ -27,6 +27,13 @@ them until tagged releases begin.
 - **`rask generate feature` pins the `Rask.*` packages it adds to the CLI's version.** Previously it floated
   them to the latest on nuget.org (`dotnet add package` with no version), which could pair a template's
   `Rask.Server` with a newer `Rask.Data`/`Rask.Cqrs`. Non-Rask packages (EF Core, SQLitePCLRaw) still float.
+- **`rask generate email` auto-wires into your DbContext — no manual paste.** It previously scaffolded the
+  email-body component and then *printed* four setup steps. It now applies them: when it finds a single
+  `DbContext` in the project (or you pass `--context <Name>`), it registers `AddRaskMail<Ctx>` in `Program.cs`
+  and adds `modelBuilder.AddRaskMail()` to that context's `OnModelCreating` (both idempotent), leaving only the
+  SMTP config and the migration. With no context — or several and no `--context` — it prints the manual steps
+  as before. This closes the asymmetry with `rask generate feature`, which already wrote its DI. (`--context`
+  is now accepted on `generate email` too.)
 - **OPF docs & landing-site polish.** The landing site now advertises **46** typed browser APIs (was a stale
   "43", matching `docs/apis/` and the docs index); the roadmap's CRUD-scaffolder entry now credits the
   `rask generate job`/`email` scaffolders alongside `feature`; the tutorial's Chapter 2 `--validation` note

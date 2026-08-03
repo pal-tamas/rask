@@ -39,9 +39,15 @@ public sealed class OrderReceipt(Guid orderId, decimal total) : Component
 }
 ```
 
-## 2. Wire it up
+## 2. It's already wired
 
-One registration line and the mail table. In `Program.cs`:
+`rask generate email` did the plumbing for you — the same "no manual paste" treatment `generate feature`
+gives its DbContext. It found your `ProductsDbContext` and:
+
+- added `builder.Services.AddRaskMail<ProductsDbContext>(…)` to `Program.cs`, and
+- mapped the mail table with `modelBuilder.AddRaskMail();` in `OnModelCreating`.
+
+All that's left is your real sender address and, for production, an SMTP server — edit the registration it added:
 
 ```csharp
 builder.Services.AddRaskMail<ProductsDbContext>(o =>
@@ -53,13 +59,7 @@ builder.Services.AddRaskMail<ProductsDbContext>(o =>
 });
 ```
 
-Map the table in `ProductsDbContext.OnModelCreating`:
-
-```csharp
-modelBuilder.AddRaskMail();        // ← the QueuedMail table
-```
-
-Migrate:
+Then create the table:
 
 ```bash
 rask db add AddMail
@@ -68,6 +68,10 @@ rask db update
 
 > **Zero-config in development.** If you omit `o.Smtp`, Rask.Mail doesn't try to reach a server — it writes
 > messages to a pickup directory (or logs them), so you can build and test the flow with no mail account.
+>
+> **No database yet?** If you run `rask generate email` before you have a `DbContext` (or you have several),
+> it can't pick one to wire into — it prints the two lines above for you to add by hand. Target a specific
+> context with `--context <Name>`.
 
 ## 3. Send it from the job
 
