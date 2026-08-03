@@ -37,3 +37,24 @@ else
     exit 1
   fi
 fi
+
+# The deploy gate boots a privileged container, so it runs only when this push actually touches the
+# deploy path — the alternative (always, or never) is either a tax on every unrelated push or a gate
+# that quietly never runs. Changing how a production box is deployed to is exactly when it must run.
+deploy_paths='^(src/Rask\.Cli/(Commands/DeployCommand|Host(Probe|Setup|Bootstrap)|SshTarget|DockerProbe)\.cs|src/Rask\.Cli/Scaffolding/(DeployConfig|GitHubActionsWorkflow)\.cs|tests/Rask\.Cli\.Tests/Deploy)'
+
+if [ "${RASK_SKIP_DEPLOY_E2E:-}" = "1" ]; then
+  echo "pre-push: RASK_SKIP_DEPLOY_E2E=1 set — skipping the deploy gate."
+elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
+  echo "pre-push: no origin/main to diff against — skipping the deploy gate."
+elif ! git diff --name-only origin/main...HEAD | grep -qE "$deploy_paths"; then
+  : # nothing in this push touches the deploy path
+else
+  echo "pre-push: this push changes the deploy path — running the deploy gate against a container host."
+  echo "          bypass with 'git push --no-verify' or RASK_SKIP_DEPLOY_E2E=1."
+
+  if ! "$root/scripts/run-deploy-e2e-local.sh"; then
+    echo "pre-push: deploy gate FAILED — push aborted. Fix it, or bypass with RASK_SKIP_DEPLOY_E2E=1." >&2
+    exit 1
+  fi
+fi
