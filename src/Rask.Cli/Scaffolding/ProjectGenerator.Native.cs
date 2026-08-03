@@ -27,9 +27,10 @@ internal static partial class ProjectGenerator
 
         if (isLocal)
         {
-            // Native + Local: the component tree plus the in-process platform heads, each of which boots a
-            // NativeAppHost + RunLocalAsync<App>.
-            files.Add(("App.cs", NativeApp));
+            // Native + Local: the component tree (App shell in Features/Shared, welcome screen in Features/Home)
+            // plus the in-process platform heads, each of which boots a NativeAppHost + RunLocalAsync<App>.
+            files.Add(("Features/Shared/App.cs", NativeAppShell));
+            files.Add(("Features/Home/HomePage.cs", NativeHomePage));
             files.Add(("Platforms/iOS/AppDelegate.cs", NativeIosAppDelegate));
             files.Add(("Platforms/Android/MainActivity.cs", NativeAndroidMainActivity));
         }
@@ -182,19 +183,20 @@ internal static partial class ProjectGenerator
 
     // ---- native-only template files ----
 
-    private const string NativeApp =
+    // The root shell, in the Features/Shared bucket. A native page is a small COMPOSED tree: the native bars
+    // (NativeHeaderBar / NativeTabBar) as siblings of a NativeWebView, which hosts the ordinary page shell
+    // (Doctype/Html/Head/Body, RASK021). The native host projects the bars to REAL platform chrome — a
+    // UINavigationBar + UITabBar on iOS, a top bar + bottom tab bar on Android — and serializes the
+    // NativeWebView's HTML into the WebView between them.
+    private const string NativeAppShell =
         """
         using Rask.Core.Routing;
 
         // NativeHeaderBar / NativeWebView factories come from a global using the generator emits automatically
         // for any project referencing Rask.Native — no `using static` needed here.
 
-        namespace Company.RaskServer;
+        namespace Company.RaskServer.Features.Shared;
 
-        // The root component. A native page is a small COMPOSED tree: the native bars (NativeHeaderBar / NativeTabBar)
-        // as siblings of a NativeWebView, which hosts the ordinary page shell (Doctype/Html/Head/Body, RASK021). The
-        // native host projects the bars to REAL platform chrome — a UINavigationBar + UITabBar on iOS, a top bar +
-        // bottom tab bar on Android — and serializes the NativeWebView's HTML into the WebView between them.
         public sealed class App : Component
         {
             protected override Component? Head =>
@@ -225,10 +227,20 @@ internal static partial class ProjectGenerator
                 ]
 
                 // Add a real native bottom tab bar here once you have somewhere to navigate:
-                //   NativeTabBar(Tabs: [NativeTab(Title: "Home", Icon: NativeIcon.Home, To: HomePage())])
+                //   NativeTabBar(Tabs: [NativeTab(Title: "Home", Icon: NativeIcon.Home, To: Routes.HomePage())])
                 // Tapping a tab routes to its type-safe To:; the framework highlights the matching route.
             ];
         }
+
+        """;
+
+    // The welcome screen, its own Features/Home slice — a new native project already models the CLI's
+    // "screens are feature slices" convention.
+    private const string NativeHomePage =
+        """
+        using Rask.Core.Routing;
+
+        namespace Company.RaskServer.Features.Home;
 
         [Route("/")]
         public sealed class HomePage : Component
@@ -243,7 +255,7 @@ internal static partial class ProjectGenerator
                     ],
                     P(Style: "margin:0;font-size:.9rem;color:#6b7280")[
                         "Edit this page in ",
-                        Code()["App.cs"],
+                        Code()["HomePage.cs"],
                         ". Full guides at ",
                         A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
                         "."
@@ -269,6 +281,7 @@ internal static partial class ProjectGenerator
 
     private const string NativeIosAppDelegate =
         """
+        using Company.RaskServer.Features.Shared;
         using Foundation;
         using Microsoft.Extensions.DependencyInjection;
         using Rask.Client.Browser;
@@ -362,6 +375,7 @@ internal static partial class ProjectGenerator
         using Android.App;
         using Android.Content.PM;
         using Android.OS;
+        using Company.RaskServer.Features.Shared;
         using Microsoft.Extensions.DependencyInjection;
         using Rask.Client.Browser;
         using Rask.Core.Browser;

@@ -9,17 +9,19 @@ public sealed class ProjectGeneratorTests
     private const string Version = "9.9.9";
 
     // Files the server template always emits, whatever the flags. A new project is deliberately minimal:
-    // the shell + welcome page (both in App.cs), the entry point, the csproj and the launch profile.
+    // the shell (Features/Shared) + welcome page (Features/Home), the entry point, csproj and launch profile.
     private static readonly string[] AlwaysPresent =
     [
-        "App.csproj", "Program.cs", "App.cs", "Properties/launchSettings.json",
+        "App.csproj", "Program.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
+        "Properties/launchSettings.json",
     ];
 
-    // Demo content `rask new` used to scaffold and deliberately no longer does — a new project is one file
-    // of components, not a folder of samples to delete. Guards against any of it creeping back.
+    // Demo content `rask new` used to scaffold and deliberately no longer does — a new project ships one
+    // welcome slice, not a folder of samples to delete. Guards against any of it creeping back (bare-root
+    // paths — the real welcome page lives at Features/Home/HomePage.cs).
     private static readonly string[] NeverPresent =
     [
-        "HomePage.cs", "HomePage.css", "Counter.cs", "Weather.cs", "WeatherForecast.cs",
+        "Counter.cs", "Weather.cs", "WeatherForecast.cs",
         "LocalWeatherForecastService.cs", "README.md", "AGENTS.md",
     ];
 
@@ -32,13 +34,13 @@ public sealed class ProjectGeneratorTests
 
         Assert.Equal(["Rask.Server", "Rask.Bootstrap"], result.Packages);
         // No opt-in artifacts leak in.
-        Assert.DoesNotContain("Auth/CredentialStore.cs", files.Keys);
+        Assert.DoesNotContain("Features/Auth/CredentialStore.cs", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
         Assert.DoesNotContain("wwwroot/icon.svg", files.Keys);
     }
 
     [Fact]
-    public void The_welcome_page_lives_in_App_cs_and_no_demo_files_are_scaffolded()
+    public void The_shell_and_welcome_page_are_feature_slices_and_no_demo_files_are_scaffolded()
     {
         var (files, _) = Generate(auth: true, pwa: true, cqrs: true, docker: true);
 
@@ -47,16 +49,19 @@ public sealed class ProjectGeneratorTests
             Assert.DoesNotContain(gone, files.Keys);
         }
 
-        // App.cs carries BOTH the shell and the routed welcome page.
-        var app = files["App.cs"];
-        Assert.Contains("public sealed class App : Component", app, StringComparison.Ordinal);
-        Assert.Contains("[Route(\"/\")]", app, StringComparison.Ordinal);
-        Assert.Contains("public sealed class HomePage : Component", app, StringComparison.Ordinal);
-        Assert.Contains("Router()", app, StringComparison.Ordinal);
-        // Styled by Bootstrap — there is no scoped .css companion to pair with.
-        Assert.Contains("BsCard", app, StringComparison.Ordinal);
+        // The shell is the Features/Shared bucket; it hosts the Router but not the welcome page.
+        var shell = files["Features/Shared/App.cs"];
+        Assert.Contains("public sealed class App : Component", shell, StringComparison.Ordinal);
+        Assert.Contains("Router()", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class HomePage", shell, StringComparison.Ordinal);
+
+        // The welcome page is its own Features/Home slice, Bootstrap-styled (no scoped .css to pair with).
+        var home = files["Features/Home/HomePage.cs"];
+        Assert.Contains("[Route(\"/\")]", home, StringComparison.Ordinal);
+        Assert.Contains("public sealed class HomePage : Component", home, StringComparison.Ordinal);
+        Assert.Contains("BsCard", home, StringComparison.Ordinal);
         // The welcome copy points at the file it actually lives in.
-        Assert.Contains("Code()[\"App.cs\"]", app, StringComparison.Ordinal);
+        Assert.Contains("Code()[\"HomePage.cs\"]", home, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -81,9 +86,10 @@ public sealed class ProjectGeneratorTests
             Assert.DoesNotContain("Company.RaskServer", path, StringComparison.Ordinal);
         }
 
-        // Program.cs uses top-level statements (no namespace) but references the app namespace.
-        Assert.Contains("using App;", files["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains("namespace App;", files["App.cs"], StringComparison.Ordinal);
+        // Program.cs uses top-level statements (no namespace) but references the shell's namespace.
+        Assert.Contains("using App.Features.Shared;", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("namespace App.Features.Shared;", files["Features/Shared/App.cs"], StringComparison.Ordinal);
+        Assert.Contains("namespace App.Features.Home;", files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -103,8 +109,8 @@ public sealed class ProjectGeneratorTests
         var (on, result) = Generate(data: true);
 
         // The AppDbContext file, applying Rask conventions so generated feature configs are picked up.
-        Assert.True(on.ContainsKey("Data/AppDbContext.cs"));
-        var context = on["Data/AppDbContext.cs"];
+        Assert.True(on.ContainsKey("Features/Shared/AppDbContext.cs"));
+        var context = on["Features/Shared/AppDbContext.cs"];
         Assert.Contains("public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)", context, StringComparison.Ordinal);
         Assert.Contains("modelBuilder.ApplyRaskConventions();", context, StringComparison.Ordinal);
 
@@ -133,7 +139,7 @@ public sealed class ProjectGeneratorTests
     {
         var (off, result) = Generate(data: false);
 
-        Assert.DoesNotContain("Data/AppDbContext.cs", off.Keys);
+        Assert.DoesNotContain("Features/Shared/AppDbContext.cs", off.Keys);
         Assert.DoesNotContain("AddRaskData", off["Program.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("UseRaskSqlite", off["Program.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Data", result.Packages);
@@ -144,13 +150,13 @@ public sealed class ProjectGeneratorTests
     public void Auth_flag_toggles_the_auth_files_and_wiring()
     {
         var (on, _) = Generate(auth: true);
-        Assert.True(on.ContainsKey("Auth/CredentialStore.cs"));
-        Assert.True(on.ContainsKey("Auth/LoginPage.cs"));
-        Assert.True(on.ContainsKey("Auth/MembersPage.cs"));
+        Assert.True(on.ContainsKey("Features/Auth/CredentialStore.cs"));
+        Assert.True(on.ContainsKey("Features/Auth/LoginPage.cs"));
+        Assert.True(on.ContainsKey("Features/Auth/MembersPage.cs"));
         Assert.Contains("AddAuthentication", on["Program.cs"], StringComparison.Ordinal);
 
         var (off, _) = Generate(auth: false);
-        Assert.DoesNotContain("Auth/CredentialStore.cs", off.Keys);
+        Assert.DoesNotContain("Features/Auth/CredentialStore.cs", off.Keys);
         Assert.DoesNotContain("AddAuthentication", off["Program.cs"], StringComparison.Ordinal);
     }
 
@@ -231,7 +237,7 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("Rask.Bootstrap", result.Packages);
         Assert.Equal(cqrs, result.Packages.Contains("Rask.Cqrs"));
 
-        Assert.Equal(auth, files.ContainsKey("Auth/CredentialStore.cs"));
+        Assert.Equal(auth, files.ContainsKey("Features/Auth/CredentialStore.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));
 
@@ -271,7 +277,8 @@ public sealed class ProjectGeneratorTests
 
     private static readonly string[] WasmAlwaysPresent =
     [
-        "App.csproj", "Program.cs", "App.cs", "wwwroot/index.html", "runtimeconfig.template.json",
+        "App.csproj", "Program.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
+        "wwwroot/index.html", "runtimeconfig.template.json",
     ];
 
     [Fact]
@@ -285,7 +292,7 @@ public sealed class ProjectGeneratorTests
         Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
         Assert.Contains("Microsoft.NET.Sdk.WebAssembly", files["App.csproj"], StringComparison.Ordinal);
         // A standalone SPA never carries the auth/pwa/docker opt-ins by default.
-        Assert.DoesNotContain("Auth/Auth.cs", files.Keys);
+        Assert.DoesNotContain("Features/Auth/Auth.cs", files.Keys);
         Assert.DoesNotContain("wwwroot/icon.svg", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
     }
@@ -294,15 +301,15 @@ public sealed class ProjectGeneratorTests
     public void Wasm_auth_adds_the_jwt_files_and_the_framework_package_refs()
     {
         var on = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: true, pwa: false, docker: false, Version));
-        Assert.True(on.ContainsKey("Auth/Auth.cs"));
-        Assert.True(on.ContainsKey("Auth/LoginPage.cs"));
-        Assert.True(on.ContainsKey("Auth/MembersPage.cs"));
+        Assert.True(on.ContainsKey("Features/Auth/Auth.cs"));
+        Assert.True(on.ContainsKey("Features/Auth/LoginPage.cs"));
+        Assert.True(on.ContainsKey("Features/Auth/MembersPage.cs"));
         // WASM has no Microsoft.AspNetCore.App framework ref, so the JWT scaffold pins these directly.
         Assert.Contains("<PackageReference Include=\"Microsoft.JSInterop\"", on["App.csproj"], StringComparison.Ordinal);
         Assert.Contains("<PackageReference Include=\"Microsoft.AspNetCore.Authorization\"", on["App.csproj"], StringComparison.Ordinal);
 
         var off = Index(ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: false, Version));
-        Assert.DoesNotContain("Auth/Auth.cs", off.Keys);
+        Assert.DoesNotContain("Features/Auth/Auth.cs", off.Keys);
         Assert.DoesNotContain("<PackageReference Include=\"Microsoft.JSInterop\"", off["App.csproj"], StringComparison.Ordinal);
     }
 
@@ -334,10 +341,10 @@ public sealed class ProjectGeneratorTests
             Assert.True(files.ContainsKey(expected), $"[{auth},{pwa},{docker}] missing {expected}");
         }
 
-        Assert.Contains("public sealed class HomePage : Component", files["App.cs"], StringComparison.Ordinal);
+        Assert.Contains("public sealed class HomePage : Component", files["Features/Home/HomePage.cs"], StringComparison.Ordinal);
 
         Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
-        Assert.Equal(auth, files.ContainsKey("Auth/Auth.cs"));
+        Assert.Equal(auth, files.ContainsKey("Features/Auth/Auth.cs"));
         Assert.Equal(pwa, files.ContainsKey("wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));
 
@@ -373,7 +380,8 @@ public sealed class ProjectGeneratorTests
     // The local-only component code + in-process platform heads.
     private static readonly string[] NativeLocalOnly =
     [
-        "App.cs", "Platforms/iOS/AppDelegate.cs", "Platforms/Android/MainActivity.cs",
+        "Features/Shared/App.cs", "Features/Home/HomePage.cs",
+        "Platforms/iOS/AppDelegate.cs", "Platforms/Android/MainActivity.cs",
     ];
 
     // The server-only thin-shell platform heads.
@@ -450,20 +458,22 @@ public sealed class ProjectGeneratorTests
     }
 
     [Fact]
-    public void Native_local_puts_the_welcome_page_in_App_cs_and_scaffolds_no_demo_pages()
+    public void Native_local_welcome_page_is_a_feature_slice_and_scaffolds_no_demo_pages()
     {
         var local = GenerateNative("local");
 
-        Assert.DoesNotContain("HomePage.cs", local.Keys);
         Assert.DoesNotContain("Counter.cs", local.Keys);
-        var app = local["App.cs"];
-        Assert.Contains("[Route(\"/\")]", app, StringComparison.Ordinal);
-        Assert.Contains("public sealed class HomePage : Component", app, StringComparison.Ordinal);
+
+        // The welcome page is its own Features/Home slice; the shell hosts the native chrome + Router.
+        var home = local["Features/Home/HomePage.cs"];
+        Assert.Contains("[Route(\"/\")]", home, StringComparison.Ordinal);
+        Assert.Contains("public sealed class HomePage : Component", home, StringComparison.Ordinal);
 
         // The tab bar linked Counter, which is gone. It may survive as a commented-out suggestion, but
         // nothing may still render it — an unresolved Counter() reference would not compile.
-        Assert.DoesNotContain("Counter()", app, StringComparison.Ordinal);
-        foreach (var line in app.Split('\n').Where(l => l.Contains("NativeTab", StringComparison.Ordinal)))
+        var shell = local["Features/Shared/App.cs"];
+        Assert.DoesNotContain("Counter()", shell, StringComparison.Ordinal);
+        foreach (var line in shell.Split('\n').Where(l => l.Contains("NativeTab", StringComparison.Ordinal)))
         {
             Assert.StartsWith("//", line.Trim(), StringComparison.Ordinal);
         }
@@ -509,7 +519,8 @@ public sealed class ProjectGeneratorTests
     [
         "App.sln",
         "App.Shared/App.Shared.csproj", "App.Shared/Contracts.cs",
-        "App.Client/App.Client.csproj", "App.Client/Program.cs", "App.Client/App.cs",
+        "App.Client/App.Client.csproj", "App.Client/Program.cs",
+        "App.Client/Features/Shared/App.cs", "App.Client/Features/Home/HomePage.cs",
         "App.Client/wwwroot/index.html", "App.Client/runtimeconfig.template.json",
         "App.Server/App.Server.csproj", "App.Server/Program.cs", "App.Server/Properties/launchSettings.json",
     ];
@@ -530,7 +541,7 @@ public sealed class ProjectGeneratorTests
         Assert.Equal(["Rask.Wasm", "Rask.Bootstrap", "Rask.Wasm.Hosting"], result.Packages);
 
         // No opt-in artifacts leak in, and no demo content survives the slimming.
-        Assert.DoesNotContain("App.Client/Auth/Auth.cs", files.Keys);
+        Assert.DoesNotContain("App.Client/Features/Auth/Auth.cs", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
         Assert.DoesNotContain("App.Client/wwwroot/icon.svg", files.Keys);
         foreach (var demo in new[] { "Counter.cs", "Weather.cs", "WeatherForecast.cs", "LocalWeatherForecastService.cs" })
@@ -544,9 +555,10 @@ public sealed class ProjectGeneratorTests
     {
         var files = GenerateWasmHosted();
 
-        // Each project owns its Client/Server/Shared namespace; the welcome shell is the shared one, re-homed.
-        Assert.Contains("namespace App.Client;", files["App.Client/App.cs"], StringComparison.Ordinal);
-        Assert.Contains("public sealed class HomePage : Component", files["App.Client/App.cs"], StringComparison.Ordinal);
+        // Each project owns its Client/Server/Shared namespace; the shell + welcome page are the shared ones, re-homed.
+        Assert.Contains("namespace App.Client.Features.Shared;", files["App.Client/Features/Shared/App.cs"], StringComparison.Ordinal);
+        Assert.Contains("public sealed class HomePage : Component", files["App.Client/Features/Home/HomePage.cs"], StringComparison.Ordinal);
+        Assert.Contains("namespace App.Client.Features.Home;", files["App.Client/Features/Home/HomePage.cs"], StringComparison.Ordinal);
         Assert.Contains("namespace App.Shared;", files["App.Shared/Contracts.cs"], StringComparison.Ordinal);
 
         // Client references Shared.
@@ -574,22 +586,22 @@ public sealed class ProjectGeneratorTests
     public void WasmHosted_auth_puts_the_shared_dtos_in_the_shared_project()
     {
         var on = GenerateWasmHosted(auth: true);
-        Assert.True(on.ContainsKey("App.Client/Auth/Auth.cs"));
-        Assert.True(on.ContainsKey("App.Client/Auth/LoginPage.cs"));
-        Assert.True(on.ContainsKey("App.Client/Auth/MembersPage.cs"));
-        Assert.True(on.ContainsKey("App.Server/Auth/CredentialStore.cs"));
+        Assert.True(on.ContainsKey("App.Client/Features/Auth/Auth.cs"));
+        Assert.True(on.ContainsKey("App.Client/Features/Auth/LoginPage.cs"));
+        Assert.True(on.ContainsKey("App.Client/Features/Auth/MembersPage.cs"));
+        Assert.True(on.ContainsKey("App.Server/Features/Auth/CredentialStore.cs"));
 
         // The dedup win: LoginRequest/MeDto live in Shared, referenced by both sides (not redefined).
         var contracts = on["App.Shared/Contracts.cs"];
         Assert.Contains("record LoginRequest", contracts, StringComparison.Ordinal);
         Assert.Contains("record MeDto", contracts, StringComparison.Ordinal);
-        Assert.DoesNotContain("record LoginRequest", on["App.Server/Auth/CredentialStore.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain("record LoginRequest", on["App.Client/Auth/Auth.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("record LoginRequest", on["App.Server/Features/Auth/CredentialStore.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("record LoginRequest", on["App.Client/Features/Auth/Auth.cs"], StringComparison.Ordinal);
         Assert.Contains("using App.Shared;", on["App.Server/Program.cs"], StringComparison.Ordinal);
         Assert.Contains("AddAuthentication", on["App.Server/Program.cs"], StringComparison.Ordinal);
 
         var off = GenerateWasmHosted(auth: false);
-        Assert.DoesNotContain("App.Client/Auth/Auth.cs", off.Keys);
+        Assert.DoesNotContain("App.Client/Features/Auth/Auth.cs", off.Keys);
         Assert.DoesNotContain("record LoginRequest", off["App.Shared/Contracts.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("AddAuthentication", off["App.Server/Program.cs"], StringComparison.Ordinal);
     }
@@ -635,7 +647,7 @@ public sealed class ProjectGeneratorTests
             Assert.True(files.ContainsKey(expected), $"[{auth},{pwa},{docker}] missing {expected}");
         }
 
-        Assert.Equal(auth, files.ContainsKey("App.Client/Auth/Auth.cs"));
+        Assert.Equal(auth, files.ContainsKey("App.Client/Features/Auth/Auth.cs"));
         Assert.Equal(pwa, files.ContainsKey("App.Client/wwwroot/icon.svg"));
         Assert.Equal(docker, files.ContainsKey("Dockerfile"));
 

@@ -13,7 +13,7 @@ email in C# with the same `Div()`/`H1()` you already know, no templating languag
 rask generate email OrderReceipt
 ```
 
-That writes `Emails/OrderReceipt.cs` — a component whose `Render()` is the email body:
+That writes `Features/Shared/OrderReceipt.cs` — a component whose `Render()` is the email body:
 
 ```csharp
 public sealed class OrderReceipt : Component

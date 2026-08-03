@@ -1,16 +1,17 @@
 namespace Rask.Cli.Scaffolding;
 
 /// <summary>
-/// Scaffolds an email body under <c>Emails/</c> (or an explicit output dir): a Rask <c>Component</c> rendered
-/// to the HTML body by <c>Email.Body(...)</c>, plus the <c>Rask.Mail</c> package and the registration steps.
+/// Scaffolds an email body under <c>Features/Shared/</c> — or into a feature slice <c>Features/&lt;Feature&gt;/</c>
+/// when <c>--feature</c> names one (or an explicit <c>--output</c> dir): a Rask <c>Component</c> rendered to the
+/// HTML body by <c>Email.Body(...)</c>, plus the <c>Rask.Mail</c> package and the registration steps.
 /// </summary>
 internal static class EmailGenerator
 {
     public static ScaffoldResult Generate(
-        ProjectContext project, string baseDirectory, string name, string? outputOverride,
+        ProjectContext project, string baseDirectory, string name, string? feature, string? outputOverride,
         (string Name, string Namespace, string FilePath)? context)
     {
-        var targetDirectory = Scaffold.TargetDirectory(baseDirectory, outputOverride, "Emails");
+        var targetDirectory = Scaffold.TargetDirectory(baseDirectory, outputOverride, Scaffold.FeatureOrShared(feature));
         var file = new ScaffoldFile(Path.Combine(targetDirectory, name + ".cs"), Render(project.NamespaceFor(targetDirectory), name));
 
         // Rask.Mail pulls in the queue/processor/senders; the email body is a Rask.Core Component (already referenced).

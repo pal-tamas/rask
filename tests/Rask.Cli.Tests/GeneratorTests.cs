@@ -5,16 +5,27 @@ namespace Rask.Cli.Tests;
 public sealed class ComponentGeneratorTests
 {
     [Fact]
-    public void Generates_under_components_with_folder_namespace()
+    public void Generates_under_features_shared_with_folder_namespace()
     {
         var project = new ProjectContext("/proj", "MyApp");
 
-        var file = ComponentGenerator.Generate(project, "/proj", "PriceTag", outputOverride: null);
+        var file = ComponentGenerator.Generate(project, "/proj", "PriceTag", feature: null, outputOverride: null);
 
-        Assert.Equal(Path.GetFullPath("/proj/Components/PriceTag.cs"), Path.GetFullPath(file.Path));
-        Assert.Contains("namespace MyApp.Components;", file.Content, StringComparison.Ordinal);
+        Assert.Equal(Path.GetFullPath("/proj/Features/Shared/PriceTag.cs"), Path.GetFullPath(file.Path));
+        Assert.Contains("namespace MyApp.Features.Shared;", file.Content, StringComparison.Ordinal);
         Assert.Contains("public sealed class PriceTag : Component", file.Content, StringComparison.Ordinal);
         Assert.EndsWith("\n", file.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Feature_co_locates_into_that_slice()
+    {
+        var project = new ProjectContext("/proj", "MyApp");
+
+        var file = ComponentGenerator.Generate(project, "/proj", "OrderRow", feature: "Orders", outputOverride: null);
+
+        Assert.Equal(Path.GetFullPath("/proj/Features/Orders/OrderRow.cs"), Path.GetFullPath(file.Path));
+        Assert.Contains("namespace MyApp.Features.Orders;", file.Content, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -22,7 +33,7 @@ public sealed class ComponentGeneratorTests
     {
         var project = new ProjectContext("/proj", "MyApp");
 
-        var file = ComponentGenerator.Generate(project, "/proj", "PriceTag", outputOverride: "Widgets/Money");
+        var file = ComponentGenerator.Generate(project, "/proj", "PriceTag", feature: null, outputOverride: "Widgets/Money");
 
         Assert.Equal(Path.GetFullPath("/proj/Widgets/Money/PriceTag.cs"), Path.GetFullPath(file.Path));
         Assert.Contains("namespace MyApp.Widgets.Money;", file.Content, StringComparison.Ordinal);
