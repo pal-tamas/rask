@@ -6,12 +6,17 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>Generates the <c>server</c> template into <paramref name="targetDirectory"/>.</summary>
-    public static ScaffoldResult GenerateServer(string targetDirectory, string name, bool auth, bool pwa, bool cqrs, bool docker, string version)
+    public static ScaffoldResult GenerateServer(string targetDirectory, string name, bool auth, bool pwa, bool cqrs, bool data, bool docker, string version)
     {
+        // --data pre-wires a database: an AppDbContext + AddRaskData + a UseRaskSqlite DbContext factory. The
+        // CQRS mediator is part of that story (every `rask generate feature` handler dispatches through it), so
+        // --data implies --cqrs — one flag gives a fresh app the whole "feature → migrate" loop.
+        cqrs = cqrs || data;
+
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.csproj", ServerCsproj(cqrs, version)),
-            ("Program.cs", ServerProgram(auth, pwa, cqrs)),
+            ($"{NameToken}.csproj", ServerCsproj(cqrs, data, version)),
+            ("Program.cs", ServerProgram(auth, pwa, cqrs, data)),
             ("App.cs", AppCs),
             ("Properties/launchSettings.json", LaunchSettings),
         };
@@ -21,6 +26,11 @@ internal static partial class ProjectGenerator
             files.Add(("Auth/CredentialStore.cs", AuthCredentialStore));
             files.Add(("Auth/LoginPage.cs", AuthLoginPage));
             files.Add(("Auth/MembersPage.cs", AuthMembersPage));
+        }
+
+        if (data)
+        {
+            files.Add(("Data/AppDbContext.cs", AppDbContextCs));
         }
 
         if (pwa)
@@ -43,12 +53,25 @@ internal static partial class ProjectGenerator
             packages.Add("Rask.Cqrs");
         }
 
-        return new ScaffoldResult(scaffoldFiles, ServerNextSteps(name, docker)) { Packages = packages };
+        if (data)
+        {
+            packages.Add("Rask.Data");
+            packages.Add("Rask.SQLite.EntityFrameworkCore");
+        }
+
+        return new ScaffoldResult(scaffoldFiles, ServerNextSteps(name, docker, data)) { Packages = packages };
     }
 
-    private static string ServerCsproj(bool cqrs, string version)
+    private static string ServerCsproj(bool cqrs, bool data, string version)
     {
         var cqrsRef = cqrs ? $"\n    <PackageReference Include=\"Rask.Cqrs\" Version=\"{version}\"/>" : "";
+        // Rask.SQLite.EntityFrameworkCore brings UseRaskSqlite (WAL/busy_timeout pragmas) and pulls
+        // Microsoft.EntityFrameworkCore.Sqlite transitively; `rask db` adds EF's Design package on the
+        // first migration, so the base app builds and runs with no design-time dependency.
+        var dataRef = data
+            ? $"\n    <PackageReference Include=\"Rask.Data\" Version=\"{version}\"/>"
+              + $"\n    <PackageReference Include=\"Rask.SQLite.EntityFrameworkCore\" Version=\"{version}\"/>"
+            : "";
         return $"""
         <Project Sdk="Microsoft.NET.Sdk.Web">
 
@@ -60,7 +83,7 @@ internal static partial class ProjectGenerator
 
           <ItemGroup>
             <PackageReference Include="Rask.Server" Version="{version}"/>
-            <PackageReference Include="Rask.Bootstrap" Version="{version}"/>{cqrsRef}
+            <PackageReference Include="Rask.Bootstrap" Version="{version}"/>{cqrsRef}{dataRef}
           </ItemGroup>
 
         </Project>
@@ -68,7 +91,7 @@ internal static partial class ProjectGenerator
         """;
     }
 
-    private static string ServerProgram(bool auth, bool pwa, bool cqrs)
+    private static string ServerProgram(bool auth, bool pwa, bool cqrs, bool data)
     {
         var sb = new StringBuilder();
         sb.Append("using Company.RaskServer;\nusing Rask.Server;\n");
@@ -87,6 +110,14 @@ internal static partial class ProjectGenerator
             sb.Append("using Rask.Cqrs;\n");
         }
 
+        if (data)
+        {
+            sb.Append("using Microsoft.EntityFrameworkCore;\n");
+            sb.Append("using Microsoft.EntityFrameworkCore.Diagnostics;\n");
+            sb.Append("using Rask.Data;\n");
+            sb.Append("using Rask.SQLite;\n");
+        }
+
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
         sb.Append("builder.Services.AddRask();\n");
         // A liveness/readiness endpoint (mapped below) — reports the app is up and serving. `rask deploy`
@@ -102,6 +133,25 @@ internal static partial class ProjectGenerator
                 // this assembly (source-generated, reflection-free — trim/AOT-safe). Inject IDispatcher to send
                 // messages; add pipeline behaviors with o.AddOpenBehavior(...). See docs/cqrs.md.
                 builder.Services.AddRaskCqrs();
+
+                """.TrimStart('\n'));
+        }
+
+        if (data)
+        {
+            sb.Append("""
+
+                // The app's database, on its own disk — no external server. AddRaskData registers the
+                // auditing/soft-delete/concurrency/domain-event interceptors; UseRaskSqlite is a drop-in for
+                // UseSqlite that also applies the production pragmas (WAL, busy_timeout, foreign_keys). The
+                // connection string defaults to a local app.db but honours a ConnectionStrings:App override —
+                // `rask deploy` sets that to a path on a mounted volume so the DB survives redeploys.
+                // `rask generate feature X --context AppDbContext` adds a DbSet to AppDbContext;
+                // `rask db add <Name>` / `rask db update` create and apply the migration.
+                builder.Services.AddRaskData();
+                builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+                    .UseRaskSqlite(builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db")
+                    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
                 """.TrimStart('\n'));
         }
@@ -193,11 +243,18 @@ internal static partial class ProjectGenerator
         return sb.ToString();
     }
 
-    private static string ServerNextSteps(string name, bool docker)
+    private static string ServerNextSteps(string name, bool docker, bool data)
     {
         var steps = new StringBuilder();
         steps.Append("Created ").Append(name).Append(" (Rask server app).\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
+        if (data)
+        {
+            steps.Append("  rask generate feature Post --fields \"Title:string,Body:string\" --context AppDbContext\n");
+            steps.Append("  rask db add Init    # create the first migration\n");
+            steps.Append("  rask db update      # apply it to app.db\n");
+        }
+
         steps.Append("  rask dev            # run with hot reload (or: dotnet run)\n");
         if (docker)
         {
@@ -206,6 +263,29 @@ internal static partial class ProjectGenerator
 
         return steps.ToString();
     }
+
+    // ---- --data template files ----
+
+    // An empty database ready for features. `rask generate feature … --context AppDbContext` inserts a DbSet;
+    // ApplyRaskConventions + ApplyConfigurationsFromAssembly pick up each feature's generated entity config,
+    // so the context needs no per-entity edits beyond its DbSet line.
+    private const string AppDbContextCs =
+        """
+        using Microsoft.EntityFrameworkCore;
+        using Rask.Data;
+
+        namespace Company.RaskServer;
+
+        public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+        {
+            protected override void OnModelCreating(ModelBuilder modelBuilder)
+            {
+                modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+                modelBuilder.ApplyRaskConventions();
+            }
+        }
+
+        """;
 
     // ---- server-only template files ----
 

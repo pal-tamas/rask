@@ -22,7 +22,7 @@ internal static class TemplateCatalog
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
         new("server", "Rask Server app",
-            new HashSet<string>(["auth", "pwa", "cqrs", "docker"], StringComparer.Ordinal)),
+            new HashSet<string>(["auth", "pwa", "cqrs", "data", "docker"], StringComparer.Ordinal)),
         new("wasm", "Rask browser-WASM SPA",
             new HashSet<string>(WebFlags, StringComparer.Ordinal)),
         new("wasm-hosted", "Rask WASM + ASP.NET host",

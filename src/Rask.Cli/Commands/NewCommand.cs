@@ -17,7 +17,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly string _workingDirectory = workingDirectory;
 
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
-    internal static readonly string[] FeatureFlags = ["auth", "pwa", "cqrs", "docker"];
+    internal static readonly string[] FeatureFlags = ["auth", "pwa", "cqrs", "data", "docker"];
 
     // Latest published stable used when the running CLI's own version isn't a resolvable package (a dev/CI
     // build stamps a prerelease like "0.17.1-alpha.0.5+sha" that isn't on NuGet). PR5's INuGetClient will
@@ -29,7 +29,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     public override string Summary => "Create a new Rask project from a template.";
 
     public override string Usage =>
-        "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--docker] [--host local|server] [--output <dir>]";
+        "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--data] [--docker] [--host local|server] [--output <dir>]";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
         [("<name>", "Name of the project to create (scaffolds ./<name>/).")];
@@ -39,6 +39,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         "rask new Shop",
         "rask new Shop --template wasm --pwa",
         "rask new Api --template server --auth --docker",
+        "rask new Blog --data --docker",
         "rask new MyApp --template native --host server",
     ];
 
@@ -54,6 +55,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
             .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
+            .Flag("data", description: "Pre-wire SQLite + EF Core: an AppDbContext ready for `rask generate feature --context AppDbContext` (server only).")
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
             .Flag("dry-run", description: "Print the files that would be written without touching disk.");
 
@@ -139,12 +141,13 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             (dir, version) =>
             {
                 bool auth = requestedFlags.Contains("auth"), pwa = requestedFlags.Contains("pwa"),
-                    cqrs = requestedFlags.Contains("cqrs"), docker = requestedFlags.Contains("docker");
+                    cqrs = requestedFlags.Contains("cqrs"), data = requestedFlags.Contains("data"),
+                    docker = requestedFlags.Contains("docker");
                 return template.Key switch
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version),
                     "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(dir, name, auth, pwa, docker, version),
-                    _ => ProjectGenerator.GenerateServer(dir, name, auth, pwa, cqrs, docker, version),
+                    _ => ProjectGenerator.GenerateServer(dir, name, auth, pwa, cqrs, data, docker, version),
                 };
             },
             cancellationToken).ConfigureAwait(false);

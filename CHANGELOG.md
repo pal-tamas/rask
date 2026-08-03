@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`rask new --data` scaffolds a database-ready app.** The `server` template gains a `--data` flag that
+  pre-wires SQLite + EF Core: an empty `AppDbContext` (applying Rask conventions so generated feature configs
+  are picked up), `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout` production pragmas)
+  `AddDbContextFactory<AppDbContext>` whose connection string honours a `ConnectionStrings:App` override (so a
+  deploy can point it at a mounted volume). It implies `--cqrs`, so a single `rask new Blog --data` produces an app where the
+  first `rask generate feature <Name> --context AppDbContext` is immediately runnable with `rask db add` /
+  `rask db update` — no manual DI. Verified end to end: the generated project (alone and with `--auth`)
+  builds under `-warnaserror`. (Closes #478.)
+
 ### Changed
 - **OPF docs & landing-site polish.** The landing site now advertises **46** typed browser APIs (was a stale
   "43", matching `docs/apis/` and the docs index); the roadmap's CRUD-scaffolder entry now credits the
