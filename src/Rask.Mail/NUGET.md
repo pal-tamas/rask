@@ -15,10 +15,12 @@ request thread, with no broker or Redis.
 ## Use
 
 ```csharp
-public sealed class WelcomeEmail(string name) : Element
+public sealed class WelcomeEmail : Component
 {
-    protected override Component Render() =>
-        Div()[H1()[$"Welcome, {name}!"], P()["Thanks for signing up."]];
+    public string Name { get; set; } = "";
+
+    protected override Component? Render() =>
+        Div()[H1()[$"Welcome, {Name}!"], P()["Thanks for signing up."]];
 }
 
 // Program.cs
@@ -39,7 +41,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source
 await mail.SendAsync(Email
     .To(user.Email, user.Name)
     .Subject("Welcome")
-    .Body(new WelcomeEmail(user.Name)));
+    .Body(WelcomeEmail(Name: user.Name)));   // the generated factory, not new (RASK014)
 
 await mail.ScheduleAsync(reminder, delay: TimeSpan.FromHours(24));
 ```

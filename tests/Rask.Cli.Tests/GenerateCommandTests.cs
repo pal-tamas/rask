@@ -98,7 +98,7 @@ public sealed class GenerateCommandTests
         Assert.True(fs.Files.ContainsKey(path));
         Assert.Contains("namespace MyApp.Features.Shared;", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("class WelcomeEmail : Component", fs.Files[path], StringComparison.Ordinal);
-        Assert.Contains("Body(new WelcomeEmail())", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains("Body(WelcomeEmail())", fs.Files[path], StringComparison.Ordinal);   // the factory, not new (RASK014)
         Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Mail", "--version", _]);
         Assert.Contains("AddRaskMail", console.OutText, StringComparison.Ordinal);
     }
