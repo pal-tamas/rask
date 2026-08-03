@@ -1152,8 +1152,16 @@ div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
@@ -1173,7 +1181,15 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div
 div .bs-cal-cell
@@ -1183,22 +1199,6 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
 div .dropdown .position-relative
 div .bs-floating .bs-floating-filled .form-floating .position-relative
 input .form-control
@@ -1219,8 +1219,16 @@ div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
@@ -1240,7 +1248,15 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div
 div .bs-cal-cell
@@ -1250,22 +1266,6 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
 div
 label .form-label
 input .form-control
@@ -1289,53 +1289,53 @@ div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div
-div .bs-cal-cell .bs-cal-muted .disabled
-div .bs-cal-cell .bs-cal-muted .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
-div .bs-cal-cell .bs-cal-focus .bs-cal-today .disabled
-div .bs-cal-cell .disabled
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
 div
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div .bs-cal-cell .disabled
-div .bs-cal-cell .disabled
+div .bs-cal-cell
+div .bs-cal-cell
 div
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div .bs-cal-cell .bs-cal-muted .disabled
-div .bs-cal-cell .bs-cal-muted .disabled
+div .bs-cal-cell
+div .bs-cal-cell
 div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted .disabled
-div .bs-cal-cell .bs-cal-muted .disabled
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
 div .dropdown .position-relative
 label .form-label
 div .position-relative
@@ -1356,8 +1356,16 @@ div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
@@ -1377,7 +1385,15 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div
 div .bs-cal-cell
@@ -1387,22 +1403,6 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
 div .dropdown .position-relative
 label .form-label
 div .position-relative
@@ -1423,8 +1423,16 @@ div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
@@ -1444,7 +1452,15 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div
 div .bs-cal-cell
@@ -1454,22 +1470,6 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
 div .dropdown .position-relative
 label .form-label
 div .position-relative
@@ -1584,8 +1584,16 @@ div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
@@ -1605,7 +1613,15 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div
 div .bs-cal-cell
@@ -1615,22 +1631,6 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
 div .bs-time .d-flex .gap-1
 div .bs-time-col
 button .bs-time-item .dropdown-item
@@ -1692,8 +1692,16 @@ div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
@@ -1713,7 +1721,15 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div
 div .bs-cal-cell
@@ -1723,22 +1739,6 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
 div .bs-time .d-flex .gap-1
 div .bs-time-col
 button .bs-time-item .dropdown-item
@@ -1803,8 +1803,16 @@ div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div .bs-cal-head .text-body-secondary
 div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
@@ -1824,7 +1832,15 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div .active .bs-cal-cell .bs-cal-focus .bs-cal-today
+div .bs-cal-cell
+div .bs-cal-cell
+div
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
+div .bs-cal-cell
 div .bs-cal-cell
 div
 div .bs-cal-cell
@@ -1834,22 +1850,6 @@ div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
 div .bs-cal-cell
-div
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
-div .bs-cal-cell .bs-cal-muted
 div .bs-time .d-flex .gap-1
 div .bs-time-col
 button .bs-time-item .dropdown-item
