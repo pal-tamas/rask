@@ -41,13 +41,10 @@ namespace Rask.Cli.Tests;
 /// </remarks>
 public sealed class TutorialWalkthroughE2ETests
 {
-    [Fact]
+    [SkippableFact]
     public async Task Tutorial_shop_walkthrough_builds()
     {
-        if (!CliBuildE2E.Enabled)
-        {
-            return; // opt-in: this packs the repo + restores + builds. Set RASK_CLI_BUILD_E2E=1.
-        }
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
