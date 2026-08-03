@@ -98,6 +98,49 @@ public sealed class ProjectGeneratorTests
     }
 
     [Fact]
+    public void Data_flag_pre_wires_the_app_db_context_and_sqlite()
+    {
+        var (on, result) = Generate(data: true);
+
+        // The AppDbContext file, applying Rask conventions so generated feature configs are picked up.
+        Assert.True(on.ContainsKey("Data/AppDbContext.cs"));
+        var context = on["Data/AppDbContext.cs"];
+        Assert.Contains("public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)", context, StringComparison.Ordinal);
+        Assert.Contains("modelBuilder.ApplyRaskConventions();", context, StringComparison.Ordinal);
+
+        // Program.cs wires AddRaskData + a UseRaskSqlite DbContext factory that honours a ConnectionStrings:App
+        // override so `rask deploy` can redirect it to a mounted volume.
+        var program = on["Program.cs"];
+        Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
+        Assert.Contains("AddDbContextFactory<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains(".UseRaskSqlite(", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Configuration.GetConnectionString(\"App\")", program, StringComparison.Ordinal);
+
+        // --data implies --cqrs (feature handlers dispatch through the mediator).
+        Assert.Contains("builder.Services.AddRaskCqrs();", program, StringComparison.Ordinal);
+
+        // The packages the generated csproj needs, pinned to the supplied version.
+        Assert.Contains("Rask.Data", result.Packages);
+        Assert.Contains("Rask.SQLite.EntityFrameworkCore", result.Packages);
+        Assert.Contains("Rask.Cqrs", result.Packages);
+        var csproj = on["App.csproj"];
+        Assert.Contains("<PackageReference Include=\"Rask.Data\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
+        Assert.Contains("<PackageReference Include=\"Rask.SQLite.EntityFrameworkCore\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Data_flag_off_leaves_no_database_wiring()
+    {
+        var (off, result) = Generate(data: false);
+
+        Assert.DoesNotContain("Data/AppDbContext.cs", off.Keys);
+        Assert.DoesNotContain("AddRaskData", off["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("UseRaskSqlite", off["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Data", result.Packages);
+        Assert.DoesNotContain("Rask.SQLite.EntityFrameworkCore", result.Packages);
+    }
+
+    [Fact]
     public void Auth_flag_toggles_the_auth_files_and_wiring()
     {
         var (on, _) = Generate(auth: true);
@@ -209,9 +252,9 @@ public sealed class ProjectGeneratorTests
     }
 
     private static (Dictionary<string, string> Files, ScaffoldResult Result) Generate(
-        bool auth = false, bool pwa = false, bool cqrs = false, bool docker = false)
+        bool auth = false, bool pwa = false, bool cqrs = false, bool docker = false, bool data = false)
     {
-        var result = ProjectGenerator.GenerateServer(Root, "App", auth, pwa, cqrs, docker, Version);
+        var result = ProjectGenerator.GenerateServer(Root, "App", auth, pwa, cqrs, data, docker, Version);
         return (Index(result), result);
     }
 

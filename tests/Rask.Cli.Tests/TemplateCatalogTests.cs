@@ -46,6 +46,16 @@ public sealed class TemplateCatalogTests
     }
 
     [Fact]
+    public void Server_supports_data_but_wasm_does_not()
+    {
+        TemplateCatalog.TryGet("server", out var server);
+        TemplateCatalog.TryGet("wasm", out var wasm);
+
+        Assert.Contains("data", server.SupportedFlags);
+        Assert.DoesNotContain("data", wasm.SupportedFlags);
+    }
+
+    [Fact]
     public void Native_supports_no_web_feature_flags()
     {
         TemplateCatalog.TryGet("native", out var native);

@@ -14,8 +14,8 @@ dotnet tool install -g Rask.Cli
 ## Use
 
 ```bash
-# Scaffold a new server-rendered app with auth + a Dockerfile
-rask new MyApp --auth --docker
+# Scaffold a new server-rendered app with a SQLite database + a Dockerfile
+rask new MyApp --data --docker
 
 # Scaffold a browser-WASM PWA instead
 rask new MyApp --template wasm --pwa
@@ -43,7 +43,7 @@ rask info
 
 | Command | What it does |
 |---|---|
-| `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted\|native`), forwarding `--auth` / `--pwa` / `--cqrs` / `--docker`. Every template is generated directly — no `dotnet new` needed. |
+| `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted\|native`), forwarding `--auth` / `--pwa` / `--cqrs` / `--data` / `--docker` (`--data` pre-wires a SQLite `AppDbContext`). Every template is generated directly — no `dotnet new` needed. |
 | `rask generate <page\|component> <Name>` | Scaffold a routed page or a component into the current project (folder-based namespace, no-overwrite, `--dry-run`). |
 | `rask generate <job\|email> <Name>` | Scaffold a background job (`IJob` + handler) or an email-body component, adding the `Rask.Jobs` / `Rask.Mail` package. Aliases: `rask g j` / `rask g e`. |
 | `rask generate feature <Name> <field:type> …` | Scaffold a full CQRS + EF Core CRUD vertical slice — encapsulated entity (`Create`/`Update`, Guid id), `DbContext`, commands/queries + handlers, and pages that dispatch via `IDispatcher`. Aliases: `rask g f`. |
