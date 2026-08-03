@@ -34,6 +34,33 @@ public sealed class NewCommandTests
     }
 
     [Fact]
+    public async Task Data_flag_scaffolds_the_app_db_context()
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["Blog", "--data"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(console.ErrorText);
+        Assert.True(fs.FileExists("/proj/Blog/Blog.csproj"));
+        Assert.True(fs.FileExists("/proj/Blog/Data/AppDbContext.cs")); // --data
+        Assert.Contains("AddDbContextFactory<AppDbContext>", fs.ReadAllText("/proj/Blog/Program.cs"), StringComparison.Ordinal);
+        Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
+    }
+
+    [Fact]
+    public async Task Data_flag_is_rejected_on_the_wasm_template()
+    {
+        var (console, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["Spa", "--template", "wasm", "--data"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("does not support: --data", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Wasm_template_is_generated_directly_without_dotnet_new()
     {
         var (console, fs, runner, command) = Build();

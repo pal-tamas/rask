@@ -32,6 +32,8 @@ public sealed class ProjectGeneratorBuildE2ETests
         "Rask.Bootstrap",                   // every template, and `generate feature --bs`
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Data",                        // every generated feature
+        "Rask.SQLite",                      // --data (dependency of Rask.SQLite.EntityFrameworkCore)
+        "Rask.SQLite.EntityFrameworkCore",  // server template --data (UseRaskSqlite)
         "Rask.Outbox",                      // generate feature --outbox
         "Rask.Validation.DataAnnotations",  // generate feature --validation dataannotations
         "Rask.Validation.FluentValidation", // generate feature --validation fluent
@@ -70,7 +72,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         var projectDir = Path.Combine(temp, name);
         try
         {
-            var result = ProjectGenerator.GenerateServer(projectDir, name, auth, pwa, cqrs, docker: false, version);
+            var result = ProjectGenerator.GenerateServer(projectDir, name, auth, pwa, cqrs, data: false, docker: false, version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -83,6 +85,49 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             var (exit, output) = await RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
             Assert.True(exit == 0, $"[auth={auth},pwa={pwa},cqrs={cqrs}] generated project failed to build.{Diagnostics(output)}");
+        }
+        finally
+        {
+            TryDeleteDirectory(temp);
+        }
+    }
+
+    /// <summary>
+    /// <c>--data</c> pre-wires the AppDbContext + AddRaskData + a UseRaskSqlite DbContext factory, and pulls
+    /// Rask.Data / Rask.SQLite.EntityFrameworkCore into the csproj. Only a real compile proves the generated
+    /// Program.cs (the config-driven connection string, the ISaveChangesInterceptor injection) and the
+    /// AppDbContext resolve — both alone and composed with <c>--auth</c> (which shares the same Program.cs).
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Generated_data_server_project_builds(bool auth)
+    {
+        if (Environment.GetEnvironmentVariable("RASK_CLI_BUILD_E2E") != "1")
+        {
+            return; // opt-in: this restores + builds, needing the SDK and network.
+        }
+
+        var name = $"DE2E{(auth ? "A" : "")}";
+        var (feed, version) = await LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var result = ProjectGenerator.GenerateServer(projectDir, name, auth, pwa: false, cqrs: false, data: true, docker: false, version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            WriteNuGetConfig(fs, projectDir, feed);
+
+            var (exit, output) = await RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
+            Assert.True(exit == 0, $"[data,auth={auth}] generated project failed to build.{Diagnostics(output)}");
         }
         finally
         {
@@ -205,7 +250,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         {
             var fs = new SystemFileSystem();
 
-            var host = ProjectGenerator.GenerateServer(projectDir, Name, auth: false, pwa: false, cqrs: false, docker: false, version);
+            var host = ProjectGenerator.GenerateServer(projectDir, Name, auth: false, pwa: false, cqrs: false, data: false, docker: false, version);
             foreach (var file in host.Files)
             {
                 fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);

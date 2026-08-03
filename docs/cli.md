@@ -41,6 +41,7 @@ set — so `rask info | cat` and CI logs stay clean.
 rask new                             # interactive: prompts for name, template, and features
 rask new MyApp                       # a server-rendered app (the default template)
 rask new MyApp --auth --docker       # + cookie auth + a production Dockerfile
+rask new Blog --data --docker        # + a SQLite database ready for `rask generate feature`
 rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Field --template native     # a native iOS + Android app
@@ -76,6 +77,7 @@ page, styled with Bootstrap. Add pages and components to taste — `rask generat
 | `--auth` | Scaffold a cookie login/session (web templates). |
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
+| `--data` | Pre-wire a SQLite database: an empty `AppDbContext`, `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory — so the first `rask generate feature <Name> --context AppDbContext` is immediately runnable with `rask db add`/`update`. Implies `--cqrs` (the `server` template only). |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
 | `--host` | `local` (default) or `server` — which native mode to scaffold (the `native` template only). |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
