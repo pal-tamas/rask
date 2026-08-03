@@ -32,8 +32,8 @@ public sealed class ProjectGeneratorBuildE2ETests
         "Rask.Bootstrap",                   // every template, and `generate feature --bs`
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Data",                        // every generated feature
-        "Rask.SQLite",                      // --data (dependency of Rask.SQLite.EntityFrameworkCore)
-        "Rask.SQLite.EntityFrameworkCore",  // server template --data (UseRaskSqlite)
+        "Rask.SQLite",                      // --data + every generated feature (via Rask.SQLite.EntityFrameworkCore)
+        "Rask.SQLite.EntityFrameworkCore",  // server template --data and generated features that own a context (UseRaskSqlite)
         "Rask.Outbox",                      // generate feature --outbox
         "Rask.Validation.DataAnnotations",  // generate feature --validation dataannotations
         "Rask.Validation.FluentValidation", // generate feature --validation fluent

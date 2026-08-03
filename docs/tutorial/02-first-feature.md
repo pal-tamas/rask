@@ -65,7 +65,7 @@ so `Program.cs` now has these lines (and the `using`s they need) added next to y
 builder.Services.AddRaskCqrs();
 builder.Services.AddRaskData();
 builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o
-    .UseSqlite("Data Source=app.db")
+    .UseRaskSqlite(builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db")
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
 
@@ -73,7 +73,11 @@ builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o
 - `AddRaskData()` registers the interceptors (auditing, and later soft-delete/concurrency/events).
 - `AddDbContextFactory<ProductsDbContext>(…)` registers the context **as a factory** — Rask pages are
   long-lived and may render concurrently, so each unit of work creates its own short-lived context rather
-  than sharing one scoped instance. `Data Source=app.db` is a SQLite file created next to the app.
+  than sharing one scoped instance. `UseRaskSqlite` is a drop-in for `UseSqlite` that also applies the
+  production pragmas (WAL, `busy_timeout`, `foreign_keys`) — so the app handles concurrent writers (the jobs,
+  email, and outbox you add in later chapters) without hitting `database is locked`. It defaults to a local
+  `app.db` file next to the app but honours a `ConnectionStrings:App` override, which is how a deploy points
+  it at a persistent volume.
 
 The insert is idempotent, so generating a second feature only adds what's new. (If the CLI can't find or
 safely edit your `Program.cs`, it prints the block instead for you to paste — same result.)
