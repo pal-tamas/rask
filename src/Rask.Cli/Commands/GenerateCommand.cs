@@ -49,6 +49,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     [
         "rask generate page Dashboard --route /dashboard",
         "rask generate component UserCard",
+        "rask generate component OrderRow --feature Orders",
         "rask generate feature Product Name:string Price:decimal",
         "rask generate feature Order Total:decimal --bs --modal --tests",
         "rask g j SendWelcomeEmail",
@@ -62,6 +63,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     private static ArgumentSchema CreateSchema() =>
         new ArgumentSchema()
             .Option("output", 'o', "dir", "Directory to write into (default: derived from the artifact).")
+            .Option("feature", 'F', "Name", "Co-locate under Features/<Name>/ instead of Features/Shared/ (component, job, email).")
             .Flag("force", description: "Overwrite existing files instead of refusing.")
             .Flag("dry-run", description: "Print what would be written without touching disk.")
             .Option("route", 'r', "path", "URL route for the page.", group: "Page options")
@@ -149,6 +151,15 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             }
         }
 
+        // --feature co-locates a component/job/email into a slice folder. It's meaningless for a page (its
+        // slice comes from the class name) and for a feature (which *is* a slice), so reject it there.
+        var feature = parsed.Option("feature");
+        if (feature is not null && kind is "page" or "feature")
+        {
+            Console.Error.WriteLine("--feature only applies to 'generate component', 'job', or 'email'.");
+            return 1;
+        }
+
         // Derived from the schema's own grouping rather than a hand-kept list, so a new feature option can't
         // be forgotten here (--no-restore was, and slipped through on a page for exactly that reason).
         // `--context` is the exception: `generate email` also accepts it (which context to wire the mail queue into).
@@ -173,7 +184,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return 1;
         }
 
-        foreach (var (option, value) in new[] { ("context", parsed.Option("context")), ("plural", parsed.Option("plural")) })
+        foreach (var (option, value) in new[] { ("context", parsed.Option("context")), ("plural", parsed.Option("plural")), ("feature", feature) })
         {
             if (value is not null && !Identifiers.IsValidTypeName(value))
             {
@@ -616,15 +627,15 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 return true;
 
             case "component":
-                result = ScaffoldResult.Single(ComponentGenerator.Generate(project, _workingDirectory, name, parsed.Option("output")));
+                result = ScaffoldResult.Single(ComponentGenerator.Generate(project, _workingDirectory, name, parsed.Option("feature"), parsed.Option("output")));
                 return true;
 
             case "job":
-                result = JobGenerator.Generate(project, _workingDirectory, name, parsed.Option("output"));
+                result = JobGenerator.Generate(project, _workingDirectory, name, parsed.Option("feature"), parsed.Option("output"));
                 return true;
 
             case "email":
-                result = EmailGenerator.Generate(project, _workingDirectory, name, parsed.Option("output"), ResolveMailContext(project, parsed.Option("context")));
+                result = EmailGenerator.Generate(project, _workingDirectory, name, parsed.Option("feature"), parsed.Option("output"), ResolveMailContext(project, parsed.Option("context")));
                 return true;
 
             default: // feature

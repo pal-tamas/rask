@@ -20,4 +20,13 @@ internal static class Scaffold
         defaultSegments.CopyTo(parts, 1);
         return Path.Combine(parts);
     }
+
+    /// <summary>
+    /// The default folder segments for a cross-cutting artifact (component/job/email): its own feature slice
+    /// <c>Features/&lt;Feature&gt;</c> when <c>--feature</c> names one, otherwise the shared bucket
+    /// <c>Features/Shared</c>. Both live under the single <c>Features/</c> tree; keeping the "which folder"
+    /// decision in one place lets every generator resolve it identically.
+    /// </summary>
+    public static string[] FeatureOrShared(string? feature) =>
+        feature is null ? ["Features", "Shared"] : ["Features", feature];
 }

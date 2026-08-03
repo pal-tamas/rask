@@ -29,7 +29,31 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["component", "PriceTag"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Components/PriceTag.cs")));
+        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Features/Shared/PriceTag.cs")));
+    }
+
+    [Fact]
+    public async Task Component_feature_co_locates_into_that_slice()
+    {
+        var (_, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["component", "OrderRow", "--feature", "Orders"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var path = Path.GetFullPath("/proj/Features/Orders/OrderRow.cs");
+        Assert.True(fs.Files.ContainsKey(path));
+        Assert.Contains("namespace MyApp.Features.Orders;", fs.Files[path], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Feature_flag_is_rejected_for_a_page()
+    {
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["page", "Products", "--feature", "Orders"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("--feature only applies", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -40,9 +64,9 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["job", "SendWelcomeEmail"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        var path = Path.GetFullPath("/proj/Jobs/SendWelcomeEmail.cs");
+        var path = Path.GetFullPath("/proj/Features/Shared/SendWelcomeEmail.cs");
         Assert.True(fs.Files.ContainsKey(path));
-        Assert.Contains("namespace MyApp.Jobs;", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains("namespace MyApp.Features.Shared;", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("record SendWelcomeEmail : IJob", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("ICommandHandler<SendWelcomeEmail>", fs.Files[path], StringComparison.Ordinal);
         // Rask.* packages are pinned to the CLI version (see the dedicated pinning test); assert the shape here.
@@ -59,7 +83,7 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["j", "Cleanup"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Jobs/Cleanup.cs")));
+        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Features/Shared/Cleanup.cs")));
     }
 
     [Fact]
@@ -70,9 +94,9 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["email", "WelcomeEmail"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        var path = Path.GetFullPath("/proj/Emails/WelcomeEmail.cs");
+        var path = Path.GetFullPath("/proj/Features/Shared/WelcomeEmail.cs");
         Assert.True(fs.Files.ContainsKey(path));
-        Assert.Contains("namespace MyApp.Emails;", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains("namespace MyApp.Features.Shared;", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("class WelcomeEmail : Component", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("Body(new WelcomeEmail())", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Mail", "--version", _]);
@@ -200,7 +224,7 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["e", "Receipt"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Emails/Receipt.cs")));
+        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Features/Shared/Receipt.cs")));
     }
 
     [Fact]
@@ -231,12 +255,12 @@ public sealed class GenerateCommandTests
     public async Task Refuses_to_overwrite_without_force()
     {
         var (console, fs, command) = Build();
-        fs.Seed("/proj/Components/PriceTag.cs", "// existing");
+        fs.Seed("/proj/Features/Shared/PriceTag.cs", "// existing");
 
         var exit = await command.ExecuteAsync(["component", "PriceTag"], CancellationToken.None);
 
         Assert.Equal(1, exit);
-        Assert.Equal("// existing", fs.Files[Path.GetFullPath("/proj/Components/PriceTag.cs")]);
+        Assert.Equal("// existing", fs.Files[Path.GetFullPath("/proj/Features/Shared/PriceTag.cs")]);
         Assert.Contains("Refusing to overwrite", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -244,12 +268,12 @@ public sealed class GenerateCommandTests
     public async Task Force_overwrites_an_existing_file()
     {
         var (_, fs, command) = Build();
-        fs.Seed("/proj/Components/PriceTag.cs", "// existing");
+        fs.Seed("/proj/Features/Shared/PriceTag.cs", "// existing");
 
         var exit = await command.ExecuteAsync(["component", "PriceTag", "--force"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.Contains("class PriceTag", fs.Files[Path.GetFullPath("/proj/Components/PriceTag.cs")], StringComparison.Ordinal);
+        Assert.Contains("class PriceTag", fs.Files[Path.GetFullPath("/proj/Features/Shared/PriceTag.cs")], StringComparison.Ordinal);
     }
 
     [Fact]

@@ -12,17 +12,18 @@ internal static partial class ProjectGenerator
         {
             ($"{NameToken}.csproj", WasmCsproj(auth, version)),
             ("Program.cs", WasmProgram(auth, pwa)),
-            // The root shell + welcome page are identical to the server template's.
-            ("App.cs", AppCs),
+            // The shell + welcome page are identical to the server template's (Features/Shared + Features/Home).
+            ("Features/Shared/App.cs", AppShellCs),
+            ("Features/Home/HomePage.cs", HomePageCs),
             ("wwwroot/index.html", WasmIndexHtml(pwa)),
             ("runtimeconfig.template.json", WasmRuntimeConfig),
         };
 
         if (auth)
         {
-            files.Add(("Auth/Auth.cs", WasmAuth));
-            files.Add(("Auth/LoginPage.cs", WasmLoginPage));
-            files.Add(("Auth/MembersPage.cs", WasmMembersPage));
+            files.Add(("Features/Auth/Auth.cs", WasmAuth));
+            files.Add(("Features/Auth/LoginPage.cs", WasmLoginPage));
+            files.Add(("Features/Auth/MembersPage.cs", WasmMembersPage));
         }
 
         if (pwa)
@@ -122,10 +123,11 @@ internal static partial class ProjectGenerator
     private static string WasmProgram(bool auth, bool pwa)
     {
         var sb = new StringBuilder();
-        sb.Append("using Company.RaskServer;\n");
+        sb.Append("using Company.RaskServer.Features.Shared;\n"); // App lives in the Features/Shared bucket.
         if (auth)
         {
-            // Only the --auth block registers services, so this would otherwise be an unused using.
+            // Only the --auth block registers services, so these would otherwise be unused usings.
+            sb.Append("using Company.RaskServer.Features.Auth;\n");
             sb.Append("using Microsoft.Extensions.DependencyInjection;\n");
         }
 
@@ -388,7 +390,7 @@ internal static partial class ProjectGenerator
         using Rask.Core.Authentication;
         using Rask.Core.Routing;
 
-        namespace Company.RaskServer;
+        namespace Company.RaskServer.Features.Auth;
 
         public sealed record LoginRequest(
             [property: JsonPropertyName("username")] string Username,
@@ -559,7 +561,7 @@ internal static partial class ProjectGenerator
         using Rask.Core.Components;
         using Rask.Core.Routing;
 
-        namespace Company.RaskServer;
+        namespace Company.RaskServer.Features.Auth;
 
         [Route("login")]
         [AllowAnonymous]
@@ -599,7 +601,7 @@ internal static partial class ProjectGenerator
         using Rask.Core.Components;
         using Rask.Core.Routing;
 
-        namespace Company.RaskServer;
+        namespace Company.RaskServer.Features.Auth;
 
         [Route("members")]
         [AllowAnonymous]

@@ -57,18 +57,23 @@ restore` so the output builds immediately. `wasm-hosted` emits a three-project s
 (the browser-WASM SPA), `MyApp.Server` (the ASP.NET host you run and deploy), and `MyApp.Shared` (a class
 library both reference).
 
-A new project is deliberately **minimal** — four files, nothing to delete before you start:
+A new project is deliberately **minimal** — nothing to delete before you start — and everything it
+scaffolds already follows the vertical-slice layout the CLI generates into: feature code under
+`Features/<Name>/`, cross-cutting code under `Features/Shared/`.
 
 ```
 MyApp/
   MyApp.csproj
   Program.cs
-  App.cs                          the shell + a welcome home page that teaches the CLI
+  Features/
+    Shared/App.cs                 the root shell every page renders through
+    Home/HomePage.cs              a [Route("/")] welcome page that teaches the CLI
   Properties/launchSettings.json
 ```
 
-`App.cs` holds both the root shell (which every page renders through) and the `[Route("/")]` welcome
-page, styled with Bootstrap. Add pages and components to taste — `rask generate` is the fast path.
+The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice, styled with
+Bootstrap. `--auth` adds a `Features/Auth/` slice and `--data` an `AppDbContext` under `Features/Shared/`.
+Add pages and components to taste — `rask generate` is the fast path.
 
 | Option | Meaning |
 |--------|---------|
@@ -93,10 +98,11 @@ of flags that template *does* support, rather than passing an unknown option thr
 ```bash
 rask generate page Products                  # → Features/Products/ProductsPage.cs  ([Route("/products")])
 rask generate page Products --route /catalog # a custom route
-rask generate component PriceTag             # → Components/PriceTag.cs
+rask generate component PriceTag             # → Features/Shared/PriceTag.cs
+rask generate component PriceTag --feature Orders  # → Features/Orders/PriceTag.cs (co-locate in a slice)
 rask generate component PriceTag -o Widgets  # into a chosen folder
-rask generate job SendWelcomeEmail           # → Jobs/SendWelcomeEmail.cs (IJob + handler)
-rask generate email WelcomeEmail             # → Emails/WelcomeEmail.cs (an email-body component)
+rask generate job SendWelcomeEmail           # → Features/Shared/SendWelcomeEmail.cs (IJob + handler)
+rask generate email WelcomeEmail             # → Features/Shared/WelcomeEmail.cs (an email-body component)
 rask generate page Orders --dry-run          # print what would be written, write nothing
 
 # A full CQRS + EF Core CRUD vertical slice
@@ -111,9 +117,9 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 | Artifact | Emits | Class / namespace |
 |----------|-------|-------------------|
 | `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
-| `component <Name>` | `Components/<Name>.cs` — a plain `Component` | `<Name>` in `<Root>.Components` |
-| `job <Name>` | `Jobs/<Name>.cs` — a background job: an `IJob` record + its `ICommandHandler` (adds the `Rask.Jobs` / `Rask.Cqrs` packages). Alias: `rask g j` | `<Name>` in `<Root>.Jobs` |
-| `email <Name>` | `Emails/<Name>.cs` — an email-body component rendered to HTML by `Email.Body(...)` (adds the `Rask.Mail` package). **Auto-wires** into your `DbContext` — registers `AddRaskMail<Ctx>` in `Program.cs` and maps the mail table in `OnModelCreating` — when it finds a single one (or `--context <Name>`); otherwise prints the steps. Alias: `rask g e` | `<Name>` in `<Root>.Emails` |
+| `component <Name>` | `Features/Shared/<Name>.cs` — a plain `Component` (or `Features/<Feature>/` with `--feature`) | `<Name>` in `<Root>.Features.Shared` |
+| `job <Name>` | `Features/Shared/<Name>.cs` — a background job: an `IJob` record + its `ICommandHandler` (adds the `Rask.Jobs` / `Rask.Cqrs` packages). `--feature` co-locates it in a slice. Alias: `rask g j` | `<Name>` in `<Root>.Features.Shared` |
+| `email <Name>` | `Features/Shared/<Name>.cs` — an email-body component rendered to HTML by `Email.Body(...)` (adds the `Rask.Mail` package). **Auto-wires** into your `DbContext` — registers `AddRaskMail<Ctx>` in `Program.cs` and maps the mail table in `OnModelCreating` — when it finds a single one (or `--context <Name>`); otherwise prints the steps. `--feature` co-locates it in a slice. Alias: `rask g e` | `<Name>` in `<Root>.Features.Shared` |
 | `feature <Name> <field:type> …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id) with **value objects** for required strings (built-in validation), an EF `IEntityTypeConfiguration`, a `DbContext`, **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
 
 | Option | Meaning |
@@ -134,6 +140,7 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 | `--context`, `-c` | `feature` only: reference an existing `DbContext` by name instead of generating a feature-local one (then add a `DbSet` to it). |
 | `--plural`, `-p` | `feature` only: the plural used for the folder, DbSet, list page, and route. Give the entity a **singular** name (`Product`) and this defaults to a simple pluralization (`Products`); override it when that guess is wrong (`--plural People`). |
 | `--route`, `-r` | `page` only: the `[Route]` path (default: kebab-case of the name, e.g. `/products`). |
+| `--feature`, `-F` | `component`/`job`/`email` only: co-locate the file under `Features/<Name>/` instead of the default `Features/Shared/` (the namespace follows the folder). |
 | `--output`, `-o` | Write into this folder instead of the default (the namespace follows the folder). |
 | `--force` | Overwrite existing file(s). |
 | `--dry-run` | Print the file(s) that would be written, and write nothing. |

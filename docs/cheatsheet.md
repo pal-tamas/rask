@@ -20,9 +20,10 @@ rask g f Post Title:string 1:n Comment Body:text    # a related entity in the sa
 
 # other artifacts
 rask g page Products                  # → Features/Products/ProductsPage.cs ([Route("/products")])
-rask g component PriceTag             # → Components/PriceTag.cs
-rask g job SendWelcomeEmail           # → Jobs/… (IJob + handler)  + Rask.Jobs
-rask g email WelcomeEmail             # → Emails/… (email-body component)  + Rask.Mail
+rask g component PriceTag             # → Features/Shared/PriceTag.cs
+rask g component PriceTag -F Orders   # → Features/Orders/PriceTag.cs (co-locate in a slice)
+rask g job SendWelcomeEmail           # → Features/Shared/… (IJob + handler)  + Rask.Jobs
+rask g email WelcomeEmail             # → Features/Shared/… (email-body component)  + Rask.Mail
 rask g p Orders --dry-run             # print what would be written, touch nothing
 
 # database (wraps dotnet-ef; installs it on first use)

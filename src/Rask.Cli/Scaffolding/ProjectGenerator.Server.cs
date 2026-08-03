@@ -17,20 +17,21 @@ internal static partial class ProjectGenerator
         {
             ($"{NameToken}.csproj", ServerCsproj(cqrs, data, version)),
             ("Program.cs", ServerProgram(auth, pwa, cqrs, data)),
-            ("App.cs", AppCs),
+            ("Features/Shared/App.cs", AppShellCs),
+            ("Features/Home/HomePage.cs", HomePageCs),
             ("Properties/launchSettings.json", LaunchSettings),
         };
 
         if (auth)
         {
-            files.Add(("Auth/CredentialStore.cs", AuthCredentialStore));
-            files.Add(("Auth/LoginPage.cs", AuthLoginPage));
-            files.Add(("Auth/MembersPage.cs", AuthMembersPage));
+            files.Add(("Features/Auth/CredentialStore.cs", AuthCredentialStore));
+            files.Add(("Features/Auth/LoginPage.cs", AuthLoginPage));
+            files.Add(("Features/Auth/MembersPage.cs", AuthMembersPage));
         }
 
         if (data)
         {
-            files.Add(("Data/AppDbContext.cs", AppDbContextCs));
+            files.Add(("Features/Shared/AppDbContext.cs", AppDbContextCs));
         }
 
         if (pwa)
@@ -94,9 +95,11 @@ internal static partial class ProjectGenerator
     private static string ServerProgram(bool auth, bool pwa, bool cqrs, bool data)
     {
         var sb = new StringBuilder();
-        sb.Append("using Company.RaskServer;\nusing Rask.Server;\n");
+        // App (and, with --data, AppDbContext) live in the Features/Shared bucket.
+        sb.Append("using Company.RaskServer.Features.Shared;\nusing Rask.Server;\n");
         if (auth)
         {
+            sb.Append("using Company.RaskServer.Features.Auth;\n");
             sb.Append("using Microsoft.AspNetCore.Authentication.Cookies;\n");
         }
 
@@ -274,7 +277,7 @@ internal static partial class ProjectGenerator
         using Microsoft.EntityFrameworkCore;
         using Rask.Data;
 
-        namespace Company.RaskServer;
+        namespace Company.RaskServer.Features.Shared;
 
         public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
         {
@@ -298,7 +301,7 @@ internal static partial class ProjectGenerator
         using Rask.Core.Components;
         using Rask.Core.Routing;
 
-        namespace Company.RaskServer;
+        namespace Company.RaskServer.Features.Auth;
 
         [Route("login")]
         [AllowAnonymous]
@@ -345,7 +348,7 @@ internal static partial class ProjectGenerator
         using Rask.Core.Components;
         using Rask.Core.Routing;
 
-        namespace Company.RaskServer;
+        namespace Company.RaskServer.Features.Auth;
 
         // [Authorize] blocks anonymous deep-links (full GET → 302 to /login). The Authorize component gates the
         // content and re-renders when the post-sign-in reconnect re-seeds the principal; the signed-in view lives

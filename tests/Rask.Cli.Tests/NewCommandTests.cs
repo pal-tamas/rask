@@ -27,7 +27,7 @@ public sealed class NewCommandTests
         // Files are written directly under ./MyApp.
         Assert.True(fs.FileExists("/proj/MyApp/MyApp.csproj"));
         Assert.True(fs.FileExists("/proj/MyApp/Program.cs"));
-        Assert.True(fs.FileExists("/proj/MyApp/Auth/CredentialStore.cs")); // --auth
+        Assert.True(fs.FileExists("/proj/MyApp/Features/Auth/CredentialStore.cs")); // --auth
         // It restores, and never shells to `dotnet new` / installs Rask.Templates.
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
@@ -43,7 +43,7 @@ public sealed class NewCommandTests
         Assert.Equal(0, exit);
         Assert.Empty(console.ErrorText);
         Assert.True(fs.FileExists("/proj/Blog/Blog.csproj"));
-        Assert.True(fs.FileExists("/proj/Blog/Data/AppDbContext.cs")); // --data
+        Assert.True(fs.FileExists("/proj/Blog/Features/Shared/AppDbContext.cs")); // --data
         Assert.Contains("AddDbContextFactory<AppDbContext>", fs.ReadAllText("/proj/Blog/Program.cs"), StringComparison.Ordinal);
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
     }
@@ -134,7 +134,7 @@ public sealed class NewCommandTests
         Assert.True(fs.FileExists("/proj/MobileApp/MobileApp.csproj"));
         Assert.True(fs.FileExists("/proj/MobileApp/Platforms/iOS/ServerAppDelegate.cs"));
         Assert.True(fs.FileExists("/proj/MobileApp/Platforms/Android/ServerActivity.cs"));
-        Assert.False(fs.FileExists("/proj/MobileApp/App.cs")); // local-only
+        Assert.False(fs.FileExists("/proj/MobileApp/Features/Shared/App.cs")); // local-only
         // It restores, and never shells to `dotnet new` / installs Rask.Templates.
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
@@ -149,7 +149,7 @@ public sealed class NewCommandTests
 
         Assert.Equal(0, exit);
         Assert.Empty(console.ErrorText);
-        Assert.True(fs.FileExists("/proj/MobileApp/App.cs"));                         // local shared component
+        Assert.True(fs.FileExists("/proj/MobileApp/Features/Shared/App.cs"));         // local shared shell
         Assert.True(fs.FileExists("/proj/MobileApp/Platforms/iOS/AppDelegate.cs"));   // local head
         Assert.False(fs.FileExists("/proj/MobileApp/Platforms/iOS/ServerAppDelegate.cs"));
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
@@ -194,7 +194,7 @@ public sealed class NewCommandTests
         Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Client/HostedApp.Client.csproj"));
         Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Server/HostedApp.Server.csproj"));
         Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Shared/HostedApp.Shared.csproj"));
-        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Server/Auth/CredentialStore.cs")); // --auth
+        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Server/Features/Auth/CredentialStore.cs")); // --auth
         // It restores the solution, and never shells to `dotnet new` / installs Rask.Templates.
         Assert.Contains(runner.Invocations, i => i.Arguments is ["restore", "/proj/HostedApp/HostedApp.sln"]);
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
@@ -275,7 +275,7 @@ public sealed class NewCommandTests
         Assert.True(fs.FileExists("/proj/Spa/Spa.csproj"));
         Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html")); // wasm template
         Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg"));   // --pwa answered yes
-        Assert.False(fs.FileExists("/proj/Spa/Auth/CredentialStore.cs")); // --auth answered no
+        Assert.False(fs.FileExists("/proj/Spa/Features/Auth/Auth.cs")); // --auth answered no
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
     }
 
