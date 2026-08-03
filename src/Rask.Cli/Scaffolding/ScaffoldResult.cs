@@ -48,6 +48,14 @@ internal sealed record ScaffoldResult(IReadOnlyList<ScaffoldFile> Files, string?
     public IReadOnlyList<string> ContextUsings { get; init; } = [];
 
     /// <summary>
+    /// Statements to insert into the target DbContext's <c>OnModelCreating</c> (after the Rask conventions
+    /// call) — e.g. <c>modelBuilder.AddRaskMail();</c> to map the mail table. Idempotent; a line already
+    /// present is left alone. Requires <see cref="ContextFilePath"/>; printed as a fallback when the context
+    /// can't be edited.
+    /// </summary>
+    public IReadOnlyList<string> ContextModelLines { get; init; } = [];
+
+    /// <summary>
     /// For an <c>--context</c> run: the resolved path of the file declaring that DbContext, so the command can
     /// insert the <see cref="ContextDbSets"/>. <c>null</c> when the class couldn't be located in the project.
     /// </summary>
