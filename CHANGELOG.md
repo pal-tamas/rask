@@ -40,11 +40,12 @@ them until tagged releases begin.
   advances to the end of the statement (its terminating `;`) before inserting.
 
 ### Docs
-- **Tutorial (chapter 5): email bodies carry data on public properties and are built through their generated
-  factory.** The email-body example used `new OrderReceipt(orderId, total)` with constructor parameters, which
-  doesn't compile — `RASK014` forbids constructing a component with `new`, and the generated factory passes
-  data via public properties, not constructor arguments. It now declares `public Guid OrderId { get; set; }` /
-  `public decimal Total { get; set; }` and sends with `Body(OrderReceipt(OrderId: …, Total: …))`.
+- **Email bodies carry data on public properties and are built through their generated factory.** The
+  tutorial (chapter 5), `mail.md`, `Rask.Mail/NUGET.md`, and the `rask generate email` scaffold comment all
+  showed `new EmailComponent(ctorParams)`, which doesn't compile — `RASK014` forbids constructing a component
+  with `new`, and the generated factory passes data via public properties, not constructor arguments. They now
+  declare a public property (e.g. `public decimal Total { get; set; }`) and send through the factory
+  (`Body(OrderReceipt(OrderId: …, Total: …))` / `Body(WelcomeEmail(Name: …))`). (Closes #500.)
 - **Tutorial (chapter 2): the field-type list notes the `text` → `string` and `money` → `decimal` aliases**,
   which chapter 3's relationship example (`Body:text`) relies on.
 
