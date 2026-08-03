@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The `docs/tutorial/` walk-through is now a compile gate.** A new opt-in end-to-end test
+  (`TutorialWalkthroughE2ETests`, `RASK_CLI_BUILD_E2E=1`) reproduces the tutorial's chapters 1–8 exactly as a
+  reader would — the real `rask new`/`generate feature`/`generate job`/`generate email` generators, the real
+  `Program.cs`/`DbContext` splices, and the hand-written code the prose tells the reader to type (the job body,
+  the `IMailQueue` send, the `ICache.GetOrCreateAsync` read-through, the `IOutboxEvent` + handler, the
+  `Entity.Raise`, the Litestream wiring) — and builds the fully-wired `Shop` under `-warnaserror`. If a Rask
+  package changes a signature the tutorial uses, the tutorial now breaks a test in the same commit rather than
+  in a beginner's terminal. The shared pack/build plumbing was lifted into `CliBuildE2E`, shared with the
+  existing scaffold gate so the local feed is packed once per session.
 - **`rask generate` gains a `--feature <Name>` flag.** `component`, `job`, and `email` now default to the
   cross-cutting `Features/Shared/` bucket; `--feature <Name>` (`-F`) co-locates the file into that feature's
   slice (`Features/<Name>/`) instead — for a job or email that belongs to one feature. The namespace follows
@@ -21,6 +30,23 @@ them until tagged releases begin.
   first `rask generate feature <Name> --context AppDbContext` is immediately runnable with `rask db add` /
   `rask db update` — no manual DI. Verified end to end: the generated project (alone and with `--auth`)
   builds under `-warnaserror`. (Closes #478.)
+
+### Fixed
+- **`rask generate` no longer corrupts `Program.cs` when wiring a registration after a multi-line one.** The
+  Program.cs splice anchored on the line that *starts* a `builder.Services.` statement, so a second wiring pass
+  (e.g. `rask generate email`'s `AddRaskMail<…>` running after `rask generate feature` had left the multi-line
+  `AddDbContextFactory<…>((sp, o) => o …)` — the tutorial's exact chapter 2 → chapter 5 flow) inserted the new
+  registration *inside* that statement, producing a `Program.cs` that no longer compiled. The splice now
+  advances to the end of the statement (its terminating `;`) before inserting.
+
+### Docs
+- **Tutorial (chapter 5): email bodies carry data on public properties and are built through their generated
+  factory.** The email-body example used `new OrderReceipt(orderId, total)` with constructor parameters, which
+  doesn't compile — `RASK014` forbids constructing a component with `new`, and the generated factory passes
+  data via public properties, not constructor arguments. It now declares `public Guid OrderId { get; set; }` /
+  `public decimal Total { get; set; }` and sends with `Body(OrderReceipt(OrderId: …, Total: …))`.
+- **Tutorial (chapter 2): the field-type list notes the `text` → `string` and `money` → `decimal` aliases**,
+  which chapter 3's relationship example (`Body:text`) relies on.
 
 ### Changed
 - **Everything the CLI generates now lives under `Features/` — one consistent vertical-slice layout.**

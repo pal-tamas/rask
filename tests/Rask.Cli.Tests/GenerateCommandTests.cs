@@ -361,6 +361,36 @@ public sealed class GenerateCommandTests
     }
 
     [Fact]
+    public void SpliceProgramCs_inserts_after_a_multiline_registration_not_inside_it()
+    {
+        // `generate feature` leaves a multi-line AddDbContextFactory in Program.cs; a later splice (e.g.
+        // `generate email`'s AddRaskMail — the tutorial's ch5 step) must land *after* its closing `;`, not
+        // between the `(sp, o) => o` line and its fluent body, which would be invalid C#.
+        const string WithFactory =
+            "using MyApp;\n" +
+            "var builder = WebApplication.CreateBuilder(args);\n" +
+            "builder.Services.AddRask();\n" +
+            "builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o\n" +
+            "    .UseRaskSqlite(\"Data Source=app.db\")\n" +
+            "    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));\n" +
+            "var app = builder.Build();\n" +
+            "app.Run();\n";
+
+        var (text, added) = GenerateCommand.SpliceProgramCs(
+            WithFactory, ["Rask.Mail"], ["builder.Services.AddRaskMail<AppDbContext>(o => o.From = \"x\");"]);
+
+        Assert.Single(added);
+        // The factory statement is intact and unbroken: its three lines stay contiguous, in order.
+        var factory = text.IndexOf("AddDbContextFactory<AppDbContext>((sp, o) => o", StringComparison.Ordinal);
+        var pragma = text.IndexOf(".UseRaskSqlite(\"Data Source=app.db\")", StringComparison.Ordinal);
+        var interceptors = text.IndexOf(".AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));", StringComparison.Ordinal);
+        var mail = text.IndexOf("AddRaskMail<AppDbContext>", StringComparison.Ordinal);
+        Assert.True(factory < pragma && pragma < interceptors, "the multi-line factory was split apart");
+        Assert.True(interceptors < mail, "the new registration landed inside the factory, not after it");
+        Assert.True(mail < text.IndexOf("builder.Build();", StringComparison.Ordinal), "registration must precede Build()");
+    }
+
+    [Fact]
     public void SpliceProgramCs_is_idempotent_and_signals_no_change()
     {
         var once = GenerateCommand.SpliceProgramCs(ProgramCs, ["Rask.Cqrs"], ["builder.Services.AddRaskCqrs();"]).Text;

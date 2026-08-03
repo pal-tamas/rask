@@ -321,6 +321,18 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 anchor = lines.FindLastIndex(l => l.Contains("WebApplication.CreateBuilder", StringComparison.Ordinal));
             }
 
+            // A registration can span multiple lines (e.g. `AddDbContextFactory<T>((sp, o) => o` with a fluent
+            // body on the lines below); the match above finds where that statement *starts*. Advance to the line
+            // that ends it (terminating in ';') so the new registration lands after the whole statement, not
+            // spliced into the middle of it — which would produce invalid C#.
+            if (anchor >= 0)
+            {
+                while (anchor < lines.Count - 1 && !lines[anchor].TrimEnd().EndsWith(';'))
+                {
+                    anchor++;
+                }
+            }
+
             lines.InsertRange(anchor + 1, registration.Split('\n'));
             added.Add(firstLine);
         }
@@ -423,13 +435,53 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         }
 
         var text = _fileSystem.ReadAllText(result.ContextFilePath);
+        var (updated, addedSets, addedModel, unplacedModelLines) =
+            SpliceContext(text, result.ContextUsings, result.ContextDbSets, result.ContextModelLines);
+
+        // A custom context with no ApplyRaskConventions anchor: we can't place the OnModelCreating lines
+        // safely, so print them for the user rather than guessing a location.
+        foreach (var line in unplacedModelLines)
+        {
+            Console.WriteLine($"Add to your DbContext's OnModelCreating: {line.Trim()}", ConsoleStyle.Dim);
+        }
+
+        if (ReferenceEquals(updated, text))
+        {
+            return; // everything was already present (or only unplaced lines, surfaced above)
+        }
+
+        _fileSystem.WriteAllText(result.ContextFilePath, updated);
+        if (addedSets > 0)
+        {
+            Console.WriteLine($"Added {addedSets} DbSet(s) to {Display(result.ContextFilePath)}.", ConsoleStyle.Success);
+        }
+
+        if (addedModel > 0)
+        {
+            Console.WriteLine($"Mapped {addedModel} table(s) in {Display(result.ContextFilePath)} (OnModelCreating).", ConsoleStyle.Success);
+        }
+    }
+
+    /// <summary>
+    /// Pure splice for a DbContext file: insert any missing <paramref name="usings"/> (after the last using),
+    /// <paramref name="dbSets"/> (after the last <c>public DbSet&lt;</c>, else after the class-body brace), and
+    /// <paramref name="modelLines"/> (inside <c>OnModelCreating</c>, after the <c>ApplyRaskConventions</c> call) —
+    /// all idempotently, a member already present is left alone. Returns the rewritten text (the original
+    /// instance when nothing changed), the counts added, and any model lines that had no anchor to attach to (a
+    /// custom context without <c>ApplyRaskConventions</c>) so the caller can surface them. Extracted from
+    /// <see cref="EditContext"/> — mirroring <see cref="SpliceProgramCs"/> — so the exact splice can be
+    /// unit-tested and compile-gated.
+    /// </summary>
+    internal static (string Text, int AddedSets, int AddedModel, IReadOnlyList<string> UnplacedModelLines) SpliceContext(
+        string text, IReadOnlyList<string> usings, IReadOnlyList<string> dbSets, IReadOnlyList<string> modelLines)
+    {
         var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
         var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
 
         var addedUsings = 0;
         var lastUsing = lines.FindLastIndex(l => l.TrimStart().StartsWith("using ", StringComparison.Ordinal) && l.TrimEnd().EndsWith(';'));
         var usingAt = lastUsing >= 0 ? lastUsing + 1 : 0;
-        foreach (var ns in result.ContextUsings)
+        foreach (var ns in usings)
         {
             var directive = $"using {ns};";
             if (!lines.Any(l => l.Trim() == directive))
@@ -440,7 +492,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         }
 
         var addedSets = 0;
-        foreach (var set in result.ContextDbSets)
+        foreach (var set in dbSets)
         {
             if (lines.Any(l => l.Trim() == set.Trim()))
             {
@@ -465,7 +517,8 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         }
 
         var addedModel = 0;
-        foreach (var line in result.ContextModelLines)
+        var unplaced = new List<string>();
+        foreach (var line in modelLines)
         {
             if (lines.Any(l => l.Trim() == line.Trim()))
             {
@@ -473,11 +526,11 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             }
 
             // Inside OnModelCreating, after the Rask conventions call the generated contexts always make. If a
-            // custom context has no such call we can't place it safely — print it for the user instead.
+            // custom context has no such call we can't place it safely — hand it back for the caller to surface.
             var anchor = lines.FindLastIndex(l => l.Contains("ApplyRaskConventions", StringComparison.Ordinal));
             if (anchor < 0)
             {
-                Console.WriteLine($"Add to your DbContext's OnModelCreating: {line.Trim()}", ConsoleStyle.Dim);
+                unplaced.Add(line);
                 continue;
             }
 
@@ -485,21 +538,9 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             addedModel++;
         }
 
-        if (addedSets == 0 && addedUsings == 0 && addedModel == 0)
-        {
-            return;
-        }
-
-        _fileSystem.WriteAllText(result.ContextFilePath, string.Join(newline, lines));
-        if (addedSets > 0)
-        {
-            Console.WriteLine($"Added {addedSets} DbSet(s) to {Display(result.ContextFilePath)}.", ConsoleStyle.Success);
-        }
-
-        if (addedModel > 0)
-        {
-            Console.WriteLine($"Mapped {addedModel} table(s) in {Display(result.ContextFilePath)} (OnModelCreating).", ConsoleStyle.Success);
-        }
+        return addedSets == 0 && addedUsings == 0 && addedModel == 0
+            ? (text, 0, 0, unplaced)
+            : (string.Join(newline, lines), addedSets, addedModel, unplaced);
     }
 
     // A short display name for a registration line, e.g. "builder.Services.AddRaskCqrs();" -> "AddRaskCqrs".
