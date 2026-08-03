@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
@@ -270,6 +271,16 @@ public sealed class ProjectGeneratorBuildE2ETests
                 fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
                 fs.WriteAllText(file.Path, file.Content);
             }
+
+            // Compile-gate the WireProgramCs splice — the one edit that turns generated files into a running
+            // app. Apply the real splice to the scaffolded Program.cs so the feature's DI (AddRaskCqrs /
+            // AddRaskData / the DbContext factory + the usings they need) is actually built, not just
+            // string-asserted. Without this the build proves the feature files compile but never the splice.
+            var programPath = Path.Combine(projectDir, "Program.cs");
+            var (splicedProgram, added) = GenerateCommand.SpliceProgramCs(
+                fs.ReadAllText(programPath), feature.ProgramUsings, feature.ProgramRegistrations);
+            Assert.NotEmpty(added); // the splice inserted the registrations
+            fs.WriteAllText(programPath, splicedProgram);
 
             // `dotnet add package` is GenerateCommand's job, not the generator's — so add what the generator
             // says it needs. Driving off result.Packages keeps this from drifting from what the CLI does.

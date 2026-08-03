@@ -316,6 +316,38 @@ public sealed class GenerateCommandTests
     }
 
     [Fact]
+    public void SpliceProgramCs_inserts_usings_and_registrations_at_the_right_anchors()
+    {
+        var (text, added) = GenerateCommand.SpliceProgramCs(
+            ProgramCs,
+            ["Rask.Cqrs", "MyApp"],
+            ["builder.Services.AddRaskCqrs();", "builder.Services.AddRaskData();"]);
+
+        // The new using lands after the pre-existing `using MyApp;` (not among the statements); the duplicate
+        // MyApp is skipped.
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        Assert.Equal("using MyApp;", lines[0]);
+        Assert.Equal("using Rask.Cqrs;", lines[1]);
+        Assert.Single(lines, l => l == "using MyApp;"); // not duplicated
+        Assert.Contains("builder.Services.AddRaskCqrs();", text, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskData();", text, StringComparison.Ordinal);
+        // The registrations sit after AddRask(), before `var app = builder.Build();`.
+        Assert.True(text.IndexOf("AddRaskData();", StringComparison.Ordinal) < text.IndexOf("builder.Build();", StringComparison.Ordinal));
+        Assert.Equal(2, added.Count);
+    }
+
+    [Fact]
+    public void SpliceProgramCs_is_idempotent_and_signals_no_change()
+    {
+        var once = GenerateCommand.SpliceProgramCs(ProgramCs, ["Rask.Cqrs"], ["builder.Services.AddRaskCqrs();"]).Text;
+        var (twice, added) = GenerateCommand.SpliceProgramCs(once, ["Rask.Cqrs"], ["builder.Services.AddRaskCqrs();"]);
+
+        Assert.Equal(once, twice);        // nothing added the second time
+        Assert.Empty(added);
+        Assert.Equal(1, Occurrences(twice, "builder.Services.AddRaskCqrs();"));
+    }
+
+    [Fact]
     public async Task Program_wiring_is_idempotent()
     {
         var (_, fs, command) = Build();
