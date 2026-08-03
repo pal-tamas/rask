@@ -426,13 +426,24 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return;
         }
 
+        // Pin the Rask.* packages to the CLI's own version so a generated feature can't float them past the
+        // Rask.Server the template baked (a locally/CI-built CLI would otherwise mix e.g. Rask.Server 0.17.0
+        // with a newer Rask.Data pulled from nuget.org). Non-Rask packages (EF Core, SQLitePCLRaw) keep
+        // floating — they version independently of Rask and resolve to the latest compatible.
+        var raskVersion = NewCommand.ResolvePackageVersion(CliMetadata.Version);
+
         Console.WriteLine($"Adding {packages.Count} package(s) to the project…", ConsoleStyle.Dim);
         foreach (var package in packages)
         {
-            var exit = await _process.RunAsync("dotnet", ["add", "package", package], projectDirectory, cancellationToken).ConfigureAwait(false);
+            var isRask = package.StartsWith("Rask.", StringComparison.Ordinal);
+            string[] args = isRask
+                ? ["add", "package", package, "--version", raskVersion]
+                : ["add", "package", package];
+            var exit = await _process.RunAsync("dotnet", args, projectDirectory, cancellationToken).ConfigureAwait(false);
             if (exit != 0)
             {
-                WriteWarning($"  Couldn't add {package} automatically — add it manually: dotnet add package {package}");
+                var manual = isRask ? $"dotnet add package {package} --version {raskVersion}" : $"dotnet add package {package}";
+                WriteWarning($"  Couldn't add {package} automatically — add it manually: {manual}");
             }
         }
     }

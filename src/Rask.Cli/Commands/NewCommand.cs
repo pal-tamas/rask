@@ -88,6 +88,17 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return 1;
         }
 
+        // The name becomes the root namespace and the csproj filename, so an invalid one (a dash, a leading
+        // digit, a keyword) would scaffold a project that never compiles. Reject it up front with guidance
+        // rather than writing files the user then has to throw away.
+        if (!Identifiers.IsValidNamespaceName(name))
+        {
+            Console.Error.WriteLine(
+                $"'{name}' isn't a valid project name — it becomes the root namespace, so each dot-separated part must "
+                + "start with a letter or underscore and contain only letters, digits, or underscores (e.g. Shop or Contoso.Shop).");
+            return 1;
+        }
+
         var templateKey = parsed.Option("template") ?? TemplateCatalog.Default.Key;
         if (!TemplateCatalog.TryGet(templateKey, out var template))
         {

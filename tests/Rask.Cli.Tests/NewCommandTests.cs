@@ -76,6 +76,38 @@ public sealed class NewCommandTests
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
     }
 
+    [Theory]
+    [InlineData("my-app")]    // a dash isn't valid in a namespace
+    [InlineData("9Lives")]    // can't start with a digit
+    [InlineData("class")]     // a reserved keyword
+    [InlineData("Foo.")]      // trailing dot → empty segment
+    [InlineData("Foo..Bar")]  // empty middle segment
+    public async Task Invalid_project_name_is_rejected_before_writing_anything(string name)
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync([name], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Empty(runner.Invocations); // never even restored
+        Assert.Contains("isn't a valid project name", console.ErrorText, StringComparison.Ordinal);
+        Assert.False(fs.FileExists($"/proj/{name}/{name}.csproj"));
+    }
+
+    [Theory]
+    [InlineData("Shop")]
+    [InlineData("Contoso.Shop")] // a dotted name is a valid multi-part namespace
+    public async Task Valid_project_name_including_dotted_is_accepted(string name)
+    {
+        var (console, fs, _, command) = Build();
+
+        var exit = await command.ExecuteAsync([name], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(console.ErrorText);
+        Assert.True(fs.FileExists($"/proj/{name}/{name}.csproj"));
+    }
+
     [Fact]
     public async Task Server_generation_refuses_to_overwrite_an_existing_project()
     {

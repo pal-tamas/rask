@@ -18,11 +18,26 @@ them until tagged releases begin.
   builds under `-warnaserror`. (Closes #478.)
 
 ### Changed
+- **Generated features use `UseRaskSqlite` (production pragmas) instead of raw `UseSqlite`.** A `rask generate
+  feature` run that owns its `DbContext` now registers it with `UseRaskSqlite` — the WAL + `busy_timeout` +
+  `foreign_keys` pragma set — so a generated app survives concurrent writers (jobs, email, outbox) instead of
+  hitting `database is locked`. The connection string honours a `ConnectionStrings:App` override (defaulting to
+  a local `app.db`), so a deploy can point it at a persistent volume. Adds `Rask.SQLite.EntityFrameworkCore` to
+  the project.
+- **`rask generate feature` pins the `Rask.*` packages it adds to the CLI's version.** Previously it floated
+  them to the latest on nuget.org (`dotnet add package` with no version), which could pair a template's
+  `Rask.Server` with a newer `Rask.Data`/`Rask.Cqrs`. Non-Rask packages (EF Core, SQLitePCLRaw) still float.
 - **OPF docs & landing-site polish.** The landing site now advertises **46** typed browser APIs (was a stale
   "43", matching `docs/apis/` and the docs index); the roadmap's CRUD-scaffolder entry now credits the
   `rask generate job`/`email` scaffolders alongside `feature`; the tutorial's Chapter 2 `--validation` note
   leads with the flag being optional and the `valueobjects` default; and the One Person Framework manifesto no
   longer implies a blob-store pillar Rask doesn't ship.
+
+### Fixed
+- **`rask new` rejects an invalid project name up front.** The name becomes the root namespace and csproj
+  filename, so a value like `my-app` or `9Lives` (a dash, a leading digit, a keyword, an empty dotted segment)
+  used to scaffold a project that never compiled. It's now validated before any files are written, with a clear
+  message; dotted names like `Contoso.Shop` are still accepted.
 
 ## [0.19.0] - 2026-07-20
 
