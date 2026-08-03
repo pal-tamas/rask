@@ -151,7 +151,14 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
         // Derived from the schema's own grouping rather than a hand-kept list, so a new feature option can't
         // be forgotten here (--no-restore was, and slipped through on a page for exactly that reason).
-        if (kind != "feature" && FeatureOnly(schema, parsed) is { Count: > 0 } misapplied)
+        // `--context` is the exception: `generate email` also accepts it (which context to wire the mail queue into).
+        var misapplied = FeatureOnly(schema, parsed);
+        if (kind == "email")
+        {
+            misapplied = misapplied.Where(o => o != "--context").ToList();
+        }
+
+        if (kind != "feature" && misapplied.Count > 0)
         {
             var verb = misapplied.Count == 1 ? "applies" : "apply";
             Console.Error.WriteLine($"{Humanize(misapplied)} only {verb} to 'generate feature'.");
@@ -207,7 +214,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             }
 
             WireProgramCs(project.ProjectDirectory, result);
-            AddDbSetsToContext(result);
+            EditContext(result);
 
             if (testProjectIsNew && result.TestProject is not null)
             {
@@ -316,12 +323,51 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         return (null, null);
     }
 
-    // Add the --context run's DbSet properties (and the usings they need) to the user's existing DbContext, so
-    // EF maps the new entities without a hand-edit. Idempotent; a set/using already present is left alone. When
-    // the context file couldn't be located the printed next-steps carry the same instruction as a fallback.
-    private void AddDbSetsToContext(ScaffoldResult result)
+    // Every class that directly extends DbContext in the project (name + namespace + file). `generate email`
+    // auto-detects the one to wire the mail queue into.
+    private IReadOnlyList<(string Name, string Namespace, string FilePath)> FindContexts(ProjectContext project)
     {
-        if (result.ContextDbSets.Count == 0)
+        var declaration = new Regex(@"\bclass\s+(\w+)\b[^{;]*:\s*DbContext\b");
+        var namespaceOf = new Regex(@"\bnamespace\s+([\w.]+)");
+        var found = new List<(string, string, string)>();
+        foreach (var file in _fileSystem.ListFilesRecursive(project.ProjectDirectory, "*.cs"))
+        {
+            var text = _fileSystem.ReadAllText(file);
+            var match = declaration.Match(text);
+            if (!match.Success)
+            {
+                continue;
+            }
+
+            var ns = namespaceOf.Match(text);
+            found.Add((match.Groups[1].Value, ns.Success ? ns.Groups[1].Value : project.RootNamespace, file));
+        }
+
+        return found;
+    }
+
+    // The DbContext `generate email` wires the mail queue into: an explicit --context (if found), else the one
+    // context in the project. null when it can't be resolved unambiguously (no context, or several with no
+    // --context) — the caller falls back to printing the manual wiring steps.
+    private (string Name, string Namespace, string FilePath)? ResolveMailContext(ProjectContext project, string? explicitName)
+    {
+        if (explicitName is not null)
+        {
+            var (ns, path) = ResolveContext(project, explicitName);
+            return ns is not null && path is not null ? (explicitName, ns, path) : null;
+        }
+
+        var found = FindContexts(project);
+        return found.Count == 1 ? found[0] : null;
+    }
+
+    // Edit the target DbContext in place: add the --context run's DbSet properties + usings (so EF maps the new
+    // entities) and/or OnModelCreating statements (e.g. modelBuilder.AddRaskMail() for `generate email`). All
+    // idempotent — a set/using/line already present is left alone. When the context file couldn't be located,
+    // the same instructions are printed as a fallback so nothing is silently dropped.
+    private void EditContext(ScaffoldResult result)
+    {
+        if (result.ContextDbSets.Count == 0 && result.ContextModelLines.Count == 0)
         {
             return;
         }
@@ -329,10 +375,22 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         if (result.ContextFilePath is null || !_fileSystem.FileExists(result.ContextFilePath))
         {
             // The context class wasn't found in the project — tell the user what to add to it themselves.
-            Console.WriteLine("Add these to your DbContext:", ConsoleStyle.Dim);
-            foreach (var set in result.ContextDbSets)
+            if (result.ContextDbSets.Count > 0)
             {
-                Console.WriteLine(set, ConsoleStyle.Dim);
+                Console.WriteLine("Add these to your DbContext:", ConsoleStyle.Dim);
+                foreach (var set in result.ContextDbSets)
+                {
+                    Console.WriteLine(set, ConsoleStyle.Dim);
+                }
+            }
+
+            if (result.ContextModelLines.Count > 0)
+            {
+                Console.WriteLine("Add these to your DbContext's OnModelCreating:", ConsoleStyle.Dim);
+                foreach (var line in result.ContextModelLines)
+                {
+                    Console.WriteLine(line, ConsoleStyle.Dim);
+                }
             }
 
             return;
@@ -380,13 +438,42 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             addedSets++;
         }
 
-        if (addedSets == 0 && addedUsings == 0)
+        var addedModel = 0;
+        foreach (var line in result.ContextModelLines)
+        {
+            if (lines.Any(l => l.Trim() == line.Trim()))
+            {
+                continue;
+            }
+
+            // Inside OnModelCreating, after the Rask conventions call the generated contexts always make. If a
+            // custom context has no such call we can't place it safely — print it for the user instead.
+            var anchor = lines.FindLastIndex(l => l.Contains("ApplyRaskConventions", StringComparison.Ordinal));
+            if (anchor < 0)
+            {
+                Console.WriteLine($"Add to your DbContext's OnModelCreating: {line.Trim()}", ConsoleStyle.Dim);
+                continue;
+            }
+
+            lines.Insert(anchor + 1, line);
+            addedModel++;
+        }
+
+        if (addedSets == 0 && addedUsings == 0 && addedModel == 0)
         {
             return;
         }
 
         _fileSystem.WriteAllText(result.ContextFilePath, string.Join(newline, lines));
-        Console.WriteLine($"Added {addedSets} DbSet(s) to {Display(result.ContextFilePath)}.", ConsoleStyle.Success);
+        if (addedSets > 0)
+        {
+            Console.WriteLine($"Added {addedSets} DbSet(s) to {Display(result.ContextFilePath)}.", ConsoleStyle.Success);
+        }
+
+        if (addedModel > 0)
+        {
+            Console.WriteLine($"Mapped {addedModel} table(s) in {Display(result.ContextFilePath)} (OnModelCreating).", ConsoleStyle.Success);
+        }
     }
 
     // A short display name for a registration line, e.g. "builder.Services.AddRaskCqrs();" -> "AddRaskCqrs".
@@ -522,7 +609,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 return true;
 
             case "email":
-                result = EmailGenerator.Generate(project, _workingDirectory, name, parsed.Option("output"));
+                result = EmailGenerator.Generate(project, _workingDirectory, name, parsed.Option("output"), ResolveMailContext(project, parsed.Option("context")));
                 return true;
 
             default: // feature

@@ -113,7 +113,7 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 | `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
 | `component <Name>` | `Components/<Name>.cs` — a plain `Component` | `<Name>` in `<Root>.Components` |
 | `job <Name>` | `Jobs/<Name>.cs` — a background job: an `IJob` record + its `ICommandHandler` (adds the `Rask.Jobs` / `Rask.Cqrs` packages). Alias: `rask g j` | `<Name>` in `<Root>.Jobs` |
-| `email <Name>` | `Emails/<Name>.cs` — an email-body component rendered to HTML by `Email.Body(...)` (adds the `Rask.Mail` package). Alias: `rask g e` | `<Name>` in `<Root>.Emails` |
+| `email <Name>` | `Emails/<Name>.cs` — an email-body component rendered to HTML by `Email.Body(...)` (adds the `Rask.Mail` package). **Auto-wires** into your `DbContext` — registers `AddRaskMail<Ctx>` in `Program.cs` and maps the mail table in `OnModelCreating` — when it finds a single one (or `--context <Name>`); otherwise prints the steps. Alias: `rask g e` | `<Name>` in `<Root>.Emails` |
 | `feature <Name> <field:type> …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id) with **value objects** for required strings (built-in validation), an EF `IEntityTypeConfiguration`, a `DbContext`, **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
 
 | Option | Meaning |

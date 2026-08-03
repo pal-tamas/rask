@@ -79,6 +79,101 @@ public sealed class GenerateCommandTests
         Assert.Contains("AddRaskMail", console.OutText, StringComparison.Ordinal);
     }
 
+    // A minimal generated-style DbContext (has OnModelCreating + ApplyRaskConventions, the anchor email wiring uses).
+    private const string AppDbContextSource =
+        "using Microsoft.EntityFrameworkCore;\n" +
+        "using Rask.Data;\n\n" +
+        "namespace MyApp;\n\n" +
+        "public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)\n" +
+        "{\n" +
+        "    protected override void OnModelCreating(ModelBuilder modelBuilder)\n" +
+        "    {\n" +
+        "        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);\n" +
+        "        modelBuilder.ApplyRaskConventions();\n" +
+        "    }\n" +
+        "}\n";
+
+    [Fact]
+    public async Task Email_auto_wires_into_the_single_context()
+    {
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Data/AppDbContext.cs", AppDbContextSource);
+
+        var exit = await command.ExecuteAsync(["email", "Welcome"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        // Program.cs gains the mail registration + usings — no manual paste (the asymmetry with `generate feature`).
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        Assert.Contains("builder.Services.AddRaskMail<AppDbContext>(o => o.From = \"no-reply@example.com\");", program, StringComparison.Ordinal);
+        Assert.Contains("using Rask.Mail;", program, StringComparison.Ordinal);
+        // The context's OnModelCreating maps the mail table.
+        var ctx = fs.Files[Path.GetFullPath("/proj/Data/AppDbContext.cs")];
+        Assert.Contains("modelBuilder.AddRaskMail();", ctx, StringComparison.Ordinal);
+        // Only the migration reminder remains — not the full 4-step manual block.
+        Assert.Contains("rask db add AddMail", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Register the services in Program.cs", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Email_auto_wire_is_idempotent()
+    {
+        var (_, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Data/AppDbContext.cs", AppDbContextSource);
+
+        await command.ExecuteAsync(["email", "Welcome"], CancellationToken.None);
+        await command.ExecuteAsync(["email", "Welcome2"], CancellationToken.None);
+
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        var ctx = fs.Files[Path.GetFullPath("/proj/Data/AppDbContext.cs")];
+        Assert.Equal(1, Occurrences(program, "AddRaskMail<AppDbContext>"));
+        Assert.Equal(1, Occurrences(ctx, "modelBuilder.AddRaskMail();"));
+    }
+
+    [Fact]
+    public async Task Email_without_a_context_prints_the_manual_steps()
+    {
+        var (console, fs, command) = Build(); // no DbContext in the project
+
+        var exit = await command.ExecuteAsync(["email", "Welcome"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("Program.cs", StringComparison.Ordinal)); // nothing auto-wired
+        Assert.Contains("no DbContext found", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("modelBuilder.AddRaskMail();", console.OutText, StringComparison.Ordinal); // the manual step
+    }
+
+    [Fact]
+    public async Task Email_with_two_contexts_and_no_flag_falls_back_to_manual()
+    {
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Data/AppDbContext.cs", AppDbContextSource);
+        fs.Seed("/proj/Other/OtherDbContext.cs", AppDbContextSource.Replace("AppDbContext", "OtherDbContext", StringComparison.Ordinal));
+
+        var exit = await command.ExecuteAsync(["email", "Welcome"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("no DbContext found", console.OutText, StringComparison.Ordinal); // ambiguous → manual
+        Assert.DoesNotContain("AddRaskMail<", fs.Files[Path.GetFullPath("/proj/Program.cs")], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Email_context_flag_targets_a_specific_context()
+    {
+        var (_, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Data/AppDbContext.cs", AppDbContextSource);
+        fs.Seed("/proj/Other/OtherDbContext.cs", AppDbContextSource.Replace("AppDbContext", "OtherDbContext", StringComparison.Ordinal));
+
+        var exit = await command.ExecuteAsync(["email", "Welcome", "--context", "OtherDbContext"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("AddRaskMail<OtherDbContext>", fs.Files[Path.GetFullPath("/proj/Program.cs")], StringComparison.Ordinal);
+        Assert.Contains("modelBuilder.AddRaskMail();", fs.Files[Path.GetFullPath("/proj/Other/OtherDbContext.cs")], StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Feature_pins_rask_packages_to_the_cli_version_but_floats_others()
     {
