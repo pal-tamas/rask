@@ -49,7 +49,7 @@ internal static class EmailGenerator
         }
 
         // Send it anywhere IMailQueue is injected:
-        //   await mail.SendAsync(Email.To("jane@example.com").Subject("Welcome").Body(new {{name}}()));
+        //   await mail.SendAsync(Email.To("jane@example.com").Subject("Welcome").Body({{name}}()));
 
         """;
 
@@ -65,7 +65,7 @@ internal static class EmailGenerator
           3. Create the schema:
                rask db add AddMail && rask db update
           4. Send it anywhere IMailQueue is injected:
-               await mail.SendAsync(Email.To("jane@example.com").Subject("Welcome").Body(new {{name}}()));
+               await mail.SendAsync(Email.To("jane@example.com").Subject("Welcome").Body({{name}}()));
         """;
 
     /// <summary>Next-steps when the wiring was applied automatically — only the migration + a send example remain.</summary>
@@ -74,6 +74,6 @@ internal static class EmailGenerator
         Wired Rask.Mail into {{context}} (AddRaskMail + the mail table). Create the schema:
           rask db add AddMail && rask db update
         Then send it anywhere IMailQueue is injected:
-          await mail.SendAsync(Email.To("jane@example.com").Subject("Welcome").Body(new {{name}}()));
+          await mail.SendAsync(Email.To("jane@example.com").Subject("Welcome").Body({{name}}()));
         """;
 }

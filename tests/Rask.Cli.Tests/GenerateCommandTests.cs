@@ -98,7 +98,7 @@ public sealed class GenerateCommandTests
         Assert.True(fs.Files.ContainsKey(path));
         Assert.Contains("namespace MyApp.Features.Shared;", fs.Files[path], StringComparison.Ordinal);
         Assert.Contains("class WelcomeEmail : Component", fs.Files[path], StringComparison.Ordinal);
-        Assert.Contains("Body(new WelcomeEmail())", fs.Files[path], StringComparison.Ordinal);
+        Assert.Contains("Body(WelcomeEmail())", fs.Files[path], StringComparison.Ordinal);   // the factory, not new (RASK014)
         Assert.Contains(process.Invocations, i => i.Arguments is ["add", "package", "Rask.Mail", "--version", _]);
         Assert.Contains("AddRaskMail", console.OutText, StringComparison.Ordinal);
     }
@@ -358,6 +358,36 @@ public sealed class GenerateCommandTests
         // The registrations sit after AddRask(), before `var app = builder.Build();`.
         Assert.True(text.IndexOf("AddRaskData();", StringComparison.Ordinal) < text.IndexOf("builder.Build();", StringComparison.Ordinal));
         Assert.Equal(2, added.Count);
+    }
+
+    [Fact]
+    public void SpliceProgramCs_inserts_after_a_multiline_registration_not_inside_it()
+    {
+        // `generate feature` leaves a multi-line AddDbContextFactory in Program.cs; a later splice (e.g.
+        // `generate email`'s AddRaskMail — the tutorial's ch5 step) must land *after* its closing `;`, not
+        // between the `(sp, o) => o` line and its fluent body, which would be invalid C#.
+        const string WithFactory =
+            "using MyApp;\n" +
+            "var builder = WebApplication.CreateBuilder(args);\n" +
+            "builder.Services.AddRask();\n" +
+            "builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o\n" +
+            "    .UseRaskSqlite(\"Data Source=app.db\")\n" +
+            "    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));\n" +
+            "var app = builder.Build();\n" +
+            "app.Run();\n";
+
+        var (text, added) = GenerateCommand.SpliceProgramCs(
+            WithFactory, ["Rask.Mail"], ["builder.Services.AddRaskMail<AppDbContext>(o => o.From = \"x\");"]);
+
+        Assert.Single(added);
+        // The factory statement is intact and unbroken: its three lines stay contiguous, in order.
+        var factory = text.IndexOf("AddDbContextFactory<AppDbContext>((sp, o) => o", StringComparison.Ordinal);
+        var pragma = text.IndexOf(".UseRaskSqlite(\"Data Source=app.db\")", StringComparison.Ordinal);
+        var interceptors = text.IndexOf(".AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));", StringComparison.Ordinal);
+        var mail = text.IndexOf("AddRaskMail<AppDbContext>", StringComparison.Ordinal);
+        Assert.True(factory < pragma && pragma < interceptors, "the multi-line factory was split apart");
+        Assert.True(interceptors < mail, "the new registration landed inside the factory, not after it");
+        Assert.True(mail < text.IndexOf("builder.Build();", StringComparison.Ordinal), "registration must precede Build()");
     }
 
     [Fact]
