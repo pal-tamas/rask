@@ -7,6 +7,39 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+- **`rask deploy --domain` is now validated before it reaches the shared proxy.** The domain was written
+  verbatim into the Caddyfile that fronts *every* app on the box, so a value containing `{`, `}` or a
+  newline could close the generated site block and inject arbitrary Caddy directives — a global options
+  block, a `file_server` over `/`, an open admin endpoint — and an embedded tab or newline could forge a
+  row in the tab-separated `docker ps` label listing the routing is rebuilt from. Because the domain is
+  remembered in the **committed** `.rask/deploy.json` and read by CI, a hostile value could arrive by pull
+  request and reconfigure the proxy of every host the repo deploys to. This is the same threat model that
+  motivated the existing SSH-host check, and it now has the same kind of boundary: `--domain` must be an
+  RFC-1123 host name (optionally with a leading `*.`), validated wherever the value comes from.
+- **A failed deploy no longer prints the values you passed it.** The container's last log lines are dumped
+  to stderr on failure — which, in the workflow `--github-actions` writes, is a CI job log — so any
+  `--env` / `--env-file` value appearing in them is now masked first. Likewise an unparseable `--env-file`
+  line is reported by **line number** instead of by echoing the line, which was a credential.
+
+### Fixed
+- **The standalone `wasm` template can be deployed.** Its nginx image listened on port 80 while
+  `rask deploy` had the container port hardcoded to 8080, so the proxy and the readiness probe both aimed
+  at a closed port and the deploy could never succeed. The generated `nginx.conf` now listens on `8080`
+  and serves `/health`, matching the server and wasm-hosted templates, and a new `--container-port` flag
+  (remembered, and recorded as a label on the container) covers any hand-written Dockerfile that listens
+  elsewhere. Because the port is stored per container, a host running several apps that don't agree on one
+  keeps each app's routing correct.
+- **The `wasm-hosted` Dockerfile prepares `/data` like the server template does.** `rask deploy` mounts a
+  named volume at `/data` and points the app at `/data/app.db` for *every* template, but this image never
+  created the directory or gave it to the non-root runtime user — so the mount landed root-owned and the
+  app couldn't create its database.
+- **A port-mode deploy is visible to the host inventory.** Its container carries `rask.*` labels (without a
+  domain, so it is never proxied), which means moving an app to `--domain` later retires the old container
+  instead of leaving it running and unaccounted for.
+- **The generated Caddyfile is removed from the temp directory** once it has been copied to the host,
+  rather than left behind under a predictable name.
+
 ### Added
 - **`rask deploy` is now verified against a real host.** Every deploy test in the repo was mocked — a fake
   process runner recorded the argv and returned a scripted exit code — so the suite proved the command line

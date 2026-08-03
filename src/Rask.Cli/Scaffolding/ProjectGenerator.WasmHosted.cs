@@ -619,6 +619,15 @@ internal static partial class ProjectGenerator
         FROM mcr.microsoft.com/dotnet/aspnet:10.0
         WORKDIR /app
         COPY --from=build /app .
+
+        # A writable data directory for the SQLite database, owned by the image's non-root runtime user
+        # ($APP_UID) — the same preparation the server template's Dockerfile does, and for the same reason:
+        # `rask deploy` mounts a named volume at /data and points the app at /data/app.db unconditionally.
+        # Without this the mount lands root-owned and a non-root app can't create the database in it.
+        USER root
+        RUN mkdir -p /data && chown $APP_UID:$APP_UID /data
+        USER $APP_UID
+
         EXPOSE 8080
         # The Server calls UseHttpsRedirection(); inside the container no HTTPS port is configured,
         # so it no-ops. Terminate TLS at your reverse proxy / ingress and forward plain HTTP to 8080.

@@ -29,8 +29,12 @@ namespace Rask.Cli.Commands;
 internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
 {
-    /// <summary>The container port the scaffolded server/wasm-hosted Dockerfiles listen on (<c>EXPOSE 8080</c>).</summary>
-    internal const int ContainerPort = 8080;
+    /// <summary>
+    /// The port an app listens on <em>inside</em> its container, unless <c>--container-port</c> says otherwise.
+    /// Every Dockerfile <c>rask new --docker</c> emits listens here, so the default is right for scaffolded
+    /// apps; a hand-written Dockerfile that exposes something else needs the flag (it is then remembered).
+    /// </summary>
+    internal const int DefaultContainerPort = 8080;
 
     /// <summary>The shared docker network app containers and the Caddy proxy join in domain mode.</summary>
     internal const string Network = "rask";
@@ -62,8 +66,8 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     public override string Summary => "Build and deploy the app to a single host over SSH (auto-HTTPS with --domain).";
 
     public override string Usage =>
-        "rask deploy [--host user@box] [--domain app.example.com] [--port <n>] [--project <path>] " +
-        "[--name <slug>] [--dockerfile <path>] [--env KEY=VALUE ...] [--env-file <path>] " +
+        "rask deploy [--host user@box] [--domain app.example.com] [--port <n>] [--container-port <n>] " +
+        "[--project <path>] [--name <slug>] [--dockerfile <path>] [--env KEY=VALUE ...] [--env-file <path>] " +
         "[--health-path <path>] [--no-health-check] [--setup-host] [--github-actions] [--dry-run]";
 
     public override IReadOnlyList<string> Examples =>
@@ -85,6 +89,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             .Option("host", 'h', "user@box", "SSH target to build and run on (remembered in .rask/deploy.json).")
             .Option("domain", 'd', "host", "Public domain to serve over HTTPS via Caddy (implies ports 80/443).")
             .Option("port", valueHint: "n", description: "Published port when not using --domain (default: 8080).")
+            .Option("container-port", valueHint: "n", description: "Port the app listens on inside the container (default: 8080; remembered).")
             .Option("project", 'p', "path", "Project to deploy (default: found from the current directory).")
             .Option("name", 'n', "slug", "Container/app name (default: derived from the project).")
             .Option("dockerfile", valueHint: "path", description: "Dockerfile to build (default: ./Dockerfile).")
@@ -128,6 +133,26 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         {
             Console.Error.WriteLine(portError);
             return 1;
+        }
+
+        if (!TryResolveContainerPort(parsed.Option("container-port"), config.ContainerPort, out var containerPort, out var containerPortError))
+        {
+            Console.Error.WriteLine(containerPortError);
+            return 1;
+        }
+
+        // Validated at the boundary for the same reason as the SSH host below: the domain is written
+        // verbatim into the Caddyfile that fronts every app on the box, and it may come from the
+        // *committed* .rask/deploy.json rather than from this user's keyboard.
+        if (domain is not null)
+        {
+            if (!DomainName.TryParse(domain, out var parsedDomain, out var domainError))
+            {
+                Console.WriteErrorLine(domainError!, ConsoleStyle.Error);
+                return 1;
+            }
+
+            domain = parsedDomain;
         }
 
         // --port and --domain are two different modes: with a domain the app is reached internally on the
@@ -206,7 +231,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             // thing you do in a repo, rather than emitting a workflow that can't resolve a host.
             if (!dryRun)
             {
-                PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath);
+                PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath, containerPort);
             }
 
             return WriteGitHubActionsWorkflow(sshTarget, host, dryRun);
@@ -214,7 +239,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
 
         if (dryRun)
         {
-            PrintPlan(host, slug, domain, port, dockerfile, contextDir, env, healthEnabled, healthPath);
+            PrintPlan(host, slug, domain, port, containerPort, dockerfile, contextDir, env, healthEnabled, healthPath);
             return 0;
         }
 
@@ -247,7 +272,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         if (!string.Equals(newHost, host, StringComparison.Ordinal))
         {
             host = newHost;
-            PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath);
+            PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath, containerPort);
             Console.WriteLine($"  Remembered {host} in {Path.Combine(".rask", "deploy.json")} — deploy as that from now on.", ConsoleStyle.Dim);
         }
 
@@ -259,19 +284,19 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         }
 
         return domain is null
-            ? await DeployPortAsync(host, slug, port, env, projectSetting, envFile, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false)
-            : await DeployWithProxyAsync(host, slug, domain, env, projectSetting, envFile, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false);
+            ? await DeployPortAsync(host, slug, port, containerPort, env, projectSetting, envFile, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false)
+            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, projectSetting, envFile, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false);
     }
 
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
-    private async Task<int> DeployPortAsync(string host, string slug, int port, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken)
+    private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken)
     {
         // Retire the old container gracefully (SIGTERM → Litestream flush + WAL checkpoint) before removing it,
         // so the last writes reach the replica; both no-op on the first deploy (no container yet).
         await Run(BuildStopArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         await Run(BuildRemoveArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         Console.Out.WriteLine($"Starting {slug} on port {port}…");
-        if (await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env), cancellationToken).ConfigureAwait(false) != 0)
+        if (await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort), cancellationToken).ConfigureAwait(false) != 0)
         {
             Console.WriteErrorLine("Failed to start the container.", ConsoleStyle.Error);
             return 1;
@@ -279,27 +304,27 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
 
         if (!await WaitUntilRunningAsync(host, slug, cancellationToken).ConfigureAwait(false))
         {
-            await DumpLogsAsync(host, slug, cancellationToken).ConfigureAwait(false);
+            await DumpLogsAsync(host, slug, env, cancellationToken).ConfigureAwait(false);
             return 1;
         }
 
         // No blue-green here (the old container is already gone), so a failed probe can't roll back — it
         // surfaces the broken deploy with logs rather than leaving it to fail silently under traffic.
-        if (healthEnabled && !await WaitUntilHealthyAsync(host, slug, healthPath, cancellationToken).ConfigureAwait(false))
+        if (healthEnabled && !await WaitUntilHealthyAsync(host, slug, healthPath, containerPort, cancellationToken).ConfigureAwait(false))
         {
-            await DumpLogsAsync(host, slug, cancellationToken).ConfigureAwait(false);
+            await DumpLogsAsync(host, slug, env, cancellationToken).ConfigureAwait(false);
             Console.WriteErrorLine(HealthFailureMessage(healthPath, rolledBack: false), ConsoleStyle.Error);
             return 1;
         }
 
-        PersistConfig(host, domain: null, port, slug, project, envFile, healthEnabled, healthPath);
+        PersistConfig(host, domain: null, port, slug, project, envFile, healthEnabled, healthPath, containerPort);
         Console.WriteLine($"Deployed. The app is live at http://{HostName(host)}:{port}", ConsoleStyle.Success);
         return 0;
     }
 
     // ── The domain path: blue-green swap behind a shared, multi-app Caddy proxy (zero downtime). ────────
     private async Task<int> DeployWithProxyAsync(
-        string host, string slug, string domain, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken)
+        string host, string slug, string domain, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken)
     {
         // The live containers are the source of truth. Read them once: the current color of this app (to
         // pick the next), plus every other app's route (to regenerate the full Caddyfile).
@@ -315,8 +340,8 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false); // ignore-absent
 
         Console.Out.WriteLine($"Starting {newContainer} ({domain})…");
-        // In domain mode the app is reached internally on ContainerPort; no host port is published.
-        if (await Run(BuildRunArguments(host, slug, domain, newColor, ContainerPort, env), cancellationToken).ConfigureAwait(false) != 0)
+        // In domain mode the app is reached internally on its container port; no host port is published.
+        if (await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort), cancellationToken).ConfigureAwait(false) != 0)
         {
             Console.WriteErrorLine("Failed to start the new container.", ConsoleStyle.Error);
             return 1;
@@ -326,7 +351,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         // old one keeps serving (safe rollback — this deploy simply didn't happen).
         if (!await WaitUntilRunningAsync(host, newContainer, cancellationToken).ConfigureAwait(false))
         {
-            await DumpLogsAsync(host, newContainer, cancellationToken).ConfigureAwait(false);
+            await DumpLogsAsync(host, newContainer, env, cancellationToken).ConfigureAwait(false);
             await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false);
             Console.WriteErrorLine("The new container exited before it was ready — left the previous version serving.", ConsoleStyle.Error);
             return 1;
@@ -335,9 +360,9 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         // Second gate: the container is up, but is the app actually answering? Probe over HTTP before
         // touching the proxy, so a container that starts but 500s (bad config, failed migration) never
         // takes the domain — remove it and leave the old color serving (safe rollback).
-        if (healthEnabled && !await WaitUntilHealthyAsync(host, newContainer, healthPath, cancellationToken).ConfigureAwait(false))
+        if (healthEnabled && !await WaitUntilHealthyAsync(host, newContainer, healthPath, containerPort, cancellationToken).ConfigureAwait(false))
         {
-            await DumpLogsAsync(host, newContainer, cancellationToken).ConfigureAwait(false);
+            await DumpLogsAsync(host, newContainer, env, cancellationToken).ConfigureAwait(false);
             await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false);
             Console.Error.WriteLine(HealthFailureMessage(healthPath, rolledBack: true));
             return 1;
@@ -349,11 +374,15 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
 
         // Regenerate the whole Caddyfile from the live routes, forcing this app to its NEW container, then
         // hot-reload — Caddy drains in-flight requests to the old color.
-        var routes = BuildRoutingMap(apps, slug, domain, newContainer);
+        var routes = BuildRoutingMap(apps, slug, domain, new RouteTarget(newContainer, containerPort));
         var caddyfilePath = Path.Combine(Path.GetTempPath(), $"rask-{slug}.Caddyfile");
         _fileSystem.WriteAllText(caddyfilePath, BuildCaddyfile(routes));
         Console.Out.WriteLine($"Routing {domain} → {newContainer} (auto-HTTPS via Caddy)…");
         await Run(BuildCaddyCopyArguments(host, caddyfilePath), cancellationToken).ConfigureAwait(false);
+
+        // The file has been copied to the box; leaving a predictably-named copy in the shared temp dir
+        // serves no purpose and is a symlink-clobber target on a multi-user machine.
+        _fileSystem.TryDelete(caddyfilePath);
 
         // Retry the reload: on a fresh host the proxy was just started detached, so its admin endpoint may
         // need a moment before `caddy reload` succeeds.
@@ -372,7 +401,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             await Run(BuildRemoveArguments(host, stale.Container), cancellationToken).ConfigureAwait(false);
         }
 
-        PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath);
+        PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath, containerPort);
         Console.WriteLine($"Deployed. The app is live at https://{domain}", ConsoleStyle.Success);
         Console.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})", ConsoleStyle.Dim);
         return 0;
@@ -425,7 +454,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         return 0;
     }
 
-    private void PersistConfig(string host, string? domain, int? port, string slug, string? project, string? envFile, bool healthEnabled, string healthPath) =>
+    private void PersistConfig(string host, string? domain, int? port, string slug, string? project, string? envFile, bool healthEnabled, string healthPath, int containerPort) =>
         new DeployConfig
         {
             Host = host,
@@ -437,6 +466,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             // Only persist non-defaults so a fresh deploy.json stays clean (default path, health on).
             HealthPath = healthPath == DefaultHealthPath ? null : healthPath,
             HealthCheckDisabled = healthEnabled ? null : true,
+            ContainerPort = containerPort == DefaultContainerPort ? null : containerPort,
         }.Save(_fileSystem, _workingDirectory);
 
     private async Task<bool> WaitUntilRunningAsync(string host, string container, CancellationToken cancellationToken)
@@ -465,7 +495,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     // Probe the app over HTTP from an ephemeral curl container sharing the target's network namespace, so
     // it works whether or not a host port is published (domain mode publishes none) and needs no HTTP client
     // in the app image. Retried across the readiness window — the app may warm up after the container is up.
-    private async Task<bool> WaitUntilHealthyAsync(string host, string container, string healthPath, CancellationToken cancellationToken)
+    private async Task<bool> WaitUntilHealthyAsync(string host, string container, string healthPath, int containerPort, CancellationToken cancellationToken)
     {
         for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
         {
@@ -475,7 +505,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
                 await Task.Delay(ReadinessDelay, cancellationToken).ConfigureAwait(false);
             }
 
-            if (await Run(BuildHealthCheckArguments(host, container, healthPath), cancellationToken).ConfigureAwait(false) == 0)
+            if (await Run(BuildHealthCheckArguments(host, container, healthPath, containerPort), cancellationToken).ConfigureAwait(false) == 0)
             {
                 return true;
             }
@@ -506,18 +536,47 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         return exit;
     }
 
-    private async Task DumpLogsAsync(string host, string container, CancellationToken cancellationToken)
+    /// <summary>
+    /// Show the failing container's last log lines, with any value we passed in via <c>--env</c> /
+    /// <c>--env-file</c> masked out first. An app that logs its own configuration on a failed start is
+    /// ordinary, and this output goes to stderr — which, in the workflow <c>--github-actions</c> writes,
+    /// is a CI job log. We can't know what else is a secret, but we do know exactly what we handed it.
+    /// </summary>
+    private async Task DumpLogsAsync(string host, string container, IReadOnlyList<string> env, CancellationToken cancellationToken)
     {
         var logs = await Capture(BuildLogsArguments(host, container), cancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(logs.StandardOutput))
         {
-            Console.Error.WriteLine(logs.StandardOutput.TrimEnd());
+            Console.Error.WriteLine(MaskSecrets(logs.StandardOutput.TrimEnd(), env));
         }
 
         if (!string.IsNullOrWhiteSpace(logs.StandardError))
         {
-            Console.Error.WriteLine(logs.StandardError.TrimEnd());
+            Console.Error.WriteLine(MaskSecrets(logs.StandardError.TrimEnd(), env));
         }
+    }
+
+    /// <summary>Replace every non-trivial <c>--env</c> value found in <paramref name="text"/> with an ellipsis.</summary>
+    internal static string MaskSecrets(string text, IReadOnlyList<string> env)
+    {
+        foreach (var entry in env)
+        {
+            var eq = entry.IndexOf('=', StringComparison.Ordinal);
+            if (eq < 0)
+            {
+                continue;
+            }
+
+            // Very short values ("1", "true", a port) are not secrets and masking them would shred the
+            // log into ellipses, destroying the diagnostics this dump exists to provide.
+            var value = entry[(eq + 1)..];
+            if (value.Length >= 6)
+            {
+                text = text.Replace(value, "…", StringComparison.Ordinal);
+            }
+        }
+
+        return text;
     }
 
     private Task<int> Run(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
@@ -526,7 +585,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     private Task<ProcessResult> Capture(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
         _process.CaptureAsync("docker", args, _workingDirectory, cancellationToken);
 
-    private void PrintPlan(string host, string slug, string? domain, int port, string dockerfile, string contextDir, IReadOnlyList<string> env, bool healthEnabled, string healthPath)
+    private void PrintPlan(string host, string slug, string? domain, int port, int containerPort, string dockerfile, string contextDir, IReadOnlyList<string> env, bool healthEnabled, string healthPath)
     {
         var writer = Console.Out;
         writer.WriteLine("Dry run — the following docker commands would run (no changes made):");
@@ -540,11 +599,11 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         if (domain is null)
         {
             Line(BuildRemoveArguments(host, slug));
-            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted));
+            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted, containerPort));
             Line(BuildInspectRunningArguments(host, slug));
             if (healthEnabled)
             {
-                Line(BuildHealthCheckArguments(host, slug, healthPath));
+                Line(BuildHealthCheckArguments(host, slug, healthPath, containerPort));
             }
         }
         else
@@ -553,11 +612,11 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             var container = $"{slug}-{color}";
             Line(BuildListArguments(host));
             Line(BuildNetworkCreateArguments(host, Network));
-            Line(BuildRunArguments(host, slug, domain, color, port, redacted));
+            Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort));
             Line(BuildInspectRunningArguments(host, container));
             if (healthEnabled)
             {
-                Line(BuildHealthCheckArguments(host, container, healthPath));
+                Line(BuildHealthCheckArguments(host, container, healthPath, containerPort));
             }
 
             Line(BuildCaddyRunArguments(host, Network));
@@ -580,17 +639,23 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     internal static IReadOnlyList<string> BuildNetworkCreateArguments(string host, string network) =>
         [.. Prefix(host), "network", "create", network];
 
-    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env)
+    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort)
     {
         var args = new List<string>(Prefix(host)) { "run", "-d" };
         if (domain is null)
         {
-            args.AddRange(["--name", slug, "--restart", "unless-stopped", "-p", $"{port}:{ContainerPort}"]);
+            args.AddRange(["--name", slug, "--restart", "unless-stopped", "-p", $"{port}:{containerPort}"]);
+
+            // Labelled like a domain-mode container (minus a domain, so BuildRoutingMap skips it): without
+            // this a port-mode deploy is invisible to the host inventory, so switching an app to --domain
+            // would strand its old container running forever.
+            args.AddRange(["--label", "rask.managed=true", "--label", $"rask.app={slug}", "--label", $"rask.port={containerPort.ToString(CultureInfo.InvariantCulture)}"]);
         }
         else
         {
             args.AddRange(["--name", $"{slug}-{color}", "--restart", "unless-stopped", "--network", Network]);
             args.AddRange(["--label", "rask.managed=true", "--label", $"rask.app={slug}", "--label", $"rask.domain={domain}", "--label", $"rask.color={color}"]);
+            args.AddRange(["--label", $"rask.port={containerPort.ToString(CultureInfo.InvariantCulture)}"]);
         }
 
         // Persist the SQLite database on a per-app named volume so it survives container replacement — every
@@ -626,7 +691,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     internal static IReadOnlyList<string> BuildListArguments(string host) =>
     [
         .. Prefix(host), "ps", "--filter", "label=rask.managed=true",
-        "--format", "{{.Names}}\t{{.Label \"rask.app\"}}\t{{.Label \"rask.domain\"}}\t{{.Label \"rask.color\"}}",
+        "--format", "{{.Names}}\t{{.Label \"rask.app\"}}\t{{.Label \"rask.domain\"}}\t{{.Label \"rask.color\"}}\t{{.Label \"rask.port\"}}",
     ];
 
     internal static IReadOnlyList<string> BuildInspectRunningArguments(string host, string container) =>
@@ -637,10 +702,10 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     /// the app on <c>localhost:8080</c>. <c>--rm</c> cleans it up; <c>-f</c> makes a <c>&gt;= 400</c> response a
     /// non-zero exit; <c>-m 5</c> bounds a hung connect. Exit 0 ⇒ the app answered a success status.
     /// </summary>
-    internal static IReadOnlyList<string> BuildHealthCheckArguments(string host, string container, string healthPath) =>
+    internal static IReadOnlyList<string> BuildHealthCheckArguments(string host, string container, string healthPath, int containerPort = DefaultContainerPort) =>
     [
         .. Prefix(host), "run", "--rm", "--network", $"container:{container}", CurlImage,
-        "-fsS", "-m", "5", $"http://localhost:{ContainerPort}{healthPath}",
+        "-fsS", "-m", "5", $"http://localhost:{containerPort}{healthPath}",
     ];
 
     internal static IReadOnlyList<string> BuildLogsArguments(string host, string container) =>
@@ -673,7 +738,13 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
                 continue;
             }
 
-            apps.Add(new DeployedApp(parts[0], Label(parts[1]), Label(parts[2]), Label(parts[3])));
+            // A container deployed before rask.port existed reports no label; it can only have been
+            // listening on the then-hardcoded default, so that is the correct reading of its absence.
+            var port = parts.Length > 4 && int.TryParse(Label(parts[4]), NumberStyles.None, CultureInfo.InvariantCulture, out var labelled)
+                ? labelled
+                : DeployCommand.DefaultContainerPort;
+
+            apps.Add(new DeployedApp(parts[0], Label(parts[1]), Label(parts[2]), Label(parts[3]), port));
         }
 
         return apps;
@@ -686,10 +757,10 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     /// The <c>domain → container</c> routing for the shared proxy: every other app keeps its live
     /// container; the app being deployed is forced to its new container. Sorted for a deterministic file.
     /// </summary>
-    internal static IReadOnlyDictionary<string, string> BuildRoutingMap(
-        IReadOnlyList<DeployedApp> apps, string deployingApp, string deployingDomain, string newContainer)
+    internal static IReadOnlyDictionary<string, RouteTarget> BuildRoutingMap(
+        IReadOnlyList<DeployedApp> apps, string deployingApp, string deployingDomain, RouteTarget newTarget)
     {
-        var map = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        var map = new SortedDictionary<string, RouteTarget>(StringComparer.Ordinal);
         foreach (var app in apps)
         {
             if (app.Domain.Length == 0 || app.App == deployingApp)
@@ -697,26 +768,28 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
                 continue; // port-mode apps aren't proxied; the deploying app is set explicitly below
             }
 
-            map[app.Domain] = app.Container;
+            // Each app keeps ITS OWN container port: one box can host apps that don't agree on one.
+            map[app.Domain] = new RouteTarget(app.Container, app.Port);
         }
 
-        map[deployingDomain] = newContainer;
+        map[deployingDomain] = newTarget;
         return map;
     }
 
     /// <summary>Render the multi-site Caddyfile from a <c>domain → container</c> map (uses <c>\n</c> for determinism).</summary>
-    internal static string BuildCaddyfile(IReadOnlyDictionary<string, string> routes)
+    internal static string BuildCaddyfile(IReadOnlyDictionary<string, RouteTarget> routes)
     {
         var builder = new StringBuilder();
-        foreach (var (domain, container) in routes)
+        foreach (var (domain, target) in routes)
         {
             if (builder.Length > 0)
             {
                 builder.Append('\n');
             }
 
+            // `domain` reached here through DomainName.TryParse, so it cannot close this block early.
             builder.Append(domain).Append(" {\n");
-            builder.Append("\treverse_proxy ").Append(container).Append(':').Append(ContainerPort).Append('\n');
+            builder.Append("\treverse_proxy ").Append(target.Container).Append(':').Append(target.Port).Append('\n');
             builder.Append("}\n");
         }
 
@@ -833,7 +906,30 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             return true;
         }
 
-        port = fromConfig ?? ContainerPort;
+        port = fromConfig ?? DefaultContainerPort;
+        return true;
+    }
+
+    /// <summary>
+    /// The port the app listens on inside its container. Unlike <c>--port</c> this isn't a host-side
+    /// publish: it's what the proxy is pointed at and what the readiness probe hits, so getting it wrong
+    /// means a deploy that builds and starts and then never answers.
+    /// </summary>
+    private static bool TryResolveContainerPort(string? fromFlag, int? fromConfig, out int containerPort, out string? error)
+    {
+        error = null;
+        if (fromFlag is not null)
+        {
+            if (!int.TryParse(fromFlag, NumberStyles.Integer, CultureInfo.InvariantCulture, out containerPort) || containerPort is < 1 or > 65535)
+            {
+                error = $"--container-port must be a number between 1 and 65535, not '{fromFlag}'.";
+                return false;
+            }
+
+            return true;
+        }
+
+        containerPort = fromConfig ?? DefaultContainerPort;
         return true;
     }
 
@@ -851,8 +947,10 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
                 return false;
             }
 
+            var lineNumber = 0;
             foreach (var raw in _fileSystem.ReadAllText(envFile).Split('\n'))
             {
+                lineNumber++;
                 var line = raw.Trim();
                 if (line.Length == 0 || line.StartsWith('#'))
                 {
@@ -862,7 +960,11 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
                 if (!line.Contains('=', StringComparison.Ordinal))
                 {
                     env = [];
-                    error = $"--env-file line isn't KEY=VALUE: '{line}'.";
+
+                    // The LINE NUMBER, never the line: an env file holds secrets, and the offending line
+                    // is the one we've decided we can't parse — echoing it would print a credential to
+                    // stderr (and into a CI log) precisely when something has gone wrong.
+                    error = $"--env-file '{envFile}' line {lineNumber.ToString(CultureInfo.InvariantCulture)} isn't KEY=VALUE.";
                     return false;
                 }
 
@@ -901,4 +1003,12 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
 }
 
 /// <summary>A rask-managed app container discovered from its <c>rask.*</c> labels via <c>docker ps</c>.</summary>
-internal readonly record struct DeployedApp(string Container, string App, string Domain, string Color);
+/// <summary>
+/// A live Rask-managed container, as read back from its own labels. <see cref="Port"/> is what the app
+/// listens on inside the container — carried as a label so the proxy config can be regenerated for a
+/// host running several apps that don't all listen on the same port.
+/// </summary>
+internal readonly record struct DeployedApp(string Container, string App, string Domain, string Color, int Port);
+
+/// <summary>Where the shared proxy sends one domain: a container and the port it listens on.</summary>
+internal readonly record struct RouteTarget(string Container, int Port);

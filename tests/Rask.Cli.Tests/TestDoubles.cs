@@ -88,15 +88,23 @@ internal sealed class FakeProcessRunner : IProcessRunner
 internal sealed class FakeFileSystem : IFileSystem
 {
     private readonly Dictionary<string, string> _files = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _written = new(StringComparer.Ordinal);
     private readonly HashSet<string> _directories = new(StringComparer.Ordinal);
 
-    /// <summary>Files written (via WriteAllText), keyed by normalized absolute path.</summary>
+    /// <summary>Files that exist now, keyed by normalized absolute path.</summary>
     public IReadOnlyDictionary<string, string> Files => _files;
+
+    /// <summary>
+    /// Everything ever written, including files since deleted. Lets a test assert on the content of a
+    /// deliberately short-lived file — the generated Caddyfile is copied to the host and then removed.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Written => _written;
 
     public void Seed(string path, string content = "")
     {
         var full = Normalize(path);
         _files[full] = content;
+        _written[full] = content;
         _directories.Add(Normalize(Path.GetDirectoryName(path)!));
     }
 
@@ -129,8 +137,11 @@ internal sealed class FakeFileSystem : IFileSystem
     public void WriteAllText(string path, string content)
     {
         _files[Normalize(path)] = content;
+        _written[Normalize(path)] = content;
         _directories.Add(Normalize(Path.GetDirectoryName(path)!));
     }
+
+    public void TryDelete(string path) => _files.Remove(Normalize(path));
 
     private static string Normalize(string path) => Path.GetFullPath(path);
 }
