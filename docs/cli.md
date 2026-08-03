@@ -240,6 +240,13 @@ from the host's live containers on every deploy — deploying a second app (a di
 leaves the first untouched. Without `--domain`, the app is published on `--port` (default `8080`) and
 you put your own TLS/reverse proxy in front (there's no zero-downtime swap on a single published port).
 
+**Your database survives redeploys.** Each deploy runs a fresh container, so `rask deploy` mounts a
+per-app named volume and points the app at it (`ConnectionStrings:App` → `Data Source=/data/app.db`) — the
+SQLite database persists across container replacements. The old container is stopped gracefully (SIGTERM →
+its Litestream flush + WAL checkpoint) before removal. The `rask new --docker` Dockerfile prepares a
+writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`. Add
+[`Rask.SQLite.Litestream`](sqlite.md#continuous-backup-with-litestream) to also stream it off the box.
+
 | Option | Purpose |
 | --- | --- |
 | `--host user@box` | SSH target. Required on the first deploy, then remembered in `.rask/deploy.json`. |
