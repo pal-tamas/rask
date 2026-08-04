@@ -7,6 +7,21 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Continuous backup is on the golden path.** `Rask.SQLite.Litestream` shipped, was documented, and was
+  referenced by **no template** — so `rask new --data` → `rask deploy` produced a live app whose only copy of
+  the database was a volume on one box, while `rask deploy`'s own code comments explained that the graceful
+  stop existed to let "the Litestream replicator flush" — protecting a replicator that was never running.
+  Now `--data` wires it: the replication code is scaffolded but **inert until you set a replica URL**, so
+  turning it on is one variable at deploy time (`rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`)
+  rather than a docs safari. `--docker` puts the `litestream` binary in the image (copied from its official
+  image — one layer, no package manager), because wiring without the binary would be a backup that silently
+  never runs. The startup restore is guarded: `RestoreSqliteFromLitestreamAsync` throws when no replica is
+  configured, so an unguarded call would stop every app without one from starting at all.
+- **A deploy with no replica configured says so**, every time: `! No Litestream replica configured — this
+  app's database exists only on this box's disk.` The one-box story is only safe when the box is disposable,
+  and that is worth stating rather than assuming.
+
 ### Fixed
 - **A redeploy can no longer silently drop your secrets.** `--env` values were never remembered — only the
   `--env-file` *path* was — so a bare `rask deploy` after one that carried `--env`, and the workflow

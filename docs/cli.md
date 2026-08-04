@@ -84,7 +84,7 @@ Add pages and components to taste — `rask generate` is the fast path.
 | `--auth` | Scaffold a cookie login/session (web templates). |
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
-| `--data` | Pre-wire a SQLite database: an empty `AppDbContext`, `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory — so the first `rask generate feature <Name> --context AppDbContext` is immediately runnable with `rask db add`/`update`. Implies `--cqrs` (the `server` template only). |
+| `--data` | Pre-wire a SQLite database: an empty `AppDbContext`, `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory — so the first `rask generate feature <Name> --context AppDbContext` is immediately runnable with `rask db add`/`update`. It also wires **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream)) — inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time (`rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`), and `--docker` puts the replicator binary in the image. Implies `--cqrs` (the `server` template only). |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
 | `--host` | `local` (default) or `server` — which native mode to scaffold (the `native` template only). |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |

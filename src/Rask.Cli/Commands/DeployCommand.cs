@@ -48,8 +48,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     /// <summary>The default path the HTTP readiness probe hits — the endpoint <c>rask new</c> scaffolds.</summary>
     internal const string DefaultHealthPath = "/health";
 
-    /// <summary>Seconds a graceful <c>docker stop</c> waits after SIGTERM before SIGKILL — long enough for the
-    /// app's Litestream flush + SQLite WAL checkpoint (Litestream's default shutdown grace is 10s).</summary>
+    /// <summary>Seconds a graceful <c>docker stop</c> waits after SIGTERM before SIGKILL — long enough for a
+    /// SQLite WAL checkpoint and, when one is configured, the app's Litestream flush (whose own shutdown
+    /// grace is 10s).</summary>
     internal const int StopTimeoutSeconds = 20;
 
     /// <summary>
@@ -349,6 +350,18 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // recoverable by `rask deploy rollback`. It fails harmlessly on a first deploy (no :current yet).
         await Run(BuildRetagArguments(host, slug, CurrentTag, PreviousTag), cancellationToken).ConfigureAwait(false); // ignore-absent
 
+        // The deploy mounts a volume and points the app at a SQLite file on it, and the graceful-stop
+        // budget below exists so a replicator can flush before the container dies. Say plainly when there
+        // is no replicator: the database is then a single copy on one disk, and the "the box is
+        // disposable" story the docs tell is not true of this deployment.
+        if (!env.Any(e => e.StartsWith("Litestream__ReplicaUrl=", StringComparison.Ordinal)))
+        {
+            Console.WriteErrorLine(
+                "  ! No Litestream replica configured — this app's database exists only on this box's disk.",
+                ConsoleStyle.Warning);
+            Console.Error.WriteLine("    Turn on continuous backup:  rask deploy --env \"Litestream__ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)");
+        }
+
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
         if (await Run(BuildBuildArguments(host, slug, dockerfile, contextDir), cancellationToken).ConfigureAwait(false) != 0)
         {
@@ -364,8 +377,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
     private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
     {
-        // Retire the old container gracefully (SIGTERM → Litestream flush + WAL checkpoint) before removing it,
-        // so the last writes reach the replica; both no-op on the first deploy (no container yet).
+        // Retire the old container gracefully (SIGTERM → WAL checkpoint, and a Litestream flush when a
+        // replica is configured) before removing it, so the last writes are durable; both no-op on the
+        // first deploy (no container yet).
         await Run(BuildStopArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         await Run(BuildRemoveArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         Console.Out.WriteLine($"Starting {slug} on port {port}…");
@@ -497,9 +511,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             return 1;
         }
 
-        // Traffic is on the new color: retire the old container(s) of this app. Graceful stop first so the
-        // retiring container's Litestream replicator flushes and SQLite checkpoints the WAL before removal — a
-        // plain rm -f (SIGKILL) would drop the last synced frames.
+        // Traffic is on the new color: retire the old container(s) of this app. Graceful stop first so
+        // SQLite checkpoints the WAL — and, when a replica is configured, the Litestream replicator flushes
+        // — before removal. A plain rm -f (SIGKILL) would drop the last frames.
         foreach (var stale in apps.Where(a => a.App == slug && a.Container != newContainer))
         {
             await Run(BuildStopArguments(host, stale.Container), cancellationToken).ConfigureAwait(false);
@@ -874,8 +888,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     /// <summary>
     /// Gracefully stop a container: SIGTERM, then SIGKILL after <see cref="StopTimeoutSeconds"/>. Used before
-    /// retiring a container that's serving, so its in-process Litestream replicator flushes and SQLite
-    /// checkpoints the WAL cleanly before exit — a plain <c>rm -f</c> (SIGKILL) would lose the last frames.
+    /// retiring a container that's serving, so SQLite checkpoints the WAL cleanly before exit — and, when a
+    /// replica is configured, the in-process Litestream replicator flushes. A plain <c>rm -f</c> (SIGKILL)
+    /// would lose the last frames.
     /// </summary>
     internal static IReadOnlyList<string> BuildStopArguments(string host, string container) =>
         [.. Prefix(host), "stop", "-t", StopTimeoutSeconds.ToString(CultureInfo.InvariantCulture), container];
