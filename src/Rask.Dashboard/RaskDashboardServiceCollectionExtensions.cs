@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Rask.Dashboard.Logging;
 using Rask.Dashboard.Panels;
 
 namespace Rask.Dashboard;
@@ -52,6 +54,16 @@ public static class RaskDashboardServiceCollectionExtensions
         services.TryAddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<DashboardSecurityState>();
+        services.TryAddSingleton<DashboardLogBuffer>();
+
+        // Registered as a logging provider rather than a bespoke channel, so the log panel sees exactly
+        // what every other sink sees. TryAddEnumerable keys on the implementation type, so a repeated
+        // AddRaskDashboard call doesn't double-capture every entry.
+        if (options.CaptureLogs)
+        {
+            services.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ILoggerProvider, DashboardLoggerProvider>());
+        }
 
         // One adapter per battery. Each decides at request time whether it has anything to show, so the
         // registration stays unconditional and the app's own wiring is the single source of truth.

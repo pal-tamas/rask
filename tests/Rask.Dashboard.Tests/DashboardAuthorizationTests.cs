@@ -73,8 +73,8 @@ public sealed class DashboardAuthorizationTests
 
         var children = new[]
         {
-            typeof(Pages.OverviewPage), typeof(Pages.QueuePage),
-            typeof(Pages.CachePage), typeof(Pages.SystemPage),
+            typeof(Pages.OverviewPage), typeof(Pages.QueuePage), typeof(Pages.CachePage),
+            typeof(Pages.LogsPage), typeof(Pages.SystemPage),
         };
 
         // None of them may carry [AllowAnonymous] — that would punch a hole straight through the chain.

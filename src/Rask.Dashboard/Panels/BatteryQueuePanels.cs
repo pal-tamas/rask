@@ -106,6 +106,18 @@ public interface ICachePanelReader
     /// <summary>One page of keys, soonest to expire first.</summary>
     Task<(IReadOnlyList<CacheKeyRow> Rows, int Total)> PageAsync(
         string? search, int skip, int take, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Drops one key. Safe by nature — a cache miss is a recompute, not a lost fact — which is why this
+    /// sits in the Safe action tier while flushing everything does not.
+    /// </summary>
+    Task<int> EvictAsync(string key, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Drops every entry. Correctness-safe for the same reason, but a cold cache on a busy app means a
+    /// stampede of recomputes, so it needs <see cref="RaskDashboardActions.Destructive"/>.
+    /// </summary>
+    Task<int> FlushAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -168,6 +180,33 @@ internal sealed class CachePanel<TContext>(
             .ConfigureAwait(false);
 
         return (rows, total);
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> EvictAsync(string key, CancellationToken cancellationToken)
+    {
+        if (!IsAvailable)
+        {
+            return 0;
+        }
+
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        return await db.Set<CacheEntry>()
+            .Where(e => e.Key == key)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> FlushAsync(CancellationToken cancellationToken)
+    {
+        if (!IsAvailable)
+        {
+            return 0;
+        }
+
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        return await db.Set<CacheEntry>().ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private bool IsMapped()
