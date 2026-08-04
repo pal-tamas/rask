@@ -86,3 +86,10 @@ public sealed class WasmJwtAuthExampleCollection
 
 // Native on-device E2E lives in tests/Rask.Native.Appium.Tests (Appium drives the real app on an
 // emulator/simulator) — there is no headless native collection here.
+
+[CollectionDefinition(Name)]
+public sealed class ShopExampleCollection
+    : ICollectionFixture<ShopExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "ShopExample";
+}

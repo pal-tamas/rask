@@ -1,0 +1,12 @@
+# Keep the build context small and reproducible — the image restores/publishes from source.
+bin/
+obj/
+.git/
+.gitignore
+.vs/
+.vscode/
+.idea/
+*.user
+**/.DS_Store
+Dockerfile
+.dockerignore
