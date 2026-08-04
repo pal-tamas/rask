@@ -376,7 +376,11 @@ public sealed class ProjectGeneratorTests
     private static (Dictionary<string, string> Files, ScaffoldResult Result) Generate(
         bool auth = false, bool pwa = false, bool cqrs = false, bool docker = false, bool data = false)
     {
-        var result = ProjectGenerator.GenerateServer(Root, "App", auth, pwa, cqrs, data, docker, Version);
+        var result = ProjectGenerator.GenerateServer(
+            Root,
+            "App",
+            new ServerBatteries { Auth = auth, Pwa = pwa, Cqrs = cqrs, Data = data, Docker = docker },
+            Version);
         return (Index(result), result);
     }
 

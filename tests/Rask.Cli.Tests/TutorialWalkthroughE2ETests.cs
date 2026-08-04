@@ -106,7 +106,8 @@ public sealed class TutorialWalkthroughE2ETests
             // ===== Chapter 1 — rask new Shop --auth --docker =====
             // The server template's own package refs (Rask.Server/Rask.Bootstrap) are already in its csproj, so
             // the CLI never `dotnet add`s them — subtract them before injecting so restore sees no duplicates.
-            var host = ProjectGenerator.GenerateServer(projectDir, Name, auth: true, pwa: false, cqrs: false, data: false, docker: true, version);
+            var host = ProjectGenerator.GenerateServer(
+                projectDir, Name, new ServerBatteries { Auth = true, Docker = true }, version);
             WriteFiles(host);
 
             // ===== Chapter 2 — rask generate feature Product ... --validation dataannotations =====

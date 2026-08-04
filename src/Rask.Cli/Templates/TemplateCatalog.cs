@@ -21,8 +21,14 @@ internal static class TemplateCatalog
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
+        // The server template is the only one with a database, so every DB-backed battery is server-only.
         new("server", "Rask Server app",
-            new HashSet<string>(["auth", "pwa", "cqrs", "data", "docker"], StringComparer.Ordinal)),
+            new HashSet<string>(
+                [
+                    "auth", "pwa", "cqrs", "data", "docker",
+                    "jobs", "mail", "cache", "outbox", "push", "litestream", "snapshots", "all-batteries",
+                ],
+                StringComparer.Ordinal)),
         new("wasm", "Rask browser-WASM SPA",
             new HashSet<string>(WebFlags, StringComparer.Ordinal)),
         new("wasm-hosted", "Rask WASM + ASP.NET host",

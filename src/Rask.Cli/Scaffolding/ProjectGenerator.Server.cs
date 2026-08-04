@@ -6,17 +6,18 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>Generates the <c>server</c> template into <paramref name="targetDirectory"/>.</summary>
-    public static ScaffoldResult GenerateServer(string targetDirectory, string name, bool auth, bool pwa, bool cqrs, bool data, bool docker, string version)
+    public static ScaffoldResult GenerateServer(string targetDirectory, string name, ServerBatteries batteries, string version)
     {
-        // --data pre-wires a database: an AppDbContext + AddRaskData + a UseRaskSqlite DbContext factory. The
-        // CQRS mediator is part of that story (every `rask generate feature` handler dispatches through it), so
-        // --data implies --cqrs — one flag gives a fresh app the whole "feature → migrate" loop.
-        cqrs = cqrs || data;
+        ArgumentNullException.ThrowIfNull(batteries);
+
+        // Apply the flags' implications once, up front, so every branch below reads the resolved set
+        // (--jobs means --data means --cqrs, --push means --pwa, …). See ServerBatteries.Normalized.
+        batteries = batteries.Normalized();
 
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.csproj", ServerCsproj(cqrs, data, version)),
-            ("Program.cs", ServerProgram(auth, pwa, cqrs, data)),
+            ($"{NameToken}.csproj", ServerCsproj(batteries, version)),
+            ("Program.cs", ServerProgram(batteries)),
             ("Features/Shared/App.cs", AppShellCs),
             ("Features/Home/HomePage.cs", HomePageCs),
             ("Properties/launchSettings.json", LaunchSettings),
@@ -24,74 +25,127 @@ internal static partial class ProjectGenerator
             ("appsettings.Production.json", AppSettingsProduction),
         };
 
-        if (auth)
+        if (batteries.Auth)
         {
             files.Add(("Features/Auth/CredentialStore.cs", AuthCredentialStore));
             files.Add(("Features/Auth/LoginPage.cs", AuthLoginPage));
             files.Add(("Features/Auth/MembersPage.cs", AuthMembersPage));
         }
 
-        if (data)
+        if (batteries.Data)
         {
-            files.Add(("Features/Shared/AppDbContext.cs", AppDbContextCs));
+            files.Add(("Features/Shared/AppDbContext.cs", AppDbContextCs(batteries)));
         }
 
-        if (pwa)
+        if (batteries.Push)
+        {
+            files.Add(("Features/Push/PushSubscriptions.cs", PushSubscriptionsCs));
+        }
+
+        if (batteries.Pwa)
         {
             files.Add(("wwwroot/icon.svg", IconSvg));
             files.Add(("wwwroot/offline.html", OfflineHtml));
         }
 
-        if (docker)
+        if (batteries.Docker)
         {
-            files.Add(("Dockerfile", Dockerfile(data)));
+            files.Add(("Dockerfile", Dockerfile(batteries.Data)));
             files.Add((".dockerignore", DockerIgnore));
         }
 
         var scaffoldFiles = Materialize(targetDirectory, name, files);
 
+        return new ScaffoldResult(scaffoldFiles, ServerNextSteps(name, batteries))
+        {
+            Packages = ServerPackages(batteries),
+        };
+    }
+
+    // The package list, in the same order the csproj emits them, so `rask new`'s summary matches the file.
+    private static List<string> ServerPackages(ServerBatteries batteries)
+    {
         var packages = new List<string> { "Rask.Server", "Rask.Bootstrap" };
-        if (cqrs)
+        if (batteries.Cqrs)
         {
             packages.Add("Rask.Cqrs");
         }
 
-        if (data)
+        if (batteries.Data)
         {
             packages.Add("Rask.Data");
             packages.Add("Rask.SQLite.EntityFrameworkCore");
+            // Continuous backup. Referenced whenever there's a database: the wiring in Program.cs stays
+            // inert until Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
+            // one-env-var path from "single copy on one disk" to "the box is disposable".
             packages.Add("Rask.SQLite.Litestream");
         }
 
-        return new ScaffoldResult(scaffoldFiles, ServerNextSteps(name, docker, data)) { Packages = packages };
+        if (batteries.Outbox)
+        {
+            packages.Add("Rask.Outbox");
+        }
+
+        if (batteries.Jobs)
+        {
+            packages.Add("Rask.Jobs");
+        }
+
+        if (batteries.Mail)
+        {
+            packages.Add("Rask.Mail");
+        }
+
+        if (batteries.Cache)
+        {
+            packages.Add("Rask.Cache");
+        }
+
+        if (batteries.Snapshots)
+        {
+            packages.Add("Rask.SQLite.Snapshots");
+        }
+
+        if (batteries.Push)
+        {
+            packages.Add("Rask.WebPush");
+        }
+
+        return packages;
     }
 
-    private static string ServerCsproj(bool cqrs, bool data, string version)
+    private static string ServerCsproj(ServerBatteries batteries, string version)
     {
-        var cqrsRef = cqrs ? $"\n    <PackageReference Include=\"Rask.Cqrs\" Version=\"{version}\"/>" : "";
         // Rask.SQLite.EntityFrameworkCore brings UseRaskSqlite (WAL/busy_timeout pragmas) and pulls
         // Microsoft.EntityFrameworkCore.Sqlite transitively; `rask db` adds EF's Design package on the
         // first migration, so the base app builds and runs with no design-time dependency.
-        var dataRef = data
-            ? $"\n    <PackageReference Include=\"Rask.Data\" Version=\"{version}\"/>"
-              + $"\n    <PackageReference Include=\"Rask.SQLite.EntityFrameworkCore\" Version=\"{version}\"/>"
-              // Continuous backup. Referenced whenever there's a database: the wiring in Program.cs stays
-              // inert until Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
-              // one-env-var path from "single copy on one disk" to "the box is disposable".
-              + $"\n    <PackageReference Include=\"Rask.SQLite.Litestream\" Version=\"{version}\"/>"
+        var refs = new StringBuilder();
+        foreach (var package in ServerPackages(batteries).Skip(2))
+        {
+            refs.Append($"\n    <PackageReference Include=\"{package}\" Version=\"{version}\"/>");
+        }
+
+        // Rask.SQLite.Litestream's build props download the litestream binary from GitHub releases unless
+        // told not to, so without this a scaffolded app can't be built offline — and errors outright on a
+        // RID with no published asset. The binary belongs on the server (--docker copies it into the
+        // image), not in everyone's build.
+        var litestreamProperty = batteries.Data
+            ? "\n    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->"
+              + "\n    <RaskLitestreamDownload>false</RaskLitestreamDownload>"
             : "";
+
         return $"""
         <Project Sdk="Microsoft.NET.Sdk.Web">
 
           <PropertyGroup>
             <TargetFramework>net10.0</TargetFramework>
             <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>
+            <Nullable>enable</Nullable>{litestreamProperty}
           </PropertyGroup>
 
           <ItemGroup>
             <PackageReference Include="Rask.Server" Version="{version}"/>
-            <PackageReference Include="Rask.Bootstrap" Version="{version}"/>{cqrsRef}{dataRef}
+            <PackageReference Include="Rask.Bootstrap" Version="{version}"/>{refs}
           </ItemGroup>
 
         </Project>
@@ -99,28 +153,39 @@ internal static partial class ProjectGenerator
         """;
     }
 
-    private static string ServerProgram(bool auth, bool pwa, bool cqrs, bool data)
+    // Appends one wiring block followed by a blank line. With every battery enabled Program.cs is a dozen
+    // commented registrations; without the separator they run together into one wall of text.
+    private static void Block(StringBuilder target, string block) =>
+        target.Append(block.Trim('\n')).Append("\n\n");
+
+    private static string ServerProgram(ServerBatteries batteries)
     {
         var sb = new StringBuilder();
         // App (and, with --data, AppDbContext) live in the Features/Shared bucket.
         sb.Append("using Company.RaskServer.Features.Shared;\nusing Microsoft.AspNetCore.HttpOverrides;\nusing Rask.Server;\nusing Rask.Server.Diagnostics;\n");
-        if (auth)
+        if (batteries.Auth)
         {
             sb.Append("using Company.RaskServer.Features.Auth;\n");
             sb.Append("using Microsoft.AspNetCore.Authentication.Cookies;\n");
         }
 
-        if (pwa)
+        if (batteries.Push)
+        {
+            sb.Append("using Company.RaskServer.Features.Push;\n");
+            sb.Append("using Rask.WebPush;\n");
+        }
+
+        if (batteries.Pwa)
         {
             sb.Append("using Rask.Core.Browser;\n");
         }
 
-        if (cqrs)
+        if (batteries.Cqrs)
         {
             sb.Append("using Rask.Cqrs;\n");
         }
 
-        if (data)
+        if (batteries.Data)
         {
             sb.Append("using Microsoft.EntityFrameworkCore;\n");
             sb.Append("using Microsoft.EntityFrameworkCore.Diagnostics;\n");
@@ -128,6 +193,31 @@ internal static partial class ProjectGenerator
             sb.Append("using Rask.SQLite;\n");
             sb.Append("using Microsoft.Data.Sqlite;\n");
             sb.Append("using Rask.SQLite.Litestream;\n");
+        }
+
+        if (batteries.Jobs)
+        {
+            sb.Append("using Rask.Jobs;\n");
+        }
+
+        if (batteries.Mail)
+        {
+            sb.Append("using Rask.Mail;\n");
+        }
+
+        if (batteries.Cache)
+        {
+            sb.Append("using Rask.Cache;\n");
+        }
+
+        if (batteries.Outbox)
+        {
+            sb.Append("using Rask.Outbox;\n");
+        }
+
+        if (batteries.Snapshots)
+        {
+            sb.Append("using Rask.SQLite.Snapshots;\n");
         }
 
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
@@ -162,7 +252,7 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        if (cqrs)
+        if (batteries.Cqrs)
         {
             sb.Append("""
 
@@ -174,7 +264,7 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
-        if (data)
+        if (batteries.Data)
         {
             sb.Append("""
 
@@ -185,9 +275,9 @@ internal static partial class ProjectGenerator
                 // `rask deploy` sets that to a path on a mounted volume so the DB survives redeploys.
                 // `rask generate feature X --context AppDbContext` adds a DbSet to AppDbContext;
                 // `rask db add <Name>` / `rask db update` create and apply the migration.
-                builder.Services.AddRaskData();
+                __ADDRASKDATA__
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
-                builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+                __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
                     .UseRaskSqlite(connectionString)
                     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
@@ -210,10 +300,110 @@ internal static partial class ProjectGenerator
                     });
                 }
 
-                """.TrimStart('\n'));
+                """.TrimStart('\n')
+                    .Replace("__ADDRASKDATA__", batteries.Outbox
+                        ? """
+                          builder.Services.AddRaskData(o =>
+                          {
+                              // The outbox owns delivery, so the in-process publisher stays off. Leaving it on is a
+                              // silent trap: DomainEventInterceptor drains and clears every entity's events before
+                              // OutboxInterceptor can copy them, so the outbox table stays empty and delivery quietly
+                              // stops being durable — and nothing fails, because the handlers still run in-process.
+                              o.DispatchDomainEventsInProcess = false;
+                          });
+                          """
+                        : "builder.Services.AddRaskData();", StringComparison.Ordinal)
+                    .Replace("__ADDRASKOUTBOX__", batteries.Outbox
+                        ? """
+                          // Transactional outbox: a domain event marked IOutboxEvent is written to the outbox table in
+                          // the SAME transaction as the change that raised it, then relayed at-least-once by a
+                          // background processor. Registered before the DbContext factory so its interceptor is in the
+                          // container when the factory resolves ISaveChangesInterceptor.
+                          builder.Services.AddRaskOutbox<AppDbContext>();
+
+                          """
+                        : "", StringComparison.Ordinal));
         }
 
-        if (pwa)
+        if (batteries.Jobs)
+        {
+            Block(sb, """
+                // Durable background jobs on the app's own database — no broker, no Redis. Enqueue with IJobQueue;
+                // a hosted worker polls, runs each job through its Rask.Cqrs handler, and retries with backoff.
+                // Schedule recurring work here: o.AddRecurring<PurgeJob>("purge", TimeSpan.FromHours(1), () => new());
+                builder.Services.AddRaskJobs<AppDbContext>();
+                """);
+        }
+
+        if (batteries.Mail)
+        {
+            Block(sb, """
+                // Transactional email queued on the app's own database and delivered off the request thread. The
+                // body is a Rask component, so it uses the same component model as the UI. With no SMTP configured
+                // the dev default writes each message to ./mail-pickup as an .eml file you can open — set o.Smtp
+                // (host/port/credentials) to send for real.
+                builder.Services.AddRaskMail<AppDbContext>(o =>
+                {
+                    o.From = "no-reply@example.com";
+                    o.PickupDirectory = builder.Configuration["Mail:PickupDirectory"] ?? "mail-pickup";
+                });
+                """);
+        }
+
+        if (batteries.Cache)
+        {
+            Block(sb, """
+                // A cache on the app's own database: the standard IDistributedCache (so ASP.NET session/output
+                // caching just works) plus a typed ICache with GetOrCreateAsync and absolute/sliding expiry. A
+                // background purger sweeps expired rows.
+                builder.Services.AddRaskCache<AppDbContext>();
+                """);
+        }
+
+        if (batteries.Snapshots)
+        {
+            Block(sb, """
+                // Scheduled point-in-time backups, a second line of defence alongside the continuous replication
+                // above. Taken through SQLite's Online Backup API rather than a file copy — with WAL on, copying
+                // the .db can capture a torn database, because the committed data is split across the file and
+                // the -wal. Same connection string, so it follows a ConnectionStrings:App override.
+                builder.Services.AddRaskSqliteSnapshots(o =>
+                {
+                    o.DatabasePath = new SqliteConnectionStringBuilder(connectionString).DataSource;
+                    o.DestinationDirectory = builder.Configuration["Sqlite:SnapshotDirectory"] ?? "snapshots";
+                    o.Interval = TimeSpan.FromHours(6);
+                    o.Retain = 7;
+                });
+                """);
+        }
+
+        if (batteries.Push)
+        {
+            Block(sb, """
+                // Server-sent Web Push (VAPID + RFC 8291), no external service. Generate a key pair once with
+                // VapidKeys.Generate() and store it in configuration or user-secrets — the PUBLIC key is handed
+                // to the browser to subscribe with; the PRIVATE key signs and must never be served.
+                //
+                // Registered only once a key pair is configured: AddRaskWebPush validates its options and
+                // throws at startup without them, and a freshly scaffolded app has to run before you have
+                // generated any keys. The subscription store is registered either way so the endpoints and
+                // the UI compile and work; sending is what needs the keys.
+                var vapidPublicKey = builder.Configuration["WebPush:PublicKey"];
+                var vapidPrivateKey = builder.Configuration["WebPush:PrivateKey"];
+                if (!string.IsNullOrWhiteSpace(vapidPublicKey) && !string.IsNullOrWhiteSpace(vapidPrivateKey))
+                {
+                    builder.Services.AddRaskWebPush(o =>
+                    {
+                        o.VapidKeys = new VapidKeys(vapidPublicKey, vapidPrivateKey);
+                        o.Subject = builder.Configuration["WebPush:Subject"] ?? "mailto:admin@example.com";
+                    });
+                }
+
+                builder.Services.AddSingleton<PushSubscriptionStore>();
+                """);
+        }
+
+        if (batteries.Pwa)
         {
             sb.Append("""
 
@@ -234,7 +424,7 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
-        if (auth)
+        if (batteries.Auth)
         {
             sb.Append("""
 
@@ -286,7 +476,7 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        if (data)
+        if (batteries.Data)
         {
             sb.Append("""
 
@@ -303,11 +493,18 @@ internal static partial class ProjectGenerator
                 """.TrimStart('\n'));
         }
 
-        if (auth)
+        if (batteries.Auth)
         {
             sb.Append("// Must precede UseRask so HttpContext.User is populated on the GET and the WS upgrade.\n");
             sb.Append("app.UseAuthentication();\n");
             sb.Append("app.UseAuthorization();\n\n");
+        }
+
+        if (batteries.Push)
+        {
+            sb.Append("// Mapped before UseRask: its catch-all serves the SPA for anything unmatched, so a minimal API\n");
+            sb.Append("// registered after it would never be reached.\n");
+            sb.Append("app.MapPushSubscriptions();\n\n");
         }
 
         sb.Append("""
@@ -375,12 +572,12 @@ internal static partial class ProjectGenerator
 
         """;
 
-    private static string ServerNextSteps(string name, bool docker, bool data)
+    private static string ServerNextSteps(string name, ServerBatteries batteries)
     {
         var steps = new StringBuilder();
         steps.Append("Created ").Append(name).Append(" (Rask server app).\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
-        if (data)
+        if (batteries.Data)
         {
             steps.Append("  rask generate feature Post --fields \"Title:string,Body:string\" --context AppDbContext\n");
             steps.Append("  rask db add Init    # create the first migration\n");
@@ -388,9 +585,26 @@ internal static partial class ProjectGenerator
         }
 
         steps.Append("  rask dev            # run with hot reload (or: dotnet run)\n");
-        if (docker)
+        if (batteries.Docker)
         {
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:8080 …\n");
+        }
+
+        // The DB-backed pillars keep their state in tables that only exist once a migration has been
+        // applied. Their processors are hosted services, and a faulted BackgroundService stops the host by
+        // default — so "I ran it before migrating" shows up as the app exiting, not as a friendly error.
+        if (batteries.AnyDbPillar)
+        {
+            steps.Append("\nThe background pillars store their state in your database — run `rask db add Init`\n");
+            steps.Append("and `rask db update` before the first start, or the app will exit on a missing table.\n");
+        }
+
+        if (batteries.Push)
+        {
+            steps.Append("\nWeb Push needs a VAPID key pair. Generate one and save it to user-secrets:\n");
+            steps.Append("  dotnet user-secrets set \"WebPush:PublicKey\" \"<public>\"\n");
+            steps.Append("  dotnet user-secrets set \"WebPush:PrivateKey\" \"<private>\"\n");
+            steps.Append("  (VapidKeys.Generate() prints a pair; the private key must never be served.)\n");
         }
 
         return steps.ToString();
@@ -401,10 +615,39 @@ internal static partial class ProjectGenerator
     // An empty database ready for features. `rask generate feature … --context AppDbContext` inserts a DbSet;
     // ApplyRaskConventions + ApplyConfigurationsFromAssembly pick up each feature's generated entity config,
     // so the context needs no per-entity edits beyond its DbSet line.
-    private const string AppDbContextCs =
-        """
-        using Microsoft.EntityFrameworkCore;
-        using Rask.Data;
+    private static string AppDbContextCs(ServerBatteries batteries)
+    {
+        var usings = new StringBuilder("using Microsoft.EntityFrameworkCore;\nusing Rask.Data;\n");
+        var schema = new StringBuilder();
+
+        // Each pillar owns a table (or two) in the app's own database. These calls only add the framework
+        // entities to the model; `rask db add` then writes the migration that creates them.
+        if (batteries.Outbox)
+        {
+            usings.Append("using Rask.Outbox;\n");
+            schema.Append("\n        modelBuilder.AddRaskOutbox();");
+        }
+
+        if (batteries.Jobs)
+        {
+            usings.Append("using Rask.Jobs;\n");
+            schema.Append("\n        modelBuilder.AddRaskJobs();");
+        }
+
+        if (batteries.Mail)
+        {
+            usings.Append("using Rask.Mail;\n");
+            schema.Append("\n        modelBuilder.AddRaskMail();");
+        }
+
+        if (batteries.Cache)
+        {
+            usings.Append("using Rask.Cache;\n");
+            schema.Append("\n        modelBuilder.AddRaskCache();");
+        }
+
+        return $$"""
+        {{usings.ToString().TrimEnd('\n')}}
 
         namespace Company.RaskServer.Features.Shared;
 
@@ -412,8 +655,71 @@ internal static partial class ProjectGenerator
         {
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
+                // ApplyRaskConventions walks the model as it stands, applying the soft-delete query filter and
+                // the concurrency token to whatever is already in it — so it has to follow the configurations,
+                // not precede them, or entities registered afterwards silently miss out.
                 modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-                modelBuilder.ApplyRaskConventions();
+                modelBuilder.ApplyRaskConventions();{{schema}}
+            }
+        }
+
+        """;
+    }
+
+    // ---- --push template files ----
+
+    // A subscription store + the two endpoints a browser needs to subscribe and unsubscribe. Kept in-memory
+    // so the scaffold has no schema of its own; move it to a table (or a DbSet on AppDbContext) once you want
+    // subscriptions to survive a restart.
+    private const string PushSubscriptionsCs =
+        """
+        using System.Collections.Concurrent;
+        using Microsoft.Extensions.DependencyInjection;
+        using Rask.WebPush;
+
+        namespace Company.RaskServer.Features.Push;
+
+        /// <summary>The browsers currently subscribed to push, keyed by their endpoint URL.</summary>
+        public sealed class PushSubscriptionStore
+        {
+            private readonly ConcurrentDictionary<string, PushSubscription> _subscriptions = new(StringComparer.Ordinal);
+
+            public IReadOnlyCollection<PushSubscription> All => _subscriptions.Values.ToArray();
+
+            public void Add(PushSubscription subscription) => _subscriptions[subscription.Endpoint] = subscription;
+
+            public void Remove(string endpoint) => _subscriptions.TryRemove(endpoint, out _);
+        }
+
+        public static class PushEndpoints
+        {
+            public static IEndpointRouteBuilder MapPushSubscriptions(this IEndpointRouteBuilder endpoints)
+            {
+                // The PUBLIC key only — the browser passes it to pushManager.subscribe as applicationServerKey.
+                // The private key signs the request and must never leave the server.
+                //
+                // Resolved optionally, because Program.cs only registers Web Push once a key pair is
+                // configured: before then this answers with an empty key rather than failing the request,
+                // so the page can say "push isn't configured yet" instead of erroring.
+                endpoints.MapGet("/_push/key", (IServiceProvider services) =>
+                    Results.Json(new
+                    {
+                        publicKey = services.GetService<WebPushOptions>()?.VapidKeys?.PublicKey ?? "",
+                    }));
+
+                endpoints.MapPost("/_push/subscribe", (PushSubscription subscription, PushSubscriptionStore store) =>
+                {
+                    store.Add(subscription);
+                    return Results.NoContent();
+                });
+
+                endpoints.MapPost("/_push/unsubscribe", (PushSubscription subscription, PushSubscriptionStore store) =>
+                {
+                    store.Remove(subscription.Endpoint);
+                    return Results.NoContent();
+                });
+
+                return endpoints;
             }
         }
 
