@@ -53,8 +53,12 @@ public static class GuideCatalog
             "bi-7-circle", "Tutorial", "tutorial/07-outbox-events.md"),
         new("08-production-sqlite", "Ch 8 · Production SQLite", "WAL, pragmas, and continuous backup.",
             "bi-8-circle", "Tutorial", "tutorial/08-production-sqlite.md"),
-        new("09-deploy", "Ch 9 · Deploy", "Ship to one box with rask deploy.",
-            "bi-9-circle", "Tutorial", "tutorial/09-deploy.md"),
+        new("09-web-push", "Ch 9 · Push", "Send Web Push from your own server, on your own keys.",
+            "bi-9-circle", "Tutorial", "tutorial/09-web-push.md"),
+        new("10-ops", "Ch 10 · Watching it run", "An ops page over every pillar's own table.",
+            "bi-activity", "Tutorial", "tutorial/10-ops.md"),
+        new("11-deploy", "Ch 11 · Deploy", "Ship to one box with rask deploy.",
+            "bi-rocket-takeoff", "Tutorial", "tutorial/11-deploy.md"),
 
         // ---- One Person Framework (the batteries) ----
         new("cli", "The rask CLI", "Scaffold, run, generate, db, deploy — the front door.", "bi-terminal",

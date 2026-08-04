@@ -316,6 +316,16 @@ them until tagged releases begin.
   advances to the end of the statement (its terminating `;`) before inserting.
 
 ### Docs
+- **The tutorial builds its app with the CLI, and gained two chapters.** Chapters 6–8 hand-typed the cache,
+  outbox and production-SQLite wiring; they now use `rask generate cache`, `rask generate feature --outbox`
+  and the `--snapshots`/`--litestream` flags, with the prose explaining *why* an ordering is load-bearing
+  rather than walking you through retyping it. Chapter 1 scaffolds with `--all-batteries`, so no later
+  chapter needs a wiring detour before it can teach what its pillar is for. Two new chapters cover the
+  pillars the tutorial never reached — **push notifications** (9) and **watching it run** (10), an `/ops`
+  page over every pillar's own table — and deploy moves to chapter 11. Every chapter now links to
+  `samples/Rask.Example.Shop`, the committed app the same commands produce, and
+  `TutorialWalkthroughE2ETests` compiles the whole walk-through including the new chapters (it caught a
+  wrong `WebPushStatus` member in chapter 9's prose before this shipped).
 - **Email bodies carry data on public properties and are built through their generated factory.** The
   tutorial (chapter 5), `mail.md`, `Rask.Mail/NUGET.md`, and the `rask generate email` scaffold comment all
   showed `new EmailComponent(ctorParams)`, which doesn't compile — `RASK014` forbids constructing a component

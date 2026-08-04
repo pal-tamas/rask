@@ -1,7 +1,7 @@
 # Chapter 3 — A second feature, and locking it down
 
 > **Goal:** add an **Orders** feature that shares the same database, then require a login to edit the catalog.
-> **You'll run:** `rask generate feature Order … --context ProductsDbContext`
+> **You'll run:** `rask generate feature Order … --context AppDbContext`
 
 ## 1. A second feature in the same database
 
@@ -10,19 +10,19 @@ create a second `DbContext`, we point the new feature at the one we already have
 
 ```bash
 rask generate feature Order Total:decimal ProductId:guid Placed:datetime \
-  --context ProductsDbContext --validation dataannotations
+  --context AppDbContext --validation dataannotations
 ```
 
 This writes `Features/Orders/` (entity, request, pages, CQRS handlers) **without** a new `DbContext` —
 because we pointed it at the one we already have. The CLI reports:
 
 ```
-Added 1 DbSet(s) to Features/Products/ProductsDbContext.cs.
+Added 1 DbSet(s) to Features/Products/AppDbContext.cs.
 ```
 
-It found `ProductsDbContext`, added `public DbSet<Order> Orders => Set<Order>();` next to `Products` (with the
+It found `AppDbContext`, added `public DbSet<Order> Orders => Set<Order>();` next to `Products` (with the
 `using` it needs), and the generated `Orders` pages import the context's namespace — so it compiles as-is, no
-hand-edits. Your one `ProductsDbContext` now holds both `Products` and `Orders`: one database, one context.
+hand-edits. Your one `AppDbContext` now holds both `Products` and `Orders`: one database, one context.
 
 > **Relating entities.** When you scaffold related entities *together* in one command, Rask generates the
 > foreign key, the navigation properties, and the EF mapping for you — e.g.

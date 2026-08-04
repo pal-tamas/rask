@@ -32,7 +32,7 @@ namespace Rask.Cli.Tests;
 /// </para>
 /// <para>
 /// Where the prose edits generated <i>handlers</i> in place (chapter 4's enqueue, chapter 6's cache rewrite),
-/// this test compiles the exact prose bodies against the real generated <c>ProductsDbContext</c>/<c>Product</c>
+/// this test compiles the exact prose bodies against the real generated <c>AppDbContext</c>/<c>Product</c>
 /// types in dedicated companion files rather than string-surgering the generated templates — same API
 /// coverage, without a false failure every time an unrelated template detail is reformatted. Edits that have a
 /// single stable anchor (the wiring splices, <c>Order.Create</c>'s one-liner, the wholly hand-authored job/
@@ -60,9 +60,11 @@ public sealed class TutorialWalkthroughE2ETests
             var productsDir = Path.Combine(projectDir, "Features", "Products");
             var ordersDir = Path.Combine(projectDir, "Features", "Orders");
             var sharedDir = Path.Combine(projectDir, "Features", "Shared");
-            var productsCtx = Path.Combine(productsDir, "ProductsDbContext.cs");
+            // The context now comes from `rask new --data` (implied by --all-batteries), so it lives in the
+            // Shared bucket rather than being created by the first `generate feature`.
+            var appCtx = Path.Combine(sharedDir, "AppDbContext.cs");
             var programPath = Path.Combine(projectDir, "Program.cs");
-            var productsNs = project.NamespaceFor(productsDir);   // Shop.Features.Products
+            var sharedNs = project.NamespaceFor(sharedDir);       // Shop.Features.Shared
 
             // --- local helpers (mirror what GenerateCommand does after each command) ---
             // Writes a scaffold's files and records the NuGet packages it needs (`dotnet add package` is the
@@ -89,28 +91,18 @@ public sealed class TutorialWalkthroughE2ETests
             // The real DbContext splice (DbSets + OnModelCreating maps), exactly as EditContext runs it.
             void Context(IReadOnlyList<string> usings, IReadOnlyList<string> dbSets, IReadOnlyList<string> modelLines)
             {
-                var (updated, _, _, _) = GenerateCommand.SpliceContext(fs.ReadAllText(productsCtx), usings, dbSets, modelLines);
-                fs.WriteAllText(productsCtx, updated);
+                var (updated, _, _, _) = GenerateCommand.SpliceContext(fs.ReadAllText(appCtx), usings, dbSets, modelLines);
+                fs.WriteAllText(appCtx, updated);
             }
 
-            // A targeted in-place edit for the few prose changes that replace a generated line. Asserts the
-            // anchor is present so a genuine template drift fails loudly instead of silently no-op'ing.
-            void Replace(string path, string anchor, string replacement)
-            {
-                var text = fs.ReadAllText(path);
-                Assert.True(text.Contains(anchor, StringComparison.Ordinal),
-                    $"tutorial edit anchor not found in {Path.GetFileName(path)}: {anchor}");
-                fs.WriteAllText(path, text.Replace(anchor, replacement, StringComparison.Ordinal));
-            }
-
-            // ===== Chapter 1 — rask new Shop --auth --docker =====
+            // ===== Chapter 1 — rask new Shop --all-batteries --auth --docker =====
             // The server template's own package refs (Rask.Server/Rask.Bootstrap) are already in its csproj, so
             // the CLI never `dotnet add`s them — subtract them before injecting so restore sees no duplicates.
             var host = ProjectGenerator.GenerateServer(
-                projectDir, Name, new ServerBatteries { Auth = true, Docker = true }, version);
+                projectDir, Name, NewCommand.ToBatteries(["all-batteries", "auth", "docker"]), version);
             WriteFiles(host);
 
-            // ===== Chapter 2 — rask generate feature Product ... --validation dataannotations =====
+            // ===== Chapter 2 — rask generate feature Product ... --context AppDbContext =====
             var product = new EntitySpec("Product", "Products",
             [
                 new FieldSpec("Name", "string", IsNullable: false, MaxLength: 200),
@@ -118,11 +110,19 @@ public sealed class TutorialWalkthroughE2ETests
                 new FieldSpec("InStock", "bool", IsNullable: false, MaxLength: null),
             ]);
             var f2 = FeatureGenerator.Generate(project, projectDir, new FeatureSpec(product, []),
-                new FeatureOptions { IdType = "Guid", Validation = "dataannotations" });
+                new FeatureOptions
+                {
+                    IdType = "Guid",
+                    Validation = "dataannotations",
+                    ContextOverride = "AppDbContext",
+                    ContextNamespace = sharedNs,
+                }) with
+            { ContextFilePath = appCtx };
             WriteFiles(f2);
             Program(f2.ProgramUsings, f2.ProgramRegistrations);
+            Context(f2.ContextUsings, f2.ContextDbSets, f2.ContextModelLines);
 
-            // ===== Chapter 3 — rask generate feature Order ... --context ProductsDbContext =====
+            // ===== Chapter 3 — rask generate feature Order ... --context AppDbContext =====
             var order = new EntitySpec("Order", "Orders",
             [
                 new FieldSpec("Total", "decimal", IsNullable: false, MaxLength: null),
@@ -136,38 +136,29 @@ public sealed class TutorialWalkthroughE2ETests
                 {
                     IdType = "Guid",
                     Validation = "dataannotations",
-                    ContextOverride = "ProductsDbContext",
-                    ContextNamespace = productsNs,
+                    ContextOverride = "AppDbContext",
+                    ContextNamespace = sharedNs,
                 }) with
-            { ContextFilePath = productsCtx };
+            { ContextFilePath = appCtx };
             WriteFiles(f3);
             Program(f3.ProgramUsings, f3.ProgramRegistrations);
-            Context(f3.ContextUsings, f3.ContextDbSets, f3.ContextModelLines);   // adds DbSet<Order> to ProductsDbContext
+            Context(f3.ContextUsings, f3.ContextDbSets, f3.ContextModelLines);   // adds DbSet<Order> to AppDbContext
 
             // ===== Chapter 4 — rask generate job SendOrderReceipt =====
             var f4 = JobGenerator.Generate(project, projectDir, "SendOrderReceipt", feature: null, outputOverride: null);
             WriteFiles(f4);
-            // Wire jobs (manual, as the prose shows): registration + the jobs table.
-            Program(["Rask.Jobs", productsNs],
-            [
-                """
-                builder.Services.AddRaskJobs<ProductsDbContext>(o =>
-                {
-                    o.PollInterval = TimeSpan.FromSeconds(5);
-                    o.MaxAttempts = 25;
-                });
-                """,
-            ]);
-            Context(["Rask.Jobs"], [], ["        modelBuilder.AddRaskJobs();"]);
+            // No wiring step: --all-batteries registered AddRaskJobs<AppDbContext>() and mapped the jobs
+            // table in Chapter 1. Re-running the splice here would be a no-op, which is the point.
             // The prose enqueues from CreateOrderCommandHandler; compiled here so IJobQueue.EnqueueAsync is gated.
             fs.WriteAllText(Path.Combine(sharedDir, "OrderEnqueuer.cs"), OrderEnqueuerProse);
 
             // ===== Chapter 5 — rask generate email OrderReceipt (auto-wires) =====
             var f5 = EmailGenerator.Generate(project, projectDir, "OrderReceipt", feature: null, outputOverride: null,
-                context: ("ProductsDbContext", productsNs, productsCtx));
+                context: ("AppDbContext", sharedNs, appCtx));
             WriteFiles(f5);
-            Program(f5.ProgramUsings, f5.ProgramRegistrations);         // AddRaskMail<ProductsDbContext>
-            Context([], [], f5.ContextModelLines);                      // modelBuilder.AddRaskMail()
+            // Idempotent: mail is already registered, so these splices find it and leave it alone.
+            Program(f5.ProgramUsings, f5.ProgramRegistrations);
+            Context([], [], f5.ContextModelLines);
 
             // The prose fills in the generated stubs: the OrderReceipt body (ch5) and the job handler that reads
             // the order and sends the receipt (ch4 + ch5). These files are hand-authored in the tutorial, so we
@@ -175,62 +166,51 @@ public sealed class TutorialWalkthroughE2ETests
             fs.WriteAllText(Path.Combine(sharedDir, "OrderReceipt.cs"), OrderReceiptComponent);
             fs.WriteAllText(Path.Combine(sharedDir, "SendOrderReceipt.cs"), SendOrderReceiptJob);
 
-            // ===== Chapter 6 — caching the catalog =====
-            Program(["Rask.Cache", productsNs], ["builder.Services.AddRaskCache<ProductsDbContext>();"]);
-            Context(["Rask.Cache"], [], ["        modelBuilder.AddRaskCache();"]);
-            packages.Add("Rask.Cache");
-            fs.WriteAllText(Path.Combine(sharedDir, "CatalogCache.cs"), CatalogCacheProse);
+            // ===== Chapter 6 — rask generate cache CatalogCache --feature Products =====
+            var f6 = CacheGenerator.Generate(project, projectDir, "CatalogCache", feature: "Products", outputOverride: null);
+            WriteFiles(f6);
+            // The prose replaces the generated stub with the real read-through over the catalog.
+            fs.WriteAllText(Path.Combine(productsDir, "CatalogCache.cs"), CatalogCacheProse);
 
-            // ===== Chapter 7 — domain events + the outbox =====
-            fs.WriteAllText(Path.Combine(ordersDir, "OrderEvents.cs"), OrderEvents);
-            fs.WriteAllText(Path.Combine(ordersDir, "OrderPlacedHandler.cs"), OrderPlacedHandler);
-            // Raise the event from Order.Create (the generated one-liner becomes a body that raises).
-            Replace(Path.Combine(ordersDir, "Order.cs"),
-                "public static Order Create(decimal total, Guid productId, DateTime placed) => new(total, productId, placed);",
-                """
-                public static Order Create(decimal total, Guid productId, DateTime placed)
-                    {
-                        var order = new Order(total, productId, placed);
-                        order.Raise(new OrderPlaced(order.Id));
-                        return order;
-                    }
-                """);
-            // Hand domain events to the outbox (post-commit) instead of dispatching them in-process.
-            Replace(programPath,
-                "builder.Services.AddRaskData();",
-                "builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);");
-            Program(["Rask.Outbox", productsNs],
-            [
-                """
-                builder.Services.AddRaskOutbox<ProductsDbContext>(o =>
+            // ===== Chapter 7 — rask generate feature Order ... --outbox --force =====
+            // The chapter regenerates the Orders slice with events. That emits OrderEvents.cs (the
+            // IOutboxEvent records), the Raise(...) calls on the entity, and OrderCreatedHandler — all the
+            // pieces the prose used to tell you to write by hand.
+            var f7 = FeatureGenerator.Generate(project, projectDir, new FeatureSpec(order, []),
+                new FeatureOptions
                 {
-                    o.PollInterval = TimeSpan.FromSeconds(5);
-                    o.MaxAttempts = 10;
-                });
-                """,
-            ]);
-            Context(["Rask.Outbox"], [], ["        modelBuilder.AddRaskOutbox();"]);
-            packages.Add("Rask.Outbox");
+                    IdType = "Guid",
+                    Validation = "dataannotations",
+                    ContextOverride = "AppDbContext",
+                    ContextNamespace = sharedNs,
+                    UseOutbox = true,
+                }) with
+            { ContextFilePath = appCtx };
+            WriteFiles(f7);
+            Program(f7.ProgramUsings, f7.ProgramRegistrations);
+            Context(f7.ContextUsings, f7.ContextDbSets, f7.ContextModelLines);
 
-            // ===== Chapter 8 — production SQLite + Litestream =====
-            // (Ch8 step 1's UseRaskSqlite swap is already what the generator emits — no edit needed.)
-            Program(["Rask.SQLite.Litestream"],
-            [
-                """
-                builder.Services.AddRaskSqliteLitestream(o =>
-                {
-                    o.DatabasePath = "app.db";
-                    o.ReplicaUrl = "s3://my-bucket/shop";
-                });
-                """,
-            ]);
-            Replace(programPath, "app.Run();",
-                """
-                await app.Services.RestoreSqliteFromLitestreamAsync();
+            // The one line the chapter is really about: with the outbox on, the in-process domain-event
+            // publisher must be off. --all-batteries already wrote it that way, so assert it rather than
+            // patching it — if that ever regresses, the outbox silently stops being durable.
+            Assert.Contains(
+                "o.DispatchDomainEventsInProcess = false;",
+                fs.ReadAllText(programPath),
+                StringComparison.Ordinal);
 
-                app.Run();
-                """);
-            packages.Add("Rask.SQLite.Litestream");
+            // ===== Chapter 8 — production SQLite =====
+            // Nothing to add: UseRaskSqlite, the snapshot service and the config-gated Litestream block
+            // (plus its restore-before-anything-opens-the-database call) all came from --all-batteries.
+            var program8 = fs.ReadAllText(programPath);
+            Assert.Contains("UseRaskSqlite(", program8, StringComparison.Ordinal);
+            Assert.Contains("AddRaskSqliteSnapshots(", program8, StringComparison.Ordinal);
+            Assert.Contains("RestoreSqliteFromLitestreamAsync();", program8, StringComparison.Ordinal);
+
+            // ===== Chapter 9 — push notifications =====
+            // The endpoints and the subscription store are scaffolded; the prose adds a sender that reacts
+            // to an order event. Compile it so IWebPushSender / WebPushMessage / WebPushStatus are gated.
+            Assert.Contains("AddRaskWebPush(", program8, StringComparison.Ordinal);
+            fs.WriteAllText(Path.Combine(ordersDir, "OrderShippedNotifier.cs"), OrderShippedNotifierProse);
 
             // ===== Build the fully-wired Shop =====
             packages.ExceptWith(host.Packages);   // already baked into the template csproj
@@ -277,13 +257,14 @@ public sealed class TutorialWalkthroughE2ETests
         using Rask.Mail;
         using Shop.Features.Orders;
         using Shop.Features.Products;
+        using Shop.Features.Shared;
 
         namespace Shop.Features.Shared;
 
         public sealed record SendOrderReceipt(Guid OrderId) : IJob;
 
         public sealed class SendOrderReceiptHandler(
-            IDbContextFactory<ProductsDbContext> dbFactory,
+            IDbContextFactory<AppDbContext> dbFactory,
             IMailQueue mail) : ICommandHandler<SendOrderReceipt>
         {
             public async Task HandleAsync(SendOrderReceipt job, CancellationToken ct)
@@ -319,7 +300,7 @@ public sealed class TutorialWalkthroughE2ETests
         """;
 
     // docs/tutorial/06-cache.md — the ProductListItem projection + GetOrCreateAsync read-through + RemoveAsync
-    // invalidation, compiled against the real ProductsDbContext/Product. Named distinctly from the generated
+    // invalidation, compiled against the real AppDbContext/Product. Named distinctly from the generated
     // ListProductsQuery it mirrors so both coexist in the one assembly.
     private const string CatalogCacheProse =
         """
@@ -328,6 +309,7 @@ public sealed class TutorialWalkthroughE2ETests
         using Rask.Cache;
         using Rask.Cqrs;
         using Shop.Features.Products;
+        using Shop.Features.Shared;
 
         namespace Shop.Features.Shared;
 
@@ -336,7 +318,7 @@ public sealed class TutorialWalkthroughE2ETests
         public sealed record CatalogQuery : IQuery<IReadOnlyList<ProductListItem>>;
 
         public sealed class CatalogQueryHandler(
-            IDbContextFactory<ProductsDbContext> dbContextFactory,
+            IDbContextFactory<AppDbContext> dbContextFactory,
             ICache cache) : IQueryHandler<CatalogQuery, IReadOnlyList<ProductListItem>>
         {
             public Task<IReadOnlyList<ProductListItem>> HandleAsync(CatalogQuery query, CancellationToken ct) =>
@@ -360,30 +342,37 @@ public sealed class TutorialWalkthroughE2ETests
         }
         """;
 
-    // docs/tutorial/07-outbox-events.md — the domain event and its handler.
-    private const string OrderEvents =
+    // docs/tutorial/09-web-push.md — the sender that reacts to an order event. The event records, the
+    // handler shape and the subscription store are all scaffolded; this is the body the prose adds.
+    private const string OrderShippedNotifierProse =
         """
-        using Rask.Outbox;
-
-        namespace Shop.Features.Orders;
-
-        public sealed record OrderPlaced(Guid Id) : IOutboxEvent;
-        """;
-
-    private const string OrderPlacedHandler =
-        """
-        using Microsoft.Extensions.Logging;
         using Rask.Cqrs;
+        using Rask.WebPush;
+        using Shop.Features.Push;
 
         namespace Shop.Features.Orders;
 
-        public sealed class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
-            : INotificationHandler<OrderPlaced>
+        public sealed class OrderShippedNotifier(IWebPushSender sender, PushSubscriptionStore store)
+            : INotificationHandler<OrderCreated>
         {
-            public Task HandleAsync(OrderPlaced notification, CancellationToken cancellationToken)
+            public async Task HandleAsync(OrderCreated notification, CancellationToken cancellationToken)
             {
-                logger.LogInformation("Order {Id} placed — updating stock / analytics…", notification.Id);
-                return Task.CompletedTask;
+                var message = WebPushMessage.Text(
+                    "Your order shipped",
+                    $"Order {notification.Id} is on its way.",
+                    url: $"/orders/{notification.Id}");
+
+                foreach (var subscription in store.All)
+                {
+                    var result = await sender.SendAsync(subscription, message, cancellationToken);
+
+                    // A subscription that has expired (404/410) will never work again — drop it rather than
+                    // retrying forever. ShouldDelete maps the status to that decision for you.
+                    if (result.ShouldDelete)
+                    {
+                        store.Remove(subscription.Endpoint);
+                    }
+                }
             }
         }
         """;

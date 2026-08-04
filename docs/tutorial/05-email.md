@@ -45,16 +45,17 @@ public sealed class OrderReceipt : Component
 
 ## 2. It's already wired
 
-`rask generate email` did the plumbing for you — the same "no manual paste" treatment `generate feature`
-gives its DbContext. It found your `ProductsDbContext` and:
+`--all-batteries` already registered mail in Chapter 1, so `rask generate email` finds it there and leaves
+it alone. Had you scaffolded without it, the generator would have done the plumbing itself — the same "no
+manual paste" treatment `generate feature` gives its DbContext:
 
-- added `builder.Services.AddRaskMail<ProductsDbContext>(…)` to `Program.cs`, and
-- mapped the mail table with `modelBuilder.AddRaskMail();` in `OnModelCreating`.
+- `builder.Services.AddRaskMail<AppDbContext>(…)` in `Program.cs`, and
+- the mail table mapped with `modelBuilder.AddRaskMail();` in `OnModelCreating`.
 
 All that's left is your real sender address and, for production, an SMTP server — edit the registration it added:
 
 ```csharp
-builder.Services.AddRaskMail<ProductsDbContext>(o =>
+builder.Services.AddRaskMail<AppDbContext>(o =>
 {
     o.From = "shop@example.com";
     // Dev: leave Smtp unset and mail is written to a pickup directory / logged instead of sent.
@@ -84,7 +85,7 @@ thread. Inject `IMailQueue` into the handler and send:
 
 ```csharp
 public sealed class SendOrderReceiptHandler(
-    IDbContextFactory<ProductsDbContext> dbFactory,
+    IDbContextFactory<AppDbContext> dbFactory,
     IMailQueue mail) : ICommandHandler<SendOrderReceipt>
 {
     public async Task HandleAsync(SendOrderReceipt job, CancellationToken ct)
