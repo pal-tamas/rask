@@ -33,7 +33,8 @@
 
   <ItemGroup>
     <!-- Drive the generator manually, so reference it (and the runtime) as normal assemblies. -->
-    <ProjectReference Include="..\..\src\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Outbox.Generators\Rask.Outbox.Generators.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Outbox\Rask.Outbox.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
   </ItemGroup>
 

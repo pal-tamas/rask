@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK034)
+# Rask diagnostics (RASK001–RASK035)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -41,12 +41,13 @@ packed alongside the analyzers in the `Rask.Server` / `Rask.Wasm` packages — n
 | [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
 | [RASK027](#rask027) | Error | Both the sync and async handler are set for one event |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
-| [RASK029](#rask029) | Warning | Handler cannot be registered (open generic or no public constructor) |
+| [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
 | [RASK030](#rask030) | Hidden | Prefer named arguments on a factory call with 3+ positional args |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
 | [RASK032](#rask032) | Error | Native component nested in the HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
 | [RASK034](#rask034) | Warning | BsDataGrid column has no Field, so the column chooser can't show/hide or reorder it |
+| [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
 
 ---
 
@@ -391,8 +392,11 @@ request types). Notifications are exempt — an `INotification` may have any num
 **Handler cannot be registered** · Warning
 
 A discovered handler can't be registered in DI, so it is skipped and dispatching its request would throw
-at runtime. The two causes are an **open generic** handler (its type parameters can't be closed at
-registration time) and a handler with **no public constructor** (the container can't build it).
+at runtime. The causes are an **open generic** handler (its type parameters can't be closed at
+registration time), a handler with **no public constructor** (the container can't build it), and a handler
+the generated registry can't **name** — one declared `file`-local, or `private`/`protected` at any level of
+its containing chain. That last group used to emit code that didn't compile (CS0234 / CS0122) instead of
+being skipped.
 
 ```csharp
 public sealed record GetValue : IQuery<int>;
@@ -403,7 +407,8 @@ public sealed class PrivateHandler : IQueryHandler<GetValue, int>
 }
 ```
 
-**Fix:** give the handler a public constructor, or make it a closed (non-generic) type. A request with
+**Fix:** give the handler a public constructor, make it a closed (non-generic) type, or raise its
+accessibility to at least `internal` and move it out of a `file`-local declaration. A request with
 *no* handler at all is not flagged (the handler may live in another assembly) — it throws a clear
 `InvalidOperationException` when dispatched.
 
@@ -541,3 +546,41 @@ BsDataGrid(Data: deals, ColumnChooser: true, Columns:
 **Fix:** add `Field = r => r.X` to name the column (the same token feeds grouping and a controlled sort, so
 name it once), or mark it a fixture with `Hideable = false` and `Reorderable = false`. Suppress with
 `#pragma warning disable RASK034` / `.editorconfig` (`dotnet_diagnostic.RASK034.severity = none`).
+
+## RASK035
+**Background job or outbox event type cannot be registered** · Warning
+
+A type implementing `IJob` or `IOutboxEvent` was found, but the generated registry can't map its stored
+name to its CLR type — so it is skipped. Enqueuing it still writes a row; the processor then fails to
+rehydrate it, records `No registered job type '…'`, and retries until `MaxAttempts` before dead-lettering.
+Before this diagnostic existed the type was skipped **silently**, which is exactly what made the failure
+hard to place: the job looked queued, then quietly stopped.
+
+The reasons, all about reconstructing a runtime `Type.FullName` from a name the generated file can write:
+
+| Shape | Why |
+|-------|-----|
+| **Generic** — `record Reindex<T> : IJob` | A closed generic's `FullName` carries assembly-qualified type arguments, so no static key matches. |
+| **Nested in a generic** — `class Outer<T> { record Ev : IOutboxEvent; }` | Naming it would leak `T` into the generated file. |
+| **`file`-local** — `file record Ev : IOutboxEvent;` | Invisible outside its own file, and its `FullName` carries a synthesized `<file>F0__` segment. |
+| **Inaccessible** — `private`/`protected` at any level of its containing chain | The generated registry lives in the same assembly but a different file, so it can't name the type. |
+
+An **abstract** base carrying the marker is skipped without a warning — modelling a hierarchy that way is
+normal, and its concrete derivatives register as usual.
+
+```csharp
+public class Outer<T>
+{
+    public sealed record Raised(int Id) : IOutboxEvent;    // ✗ RASK035: nested inside the generic type 'Outer'
+}
+
+public static class OrderEvents
+{
+    public sealed record Raised(int Id) : IOutboxEvent;    // ✓ nested in a non-generic type is fine
+}
+```
+
+**Fix:** move the type out of the generic (or `file`-local, or inaccessible) declaration, and make it
+non-generic — nesting inside a plain `static class` is the usual way to keep events grouped. Suppress with
+`#pragma warning disable RASK035` / `.editorconfig` (`dotnet_diagnostic.RASK035.severity = none`) only if
+you never enqueue that type.

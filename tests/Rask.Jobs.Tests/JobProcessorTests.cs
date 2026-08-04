@@ -29,6 +29,38 @@ public sealed class JobProcessorTests
     }
 
     [Fact]
+    public async Task A_job_in_a_keyword_namespace_is_delivered_not_dead_lettered()
+    {
+        await using var h = new JobsHarness();
+        await h.Queue.EnqueueAsync(new @event.KeywordJob("kw"));
+
+        await h.Processor.StartAsync(CancellationToken.None);
+        try
+        {
+            await h.WaitUntilAsync(async () =>
+            {
+                await using var db = h.NewContext();
+                return await db.Set<Job>().AnyAsync(j => j.ProcessedAt != null);
+            });
+        }
+        finally
+        {
+            await h.Processor.StopAsync(CancellationToken.None);
+        }
+
+        var job = await h.SingleJobAsync();
+
+        // Delivered — and, the load-bearing half, delivered without a failed attempt. A key miss doesn't
+        // throw: it records "No registered job type '...'" and retries until MaxAttempts, so asserting
+        // only on ProcessedAt would miss the bug entirely.
+        Assert.NotNull(job.ProcessedAt);
+        Assert.Null(job.Error);
+        Assert.Equal(0, job.Attempts);
+        Assert.DoesNotContain('@', job.Type); // stored as the runtime name, unescaped
+        Assert.Contains("kw", h.Recorder.Values); // the handler really ran
+    }
+
+    [Fact]
     public async Task A_scheduled_job_does_not_run_before_its_run_at()
     {
         await using var h = new JobsHarness();

@@ -72,6 +72,13 @@ Add a migration for the new table before running — `rask db add AddOutbox && r
 
 - **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a
   browser/WASM concern.
+- **An event type must be a concrete, non-generic type the generated registry can name** — that is how a
+  stored message is rehydrated without reflection. Skipped shapes: generic (or nested inside a generic),
+  `file`-local, and `private`/`protected` at any level of its containing chain. Each is reported at build
+  time as [RASK035](diagnostics.md#rask035), so an event that could never be delivered fails the build
+  instead of dead-lettering in production. An abstract base carrying `IOutboxEvent` is skipped silently; its
+  concrete derivatives register as usual. Nesting inside a plain `static class` is fine, and the usual way
+  to group a feature's events.
 - **SQLite is single-writer**, so the processor polls (there is no `SKIP LOCKED` to lean on); WAL + a
   busy-timeout (see [Rask.SQLite](sqlite.md)) keep reads flowing while it writes. One processor per app.
 - **Ordering is per-poll, not globally strict.** Each poll publishes the oldest unprocessed batch in insertion

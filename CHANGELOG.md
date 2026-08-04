@@ -221,6 +221,21 @@ them until tagged releases begin.
   builds under `-warnaserror`. (Closes #478.)
 
 ### Fixed
+- **A background job or outbox event declared in a namespace whose name is a C# keyword no longer silently
+  dead-letters.** The `Rask.Jobs` and `Rask.Outbox` registry generators derived *one* string from
+  `ISymbol.ToDisplayString()` and used it for two incompatible jobs: the registry key (which has to equal the
+  runtime `Type.FullName`) and the emitted `typeof(...)` operand (which has to be valid C#). Those differ —
+  `FullName` is unescaped, C# syntax escapes keyword identifiers — so a job in `namespace Demo.@event`
+  registered as `Demo.@event.Job` while the runtime stored `Demo.event.Job`. The key never matched:
+  `Deserialize` returned `null`, the processor recorded `No registered job type '…'`, and the job burned an
+  attempt on every poll until it hit `MaxAttempts`. The key and the operand are now derived from two separate
+  `SymbolDisplayFormat`s, and the emitter no longer concatenates `global::` onto a display string.
+- **A job, outbox event, or CQRS handler that is `file`-local or `private`/`protected` no longer breaks the
+  build.** All three generators emitted a `typeof(...)` for types the generated file cannot name, producing
+  `CS0234`/`CS0122` in generated code rather than skipping the type. They now check the whole containing-type
+  chain. `Rask.Cqrs` reports these through the existing **RASK029**; jobs and outbox events report the new
+  **RASK035**, so a type that can never be dispatched says so at build time instead of failing in production.
+  Closed generics (`IQueryHandler<Page<int>, string>`) are unaffected — they are perfectly nameable.
 - **`rask generate` no longer corrupts `Program.cs` when wiring a registration after a multi-line one.** The
   Program.cs splice anchored on the line that *starts* a `builder.Services.` statement, so a second wiring pass
   (e.g. `rask generate email`'s `AddRaskMail<…>` running after `rask generate feature` had left the multi-line

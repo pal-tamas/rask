@@ -94,7 +94,7 @@ its own page:
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–034)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–035)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 
 ## Contributing
