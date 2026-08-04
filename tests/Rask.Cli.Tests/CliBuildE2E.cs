@@ -42,6 +42,7 @@ internal static class CliBuildE2E
         "Rask.Jobs",                        // generate job, and tutorial ch4
         "Rask.Mail",                        // generate email, and tutorial ch5
         "Rask.Cache",                       // tutorial ch6 — AddRaskCache / ICache.GetOrCreateAsync
+        "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_ops pages
         "Rask.Validation.DataAnnotations",  // generate feature --validation dataannotations
         "Rask.Validation.FluentValidation", // generate feature --validation fluent
     ];

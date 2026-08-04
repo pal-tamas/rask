@@ -98,6 +98,27 @@ ForeignKeys = await ScalarAsync(db, "PRAGMA foreign_keys"),   // → 1
 > (`AddHealthChecks().AddRaskLiveSessions()`) that `rask deploy` probes to gate a zero-downtime swap, and
 > standard `ILogger` output goes wherever you point it. See [observability](../observability.md).
 
-**Learn more:** [observability](../observability.md) · [jobs](../jobs.md) · [outbox](../outbox.md)
+## 5. You don't have to write this one
+
+You just did, and it was worth doing — the point of the exercise is that every pillar's state is an ordinary
+table you can `SELECT` from, and now you've proved it.
+
+For the parts you'd rather not hand-roll, `Rask.Dashboard` ships the same idea finished: `/_ops` with the
+queue rows behind each counter, the error that caused each dead letter, a one-click retry, a log tail, and
+the pragmas you read above. `rask new --ops` (included in `--all-batteries`, so your Shop already has it)
+wires it in two lines:
+
+```csharp
+builder.Services.AddRaskDashboard<AppDbContext>();
+
+builder.Services.AddAuthorization(o =>
+    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireAuthenticatedUser()));
+```
+
+That second line is not optional decoration. The dashboard shows job payloads and stored email bodies, so
+without a policy it refuses to serve anyone outside Development. Sign in and visit
+[https://localhost:5001/_ops](https://localhost:5001/_ops) to compare it with the page you just built.
+
+**Learn more:** [dashboard](../dashboard.md) · [observability](../observability.md) · [jobs](../jobs.md) · [outbox](../outbox.md)
 
 Next → **[Chapter 11: Deploy to one box](11-deploy.md)**

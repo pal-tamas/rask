@@ -22,6 +22,7 @@
 [![Rask.Jobs](https://img.shields.io/nuget/v/Rask.Jobs.svg?label=Rask.Jobs)](https://www.nuget.org/packages/Rask.Jobs)
 [![Rask.Mail](https://img.shields.io/nuget/v/Rask.Mail.svg?label=Rask.Mail)](https://www.nuget.org/packages/Rask.Mail)
 [![Rask.Cache](https://img.shields.io/nuget/v/Rask.Cache.svg?label=Rask.Cache)](https://www.nuget.org/packages/Rask.Cache)
+[![Rask.Dashboard](https://img.shields.io/nuget/v/Rask.Dashboard.svg?label=Rask.Dashboard)](https://www.nuget.org/packages/Rask.Dashboard)
 <!-- Production SQLite -->
 [![Rask.SQLite](https://img.shields.io/nuget/v/Rask.SQLite.svg?label=Rask.SQLite)](https://www.nuget.org/packages/Rask.SQLite)
 [![Rask.SQLite.EntityFrameworkCore](https://img.shields.io/nuget/v/Rask.SQLite.EntityFrameworkCore.svg?label=Rask.SQLite.EntityFrameworkCore)](https://www.nuget.org/packages/Rask.SQLite.EntityFrameworkCore)
@@ -118,6 +119,7 @@ no separate server to run. Add one with a package reference and a line of DI; th
 | **Background jobs** (`Rask.Jobs`) | Durable enqueued / delayed / recurring work on the app DB, with retries. | [→](docs/jobs.md) |
 | **Transactional email** (`Rask.Mail`) | Durable email over SMTP, off the request thread — bodies are Rask components. | [→](docs/mail.md) |
 | **Cache** (`Rask.Cache`) | `IDistributedCache` + a typed `ICache.GetOrCreateAsync` on the app DB. | [→](docs/cache.md) |
+| **Dashboard** (`Rask.Dashboard`) | An operator dashboard at `/_ops`: queue depth, dead letters and the error behind each, one-click retry, a log tail. | [→](docs/dashboard.md) |
 | **Outbox** (`Rask.Outbox`) | Crash-safe domain events, committed in the same transaction as your data. | [→](docs/outbox.md) |
 | **Production SQLite** (`Rask.SQLite`) | WAL, busy-timeout, non-blocking write retries, continuous Litestream backup. | [→](docs/sqlite.md) |
 | **Deploy** | `rask deploy` takes a **bare VPS** to a live HTTPS site — Docker, a non-root login, firewall, SSH hardening, zero-downtime swaps. | [→](docs/deployment.md) |
@@ -239,6 +241,7 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.Jobs`                        | an EF Core app wanting durable background jobs                    | `record J(...) : IJob` + `ICommandHandler<J>` + `services.AddRaskJobs<Ctx>()` + `modelBuilder.AddRaskJobs()` |
 | `Rask.Mail`                        | an EF Core app wanting durable transactional email                | `services.AddRaskMail<Ctx>(o => o.From = ...)` + `modelBuilder.AddRaskMail()` + inject `IMailQueue` |
 | `Rask.Cache`                       | an EF Core app wanting a database-backed cache                    | `services.AddRaskCache<Ctx>()` + `modelBuilder.AddRaskCache()` + inject `ICache` / `IDistributedCache` |
+| `Rask.Dashboard`                   | operating an app that uses the DB-backed pillars                  | `services.AddRaskDashboard<Ctx>()` + an `AddAuthorization` policy named `RaskDashboardPolicies.Access`, then browse `/_ops` |
 | `Rask.SQLite`                      | any .NET app using SQLite (server, mobile, trimmed/AOT)            | `services.AddRaskSqlite(cs)` + inject `IRaskSqliteConnectionFactory` (incl. non-blocking `ExecuteInImmediateTransactionAsync`) |
 | `Rask.SQLite.EntityFrameworkCore`  | an EF Core app that wants the pragmas (+ opt-in busy retry)        | `o.UseRaskSqlite(cs)` on the `DbContextOptionsBuilder`       |
 | `Rask.SQLite.Litestream`           | server-side SQLite app wanting managed backup                      | `services.AddRaskSqliteLitestream(...)` + `RestoreSqliteFromLitestreamAsync()` |

@@ -18,6 +18,7 @@ using Rask.Jobs;
 using Rask.Mail;
 using Rask.Cache;
 using Rask.Outbox;
+using Rask.Dashboard;
 using Rask.SQLite.Snapshots;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -150,6 +151,18 @@ if (!string.IsNullOrWhiteSpace(vapidPublicKey) && !string.IsNullOrWhiteSpace(vap
 }
 
 builder.Services.AddSingleton<PushSubscriptionStore>();
+
+// An operator dashboard at /_ops over every pillar's table: queue depth, dead letters and the errors
+// behind them, cache contents, a log tail, and how this database is configured. Features/Ops/OpsPage.cs
+// next door is the hand-rolled version of the same idea — it exists to show that the pillars really are
+// just tables you can SELECT from. This is what you get without writing it.
+builder.Services.AddRaskDashboard<AppDbContext>();
+
+// WHO MAY OPERATE THE APP. The dashboard exposes job payloads, stored email bodies and log lines, so it
+// is gated on this policy. Without one it would deny everyone outside Development. The demo credential
+// store has no roles, so this admits any signed-in user; a real app would require one.
+builder.Services.AddAuthorization(o =>
+    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireAuthenticatedUser()));
 
 // The read-through cache accessor `rask generate cache` scaffolded. Scoped, like any component
 // dependency; the ICache it wraps is backed by the same database as everything else.

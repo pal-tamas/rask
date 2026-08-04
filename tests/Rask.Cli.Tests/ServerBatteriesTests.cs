@@ -53,9 +53,22 @@ public sealed class ServerBatteriesTests
         Assert.True(all.Outbox);
         Assert.True(all.Push);
         Assert.True(all.Snapshots);
+        Assert.True(all.Ops);
         Assert.True(all.Data);
         Assert.True(all.Cqrs);
         Assert.True(all.Pwa);
+    }
+
+    [Fact]
+    public void Ops_implies_data_because_the_dashboard_needs_a_context()
+    {
+        // AddRaskDashboard<TContext> has to name a context, even on an app with no pillars yet — the
+        // system panel still reports how the database is configured.
+        var ops = NewCommand.ToBatteries(["ops"]).Normalized();
+
+        Assert.True(ops.Ops);
+        Assert.True(ops.Data);
+        Assert.True(ops.Cqrs);
     }
 
     [Fact]

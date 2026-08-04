@@ -39,6 +39,13 @@ them until tagged releases begin.
   `ILoggerProvider`, so it sees exactly what every other sink sees — including Litestream exiting, a job
   type that won't deserialize, and handler faults, none of which leave a row in any table. It's a tail,
   not a log store: the buffer is memory-only and gone on restart.
+- **`rask new --ops`** scaffolds the dashboard, and `--all-batteries` includes it. With `--auth` the
+  generated `Program.cs` also defines the authorization policy that gates it; without auth that line is
+  scaffolded commented out, next to a note that `/_ops` is Development-only until you add one — the flag
+  can't hand you an open dashboard either way. New [`docs/dashboard.md`](docs/dashboard.md), and the
+  roadmap's *"no UI, CLI command, or metric shows you what has given up"* entry moves out of **Not
+  shipped**. Tutorial chapter 10 still builds an `/ops` page by hand — the exercise is what proves the
+  pillars are ordinary tables — and now closes by pointing at the finished one.
 - **`BsStat`** — a stat-tile primitive for `Rask.Bootstrap`: a number, its label, an optional caption and
   tone. Tone colours the value rather than the card, so one red number reads as a signal instead of one
   panel among many coloured panels.

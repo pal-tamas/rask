@@ -43,6 +43,9 @@ internal sealed record ServerBatteries
     /// <summary>Scheduled point-in-time snapshots of the SQLite file.</summary>
     public bool Snapshots { get; init; }
 
+    /// <summary>The operator dashboard at <c>/_ops</c> over every battery's table.</summary>
+    public bool Ops { get; init; }
+
     /// <summary>True when any battery needs a <c>TContext</c> — i.e. a database-backed pillar is on.</summary>
     public bool AnyDbPillar => Jobs || Mail || Cache || Outbox;
 
@@ -76,7 +79,9 @@ internal sealed record ServerBatteries
     /// </remarks>
     public ServerBatteries Normalized()
     {
-        var data = Data || AnyDbPillar || AnySqliteOps;
+        // The dashboard reads AddRaskDashboard<TContext>, so it needs a context for the same reason the
+        // pillars do — even on an app that has no pillars yet, where it still shows the system panel.
+        var data = Data || AnyDbPillar || AnySqliteOps || Ops;
         return this with
         {
             Data = data,

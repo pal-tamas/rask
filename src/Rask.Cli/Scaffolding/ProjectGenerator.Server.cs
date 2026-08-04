@@ -113,6 +113,11 @@ internal static partial class ProjectGenerator
             packages.Add("Rask.WebPush");
         }
 
+        if (batteries.Ops)
+        {
+            packages.Add("Rask.Dashboard");
+        }
+
         return packages;
     }
 
@@ -220,6 +225,11 @@ internal static partial class ProjectGenerator
         if (batteries.Snapshots)
         {
             sb.Append("using Rask.SQLite.Snapshots;\n");
+        }
+
+        if (batteries.Ops)
+        {
+            sb.Append("using Rask.Dashboard;\n");
         }
 
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
@@ -403,6 +413,34 @@ internal static partial class ProjectGenerator
 
                 builder.Services.AddSingleton<PushSubscriptionStore>();
                 """);
+        }
+
+        if (batteries.Ops)
+        {
+            Block(sb, """
+                // An operator dashboard at /_ops over every battery's table: queue depth, dead letters and the
+                // errors behind them, cache contents, a log tail, and how this database is configured. A panel
+                // only appears for a battery this app actually registered.
+                builder.Services.AddRaskDashboard<AppDbContext>();
+                """);
+
+            Block(sb, batteries.Auth
+                ? """
+                    // WHO MAY OPERATE THE APP. The dashboard shows job payloads, stored email bodies and log
+                    // lines, so it is gated on this policy. Change the requirement to match your real user
+                    // store — the demo credential store has no roles, so this admits any signed-in user.
+                    builder.Services.AddAuthorization(o =>
+                        o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireAuthenticatedUser()));
+                    """
+                : """
+                    // WHO MAY OPERATE THE APP. No policy is defined here because this app has no
+                    // authentication yet, so /_ops is reachable in Development only — it denies everyone in
+                    // every other environment, and says so on the page. Before you deploy, add authentication
+                    // and define the policy:
+                    //
+                    //   builder.Services.AddAuthorization(o =>
+                    //       o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
+                    """);
         }
 
         if (batteries.Pwa)
