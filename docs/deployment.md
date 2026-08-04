@@ -176,12 +176,15 @@ copies it into a tiny `nginx:alpine` image with a bundled `nginx.conf`:
 
 ```bash
 docker build -t myapp .
-docker run --rm -p 8080:80 myapp     # nginx listens on 80 inside the container
+docker run --rm -p 8080:8080 myapp
 # open http://localhost:8080
 ```
 
-The `nginx.conf` does three things that matter for a Rask WASM bundle:
+The `nginx.conf` does four things that matter for a Rask WASM bundle:
 
+- **Listens on `8080`, and serves `/health`** — the same container port and readiness endpoint as the
+  server and wasm-hosted templates, so [`rask deploy`](cli.md#rask-deploy--ship-to-a-single-host-over-ssh)
+  can health-gate and proxy a static bundle exactly like any other Rask app.
 - **SPA fallback** — `try_files $uri $uri/ /index.html;` so client-side routes resolve.
 - **`application/wasm` MIME** — the browser refuses to streaming-compile the Mono runtime `.wasm`
   under any other type.

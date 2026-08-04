@@ -29,6 +29,13 @@ internal sealed class DeployConfig
     /// <summary>When <c>true</c>, skip the HTTP health probe and gate only on the container running.</summary>
     public bool? HealthCheckDisabled { get; set; }
 
+    /// <summary>
+    /// The port the app listens on <em>inside</em> its container — what the proxy is pointed at and what the
+    /// health probe hits (default <c>8080</c>, which every Dockerfile <c>rask new --docker</c> emits uses).
+    /// Only needed for a hand-written Dockerfile that listens elsewhere.
+    /// </summary>
+    public int? ContainerPort { get; set; }
+
     /// <summary>The <c>.rask/deploy.json</c> path under <paramref name="workingDirectory"/>.</summary>
     public static string PathFor(string workingDirectory) =>
         Path.Combine(workingDirectory, ".rask", "deploy.json");
