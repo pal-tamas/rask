@@ -76,6 +76,14 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[Secrets](secrets.md)** | Environment variables, remembered by name so a redeploy can't silently drop one. No vault or rotation. |
 | **[Deploy](deployment.md)** | `rask deploy` takes a bare VPS to a live HTTPS site — installs Docker, a non-root deploy login, a firewall and SSH hardening, then builds on the box and swaps in with zero downtime. No SSH session of your own required. |
 
+## See it running
+
+[`samples/Rask.Example.Shop`](../samples/Rask.Example.Shop) wires **every battery above into one app** —
+and it is the CLI's own output, not a hand-written showcase: `rask new Shop --all-batteries --auth --docker`
+plus a handful of `rask generate` commands. Place an order and watch `/ops`: the domain event commits with
+the order through the outbox, the relay queues the confirmation email and schedules a follow-up job, and
+every pillar's state sits in the same SQLite file.
+
 ## What isn't in the box
 
 The claim above is "everything a solo developer needs to go from empty folder to shipped", and it's worth

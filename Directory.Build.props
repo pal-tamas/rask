@@ -93,15 +93,26 @@
       no Shared/Bootstrap/validation), so it skips them as well.
     -->
     <_RaskExampleValidationUsings>$(_RaskInRepoImplicitUsings)</_RaskExampleValidationUsings>
-    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) OR $(MSBuildProjectName.StartsWith('Rask.Example.Sqlite')) OR '$(MSBuildProjectName)' == 'Rask.Example.Native.Server' OR '$(MSBuildProjectName)' == 'Rask.Example.Playground' OR '$(MSBuildProjectName)' == 'Rask.Example.Site' ">false</_RaskExampleValidationUsings>
+    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) OR $(MSBuildProjectName.StartsWith('Rask.Example.Sqlite')) OR '$(MSBuildProjectName)' == 'Rask.Example.Native.Server' OR '$(MSBuildProjectName)' == 'Rask.Example.Playground' OR '$(MSBuildProjectName)' == 'Rask.Example.Site' OR $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">false</_RaskExampleValidationUsings>
     <!-- The showcase trio (Rask.Example.Shared + the Server/Wasm hosts that reference it) pulls in
          Rask.Bootstrap; the Auth/EfCore standalone samples don't reference it, so they must not get
          its global static usings (the namespace wouldn't resolve). Same set as the validation usings. -->
     <_RaskExampleBootstrapUsings>$(_RaskExampleValidationUsings)</_RaskExampleBootstrapUsings>
-    <!-- The CQRS demo slice lives in the showcase Shared library, the only in-repo example that
-         references Rask.Cqrs, so scope its global `using Rask.Cqrs;` to that project. -->
+    <!-- Shop is the exception to "same set": `rask new` references Rask.Bootstrap (the shell and the
+         scaffolded pages use Bs* components) but not the validation packages, so it needs one and not
+         the other. -->
+    <_RaskExampleBootstrapUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleBootstrapUsings>
+    <!-- The CQRS demo slice lives in the showcase Shared library; the Shop sample (the committed output
+         of `rask new`, whose every generated feature handler dispatches through the mediator) is the
+         other in-repo example that references Rask.Cqrs. Scope the global `using Rask.Cqrs;` to those. -->
     <_RaskExampleCqrsUsings>false</_RaskExampleCqrsUsings>
-    <_RaskExampleCqrsUsings Condition=" '$(MSBuildProjectName)' == 'Rask.Example.Shared' ">true</_RaskExampleCqrsUsings>
+    <_RaskExampleCqrsUsings Condition=" '$(MSBuildProjectName)' == 'Rask.Example.Shared' OR $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleCqrsUsings>
+    <!--
+      The Shop sample is the only in-repo example that references the DB-backed pillars. A NuGet consumer
+      gets each package's global usings from its build/*.props automatically; an in-repo ProjectReference
+      does not, so import them explicitly for that project (and its test project).
+    -->
+    <_RaskExampleOpfUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">true</_RaskExampleOpfUsings>
   </PropertyGroup>
 
   <!--
@@ -129,5 +140,15 @@
           Condition=" '$(_RaskExampleBootstrapUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Bootstrap\build\Rask.Bootstrap.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Cqrs\build\Rask.Cqrs.props"
           Condition=" '$(_RaskExampleCqrsUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Cqrs\build\Rask.Cqrs.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Data\build\Rask.Data.props"
+          Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Data\build\Rask.Data.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Outbox\build\Rask.Outbox.props"
+          Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Outbox\build\Rask.Outbox.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Jobs\build\Rask.Jobs.props"
+          Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Jobs\build\Rask.Jobs.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Mail\build\Rask.Mail.props"
+          Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Mail\build\Rask.Mail.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Cache\build\Rask.Cache.props"
+          Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Cache\build\Rask.Cache.props') "/>
 
 </Project>

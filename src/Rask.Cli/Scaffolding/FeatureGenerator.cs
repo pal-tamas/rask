@@ -327,7 +327,9 @@ internal static class FeatureGenerator
             ("__LISTMETHODS__", ListToggleMethod(useSoftDelete)),
             ("__TOGGLEBUTTON__", ToggleButton(useBs, useSoftDelete)),
             ("__ROWACTIONS__", RowActions(entityName, useBs, useModal, useSoftDelete)),
-            ("__VERSIONORIGINAL__", useConcurrency ? "db.Entry(entity).Property(x => x.Version).OriginalValue = command.Request.Version;\n                " : ""),
+            // Eight spaces of continuation: the token sits at method-body depth in the handler templates, so a
+            // deeper indent produces code that compiles but fails `dotnet format --verify-no-changes`.
+            ("__VERSIONORIGINAL__", useConcurrency ? "db.Entry(entity).Property(x => x.Version).OriginalValue = command.Request.Version;\n        " : ""),
             ("__CONCURRENCYCATCH__", ConcurrencyCatch(useConcurrency)),
         };
 
@@ -856,11 +858,13 @@ internal static class FeatureGenerator
 
     private static string CopyToForm(IReadOnlyList<FieldSpec> fields, bool useValueObjects, bool useConcurrency)
     {
-        var lines = fields.Select(f => $"                _form.{f.Name} = entity.{f.Name}{(IsValueObject(f, useValueObjects) ? ".Value" : "")};").ToList();
+        // Twelve spaces: these land inside `if (entity is not null) {` in a method body. Emitting deeper
+        // produces code that compiles but fails `dotnet format --verify-no-changes`.
+        var lines = fields.Select(f => $"            _form.{f.Name} = entity.{f.Name}{(IsValueObject(f, useValueObjects) ? ".Value" : "")};").ToList();
         if (useConcurrency)
         {
             // Carry the loaded Version so the Update handler can use it as the concurrency original value.
-            lines.Add("                _form.Version = entity.Version;");
+            lines.Add("            _form.Version = entity.Version;");
         }
 
         return string.Join("\n", lines);
@@ -870,10 +874,10 @@ internal static class FeatureGenerator
     // sitting before the generic catch. Empty without --concurrency.
     private static string ConcurrencyCatch(bool useConcurrency) => useConcurrency
         ? "catch (DbUpdateConcurrencyException)\n"
-            + "                {\n"
-            + "                    _error = \"This record changed since you opened it — reload and reapply your edits.\";\n"
-            + "                }\n"
-            + "                "
+            + "        {\n"
+            + "            _error = \"This record changed since you opened it — reload and reapply your edits.\";\n"
+            + "        }\n"
+            + "        "
         : "";
 
     // The EF Core mapping per string column: a value object maps through its converter; a primitive
@@ -1031,7 +1035,11 @@ internal static class FeatureGenerator
             template = template.Replace(token, value, StringComparison.Ordinal);
         }
 
-        return template;
+        // A token that resolves to the empty string leaves its indentation behind as a whitespace-only
+        // line — invisible in review, and a `dotnet format --verify-no-changes` failure in the generated
+        // project. Several tokens are conditional (`__TOGGLEBUTTON__` without --soft-delete, and friends),
+        // so strip trailing whitespace once here rather than trying to keep every template's spacing exact.
+        return string.Join('\n', template.Split('\n').Select(line => line.TrimEnd()));
     }
 
     // ---- vertical-slice templates (token replacement keeps generated `$"…"` / `[Route("{id:…}")]` literal) ----
