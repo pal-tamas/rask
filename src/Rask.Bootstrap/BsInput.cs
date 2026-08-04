@@ -42,12 +42,17 @@ public sealed class BsInput<T> : BsFormControl<T>
         // selector drives the effect); fall back to the label text when none is given.
         var placeholder = Floating is true ? Placeholder ?? Label ?? " " : Placeholder;
 
+        // Derived here rather than inside Input<T>: this renders through Input<string> with a pre-formatted
+        // value, so `typeof(T)` in there is `string` and its own default step would never see the decimal.
+        var derivedType = DeriveType();
+
         var control = Input<string>(
-            Type: DeriveType(),
+            Type: derivedType,
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
             Placeholder: placeholder, Disabled: Disabled, ReadOnly: ReadOnly, Required: Required,
-            Min: Min, Max: Max, Step: Step, Pattern: Pattern, MaxLength: MaxLength, MinLength: MinLength,
+            Min: Min, Max: Max, Pattern: Pattern, MaxLength: MaxLength, MinLength: MinLength,
+            Step: Step ?? (derivedType == InputType.Number ? BindingHelpers.DefaultStep(typeof(T)) : null),
             Multiple: Multiple, Accept: Accept, Capture: Capture, List: List, Autofocus: Autofocus,
             Autocomplete: Autocomplete, InputMode: InputMode, EnterKeyHint: EnterKeyHint, Spellcheck: Spellcheck,
             Class: cls, Id: controlId, Aria: FieldAria(b, controlId),

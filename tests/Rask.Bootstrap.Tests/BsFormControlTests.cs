@@ -44,6 +44,17 @@ public class BsFormControlTests
             BsInput<int>(Value: 5, Min: "0", Max: "120", Step: "1").ToHtml());
 
     [Fact]
+    public void Input_DecimalWithoutAnExplicitStep_GetsStepAny() =>
+        // BsInput renders through Input<string> with a pre-formatted value, so Input<T>'s own default step
+        // never sees the decimal — BsInput has to derive it from its own T. Without it the browser silently
+        // refuses to submit a fractional price.
+        Assert.Contains("step=\"any\"", BsInput<decimal>(Value: 12.50m).ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
+    public void Input_IntWithoutAnExplicitStep_KeepsTheWholeNumberConstraint() =>
+        Assert.DoesNotContain("step=", BsInput<int>(Value: 5).ToHtml(), StringComparison.Ordinal);
+
+    [Fact]
     public void Input_TextConstraints_ForwardPatternAndLengths() =>
         Assert.Contains("pattern=\"[a-z]&#x2B;\" maxlength=\"10\" minlength=\"2\"",
             BsInput<string>(Value: "x", Pattern: "[a-z]+", MaxLength: 10, MinLength: 2).ToHtml());
