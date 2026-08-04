@@ -71,15 +71,24 @@ public static class SqliteConnectionExtensions
         // SqliteTransaction bookkeeping, and the underlying sqlite3 handle is pooled and reused. If an
         // earlier lease left a transaction open on it, BEGIN IMMEDIATE here would hit "cannot start a
         // transaction within a transaction" (SQLITE_ERROR) — a non-retryable fast failure. Clear any
-        // leaked transaction first so BEGIN always starts from autocommit (guarding against a leaked transaction).
+        // leaked transaction first so BEGIN always starts from autocommit.
+        //
+        // Retried, not fire-and-forget: a ROLLBACK can itself return SQLITE_BUSY ("cannot rollback
+        // transaction - SQL statements in progress") when a GC-orphaned reader's statement is still active
+        // on the pooled handle — the same hazard docs/sqlite.md documents for EF's pool return. Dropping
+        // that result code and running BEGIN anyway is what turned a transient into the misleading
+        // non-retryable error above. Note the busy_timeout was set to 0 just now, so the native handler
+        // won't wait for us either; this managed retry is the only thing that does.
         if (raw.sqlite3_get_autocommit(handle) == 0)
         {
-            raw.sqlite3_exec(handle, "ROLLBACK;");
+            await SqliteBusyRetry.ExecAsync(handle, "ROLLBACK;", retry, time, cancellationToken).ConfigureAwait(false);
         }
 
-        await SqliteBusyRetry.ExecAsync(handle, "BEGIN IMMEDIATE;", retry, time, cancellationToken).ConfigureAwait(false);
         try
         {
+            // Inside the try: a BEGIN that fails partway must still go through the cleanup below, or the
+            // handle goes back to the pool mid-transaction and poisons every later lease of it.
+            await SqliteBusyRetry.ExecAsync(handle, "BEGIN IMMEDIATE;", retry, time, cancellationToken).ConfigureAwait(false);
             var result = await work(connection, cancellationToken).ConfigureAwait(false);
             await SqliteBusyRetry.ExecAsync(handle, "COMMIT;", retry, time, cancellationToken).ConfigureAwait(false);
             return result;

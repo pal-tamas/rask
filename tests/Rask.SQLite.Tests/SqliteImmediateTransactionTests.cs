@@ -140,6 +140,40 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
     }
 
     [Fact]
+    public async Task Recovers_when_the_leaked_transaction_also_has_an_active_statement()
+    {
+        // A pooled handle can arrive not just mid-transaction but with a statement still active on it — a
+        // reader the GC collected whose finalizer hasn't run yet, the hazard docs/sqlite.md describes for
+        // EF's pool return. Modern SQLite permits ROLLBACK in that state (the active statements abort on
+        // their next step), so this documents that the entry guard copes rather than reproducing a failure:
+        // it passes both before and after the retry hardening.
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        Exec(connection, "INSERT INTO t(v) VALUES('seed');");
+        Exec(connection, "BEGIN IMMEDIATE;");
+
+        var command = connection.CreateCommand();
+        command.CommandText = "SELECT v FROM t;";
+        var reader = await command.ExecuteReaderAsync();
+        await reader.ReadAsync(); // mid-scan: the statement is active on the handle
+
+        await connection.ExecuteInImmediateTransactionAsync(
+            new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(5) },
+            async (c, ct) =>
+            {
+                await using var cmd = c.CreateCommand();
+                cmd.CommandText = "INSERT INTO t(v) VALUES('recovered');";
+                await cmd.ExecuteNonQueryAsync(ct);
+            });
+
+        await reader.DisposeAsync();
+        await command.DisposeAsync();
+
+        Assert.Equal(2, Count());
+        Assert.Equal(1, raw.sqlite3_get_autocommit(connection.Handle!)); // handle left clean
+    }
+
+    [Fact]
     public async Task Leaves_the_handle_in_autocommit_after_work_throws()
     {
         // The finally guard must never return a mid-transaction handle to the pool, even when work throws.
