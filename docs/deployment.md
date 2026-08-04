@@ -1,6 +1,6 @@
 # Deployment
 
-> **In practice:** [Tutorial Ch 9](tutorial/09-deploy.md) · recipe [deploy and redeploy](recipes.md#deploy-and-redeploy) · [cheat sheet](cheatsheet.md).
+> **In practice:** [Tutorial Ch 11](tutorial/11-deploy.md) · recipe [deploy and redeploy](recipes.md#deploy-and-redeploy) · [cheat sheet](cheatsheet.md).
 
 Rask apps are ordinary .NET apps, so every standard .NET hosting path works — `dotnet publish`
 behind a reverse proxy, Azure App Service, a systemd unit, or a container. This guide covers
