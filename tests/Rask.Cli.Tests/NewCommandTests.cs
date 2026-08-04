@@ -6,13 +6,25 @@ public sealed class NewCommandTests
 {
     private const string WorkingDirectory = "/proj";
 
+    /// <summary>
+    /// A released CLI pins generated projects to itself. A dev/CI build stamps a MinVer prerelease that was
+    /// never published, so it walks back to the release it came after — MinVer names a prerelease for the
+    /// version it is heading towards, bumping the patch, so 0.19.1-alpha.N came after 0.19.0.
+    ///
+    /// <para>This was a hardcoded "0.17.0" that silently rotted two minor versions behind the repo. Derived,
+    /// it can't.</para>
+    /// </summary>
     [Theory]
-    [InlineData("0.17.0", "0.17.0")]      // a published stable pins exactly
+    [InlineData("0.17.0", "0.17.0")]                 // a published stable pins exactly
     [InlineData("1.2.3", "1.2.3")]
-    [InlineData("0.18.0-alpha.0.5", "0.17.0")] // a dev/CI prerelease isn't on NuGet → fall back
-    [InlineData("0.0.0", "0.17.0")]       // the no-version sentinel → fall back
-    [InlineData("", "0.17.0")]
-    public void ResolvePackageVersion_falls_back_for_unpublishable_versions(string cliVersion, string expected) =>
+    [InlineData("0.18.0-alpha.0.5", "0.17.0")]       // dev build after v0.17.0
+    [InlineData("0.19.1-alpha.0.5+abc123", "0.19.0")] // ...and after v0.19.0
+    [InlineData("2.0.4-beta.1", "2.0.3")]
+    [InlineData("0.0.0", "0.0.0")]                   // the no-version sentinel: nothing to derive from
+    [InlineData("", "")]
+    [InlineData("0.20.0-alpha.0.1", "0.19.0")]       // a minor bump: .0 of the previous minor was published
+    [InlineData("1.0.0-alpha.1", "1.0.0-alpha.1")]   // nothing published under this major to walk back to
+    public void ResolvePackageVersion_walks_a_prerelease_back_to_its_release(string cliVersion, string expected) =>
         Assert.Equal(expected, NewCommand.ResolvePackageVersion(cliVersion));
 
     [Fact]
@@ -249,6 +261,65 @@ public sealed class NewCommandTests
         Assert.Contains("does not support: --cqrs", console.ErrorText, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The guard used to check only for the restore target, so scaffolding into a directory that already
+    /// held a Program.cs or a Features/ tree overwrote it — silently, with no --force to consent to and
+    /// nothing to undo it.
+    /// </summary>
+    [Fact]
+    public async Task Scaffolding_over_existing_files_is_refused_without_force()
+    {
+        var (console, fs, runner, command) = Build();
+        fs.Seed("/proj/MyApp/Program.cs", "// something the user wrote");
+
+        var exit = await command.ExecuteAsync(["MyApp"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Program.cs", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("--force", console.ErrorText, StringComparison.Ordinal);
+        Assert.Equal("// something the user wrote", fs.Files[Path.GetFullPath("/proj/MyApp/Program.cs")]);
+        Assert.Empty(runner.Invocations);
+    }
+
+    [Fact]
+    public async Task Force_scaffolds_over_them()
+    {
+        var (_, fs, _, command) = Build();
+        fs.Seed("/proj/MyApp/Program.cs", "// something the user wrote");
+
+        var exit = await command.ExecuteAsync(["MyApp", "--force"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain("something the user wrote", fs.Files[Path.GetFullPath("/proj/MyApp/Program.cs")], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_failed_restore_is_reported_as_a_failure()
+    {
+        // The files are written and correct, but the project won't build — and `rask new && dotnet build`
+        // would otherwise step straight past it.
+        var (console, _, runner, command) = Build();
+        runner.RunExitCode = 1;
+
+        var exit = await command.ExecuteAsync(["MyApp"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("restoring its packages failed", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task No_restore_skips_it_and_succeeds()
+    {
+        var (console, _, runner, command) = Build();
+        runner.RunExitCode = 1; // would fail if it ran
+
+        var exit = await command.ExecuteAsync(["MyApp", "--no-restore"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("Skipped restore", console.OutText, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Unknown_option_fails()
     {
@@ -256,7 +327,9 @@ public sealed class NewCommandTests
 
         var exit = await command.ExecuteAsync(["MyApp", "--frobnicate"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        // 2, not 1: "you typed something wrong" is a different outcome from "what you asked for failed",
+        // and a script driving the CLI should be able to tell them apart.
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("--frobnicate", console.ErrorText, StringComparison.Ordinal);
     }

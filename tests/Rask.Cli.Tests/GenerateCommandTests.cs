@@ -911,4 +911,31 @@ public sealed class GenerateCommandTests
         fs.Seed("/proj/MyApp.csproj", "<Project></Project>");
         return (console, fs, process, new GenerateCommand(console, fs, process, ProjectDir));
     }
+    // ── Argument discipline (PR: CLI robustness) ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Output_outside_the_project_is_refused()
+    {
+        // Generated code is namespaced by its folder, so a folder outside the project can't produce a
+        // coherent namespace. This used to write the files anyway and silently fall back to the root one.
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["component", "Widget", "--output", "../../../etc"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("resolves outside the project", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Output_and_feature_together_are_refused()
+    {
+        // --output silently won and --feature was discarded, so the file landed somewhere the user didn't
+        // ask for, under a namespace they didn't expect.
+        var (console, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["component", "Widget", "--output", "Widgets", "--feature", "Orders"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("--output and --feature", console.ErrorText, StringComparison.Ordinal);
+    }
 }

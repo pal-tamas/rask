@@ -46,7 +46,14 @@ internal abstract class CliCommand(IConsole console)
     /// <summary>Print a non-fatal caution (yellow) to stderr — the tool carries on.</summary>
     protected void WriteWarning(string message) => Console.WriteErrorLine(message, ConsoleStyle.Warning);
 
-    /// <summary>Report parse errors to stderr and return the conventional usage exit code.</summary>
+    /// <summary>
+    /// The exit code for "you typed something wrong", kept distinct from 1 ("what you asked for failed").
+    /// A script driving the CLI can then tell a broken invocation from a broken deploy, which is the whole
+    /// reason the convention exists.
+    /// </summary>
+    internal const int UsageExitCode = 2;
+
+    /// <summary>Report parse errors to stderr and return the usage exit code.</summary>
     protected int Fail(IReadOnlyList<string> errors)
     {
         foreach (var error in errors)
@@ -56,6 +63,6 @@ internal abstract class CliCommand(IConsole console)
 
         Console.Error.WriteLine($"Usage: {Usage}");
         Console.Error.WriteLine($"Run 'rask {Name} --help' for details.");
-        return 1;
+        return UsageExitCode;
     }
 }

@@ -85,7 +85,7 @@ public sealed class CommandHelpTests
 
         var exit = await app.RunAsync(["new", "--nope"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("Run 'rask new --help' for details.", console.ErrorText, StringComparison.Ordinal);
     }
 }
