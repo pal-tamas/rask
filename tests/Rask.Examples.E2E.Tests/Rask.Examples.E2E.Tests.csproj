@@ -44,6 +44,8 @@
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.EfCore\Rask.Example.EfCore.csproj"
                       ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\samples\Rask.Example.Shop\Rask.Example.Shop.csproj"
+                      ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Auth\Rask.Example.Auth.csproj"
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Auth.Jwt\Rask.Example.Auth.Jwt.csproj"
