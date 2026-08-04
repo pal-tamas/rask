@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`rask deploy` is now verified against a real host.** Every deploy test in the repo was mocked — a fake
+  process runner recorded the argv and returned a scripted exit code — so the suite proved the command line
+  Rask *builds* and nothing about whether deploying *works*. A new opt-in gate
+  (`DeployHostE2ETests`, `RASK_DEPLOY_E2E=1`, `scripts/run-deploy-e2e-local.sh`) points the real
+  `rask deploy` at a throwaway container standing in for a bare VPS — sshd plus its own Docker daemon —
+  and asserts on what happened *on the host*: the image built over SSH, the container answers its health
+  check, a redeploy keeps the named volume's contents (the database-survives-redeploy contract), the
+  blue-green swap moves the domain from blue to green and retires the old colour, a real Caddy accepts the
+  generated Caddyfile, and a container that starts but never answers is removed with the previous version
+  left serving. It needs a `docker` CLI and a daemon that can run a privileged container; it installs
+  nothing and never reads or writes your `~/.ssh`. The `pre-push` hook runs it only when the push touches
+  the deploy path. Real DNS + Let's Encrypt issuance remain uncovered — the gate uses a `.test` domain.
+
 ### Fixed
 - **The CLI build gates no longer pass without running.** The tests that prove the code `rask new` and
   `rask generate` write actually *compiles* are opted into with `RASK_CLI_BUILD_E2E=1` — but that variable was
