@@ -26,10 +26,21 @@ else
   fi
 fi
 
+# Like the deploy gate below, this one is scoped to the pushes it can actually say something about:
+# it packs 15 packages and runs several full builds, and only the CLI's generators, the packages a
+# generated project references, or the tutorial it reproduces can change its answer. Running it on
+# every push (a docs typo, a Bootstrap component) is minutes of tax for a foregone conclusion.
+generator_paths='^(src/Rask\.Cli/(Scaffolding|Templates)/|src/Rask\.[A-Za-z.]+/|docs/tutorial/|Directory\.Packages\.props|tests/Rask\.Cli\.Tests/(CliBuildE2E|ProjectGeneratorBuildE2ETests|TutorialWalkthroughE2ETests)\.cs)'
+
 if [ "${RASK_SKIP_CLI_BUILD_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_CLI_BUILD_E2E=1 set — skipping the CLI build gate."
+elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
+  echo "pre-push: no origin/main to diff against — running the CLI build gate to be safe."
+  "$root/scripts/run-cli-build-e2e.sh" || { echo "pre-push: CLI build gate FAILED — push aborted." >&2; exit 1; }
+elif ! git diff --name-only origin/main...HEAD | grep -qE "$generator_paths"; then
+  : # nothing in this push can change what the generators emit
 else
-  echo "pre-push: running the CLI build gate (scaffold output + tutorial must compile)."
+  echo "pre-push: this push touches the generators or the packages they emit — running the CLI build gate."
   echo "          bypass with 'git push --no-verify' or RASK_SKIP_CLI_BUILD_E2E=1."
 
   if ! "$root/scripts/run-cli-build-e2e.sh"; then

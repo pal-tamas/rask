@@ -7,6 +7,31 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`rask deploy status` / `logs` / `rollback` — the CLI now covers operating the app, not just shipping
+  it.** Until now `rask deploy` took you to production and left you there: seeing what was running,
+  reading its logs, or undoing a bad release all meant hand-writing `docker -H ssh://…` commands, which is
+  precisely the SSH session the deploy story promises you never have to open. All three read the same
+  `rask.*` container labels a deploy writes, so they describe the box as it actually is rather than as
+  `.rask/deploy.json` remembers it, and they need no Dockerfile and no build.
+  - **`status`** lists every Rask-managed app sharing the host — URL or published port, blue/green colour,
+    uptime — and says whether a rollback is currently possible.
+  - **`logs`** tails the live container (`--tail <n|all>`, `--follow`).
+  - **`rollback`** exists for the failure the blue-green swap cannot catch. That swap protects you from a
+    release that *fails*; it can do nothing about one that starts, answers its health check, and is simply
+    wrong. Each deploy now moves the image it replaces to `<app>:previous` before building — previously the
+    build overwrote `:latest` and the old image was left untagged and unrecoverable — and `rollback` starts
+    it back up through the same gates a deploy uses (running → healthy → reload the proxy → retire the old
+    container). It then swaps the two tags, so running it again undoes the rollback rather than repeating
+    it. Images are now built as `<app>:current` (plus `:latest`, kept so `docker images` still reads the way
+    you'd expect).
+
+### Changed
+- **The pre-push CLI build gate now runs only when a push can change what the generators emit** — the CLI's
+  scaffolding, the `Rask.*` packages a generated project references, the tutorial, or the gate itself.
+  It packs 15 packages and runs several full builds, so running it on a docs typo was minutes of tax for a
+  foregone conclusion. Same conditional treatment the deploy gate already had.
+
 ### Security
 - **`rask deploy --domain` is now validated before it reaches the shared proxy.** The domain was written
   verbatim into the Caddyfile that fronts *every* app on the box, so a value containing `{`, `}` or a
