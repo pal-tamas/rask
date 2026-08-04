@@ -32,6 +32,25 @@ public sealed class DirectorySnapshotStore : ISqliteSnapshotStore
     }
 
     /// <inheritdoc/>
+    public Task<IReadOnlyList<SqliteSnapshotInfo>> ListAsync(CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(_directory))
+        {
+            return Task.FromResult<IReadOnlyList<SqliteSnapshotInfo>>([]);
+        }
+
+        // Ordered by the same key PruneAsync deletes by, so "the ones you can see" and "the ones that survive
+        // retention" are the same list in the same order.
+        var snapshots = new DirectoryInfo(_directory)
+            .EnumerateFiles(_searchPattern)
+            .OrderByDescending(f => f.LastWriteTimeUtc)
+            .Select(f => new SqliteSnapshotInfo(f.Name, f.Length, f.LastWriteTimeUtc))
+            .ToArray();
+
+        return Task.FromResult<IReadOnlyList<SqliteSnapshotInfo>>(snapshots);
+    }
+
+    /// <inheritdoc/>
     public Task PruneAsync(int retain, CancellationToken cancellationToken)
     {
         if (retain < 1 || !Directory.Exists(_directory))

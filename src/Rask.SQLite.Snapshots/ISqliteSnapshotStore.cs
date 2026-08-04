@@ -16,4 +16,15 @@ public interface ISqliteSnapshotStore
 
     /// <summary>Keeps the <paramref name="retain"/> most recent snapshots and removes the rest.</summary>
     Task PruneAsync(int retain, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The snapshots this store currently holds, newest first — what an operator or an ops dashboard reads to
+    /// confirm that backups are actually being taken.
+    /// <para>
+    /// The default returns an empty list, so a store written before this method existed still compiles. Override
+    /// it if your store can enumerate: callers cannot tell "no snapshots yet" from "this store doesn't list".
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<SqliteSnapshotInfo>> ListAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<SqliteSnapshotInfo>>([]);
 }

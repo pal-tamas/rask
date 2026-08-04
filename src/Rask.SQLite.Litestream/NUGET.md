@@ -52,6 +52,10 @@ it interrupts `litestream` and lets it flush (see `ShutdownGracePeriod`).
   local/ephemeral disk and let Litestream replicate to durable storage. This is the pattern Litestream
   was built for (ephemeral container + object-storage backup).
 - **Resilient by design.** A backup failure is logged at `Critical` but never crashes the app.
+- **Checkable.** A log line tells you when replication broke; nothing tells you it's healthy. Resolve the
+  `LitestreamStatus` singleton for `IsReplicating`, `LastStartedAt`/`LastExitedAt`, `RestartCount`,
+  `LastExitCode` and `LastError`. A clean shutdown clears `IsReplicating` without counting a restart, so a
+  climbing `RestartCount` means backups are flapping.
 - **Advanced config.** Point `ConfigPath` at a full `litestream.yml` for multiple databases or custom
   retention / sync intervals.
 

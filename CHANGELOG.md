@@ -8,6 +8,22 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A row changing underneath the jobs or outbox drain no longer discards the whole batch's progress.** Both
+  processors ran a batch and then wrote every outcome in a single `SaveChangesAsync`. Anything else modifying
+  one of those rows meanwhile — a manual `UPDATE`/`DELETE` against `app.db`, which is currently the only way
+  to clear a dead letter — raised a `DbUpdateConcurrencyException` that rolled the transaction back and
+  stripped `ProcessedAt` from **every** row in the batch that had already run. The side effects had happened,
+  so on the next poll up to `BatchSize` (default 100) jobs re-ran and outbox events were **published a second
+  time**, repeating every poll until the interference stopped. Each outcome is now persisted on its own, as
+  the mail processor already did, so the blast radius is the single affected row.
+- **A failing jobs or outbox poll no longer stops the host.** Neither processor guarded its cycle, so a
+  transient database error (a `SQLITE_BUSY`, say) escaped `ExecuteAsync` and faulted the `BackgroundService` —
+  which, under the default `BackgroundServiceExceptionBehavior.StopHost`, takes the whole application down.
+  Both now log the failure and retry on the next poll, matching the mail processor.
+- **The outbox marks an event published even while the host is shutting down.** The drain saved with the
+  shutdown token, so an event delivered during shutdown could lose its `ProcessedAt` and be published again on
+  restart.
+
 - **Editing a `[Route]` template under `dotnet watch` now takes effect.** Routes, CQRS handlers, jobs and
   outbox events are all registered from a `[ModuleInitializer]`, and the runtime never re-runs one after a
   hot-reload apply — so changing a route silently did nothing, and an edited command handler kept dispatching
@@ -33,6 +49,16 @@ them until tagged releases begin.
   early return — so nothing fired and the deleted rules stayed on screen until a manual refresh.
 
 ### Added
+- **`LitestreamStatus`** — a singleton published by the Litestream supervisor reporting whether replication is
+  currently running, when it last started and exited, its last exit code or error, and how many times it has
+  restarted. "Is my backup actually running?" was previously answerable only by the absence of a log line.
+- **`ISqliteSnapshotStore.ListAsync`** — enumerate stored snapshots (name, size, timestamp), newest first and
+  scoped to the store's search pattern, so what you can see is what retention manages. A default interface
+  implementation returns an empty list, so existing custom stores keep compiling.
+- **`JobOptions.RecurringJobs`** — the registered recurring schedule (name, interval, factory) is now public.
+  Pair an entry with the `RecurringJobState` row of the same name to see when it last fired, or call its
+  factory to enqueue an off-schedule run.
+
 - **The browser tells you a hot reload landed.** Under `dotnet watch` in Development, the server pushes a
   `hotReload` frame once every session has repainted, and the client shows a brief "Hot reload applied"
   pill. Two independent gates keep it out of production: the server only subscribes when the app is in
@@ -69,6 +95,22 @@ them until tagged releases begin.
   by a `[ModuleInitializer]` and could not be restored. `Add` keeps its existing append semantics.
 
 ### Fixed
+- **A row changing underneath the jobs or outbox drain no longer discards the whole batch's progress.** Both
+  processors ran a batch and then wrote every outcome in a single `SaveChangesAsync`. Anything else modifying
+  one of those rows meanwhile — a manual `UPDATE`/`DELETE` against `app.db`, which is currently the only way
+  to clear a dead letter — raised a `DbUpdateConcurrencyException` that rolled the transaction back and
+  stripped `ProcessedAt` from **every** row in the batch that had already run. The side effects had happened,
+  so on the next poll up to `BatchSize` (default 100) jobs re-ran and outbox events were **published a second
+  time**, repeating every poll until the interference stopped. Each outcome is now persisted on its own, as
+  the mail processor already did, so the blast radius is the single affected row.
+- **A failing jobs or outbox poll no longer stops the host.** Neither processor guarded its cycle, so a
+  transient database error (a `SQLITE_BUSY`, say) escaped `ExecuteAsync` and faulted the `BackgroundService` —
+  which, under the default `BackgroundServiceExceptionBehavior.StopHost`, takes the whole application down.
+  Both now log the failure and retry on the next poll, matching the mail processor.
+- **The outbox marks an event published even while the host is shutting down.** The drain saved with the
+  shutdown token, so an event delivered during shutdown could lose its `ProcessedAt` and be published again on
+  restart.
+
 - **The CLI build gates no longer pass over stale packages.** They pack this commit's Rask packages to a
   local feed, but MinVer derives the version from the commit and its height — so every pack of an
   uncommitted working tree produces the *same* version string with different content. NuGet keys its global
