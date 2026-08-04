@@ -41,7 +41,8 @@ public sealed class ProjectGeneratorBuildE2ETests
         var projectDir = Path.Combine(temp, name);
         try
         {
-            var result = ProjectGenerator.GenerateServer(projectDir, name, auth, pwa, cqrs, data: false, docker: false, version);
+            var result = ProjectGenerator.GenerateServer(
+                projectDir, name, new ServerBatteries { Auth = auth, Pwa = pwa, Cqrs = cqrs }, version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -81,7 +82,8 @@ public sealed class ProjectGeneratorBuildE2ETests
         var projectDir = Path.Combine(temp, name);
         try
         {
-            var result = ProjectGenerator.GenerateServer(projectDir, name, auth, pwa: false, cqrs: false, data: true, docker: false, version);
+            var result = ProjectGenerator.GenerateServer(
+                projectDir, name, new ServerBatteries { Auth = auth, Data = true }, version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -207,7 +209,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         {
             var fs = new SystemFileSystem();
 
-            var host = ProjectGenerator.GenerateServer(projectDir, Name, auth: false, pwa: false, cqrs: false, data: false, docker: false, version);
+            var host = ProjectGenerator.GenerateServer(projectDir, Name, new ServerBatteries(), version);
             foreach (var file in host.Files)
             {
                 fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
@@ -245,6 +247,45 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, Name + ".csproj")}\" -warnaserror -m:1");
             Assert.True(exit == 0, $"generated multi-entity feature failed to build.{CliBuildE2E.Diagnostics(output)}");
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(temp);
+        }
+    }
+
+    /// <summary>
+    /// <c>--all-batteries</c>: every One Person Framework pillar wired into one app. Only a real compile
+    /// proves the composed <c>Program.cs</c> — a dozen registrations, their usings, the config-gated
+    /// Litestream block, the <c>await</c> in top-level statements, the push endpoints — and the
+    /// <c>AppDbContext</c> that carries four framework schemas actually resolve together.
+    /// </summary>
+    [SkippableFact]
+    public async Task Generated_all_batteries_server_project_builds()
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        const string name = "AllBatteriesE2E";
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var result = ProjectGenerator.GenerateServer(
+                projectDir, name, NewCommand.ToBatteries(["all-batteries", "auth", "docker"]), version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
+            Assert.True(exit == 0, $"generated --all-batteries project failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {

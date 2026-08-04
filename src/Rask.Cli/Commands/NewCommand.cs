@@ -18,7 +18,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly string _workingDirectory = workingDirectory;
 
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
-    internal static readonly string[] FeatureFlags = ["auth", "pwa", "cqrs", "data", "docker"];
+    internal static readonly string[] FeatureFlags =
+    [
+        "auth", "pwa", "cqrs", "data", "docker",
+        "jobs", "mail", "cache", "outbox", "push", "snapshots", "all-batteries",
+    ];
 
 
     public override string Name => "new";
@@ -26,7 +30,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     public override string Summary => "Create a new Rask project from a template.";
 
     public override string Usage =>
-        "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--data] [--docker] [--host local|server] [--output <dir>]";
+        "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--data] "
+        + "[--jobs] [--mail] [--cache] [--outbox] [--push] [--snapshots] [--all-batteries] "
+        + "[--docker] [--host local|server] [--output <dir>]";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
         [("<name>", "Name of the project to create (scaffolds ./<name>/).")];
@@ -37,6 +43,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         "rask new Shop --template wasm --pwa",
         "rask new Api --template server --auth --docker",
         "rask new Blog --data --docker",
+        "rask new Shop --all-batteries --auth --docker",
         "rask new MyApp --template native --host server",
     ];
 
@@ -56,6 +63,13 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")
             .Flag("force", description: "Scaffold into a directory that already has files in it, overwriting on collision.")
+            .Flag("jobs", description: "Durable background jobs on the app's own database (implies --data).")
+            .Flag("mail", description: "Transactional email queued on the app's own database (implies --data).")
+            .Flag("cache", description: "A database-backed ICache + IDistributedCache (implies --data).")
+            .Flag("outbox", description: "Transactional outbox for durable domain events (implies --data).")
+            .Flag("push", description: "Server-sent Web Push with subscribe endpoints (implies --pwa).")
+            .Flag("snapshots", description: "Scheduled point-in-time SQLite backups (implies --data).")
+            .Flag("all-batteries", description: "Every battery above — the full One Person Framework stack.")
             .Flag("dry-run", description: "Print the files that would be written without touching disk.");
 
     public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
@@ -151,16 +165,38 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             (dir, version) =>
             {
                 bool auth = requestedFlags.Contains("auth"), pwa = requestedFlags.Contains("pwa"),
-                    cqrs = requestedFlags.Contains("cqrs"), data = requestedFlags.Contains("data"),
                     docker = requestedFlags.Contains("docker");
                 return template.Key switch
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version),
                     "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(dir, name, auth, pwa, docker, version),
-                    _ => ProjectGenerator.GenerateServer(dir, name, auth, pwa, cqrs, data, docker, version),
+                    _ => ProjectGenerator.GenerateServer(dir, name, ToBatteries(requestedFlags), version),
                 };
             },
             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Maps the requested flag names onto the server template's battery set. <c>--all-batteries</c> expands to
+    /// every DB-backed pillar, which is what the tutorial and the showcase sample use.
+    /// </summary>
+    internal static ServerBatteries ToBatteries(IReadOnlyCollection<string> flags)
+    {
+        var all = flags.Contains("all-batteries");
+        return new ServerBatteries
+        {
+            Auth = flags.Contains("auth"),
+            Pwa = flags.Contains("pwa"),
+            Cqrs = flags.Contains("cqrs"),
+            Data = flags.Contains("data"),
+            Docker = flags.Contains("docker"),
+            Jobs = all || flags.Contains("jobs"),
+            Mail = all || flags.Contains("mail"),
+            Cache = all || flags.Contains("cache"),
+            Outbox = all || flags.Contains("outbox"),
+            Push = all || flags.Contains("push"),
+            Snapshots = all || flags.Contains("snapshots"),
+        };
     }
 
     /// <summary>

@@ -12,7 +12,7 @@ namespace Rask.Cli.Commands;
 internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
 {
-    private static readonly string[] Kinds = ["page", "component", "feature", "job", "email"];
+    private static readonly string[] Kinds = ["page", "component", "feature", "job", "email", "cache"];
 
     private static readonly Dictionary<string, string> KindAliases = new(StringComparer.Ordinal)
     {
@@ -21,6 +21,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         ["f"] = "feature",
         ["j"] = "job",
         ["e"] = "email",
+        ["ca"] = "cache",
     };
 
     private readonly IFileSystem _fileSystem = fileSystem;
@@ -31,16 +32,16 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
     public override IReadOnlyList<string> Aliases => ["g"];
 
-    public override string Summary => "Scaffold a page, component, CRUD feature, background job, or email into the current project.";
+    public override string Summary => "Scaffold a page, component, CRUD feature, background job, email, or cache into the current project.";
 
     // The shape only — the option list lives in the schema, which --help renders directly. Spelling the
     // flags out here is what let this string go stale before.
     public override string Usage =>
-        "rask generate <page|component|feature|job|email> <Name> [<field:type> ...] [options]";
+        "rask generate <page|component|feature|job|email|cache> <Name> [<field:type> ...] [options]";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
     [
-        ("<page|component|feature|job|email>", "What to scaffold (aliases: p, c, f, j, e)."),
+        ("<page|component|feature|job|email|cache>", "What to scaffold (aliases: p, c, f, j, e, ca)."),
         ("<Name>", "The type name, e.g. Product or Dashboard."),
         ("[<field:type> ...]", "Fields for a feature, e.g. Name:string Price:decimal."),
     ];
@@ -53,6 +54,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         "rask generate feature Product Name:string Price:decimal",
         "rask generate feature Order Total:decimal --bs --modal --tests",
         "rask g j SendWelcomeEmail",
+        "rask generate cache PopularProducts --feature Catalog",
     ];
 
     public override ArgumentSchema? OptionSchema => CreateSchema();
@@ -357,8 +359,33 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         foreach (var registration in registrations)
         {
             var firstLine = registration.Split('\n')[0];
-            if (lines.Any(l => l.Trim() == firstLine.Trim()))
+
+            // Match on the extension method, not the exact text: `rask new --outbox` already emits
+            // `builder.Services.AddRaskData(o => { … });` over several lines, so comparing whole lines would
+            // miss it and append a second AddRaskData. That is worse than untidy — AddRaskData is guarded so
+            // that the FIRST call wins, meaning a later call's options are silently dropped.
+            var method = RegistrationName(firstLine);
+            var existing = lines.FindIndex(l =>
+                l.TrimStart().StartsWith("builder.Services.", StringComparison.Ordinal) &&
+                RegistrationName(l) == method);
+
+            if (existing >= 0)
             {
+                // One exception to "leave what's there": turning the outbox on has to turn the in-process
+                // domain-event publisher off, or DomainEventInterceptor drains and clears each entity's
+                // events before OutboxInterceptor can copy them — the outbox table stays empty and delivery
+                // quietly stops being durable while every handler still runs. Upgrade the bare call rather
+                // than leaving the user with a broken outbox they have no way to notice. Only the bare call
+                // is rewritten: anyone who has already customised AddRaskData gets to keep their version
+                // (and `rask new --outbox` emits the disabling form to begin with).
+                if (registration.Contains("DispatchDomainEventsInProcess = false", StringComparison.Ordinal) &&
+                    !lines[existing].Contains("DispatchDomainEventsInProcess", StringComparison.Ordinal) &&
+                    lines[existing].Trim() == "builder.Services.AddRaskData();")
+                {
+                    lines[existing] = firstLine;
+                    added.Add(firstLine);
+                }
+
                 continue; // already registered (e.g. a second feature re-adding AddRaskCqrs)
             }
 
@@ -726,6 +753,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
             case "email":
                 result = EmailGenerator.Generate(project, _workingDirectory, name, parsed.Option("feature"), parsed.Option("output"), ResolveMailContext(project, parsed.Option("context")));
+                return true;
+
+            case "cache":
+                result = CacheGenerator.Generate(project, _workingDirectory, name, parsed.Option("feature"), parsed.Option("output"));
                 return true;
 
             default: // feature
