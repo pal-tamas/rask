@@ -23,14 +23,11 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(BuildAffectingCombinations))]
     public async Task Generated_server_project_builds(bool auth, bool pwa, bool cqrs)
     {
-        if (!CliBuildE2E.Enabled)
-        {
-            return; // opt-in: this restores + builds, needing the SDK and network.
-        }
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var name = $"E2E{(auth ? "A" : "")}{(pwa ? "P" : "")}{(cqrs ? "Q" : "")}";
         if (name == "E2E")
@@ -70,15 +67,12 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// Program.cs (the config-driven connection string, the ISaveChangesInterceptor injection) and the
     /// AppDbContext resolve — both alone and composed with <c>--auth</c> (which shares the same Program.cs).
     /// </summary>
-    [Theory]
+    [SkippableTheory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Generated_data_server_project_builds(bool auth)
     {
-        if (!CliBuildE2E.Enabled)
-        {
-            return; // opt-in: this restores + builds, needing the SDK and network.
-        }
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var name = $"DE2E{(auth ? "A" : "")}";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -116,14 +110,11 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(WasmBuildAffectingCombinations))]
     public async Task Generated_wasm_project_builds(bool auth, bool pwa)
     {
-        if (!CliBuildE2E.Enabled)
-        {
-            return; // opt-in: this restores + builds, needing the SDK and network.
-        }
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var name = $"WE2E{(auth ? "A" : "")}{(pwa ? "P" : "")}";
         if (name == "WE2E")
@@ -157,14 +148,11 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(WasmBuildAffectingCombinations))]
     public async Task Generated_wasm_hosted_solution_builds(bool auth, bool pwa)
     {
-        if (!CliBuildE2E.Enabled)
-        {
-            return; // opt-in: this packs the repo + restores + builds the WASM solution.
-        }
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
@@ -205,13 +193,10 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// name a DbContext declared in the root's namespace, and the DbContext names types in each target's.
     /// Only a real compile proves those resolve.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public async Task Generated_multi_entity_feature_builds()
     {
-        if (!CliBuildE2E.Enabled)
-        {
-            return; // opt-in: this packs the repo + restores + builds.
-        }
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 

@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **The CLI build gates no longer pass without running.** The tests that prove the code `rask new` and
+  `rask generate` write actually *compiles* are opted into with `RASK_CLI_BUILD_E2E=1` — but that variable was
+  set nowhere in the repo, and each case returned early when it was absent, so all 20 reported **passed**
+  while never executing. Every other CLI test asserts on generated strings, so in practice nothing was
+  checking that a scaffolded project builds. The gates now use `Skip.IfNot` (the `Xunit.SkippableFact`
+  pattern the Appium suite already uses) and report **SKIPPED** with the reason, and a new
+  `scripts/run-cli-build-e2e.sh` runs them for real — wired into `.githooks/pre-push`, so a scaffolding
+  break is caught before it leaves the machine instead of in a beginner's terminal. Bypass with
+  `RASK_SKIP_CLI_BUILD_E2E=1`.
+
 ### Added
 - **The `docs/tutorial/` walk-through is now a compile gate.** A new opt-in end-to-end test
   (`TutorialWalkthroughE2ETests`, `RASK_CLI_BUILD_E2E=1`) reproduces the tutorial's chapters 1–8 exactly as a

@@ -65,6 +65,15 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   with `git config core.hooksPath .githooks`; bypass with `git push --no-verify` or `RASK_SKIP_E2E=1`).
   The on-device native suite needs an emulator/simulator + Appium — run it manually (see
   [native.md](native.md)).
+- **The CLI build gate runs locally, enforced before push.** `scripts/run-cli-build-e2e.sh` is the only
+  thing proving the code the CLI *writes* actually compiles — every other CLI test asserts on generated
+  strings. It packs this commit's Rask packages to a local feed, scaffolds every `rask new` flag
+  combination plus a multi-entity `rask generate feature` and the whole [tutorial](tutorial/00-overview.md)
+  walk-through, then builds each one with `-warnaserror`. Because it packs 15 packages and runs several
+  full builds it is too slow for the pre-commit loop, so the `.githooks/pre-push` hook runs it instead
+  (bypass with `git push --no-verify` or `RASK_SKIP_CLI_BUILD_E2E=1`). The gates are opted into by
+  `RASK_CLI_BUILD_E2E=1`, which the script exports; without it every case reports **SKIPPED** rather than
+  passing silently, so an un-run gate is always visible in the test output.
 - `commitlint.yml` — Conventional Commits check on PRs.
 - `nightly.yml` — prerelease publish on `main`.
 - `release.yml` — tag-triggered stable publish.
