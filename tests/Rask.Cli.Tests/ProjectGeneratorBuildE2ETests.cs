@@ -260,13 +260,10 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// Litestream block, the <c>await</c> in top-level statements, the push endpoints — and the
     /// <c>AppDbContext</c> that carries four framework schemas actually resolve together.
     /// </summary>
-    [Fact]
+    [SkippableFact]
     public async Task Generated_all_batteries_server_project_builds()
     {
-        if (!CliBuildE2E.Enabled)
-        {
-            return; // opt-in: this restores + builds, needing the SDK and network.
-        }
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         const string name = "AllBatteriesE2E";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;

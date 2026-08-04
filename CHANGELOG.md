@@ -198,17 +198,19 @@ them until tagged releases begin.
 
 ### Added
 - **`rask new` scaffolds every One Person Framework battery.** The `server` template gains `--jobs`,
-  `--mail`, `--cache`, `--outbox`, `--push`, `--snapshots`, `--litestream`, and `--all-batteries` for the
-  lot. Each flag adds its package, its `builder.Services.AddRaskX<AppDbContext>()` registration, and the
-  `modelBuilder.AddRaskX()` call that gives the pillar its tables — so `rask new Shop --all-batteries` is a
-  running app one `rask db add Init` away, instead of a page of wiring copied out of the docs. Every flag
-  implies what it needs (`--jobs` → `--data` → `--cqrs`, `--push` → `--pwa`). The composed `Program.cs`
-  gets the load-bearing order right and says why in comments: the outbox registered before the `DbContext`
-  factory so its interceptor joins the `SaveChanges` pipeline, `ApplyRaskConventions()` after the entity
-  configurations because it walks the model as it stands, and the Litestream restore before anything opens
-  the database. `--outbox` also turns **off** the in-process domain-event publisher — leaving it on is a
-  silent trap in which the outbox table stays empty, delivery quietly stops being durable, and nothing
-  fails because the handlers still run.
+  `--mail`, `--cache`, `--outbox`, `--push`, `--snapshots`, and `--all-batteries` for the lot (continuous
+  backup is already on the `--data` golden path). Each flag adds its package, its
+  `builder.Services.AddRaskX<AppDbContext>()` registration, and the `modelBuilder.AddRaskX()` call that
+  gives the pillar its tables — so `rask new Shop --all-batteries` is a running app one `rask db add Init`
+  away, instead of a page of wiring copied out of the docs. Every flag implies what it needs (`--jobs` →
+  `--data` → `--cqrs`, `--push` → `--pwa`). The composed `Program.cs` gets the load-bearing order right and
+  says why in comments: the outbox registered before the `DbContext` factory so its interceptor joins the
+  `SaveChanges` pipeline, and `ApplyRaskConventions()` after the entity configurations because it walks the
+  model as it stands. `--outbox` also turns **off** the in-process domain-event publisher — leaving it on is
+  a silent trap in which the outbox table stays empty, delivery quietly stops being durable, and nothing
+  fails because the handlers still run. `--push` registers Web Push only once a VAPID key pair is
+  configured, because `AddRaskWebPush` validates its options and throws at startup without one — a freshly
+  scaffolded app has to run before you have generated any keys.
 - **`rask generate cache <Name>`** — a read-through cache accessor that owns its key and its invalidation
   in one place, so a stale entry is something you can find and drop rather than hunt for across inline
   string keys. Alias `rask g ca`; `--feature` co-locates it in a slice like `job`/`email`.
@@ -236,6 +238,20 @@ them until tagged releases begin.
   builds under `-warnaserror`. (Closes #478.)
 
 ### Fixed
+- **A database-backed app no longer downloads the litestream binary at build time.** `--data` references
+  `Rask.SQLite.Litestream`, whose build props fetch a release asset from GitHub unless
+  `RaskLitestreamDownload` is set — so a scaffolded app couldn't be built offline, and errored outright on
+  a RID with no published asset. The scaffold now opts out: the binary belongs in the Docker image (which
+  `--docker` already copies it into), not in everyone's build.
+- **`rask generate feature --outbox` no longer leaves the outbox silently disabled.** The `Program.cs` splice
+  recognised an existing registration by matching the whole first line, so it never saw the multi-line
+  `AddRaskData(o => { … })` that `rask new --outbox` writes and appended a second one. `AddRaskData` is
+  guarded so the *first* call wins, which meant a later call's options were quietly dropped — and in the
+  common flow (`rask new App --data`, then `rask g f Order --outbox`) that dropped exactly the option the
+  outbox depends on. With the in-process publisher left on, `DomainEventInterceptor` drains and clears every
+  entity's events before `OutboxInterceptor` can copy them: the outbox table stays empty and delivery stops
+  being durable, while every handler still runs so nothing appears wrong. The splice now matches on the
+  extension method rather than the line text, and upgrades a bare `AddRaskData()` to the outbox-safe form.
 - **A background job or outbox event declared in a namespace whose name is a C# keyword no longer silently
   dead-letters.** The `Rask.Jobs` and `Rask.Outbox` registry generators derived *one* string from
   `ISymbol.ToDisplayString()` and used it for two incompatible jobs: the registry key (which has to equal the

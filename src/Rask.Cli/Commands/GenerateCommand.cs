@@ -359,8 +359,33 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         foreach (var registration in registrations)
         {
             var firstLine = registration.Split('\n')[0];
-            if (lines.Any(l => l.Trim() == firstLine.Trim()))
+
+            // Match on the extension method, not the exact text: `rask new --outbox` already emits
+            // `builder.Services.AddRaskData(o => { … });` over several lines, so comparing whole lines would
+            // miss it and append a second AddRaskData. That is worse than untidy — AddRaskData is guarded so
+            // that the FIRST call wins, meaning a later call's options are silently dropped.
+            var method = RegistrationName(firstLine);
+            var existing = lines.FindIndex(l =>
+                l.TrimStart().StartsWith("builder.Services.", StringComparison.Ordinal) &&
+                RegistrationName(l) == method);
+
+            if (existing >= 0)
             {
+                // One exception to "leave what's there": turning the outbox on has to turn the in-process
+                // domain-event publisher off, or DomainEventInterceptor drains and clears each entity's
+                // events before OutboxInterceptor can copy them — the outbox table stays empty and delivery
+                // quietly stops being durable while every handler still runs. Upgrade the bare call rather
+                // than leaving the user with a broken outbox they have no way to notice. Only the bare call
+                // is rewritten: anyone who has already customised AddRaskData gets to keep their version
+                // (and `rask new --outbox` emits the disabling form to begin with).
+                if (registration.Contains("DispatchDomainEventsInProcess = false", StringComparison.Ordinal) &&
+                    !lines[existing].Contains("DispatchDomainEventsInProcess", StringComparison.Ordinal) &&
+                    lines[existing].Trim() == "builder.Services.AddRaskData();")
+                {
+                    lines[existing] = firstLine;
+                    added.Add(firstLine);
+                }
+
                 continue; // already registered (e.g. a second feature re-adding AddRaskCqrs)
             }
 

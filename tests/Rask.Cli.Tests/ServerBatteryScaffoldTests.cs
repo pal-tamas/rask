@@ -110,28 +110,15 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     [Fact]
-    public void Litestream_restores_before_anything_opens_the_database()
+    public void A_database_app_does_not_download_the_litestream_binary_at_build_time()
     {
-        // Restore is skipped once the file exists, so it has to run before any other startup step touches
-        // the database — otherwise a fresh machine silently starts with an empty database.
-        var program = Generate("litestream")["Program.cs"];
-
-        Assert.True(
-            program.IndexOf("RestoreSqliteFromLitestreamAsync", StringComparison.Ordinal) <
-            program.IndexOf("app.UseHealthChecks", StringComparison.Ordinal),
-            "The Litestream restore must be the first thing after builder.Build().");
-    }
-
-    [Fact]
-    public void Litestream_stays_off_until_a_replica_url_is_configured()
-    {
-        var files = Generate("litestream");
-
-        // `dotnet run` has to work on a machine with no litestream binary and no cloud credentials.
-        Assert.Contains("""builder.Configuration["Litestream:ReplicaUrl"]""", files["Program.cs"], StringComparison.Ordinal);
-
-        // …and `dotnet build` must not reach GitHub releases for the binary.
-        Assert.Contains("<RaskLitestreamDownload>false</RaskLitestreamDownload>", files["App.csproj"], StringComparison.Ordinal);
+        // Rask.SQLite.Litestream's build props fetch the binary from GitHub releases unless told not to,
+        // so without this a scaffolded app can't be built offline — and errors outright on a RID with no
+        // published asset. The binary belongs in the Docker image, which `--docker` already copies it into.
+        Assert.Contains(
+            "<RaskLitestreamDownload>false</RaskLitestreamDownload>",
+            Generate("data")["App.csproj"],
+            StringComparison.Ordinal);
     }
 
     [Fact]
