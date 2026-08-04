@@ -334,9 +334,20 @@ internal static partial class ProjectGenerator
     private const string WasmNginxConf =
         """
         server {
-            listen 80;
+            # 8080, not 80, so this image matches the server and wasm-hosted templates — `rask deploy`
+            # points the proxy and its readiness probe at one container port for every template.
+            listen 8080;
             root /usr/share/nginx/html;
             index index.html;
+
+            # A readiness endpoint, so a deployed bundle can be health-gated like any other Rask app.
+            # A static bundle has nothing to report but "nginx is serving", which is exactly the
+            # question the deploy's blue-green swap asks before switching traffic.
+            location = /health {
+                access_log off;
+                add_header Content-Type text/plain;
+                return 200 'ok';
+            }
 
             # Serve the *.gz siblings the publish step baked next to each asset. (Rask also bakes
             # *.br, but the stock nginx:alpine image has no brotli module; gzip is universally
@@ -376,7 +387,7 @@ internal static partial class ProjectGenerator
         FROM nginx:alpine
         COPY --from=build /app/wwwroot /usr/share/nginx/html
         COPY nginx.conf /etc/nginx/conf.d/default.conf
-        EXPOSE 80
+        EXPOSE 8080
 
         """;
 

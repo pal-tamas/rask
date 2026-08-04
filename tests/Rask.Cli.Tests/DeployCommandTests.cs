@@ -28,6 +28,7 @@ public sealed class DeployCommandTests
             "-H", "ssh://deploy@box", "run", "-d", "--name", "shop-green", "--restart", "unless-stopped",
             "--network", "rask", "--label", "rask.managed=true", "--label", "rask.app=shop",
             "--label", "rask.domain=shop.example.com", "--label", "rask.color=green",
+            "--label", "rask.port=8080",
             // The persistent DB volume + connection string come before the user env, so --env A=1 still wins.
             "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
             "-e", "A=1", "shop:latest",
@@ -43,6 +44,8 @@ public sealed class DeployCommandTests
         [
             "-H", "ssh://deploy@box", "run", "-d", "--name", "shop", "--restart", "unless-stopped",
             "-p", "9000:8080",
+            // Labelled but with no rask.domain, so the host inventory sees it and the proxy doesn't.
+            "--label", "rask.managed=true", "--label", "rask.app=shop", "--label", "rask.port=8080",
             "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
             "shop:latest",
         ], args);
@@ -64,11 +67,11 @@ public sealed class DeployCommandTests
     [Fact]
     public void ParseDeployedApps_reads_the_label_listing_and_normalizes_no_value()
     {
-        var apps = DeployCommand.ParseDeployedApps("shop-blue\tshop\tshop.example.com\tblue\napi\tapi\t<no value>\t<no value>\n");
+        var apps = DeployCommand.ParseDeployedApps("shop-blue\tshop\tshop.example.com\tblue\t8080\napi\tapi\t<no value>\t<no value>\t9000\n");
 
         Assert.Equal(2, apps.Count);
-        Assert.Equal(new DeployedApp("shop-blue", "shop", "shop.example.com", "blue"), apps[0]);
-        Assert.Equal(new DeployedApp("api", "api", string.Empty, string.Empty), apps[1]);
+        Assert.Equal(new DeployedApp("shop-blue", "shop", "shop.example.com", "blue", 8080), apps[0]);
+        Assert.Equal(new DeployedApp("api", "api", string.Empty, string.Empty, 9000), apps[1]);
     }
 
     [Fact]
@@ -76,22 +79,22 @@ public sealed class DeployCommandTests
     {
         IReadOnlyList<DeployedApp> apps =
         [
-            new("shop-blue", "shop", "shop.example.com", "blue"),
-            new("demo-blue", "demo", "demo.example.com", "blue"),
+            new("shop-blue", "shop", "shop.example.com", "blue", 8080),
+            new("demo-blue", "demo", "demo.example.com", "blue", 8080),
         ];
 
-        var map = DeployCommand.BuildRoutingMap(apps, "demo", "demo.example.com", "demo-green");
+        var map = DeployCommand.BuildRoutingMap(apps, "demo", "demo.example.com", new RouteTarget("demo-green", 8080));
 
-        Assert.Equal("demo-green", map["demo.example.com"]); // deploying app → new container
-        Assert.Equal("shop-blue", map["shop.example.com"]);  // other app kept
+        Assert.Equal(new RouteTarget("demo-green", 8080), map["demo.example.com"]); // deploying app → new container
+        Assert.Equal(new RouteTarget("shop-blue", 8080), map["shop.example.com"]);  // other app kept
     }
 
     [Fact]
     public void BuildRoutingMap_skips_port_mode_apps_without_a_domain()
     {
-        IReadOnlyList<DeployedApp> apps = [new("api", "api", string.Empty, string.Empty)];
+        IReadOnlyList<DeployedApp> apps = [new("api", "api", string.Empty, string.Empty, 8080)];
 
-        var map = DeployCommand.BuildRoutingMap(apps, "demo", "demo.example.com", "demo-blue");
+        var map = DeployCommand.BuildRoutingMap(apps, "demo", "demo.example.com", new RouteTarget("demo-blue", 8080));
 
         Assert.Single(map);
         Assert.False(map.ContainsKey(string.Empty));
@@ -100,10 +103,10 @@ public sealed class DeployCommandTests
     [Fact]
     public void BuildCaddyfile_emits_a_block_per_route()
     {
-        var caddyfile = DeployCommand.BuildCaddyfile(new SortedDictionary<string, string>(StringComparer.Ordinal)
+        var caddyfile = DeployCommand.BuildCaddyfile(new SortedDictionary<string, RouteTarget>(StringComparer.Ordinal)
         {
-            ["demo.example.com"] = "demo-green",
-            ["shop.example.com"] = "shop-blue",
+            ["demo.example.com"] = new RouteTarget("demo-green", 8080),
+            ["shop.example.com"] = new RouteTarget("shop-blue", 8080),
         });
 
         Assert.Equal(
@@ -351,7 +354,7 @@ public sealed class DeployCommandTests
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        var caddyfile = fs.Files.First(f => f.Key.EndsWith("rask-demo.Caddyfile", StringComparison.Ordinal)).Value;
+        var caddyfile = fs.Written.First(f => f.Key.EndsWith("rask-demo.Caddyfile", StringComparison.Ordinal)).Value;
         Assert.Contains("demo.example.com {", caddyfile);       // the new app
         Assert.Contains("reverse_proxy demo-blue:8080", caddyfile);
         Assert.Contains("shop.example.com {", caddyfile);       // the existing app is preserved
@@ -668,6 +671,136 @@ public sealed class DeployCommandTests
         Assert.Contains("would be read as an ssh option", console.ErrorText, StringComparison.Ordinal);
         Assert.Empty(runner.Invocations); // nothing was launched at all
     }
+
+    [Fact]
+    public async Task A_domain_that_would_inject_caddy_directives_is_refused()
+    {
+        // The same threat model as the ssh host above, one field over: the domain is written verbatim
+        // into the Caddyfile that fronts EVERY app on the box, and it too comes from the committed
+        // .rask/deploy.json. A value that closes the site block reconfigures the whole host's proxy.
+        var fs = new FakeFileSystem();
+        fs.Seed(
+            "/proj/.rask/deploy.json",
+            """{"host":"deploy@box","name":"shop","domain":"app.example.com {\n}\n:80 {\n\trespond \"pwned\"\n}"}""");
+        var runner = new FakeProcessRunner();
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("isn't a valid domain", console.ErrorText, StringComparison.Ordinal);
+        Assert.Empty(runner.Invocations); // refused before anything was launched
+    }
+
+    [Fact]
+    public async Task Container_port_flows_into_the_run_the_probe_and_the_proxy()
+    {
+        // The standalone wasm template used to be undeployable for exactly this reason: its nginx image
+        // listened on a port nothing else knew about, so the proxy and the readiness probe both aimed at
+        // a closed port. --container-port is the escape hatch for any Dockerfile that isn't on 8080.
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(
+            ["--host", "deploy@box", "--name", "shop", "--domain", "shop.example.com", "--container-port", "3000"],
+            CancellationToken.None);
+
+        Assert.Equal(0, exit);
+
+        // The app's own `run` — the shared Caddy proxy is started with `run --name` too.
+        var run = runner.Invocations.Single(i => i.Arguments.Contains("rask.app=shop"));
+        Assert.Contains("rask.port=3000", run.Arguments);
+
+        var probe = runner.Invocations.Single(i => i.Arguments.Contains(DeployCommand.CurlImage));
+        Assert.Contains("http://localhost:3000/health", probe.Arguments);
+
+        // ...and the proxy is pointed at the same port, not the default.
+        Assert.Contains("shop-blue:3000", TheCaddyfile(fs));
+    }
+
+    [Fact]
+    public async Task Container_port_is_remembered_only_when_it_is_not_the_default()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var command = Create(fs, runner, new StringConsole());
+
+        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000", "--container-port", "3000"], CancellationToken.None);
+        Assert.Contains("\"containerPort\": 3000", fs.Files[Path.GetFullPath("/proj/.rask/deploy.json")], StringComparison.Ordinal);
+
+        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000", "--container-port", "8080"], CancellationToken.None);
+        Assert.DoesNotContain("containerPort", fs.Files[Path.GetFullPath("/proj/.rask/deploy.json")], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("70000")]
+    [InlineData("http")]
+    public async Task An_invalid_container_port_is_rejected(string value)
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner();
+        var command = Create(new FakeFileSystem(), runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--container-port", value], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("--container-port must be a number", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_port_mode_container_is_labelled_so_the_host_inventory_can_see_it()
+    {
+        // Without labels a port-mode deploy is invisible to `docker ps --filter label=rask.managed`, so
+        // moving the app to --domain later would leave the old container running and unaccounted for.
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var command = Create(new FakeFileSystem(), runner, new StringConsole());
+
+        await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+
+        var run = runner.Invocations.Single(i => i.Arguments.Contains("rask.app=shop"));
+        Assert.Contains("rask.managed=true", run.Arguments);
+        Assert.Contains("rask.app=shop", run.Arguments);
+        Assert.DoesNotContain("rask.domain=", run.Arguments); // ...but no domain, so it is never proxied
+    }
+
+    [Fact]
+    public async Task An_env_file_parse_error_reports_the_line_number_not_the_line()
+    {
+        // The offending line lives in a file of secrets, and this message goes to stderr — and, in the
+        // workflow --github-actions writes, into a CI log.
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.env.production", "GOOD=1\nAWS_SECRET_ACCESS_KEY-wJalrXUtnFEMI\n");
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner(), console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--env-file", "/proj/.env.production"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("line 2", console.ErrorText, StringComparison.Ordinal);
+        Assert.DoesNotContain("wJalrXUtnFEMI", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Dumped_logs_mask_the_values_we_passed_in()
+    {
+        // An app that echoes its configuration on a failed start is ordinary; the dump exists to show
+        // why it failed, so short values stay readable and only real secrets are masked.
+        var masked = DeployCommand.MaskSecrets(
+            "starting with ConnectionStrings__App=Data Source=/data/app.db and key s3cr3t-value-here on port 8080",
+            ["API_KEY=s3cr3t-value-here", "PORT=8080"]);
+
+        Assert.DoesNotContain("s3cr3t-value-here", masked, StringComparison.Ordinal);
+        Assert.Contains("port 8080", masked, StringComparison.Ordinal); // short value left alone
+    }
+
+    /// <summary>The Caddyfile the deploy generated — read from the write history, since it is deleted
+    /// once it has been copied to the host.</summary>
+    private static string TheCaddyfile(FakeFileSystem fs) =>
+        fs.Written.First(f => f.Key.EndsWith(".Caddyfile", StringComparison.Ordinal)).Value;
 
     [Fact]
     public async Task The_live_url_names_the_machine_not_the_ssh_port()

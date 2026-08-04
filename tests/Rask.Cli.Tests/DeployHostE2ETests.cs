@@ -139,6 +139,39 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     }
 
     /// <summary>
+    /// An app that listens somewhere other than 8080 — the shape the standalone <c>wasm</c> template had
+    /// (an nginx image on port 80) and which was undeployable, because the readiness probe and the proxy
+    /// both aimed at a hardcoded 8080. Proven here against a real host: the probe has to actually connect.
+    /// </summary>
+    [SkippableFact]
+    public async Task An_app_on_a_non_default_container_port_deploys()
+    {
+        var project = Start(out var console, out var command);
+        File.WriteAllText(
+            Path.Combine(project, "Dockerfile"),
+            """
+            FROM docker.io/library/nginx:alpine
+            RUN printf 'server { listen 3000; location /health { return 200 "ok"; } }\n' > /etc/nginx/conf.d/default.conf
+            EXPOSE 3000
+            CMD ["nginx", "-g", "daemon off;"]
+            """.ReplaceLineEndings("\n"));
+
+        var exit = await command.ExecuteAsync(
+            ["--host", host.Host, "--domain", "rask-port.test", "--name", "portapp3000", "--container-port", "3000"],
+            CancellationToken.None);
+
+        Assert.True(exit == 0, $"deploy on a non-default container port failed.\n{console.OutText}\n{console.ErrorText}");
+
+        // The proxy points at 3000, and the port was remembered as a label on the container itself so a
+        // later deploy of a *different* app can regenerate the shared Caddyfile without losing it.
+        var (_, caddyfile) = await host.DockerAsync("exec", "rask-caddy", "cat", "/etc/caddy/Caddyfile");
+        Assert.Contains("portapp3000-blue:3000", caddyfile, StringComparison.Ordinal);
+
+        var (_, label) = await host.DockerAsync("inspect", "--format", "{{index .Config.Labels \"rask.port\"}}", "portapp3000-blue");
+        Assert.Equal("3000", label.Trim());
+    }
+
+    /// <summary>
     /// Set up a project directory holding the app's Dockerfile and a <see cref="DeployCommand"/> wired to the
     /// real filesystem and a process runner scoped to the fixture's ssh identity. Skips when the gate is off
     /// or the fake VPS couldn't start, so a machine without Docker reports SKIPPED rather than failing.

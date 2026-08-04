@@ -259,6 +259,7 @@ writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UI
 | `--host user@box` | SSH target. Required on the first deploy, then remembered in `.rask/deploy.json`. |
 | `--domain <host>` | Front the app with auto-HTTPS Caddy. Omit to publish `--port` directly. |
 | `--port <n>` | Host port when there's no domain (default `8080`). |
+| `--container-port <n>` | The port your app listens on **inside** the container — what the proxy is pointed at and what the readiness probe hits (default `8080`, which every `rask new --docker` Dockerfile uses). Only needed for a hand-written Dockerfile that exposes something else. Remembered in `.rask/deploy.json`, and recorded on the container so a host running apps on different ports keeps each one's routing correct. |
 | `--name <slug>` | Image/container name (default: the project name). |
 | `--project <path>` · `--dockerfile <path>` | The build context / Dockerfile, if not the current project. |
 | `--env KEY=VALUE` · `--env-file <path>` | Runtime environment for the app container (repeat `--env`). |
