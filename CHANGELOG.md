@@ -25,6 +25,15 @@ them until tagged releases begin.
   the docs are deliberately hub-and-subpage; being findable from *nowhere* is the failure.
 
 ### Fixed
+- **The raw SQLite transaction helper no longer discards a failed rollback.**
+  `ExecuteInImmediateTransactionAsync` clears a leaked transaction from a pooled handle before
+  `BEGIN IMMEDIATE`, but it dropped that `ROLLBACK`'s result code and ran `BEGIN` regardless — so a
+  rollback that failed turned into the misleading, non-retryable "cannot start a transaction within a
+  transaction". The rollback now goes through the same fair-interval retry as everything else (it has to:
+  `busy_timeout` is set to `0` just above it, so nothing else waits). `BEGIN` also moved inside the `try`,
+  so a partially-failed begin can no longer return a mid-transaction handle to the pool and poison every
+  later lease of it. Hardening rather than a confirmed fix for #504 — see that issue for what was ruled
+  out.
 - **A `decimal` input no longer silently refuses to submit.** An `Input` bound to a fractional type
   rendered `<input type="number">` with no `step`, and HTML's default is `step="1"` — so the browser's own
   constraint validation rejected `42.50` and never fired the submit event. Nothing threw, no validation
