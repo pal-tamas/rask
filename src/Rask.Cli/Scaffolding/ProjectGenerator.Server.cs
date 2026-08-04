@@ -20,6 +20,8 @@ internal static partial class ProjectGenerator
             ("Features/Shared/App.cs", AppShellCs),
             ("Features/Home/HomePage.cs", HomePageCs),
             ("Properties/launchSettings.json", LaunchSettings),
+            ("appsettings.json", AppSettings),
+            ("appsettings.Production.json", AppSettingsProduction),
         };
 
         if (auth)
@@ -96,7 +98,7 @@ internal static partial class ProjectGenerator
     {
         var sb = new StringBuilder();
         // App (and, with --data, AppDbContext) live in the Features/Shared bucket.
-        sb.Append("using Company.RaskServer.Features.Shared;\nusing Rask.Server;\n");
+        sb.Append("using Company.RaskServer.Features.Shared;\nusing Microsoft.AspNetCore.HttpOverrides;\nusing Rask.Server;\nusing Rask.Server.Diagnostics;\n");
         if (auth)
         {
             sb.Append("using Company.RaskServer.Features.Auth;\n");
@@ -123,10 +125,35 @@ internal static partial class ProjectGenerator
 
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
         sb.Append("builder.Services.AddRask();\n");
-        // A liveness/readiness endpoint (mapped below) — reports the app is up and serving. `rask deploy`
-        // probes it to gate the blue-green swap; also useful for any load balancer or orchestrator. Register
-        // real dependency checks later, e.g. builder.Services.AddHealthChecks().AddDbContextCheck<AppDb>().
-        sb.Append("builder.Services.AddHealthChecks();\n");
+        sb.Append("""
+
+            // A liveness/readiness endpoint (mapped below) — `rask deploy` probes it to gate the blue-green
+            // swap, and any load balancer or orchestrator can use it too. AddRaskLiveSessions reports the
+            // live-session pool: Degraded at 80% of MaxSessions, Unhealthy once new sessions are being
+            // refused with 503 — so a host that is full says so instead of answering a bare "up". Add real
+            // dependency checks alongside it, e.g. .AddDbContextCheck<AppDbContext>().
+            builder.Services.AddHealthChecks().AddRaskLiveSessions();
+
+            // Behind a reverse proxy (`rask deploy` runs Caddy in front), the app sees the proxy's own
+            // address and a plain-HTTP request. Without this Request.Scheme is "http", so UseHsts never
+            // emits, RemoteIpAddress is the proxy rather than the visitor, and any redirect you build is
+            // wrong. The proxy's container IP is assigned by Docker and changes, so it can't be named in
+            // KnownProxies — clearing the lists is what makes this work, and it is safe in that topology
+            // because the container publishes no host port: only the proxy can reach it. If you expose this
+            // app directly to the internet, delete this block (a client could otherwise forge its own IP).
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.KnownIPNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+
+            // Finish shutting down before the container runtime loses patience. `rask deploy` sends SIGTERM
+            // and SIGKILLs 20s later, so a budget under that is what lets in-flight requests drain and a
+            // SQLite WAL checkpoint / Litestream flush complete instead of being killed mid-write.
+            builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(15));
+
+            """.TrimStart('\n'));
 
         if (cqrs)
         {
@@ -207,7 +234,11 @@ internal static partial class ProjectGenerator
 
             var app = builder.Build();
 
-            // Health endpoint FIRST — as terminal middleware it short-circuits before UseHttpsRedirection,
+            // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below
+            // (HSTS, redirects, your own logging) sees the request the visitor actually made.
+            app.UseForwardedHeaders();
+
+            // Health endpoint next — as terminal middleware it short-circuits before UseHttpsRedirection,
             // so /health answers 200 over plain HTTP. `rask deploy` probes it internally on http://…:8080
             // (no X-Forwarded-Proto), where a redirected endpoint would 307 to a port nothing listens on.
             app.UseHealthChecks("/health");
@@ -222,6 +253,9 @@ internal static partial class ProjectGenerator
             app.UseHttpsRedirection();
 
             app.MapStaticAssets();
+
+            // Give bare status codes (a 404 from an unmatched route) a readable body instead of a blank page.
+            app.UseStatusCodePages();
 
             """.TrimStart('\n'));
 
@@ -245,6 +279,57 @@ internal static partial class ProjectGenerator
 
         return sb.ToString();
     }
+
+    /// <summary>
+    /// The app's configuration file. Scaffolded (rather than left to the reader) because
+    /// <see href="https://learn.microsoft.com/aspnet/core/fundamentals/configuration/">configuration</see>
+    /// is where Rask's own diagnostics are tuned — <c>docs/observability.md</c> tells you to set
+    /// <c>Logging:LogLevel:Rask.Live</c>, and without this file there is nowhere to put it.
+    /// </summary>
+    private const string AppSettings =
+        """
+        {
+          "Logging": {
+            "LogLevel": {
+              "Default": "Information",
+              "Microsoft.AspNetCore": "Warning",
+
+              // Rask reports framework faults through these categories — a lifecycle hook that threw with
+              // no ErrorBoundary above it, a duplicate sibling Key, a handler fault, a rejected WebSocket
+              // frame. See docs/observability.md for the full table.
+              "Rask.Lifecycle": "Warning",
+              "Rask.Live": "Warning",
+              "Rask.Diff": "Warning"
+            }
+          },
+          "AllowedHosts": "*"
+        }
+
+        """;
+
+    /// <summary>
+    /// Production overrides. Kept separate so a value you change for the live site can't quietly change
+    /// how the app behaves on your machine. `rask deploy` runs the container with
+    /// <c>ASPNETCORE_ENVIRONMENT=Production</c>, which is what selects this file.
+    /// </summary>
+    private const string AppSettingsProduction =
+        """
+        {
+          "Logging": {
+            "LogLevel": {
+              // Quieter than development: request logging on a live site is mostly noise, and the
+              // Rask.Server meter + activity source carry the operational signal instead.
+              "Default": "Warning",
+              "Microsoft.AspNetCore": "Error"
+            }
+          }
+
+          // Secrets do NOT belong here — this file is committed. Pass them at deploy time with
+          // `rask deploy --env KEY=VALUE` / `--env-file`, which become environment variables and
+          // override anything set here (ConnectionStrings__App, for example).
+        }
+
+        """;
 
     private static string ServerNextSteps(string name, bool docker, bool data)
     {

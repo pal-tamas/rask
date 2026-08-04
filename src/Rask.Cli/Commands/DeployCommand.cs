@@ -710,6 +710,13 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag)
     {
         var args = new List<string>(Prefix(host)) { "run", "-d" };
+
+        // Container-runtime hygiene for a box that is expected to run unattended for months:
+        //  • json-file logs are unbounded by default, and a chatty app filling the disk takes the whole
+        //    host down with it — including every other app sharing the box.
+        //  • no-new-privileges stops a compromised process gaining rights via setuid binaries. It costs
+        //    nothing here: nothing a Rask app does needs to escalate.
+        args.AddRange(["--log-opt", "max-size=10m", "--log-opt", "max-file=3", "--security-opt", "no-new-privileges"]);
         if (domain is null)
         {
             args.AddRange(["--name", slug, "--restart", "unless-stopped", "-p", $"{port}:{containerPort}"]);
@@ -731,6 +738,10 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // destroyed on every redeploy. Point the app at it via ConnectionStrings:App, which Rask-scaffolded
         // apps honour; the volume is shared by both blue/green colors so the swap keeps the same database. A
         // user-supplied --env / --env-file value is appended after, so an explicit override still wins.
+        // ASPNETCORE_ENVIRONMENT is what selects appsettings.Production.json and turns off the developer
+        // exception page; relying on the base image's default left a deployed app in whatever environment
+        // the image happened to assume. Set before the user's own --env, so an explicit override still wins.
+        args.AddRange(["-e", "ASPNETCORE_ENVIRONMENT=Production"]);
         args.AddRange(["-v", $"{slug}-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db"]);
 
         foreach (var entry in env)

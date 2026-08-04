@@ -35,6 +35,8 @@ internal static partial class ProjectGenerator
             ($"{NameToken}.Server/{NameToken}.Server.csproj", WasmHostedServerCsproj(version)),
             ($"{NameToken}.Server/Program.cs", WasmHostedServerProgram(auth)),
             ($"{NameToken}.Server/Properties/launchSettings.json", WasmHostedServerLaunchSettings),
+            ($"{NameToken}.Server/appsettings.json", AppSettings),
+            ($"{NameToken}.Server/appsettings.Production.json", AppSettingsProduction),
         };
 
         if (auth)
@@ -148,6 +150,7 @@ internal static partial class ProjectGenerator
             sb.Append("using Microsoft.AspNetCore.Authentication.Cookies;\n");
         }
 
+        sb.Append("using Microsoft.AspNetCore.HttpOverrides;\n");
         sb.Append("using Rask.Wasm.Hosting;\n");
 
         sb.Append("""
@@ -159,8 +162,25 @@ internal static partial class ProjectGenerator
 
             // A liveness/readiness endpoint (mapped below). `rask deploy` probes it to gate the blue-green
             // swap; also useful for any load balancer or orchestrator. Add real checks later, e.g.
-            // .AddHealthChecks().AddDbContextCheck<AppDb>().
+            // .AddDbContextCheck<AppDb>(). (No AddRaskLiveSessions here: this host serves a WASM bundle and
+            // an API — the live-session pool it reports on belongs to the server-rendered template.)
             builder.Services.AddHealthChecks();
+
+            // Behind a reverse proxy (`rask deploy` runs Caddy in front), the app otherwise sees the proxy's
+            // address and a plain-HTTP request — so Request.Scheme is "http", UseHsts never emits, and
+            // RemoteIpAddress is the proxy. The proxy's container IP is assigned by Docker, so it can't be
+            // named in KnownProxies; clearing the lists is safe here because the container publishes no host
+            // port. Delete this block if you expose the app directly (a client could then forge its IP).
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.KnownIPNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+
+            // Finish shutting down before the container runtime loses patience: `rask deploy` sends SIGTERM
+            // and SIGKILLs 20s later.
+            builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(15));
 
             """.TrimStart('\n'));
 
@@ -187,7 +207,11 @@ internal static partial class ProjectGenerator
 
             var app = builder.Build();
 
-            // Health endpoint FIRST — as terminal middleware it short-circuits before UseHttpsRedirection,
+            // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below
+            // sees the request the visitor actually made.
+            app.UseForwardedHeaders();
+
+            // Health endpoint next — as terminal middleware it short-circuits before UseHttpsRedirection,
             // so /health answers 200 over plain HTTP. `rask deploy` probes it internally on http://…:8080
             // (no X-Forwarded-Proto), where a redirected endpoint would 307 to a port nothing listens on.
             app.UseHealthChecks("/health");

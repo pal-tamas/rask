@@ -8,6 +8,26 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A scaffolded app is now configured for the place it gets deployed to.** `rask new` produced an app that
+  compiled and ran locally but was missing the pieces that only matter once something is in front of it:
+  - **`appsettings.json` + `appsettings.Production.json` are scaffolded.** Neither existed, so there was
+    nowhere to put the `Logging:LogLevel:Rask.Live` setting [`observability.md`](docs/observability.md)
+    tells you to write, and all production configuration had to arrive as environment variables.
+  - **Health checks report live-session capacity** (`AddRaskLiveSessions`). The endpoint `rask deploy` gates
+    its blue-green swap on answered a flat 200 even while the host was refusing new sessions with `503` — so
+    a deploy could switch traffic onto a server that couldn't take it. (Server template only: a wasm-hosted
+    host has no live-session pool.)
+  - **Forwarded headers are honoured**, so behind the Caddy proxy `rask deploy` runs, `Request.Scheme` is
+    `https` and `RemoteIpAddress` is the visitor rather than the proxy. Without it `UseHsts` never emitted
+    and every logged client IP was wrong.
+  - **Shutdown completes inside the deploy's grace period** (15s vs the 20s before `SIGKILL`), so in-flight
+    requests drain and SQLite checkpoints instead of being killed mid-write. The host default of 30s was
+    longer than the deploy would wait.
+  - `UseStatusCodePages()` gives an unmatched route a readable body instead of a blank page.
+- **Deployed containers get production runtime defaults**: `ASPNETCORE_ENVIRONMENT=Production` (previously
+  left to whatever the base image assumed — so `appsettings.Production.json` would never have been read),
+  bounded logs (`max-size=10m`, `max-file=3` — Docker's default is unbounded, and on a one-box deploy an app
+  filling the disk takes every other app down with it), and `--security-opt no-new-privileges`.
 - **`rask deploy status` / `logs` / `rollback` — the CLI now covers operating the app, not just shipping
   it.** Until now `rask deploy` took you to production and left you there: seeing what was running,
   reading its logs, or undoing a bad release all meant hand-writing `docker -H ssh://…` commands, which is

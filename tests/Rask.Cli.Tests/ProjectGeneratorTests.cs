@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 
@@ -13,7 +14,7 @@ public sealed class ProjectGeneratorTests
     private static readonly string[] AlwaysPresent =
     [
         "App.csproj", "Program.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
-        "Properties/launchSettings.json",
+        "Properties/launchSettings.json", "appsettings.json", "appsettings.Production.json",
     ];
 
     // Demo content `rask new` used to scaffold and deliberately no longer does — a new project ships one
@@ -37,6 +38,71 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain("Features/Auth/CredentialStore.cs", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
         Assert.DoesNotContain("wwwroot/icon.svg", files.Keys);
+    }
+
+    /// <summary>
+    /// The endpoint `rask deploy` gates its blue-green swap on has to be able to say "full". A bare
+    /// AddHealthChecks() answers 200 while the host is refusing new sessions with 503, so a deploy would
+    /// happily switch traffic onto a server that can't take it.
+    /// </summary>
+    [Fact]
+    public void Health_checks_report_live_session_capacity()
+    {
+        var (files, _) = Generate();
+
+        Assert.Contains("AddHealthChecks().AddRaskLiveSessions()", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("using Rask.Server.Diagnostics;", files["Program.cs"], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Behind the proxy `rask deploy` runs, without this the app sees plain HTTP from the proxy's own
+    /// address — so UseHsts never emits and every client IP is the proxy's.
+    /// </summary>
+    [Fact]
+    public void Forwarded_headers_are_honoured_before_anything_reads_the_request()
+    {
+        var (files, _) = Generate();
+        var program = files["Program.cs"];
+
+        Assert.Contains("ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto", program, StringComparison.Ordinal);
+        Assert.Contains("options.KnownIPNetworks.Clear();", program, StringComparison.Ordinal);
+
+        // Must run before UseHsts, which only emits when the request already looks like HTTPS.
+        Assert.True(
+            program.IndexOf("app.UseForwardedHeaders();", StringComparison.Ordinal) < program.IndexOf("app.UseHsts();", StringComparison.Ordinal),
+            "UseForwardedHeaders must come before UseHsts, or the scheme it corrects is read too late.");
+    }
+
+    /// <summary>`rask deploy` SIGKILLs 20s after SIGTERM, so the host's own budget must be under that.</summary>
+    [Fact]
+    public void Shutdown_finishes_inside_the_deploy_grace_period()
+    {
+        var (files, _) = Generate();
+
+        Assert.Contains("ShutdownTimeout = TimeSpan.FromSeconds(15)", files["Program.cs"], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// docs/observability.md tells the reader to set Logging:LogLevel:Rask.Live — which needs somewhere
+    /// to put it. The files must also be real JSON to the provider that will load them (it skips comments).
+    /// </summary>
+    [Fact]
+    public void Configuration_files_are_scaffolded_and_parse()
+    {
+        var (files, _) = Generate();
+
+        Assert.Contains("Rask.Live", files["appsettings.json"], StringComparison.Ordinal);
+
+        // Production overrides live in their own file, selected by ASPNETCORE_ENVIRONMENT, which
+        // `rask deploy` sets on the container.
+        Assert.Contains("Logging", files["appsettings.Production.json"], StringComparison.Ordinal);
+
+        var options = new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+        foreach (var name in new[] { "appsettings.json", "appsettings.Production.json" })
+        {
+            var error = Record.Exception(() => JsonDocument.Parse(files[name], options));
+            Assert.True(error is null, $"{name} isn't valid JSON: {error?.Message}");
+        }
     }
 
     [Fact]
@@ -523,6 +589,7 @@ public sealed class ProjectGeneratorTests
         "App.Client/Features/Shared/App.cs", "App.Client/Features/Home/HomePage.cs",
         "App.Client/wwwroot/index.html", "App.Client/runtimeconfig.template.json",
         "App.Server/App.Server.csproj", "App.Server/Program.cs", "App.Server/Properties/launchSettings.json",
+        "App.Server/appsettings.json", "App.Server/appsettings.Production.json",
     ];
 
     private static Dictionary<string, string> GenerateWasmHosted(bool auth = false, bool pwa = false, bool docker = false) =>
