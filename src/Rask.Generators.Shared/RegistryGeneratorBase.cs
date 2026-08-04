@@ -158,8 +158,14 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
         sb.AppendLine("{");
         sb.AppendLine($"    internal static class {registryClass}");
         sb.AppendLine("    {");
+        // Init() only bootstraps; RefreshAll() holds the registrations so the hot-reload
+        // coordinator can re-invoke them after a metadata update ([ModuleInitializer] never runs
+        // twice). Both registries are name->Type dictionary upserts, so re-running is idempotent.
+        // RaskHotReload.RefreshTargetTypeNames lists both emitted classes by name.
         sb.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
-        sb.AppendLine("        internal static void Init()");
+        sb.AppendLine("        internal static void Init() => RefreshAll();");
+        sb.AppendLine();
+        sb.AppendLine("        internal static void RefreshAll()");
         sb.AppendLine("        {");
         foreach (var (key, typeExpression) in entries)
         {

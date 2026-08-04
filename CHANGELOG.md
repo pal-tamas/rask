@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **Editing a `[Route]` template under `dotnet watch` now takes effect.** Routes, CQRS handlers, jobs and
+  outbox events are all registered from a `[ModuleInitializer]`, and the runtime never re-runs one after a
+  hot-reload apply — so changing a route silently did nothing, and an edited command handler kept dispatching
+  through the invoker built from the old IL, with no error either way. Each generator now emits a
+  re-invocable `RefreshAll()` alongside its initializer, which the hot-reload coordinator calls. The CQRS
+  registry deliberately refreshes only its dispatch table: its DI registrations go onto a queue that is never
+  drained, so re-running them on every save would grow it without bound.
 - **A hot reload no longer repaints against stale scoped CSS.** Rask declared three independent
   `[MetadataUpdateHandler]`s — scoped CSS, scoped JS, and the live-session re-render — and the runtime does
   not define the order it invokes them in. When the re-render happened to run first, the frame carried the
