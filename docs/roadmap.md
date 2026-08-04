@@ -8,6 +8,8 @@ service to operate.
 
 ## Shipped
 
+✅ shipped · ◐ partly, with documented limits · ❌ [not shipped](#not-shipped)
+
 | Pillar | Status | Where |
 |--------|--------|-------|
 | **UI across three hosts** | ✅ | Server (WebSocket live diff), WASM (client-side + PWA), Native iOS/Android *(preview)* — one component. |
@@ -20,10 +22,14 @@ service to operate.
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database, delivered off the request thread over SMTP; bodies are Rask components. |
 | **Cache** | ✅ | [`Rask.Cache`](cache.md) — a developer-facing cache on the app's own database; standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync`, absolute/sliding expiry. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
-| **Auth** | ✅ | [`authentication.md`](authentication.md) — cookie & JWT login/session in the templates. |
+| **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — cookie & JWT sessions, claims, authorization, and hardening guidance. |
+| **Auth — user store** | ❌ | Not shipped. `rask new --auth` scaffolds a **demo** `ICredentialStore` with hardcoded logins, clearly marked as such; you supply the real one. See [below](#not-shipped). |
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
 | **Web Push (server send)** | ✅ | [`webpush.md`](webpush.md) — `Rask.WebPush`: VAPID (RFC 8292) + aes128gcm (RFC 8291), zero deps. |
 | **Deploy to one box** | ✅ | [`rask deploy`](cli.md) — bare-VPS setup (Docker, deploy login, firewall, SSH hardening), build over SSH, zero-downtime, auto-HTTPS (Caddy), multi-app on one host, GitHub Actions. |
+| **Operate what you shipped** | ✅ | [`rask deploy status` / `logs` / `rollback`](cli.md) — what's running, its logs, and putting the previous image back. |
+| **Continuous backup** | ✅ | [`sqlite.md`](sqlite.md) — `rask new --data` wires [Litestream](sqlite.md#continuous-backup-with-litestream); one variable at deploy time turns it on. |
+| **Secrets** | ◐ | [`secrets.md`](secrets.md) — environment variables, remembered by name so a redeploy can't drop one. **No** vault, rotation, or encryption at rest. |
 
 ## Planned — DB-backed pillars
 
@@ -37,6 +43,37 @@ framework's existing subtree-cache machinery, to memoize a component subtree acr
 ### Broadcast
 Server-to-many-clients pub/sub over the existing WebSocket channel — subscribe to a topic, push a live diff
 to every subscriber. Unlocks realtime UI without new infrastructure.
+
+## Not shipped
+
+Listed because a roadmap that only says what exists isn't much use when you're deciding whether Rask fits.
+None of these has an implementation today — if your product needs one, you'll be writing or renting it.
+
+### A user store and account lifecycle
+The [sign-in machinery](authentication.md) is real: cookie and JWT sessions, claims, authorization,
+hardening guidance. What `rask new --auth` scaffolds behind it is a **demo** credential store with
+hardcoded logins — honestly labelled in the generated code, but it is not a user system. There is no
+registration, password hashing, reset flow, email verification, lockout, or MFA. Bring ASP.NET Core
+Identity or a users table of your own.
+
+### File and blob storage
+No `IBlobStorage`. Rask can move bytes between the browser and the server
+([`http-and-files.md`](http-and-files.md)), but where an uploaded avatar is *kept* is your decision — the
+local disk, S3, or a provider SDK you reference directly.
+
+### Rate limiting
+Nothing in the framework. The docs point you at a reverse-proxy rate limit in several places, and
+`rask deploy` provisions a stock Caddy, which can't do it without a plugin — so today that means adding one
+yourself, or a WAF in front. Worth knowing before you put a login form on the internet: there is **no
+built-in login-attempt throttle**.
+
+### A dead-letter surface for the background pillars
+[Jobs](jobs.md), [mail](mail.md) and the [outbox](outbox.md) each retry with backoff and then stop, leaving
+the row in place. That's the right durability behaviour, but there is no UI, CLI command, or metric that
+shows you what has given up — inspecting or retrying a dead letter means SQL against `app.db`.
+
+### Secrets beyond environment variables
+See [`secrets.md`](secrets.md) for what does exist and, at the bottom, a blunt list of what doesn't.
 
 ---
 
