@@ -85,6 +85,13 @@ Add pages and components to taste — `rask generate` is the fast path.
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
 | `--data` | Pre-wire a SQLite database: an empty `AppDbContext`, `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory — so the first `rask generate feature <Name> --context AppDbContext` is immediately runnable with `rask db add`/`update`. It also wires **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream)) — inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time (`rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`), and `--docker` puts the replicator binary in the image. Implies `--cqrs` (the `server` template only). |
+| `--jobs` | Durable background jobs on the app's own database: `AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`. Implies `--data`. |
+| `--mail` | Transactional email on the app's own database, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. Implies `--data`. |
+| `--cache` | A database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. Implies `--data`. |
+| `--outbox` | A transactional outbox for durable domain-event delivery. Also turns **off** the in-process publisher, so events aren't delivered twice. Implies `--data`. |
+| `--push` | Server-sent Web Push (VAPID) with `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` and a subscription store. Implies `--pwa`. |
+| `--snapshots` | Scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup `--data` already wires. Implies `--data`. |
+| `--all-batteries` | Every battery above — the full One Person Framework stack in one app. |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
 | `--host` | `local` (default) or `server` — which native mode to scaffold (the `native` template only). |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
@@ -93,6 +100,20 @@ Add pages and components to taste — `rask generate` is the fast path.
 | `--no-restore` | Skip `dotnet restore` (for offline use). Without it, a restore failure is reported as a failure — the files are written, but the project won't build until it succeeds. |
 
 The flags wire a feature up; they don't scaffold sample pages for you to delete.
+
+The battery flags are **server-only** — they all ride the app's own database, and only the `server`
+template has one. Each implies what it needs (`--jobs` implies `--data` implies `--cqrs`), so you can ask
+for the pillar you want without also remembering its dependencies:
+
+```bash
+rask new Shop --all-batteries --auth --docker    # every pillar, wired in the right order
+rask new Shop --jobs --mail                      # just background work and email
+```
+
+The generated `Program.cs` composes them in an order that is load-bearing rather than stylistic — the
+outbox registered before the `DbContext` factory (so its interceptor joins the `SaveChanges` pipeline),
+`ApplyRaskConventions()` after the entity configurations (it walks the model as it stands), and the
+Litestream restore before anything opens the database. Those are pinned by tests, not left to chance.
 
 Requesting a flag a template doesn't support (for example `--cqrs` on `wasm`) fails fast with the list
 of flags that template *does* support, rather than passing an unknown option through.
@@ -107,6 +128,7 @@ rask generate component PriceTag --feature Orders  # → Features/Orders/PriceTa
 rask generate component PriceTag -o Widgets  # into a chosen folder
 rask generate job SendWelcomeEmail           # → Features/Shared/SendWelcomeEmail.cs (IJob + handler)
 rask generate email WelcomeEmail             # → Features/Shared/WelcomeEmail.cs (an email-body component)
+rask generate cache PopularProducts          # → Features/Shared/PopularProducts.cs (a read-through cache)
 rask generate page Orders --dry-run          # print what would be written, write nothing
 
 # A full CQRS + EF Core CRUD vertical slice
@@ -124,6 +146,7 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 | `component <Name>` | `Features/Shared/<Name>.cs` — a plain `Component` (or `Features/<Feature>/` with `--feature`) | `<Name>` in `<Root>.Features.Shared` |
 | `job <Name>` | `Features/Shared/<Name>.cs` — a background job: an `IJob` record + its `ICommandHandler` (adds the `Rask.Jobs` / `Rask.Cqrs` packages). `--feature` co-locates it in a slice. Alias: `rask g j` | `<Name>` in `<Root>.Features.Shared` |
 | `email <Name>` | `Features/Shared/<Name>.cs` — an email-body component rendered to HTML by `Email.Body(...)` (adds the `Rask.Mail` package). **Auto-wires** into your `DbContext` — registers `AddRaskMail<Ctx>` in `Program.cs` and maps the mail table in `OnModelCreating` — when it finds a single one (or `--context <Name>`); otherwise prints the steps. `--feature` co-locates it in a slice. Alias: `rask g e` | `<Name>` in `<Root>.Features.Shared` |
+| `cache <Name>` | `Features/Shared/<Name>.cs` — a read-through cache accessor that owns its key and its invalidation in one place (adds the `Rask.Cache` package). `--feature` co-locates it in a slice. Alias: `rask g ca` | `<Name>` in `<Root>.Features.Shared` |
 | `feature <Name> <field:type> …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id) with **value objects** for required strings (built-in validation), an EF `IEntityTypeConfiguration`, a `DbContext`, **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
 
 | Option | Meaning |

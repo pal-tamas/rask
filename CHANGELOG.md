@@ -197,6 +197,21 @@ them until tagged releases begin.
   `RASK_SKIP_CLI_BUILD_E2E=1`.
 
 ### Added
+- **`rask new` scaffolds every One Person Framework battery.** The `server` template gains `--jobs`,
+  `--mail`, `--cache`, `--outbox`, `--push`, `--snapshots`, `--litestream`, and `--all-batteries` for the
+  lot. Each flag adds its package, its `builder.Services.AddRaskX<AppDbContext>()` registration, and the
+  `modelBuilder.AddRaskX()` call that gives the pillar its tables — so `rask new Shop --all-batteries` is a
+  running app one `rask db add Init` away, instead of a page of wiring copied out of the docs. Every flag
+  implies what it needs (`--jobs` → `--data` → `--cqrs`, `--push` → `--pwa`). The composed `Program.cs`
+  gets the load-bearing order right and says why in comments: the outbox registered before the `DbContext`
+  factory so its interceptor joins the `SaveChanges` pipeline, `ApplyRaskConventions()` after the entity
+  configurations because it walks the model as it stands, and the Litestream restore before anything opens
+  the database. `--outbox` also turns **off** the in-process domain-event publisher — leaving it on is a
+  silent trap in which the outbox table stays empty, delivery quietly stops being durable, and nothing
+  fails because the handlers still run.
+- **`rask generate cache <Name>`** — a read-through cache accessor that owns its key and its invalidation
+  in one place, so a stale entry is something you can find and drop rather than hunt for across inline
+  string keys. Alias `rask g ca`; `--feature` co-locates it in a slice like `job`/`email`.
 - **The `docs/tutorial/` walk-through is now a compile gate.** A new opt-in end-to-end test
   (`TutorialWalkthroughE2ETests`, `RASK_CLI_BUILD_E2E=1`) reproduces the tutorial's chapters 1–8 exactly as a
   reader would — the real `rask new`/`generate feature`/`generate job`/`generate email` generators, the real
