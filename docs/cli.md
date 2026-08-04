@@ -101,6 +101,13 @@ Add pages and components to taste — `rask generate` is the fast path.
 
 The flags wire a feature up; they don't scaffold sample pages for you to delete.
 
+Every server app also gets `Features/Shared/ErrorPage.cs` and `app.UseExceptionHandler("/error")` outside
+Development. `ErrorBoundary` already catches anything thrown *inside* a component tree; this covers
+everything outside it, which would otherwise be a bare 500 with an empty body. The page renders through
+your app shell and shows a **correlation id and nothing else** — the exception goes to `ILogger`, where you
+match it by that id. Locally the handler stays off, because the developer exception page is strictly more
+useful than a page designed to reveal nothing.
+
 The battery flags are **server-only** — they all ride the app's own database, and only the `server`
 template has one. Each implies what it needs (`--jobs` implies `--data` implies `--cqrs`), so you can ask
 for the pillar you want without also remembering its dependencies:

@@ -14,6 +14,7 @@ public sealed class ProjectGeneratorTests
     private static readonly string[] AlwaysPresent =
     [
         "App.csproj", "Program.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
+        "Features/Shared/ErrorPage.cs",
         "Properties/launchSettings.json", "appsettings.json", "appsettings.Production.json",
     ];
 
