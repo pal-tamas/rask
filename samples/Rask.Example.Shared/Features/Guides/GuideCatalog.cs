@@ -75,6 +75,8 @@ public static class GuideCatalog
             "bi-database", "One Person Framework"),
         new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.",
             "bi-rocket", "One Person Framework"),
+        new("secrets", "Secrets", "Where passwords and API keys live, and how they reach the server.",
+            "bi-key", "One Person Framework"),
 
         // ---- Core ----
         new("elements", "Elements & the DSL", "Primitives, tag factories, universal props, SVG, the element catalog.",

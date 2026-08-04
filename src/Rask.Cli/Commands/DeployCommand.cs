@@ -245,6 +245,24 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             return 1;
         }
 
+        // A variable this app was deployed with last time, and isn't being given now, is almost never
+        // intentional — it's a bare `rask deploy` after one that carried --env, or the generated CI
+        // workflow, which passes none at all. Starting the app without it produces the worst kind of
+        // failure: it boots, answers its health check, takes traffic, and is quietly misconfigured.
+        if (action is null && MissingEnvKeys(config.EnvKeys, env) is { Count: > 0 } missing)
+        {
+            Console.WriteErrorLine(
+                $"This app was last deployed with {string.Join(", ", missing)}, which {(missing.Count == 1 ? "isn't" : "aren't")} set now.",
+                ConsoleStyle.Error);
+            Console.Error.WriteLine();
+            Console.Error.WriteLine("Deploying without it would start the app misconfigured, so this is a refusal rather than a warning.");
+            Console.Error.WriteLine($"  • pass it again:      rask deploy {string.Join(' ', missing.Select(k => $"--env {k}=…"))}");
+            Console.Error.WriteLine("  • or from a file:     rask deploy --env-file .env.production");
+            Console.Error.WriteLine("  • deploying from CI?  add it to the deploy step in .github/workflows/deploy.yml");
+            Console.Error.WriteLine($"  • no longer needed?   remove it from \"envKeys\" in {Path.Combine(".rask", "deploy.json")}");
+            return 1;
+        }
+
         // Readiness probe: once the container reports Running, confirm the app answers HTTP 2xx at the
         // health path before switching traffic. --no-health-check gates on Running only; --health-path
         // overrides the path (and re-enables a config-remembered disable). Both are remembered.
@@ -272,7 +290,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             // thing you do in a repo, rather than emitting a workflow that can't resolve a host.
             if (!dryRun)
             {
-                PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath, containerPort);
+                PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath, containerPort, env);
             }
 
             return WriteGitHubActionsWorkflow(sshTarget, host, dryRun);
@@ -313,7 +331,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         if (!string.Equals(newHost, host, StringComparison.Ordinal))
         {
             host = newHost;
-            PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath, containerPort);
+            PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath, containerPort, env);
             Console.WriteLine($"  Remembered {host} in {Path.Combine(".rask", "deploy.json")} — deploy as that from now on.", ConsoleStyle.Dim);
         }
 
@@ -344,14 +362,29 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     }
 
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
-    private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag)
+    private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
     {
         // Retire the old container gracefully (SIGTERM → Litestream flush + WAL checkpoint) before removing it,
         // so the last writes reach the replica; both no-op on the first deploy (no container yet).
         await Run(BuildStopArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         await Run(BuildRemoveArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         Console.Out.WriteLine($"Starting {slug} on port {port}…");
-        if (await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag), cancellationToken).ConfigureAwait(false) != 0)
+        var runtimeEnv = WriteEnvFile(slug, env);
+        int started;
+        try
+        {
+            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv), cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // The values are inside the container now; the local copy has no reason to outlive the call.
+            if (runtimeEnv is not null)
+            {
+                _fileSystem.TryDelete(runtimeEnv);
+            }
+        }
+
+        if (started != 0)
         {
             Console.WriteErrorLine("Failed to start the container.", ConsoleStyle.Error);
             return 1;
@@ -372,14 +405,17 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             return 1;
         }
 
-        PersistConfig(host, domain: null, port, slug, project, envFile, healthEnabled, healthPath, containerPort);
+        if (persist)
+        {
+            PersistConfig(host, domain: null, port, slug, project, envFile, healthEnabled, healthPath, containerPort, env);
+        }
         Console.WriteLine($"Deployed. The app is live at http://{HostName(host)}:{port}", ConsoleStyle.Success);
         return 0;
     }
 
     // ── The domain path: blue-green swap behind a shared, multi-app Caddy proxy (zero downtime). ────────
     private async Task<int> DeployWithProxyAsync(
-        string host, string slug, string domain, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag)
+        string host, string slug, string domain, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
     {
         // The live containers are the source of truth. Read them once: the current color of this app (to
         // pick the next), plus every other app's route (to regenerate the full Caddyfile).
@@ -396,7 +432,21 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
         Console.Out.WriteLine($"Starting {newContainer} ({domain})…");
         // In domain mode the app is reached internally on its container port; no host port is published.
-        if (await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort, tag), cancellationToken).ConfigureAwait(false) != 0)
+        var runtimeEnv = WriteEnvFile(slug, env);
+        int started;
+        try
+        {
+            started = await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort, tag, runtimeEnv), cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (runtimeEnv is not null)
+            {
+                _fileSystem.TryDelete(runtimeEnv);
+            }
+        }
+
+        if (started != 0)
         {
             Console.WriteErrorLine("Failed to start the new container.", ConsoleStyle.Error);
             return 1;
@@ -456,7 +506,10 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             await Run(BuildRemoveArguments(host, stale.Container), cancellationToken).ConfigureAwait(false);
         }
 
-        PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath, containerPort);
+        if (persist)
+        {
+            PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath, containerPort, env);
+        }
         Console.WriteLine($"Deployed. The app is live at https://{domain}", ConsoleStyle.Success);
         Console.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})", ConsoleStyle.Dim);
         return 0;
@@ -509,7 +562,31 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         return 0;
     }
 
-    private void PersistConfig(string host, string? domain, int? port, string slug, string? project, string? envFile, bool healthEnabled, string healthPath, int containerPort) =>
+    /// <summary>
+    /// Remembered keys that aren't being supplied this time. Ordinal + sorted so the message is stable.
+    /// </summary>
+    internal static IReadOnlyList<string> MissingEnvKeys(IReadOnlyList<string>? remembered, IReadOnlyList<string> supplied)
+    {
+        if (remembered is null || remembered.Count == 0)
+        {
+            return [];
+        }
+
+        var have = EnvKeysOf(supplied).ToHashSet(StringComparer.Ordinal);
+        return [.. remembered.Where(k => !have.Contains(k)).Order(StringComparer.Ordinal)];
+    }
+
+    /// <summary>The KEY halves of a set of KEY=VALUE entries, de-duplicated and sorted.</summary>
+    internal static string[] EnvKeysOf(IReadOnlyList<string> env) =>
+    [
+        .. env
+            .Select(e => e.IndexOf('=', StringComparison.Ordinal) is var i and >= 0 ? e[..i] : e)
+            .Where(k => k.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal),
+    ];
+
+    private void PersistConfig(string host, string? domain, int? port, string slug, string? project, string? envFile, bool healthEnabled, string healthPath, int containerPort, IReadOnlyList<string>? env = null) =>
         new DeployConfig
         {
             Host = host,
@@ -522,6 +599,8 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             HealthPath = healthPath == DefaultHealthPath ? null : healthPath,
             HealthCheckDisabled = healthEnabled ? null : true,
             ContainerPort = containerPort == DefaultContainerPort ? null : containerPort,
+            // Keys only — this file is committed. See DeployConfig.EnvKeys.
+            EnvKeys = env is { Count: > 0 } ? EnvKeysOf(env) : null,
         }.Save(_fileSystem, _workingDirectory);
 
     private async Task<bool> WaitUntilRunningAsync(string host, string container, CancellationToken cancellationToken)
@@ -609,6 +688,31 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         {
             Console.Error.WriteLine(MaskSecrets(logs.StandardError.TrimEnd(), env));
         }
+    }
+
+    /// <summary>
+    /// An env file is line-oriented, so a value containing a newline can't round-trip through one.
+    /// Those entries keep going in as <c>-e</c> rather than being silently truncated.
+    /// </summary>
+    internal static bool CanGoInEnvFile(string entry) =>
+        entry.IndexOf('=', StringComparison.Ordinal) > 0 && !entry.Contains('\n') && !entry.Contains('\r');
+
+    /// <summary>
+    /// Write the runtime environment to a local file for <c>--env-file</c>, or return null when there is
+    /// nothing it can carry. The file is this machine's, not the host's: the docker CLI reads it here and
+    /// sends the values over the API, which is the point — they never reach an argv anyone can read.
+    /// </summary>
+    private string? WriteEnvFile(string slug, IReadOnlyList<string> env)
+    {
+        var carriable = env.Where(CanGoInEnvFile).ToArray();
+        if (carriable.Length == 0)
+        {
+            return null;
+        }
+
+        var path = Path.Combine(Path.GetTempPath(), $"rask-{slug}-{Guid.NewGuid():N}.env");
+        _fileSystem.WriteAllText(path, string.Join('\n', carriable) + "\n");
+        return path;
     }
 
     /// <summary>Replace every non-trivial <c>--env</c> value found in <paramref name="text"/> with an ellipsis.</summary>
@@ -707,7 +811,13 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     internal static IReadOnlyList<string> BuildNetworkCreateArguments(string host, string network) =>
         [.. Prefix(host), "network", "create", network];
 
-    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag)
+    /// <summary>
+    /// The <c>docker run</c> for an app container. Runtime environment goes in through
+    /// <paramref name="envFilePath"/> when there is one: <c>--env-file</c> is read by the local docker CLI,
+    /// so the values never appear in this machine's process table the way <c>-e KEY=VALUE</c> does. Entries
+    /// whose value spans lines can't be expressed in that format and stay inline.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag, string? envFilePath = null)
     {
         var args = new List<string>(Prefix(host)) { "run", "-d" };
 
@@ -744,9 +854,18 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         args.AddRange(["-e", "ASPNETCORE_ENVIRONMENT=Production"]);
         args.AddRange(["-v", $"{slug}-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db"]);
 
+        if (envFilePath is not null)
+        {
+            args.AddRange(["--env-file", envFilePath]);
+        }
+
         foreach (var entry in env)
         {
-            args.AddRange(["-e", entry]);
+            // With an env file, only the entries it cannot carry are still passed inline.
+            if (envFilePath is null || !CanGoInEnvFile(entry))
+            {
+                args.AddRange(["-e", entry]);
+            }
         }
 
         args.Add($"{slug}:{tag}");

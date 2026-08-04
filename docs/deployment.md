@@ -118,6 +118,10 @@ deploy step. The generated workflow deploys with `--no-setup-host` on purpose: *
 from your own machine**, where you can see what's about to change — a host that isn't ready should fail
 the job, not get reconfigured by CI.
 
+> **App secrets** — passwords, API keys, SMTP logins — have their own page: **[Secrets](secrets.md)**.
+> `.rask/deploy.json` records the *names* of the variables your app needs (never their values), and a
+> deploy that doesn't supply one of them refuses rather than starting the app misconfigured.
+
 ## What `rask deploy` sets on the container
 
 Beyond your own `--env` values, every deployed container gets:

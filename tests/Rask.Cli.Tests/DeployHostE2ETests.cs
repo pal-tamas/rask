@@ -229,6 +229,37 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Assert.Contains("nothing to roll back to", back.ErrorText, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Secrets now reach the container through a file rather than the command line, and a redeploy that
+    /// forgets one is refused. Both are worth proving against a real daemon: the first only works if
+    /// docker actually applies <c>--env-file</c>, and the second has to survive a real round-trip through
+    /// <c>.rask/deploy.json</c>.
+    /// </summary>
+    [SkippableFact]
+    public async Task Runtime_env_reaches_the_container_and_is_required_on_the_next_deploy()
+    {
+        var project = Start(out var console, out var command);
+        string[] args = ["--host", host.Host, "--port", "8095", "--name", "envapp"];
+
+        var exit = await command.ExecuteAsync([.. args, "--env", "DB_PASSWORD=hunter2"], CancellationToken.None);
+        Assert.True(exit == 0, $"deploy with --env failed.\n{console.ErrorText}");
+
+        // docker really did apply the env file: the value is live inside the container.
+        var (_, value) = await host.DockerAsync("exec", "envapp", "printenv", "DB_PASSWORD");
+        Assert.Equal("hunter2", value.Trim());
+
+        // ...and the very next deploy, without it, is refused rather than starting the app unconfigured.
+        var second = new StringConsole();
+        var again = await Command(project, second).ExecuteAsync(args, CancellationToken.None);
+
+        Assert.Equal(1, again);
+        Assert.Contains("DB_PASSWORD", second.ErrorText, StringComparison.Ordinal);
+
+        // The old container is untouched — a refusal changes nothing.
+        var (_, still) = await host.DockerAsync("exec", "envapp", "printenv", "DB_PASSWORD");
+        Assert.Equal("hunter2", still.Trim());
+    }
+
     /// <summary>An app whose body identifies which build is serving.</summary>
     private static string AppWithMarker(string marker) =>
         $$"""
