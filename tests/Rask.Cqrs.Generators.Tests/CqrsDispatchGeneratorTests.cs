@@ -147,4 +147,62 @@ public sealed class CqrsDispatchGeneratorTests
         Assert.Empty(run.Diagnostics);
         Assert.Empty(run.RunResult.Results.SelectMany(r => r.GeneratedSources));
     }
+
+    [Fact]
+    public void An_inaccessible_handler_is_skipped_with_RASK029()
+    {
+        // Regression: a private nested handler used to be emitted as typeof(global::Demo.Outer.H), which
+        // fails with CS0122 — the assembly stopped building rather than the handler being skipped.
+        var run = CqrsGeneratorFixture.Run(Preamble + """
+            public sealed record GetValue : IQuery<string>;
+            public class Outer
+            {
+                private sealed class Handler : IQueryHandler<GetValue, string>
+                {
+                    public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
+                }
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK029");
+    }
+
+    [Fact]
+    public void A_file_local_handler_is_skipped_with_RASK029()
+    {
+        // Regression: the generated registry is a separate file, so naming a file-local handler in it
+        // fails with CS0234.
+        var run = CqrsGeneratorFixture.Run(Preamble + """
+            public sealed record GetValue : IQuery<string>;
+            file sealed class Handler : IQueryHandler<GetValue, string>
+            {
+                public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK029");
+    }
+
+    [Fact]
+    public void A_handler_for_a_closed_generic_request_is_still_registered()
+    {
+        // The guard rejects unsubstituted type parameters, not generics as such — a closed construction
+        // is perfectly nameable and must keep working.
+        var run = CqrsGeneratorFixture.Run(Preamble + """
+            public sealed record Page<T>(int Number) : IQuery<string>;
+            public sealed class PageHandler : IQueryHandler<Page<int>, string>
+            {
+                public Task<string> HandleAsync(Page<int> query, CancellationToken ct) => Task.FromResult("v");
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK029");
+        Assert.Contains(
+            "typeof(global::Demo.Page<int>)",
+            run.GeneratedSource("__RaskCqrsRegistry"),
+            StringComparison.Ordinal);
+    }
 }

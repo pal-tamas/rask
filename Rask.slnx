@@ -63,8 +63,10 @@
         <Project Path="tests/Rask.Cqrs.Generators.Tests/Rask.Cqrs.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Data.Tests/Rask.Data.Tests.csproj"/>
         <Project Path="tests/Rask.Jobs.Tests/Rask.Jobs.Tests.csproj"/>
+        <Project Path="tests/Rask.Jobs.Generators.Tests/Rask.Jobs.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Mail.Tests/Rask.Mail.Tests.csproj"/>
         <Project Path="tests/Rask.Outbox.Tests/Rask.Outbox.Tests.csproj"/>
+        <Project Path="tests/Rask.Outbox.Generators.Tests/Rask.Outbox.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Example.EfCore.Tests/Rask.Example.EfCore.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Playground.Tests/Rask.Example.Playground.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Server.Tests/Rask.Example.Server.Tests.csproj"/>
