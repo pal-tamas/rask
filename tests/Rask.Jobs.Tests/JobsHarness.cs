@@ -4,7 +4,10 @@ using Microsoft.Extensions.Hosting;
 
 namespace Rask.Jobs.Tests;
 
-// ── Test jobs + handlers (top-level so their FullName matches the generator's ToDisplayString). ──────────
+// ── Test jobs + handlers. ────────────────────────────────────────────────────────────────────────────────
+// These are top-level purely for readability; nesting is fine now that the generator keys registrations on
+// the runtime metadata name rather than a C# display string. See KeywordNamespaceJob.cs for the shape that
+// used to dead-letter, and Outer.NestedJob below for the '+'-vs-'.' case.
 
 public sealed record RecordJob(string Value) : IJob;
 

@@ -18,6 +18,14 @@ public sealed class Order : Entity<Guid>
         order.Raise(new OrderPlaced(order.Id, customer));
         return order;
     }
+
+    // Raises an event declared in a keyword-named namespace — see KeywordNamespaceEvent.cs.
+    public static Order PlaceRaisingKeywordEvent(string customer)
+    {
+        var order = new Order { Id = Guid.NewGuid(), Customer = customer };
+        order.Raise(new @event.KeywordEvent(7));
+        return order;
+    }
 }
 
 public sealed record OrderPlaced(Guid Id, string Customer) : IOutboxEvent;
@@ -62,6 +70,7 @@ public sealed class OutboxTests : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-outbox-test-{Guid.NewGuid():N}.db");
     private readonly Recorder _recorder = new();
+    private readonly @event.KeywordRecorder _keywordRecorder = new();
     private readonly ServiceProvider _provider;
 
     public OutboxTests()
@@ -69,6 +78,7 @@ public sealed class OutboxTests : IDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(_recorder);
+        services.AddSingleton(_keywordRecorder);
         services.AddRaskCqrs();
         services.AddRaskData(o => o.DispatchDomainEventsInProcess = false); // the outbox owns delivery
         services.AddRaskOutbox<OutboxDbContext>(o => o.PollInterval = TimeSpan.FromMilliseconds(50));
@@ -137,6 +147,45 @@ public sealed class OutboxTests : IDisposable
 
         await using var read = NewContext();
         Assert.NotNull((await read.Set<OutboxMessage>().SingleAsync()).ProcessedAt); // marked processed
+    }
+
+    [Fact]
+    public async Task An_event_in_a_keyword_namespace_is_delivered_not_dead_lettered()
+    {
+        await using (var db = NewContext())
+        {
+            db.Orders.Add(Order.PlaceRaisingKeywordEvent("ada"));
+            await db.SaveChangesAsync();
+        }
+
+        var processor = _provider.GetServices<IHostedService>().OfType<OutboxProcessor<OutboxDbContext>>().Single();
+        await processor.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(
+                async () =>
+                {
+                    await using var poll = NewContext();
+                    return await poll.Set<OutboxMessage>().AnyAsync(m => m.ProcessedAt != null);
+                },
+                TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            await processor.StopAsync(CancellationToken.None);
+        }
+
+        await using var read = NewContext();
+        var message = await read.Set<OutboxMessage>().SingleAsync();
+
+        // Delivered — and, the load-bearing half, delivered without a failed attempt. A key miss doesn't
+        // throw: it records "No registered outbox event type '...'" and retries until MaxAttempts, so
+        // asserting only on ProcessedAt would miss the bug entirely.
+        Assert.NotNull(message.ProcessedAt);
+        Assert.Null(message.Error);
+        Assert.Equal(0, message.Attempts);
+        Assert.DoesNotContain('@', message.Type); // stored as the runtime name, unescaped
+        Assert.Contains(_keywordRecorder.Events, e => e.N == 7); // the handler really ran
     }
 
     // The condition is async so it can poll the database — the only place the drain's completion is

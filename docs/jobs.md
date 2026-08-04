@@ -80,8 +80,13 @@ await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(2
 
 - **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a
   browser/WASM concern.
-- **A job type must be a concrete, non-generic type** — the source generator registers concrete `IJob`
-  implementations (open-generic and abstract types are skipped), which is how a stored job is rehydrated.
+- **A job type must be a concrete, non-generic type the generated registry can name** — that is how a stored
+  job is rehydrated without reflection. Skipped shapes: generic (or nested inside a generic), `file`-local,
+  and `private`/`protected` at any level of its containing chain. Each is reported at build time as
+  [RASK035](diagnostics.md#rask035), so a job that could never be dispatched fails the build instead of
+  dead-lettering in production. An abstract base carrying `IJob` is skipped silently; its concrete
+  derivatives register as usual. Nesting inside a plain `static class` is fine, and the usual way to group
+  a feature's jobs.
 - **SQLite is single-writer**, so the processor polls and claims sequentially (there is no `SKIP LOCKED` to
   lean on). Run **one processor per app**. Because `EnqueueAsync` writes while the processor may also be
   writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a `busy_timeout`) on your context so a concurrent enqueue

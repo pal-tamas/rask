@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using Rask.Generators.Shared;
 
 namespace Rask.Cqrs.Generators;
 
@@ -111,7 +113,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 requestFqn,
                 resultFqn,
                 Fqn(iface),
-                DescribeRegisterability(symbol)));
+                DescribeRegisterability(symbol, args)));
         }
 
         if (handlers.Count == 0)
@@ -124,8 +126,15 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
     // Returns the reason a handler cannot be registered, or null when it is fine. Open generic
     // handlers can't be closed at registration time; a handler with no public constructor can't be
-    // built by the DI container.
-    private static string? DescribeRegisterability(INamedTypeSymbol symbol)
+    // built by the DI container; and a handler the generated file can't *name* — file-local, or
+    // private/protected at any level of its containing chain — would emit code that doesn't compile
+    // (CS0234 / CS0122) instead of being skipped.
+    //
+    // The request/result types are checked too because they are emitted alongside the handler, as
+    // typeof(...) operands and generic arguments. That check is defensive rather than a known break:
+    // C# already rejects a handler that exposes a less-accessible request through its public
+    // HandleAsync (CS0051), so in practice an unnameable request comes with an unnameable handler.
+    private static string? DescribeRegisterability(INamedTypeSymbol symbol, ImmutableArray<ITypeSymbol> typeArguments)
     {
         if (symbol.IsGenericType)
         {
@@ -135,6 +144,19 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         if (!symbol.InstanceConstructors.Any(c => c.DeclaredAccessibility == Accessibility.Public))
         {
             return "has no public constructor";
+        }
+
+        if (SymbolRegistration.DescribeUnnameable(symbol) is { } handlerProblem)
+        {
+            return handlerProblem;
+        }
+
+        foreach (var argument in typeArguments)
+        {
+            if (SymbolRegistration.DescribeUnnameable(argument) is { } argumentProblem)
+            {
+                return $"handles '{argument.ToDisplayString()}', which {argumentProblem}";
+            }
         }
 
         return null;

@@ -16,4 +16,13 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
   </ItemGroup>
 
+  <!--
+    Shares only the registerability rules with the jobs/outbox registry generators: whether a type can
+    be named in a valid typeof(...) from a generated file. This generator keeps its own DiagnosticHelp
+    and IsExternalInit, so link the one file rather than globbing the folder.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Generators.Shared\SymbolRegistration.cs" Link="Shared\SymbolRegistration.cs"/>
+  </ItemGroup>
+
 </Project>
