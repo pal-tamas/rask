@@ -74,6 +74,17 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   (bypass with `git push --no-verify` or `RASK_SKIP_CLI_BUILD_E2E=1`). The gates are opted into by
   `RASK_CLI_BUILD_E2E=1`, which the script exports; without it every case reports **SKIPPED** rather than
   passing silently, so an un-run gate is always visible in the test output.
+- **The deploy gate runs locally, on pushes that touch the deploy path.**
+  `scripts/run-deploy-e2e-local.sh` points the real `rask deploy` at a throwaway container standing in for
+  a bare VPS — sshd plus its own Docker daemon (`docker:dind`, privileged) — and asserts on what happened
+  *on the host*: an image that built over SSH, a container that answers its health check, a blue-green
+  swap that retired the old colour, a Caddyfile a real Caddy accepted, and a named volume whose contents
+  outlived the container. Every other deploy test is mocked, so this is the only coverage that the deploy
+  actually deploys. It needs a `docker` CLI and a daemon that can run a privileged container; it installs
+  nothing and never reads or writes your `~/.ssh`. The `.githooks/pre-push` hook runs it only when the
+  push changes `DeployCommand`/`Host*`/`SshTarget`/`DockerProbe`/`DeployConfig` or the deploy tests
+  (bypass with `RASK_SKIP_DEPLOY_E2E=1`). **Not covered:** real DNS and Let's Encrypt issuance — the gate
+  uses a `.test` domain, so ACME never runs.
 - `commitlint.yml` — Conventional Commits check on PRs.
 - `nightly.yml` — prerelease publish on `main`.
 - `release.yml` — tag-triggered stable publish.
