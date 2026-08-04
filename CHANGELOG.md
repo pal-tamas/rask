@@ -7,6 +7,31 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **A hot reload no longer repaints against stale scoped CSS.** Rask declared three independent
+  `[MetadataUpdateHandler]`s — scoped CSS, scoped JS, and the live-session re-render — and the runtime does
+  not define the order it invokes them in. When the re-render happened to run first, the frame carried the
+  *previous* bundle hash, so a `.css` edit only appeared on the next interaction. A single coordinator
+  (`RaskHotReloadHandler`) now runs the phases in a fixed order — scoped assets, then the generated
+  registries, then the repaint — and a test asserts the assembly declares exactly one handler so the
+  ambiguity cannot come back.
+- **A render concurrent with a scoped-CSS refresh can no longer emit unscoped elements or a stylesheet-less
+  `<head>`.** The refresh cleared the registry and then repopulated it, leaving two windows open to any
+  render in flight: one where the scope-id lookup missed, so elements were written without their
+  `data-r-xxxx` attribute, and one where the bundle rebuilt as empty, so `<head>` carried no `<link>` at all
+  and the client morph tore the tag out. Registrations now stage into a replacement map that is installed in
+  a single store, so a reader observes either the complete old set or the complete new one.
+- **Deleting a component's only `.css` file now repaints.** Bulk invalidation deliberately raises no
+  `AssetChanged`, and the surviving siblings re-registered byte-identical content — which hits the no-op
+  early return — so nothing fired and the deleted rules stayed on screen until a manual refresh.
+
+### Changed
+- **`RouteRegistry` groups registrations by contributor.** The new `Replace(groupKey, registrations)`
+  installs one contributor's complete set, replacing whatever it registered before. This is what lets the
+  generated per-assembly route registry re-run under `dotnet watch` without duplicating its own routes
+  (`Add` appends), dropping another assembly's, or clearing the default 404 fallback — which is seeded once
+  by a `[ModuleInitializer]` and could not be restored. `Add` keeps its existing append semantics.
+
 ### Docs
 - **The roadmap says what isn't shipped, not only what is.** Every pillar was marked ✅, which made the page
   useless for the decision it exists to support — whether Rask fits your product. A new **Not shipped**

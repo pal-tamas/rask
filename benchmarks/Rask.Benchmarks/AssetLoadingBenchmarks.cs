@@ -11,21 +11,26 @@ namespace Rask.Benchmarks;
 ///     Three hot paths matter:
 ///     <list type="bullet">
 ///         <item>
-///             <c>TryGetCss</c> / <c>TryGetJs</c> — called by
-///             <c>LiveRenderContext.PushScope</c> on every user-component entry during
-///             a render walk, and by <c>HeadAssetRegistry.EmitMountedAssets</c> once
-///             per mounted type. A 200-component page touches it ~400× per render.
+///             <c>TryGetScopeId</c> — the only by-type registry lookup on the render
+///             walk, called (behind a <c>HasAnyScopedCss</c> guard) by
+///             <c>LiveRenderContext.PushScope</c> on every user-component entry. A
+///             200-component page touches it ~200× per render, so it must stay
+///             lock-free and allocation-free.
 ///         </item>
 ///         <item>
 ///             <c>GetByHash</c> — the asset endpoint's only per-request lookup. Bare
 ///             dictionary access under a single lock; budget is sub-microsecond.
 ///         </item>
 ///         <item>
-///             <c>EmitMountedAssets</c> — builds the <c>&lt;head&gt;</c> per-component
-///             tags by iterating mounted types and writing into a <c>StringBuilder</c>.
-///             Once per render of any live root.
+///             <c>EmitScopedBundles</c> (via <c>EmitScopedBundles_Warm</c>) — resolves
+///             the two bundle hashes for the <c>&lt;head&gt;</c>, once per render of any
+///             live root.
 ///         </item>
 ///     </list>
+///     <c>TryGetCss</c> / <c>TryGetJs</c> are benchmarked alongside them but have no
+///     render-path callers today: head emission resolves the single concatenated bundle
+///     by <c>GetBundleHash</c> rather than per mounted type. They are kept measured
+///     because they are public API and share the same maps.
 ///     The remaining benchmarks cover bookkeeping that runs less often but matters
 ///     for hot-reload latency and publish-time bake throughput: <c>RegisterCss</c>
 ///     (the cold path the generator-emitted <c>RefreshAll</c> takes) and
