@@ -60,6 +60,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [Cache](cache.md) | A developer-facing cache on the app's own database via `AddRaskCache<Ctx>()` (standalone `Rask.Cache`) — standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync`, absolute/sliding expiry. |
 | [Outbox](outbox.md) | Durable, crash-safe domain-event delivery via `AddRaskOutbox<Ctx>()` (standalone `Rask.Outbox`) — events committed in the same transaction as your data, delivered post-commit with retries. |
 | [Web Push](webpush.md) | Server-sent Web Push from your backend via `AddRaskWebPush(...)` + `IWebPushSender` (standalone `Rask.WebPush`) — VAPID + aes128gcm, zero deps; pairs with the client `IWebPush`. |
+| [Secrets](secrets.md) | Where an app's passwords and API keys live, how they reach the server, and what Rask deliberately doesn't do with them. |
 | [Deployment](deployment.md) | Ship to a single box with `rask deploy`: Docker over SSH, a shared Caddy proxy for automatic HTTPS, zero-downtime blue-green swaps gated on `/health`, and bare-VPS setup. |
 
 ## Bootstrap components

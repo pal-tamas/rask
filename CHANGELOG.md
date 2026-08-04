@@ -7,6 +7,27 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **A redeploy can no longer silently drop your secrets.** `--env` values were never remembered — only the
+  `--env-file` *path* was — so a bare `rask deploy` after one that carried `--env`, and the workflow
+  `--github-actions` writes (which passes no `--env` at all), would start the app **without** its database
+  password. It boots, answers its health check, takes traffic, and is quietly misconfigured: the worst shape
+  a failure can take. `.rask/deploy.json` now records the variables' **names** (never their values — that
+  file is committed), and a deploy that doesn't supply one of them refuses, naming it and listing the four
+  ways to resolve it. New [`docs/secrets.md`](docs/secrets.md) covers the whole story, including what Rask
+  deliberately doesn't do.
+- **`rask deploy rollback` no longer erases remembered settings.** It reuses the deploy path, which ended by
+  rewriting `.rask/deploy.json` — with the nulls a rollback passes for `project`/`envFile`, wiping both. A
+  rollback changes which image runs, not how the app is configured, so it no longer persists at all.
+
+### Security
+- **Runtime environment values are passed to Docker through a file, not the command line.** `-e KEY=VALUE`
+  puts every secret in the local process table, readable by any other user on the machine — and on the CI
+  runner, in the workflow `--github-actions` writes. They now go through `--env-file`, which the docker CLI
+  reads locally and sends over the API; the temporary file is deleted as soon as the container has them.
+  Values that span lines (a PEM key) can't round-trip through that format and are still passed inline
+  rather than being silently truncated.
+
 ### Added
 - **A scaffolded app is now configured for the place it gets deployed to.** `rask new` produced an app that
   compiled and ran locally but was missing the pieces that only matter once something is in front of it:
