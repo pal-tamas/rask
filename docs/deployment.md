@@ -122,6 +122,27 @@ the job, not get reconfigured by CI.
 > `.rask/deploy.json` records the *names* of the variables your app needs (never their values), and a
 > deploy that doesn't supply one of them refuses rather than starting the app misconfigured.
 
+## Backups
+
+`rask deploy` mounts a named volume so the database survives redeploys — but a volume is still **one copy
+on one disk**. An app scaffolded with `--data` is already wired for [Litestream](sqlite.md#continuous-backup-with-litestream),
+which streams the write-ahead log to object storage; it stays inert until you point it somewhere:
+
+```bash
+rask deploy --env "Litestream__ReplicaUrl=s3://your-bucket/app" \
+            --env "AWS_ACCESS_KEY_ID=…" --env "AWS_SECRET_ACCESS_KEY=…"
+```
+
+With that set, a fresh box restores the database from the replica on startup — which is what makes "one
+server" a reasonable place to keep your only copy. Until it is, every deploy says so:
+
+```
+! No Litestream replica configured — this app's database exists only on this box's disk.
+```
+
+The replica URL is remembered by name like any other variable, so once set, a later deploy that forgets it
+[fails rather than silently dropping it](secrets.md).
+
 ## What `rask deploy` sets on the container
 
 Beyond your own `--env` values, every deployed container gets:

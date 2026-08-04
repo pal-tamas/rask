@@ -105,6 +105,53 @@ public sealed class ProjectGeneratorTests
         }
     }
 
+    /// <summary>
+    /// A database-backed app gets continuous backup wired in, inert until a replica URL is configured.
+    /// The framework's own deploy comments already assumed a replicator was running; before this, nothing
+    /// scaffolded ever started one.
+    /// </summary>
+    [Fact]
+    public void A_database_app_is_wired_for_continuous_backup()
+    {
+        var (files, result) = Generate(data: true);
+        var program = files["Program.cs"];
+
+        Assert.Contains("Rask.SQLite.Litestream", result.Packages);
+        Assert.Contains("Rask.SQLite.Litestream", files["App.csproj"], StringComparison.Ordinal);
+
+        // Inert by default: no replica URL, no replicator, and the app still starts.
+        Assert.Contains("""builder.Configuration["Litestream:ReplicaUrl"]""", program, StringComparison.Ordinal);
+        Assert.Contains("AddRaskSqliteLitestream", program, StringComparison.Ordinal);
+
+        // The restore must be guarded — RestoreSqliteFromLitestreamAsync throws when nothing is registered,
+        // so an unguarded call would stop every app without a replica from starting at all.
+        var restore = program.IndexOf("RestoreSqliteFromLitestreamAsync", StringComparison.Ordinal);
+        Assert.True(restore > 0, "the restore call is missing.");
+        Assert.Contains(
+            "if (!string.IsNullOrWhiteSpace(replicaUrl))",
+            program[..restore],
+            StringComparison.Ordinal);
+
+        // ...and it must run before anything opens the database.
+        Assert.True(
+            restore < program.IndexOf("app.UseRask<App>()", StringComparison.Ordinal),
+            "the restore must happen before the app starts serving.");
+    }
+
+    /// <summary>
+    /// The wiring is useless without the binary it drives, so the image carries one — but only when there
+    /// is a database to replicate.
+    /// </summary>
+    [Fact]
+    public void The_image_carries_the_replicator_binary_only_when_there_is_a_database()
+    {
+        var (withData, _) = Generate(data: true, docker: true);
+        Assert.Contains("COPY --from=litestream/litestream:", withData["Dockerfile"], StringComparison.Ordinal);
+
+        var (without, _) = Generate(docker: true);
+        Assert.DoesNotContain("litestream", without["Dockerfile"], StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void The_shell_and_welcome_page_are_feature_slices_and_no_demo_files_are_scaffolded()
     {
