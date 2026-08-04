@@ -67,7 +67,7 @@ public sealed class DevCommandTests
 
         var exit = await command.ExecuteAsync(["--bogus"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
     }
 }

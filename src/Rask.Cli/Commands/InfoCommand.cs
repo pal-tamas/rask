@@ -20,6 +20,13 @@ internal sealed class InfoCommand(IConsole console, IProcessRunner process) : Cl
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
+        // Every other command rejects what it doesn't understand; this one used to ignore its arguments
+        // entirely, so `rask info --json` "succeeded" while quietly printing the plain report.
+        if (args.Count > 0)
+        {
+            return Fail([$"'{args[0]}' isn't an option of `rask info`."]);
+        }
+
         var sdkVersion = await CaptureSingleLineAsync(["--version"], cancellationToken).ConfigureAwait(false);
 
         Console.Out.WriteLine(FormatReport(CliMetadata.Version, sdkVersion, RuntimeInformation.OSDescription));

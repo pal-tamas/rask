@@ -21,6 +21,27 @@ internal static class Scaffold
         return Path.Combine(parts);
     }
 
+
+    /// <summary>
+    /// Is <paramref name="target"/> inside <paramref name="baseDirectory"/>?
+    ///
+    /// <para>Used by <c>rask generate</c>, whose <c>--output</c> names a folder <em>within the project</em>
+    /// — the namespace is derived from that folder's path, so a directory outside it can't produce a
+    /// coherent one. Before this, <c>--output ../../..</c> wrote files outside the project and quietly fell
+    /// back to the root namespace instead of failing. (<c>rask new --output</c> is different: naming a
+    /// directory anywhere is the whole point, so it doesn't use this.)</para>
+    /// </summary>
+    public static bool IsInside(string baseDirectory, string target)
+    {
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(baseDirectory));
+        var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(target));
+        return full.Equals(root, PathComparison)
+            || full.StartsWith(root + Path.DirectorySeparatorChar, PathComparison);
+    }
+
+    /// <summary>Paths compare case-insensitively where the filesystem does.</summary>
+    private static StringComparison PathComparison =>
+        OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
     /// <summary>
     /// The default folder segments for a cross-cutting artifact (component/job/email): its own feature slice
     /// <c>Features/&lt;Feature&gt;</c> when <c>--feature</c> names one, otherwise the shared bucket

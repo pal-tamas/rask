@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Cli.Scaffolding;
 using Rask.Cli.Templates;
 
@@ -19,10 +20,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
     internal static readonly string[] FeatureFlags = ["auth", "pwa", "cqrs", "data", "docker"];
 
-    // Latest published stable used when the running CLI's own version isn't a resolvable package (a dev/CI
-    // build stamps a prerelease like "0.17.1-alpha.0.5+sha" that isn't on NuGet). PR5's INuGetClient will
-    // resolve this live; until then a known-good stable keeps generated projects restorable.
-    private const string LatestStableFallback = "0.17.0";
 
     public override string Name => "new";
 
@@ -57,6 +54,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
             .Flag("data", description: "Pre-wire SQLite + EF Core: an AppDbContext ready for `rask generate feature --context AppDbContext` (server only).")
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
+            .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")
+            .Flag("force", description: "Scaffold into a directory that already has files in it, overwriting on collision.")
             .Flag("dry-run", description: "Print the files that would be written without touching disk.");
 
     public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
@@ -140,7 +139,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
 
             return await GenerateDirectAsync(
-                template, name, parsed.Option("output"), parsed.HasFlag("dry-run"),
+                template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"), parsed.HasFlag("no-restore"),
                 (dir, version) => ProjectGenerator.GenerateNative(dir, name, host, version),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -148,7 +147,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // Every web template is generated directly by the CLI (server, wasm, wasm-hosted). native is handled
         // above with its own shape; the key here is one of those three (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
-            template, name, parsed.Option("output"), parsed.HasFlag("dry-run"),
+            template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"), parsed.HasFlag("no-restore"),
             (dir, version) =>
             {
                 bool auth = requestedFlags.Contains("auth"), pwa = requestedFlags.Contains("pwa"),
@@ -200,7 +199,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     }
 
     private async Task<int> GenerateDirectAsync(
-        TemplateInfo template, string name, string? output, bool dryRun,
+        TemplateInfo template, string name, string? output, bool dryRun, bool force, bool noRestore,
         Func<string, string, ScaffoldResult> build, CancellationToken cancellationToken)
     {
         // rask new MyApp → ./MyApp/ ; --output overrides the destination directory.
@@ -227,11 +226,35 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var restoreTarget = result.RestoreTarget is { } relative
             ? Path.Combine(targetDirectory, relative)
             : Path.Combine(targetDirectory, name + ".csproj");
-        if (_fileSystem.FileExists(restoreTarget))
+        // The guard used to check only for the restore target, so scaffolding over a directory that already
+        // held a Program.cs, a Features/ tree or a wwwroot silently overwrote them — with no --force to
+        // consent to it and nothing to undo it. Any existing file is now enough to stop.
+        if (!force)
         {
-            var existing = Path.GetFileName(restoreTarget);
-            Console.Error.WriteLine($"A project already exists at '{targetDirectory}' ({existing}). Choose another name or --output.");
-            return 1;
+            if (_fileSystem.FileExists(restoreTarget))
+            {
+                var existing = Path.GetFileName(restoreTarget);
+                Console.Error.WriteLine($"A project already exists at '{targetDirectory}' ({existing}). Choose another name, --output, or pass --force.");
+                return 1;
+            }
+
+            var clashes = result.Files.Where(f => _fileSystem.FileExists(f.Path)).ToArray();
+            if (clashes.Length > 0)
+            {
+                Console.WriteErrorLine($"'{targetDirectory}' already contains files this would overwrite:", ConsoleStyle.Error);
+                foreach (var clash in clashes.Take(5))
+                {
+                    Console.Error.WriteLine($"  {Path.GetRelativePath(_workingDirectory, clash.Path)}");
+                }
+
+                if (clashes.Length > 5)
+                {
+                    Console.Error.WriteLine($"  …and {(clashes.Length - 5).ToString(CultureInfo.InvariantCulture)} more");
+                }
+
+                Console.Error.WriteLine("Choose another name or --output, or pass --force to overwrite.");
+                return 1;
+            }
         }
 
         WriteHeading($"Creating {template.DisplayName} '{name}'…");
@@ -248,18 +271,34 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         // Package refs are already baked into the csproj(s) at the pinned version; restore pulls them so the
-        // project builds immediately. A restore failure is a warning — the files are written and correct.
-        Console.WriteLine("Restoring packages…", ConsoleStyle.Dim);
-        var restore = await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false);
-        if (restore != 0)
+        // project builds immediately. The files on disk are complete and correct either way — but a failed
+        // restore leaves a project that won't build, so it is reported as a failure rather than a warning
+        // that `rask new && dotnet build` would step straight past. --no-restore skips it deliberately.
+        var restoreFailed = false;
+        if (noRestore)
         {
-            WriteWarning("  Couldn't restore automatically — run 'dotnet restore' in the project directory.");
+            Console.WriteLine("Skipped restore (--no-restore) — run 'dotnet restore' before building.", ConsoleStyle.Dim);
+        }
+        else
+        {
+            Console.WriteLine("Restoring packages…", ConsoleStyle.Dim);
+            restoreFailed = await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false) != 0;
         }
 
         if (!string.IsNullOrEmpty(result.Notes))
         {
             Console.Out.WriteLine();
             Console.Out.WriteLine(result.Notes);
+        }
+
+        if (restoreFailed)
+        {
+            Console.Out.WriteLine();
+            Console.WriteErrorLine(
+                $"The project was written to '{targetDirectory}', but restoring its packages failed — it won't build until that succeeds.",
+                ConsoleStyle.Error);
+            Console.Error.WriteLine("Run 'dotnet restore' there once you're online, or re-run with --no-restore to skip this step.");
+            return 1;
         }
 
         return 0;
@@ -269,10 +308,55 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// Resolve the package version to pin in a generated project: the CLI's own version when it's a published
     /// stable, else the latest-stable fallback (a dev/CI prerelease isn't on NuGet). Pure — unit-tested directly.
     /// </summary>
-    internal static string ResolvePackageVersion(string cliVersion) =>
-        !string.IsNullOrEmpty(cliVersion)
-        && !cliVersion.Contains('-', StringComparison.Ordinal)
-        && cliVersion != "0.0.0"
-            ? cliVersion
-            : LatestStableFallback;
+    /// <summary>
+    /// The version to pin generated <c>PackageReference</c>s at.
+    ///
+    /// <para>A released CLI stamps a stable version and pins itself — the CLI and the packages ship under
+    /// one tag, so a project is pinned to the CLI that made it. A dev or CI build stamps a MinVer
+    /// prerelease (<c>0.19.1-alpha.0.5+sha</c>) that was never published, and pinning that would produce a
+    /// project which cannot restore.</para>
+    ///
+    /// <para>So a prerelease is walked back to the release it came after. MinVer names a prerelease for the
+    /// version it is <em>heading towards</em>, bumping the patch: the build after <c>v0.19.0</c> is
+    /// <c>0.19.1-alpha.N</c>, whose last published predecessor is <c>0.19.0</c>. This used to be a
+    /// hardcoded constant, which silently rotted two minor versions behind the repo.</para>
+    /// </summary>
+    internal static string ResolvePackageVersion(string cliVersion)
+    {
+        if (string.IsNullOrEmpty(cliVersion) || cliVersion == "0.0.0")
+        {
+            return cliVersion;
+        }
+
+        var dash = cliVersion.IndexOf('-', StringComparison.Ordinal);
+        if (dash < 0)
+        {
+            return cliVersion; // a released build: pin to itself
+        }
+
+        var parts = cliVersion[..dash].Split('.');
+        if (parts.Length != 3
+            || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var minor)
+            || !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var patch))
+        {
+            return cliVersion;
+        }
+
+        // 0.19.1-alpha.N came after v0.19.0 (MinVer's default patch bump).
+        if (patch > 0)
+        {
+            return $"{parts[0]}.{parts[1]}.{(patch - 1).ToString(CultureInfo.InvariantCulture)}";
+        }
+
+        // 0.18.0-alpha.N came after a v0.17.x — which patch, we can't know, but .0 was certainly published
+        // and restores fine. Pinning slightly behind the newest release beats not restoring at all.
+        if (minor > 0)
+        {
+            return $"{parts[0]}.{(minor - 1).ToString(CultureInfo.InvariantCulture)}.0";
+        }
+
+        // 1.0.0-alpha.N — nothing published under this major to walk back to. Pinning a guess would be
+        // worse than pinning the prerelease, which at least fails loudly and legibly at restore.
+        return cliVersion;
+    }
 }
