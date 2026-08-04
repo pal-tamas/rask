@@ -44,7 +44,7 @@ internal static partial class ProjectGenerator
 
         if (docker)
         {
-            files.Add(("Dockerfile", Dockerfile));
+            files.Add(("Dockerfile", Dockerfile(data)));
             files.Add((".dockerignore", DockerIgnore));
         }
 
@@ -60,6 +60,7 @@ internal static partial class ProjectGenerator
         {
             packages.Add("Rask.Data");
             packages.Add("Rask.SQLite.EntityFrameworkCore");
+            packages.Add("Rask.SQLite.Litestream");
         }
 
         return new ScaffoldResult(scaffoldFiles, ServerNextSteps(name, docker, data)) { Packages = packages };
@@ -74,6 +75,10 @@ internal static partial class ProjectGenerator
         var dataRef = data
             ? $"\n    <PackageReference Include=\"Rask.Data\" Version=\"{version}\"/>"
               + $"\n    <PackageReference Include=\"Rask.SQLite.EntityFrameworkCore\" Version=\"{version}\"/>"
+              // Continuous backup. Referenced whenever there's a database: the wiring in Program.cs stays
+              // inert until Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
+              // one-env-var path from "single copy on one disk" to "the box is disposable".
+              + $"\n    <PackageReference Include=\"Rask.SQLite.Litestream\" Version=\"{version}\"/>"
             : "";
         return $"""
         <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -121,6 +126,8 @@ internal static partial class ProjectGenerator
             sb.Append("using Microsoft.EntityFrameworkCore.Diagnostics;\n");
             sb.Append("using Rask.Data;\n");
             sb.Append("using Rask.SQLite;\n");
+            sb.Append("using Microsoft.Data.Sqlite;\n");
+            sb.Append("using Rask.SQLite.Litestream;\n");
         }
 
         sb.Append("\nvar builder = WebApplication.CreateBuilder(args);\n\n");
@@ -179,9 +186,29 @@ internal static partial class ProjectGenerator
                 // `rask generate feature X --context AppDbContext` adds a DbSet to AppDbContext;
                 // `rask db add <Name>` / `rask db update` create and apply the migration.
                 builder.Services.AddRaskData();
+                var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
                 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-                    .UseRaskSqlite(builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db")
+                    .UseRaskSqlite(connectionString)
                     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+
+                // Continuous backup. Litestream streams the write-ahead log to object storage, which is what
+                // makes one box a safe place to keep your only copy: if the machine dies, a fresh one restores
+                // the database from the replica on startup and carries on. Durability stops depending on that
+                // one disk — the whole premise of running a real product on a single server.
+                //
+                // Inert until you point it somewhere. To turn it on:
+                //   rask deploy --env "Litestream__ReplicaUrl=s3://your-bucket/app"
+                // plus whatever credentials your provider needs (e.g. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY).
+                // s3://, gcs://, abs:// and file:// replicas are all supported — see docs/sqlite.md.
+                var replicaUrl = builder.Configuration["Litestream:ReplicaUrl"];
+                if (!string.IsNullOrWhiteSpace(replicaUrl))
+                {
+                    builder.Services.AddRaskSqliteLitestream(o =>
+                    {
+                        o.DatabasePath = new SqliteConnectionStringBuilder(connectionString).DataSource;
+                        o.ReplicaUrl = replicaUrl;
+                    });
+                }
 
                 """.TrimStart('\n'));
         }
@@ -258,6 +285,23 @@ internal static partial class ProjectGenerator
             app.UseStatusCodePages();
 
             """.TrimStart('\n'));
+
+        if (data)
+        {
+            sb.Append("""
+
+                // Restore before anything opens the database (migrations, the first query). On a box that
+                // already has app.db this is a no-op and never clobbers it; on a fresh one it pulls the
+                // database back from the replica — which is the moment the "disposable box" promise is kept
+                // or broken. Guarded because RestoreSqliteFromLitestreamAsync throws when no replica is
+                // configured, and an app without one must still start.
+                if (!string.IsNullOrWhiteSpace(replicaUrl))
+                {
+                    await app.Services.RestoreSqliteFromLitestreamAsync();
+                }
+
+                """.TrimStart('\n'));
+        }
 
         if (auth)
         {
@@ -463,7 +507,23 @@ internal static partial class ProjectGenerator
 
         """;
 
-    private const string Dockerfile =
+    /// <summary>
+    /// The production image. With <c>--data</c> it also carries the <c>litestream</c> binary the app's
+    /// replicator drives: the wiring in Program.cs is inert without it, so shipping one without the other
+    /// would mean a "continuous backup" that silently never runs. Copied from Litestream's own published
+    /// image — one layer, no package manager, and the right architecture picked by the manifest.
+    /// </summary>
+    private static string Dockerfile(bool data) =>
+        data
+            ? DockerfileTemplate.Replace(
+                "@@LITESTREAM@@",
+                "\n# The replicator binary Program.cs drives when Litestream__ReplicaUrl is set (see docs/sqlite.md).\n"
+                + "COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /usr/local/bin/litestream\n",
+                StringComparison.Ordinal)
+            : DockerfileTemplate.Replace("@@LITESTREAM@@\n", string.Empty, StringComparison.Ordinal)
+                .Replace("@@LITESTREAM@@", string.Empty, StringComparison.Ordinal);
+
+    private const string DockerfileTemplate =
         """
         # Multi-stage build: compile on the .NET SDK image, run on the smaller aspnet runtime.
         # The aspnet:10.0 image already runs as a non-root user and listens on port 8080
@@ -480,6 +540,7 @@ internal static partial class ProjectGenerator
         FROM mcr.microsoft.com/dotnet/aspnet:10.0
         WORKDIR /app
         COPY --from=build /app .
+        @@LITESTREAM@@
 
         # A writable data directory for the SQLite database, owned by the image's non-root runtime user
         # ($APP_UID). `rask deploy` mounts a named volume here and points the app at /data/app.db (via
