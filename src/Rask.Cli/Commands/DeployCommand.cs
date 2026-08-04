@@ -26,7 +26,7 @@ namespace Rask.Cli.Commands;
 /// (default <c>/health</c>, the endpoint <c>rask new</c> scaffolds); <c>--no-health-check</c> falls back to
 /// the container-running gate only.</para>
 /// </summary>
-internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
+internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
 {
     /// <summary>
@@ -52,6 +52,22 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     /// app's Litestream flush + SQLite WAL checkpoint (Litestream's default shutdown grace is 10s).</summary>
     internal const int StopTimeoutSeconds = 20;
 
+    /// <summary>
+    /// The tag the running app is built to, and the one holding the version it replaced.
+    ///
+    /// <para>Deploys used to build straight to <c>:latest</c> every time, which left the previous image
+    /// untagged and therefore unrecoverable — so a bad deploy that <em>passed</em> its health check (it
+    /// starts and answers, it's just wrong) could only be undone by building again from fixed source.
+    /// Keeping the last image under its own tag is what makes <c>rask deploy rollback</c> possible at
+    /// all.</para>
+    /// </summary>
+    internal const string CurrentTag = "current";
+
+    internal const string PreviousTag = "previous";
+
+    /// <summary>Verbs that operate on an existing deployment. A bare <c>rask deploy</c> deploys.</summary>
+    private static readonly string[] Subcommands = ["status", "logs", "rollback"];
+
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
@@ -65,8 +81,13 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
 
     public override string Summary => "Build and deploy the app to a single host over SSH (auto-HTTPS with --domain).";
 
+    public override IReadOnlyList<(string Name, string Description)> Arguments =>
+    [
+        ("[status|logs|rollback]", "Operate on what's already deployed instead of deploying (omit to deploy)."),
+    ];
+
     public override string Usage =>
-        "rask deploy [--host user@box] [--domain app.example.com] [--port <n>] [--container-port <n>] " +
+        "rask deploy [status|logs|rollback] [--host user@box] [--domain app.example.com] [--port <n>] [--container-port <n>] " +
         "[--project <path>] [--name <slug>] [--dockerfile <path>] [--env KEY=VALUE ...] [--env-file <path>] " +
         "[--health-path <path>] [--no-health-check] [--setup-host] [--github-actions] [--dry-run]";
 
@@ -77,6 +98,9 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         "rask deploy --env ConnectionStrings__Db=... --env-file .env.production",
         "rask deploy --github-actions",
         "rask deploy --dry-run",
+        "rask deploy status",
+        "rask deploy logs --follow",
+        "rask deploy rollback",
     ];
 
     /// <summary>Options that only matter the first time a box is deployed to — grouped so --help stays readable.</summary>
@@ -99,6 +123,8 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             .Flag("no-health-check", description: "Skip the post-deploy HTTP health check.")
             .Flag("github-actions", description: "Write a .github/workflows/deploy.yml that runs this deploy on push, and print the secrets to add.")
             .Flag("dry-run", description: "Print the docker commands that would run without changing anything.")
+            .Option("tail", valueHint: "n", description: "Log lines to show (logs only; default: 100, 'all' for everything).")
+            .Flag("follow", 'f', "Stream new log lines until interrupted (logs only).")
             .Flag("setup-host", group: SetupGroup, description: "Prepare the host without asking (installs Docker, creates the deploy user, firewall, SSH hardening).")
             .Flag("no-setup-host", group: SetupGroup, description: "Never change the host; fail with instructions if it isn't ready.")
             .Option("deploy-user", valueHint: "name", group: SetupGroup, description: "Non-root login to create and deploy as when given a root host (default: deploy).")
@@ -116,9 +142,24 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             return Fail(parsed.Errors);
         }
 
-        if (parsed.Positionals.Count > 0)
+        // A bare `rask deploy` deploys; a verb after it operates on what is already deployed.
+        if (parsed.Positionals.Count > 0 && !Subcommands.Contains(parsed.Positionals[0], StringComparer.Ordinal))
         {
-            Console.Error.WriteLine($"Unexpected argument '{parsed.Positionals[0]}'. Usage: {Usage}");
+            Console.Error.WriteLine($"Unknown deploy action '{parsed.Positionals[0]}' — expected one of: {string.Join(", ", Subcommands)}.");
+            Console.Error.WriteLine($"Usage: {Usage}");
+            return 1;
+        }
+
+        if (parsed.Positionals.Count > 1)
+        {
+            Console.Error.WriteLine($"Unexpected argument '{parsed.Positionals[1]}'. Usage: {Usage}");
+            return 1;
+        }
+
+        var action = parsed.Positionals.Count > 0 ? parsed.Positionals[0] : null;
+        if (!TryRejectMisplacedOptions(parsed, action, out var optionError))
+        {
+            Console.Error.WriteLine(optionError);
             return 1;
         }
 
@@ -190,7 +231,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         var contextDir = Path.GetDirectoryName(Path.GetFullPath(dockerfile)) ?? projectDir;
         var slug = ToContainerSlug(parsed.Option("name") ?? config.Name ?? located?.RootNamespace ?? new DirectoryInfo(projectDir).Name);
 
-        if (!_fileSystem.FileExists(dockerfile))
+        if (action is null && !_fileSystem.FileExists(dockerfile))
         {
             Console.Error.WriteLine($"No Dockerfile found at '{dockerfile}'.");
             Console.Error.WriteLine("Scaffold one with `rask new <name> --docker`, or point at yours with --dockerfile <path>.");
@@ -276,7 +317,21 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             Console.WriteLine($"  Remembered {host} in {Path.Combine(".rask", "deploy.json")} — deploy as that from now on.", ConsoleStyle.Dim);
         }
 
-        WriteHeading($"Building {slug}:latest on {host}…");
+        if (action is not null)
+        {
+            return action switch
+            {
+                "status" => await StatusAsync(host, slug, cancellationToken).ConfigureAwait(false),
+                "logs" => await LogsAsync(host, slug, parsed, cancellationToken).ConfigureAwait(false),
+                _ => await RollbackAsync(host, slug, domain, port, containerPort, env, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false),
+            };
+        }
+
+        // Move the live image aside before the build takes its tag, so the version being replaced stays
+        // recoverable by `rask deploy rollback`. It fails harmlessly on a first deploy (no :current yet).
+        await Run(BuildRetagArguments(host, slug, CurrentTag, PreviousTag), cancellationToken).ConfigureAwait(false); // ignore-absent
+
+        WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
         if (await Run(BuildBuildArguments(host, slug, dockerfile, contextDir), cancellationToken).ConfigureAwait(false) != 0)
         {
             Console.WriteErrorLine("Docker build failed.", ConsoleStyle.Error);
@@ -289,14 +344,14 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     }
 
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
-    private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken)
+    private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag)
     {
         // Retire the old container gracefully (SIGTERM → Litestream flush + WAL checkpoint) before removing it,
         // so the last writes reach the replica; both no-op on the first deploy (no container yet).
         await Run(BuildStopArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         await Run(BuildRemoveArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         Console.Out.WriteLine($"Starting {slug} on port {port}…");
-        if (await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort), cancellationToken).ConfigureAwait(false) != 0)
+        if (await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag), cancellationToken).ConfigureAwait(false) != 0)
         {
             Console.WriteErrorLine("Failed to start the container.", ConsoleStyle.Error);
             return 1;
@@ -324,7 +379,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
 
     // ── The domain path: blue-green swap behind a shared, multi-app Caddy proxy (zero downtime). ────────
     private async Task<int> DeployWithProxyAsync(
-        string host, string slug, string domain, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken)
+        string host, string slug, string domain, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag)
     {
         // The live containers are the source of truth. Read them once: the current color of this app (to
         // pick the next), plus every other app's route (to regenerate the full Caddyfile).
@@ -341,7 +396,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
 
         Console.Out.WriteLine($"Starting {newContainer} ({domain})…");
         // In domain mode the app is reached internally on its container port; no host port is published.
-        if (await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort), cancellationToken).ConfigureAwait(false) != 0)
+        if (await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort, tag), cancellationToken).ConfigureAwait(false) != 0)
         {
             Console.WriteErrorLine("Failed to start the new container.", ConsoleStyle.Error);
             return 1;
@@ -633,13 +688,26 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
     internal static string NextColor(string? current) =>
         string.Equals(current, "blue", StringComparison.Ordinal) ? "green" : "blue";
 
+    /// <summary>
+    /// Build the image. Tagged <c>:current</c> (what containers are started from, and what the next deploy
+    /// will move aside to <c>:previous</c>) and <c>:latest</c>, which is kept purely so the box still reads
+    /// the way a person expects when they run <c>docker images</c> themselves.
+    /// </summary>
     internal static IReadOnlyList<string> BuildBuildArguments(string host, string slug, string dockerfile, string contextDir) =>
-        [.. Prefix(host), "build", "-t", $"{slug}:latest", "-f", dockerfile, contextDir];
+        [.. Prefix(host), "build", "-t", $"{slug}:{CurrentTag}", "-t", $"{slug}:latest", "-f", dockerfile, contextDir];
+
+    /// <summary>Move the live image aside before a build overwrites its tag, so it can be rolled back to.</summary>
+    internal static IReadOnlyList<string> BuildRetagArguments(string host, string slug, string from, string to) =>
+        [.. Prefix(host), "tag", $"{slug}:{from}", $"{slug}:{to}"];
+
+    /// <summary>Does this tag exist on the host? Used to tell "nothing to roll back to" from a failure.</summary>
+    internal static IReadOnlyList<string> BuildImageExistsArguments(string host, string slug, string tag) =>
+        [.. Prefix(host), "image", "inspect", "--format", "{{.Id}}", $"{slug}:{tag}"];
 
     internal static IReadOnlyList<string> BuildNetworkCreateArguments(string host, string network) =>
         [.. Prefix(host), "network", "create", network];
 
-    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort)
+    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag)
     {
         var args = new List<string>(Prefix(host)) { "run", "-d" };
         if (domain is null)
@@ -670,7 +738,7 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
             args.AddRange(["-e", entry]);
         }
 
-        args.Add($"{slug}:latest");
+        args.Add($"{slug}:{tag}");
         return args;
     }
 
@@ -708,8 +776,17 @@ internal sealed class DeployCommand(IConsole console, IFileSystem fileSystem, IP
         "-fsS", "-m", "5", $"http://localhost:{containerPort}{healthPath}",
     ];
 
-    internal static IReadOnlyList<string> BuildLogsArguments(string host, string container) =>
-        [.. Prefix(host), "logs", "--tail", "50", container];
+    internal static IReadOnlyList<string> BuildLogsArguments(string host, string container, string tail = "50", bool follow = false)
+    {
+        var args = new List<string>(Prefix(host)) { "logs", "--tail", tail };
+        if (follow)
+        {
+            args.Add("--follow");
+        }
+
+        args.Add(container);
+        return args;
+    }
 
     internal static IReadOnlyList<string> BuildRemoveArguments(string host, string container) =>
         [.. Prefix(host), "rm", "-f", container];

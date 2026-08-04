@@ -172,6 +172,90 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     }
 
     /// <summary>
+    /// The day-two verbs, against a real deployment. Rollback is the one that most needs a live host: it
+    /// depends on image tags surviving a build that reuses them, which no mock can tell you.
+    /// </summary>
+    [SkippableFact]
+    public async Task Status_logs_and_rollback_operate_on_the_live_deployment()
+    {
+        var project = Start(out var console, out var command);
+        string[] args = ["--host", host.Host, "--domain", "rask-ops.test", "--name", "opsapp"];
+
+        // v1 — the version we will roll back to. A marker in the served body identifies it.
+        File.WriteAllText(Path.Combine(project, "Dockerfile"), AppWithMarker("VERSION-ONE"));
+        Assert.True(await command.ExecuteAsync(args, CancellationToken.None) == 0, $"v1 deploy failed.\n{console.ErrorText}");
+
+        // v2 — starts and answers, so every deploy-time gate passes. It's simply the wrong build; that is
+        // precisely the failure the blue-green rollback cannot help with, and what `rollback` is for.
+        File.WriteAllText(Path.Combine(project, "Dockerfile"), AppWithMarker("VERSION-TWO"));
+        Assert.True(await command.ExecuteAsync(args, CancellationToken.None) == 0, $"v2 deploy failed.\n{console.ErrorText}");
+        Assert.Equal("VERSION-TWO", await ServedBodyAsync("opsapp"));
+
+        var status = new StringConsole();
+        var statusCommand = Command(project, status);
+        Assert.Equal(0, await statusCommand.ExecuteAsync(["status", "--host", host.Host, "--name", "opsapp"], CancellationToken.None));
+        Assert.Contains("opsapp", status.OutText, StringComparison.Ordinal);
+        Assert.Contains("rask-ops.test", status.OutText, StringComparison.Ordinal);
+        Assert.Contains("rollback", status.OutText, StringComparison.Ordinal); // ...and that one is possible
+
+        var logs = new StringConsole();
+        Assert.Equal(0, await Command(project, logs).ExecuteAsync(["logs", "--host", host.Host, "--name", "opsapp", "--tail", "10"], CancellationToken.None));
+
+        var back = new StringConsole();
+        var exit = await Command(project, back).ExecuteAsync(["rollback", "--host", host.Host, "--name", "opsapp"], CancellationToken.None);
+        Assert.True(exit == 0, $"rollback failed.\n{back.OutText}\n{back.ErrorText}");
+
+        // The proof: the live site serves v1 again, through the proxy, after a health-gated swap.
+        Assert.Equal("VERSION-ONE", await ServedBodyAsync("opsapp"));
+
+        // ...and rolling back again returns to v2, because the tags were swapped rather than consumed.
+        var forward = new StringConsole();
+        Assert.Equal(0, await Command(project, forward).ExecuteAsync(["rollback", "--host", host.Host, "--name", "opsapp"], CancellationToken.None));
+        Assert.Equal("VERSION-TWO", await ServedBodyAsync("opsapp"));
+    }
+
+    [SkippableFact]
+    public async Task Rollback_refuses_when_there_is_no_previous_image()
+    {
+        var project = Start(out var console, out var command);
+        Assert.True(
+            await command.ExecuteAsync(["--host", host.Host, "--port", "8090", "--name", "onlyonce"], CancellationToken.None) == 0,
+            $"first deploy failed.\n{console.ErrorText}");
+
+        var back = new StringConsole();
+        var exit = await Command(project, back).ExecuteAsync(["rollback", "--host", host.Host, "--name", "onlyonce"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("nothing to roll back to", back.ErrorText, StringComparison.Ordinal);
+    }
+
+    /// <summary>An app whose body identifies which build is serving.</summary>
+    private static string AppWithMarker(string marker) =>
+        $$"""
+        FROM docker.io/library/nginx:alpine
+        RUN mkdir -p /data \
+         && printf 'server { listen 8080; location /health { return 200 "{{marker}}"; } }\n' > /etc/nginx/conf.d/default.conf
+        EXPOSE 8080
+        CMD ["/bin/sh","-c","echo boot >> /data/boots.txt; exec nginx -g 'daemon off;'"]
+        """.ReplaceLineEndings("\n");
+
+    /// <summary>What the app is actually serving right now, fetched from inside the host.</summary>
+    private async Task<string> ServedBodyAsync(string slug)
+    {
+        var (_, container) = await host.DockerAsync("ps", "--filter", $"label=rask.app={slug}", "--format", "{{.Names}}");
+        var (_, body) = await host.DockerAsync("exec", container.Trim(), "wget", "-qO-", "http://127.0.0.1:8080/health");
+        return body.Trim();
+    }
+
+    /// <summary>A second command against the same project directory (each verb gets a fresh console).</summary>
+    private DeployCommand Command(string project, StringConsole console) =>
+        new(console, new SystemFileSystem(), new EnvScopedProcessRunner(host.Environment, host.Executables), project)
+        {
+            ReadinessDelay = TimeSpan.FromMilliseconds(500),
+            ReadinessAttempts = 30,
+        };
+
+    /// <summary>
     /// Set up a project directory holding the app's Dockerfile and a <see cref="DeployCommand"/> wired to the
     /// real filesystem and a process runner scoped to the fixture's ssh identity. Skips when the gate is off
     /// or the fake VPS couldn't start, so a machine without Docker reports SKIPPED rather than failing.

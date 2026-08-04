@@ -15,7 +15,11 @@ public sealed class DeployCommandTests
     {
         var args = DeployCommand.BuildBuildArguments("deploy@box", "shop", "/proj/Dockerfile", "/proj");
 
-        Assert.Equal(["-H", "ssh://deploy@box", "build", "-t", "shop:latest", "-f", "/proj/Dockerfile", "/proj"], args);
+        // Two tags: :current is what runs and what the next deploy moves aside to :previous, and :latest
+        // is kept so the box still reads the way a person expects from `docker images`.
+        Assert.Equal(
+            ["-H", "ssh://deploy@box", "build", "-t", "shop:current", "-t", "shop:latest", "-f", "/proj/Dockerfile", "/proj"],
+            args);
     }
 
     [Fact]
@@ -31,7 +35,7 @@ public sealed class DeployCommandTests
             "--label", "rask.port=8080",
             // The persistent DB volume + connection string come before the user env, so --env A=1 still wins.
             "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
-            "-e", "A=1", "shop:latest",
+            "-e", "A=1", "shop:current",
         ], args);
     }
 
@@ -47,7 +51,7 @@ public sealed class DeployCommandTests
             // Labelled but with no rask.domain, so the host inventory sees it and the proxy doesn't.
             "--label", "rask.managed=true", "--label", "rask.app=shop", "--label", "rask.port=8080",
             "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
-            "shop:latest",
+            "shop:current",
         ], args);
     }
 
@@ -216,7 +220,7 @@ public sealed class DeployCommandTests
 
         Assert.Equal(0, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("docker -H ssh://deploy@box build -t shop:latest", console.OutText);
+        Assert.Contains("docker -H ssh://deploy@box build -t shop:current -t shop:latest", console.OutText);
         Assert.Contains("caddy reload", console.OutText);
     }
 
