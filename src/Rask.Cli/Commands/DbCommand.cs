@@ -118,6 +118,25 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
         // same project that owns the migrations, so it defaults to --project.
         var startupProject = parsed.Option("startup-project") ?? project;
 
+        // `--force`'s own help has always said it "skips the confirmation prompt" — and there was no
+        // prompt. `dotnet ef database drop` does its own, but only when it has a terminal, so a drop run
+        // from a script destroyed the database with nothing asked. Ask here, where we know the answer
+        // matters, and refuse rather than guess when there's nobody to ask.
+        if (subcommand == "drop" && !parsed.HasFlag("force"))
+        {
+            if (Console.IsInputRedirected)
+            {
+                Console.WriteErrorLine("`rask db drop` deletes the database. Pass --force to confirm — there's no terminal to ask on.", ConsoleStyle.Error);
+                return 1;
+            }
+
+            if (!new Prompt(Console).Confirm($"Drop the database for '{Path.GetFileName(startupProject)}'? This deletes it and everything in it.", @default: false))
+            {
+                Console.Out.WriteLine("Left it alone.");
+                return 0;
+            }
+        }
+
         if (!await EfToolProbe.EnsureAsync(_process, Console, cancellationToken).ConfigureAwait(false))
         {
             return 1;

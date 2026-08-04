@@ -30,6 +30,20 @@ catch (OperationCanceledException)
     // Ctrl+C: exit cleanly with the conventional SIGINT code, not an unhandled-exception stack trace.
     return 130;
 }
+catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException)
+{
+    // The filesystem said no — a read-only directory, a full disk, a file held open by an editor. The
+    // scaffolder writes through raw File/Directory calls, so before this these surfaced as a .NET stack
+    // trace: alarming, and it buried the one line that says which path failed.
+    SystemConsole.Instance.WriteErrorLine(exception.Message, ConsoleStyle.Error);
+    SystemConsole.Instance.Error.WriteLine("Check the path is writable and not open elsewhere. Set RASK_DEBUG=1 for the full stack trace.");
+    if (Environment.GetEnvironmentVariable("RASK_DEBUG") == "1")
+    {
+        SystemConsole.Instance.Error.WriteLine(exception.ToString());
+    }
+
+    return 1;
+}
 finally
 {
     Console.CancelKeyPress -= OnCancel;

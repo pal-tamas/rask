@@ -98,6 +98,19 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         _ => $"{string.Join(", ", items.Take(items.Count - 1))}, and {items[^1]}",
     };
 
+    /// <summary>
+    /// Set when a step we <em>attempted</em> failed — adding a package the generated code needs. The files
+    /// are written and correct, but the project cannot build, so the command must not report success:
+    /// before this, an offline `rask generate feature` exited 0 with its packages missing and a script or
+    /// CI step carried straight on.
+    ///
+    /// <para>Deliberately not set when we <em>declined</em> to act — a Program.cs that isn't top-level
+    /// statements gets its registrations printed instead of spliced. That's a documented fallback for a
+    /// project shape we won't edit blind, not a failure, and treating it as one would make every generate
+    /// in such a project exit non-zero.</para>
+    /// </summary>
+    private bool _wiringIncomplete;
+
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         if (args.Count == 0)
@@ -154,6 +167,17 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         // --feature co-locates a component/job/email into a slice folder. It's meaningless for a page (its
         // slice comes from the class name) and for a feature (which *is* a slice), so reject it there.
         var feature = parsed.Option("feature");
+
+        // --output names the folder outright; --feature asks for one to be chosen. Passing both looks like
+        // it should co-locate inside the output folder, but --output simply wins and --feature is
+        // discarded — so the file lands somewhere the user didn't ask for, under a namespace they didn't
+        // expect. Reject the combination rather than silently pick one.
+        if (feature is not null && parsed.Option("output") is not null)
+        {
+            Console.Error.WriteLine("--output and --feature can't be combined — --output already says where the file goes.");
+            return CliCommand.UsageExitCode;
+        }
+
         if (feature is not null && kind is "page" or "feature")
         {
             Console.Error.WriteLine("--feature only applies to 'generate component', 'job', or 'email'.");
@@ -200,6 +224,20 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return 1;
         }
 
+        // --output names a folder INSIDE the project: the namespace is derived from its path, so a folder
+        // outside can't produce a coherent one. It used to be accepted — files were written outside the
+        // project and quietly given the root namespace instead of failing.
+        if (parsed.Option("output") is { } outputOverride)
+        {
+            var target = Scaffold.TargetDirectory(_workingDirectory, outputOverride);
+            if (!Scaffold.IsInside(project.ProjectDirectory, target))
+            {
+                Console.WriteErrorLine($"--output '{outputOverride}' resolves outside the project ({target}).", ConsoleStyle.Error);
+                Console.Error.WriteLine($"Generated code is namespaced by its folder, so it has to live under '{project.ProjectDirectory}'.");
+                return CliCommand.UsageExitCode;
+            }
+        }
+
         if (!TryBuild(kind, name, project, parsed, out var result, out var buildError))
         {
             Console.Error.WriteLine(buildError);
@@ -236,6 +274,15 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         if (written == 0)
         {
             WriteNotes(result.Notes);
+        }
+
+        if (written == 0 && _wiringIncomplete)
+        {
+            Console.Out.WriteLine();
+            Console.WriteErrorLine(
+                "The files were written, but the wiring above didn't complete — the project won't build until you finish it.",
+                ConsoleStyle.Error);
+            return 1;
         }
 
         return written;
@@ -554,6 +601,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
     private void PrintManualRegistrations(ScaffoldResult result, string heading)
     {
+
         Console.WriteLine(heading, ConsoleStyle.Dim);
         foreach (var ns in result.ProgramUsings)
         {
@@ -597,6 +645,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             if (exit != 0)
             {
                 var manual = isRask ? $"dotnet add package {package} --version {raskVersion}" : $"dotnet add package {package}";
+                _wiringIncomplete = true;
                 WriteWarning($"  Couldn't add {package} automatically — add it manually: {manual}");
             }
         }

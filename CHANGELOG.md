@@ -7,6 +7,39 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **`rask new` no longer overwrites files it didn't create.** The guard checked only for the project file, so
+  scaffolding into a directory that already held a `Program.cs`, a `Features/` tree or a `wwwroot` silently
+  overwrote them — with no `--force` to consent to and nothing to undo it. Any existing file the template
+  would write now stops the command and lists what it would have replaced; `--force` opts in.
+- **A failed `dotnet restore` is reported as a failure.** It was a warning followed by exit `0`, so
+  `rask new && dotnet build` walked straight past a project whose packages hadn't restored. New
+  `--no-restore` covers the deliberate offline case.
+- **`rask generate` reports the packages it couldn't add.** A `dotnet add package` failure (offline, say)
+  printed a warning and exited `0` — a success from a project that cannot compile. Falling back to *printing*
+  the `Program.cs` registrations stays exit `0`: that's a documented fallback for a project shape Rask won't
+  edit blind, not a failed action.
+- **`rask generate --output` must stay inside the project.** `--output ../../..` wrote files outside it and
+  quietly gave them the root namespace instead of failing — generated code is namespaced by its folder, so a
+  folder outside the project can't produce a coherent one. Combining `--output` with `--feature` is also
+  rejected now instead of silently discarding `--feature`.
+- **`rask db drop` asks before dropping the database**, which its own `--force` help has always claimed it
+  did. `dotnet ef` prompts only when it has a terminal, so a drop run from a script destroyed the database
+  with nothing asked. Without a terminal it now refuses unless `--force` is given.
+- **`rask info` rejects arguments it doesn't understand**, instead of ignoring them and printing the plain
+  report for `rask info --json`.
+- **The pinned package version for generated projects is derived, not hardcoded.** It was a constant that had
+  rotted two minor versions behind the repo. A released CLI pins itself; a dev/CI prerelease walks back to
+  the release it came after.
+- **A filesystem error is a message, not a stack trace.** A read-only directory or a file held open by an
+  editor surfaced as an unhandled .NET exception, burying the one line naming the path. `RASK_DEBUG=1` still
+  prints the full trace.
+
+### Changed
+- **Usage errors exit with `2`**, distinct from `1` ("what you asked for failed"), so a script driving the
+  CLI can tell a mistyped invocation from a broken deploy. Exit codes are now documented in
+  [`cli.md`](docs/cli.md).
+
 ### Added
 - **Continuous backup is on the golden path.** `Rask.SQLite.Litestream` shipped, was documented, and was
   referenced by **no template** — so `rask new --data` → `rask deploy` produced a live app whose only copy of

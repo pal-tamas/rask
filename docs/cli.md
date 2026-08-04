@@ -89,6 +89,8 @@ Add pages and components to taste — `rask generate` is the fast path.
 | `--host` | `local` (default) or `server` — which native mode to scaffold (the `native` template only). |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore`). |
+| `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
+| `--no-restore` | Skip `dotnet restore` (for offline use). Without it, a restore failure is reported as a failure — the files are written, but the project won't build until it succeeds. |
 
 The flags wire a feature up; they don't scaffold sample pages for you to delete.
 
@@ -168,6 +170,17 @@ to create and apply with [`rask db`](#rask-db--ef-core-migrations) before it wor
 
 Every command has short aliases: `rask g` = `rask generate`, and `g f` / `g c` / `g p` scaffold a
 feature / component / page.
+
+### Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success. |
+| `1` | The command ran and what you asked for failed — a build error, an unreachable host, a refused deploy. |
+| `2` | The command line was wrong — an unknown option, a missing value, options that contradict each other. |
+| `130` | Interrupted with Ctrl+C. |
+
+The `1` / `2` split is what lets a script tell a broken invocation from a broken deploy.
 
 ## `rask dev` — run with hot reload
 
