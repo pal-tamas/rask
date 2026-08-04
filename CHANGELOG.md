@@ -84,6 +84,15 @@ them until tagged releases begin.
   [`cli.md`](docs/cli.md).
 
 ### Added
+- **Scaffolded apps get a production error page.** An unhandled exception thrown *outside* a component
+  tree used to return a bare 500 with an empty body (`ErrorBoundary` already covered inside one).
+  `rask new` now emits `Features/Shared/ErrorPage.cs` — a routed `/error` page that renders through the app
+  shell — and registers `app.UseExceptionHandler("/error")` outside Development, where the developer
+  exception page is strictly better. The page shows a correlation id (`Activity.Current?.Id`) and
+  deliberately nothing about the exception: it is served to whoever hit the error, so rendering the message
+  or a stack trace would be worse than the blank page it replaces. The detail goes to `ILogger`, matched by
+  that id. `[AllowAnonymous]`, so adding a fallback authorization policy later can't make the error page
+  redirect to `/login`.
 - **Continuous backup is on the golden path.** `Rask.SQLite.Litestream` shipped, was documented, and was
   referenced by **no template** — so `rask new --data` → `rask deploy` produced a live app whose only copy of
   the database was a volume on one box, while `rask deploy`'s own code comments explained that the graceful
