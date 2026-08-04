@@ -70,10 +70,19 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[`Rask.Cache`](cache.md)** | A database-backed cache: the standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync` and absolute/sliding expiry. |
 | **[`Rask.Outbox`](outbox.md)** | Transactional outbox — domain events captured in the same transaction and relayed at-least-once, no external broker. |
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
-| **[Auth](authentication.md)** | Cookie & JWT login/session scaffolding in the templates. |
+| **[Auth](authentication.md)** | Cookie & JWT sessions, claims and authorization. The **user store is yours** — `--auth` scaffolds a demo one; see the [roadmap](roadmap.md#not-shipped). |
 | **[PWA & native](pwa.md)** | Installable offline apps and real iOS/Android from the same components. |
 | **[Web Push](webpush.md)** | Server-sent Web Push on your own VAPID keys (RFC 8292/8291), zero external deps — pairs with the client `IWebPush`. |
+| **[Secrets](secrets.md)** | Environment variables, remembered by name so a redeploy can't silently drop one. No vault or rotation. |
 | **[Deploy](deployment.md)** | `rask deploy` takes a bare VPS to a live HTTPS site — installs Docker, a non-root deploy login, a firewall and SSH hardening, then builds on the box and swaps in with zero downtime. No SSH session of your own required. |
+
+## What isn't in the box
+
+The claim above is "everything a solo developer needs to go from empty folder to shipped", and it's worth
+being precise about the edges. Rask does **not** ship a user store (registration, password hashing, reset,
+MFA — `--auth` scaffolds a demo credential store you replace), file/blob storage, rate limiting, or a
+secret store beyond environment variables. The [roadmap](roadmap.md#not-shipped) lists each one and what
+you'd reach for instead. Knowing that before you start is worth more than a longer list of batteries.
 
 ## DB-backed by default
 

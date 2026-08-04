@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Docs
+- **The roadmap says what isn't shipped, not only what is.** Every pillar was marked ✅, which made the page
+  useless for the decision it exists to support — whether Rask fits your product. A new **Not shipped**
+  section names the gaps and what to reach for instead: a **user store and account lifecycle** (registration,
+  password hashing, reset, lockout, MFA), **file/blob storage**, **rate limiting** (including the absence of
+  any login-attempt throttle), and a **dead-letter surface** for jobs/mail/outbox, which retry, give up, and
+  leave the row with nothing to show you it happened.
+- **Auth is split into what ships and what doesn't.** The sign-in machinery is real — cookie and JWT
+  sessions, claims, authorization, hardening guidance — but `rask new --auth` scaffolds a *demo* credential
+  store with hardcoded logins, and one ✅ covering both read as a user system that exists. The doctrine
+  page's battery list and its "everything a solo developer needs" claim now carry the same caveat.
+- **Every doc is reachable from the docs index**, which the doctrine page calls "the full map".
+  `elements.md` (the DSL reference) and `repo-administration.md` were reachable from nothing at all; the
+  operationally important `observability.md` and `configuration.md` now have index rows of their own rather
+  than being buried a level down. A new test enforces reachability — links through a hub page count, since
+  the docs are deliberately hub-and-subpage; being findable from *nowhere* is the failure.
+
 ### Fixed
 - **`rask new` no longer overwrites files it didn't create.** The guard checked only for the project file, so
   scaffolding into a directory that already held a `Program.cs`, a `Features/` tree or a `wwwroot` silently
