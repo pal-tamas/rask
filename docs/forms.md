@@ -59,6 +59,13 @@ label), `Spellcheck` (the enumerated `spellcheck="true|false"`), `Capture` (came
 input), and `Dirname`. The Bootstrap `BsInput`/`BsTextarea` forward all of these (see
 [bootstrap-forms.md](bootstrap-forms.md)).
 
+> **Fractional numbers get `step="any"` automatically.** A `decimal`/`double`/`float`/`Half` binding
+> renders `<input type="number" step="any">`. Without it HTML's default is `step="1"`, so the browser's own
+> constraint validation rejects `42.50` and **refuses to fire submit** — silently, with nothing thrown and
+> no validation message, which reads as the form being broken. Integral types keep the implicit whole-number
+> constraint. An explicit `Step:` always wins, and is worth setting for money (`Step: "0.01"` makes the
+> spinner step by cents).
+
 ### File inputs
 
 `InputType.File` turns an `<input>` into a file picker. Instead of binding a value, hand it an
