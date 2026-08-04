@@ -184,9 +184,13 @@ public sealed class Input<T> : Element, IFormControl<T>
             AppendAttr(sb, "max", Max);
         }
 
-        if (Step is not null)
+        // An explicit Step always wins. Otherwise a fractional bound type needs step="any": HTML defaults
+        // to step="1", so the browser's own constraint validation rejects 42.50 and never fires submit —
+        // silently, with no validation message and nothing thrown. Same hazard on a range input.
+        var step = Step ?? (resolvedType is "number" or "range" ? BindingHelpers.DefaultStep(typeof(T)) : null);
+        if (step is not null)
         {
-            AppendAttr(sb, "step", Step);
+            AppendAttr(sb, "step", step);
         }
 
         if (Pattern is not null)

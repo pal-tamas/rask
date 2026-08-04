@@ -44,6 +44,25 @@ public static class BindingHelpers
     // the native numeric keypad and increment buttons; the actual round-trip through
     // RouteValueParser uses T.TryParse(raw, InvariantCulture, out) so the parse side is
     // already polymorphic across the whole set.
+    /// <summary>
+    /// The <c>step</c> a numeric input needs by default, or <see langword="null"/> when the HTML default is
+    /// right.
+    /// </summary>
+    /// <remarks>
+    /// HTML's default is <c>step="1"</c>, so an <c>&lt;input type="number"&gt;</c> bound to a fractional
+    /// type makes the <b>browser's own constraint validation</b> reject a value like <c>42.50</c> and
+    /// refuse to fire submit. Nothing throws and no validation message renders — the form simply does
+    /// nothing, which reads as the framework being broken rather than an attribute being missing.
+    /// Integral types keep the implicit <c>step="1"</c>: there, whole numbers are the constraint you want.
+    /// </remarks>
+    public static string? DefaultStep(Type propType)
+    {
+        var t = Nullable.GetUnderlyingType(propType) ?? propType;
+        return t == typeof(decimal) || t == typeof(double) || t == typeof(float) || t == typeof(Half)
+            ? "any"
+            : null;
+    }
+
     public static string DefaultInputType(Type propType)
     {
         var t = Nullable.GetUnderlyingType(propType) ?? propType;

@@ -9,6 +9,43 @@ public class InputTests
         Assert.Equal("<input />", Input<string>().ToHtml());
 
     [Fact]
+    public void Render_DecimalBinding_EmitsStepAnyBetweenMaxAndPattern()
+    {
+        // HTML defaults to step="1", so without this the browser's own constraint validation rejects a
+        // fractional value and refuses to fire submit — silently, with nothing thrown and no message shown.
+        // Asserted as exact markup because `step` has to keep its slot in the attribute order.
+        var model = new PriceModel();
+
+        Assert.Equal(
+            "<input type=\"number\" name=\"Price\" value=\"0\" max=\"10\" step=\"any\" pattern=\"p\" />",
+            Input(() => model.Price, Max: "10", Pattern: "p").ToHtml());
+    }
+
+    [Fact]
+    public void Render_IntBinding_KeepsTheImplicitWholeNumberStep()
+    {
+        // Integral types must NOT get step="any" — there, whole numbers are the constraint you want.
+        var model = new PriceModel();
+
+        Assert.DoesNotContain("step=", Input(() => model.Quantity).ToHtml(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_ExplicitStep_WinsOverTheDefault()
+    {
+        var model = new PriceModel();
+
+        Assert.Contains("step=\"0.01\"", Input(() => model.Price, Step: "0.01").ToHtml(), StringComparison.Ordinal);
+    }
+
+    private sealed class PriceModel
+    {
+        public decimal Price { get; set; }
+
+        public int Quantity { get; set; }
+    }
+
+    [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
         Assert.Equal(

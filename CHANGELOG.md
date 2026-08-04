@@ -25,6 +25,14 @@ them until tagged releases begin.
   the docs are deliberately hub-and-subpage; being findable from *nowhere* is the failure.
 
 ### Fixed
+- **A `decimal` input no longer silently refuses to submit.** An `Input` bound to a fractional type
+  rendered `<input type="number">` with no `step`, and HTML's default is `step="1"` — so the browser's own
+  constraint validation rejected `42.50` and never fired the submit event. Nothing threw, no validation
+  message appeared, and the form simply did nothing, which reads as the framework being broken rather than
+  an attribute being missing. `decimal`/`double`/`float`/`Half` now default to `step="any"`; integral types
+  keep the implicit whole-number constraint, and an explicit `Step:` still wins. `BsInput` needed the same
+  fix separately: it renders through `Input<string>` with a pre-formatted value, so `Input<T>`'s own default
+  never saw the bound type.
 - **The wasm-hosted build gate no longer fails at random.** `Generated_wasm_hosted_solution_builds` is
   the only gate that built a `.sln`, and the generated Server carries a cross-TFM `ProjectReference` to the
   Client whose target framework is deliberately never negotiated. That put the Client in the restore graph

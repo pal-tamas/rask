@@ -82,10 +82,10 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         await Assertions.Expect(_page.Locator("#customer")).ToBeVisibleAsync();
 
         await _page.FillAsync("#customer", "Ada Lovelace");
-        // A whole number on purpose: a decimal Input renders <input type="number"> with no step, so the
-        // browser's own constraint validation silently blocks the submit for a fractional value and the
-        // framework never sees the event. Tracked in pal-tamas/rask#518 — switch this to 42.50 once fixed.
-        await _page.FillAsync("#total", "42");
+        // Fractional on purpose: a decimal Input now emits step="any", without which the browser's own
+        // constraint validation rejects this and never fires submit — silently, with nothing thrown and no
+        // validation message. This line is the regression proof for that fix.
+        await _page.FillAsync("#total", "42.50");
         await _page.ClickAsync("button[type=submit]");
 
         // The handler navigates to the list on success. This is a client-side route change, so there is no
