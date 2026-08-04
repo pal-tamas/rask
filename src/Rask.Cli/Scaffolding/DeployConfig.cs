@@ -30,6 +30,16 @@ internal sealed class DeployConfig
     public bool? HealthCheckDisabled { get; set; }
 
     /// <summary>
+    /// The <b>names</b> of the environment variables this app was last deployed with — never their values.
+    ///
+    /// <para>Values deliberately aren't remembered: this file is committed. But forgetting that the
+    /// variables <em>exist</em> is how a redeploy silently starts the app without its database password.
+    /// Recording the keys lets the next deploy notice one is missing and refuse, instead of shipping a
+    /// half-configured app that starts, answers its health check, and is quietly broken.</para>
+    /// </summary>
+    public string[]? EnvKeys { get; set; }
+
+    /// <summary>
     /// The port the app listens on <em>inside</em> its container — what the proxy is pointed at and what the
     /// health probe hits (default <c>8080</c>, which every Dockerfile <c>rask new --docker</c> emits uses).
     /// Only needed for a hand-written Dockerfile that listens elsewhere.

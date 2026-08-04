@@ -325,8 +325,10 @@ public sealed class DeployCommandTests
     }
 
     [Fact]
-    public async Task Env_flags_and_env_file_become_docker_e_arguments()
+    public async Task Env_flags_and_env_file_both_reach_the_container()
     {
+        // --env-file lines (comments and blanks skipped) and repeated --env flags are merged into the one
+        // runtime environment, which is handed to docker through a file rather than the command line.
         var fs = new FakeFileSystem();
         fs.Seed("/proj/.env.prod", "# comment\nDB=postgres\n\nTOKEN=abc\n");
         var runner = new FakeProcessRunner { CaptureHandler = Captures() };
@@ -336,9 +338,12 @@ public sealed class DeployCommandTests
 
         Assert.Equal(0, exit);
         var run = runner.Invocations.First(i => !i.Captured && i.Arguments.Contains("run"));
-        Assert.Contains("DB=postgres", run.Arguments);
-        Assert.Contains("TOKEN=abc", run.Arguments);
-        Assert.Contains("EXTRA=1", run.Arguments);
+        var written = fs.Written[Path.GetFullPath(run.Arguments[run.Arguments.ToList().IndexOf("--env-file") + 1])];
+
+        Assert.Contains("DB=postgres", written, StringComparison.Ordinal);
+        Assert.Contains("TOKEN=abc", written, StringComparison.Ordinal);
+        Assert.Contains("EXTRA=1", written, StringComparison.Ordinal);
+        Assert.DoesNotContain("# comment", written, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -830,6 +835,125 @@ public sealed class DeployCommandTests
         var theirs = args.ToList().IndexOf("ASPNETCORE_ENVIRONMENT=Staging");
         Assert.True(ours >= 0 && theirs > ours, "the user's own --env must come last so it wins.");
     }
+
+    // ── Runtime environment: remembered by name, never by value ─────────────────────────────────────
+
+    [Fact]
+    public async Task Env_keys_are_remembered_but_values_never_are()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var command = Create(fs, runner, new StringConsole());
+
+        await command.ExecuteAsync(
+            ["--host", "deploy@box", "--name", "shop", "--port", "9000", "--env", "DB_PASSWORD=hunter2", "--env", "API_KEY=abc123"],
+            CancellationToken.None);
+
+        var config = fs.Files[Path.GetFullPath("/proj/.rask/deploy.json")];
+        Assert.Contains("API_KEY", config, StringComparison.Ordinal);
+        Assert.Contains("DB_PASSWORD", config, StringComparison.Ordinal);
+
+        // The whole reason keys are stored rather than pairs: this file is committed.
+        Assert.DoesNotContain("hunter2", config, StringComparison.Ordinal);
+        Assert.DoesNotContain("abc123", config, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_redeploy_missing_a_remembered_variable_refuses_rather_than_starting_without_it()
+    {
+        // The bug this prevents: a bare `rask deploy` — or the generated CI workflow, which passes no
+        // --env at all — silently starting the app without its database password. It boots, answers its
+        // health check, takes traffic, and is quietly misconfigured.
+        var fs = new FakeFileSystem();
+        fs.Seed(
+            "/proj/.rask/deploy.json",
+            """{"host":"deploy@box","name":"shop","port":9000,"envKeys":["API_KEY","DB_PASSWORD"]}""");
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("API_KEY", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("DB_PASSWORD", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("deploy.json", console.ErrorText, StringComparison.Ordinal); // ...and how to stop wanting it
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("build"));
+    }
+
+    [Fact]
+    public async Task Supplying_the_remembered_variables_again_deploys_normally()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.rask/deploy.json", """{"host":"deploy@box","name":"shop","port":9000,"envKeys":["API_KEY"]}""");
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var command = Create(fs, runner, new StringConsole());
+
+        var exit = await command.ExecuteAsync(["--env", "API_KEY=abc123"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+    }
+
+    [Fact]
+    public async Task An_env_file_satisfies_a_remembered_key_too()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.rask/deploy.json", """{"host":"deploy@box","name":"shop","port":9000,"envKeys":["API_KEY"]}""");
+        fs.Seed("/proj/.env.production", "API_KEY=abc123\n");
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var command = Create(fs, runner, new StringConsole());
+
+        var exit = await command.ExecuteAsync(["--env-file", "/proj/.env.production"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+    }
+
+    [Fact]
+    public async Task Runtime_values_go_through_an_env_file_not_the_command_line()
+    {
+        // -e KEY=VALUE puts the secret in this machine's process table, readable by any local user (and,
+        // in the workflow --github-actions writes, on the CI runner). --env-file is read by the docker
+        // CLI locally and sent over the API instead.
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner { CaptureHandler = Captures() };
+        var command = Create(fs, runner, new StringConsole());
+
+        await command.ExecuteAsync(
+            ["--host", "deploy@box", "--name", "shop", "--port", "9000", "--env", "DB_PASSWORD=hunter2"],
+            CancellationToken.None);
+
+        var run = runner.Invocations.Single(i => i.Arguments.Contains("rask.app=shop"));
+        Assert.DoesNotContain("DB_PASSWORD=hunter2", run.Arguments);
+        Assert.Contains("--env-file", run.Arguments);
+
+        // ...and the file itself is deleted once the container has it.
+        var envFile = run.Arguments[run.Arguments.ToList().IndexOf("--env-file") + 1];
+        Assert.Contains("hunter2", fs.Written[Path.GetFullPath(envFile)], StringComparison.Ordinal);
+        Assert.False(fs.FileExists(envFile), "the local env file must not outlive the run.");
+    }
+
+    [Fact]
+    public void A_multiline_value_stays_inline_because_an_env_file_cannot_carry_it()
+    {
+        // A PEM key is the realistic case. Writing it to a line-oriented file would truncate it silently.
+        Assert.False(DeployCommand.CanGoInEnvFile("KEY=-----BEGIN-----\nabc\n-----END-----"));
+        Assert.True(DeployCommand.CanGoInEnvFile("KEY=simple"));
+
+        var args = DeployCommand.BuildRunArguments(
+            "deploy@box", "shop", domain: null, color: null, 9000,
+            ["PEM=a\nb", "SIMPLE=1"], 8080, "current", "/tmp/x.env");
+
+        Assert.Contains("PEM=a\nb", args);          // inline — the file can't hold it
+        Assert.DoesNotContain("SIMPLE=1", args);   // in the file
+    }
+
+    [Theory]
+    [InlineData(new[] { "A=1", "B=2" }, new[] { "A", "B" })]
+    [InlineData(new[] { "B=2", "A=1" }, new[] { "A", "B" })]          // sorted, so the file is stable
+    [InlineData(new[] { "A=1", "A=2" }, new[] { "A" })]               // de-duplicated
+    [InlineData(new[] { "A=x=y" }, new[] { "A" })]                    // only the first '=' splits
+    public void EnvKeysOf_extracts_stable_sorted_names(string[] env, string[] expected) =>
+        Assert.Equal(expected, DeployCommand.EnvKeysOf(env));
 
     /// <summary>The Caddyfile the deploy generated — read from the write history, since it is deleted
     /// once it has been copied to the host.</summary>

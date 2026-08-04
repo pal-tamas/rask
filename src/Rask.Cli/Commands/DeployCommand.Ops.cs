@@ -200,9 +200,11 @@ internal sealed partial class DeployCommand
 
         WriteHeading($"Rolling {slug} back to {slug}:{PreviousTag} ({image})…");
 
+        // persist: false — a rollback changes which image is running, not how the app is configured. Left
+        // on, the nulls passed for project/envFile below would erase those keys from .rask/deploy.json.
         var result = domain is null
-            ? await DeployPortAsync(host, slug, port, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, cancellationToken, tag: PreviousTag).ConfigureAwait(false)
-            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, cancellationToken, tag: PreviousTag).ConfigureAwait(false);
+            ? await DeployPortAsync(host, slug, port, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false)
+            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false);
 
         if (result != 0)
         {
