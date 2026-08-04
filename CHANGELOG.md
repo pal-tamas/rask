@@ -25,6 +25,15 @@ them until tagged releases begin.
   the docs are deliberately hub-and-subpage; being findable from *nowhere* is the failure.
 
 ### Fixed
+- **The wasm-hosted build gate no longer fails at random.** `Generated_wasm_hosted_solution_builds` is
+  the only gate that built a `.sln`, and the generated Server carries a cross-TFM `ProjectReference` to the
+  Client whose target framework is deliberately never negotiated. That put the Client in the restore graph
+  twice — once as a solution entry, once as that reference — and the two writers raced on its `obj/`
+  restore artefacts, failing with `The file '…project.assets.json' already exists`. `-m:1` doesn't help (it
+  caps MSBuild nodes, not NuGet's parallelism) and neither does splitting restore from build, since both
+  entries are present within the single restore. The gate now builds the Server project, which references
+  the other two, so all three still compile with one graph entry each. Since #502 wired this gate into
+  `pre-push`, the flake had gone from an occasional annoyance to intermittently blocking pushes.
 - **`rask new` no longer overwrites files it didn't create.** The guard checked only for the project file, so
   scaffolding into a directory that already held a `Program.cs`, a `Features/` tree or a `wwwroot` silently
   overwrote them — with no `--force` to consent to and nothing to undo it. Any existing file the template
