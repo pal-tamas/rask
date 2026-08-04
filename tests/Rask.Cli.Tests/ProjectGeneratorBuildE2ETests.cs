@@ -179,7 +179,21 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".sln")}\" -warnaserror -m:1");
+            // Build the Server project, not the .sln.
+            //
+            // The Server references both the Client and the Shared library, so all three still compile and
+            // the WASM bundle is still baked — but building the solution put the Client in the restore graph
+            // *twice*: once as a solution entry, and once as the Server's cross-TFM ProjectReference
+            // (ReferenceOutputAssembly=false, SkipGetTargetFrameworkProperties=true, so its TFM is never
+            // negotiated). Those two graph entries race on the Client's obj/ restore artefacts and fail with
+            // "The file '…project.assets.json' already exists".
+            //
+            // `-m:1` doesn't help — it caps MSBuild nodes, not NuGet's own parallelism — and neither does
+            // splitting restore from build, because both entries are present within the single restore.
+            // Dropping the duplicate entry is what removes the racing writer. The .sln's own shape stays
+            // covered by ProjectGeneratorTests.
+            var server = Path.Combine(projectDir, name + ".Server", name + ".Server.csproj");
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -warnaserror -m:1");
             Assert.True(exit == 0, $"[auth={auth},pwa={pwa}] generated wasm-hosted solution failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
