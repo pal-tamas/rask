@@ -268,6 +268,37 @@ writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UI
 | `--github-actions` | Write `.github/workflows/deploy.yml` (deploy on push to main) and print the secrets to add. Touches no host. |
 | `--dry-run` | Print the exact docker commands without running them. |
 
+### After it's live — `status`, `logs`, `rollback`
+
+```bash
+rask deploy status            # what's running on the box (every app, not just this one)
+rask deploy logs             # the live container's last 100 lines
+rask deploy logs --follow    # ...and stream new ones
+rask deploy rollback         # put the previous image back, health-gated
+```
+
+These read the same `rask.*` container labels a deploy writes, so they describe the box **as it actually
+is** rather than as `.rask/deploy.json` remembers it. They need a host (from the config or `--host`) and
+nothing else — no Dockerfile, no build.
+
+`status` lists every Rask-managed app sharing the box, with its URL or published port, its blue/green
+colour, and how long it has been up — and tells you whether a rollback is currently possible.
+
+`rollback` exists for the failure the blue-green swap can't catch. That swap protects you from a release
+that *fails* — one that won't start, or won't answer its health check. It can do nothing about a release
+that starts, answers, and is simply **wrong**. Each deploy therefore moves the image it replaces to
+`<app>:previous` before building, and `rask deploy rollback` starts that image back up through the same
+gates a deploy uses (running → healthy → reload the proxy → retire the old container). It then swaps the
+two tags, so running it again undoes the rollback rather than repeating it.
+
+| Option | Applies to | Purpose |
+| --- | --- | --- |
+| `--tail <n\|all>` | `logs` | Lines to show (default `100`). |
+| `--follow`, `-f` | `logs` | Stream new lines until interrupted. |
+
+Options that describe *what to deploy* (`--domain`, `--container-port`, `--dockerfile`, `--dry-run`, …)
+are rejected on these verbs rather than silently ignored — they operate on what is already deployed.
+
 Host setup options — these only matter the first time you deploy to a box:
 
 | Option | Purpose |
