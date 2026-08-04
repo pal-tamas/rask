@@ -47,6 +47,15 @@ internal static class CliBuildE2E
     // Packed once and shared across every case (packing the projects is the expensive part of these gates).
     internal static readonly Lazy<Task<(string Feed, string Version)>> LocalFeed = new(PackLocalFeedAsync);
 
+    /// <summary>
+    /// Why a build gate didn't run. Reported through <c>Skip.IfNot</c> so an un-run gate shows up as SKIPPED in
+    /// the test output instead of passing silently — these are the only tests that prove the CLI emits code that
+    /// actually compiles, so "green" must never be able to mean "never ran".
+    /// </summary>
+    internal const string SkipReason =
+        "CLI build gate: set RASK_CLI_BUILD_E2E=1 to run it (it packs this commit's Rask packages, restores, " +
+        "and builds the generated projects, so it needs the SDK and network). See scripts/run-cli-build-e2e.sh.";
+
     /// <summary>True when the build-the-output gates are opted into (they restore + build, needing the SDK and network).</summary>
     internal static bool Enabled => Environment.GetEnvironmentVariable("RASK_CLI_BUILD_E2E") == "1";
 
