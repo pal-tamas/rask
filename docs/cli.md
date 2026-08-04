@@ -65,6 +65,8 @@ scaffolds already follows the vertical-slice layout the CLI generates into: feat
 MyApp/
   MyApp.csproj
   Program.cs
+  appsettings.json                logging levels (incl. Rask's own diagnostic categories)
+  appsettings.Production.json     overrides applied when deployed
   Features/
     Shared/App.cs                 the root shell every page renders through
     Home/HomePage.cs              a [Route("/")] welcome page that teaches the CLI

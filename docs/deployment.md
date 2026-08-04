@@ -118,6 +118,24 @@ deploy step. The generated workflow deploys with `--no-setup-host` on purpose: *
 from your own machine**, where you can see what's about to change — a host that isn't ready should fail
 the job, not get reconfigured by CI.
 
+## What `rask deploy` sets on the container
+
+Beyond your own `--env` values, every deployed container gets:
+
+| Setting | Why |
+| --- | --- |
+| `ASPNETCORE_ENVIRONMENT=Production` | Selects `appsettings.Production.json` and turns off the developer exception page. Your own `--env` wins if you set it. |
+| `ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
+| `--log-opt max-size=10m --log-opt max-file=3` | Docker's `json-file` logs are unbounded by default; on a one-box deploy a chatty app filling the disk takes down every other app sharing it. |
+| `--security-opt no-new-privileges` | A compromised process can't gain rights through setuid binaries. Nothing a Rask app does needs to escalate. |
+| `--restart unless-stopped` | The app comes back after a reboot or a daemon restart. |
+
+The scaffolded app is set up to match: it honours forwarded headers (so `Request.Scheme` and the client
+IP are the visitor's, not the proxy's), reports live-session capacity on `/health` (so a host that is
+refusing sessions with `503` says so rather than answering a bare "up"), and shuts down within 15s — inside
+the 20s grace period the deploy allows before `SIGKILL`, so in-flight requests drain and SQLite checkpoints
+cleanly.
+
 ## Scaffolding a Dockerfile — `--docker`
 
 The three web templates take an opt-in `--docker` flag that drops a production-ready multi-stage

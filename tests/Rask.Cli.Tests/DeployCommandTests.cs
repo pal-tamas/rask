@@ -29,11 +29,14 @@ public sealed class DeployCommandTests
 
         Assert.Equal(
         [
-            "-H", "ssh://deploy@box", "run", "-d", "--name", "shop-green", "--restart", "unless-stopped",
+            "-H", "ssh://deploy@box", "run", "-d",
+            "--log-opt", "max-size=10m", "--log-opt", "max-file=3", "--security-opt", "no-new-privileges",
+            "--name", "shop-green", "--restart", "unless-stopped",
             "--network", "rask", "--label", "rask.managed=true", "--label", "rask.app=shop",
             "--label", "rask.domain=shop.example.com", "--label", "rask.color=green",
             "--label", "rask.port=8080",
-            // The persistent DB volume + connection string come before the user env, so --env A=1 still wins.
+            // The environment, DB volume and connection string all come before the user env, so --env wins.
+            "-e", "ASPNETCORE_ENVIRONMENT=Production",
             "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
             "-e", "A=1", "shop:current",
         ], args);
@@ -46,10 +49,13 @@ public sealed class DeployCommandTests
 
         Assert.Equal(
         [
-            "-H", "ssh://deploy@box", "run", "-d", "--name", "shop", "--restart", "unless-stopped",
+            "-H", "ssh://deploy@box", "run", "-d",
+            "--log-opt", "max-size=10m", "--log-opt", "max-file=3", "--security-opt", "no-new-privileges",
+            "--name", "shop", "--restart", "unless-stopped",
             "-p", "9000:8080",
             // Labelled but with no rask.domain, so the host inventory sees it and the proxy doesn't.
             "--label", "rask.managed=true", "--label", "rask.app=shop", "--label", "rask.port=8080",
+            "-e", "ASPNETCORE_ENVIRONMENT=Production",
             "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
             "shop:current",
         ], args);
@@ -799,6 +805,30 @@ public sealed class DeployCommandTests
 
         Assert.DoesNotContain("s3cr3t-value-here", masked, StringComparison.Ordinal);
         Assert.Contains("port 8080", masked, StringComparison.Ordinal); // short value left alone
+    }
+
+    [Fact]
+    public void Run_arguments_bound_the_logs_and_drop_privilege_escalation()
+    {
+        // A one-box deploy runs unattended for months: json-file logs are unbounded by default, and an
+        // app filling the disk takes down every other app sharing the host with it.
+        var args = DeployCommand.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, []);
+
+        Assert.Contains("max-size=10m", args);
+        Assert.Contains("max-file=3", args);
+        Assert.Contains("no-new-privileges", args);
+    }
+
+    [Fact]
+    public void Run_arguments_set_the_production_environment_but_let_the_user_override_it()
+    {
+        // Without this the deployed app runs in whatever environment the base image assumes — which is
+        // what selects appsettings.Production.json and turns off the developer exception page.
+        var args = DeployCommand.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, ["ASPNETCORE_ENVIRONMENT=Staging"]);
+
+        var ours = args.ToList().IndexOf("ASPNETCORE_ENVIRONMENT=Production");
+        var theirs = args.ToList().IndexOf("ASPNETCORE_ENVIRONMENT=Staging");
+        Assert.True(ours >= 0 && theirs > ours, "the user's own --env must come last so it wins.");
     }
 
     /// <summary>The Caddyfile the deploy generated — read from the write history, since it is deleted
