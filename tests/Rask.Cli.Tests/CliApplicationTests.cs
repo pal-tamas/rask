@@ -66,13 +66,22 @@ public sealed class CliApplicationTests
     {
         var console = new StringConsole();
         var runner = new FakeProcessRunner();
-        var app = CliApplication.CreateDefault(console, runner, new FakeFileSystem());
+        // `rask dev` resolves the project before running, and CreateDefault anchors it at the real
+        // current directory — so seed a project there for it to find.
+        var fileSystem = new FakeFileSystem();
+        var csproj = Path.Combine(Environment.CurrentDirectory, "App.csproj");
+        fileSystem.Seed(csproj, """<Project Sdk="Microsoft.NET.Sdk.Web"></Project>""");
+        var app = CliApplication.CreateDefault(console, runner, fileSystem);
 
         // 'rask dev -- --help' must launch the app and forward --help, not print rask's help.
         var exit = await app.RunAsync(["dev", "--", "--help"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.Equal(["watch", "run", "--", "--help"], runner.LastRun!.Arguments);
+        // --non-interactive because the test console reports stdin as redirected: without a terminal,
+        // watch's rude-edit prompt would have nobody to answer it and would block forever.
+        Assert.Equal(
+            ["watch", "--project", csproj, "--non-interactive", "run", "--", "--help"],
+            runner.LastRun!.Arguments);
         Assert.DoesNotContain("Usage: rask dev", console.OutText, StringComparison.Ordinal);
     }
 

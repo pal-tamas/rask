@@ -46,6 +46,22 @@ them until tagged releases begin.
   original grace period and wording.
 
 ### Changed
+- **`rask dev` finds the project and sets up the loop.** It was 35 lines of argv over `dotnet watch run`:
+  no project detection, no environment, no output. It now resolves the project the way `rask db` does —
+  picking the `.Server` host in a wasm-hosted solution, and refusing a native app with the
+  `dotnet build -t:Run` command it actually needs, rather than running `dotnet watch` at a simulator. It
+  sets `ASPNETCORE_ENVIRONMENT=Development` when you have set no environment yourself, prints a banner with
+  the URL, and adds `--urls`, `--launch-profile`, `--open`, `--no-open`, `--no-restart`, `--once` and
+  `--no-banner`.
+- **A rude edit no longer hangs `rask dev`.** When `dotnet watch` meets an edit hot reload cannot apply it
+  prompts `Yes (y) / No (n) / Always (a) / Never (v)` — and with no terminal to answer on, that blocked
+  forever. `rask dev` now sets the `HotReloadAutoRestart` MSBuild property so the app restarts instead
+  (`--no-restart` to be asked), and passes `--non-interactive` when stdin is redirected. The property is
+  passed through the environment because `dotnet watch` has no `--property` switch — that is also why
+  `IProcessRunner.RunAsync` gained an optional environment overlay.
+- **`rask dev --no-hot-reload` now means what it says.** It used to run a plain `dotnet run`, which stopped
+  watching altogether *and* cleared `DOTNET_WATCH` — switching off more framework behaviour than its name
+  claims. It now keeps watching and restarts on change; **`--once`** is the new name for the old behaviour.
 - **`RouteRegistry` groups registrations by contributor.** The new `Replace(groupKey, registrations)`
   installs one contributor's complete set, replacing whatever it registered before. This is what lets the
   generated per-assembly route registry re-run under `dotnet watch` without duplicating its own routes

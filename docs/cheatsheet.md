@@ -9,7 +9,7 @@ and scannable. For the prose reference see [the `rask` CLI](cli.md); to learn it
 ```bash
 # scaffold & run
 rask new Shop --auth --docker         # new app: cookie auth + a Dockerfile for deploy
-rask dev                              # dotnet watch run — hot reload
+rask dev                              # dotnet watch run — hot reload (--open for a browser)
 rask info                             # what rask sees: project, packages, versions
 
 # a full CRUD vertical slice (entity + CQRS + EF + pages)

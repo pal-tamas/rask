@@ -215,15 +215,68 @@ The `1` / `2` split is what lets a script tell a broken invocation from a broken
 ## `rask dev` — run with hot reload
 
 ```bash
-rask dev                             # dotnet watch run in the current project
+rask dev                             # find the project, run it under dotnet watch
+rask dev --open                      # …and open a browser once it's listening
 rask dev --project src/MyApp/MyApp.csproj
-rask dev --no-hot-reload             # a plain dotnet run
-rask dev -- --urls http://localhost:5005   # everything after -- goes to the app
+rask dev --urls http://localhost:5005
+rask dev -- --my-app-flag            # everything after -- goes to the app
 ```
 
-By default `rask dev` runs `dotnet watch run`, so editing a component's `Render()` (or a scoped
-`.css` / `.js`) and saving re-renders live via C# Hot Reload. Pass `--no-hot-reload` for a one-shot run,
-and forward any app arguments after a `--` separator.
+`rask dev` runs `dotnet watch run`, so editing a component's `Render()` (or a scoped `.css` / `.js`) and
+saving re-renders the open page live — see [what hot-reloads](#what-hot-reloads) below.
+
+It finds the project for you. In a **wasm-hosted** solution it picks the `.Server` host (the client is
+built into it); in a **native** app it refuses, because `dotnet watch` cannot drive a simulator or
+emulator, and points you at `dotnet build -t:Run -f net10.0-android` instead.
+
+It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Development` when you have not
+set an environment yourself, and `HotReloadAutoRestart` so an edit hot reload *can't* apply restarts the
+app instead of stopping at an interactive prompt. Pass `--no-restart` to be asked instead.
+
+| Flag | What it does |
+| --- | --- |
+| `--project`, `-p` | Project to run. Accepts a `.csproj` or a directory. |
+| `--urls` | URLs to listen on (sets `ASPNETCORE_URLS`). |
+| `--launch-profile` | launchSettings profile to use. |
+| `--open`, `-o` | Open a browser once the app answers. Skipped if the launch profile already opens one. |
+| `--no-open` | Never open a browser. |
+| `--no-hot-reload` | Keep watching, but restart on change instead of applying live. |
+| `--no-restart` | Ask before restarting on an edit hot reload can't apply. |
+| `--once` | Run once without watching (a plain `dotnet run`). |
+| `--no-banner` | Suppress the startup banner. |
+
+> **Changed in this release.** `--no-hot-reload` used to mean "a plain `dotnet run`" — it stopped watching
+> altogether, and cleared `DOTNET_WATCH`, which is what the framework keys its own dev-time behaviour off.
+> It now means what it says: keep watching, restart instead of applying edits live. Use **`--once`** for
+> the old behaviour.
+
+### What hot-reloads
+
+C# Hot Reload applies new IL to the running process; Rask then refreshes what the generators registered
+at startup and repaints every open session. Some edits the runtime cannot apply at all — those are *rude
+edits*, and `rask dev` restarts the app for you and the browser reloads itself.
+
+| Edit | What happens |
+| --- | --- |
+| A component's `Render()`, or anything it calls | ✅ Applied live; the page repaints in place. |
+| A scoped `.css` / `.js` sibling | ✅ Applied live; the bundle URL changes and the `<link>` is swapped. |
+| Deleting a scoped `.css` | ✅ The rules disappear from the page. |
+| A `[Route]` template | ✅ The route table is rebuilt. |
+| A CQRS command/query/notification handler body | ✅ The next dispatch runs the new code. |
+| A job or outbox event type's body | ✅ Applied live. |
+| **Adding or removing a type** — a new component, page, handler, job | ⚠️ Rude edit → the app restarts, and the browser reloads itself. |
+| **Changing a signature** — a new factory parameter, a changed method signature | ⚠️ Rude edit → restart. |
+| Renaming a job or outbox event type | ⚠️ Applied, but the old name stays registered until the next restart. |
+
+Two things it does not cover:
+
+- **WASM and native apps have no watch channel.** A WASM app is republished into its host on build, and
+  a native app runs on a device — neither can receive an applied update in place. Restart them.
+- **A rude edit is not announced.** `dotnet watch` restarts the process, so nothing in Rask observes the
+  edit; what you see is the app coming back and the page reloading.
+
+In Development you get a small "Hot reload applied" pill in the corner when an edit lands, so a save that
+changed nothing visible is distinguishable from one that didn't apply. It is never present in production.
 
 ## `rask db` — EF Core migrations
 
