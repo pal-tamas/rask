@@ -1,9 +1,9 @@
-# Chapter 9 — Deploy to one box
+# Chapter 11 — Deploy to one box
 
 > **Goal:** ship Shop to a single server, behind automatic HTTPS, with one command.
 > **You'll run:** `rask deploy --host … --domain …`
 
-You have the whole product — UI, data, auth, jobs, mail, cache, events, production SQLite with off-box
+You have the whole product — UI, data, auth, jobs, mail, cache, events, push, production SQLite with off-box
 backup — in one project. Now put it on the internet. `rask deploy` builds your Docker image **on the server
 over SSH** and runs it; with a domain it fronts the app with a shared [Caddy](https://caddyserver.com) proxy
 for automatic Let's Encrypt HTTPS, swapping the new container in only after a `/health` check passes.

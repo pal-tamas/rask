@@ -2,7 +2,7 @@
 
 > **Goal:** go from an empty app to a working, database-backed **Products** catalog — list, create, edit,
 > delete — persisted in SQLite.
-> **You'll run:** `rask generate feature Product …`, then `rask db add` / `rask db update`.
+> **You'll run:** `rask generate feature Product … --context AppDbContext`, then `rask db add` / `rask db update`.
 
 This chapter sets the pattern every later feature repeats — **generate → migrate**, with the CLI wiring the
 services in for you in between. Do it once here and the rest of the tutorial is variations on it.
@@ -17,7 +17,8 @@ services in for you in between. Do it once here and the rest of the tutorial is 
 From inside the `Shop` folder (the CLI finds the project by walking up from where you are, so `cd` in first):
 
 ```bash
-rask generate feature Product Name:string Price:decimal InStock:bool --validation dataannotations
+rask generate feature Product Name:string Price:decimal InStock:bool \
+  --context AppDbContext --validation dataannotations
 ```
 
 Read the field list as `name:type`. Rask understands `string`, `int`, `long`, `decimal`, `double`, `bool`,
@@ -41,7 +42,7 @@ The generator writes a complete vertical slice into `Features/Products/`:
 | `Product.cs` | the entity — an `Entity<Guid>` with a private constructor and `Create` / `Update` factory methods, so it can't be built in an invalid state |
 | `ProductRequest.cs` | the form model the create/edit pages bind to (with the DataAnnotations) |
 | `ProductConfiguration.cs` | the EF Core `IEntityTypeConfiguration<Product>` (column types, lengths) |
-| `ProductsDbContext.cs` | a `DbContext` with a `DbSet<Product>` |
+| `AppDbContext.cs` | *(already there from `--data`)* — gains a `DbSet<Product>` |
 | `ProductsPage.cs` | the routed list page at `/products`, plus a `ListProductsQuery` + handler ([CQRS](../cqrs.md)) |
 | `CreateProduct.cs`, `UpdateProduct.cs` | the new / edit pages, each with its own command + handler |
 | `DeleteProduct.cs` | the delete command + a reusable delete button |
@@ -56,7 +57,7 @@ of the patterns this tutorial uses.
 The generator also **registers the services in `Program.cs`** — you'll see it report:
 
 ```
-Registered 3 service(s) in Program.cs: AddRaskCqrs, AddRaskData, AddDbContextFactory<ProductsDbContext>.
+Registered 3 service(s) in Program.cs: AddRaskCqrs, AddRaskData, AddDbContextFactory<AppDbContext>.
 ```
 
 so `Program.cs` now has these lines (and the `using`s they need) added next to your other
@@ -65,14 +66,14 @@ so `Program.cs` now has these lines (and the `using`s they need) added next to y
 ```csharp
 builder.Services.AddRaskCqrs();
 builder.Services.AddRaskData();
-builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o
+builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
     .UseRaskSqlite(builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db")
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 ```
 
 - `AddRaskCqrs()` registers the mediator that dispatches the queries/commands in the slice.
 - `AddRaskData()` registers the interceptors (auditing, and later soft-delete/concurrency/events).
-- `AddDbContextFactory<ProductsDbContext>(…)` registers the context **as a factory** — Rask pages are
+- `AddDbContextFactory<AppDbContext>(…)` registers the context **as a factory** — Rask pages are
   long-lived and may render concurrently, so each unit of work creates its own short-lived context rather
   than sharing one scoped instance. `UseRaskSqlite` is a drop-in for `UseSqlite` that also applies the
   production pragmas (WAL, `busy_timeout`, `foreign_keys`) — so the app handles concurrent writers (the jobs,

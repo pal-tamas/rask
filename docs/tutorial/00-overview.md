@@ -19,7 +19,9 @@ By the last chapter, Shop has:
 - **transactional email** (an order receipt) whose body is a Rask component;
 - a **cache** in front of the catalog;
 - **domain events** delivered through a durable outbox;
-- **production-grade SQLite** — WAL, a busy-timeout, and continuous off-box backup;
+- **production-grade SQLite** — WAL, a busy-timeout, snapshots, and continuous off-box backup;
+- **push notifications** sent from your own server on your own keys;
+- an **ops page** that shows every background worker's state;
 - and finally, a **one-command deploy** to a single server behind automatic HTTPS.
 
 Every one of those is a first-party Rask **pillar** — a thin, opinionated package that rides on the app's
@@ -30,18 +32,28 @@ whole product.
 
 | # | Chapter | Pillar | You'll run |
 |---|---------|--------|-----------|
-| 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop --auth --docker` |
+| 1 | [Scaffold the app](01-scaffold.md) | CLI · Auth | `rask new Shop --all-batteries --auth --docker` |
 | 2 | [Your first feature](02-first-feature.md) | Data · CQRS · SQLite | `rask generate feature Product …` · `rask db` |
 | 3 | [A second feature + locking it down](03-orders-and-auth.md) | Auth | `rask generate feature Order …` |
 | 4 | [Background jobs](04-background-jobs.md) | Jobs | `rask generate job …` |
 | 5 | [Transactional email](05-email.md) | Mail | `rask generate email …` |
-| 6 | [Caching the catalog](06-cache.md) | Cache | `AddRaskCache<ProductsDbContext>()` |
+| 6 | [Caching the catalog](06-cache.md) | Cache | `rask generate cache …` |
 | 7 | [Domain events + the outbox](07-outbox-events.md) | Outbox | `rask generate feature … --outbox` |
-| 8 | [Production SQLite](08-production-sqlite.md) | SQLite | `UseRaskSqlite()` · Litestream |
-| 9 | [Deploy to one box](09-deploy.md) | Deploy | `rask deploy --host … --domain …` |
+| 8 | [Production SQLite](08-production-sqlite.md) | SQLite | `UseRaskSqlite()` · snapshots · Litestream |
+| 9 | [Push notifications](09-web-push.md) | Web Push · PWA | `VapidKeys.Generate()` · `IWebPush` |
+| 10 | [Watching it run](10-ops.md) | Observability | an `/ops` page over every pillar's table |
+| 11 | [Deploy to one box](11-deploy.md) | Deploy | `rask deploy --host … --domain …` |
 
 Read them in order — each chapter builds on the app the previous one left behind. Every chapter ends with
 a **Verify** section (how to confirm it works) and a **Learn more** link to that pillar's reference doc.
+
+One command in Chapter 1 wires every pillar in; each chapter then teaches you what one of them is *for* and
+how to use it. If you'd rather add them one at a time, every flag works on its own —
+`rask new Shop --data --jobs` gives you a database and background work and nothing else.
+
+**Want to read ahead?** [`samples/Rask.Example.Shop`](../../samples/Rask.Example.Shop) is the finished app,
+committed and runnable — the output of this tutorial's commands, with browser tests that prove each pillar
+actually runs.
 
 ## Before you start
 

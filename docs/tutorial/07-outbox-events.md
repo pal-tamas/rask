@@ -2,7 +2,7 @@
 
 > **Goal:** react to "an order was placed" reliably — the reaction runs even if the process crashes right
 > after the sale.
-> **You'll add:** an `IOutboxEvent`, `AddRaskOutbox<ProductsDbContext>()`, and a handler.
+> **You'll run:** `rask generate feature Order … --outbox`
 
 In Chapter 4 we enqueued a job explicitly. Sometimes you'd rather have the *domain* announce that something
 happened and let any number of handlers react — without the code that placed the order knowing who's
@@ -11,50 +11,44 @@ card), it should be delivered through a **transactional outbox**: the event is w
 database transaction** as the order, so it can never be committed without the event, and a background
 processor delivers it after commit — retrying until it succeeds.
 
-## 1. Define an event and raise it
+## 1. Scaffold the slice with events
 
-Add an event record marked `IOutboxEvent` (put it next to the entity, e.g. `Features/Orders/OrderEvents.cs`):
+Chapter 3 created the Orders feature. Regenerate it with `--outbox` (or pass the flag the first time):
 
-```csharp
-public sealed record OrderPlaced(Guid Id) : IOutboxEvent;
+```bash
+rask generate feature Order Customer:string Total:decimal --context AppDbContext --outbox --force
 ```
 
-Raise it from the entity itself, so *creating* an order always announces it. Open `Features/Orders/Order.cs`
-and have `Create` raise the event (`Raise` is provided by the `Entity<TId>` base):
+That emits the pieces you'd otherwise write by hand:
+
+- `Features/Orders/OrderEvents.cs` — `OrderCreated` / `OrderUpdated` / `OrderDeleted`, each an `IOutboxEvent`;
+- the `Raise(...)` calls on the entity, so *creating* an order always announces it;
+- `Features/Orders/OrderCreatedHandler.cs` — a handler to fill in;
+- and the DI: `AddRaskOutbox<AppDbContext>()`, plus the one line below that people get wrong.
+
+`--events` gives you plain in-process domain events without the durable outbox, if losing one on a crash is
+acceptable.
+
+## 2. The one line that matters
+
+Look at what the generator wrote into `Program.cs`:
 
 ```csharp
-public static Order Create(decimal total, Guid productId, DateTime placed)
-{
-    var order = new Order(total, productId, placed);
-    order.Raise(new OrderPlaced(order.Id));
-    return order;
-}
+builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);   // ← not AddRaskData()
+builder.Services.AddRaskOutbox<AppDbContext>();
 ```
 
-## 2. Wire up the outbox
+That `false` is not a preference. With the in-process publisher left on, `DomainEventInterceptor` drains and
+**clears** every entity's events during `SaveChanges`, before `OutboxInterceptor` can copy them. The outbox
+table stays empty, delivery quietly stops being durable — and **nothing fails**, because the handlers still
+run in-process. Every test passes. You find out when a crash loses an order confirmation.
 
-The outbox needs domain events to be dispatched **after** the transaction commits (not in-process during
-`SaveChanges`). In `Program.cs`, tell `Rask.Data` to hand events to the outbox, and register it:
+The registration order matters for the same reason: `AddRaskOutbox` comes **before**
+`AddDbContextFactory`, so its interceptor is in the container when the factory resolves
+`ISaveChangesInterceptor`. Your factory call already has
+`.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())` from Chapter 2.
 
-```csharp
-builder.Services.AddRaskCqrs();
-builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);   // ← was AddRaskData()
-builder.Services.AddRaskOutbox<ProductsDbContext>(o =>
-{
-    o.PollInterval = TimeSpan.FromSeconds(5);
-    o.MaxAttempts  = 10;
-});
-```
-
-Your `AddDbContextFactory<ProductsDbContext>` call already has
-`.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())` (from Chapter 2), so the outbox interceptor is
-picked up automatically. Map the outbox table in `OnModelCreating`:
-
-```csharp
-modelBuilder.AddRaskOutbox();       // ← the OutboxMessage table
-```
-
-Migrate:
+Then create the table:
 
 ```bash
 rask db add AddOutbox
@@ -63,14 +57,14 @@ rask db update
 
 ## 3. React to the event
 
-Any `INotificationHandler<OrderPlaced>` now runs when an order is placed — delivered by the outbox
-processor, post-commit, with retries:
+Fill in the generated handler. Any `INotificationHandler<OrderCreated>` runs when an order is placed —
+delivered by the outbox processor, post-commit, with retries:
 
 ```csharp
-public sealed class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
-    : INotificationHandler<OrderPlaced>
+public sealed class OrderCreatedHandler(ILogger<OrderCreatedHandler> logger)
+    : INotificationHandler<OrderCreated>
 {
-    public Task HandleAsync(OrderPlaced notification, CancellationToken cancellationToken)
+    public Task HandleAsync(OrderCreated notification, CancellationToken cancellationToken)
     {
         logger.LogInformation("Order {Id} placed — updating stock / analytics…", notification.Id);
         return Task.CompletedTask;
@@ -78,20 +72,25 @@ public sealed class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
 }
 ```
 
-Because the event row committed atomically with the order, the handler is guaranteed to run **exactly once
-per order, eventually** — even if the app is killed the instant after the sale.
+Because the event row committed atomically with the order, the handler is guaranteed to run **eventually**,
+even if the app is killed the instant after the sale. Delivery is **at-least-once**, so make the handler
+safe to repeat — it can run twice if the process dies between the work and the acknowledgement.
 
-> **Shortcut for new features.** You wired the outbox by hand here to see the moving parts. When you scaffold
-> a feature, `rask generate feature <Name> … --outbox` emits the event records, the `Raise` calls, the
-> handler, and prints the `AddRaskData(… DispatchDomainEventsInProcess = false)` + `AddRaskOutbox<…>()`
-> registration for you. Use `--events` for plain in-process domain events without the durable outbox.
+> **Outbox or job?** Both end in a background worker, and the distinction is worth holding onto: the outbox
+> delivers what is *derived from* a transaction (the order committed, so confirm it), and
+> [jobs](04-background-jobs.md) run what you *schedule* (in an hour, purge stale carts). A confirmation email
+> belongs to the order's transaction. A nightly cleanup does not.
 
 ## Verify
 
-- After `rask db update`, placing an order writes an `OutboxMessage` row in the same transaction as the order.
-- The `OrderPlacedHandler` log line appears within the poll interval.
-- Kill the app immediately after placing an order, restart it — the handler still runs (the event was
-  durably stored, not lost).
+- Placing an order writes an `OutboxMessage` row in the same transaction as the order.
+- The `OrderCreatedHandler` log line appears within the poll interval, and the row's `ProcessedAt` is set
+  while `Error` stays null and `Attempts` stays `0` — that combination is what "delivered cleanly" means. A
+  message that can't be deserialized doesn't throw; it records an error and retries until `MaxAttempts`.
+- Kill the app immediately after placing an order, restart it — the handler still runs.
+- **See it running:** [`samples/Rask.Example.Shop`](../../samples/Rask.Example.Shop) does exactly this, and
+  its handler goes further — queueing the confirmation email and scheduling a follow-up job. Watch the
+  outbox, mail and job counters move on `/ops`.
 
 **Learn more:** [outbox](../outbox.md) · [Rask.Data](../data.md) · [background jobs](../jobs.md)
 

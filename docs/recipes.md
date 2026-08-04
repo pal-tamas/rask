@@ -154,7 +154,7 @@ rask deploy --github-actions                                            # write 
 
 Needs a `Dockerfile` — `rask new … --docker` writes one.
 
-→ Reference: [deployment](deployment.md) · Learn it: [Tutorial Ch 9](tutorial/09-deploy.md)
+→ Reference: [deployment](deployment.md) · Learn it: [Tutorial Ch 11](tutorial/11-deploy.md)
 
 ## Save team defaults
 

@@ -39,7 +39,7 @@ public sealed record SendOrderReceipt(Guid OrderId) : IJob;
 Fill in the handler with whatever the work is (we'll make it send an email in the next chapter):
 
 ```csharp
-public sealed class SendOrderReceiptHandler(IDbContextFactory<ProductsDbContext> dbFactory)
+public sealed class SendOrderReceiptHandler(IDbContextFactory<AppDbContext> dbFactory)
     : ICommandHandler<SendOrderReceipt>
 {
     public async Task HandleAsync(SendOrderReceipt job, CancellationToken ct)
@@ -51,26 +51,31 @@ public sealed class SendOrderReceiptHandler(IDbContextFactory<ProductsDbContext>
 }
 ```
 
-## 2. Wire it up
+## 2. What's already wired
 
-Jobs need one registration line and their own table. In `Program.cs`, alongside the other `AddRask…` calls:
+`--all-batteries` in Chapter 1 registered jobs for you. Worth reading anyway, because two of these lines are
+the ones you'd have to get right by hand.
+
+In `Program.cs`:
 
 ```csharp
-builder.Services.AddRaskJobs<ProductsDbContext>(o =>
+builder.Services.AddRaskJobs<AppDbContext>(o =>
 {
     o.PollInterval = TimeSpan.FromSeconds(5);   // how often the worker checks for due jobs
     o.MaxAttempts  = 25;                        // retry a failing job up to N times
 });
 ```
 
-(`AddRaskJobs` needs `AddRaskCqrs()` — already there from Chapter 2 — to dispatch jobs to their handlers.)
+`AddRaskJobs` needs `AddRaskCqrs()` to dispatch jobs to their handlers, and it resolves
+`IDbContextFactory<AppDbContext>` — never a scoped `DbContext`, because a live session is long-lived over a
+WebSocket and a scoped context would outlive any unit of work. Both are already in place.
 
-Map the jobs table in `ProductsDbContext.OnModelCreating`:
+The jobs table is mapped in `AppDbContext.OnModelCreating`:
 
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
-    modelBuilder.ApplyConfigurationsFromAssembly(typeof(ProductsDbContext).Assembly);
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     modelBuilder.ApplyRaskConventions();
     modelBuilder.AddRaskJobs();               // ← the Jobs table
 }
@@ -90,7 +95,7 @@ enqueue right after the order is saved:
 
 ```csharp
 public sealed class CreateOrderCommandHandler(
-    IDbContextFactory<ProductsDbContext> dbContextFactory,
+    IDbContextFactory<AppDbContext> dbContextFactory,
     IJobQueue jobs) : ICommandHandler<CreateOrderCommand, Guid>
 {
     public async Task<Guid> HandleAsync(CreateOrderCommand command, CancellationToken cancellationToken)

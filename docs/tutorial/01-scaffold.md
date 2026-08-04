@@ -1,27 +1,37 @@
 # Chapter 1 — Scaffold the app
 
 > **Goal:** create the Shop project, run it, and understand what the template gave you.
-> **You'll run:** `rask new Shop --auth --docker`
+> **You'll run:** `rask new Shop --all-batteries --auth --docker`
 
 ## Create the project
 
 The `rask` CLI scaffolds projects. We'll use the default **server** template (one ASP.NET project,
-components render on the server, live updates ship over a WebSocket) and add `--auth` up front, because
-Chapter 3 will lock the catalog behind a login and it's easiest to have that wiring from the start.
-`--docker` writes a production Dockerfile now so [Chapter 9](09-deploy.md)'s `rask deploy` has one ready.
+components render on the server, live updates ship over a WebSocket):
 
 ```bash
-rask new Shop --auth --docker
+rask new Shop --all-batteries --auth --docker
 cd Shop
 ```
 
-Two flags, both chosen now because they wire into the project at creation time:
+These are all **scaffold-time** choices — they wire into `Program.cs` and the `DbContext` as the project is
+created, so you pick them up front rather than bolting them on later:
 
+- **`--all-batteries`** turns on every One Person Framework pillar at once: a SQLite database and the CQRS
+  mediator, plus background jobs, transactional email, a cache, a durable outbox, scheduled snapshots,
+  continuous backup, and Web Push. Each chapter from here on teaches you what one of them is *for*; this
+  flag means none of them needs a wiring detour first.
 - **`--auth`** adds a working cookie-authentication flow — a `/login` page, a sign-out action, a protected
-  members area, and the services in `Program.cs` to back them. (Auth is a **scaffold-time** choice, so you
-  pick it up front rather than bolting it on later. Full reference: [authentication](../authentication.md).)
+  members area, and the services in `Program.cs` to back them. ([authentication](../authentication.md).)
 - **`--docker`** drops a production `Dockerfile` (and `.dockerignore`) into the project. We won't touch it
-  until [Chapter 9](09-deploy.md), where `rask deploy` uses it to ship the app to a server.
+  until [Chapter 11](11-deploy.md), where `rask deploy` uses it to ship the app to a server.
+
+> **Prefer one at a time?** Every battery is its own flag — `rask new Shop --data --jobs` gives you a
+> database and background work and nothing else. Each implies what it needs (`--jobs` implies `--data`
+> implies `--cqrs`), so you never have to remember a dependency. See [the CLI guide](../cli.md).
+
+Open `Program.cs` and skim it. It's long — a dozen commented registrations — but the comments explain
+*why* each one sits where it does, and a few of those orderings are load-bearing rather than stylistic. We
+come back to the sharpest one in [Chapter 7](07-outbox-events.md).
 
 > **Other hosts.** `--template wasm` and `--template wasm-hosted` build the same components as a
 > browser-WebAssembly SPA instead. Everything in this tutorial works on all three; we use `server` because
