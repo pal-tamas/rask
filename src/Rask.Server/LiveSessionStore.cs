@@ -301,19 +301,61 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
     }
 
-    public Task RerenderAllAsync()
+    /// <summary>
+    ///     Re-render every live session from scratch. Used by the dev-time asset-change subscriber.
+    ///     <para>
+    ///         Marks each tree dirty before requesting the render: <c>StateHasChangedAsync</c> alone
+    ///         only dirties the root, so a cached child subtree replays its previous frame and an edit
+    ///         inside it never appears. Costs nothing in production — the only thing that raises
+    ///         <c>AssetChanged</c> outside hot reload is a module initializer at startup, before any
+    ///         session exists, which the empty check below short-circuits.
+    ///     </para>
+    ///     <para>Best-effort: a session whose tree walk or render faults is skipped, not propagated.</para>
+    /// </summary>
+    public async Task RerenderAllAsync()
     {
         if (_sessions.IsEmpty)
         {
-            return Task.CompletedTask;
+            return;
         }
 
-        var tasks = new List<Task>(_sessions.Count);
         foreach (var session in _sessions.Values)
         {
-            tasks.Add(session.View.StateHasChangedAsync());
+            try
+            {
+                Component.MarkSubtreeDirtyForHotReload(session.View);
+                await session.View.StateHasChangedAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+                // One bad tree must not stop the rest — matches RerenderAllForHotReloadAsync.
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Pushes a pre-encoded control frame to every connected session. Used for the dev-only
+    ///     "hot reload applied" signal; the payload rides the existing socket through
+    ///     <see cref="LiveSession.SendOutOfBandAsync" />, which takes the render lock so it cannot
+    ///     interleave with an in-flight frame. Detached sessions are skipped.
+    /// </summary>
+    public async Task BroadcastAsync(ReadOnlyMemory<byte> payload)
+    {
+        if (_sessions.IsEmpty)
+        {
+            return;
         }
 
-        return Task.WhenAll(tasks);
+        foreach (var session in _sessions.Values)
+        {
+            try
+            {
+                await session.SendOutOfBandAsync(payload).ConfigureAwait(false);
+            }
+            catch
+            {
+                // A closed/faulted socket must not stop the broadcast.
+            }
+        }
     }
 }

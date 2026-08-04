@@ -32,12 +32,32 @@ them until tagged releases begin.
   `AssetChanged`, and the surviving siblings re-registered byte-identical content — which hits the no-op
   early return — so nothing fired and the deleted rules stayed on screen until a manual refresh.
 
+### Added
+- **The browser tells you a hot reload landed.** Under `dotnet watch` in Development, the server pushes a
+  `hotReload` frame once every session has repainted, and the client shows a brief "Hot reload applied"
+  pill. Two independent gates keep it out of production: the server only subscribes when the app is in
+  Development *and* the process supports metadata updates, and the client acts only on a `data-rask-dev`
+  flag that production HTML never carries. The indicator is built lazily, so a production bundle
+  constructs no DOM and injects no CSS for it.
+- **A restart for a rude edit gets back on screen in ~250 ms instead of 4 s.** Adding a type or changing a
+  signature is an edit hot reload cannot apply, so `dotnet watch` restarts the process — and the browser,
+  holding a session id the new process has never heard of, showed *"Your session timed out"* and sat there.
+  In development it now says *"Server restarted — reloading…"* and reloads promptly. Production keeps the
+  original grace period and wording.
+
 ### Changed
 - **`RouteRegistry` groups registrations by contributor.** The new `Replace(groupKey, registrations)`
   installs one contributor's complete set, replacing whatever it registered before. This is what lets the
   generated per-assembly route registry re-run under `dotnet watch` without duplicating its own routes
   (`Add` appends), dropping another assembly's, or clearing the default 404 fallback — which is seeded once
   by a `[ModuleInitializer]` and could not be restored. `Add` keeps its existing append semantics.
+
+### Removed
+- **The dev-time `.cs` `FileSystemWatcher` in `Rask.Server`.** It fired on *save* — before the new IL was
+  applied — so it repainted against the old code and the real hot-reload repaint then did it again: a
+  wasted frame and a visible flash. It also watched the entire current directory recursively, including
+  `obj/` and `bin/`, so `dotnet watch`'s own rebuild retriggered it, and it was a never-disposed static.
+  The only thing lost is a repaint on saving a file that does not compile.
 
 ### Docs
 - **The roadmap says what isn't shipped, not only what is.** Every pillar was marked ✅, which made the page
