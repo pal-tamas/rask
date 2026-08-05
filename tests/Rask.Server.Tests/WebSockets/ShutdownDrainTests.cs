@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Rask.Core.Live;
+using Rask.Core.Routing;
 using Rask.Server.Diagnostics;
 using Rask.Server.Tests.Infrastructure;
 
@@ -139,6 +140,39 @@ public class ShutdownDrainTests
         {
             DrainGateApp.Gate.TrySetResult();
         }
+    }
+
+    /// <summary>
+    ///     A client that has stopped reading must not be able to hold the shutdown announcement past the
+    ///     drain budget.
+    /// </summary>
+    /// <remarks>
+    ///     The announcement is bounded per-send by <c>SendTimeout</c> — 30 seconds by default, which is
+    ///     longer than the drain budget, longer than <c>HostOptions.ShutdownTimeout</c>, and long enough
+    ///     for <c>rask deploy</c>'s <c>SIGKILL</c> to land in the middle of a SQLite checkpoint. So the
+    ///     announcement is bounded by the budget as well. This is an interaction between two changes that
+    ///     do not touch the same file, which is exactly the kind nothing else would catch.
+    /// </remarks>
+    [Fact]
+    public async Task A_client_that_stopped_reading_cannot_hold_the_announcement_past_the_budget()
+    {
+        using var host = RaskTestHost.Create<TestApp>(
+            configureServer: o =>
+            {
+                o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200);
+                // Deliberately far longer than the budget: the point is that the budget wins.
+                o.SendTimeout = TimeSpan.FromSeconds(30);
+            });
+
+        var session = host.Store.Create(sp => new TestApp(sp.GetRequiredService<RouteState>()));
+        var socket = new StallingWebSocket();
+        session.AttachSocket(socket, CancellationToken.None);
+
+        var started = Environment.TickCount64;
+        await host.StopAsync();
+
+        Assert.True(Environment.TickCount64 - started < 10_000,
+            "the drain waited on a stalled client's send instead of its own budget");
     }
 
     [Fact]
