@@ -78,7 +78,12 @@ internal sealed class RaskDrainService : IHostedService, IDisposable
 
         try
         {
-            await SwallowAsync(_announce).ConfigureAwait(false);
+            // Bounded by the drain budget like every other step. Un-bounded, a client that has stopped
+            // reading TCP holds the announcement for the whole per-send SendTimeout (30s by default) —
+            // longer than the drain budget, longer than HostOptions.ShutdownTimeout, and long enough for
+            // `rask deploy`'s SIGKILL to land in the middle of a SQLite checkpoint. Anyone who misses
+            // their frame simply reconnects the old way, which is a far cheaper loss.
+            await SwallowAsync(_announce.WaitAsync(token)).ConfigureAwait(false);
             await SettleHandlersAsync(token).ConfigureAwait(false);
             await CloseSocketsAsync(token).ConfigureAwait(false);
             await SwallowAsync(_coordinator.WhenSocketsDrained().WaitAsync(token)).ConfigureAwait(false);
@@ -163,14 +168,14 @@ internal sealed class RaskDrainService : IHostedService, IDisposable
     ///     comes back where it was instead of reading the replacement process's <c>session/unknown</c>
     ///     reply as an idle timeout.
     ///     <para>
-    ///         Fanned out concurrently rather than through <c>LiveSessionStore.BroadcastAsync</c>, which
-    ///         is sequential: one session blocked on its render lock mid-frame would otherwise delay the
-    ///         announcement to every session behind it. Sends to <em>different</em> sessions are safe in
-    ///         parallel — each owns its own lock and socket.
+    ///         Goes through <c>LiveSessionStore.BroadcastAsync</c>, which fans out concurrently with a
+    ///         bounded degree and skips a session whose send faults. Sends to <em>different</em> sessions
+    ///         are safe in parallel — each owns its own lock and socket — but the bound matters most
+    ///         precisely here: a host shutting down under load has a busy thread pool, and an unbounded
+    ///         fan-out across thousands of sessions is the wrong thing to add to it.
     ///     </para>
     /// </summary>
-    private Task AnnounceAsync() =>
-        Task.WhenAll(_store.Snapshot().Select(s => SwallowAsync(s.SendOutOfBandAsync(LivePayload.ServerShutdownFrame))));
+    private Task AnnounceAsync() => _store.BroadcastAsync(LivePayload.ServerShutdownFrame);
 
     /// <summary>
     ///     Waits for in-flight handler dispatches to finish. This is the part that only became meaningful

@@ -90,6 +90,11 @@ them until tagged releases begin.
   `rask.shutdown.sessions.abandoned` counts anything still connected when the budget ran out.
   `LiveSessionStore.DisposeAsync` also became idempotent: the store is a DI singleton, so a host or a test
   that disposed it *as well as* the container reached `Cancel()` on an already-disposed token source.
+  The announcement itself is bounded by the drain budget and fanned out with a bounded degree of
+  concurrency. Neither was true when the drain and the outbound-send bound were written against separate
+  bases: a client that had stopped reading TCP held the announcement for the whole 30s `SendTimeout` —
+  longer than the drain budget, longer than `HostOptions.ShutdownTimeout`, and long enough for `rask
+  deploy`'s `SIGKILL` to land in the middle of a SQLite checkpoint. Measured at 30s before, 200ms after.
   The load-bearing change is a one-line token substitution: the socket's cancellation token now derives
   from the drain's hard deadline rather than from `ApplicationStopping`, which is what makes it possible
   to send anything at all — including the shutdown frame — after the stop signal arrives.
@@ -400,7 +405,7 @@ them until tagged releases begin.
   cost was the *sum* of every session's send rather than the slowest, and one stalled client held up every
   session behind it. Both now run with a bounded degree of concurrency. Only the dev-time hot-reload
   signal uses them today, but this is the code the planned Broadcast pillar inherits, where a fan-out is a
-  user-facing feature — and it is a prerequisite for the deploy-drain broadcast, which has to finish
+  user-facing feature — and it is what the shutdown drain's announcement rides, which has to finish
   inside the shutdown budget before `SIGKILL` interrupts a SQLite checkpoint.
 - **The jobs retention sweep fought a second instance.** `JobProcessor.PurgeAsync` loaded the stale rows and
   `RemoveRange`d them; a tracked delete of a row that vanished underneath the sweep raises
