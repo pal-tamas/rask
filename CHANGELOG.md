@@ -24,6 +24,21 @@ them until tagged releases begin.
   we could neither pin nor install.
 
 ### Fixed
+- **A client that stops reading can no longer wedge its live session, or hold up delivery to everyone
+  else.** `WebSocket.SendAsync` completes when a frame reaches the transport, not when the client reads it,
+  so a client that simply stops reading TCP fills the send buffer and the send never returns. Every send
+  happens under the session's render lock, which also guards its teardown — so that one client cost its
+  session every future render *and* a `Dispose` that could never take the lock, for as long as it cared to
+  stall. A new `SendTimeout` (default 30 s, `0` disables) bounds it: on expiry the socket is aborted, which
+  unwinds the receive loop and releases the lock, while the **session** is left alone to live out its
+  normal grace period — so a briefly-stalled link reconnects to the page it already had. The default is a
+  stuck-connection backstop, not a latency budget; a slow mobile link will not trip it.
+  The store's whole-session fan-outs (`RerenderAllAsync`, `BroadcastAsync`) were also sequential, so their
+  cost was the *sum* of every session's send rather than the slowest, and one stalled client held up every
+  session behind it. Both now run with a bounded degree of concurrency. Only the dev-time hot-reload
+  signal uses them today, but this is the code the planned Broadcast pillar inherits, where a fan-out is a
+  user-facing feature — and it is a prerequisite for the deploy-drain broadcast, which has to finish
+  inside the shutdown budget before `SIGKILL` interrupts a SQLite checkpoint.
 - **A contended write no longer fails with "cannot start a transaction within a transaction".** The
   busy-retry loop re-issued the identical statement on every pass with no cleanup between attempts, and
   cleared a leaked transaction only *once*, before the loop. That caught a transaction the pooled handle

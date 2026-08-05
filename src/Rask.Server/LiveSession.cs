@@ -76,11 +76,17 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // thread-pool worker) run on different threads. Mirrors the detached-socket early-return.
     private volatile bool _disposed;
 
+    // How long one outbound frame may take before we give up on the client. Read from the per-host limits
+    // when the host has them (a bare test store built straight from a ServiceCollection does not), so the
+    // value is fixed for the session's lifetime rather than resolved on every send.
+    private readonly TimeSpan _sendTimeout;
+
     public LiveSession(string id, Component view, IServiceScope scope, LiveDiffMode diffMode)
         : base(view, scope.ServiceProvider, diffMode)
     {
         Id = id;
         Scope = scope;
+        _sendTimeout = scope.ServiceProvider.GetService<RaskServerLimits>()?.SendTimeout ?? TimeSpan.Zero;
     }
 
     public bool SuppressEventsUntilReconnect { get; set; }
@@ -361,7 +367,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
                 return;
             }
 
-            await _socket.SendAsync(payload, WebSocketMessageType.Text, true, _socketCt).ConfigureAwait(false);
+            await SendGuardedAsync(payload).ConfigureAwait(false);
         }
         finally
         {
@@ -372,8 +378,60 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // Host transport for LiveSessionBase.TryEmitFrameAsync: write the frame's bytes to the WebSocket
     // (ReadOnlyMemory<byte>, zero-copy). RenderAndSendAsync guards _socket non-null/Open before the
     // shared send runs, and the render lock serialises teardown, so _socket is valid here.
-    protected override ValueTask SendFrameAsync(ReadOnlyMemory<byte> frame) =>
-        _socket!.SendAsync(frame, WebSocketMessageType.Text, true, _socketCt);
+    protected override ValueTask SendFrameAsync(ReadOnlyMemory<byte> frame) => SendGuardedAsync(frame);
+
+    /// <summary>
+    ///     Writes one frame to the socket, giving up on a client that has stopped reading.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>SendAsync</c> completes when the frame reaches the transport, not when the client reads
+    ///         it. A client that stops reading fills the send buffer and the send simply never returns —
+    ///         and because every send here happens under <c>_renderLock</c>, which also guards teardown,
+    ///         that one client would pin its session forever: no further renders, and a <c>Dispose</c> that
+    ///         can never take the lock.
+    ///     </para>
+    ///     <para>
+    ///         On timeout the socket is aborted, which is what unwinds the receive loop and releases the
+    ///         lock. The <em>session</em> is left alone: it lives out its normal grace period, so a client
+    ///         whose link stalled briefly reconnects to the page it already had.
+    ///     </para>
+    /// </remarks>
+    private async ValueTask SendGuardedAsync(ReadOnlyMemory<byte> payload)
+    {
+        if (_sendTimeout <= TimeSpan.Zero)
+        {
+            await _socket!.SendAsync(payload, WebSocketMessageType.Text, true, _socketCt).ConfigureAwait(false);
+            return;
+        }
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_socketCt);
+        cts.CancelAfter(_sendTimeout);
+        try
+        {
+            await _socket!.SendAsync(payload, WebSocketMessageType.Text, true, cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!_socketCt.IsCancellationRequested)
+        {
+            // Ours, not the caller's: the send timed out rather than the session being torn down. Abort so
+            // the receive loop unwinds, then report it as a transport failure — which is what it is, and
+            // what every caller here already handles.
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.Live",
+                $"Aborting a socket whose send did not complete within {_sendTimeout}. The client stopped "
+                + "reading; its session is kept for the reconnect grace period.");
+            try
+            {
+                _socket!.Abort();
+            }
+            catch
+            {
+                // Already torn down by the receive loop — nothing left to abort.
+            }
+
+            throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Send timed out.");
+        }
+    }
 
     internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
         bool publishOnly = false)
