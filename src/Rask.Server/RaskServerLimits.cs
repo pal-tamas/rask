@@ -36,6 +36,9 @@ internal sealed class RaskServerLimits
     /// <summary>Aggregate queued cloned-payload bytes before the backpressure breaker closes the socket. 0 = off.</summary>
     public long MaxPendingHandlerBytes { get; init; }
 
+    /// <summary>How long one outbound frame may take before the socket is aborted. Zero = off.</summary>
+    public TimeSpan SendTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
     /// <summary>Projects a validated <see cref="RaskServerOptions" /> into the per-host limit snapshot.</summary>
     public static RaskServerLimits From(RaskServerOptions o) => new()
     {
@@ -47,5 +50,6 @@ internal sealed class RaskServerLimits
         IdleSocketTimeout = o.IdleSocketTimeout,
         HandlerTimeout = o.HandlerTimeout,
         MaxPendingHandlerBytes = o.MaxPendingHandlerBytes,
+        SendTimeout = o.SendTimeout,
     };
 }
