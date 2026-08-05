@@ -32,6 +32,12 @@ Dockerfile below (override with `--dockerfile`).
   to start — or that starts but fails its probe (bad config, a failed migration) — is removed and the
   previous version keeps serving. Apps scaffolded with `rask new` ship the `/health` endpoint; probe a
   different path with `--health-path <path>`, or skip the probe with `--no-health-check`.
+  HTTP requests are zero-downtime; **live sessions re-establish**, because a session is a component tree
+  and a DI scope inside *that* container and cannot hand over to the next one. The retiring container
+  announces its shutdown first, so open pages show "Updating…" and reconnect to the new instance
+  immediately instead of reporting a timeout — reloading only if the host that answers cannot rebuild the
+  page, and then at their previous scroll position. See
+  [Shutdown and redeploy](configuration.md#shutdown-and-redeploy).
 - **Durable SQLite database.** Every deploy runs a fresh container, so the database can't live inside it.
   `rask deploy` mounts a per-app named volume and points the app at it (`ConnectionStrings:App` →
   `Data Source=/data/app.db`), so your data persists across redeploys; the old container is stopped
@@ -164,10 +170,15 @@ Beyond your own `--env` values, every deployed container gets:
 | `--restart unless-stopped` | The app comes back after a reboot or a daemon restart. |
 
 The scaffolded app is set up to match: it honours forwarded headers (so `Request.Scheme` and the client
-IP are the visitor's, not the proxy's), reports live-session capacity on `/health` (so a host that is
-refusing sessions with `503` says so rather than answering a bare "up"), and shuts down within 15s — inside
-the 20s grace period the deploy allows before `SIGKILL`, so in-flight requests drain and SQLite checkpoints
-cleanly.
+IP are the visitor's, not the proxy's), reports live-session capacity and readiness on `/health` (so a host
+that is refusing sessions with `503` — because it is full, or because it is draining — says so rather than
+answering a bare "up"), and gives itself a **15 s shutdown budget**, inside the 20 s the deploy allows
+before `SIGKILL`.
+
+Within that budget the app closes admission, tells connected browsers it is going away, lets in-flight
+HTTP requests and event handlers finish, closes each WebSocket with a proper `1001` handshake, and
+checkpoints SQLite. These are budgets, not guarantees: work that outlives its budget is cancelled, and
+`rask.shutdown.sessions.abandoned` (plus a warning in the logs) tells you when that happened.
 
 ### Your users stay signed in across a deploy
 

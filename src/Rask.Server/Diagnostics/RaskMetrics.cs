@@ -24,6 +24,7 @@ public sealed class RaskMetrics : IDisposable
     private readonly Counter<long> _handlersTimedOut;
     private readonly Histogram<double> _handlerDuration;
     private readonly Meter _meter;
+    private readonly Counter<long> _sessionsAbandonedAtDrain;
     private readonly Counter<long> _sessionsCreated;
     private readonly Counter<long> _sessionsEvicted;
     private readonly Counter<long> _sessionsRejected;
@@ -58,6 +59,9 @@ public sealed class RaskMetrics : IDisposable
             "rask.sessions.resumed", "{session}", "Sessions rebuilt from a client's resume record.");
         _sessionsResumeRejected = _meter.CreateCounter<long>(
             "rask.sessions.resume_rejected", "{session}", "Resume records refused, tagged with the reason.");
+        _sessionsAbandonedAtDrain = _meter.CreateCounter<long>(
+            "rask.shutdown.sessions.abandoned", "{session}",
+            "Live sessions still connected when the shutdown drain budget ran out (their sockets were aborted).");
     }
 
     // Exposed for tests so a MeterListener can scope to this exact meter instance and ignore
@@ -76,6 +80,13 @@ public sealed class RaskMetrics : IDisposable
     public void SessionRejected() => _sessionsRejected.Add(1);
 
     public void SessionEvicted() => _sessionsEvicted.Add(1);
+
+    /// <summary>
+    ///     Records sessions whose sockets had to be aborted because the drain budget ran out. A nonzero
+    ///     reading is the signal that <c>RaskServerOptions.ShutdownDrainTimeout</c> (or the
+    ///     <c>HostOptions.ShutdownTimeout</c> containing it) is shorter than the app's real shutdown.
+    /// </summary>
+    public void SessionsAbandonedAtDrain(int count) => _sessionsAbandonedAtDrain.Add(count);
 
     public void HandlerDispatched() => _handlersDispatched.Add(1);
 

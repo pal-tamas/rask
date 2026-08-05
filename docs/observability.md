@@ -64,6 +64,13 @@ All metrics publish on the meter named **`Rask.Server`** (`RaskTelemetry.MeterNa
 | `rask.ws.frames.rejected` | Counter | `reason` = `size` \| `rate` \| `backlog` \| `idle` | Inbound frames refused by a safety limit. |
 | `rask.sessions.resumed` | Counter | | Pages rebuilt on a host that had never heard of the session, from the client's [resume record](configuration.md#surviving-a-restart-or-a-redeploy). |
 | `rask.sessions.resume_rejected` | Counter | `reason` = `malformed` \| `unprotect` \| `principal` \| `toolarge` \| `atcapacity` | Resume records refused. |
+| `rask.ws.frames.rejected` | Counter | `reason` = `size` \| `rate` \| `backlog` | Inbound frames refused by a safety limit. |
+| `rask.shutdown.sessions.abandoned` | Counter | | Sessions still connected when the shutdown drain budget ran out; their sockets were aborted. |
+
+A nonzero `rask.shutdown.sessions.abandoned` is the signal that `ShutdownDrainTimeout` — or the
+`HostOptions.ShutdownTimeout` containing it — is shorter than your app's real shutdown, so some users saw
+an abnormal disconnect instead of a clean "Updating…" reload. Because it is emitted *during* shutdown, its
+delivery depends on your exporter's final flush; the same fact is logged, which is the more reliable read.
 
 The `rask.ws.frames.rejected` counter is the headline DoS-visibility signal: a spike on
 `reason=rate` or `reason=backlog` means a client is being throttled by the per-connection frame-rate
@@ -133,7 +140,9 @@ above (or any `ActivityListener`).
 
 ## Health checks
 
-`RaskLiveHealthCheck` reports live-session capacity. Register it on your health-checks pipeline:
+`AddRaskLiveSessions()` registers two checks, because they answer different questions: capacity
+(`RaskLiveHealthCheck`, tagged `live`) and readiness (`RaskReadinessHealthCheck`, tagged `ready`).
+Register them on your health-checks pipeline:
 
 ```csharp
 builder.Services.AddRask(o => o.MaxSessions = 1000);
@@ -151,3 +160,21 @@ app.UseRask<App>();
 
 The active and maximum session counts are attached to the health-check result `data` for dashboards.
 Pair the capacity cap with a reverse-proxy rate limit for precise admission control.
+
+### Readiness
+
+`RaskReadinessHealthCheck` answers one question: *is this instance still accepting live sessions?* It is
+`Healthy` normally and `Unhealthy` from the moment a graceful shutdown begins, so an aggregate `/health`
+returns `503` while draining and a load balancer with active probes stops routing here.
+
+It is kept separate from the capacity check on purpose — that one's `Unhealthy` already means "at
+`MaxSessions`, refusing with `503`", and folding a second cause into it would make both readings
+ambiguous exactly when someone is diagnosing an incident. Split them with the tags when you want distinct
+probes:
+
+```csharp
+app.MapHealthChecks("/health/ready",
+    new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
+app.MapHealthChecks("/health/live",
+    new HealthCheckOptions { Predicate = c => c.Tags.Contains("live") });
+```

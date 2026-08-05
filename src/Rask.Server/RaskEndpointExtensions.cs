@@ -18,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.JSInterop;
 using Microsoft.JSInterop.Infrastructure;
@@ -177,11 +178,24 @@ public static class RaskEndpointExtensions
 
         // Metrics singleton (Meter "Rask.Server"). TryAdd so a host can pre-register its own.
         services.TryAddSingleton<RaskMetrics>();
+        // Per-host shutdown state. Pure state with no dependencies, so the store can read it without a
+        // construction cycle; RaskDrainService drives it.
+        services.AddSingleton<RaskDrainCoordinator>();
         services.AddSingleton(sp => new LiveSessionStore(
             sp.GetRequiredService<IServiceScopeFactory>(),
             sp.GetService<IHostApplicationLifetime>(),
             sp.GetService<RaskMetrics>())
-        { MaxSessions = maxSessions, DiffMode = diffMode });
+        {
+            MaxSessions = maxSessions,
+            DiffMode = diffMode,
+            // Assigned rather than passed: LiveSessionStore's constructor is public and
+            // RaskDrainCoordinator is internal, and every directly-constructed test store keeps working
+            // (it simply never drains).
+            Drain = sp.GetRequiredService<RaskDrainCoordinator>(),
+        });
+        // Graceful shutdown for the live sessions: announce, settle in-flight handlers, close each socket
+        // with a real handshake, dispose awaited. Registered unconditionally — a drain is not an opt-in.
+        services.AddHostedService<RaskDrainService>();
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
@@ -263,6 +277,8 @@ public static class RaskEndpointExtensions
         else
             Console.WriteLine($"Rask {RaskVersion.Current} (Server) starting");
 
+        WarnOnTightShutdownLadder(app.Services, logger);
+
         // Resolve the scoped-CSS minification default from the host environment unless an explicit
         // true/false was already set (via AddRask or directly): minify outside Development, and keep it
         // readable + hot-reloadable in Development.
@@ -271,6 +287,39 @@ public static class RaskEndpointExtensions
         app.UseWebSockets();
         ((IEndpointRouteBuilder)app).UseRask<TApp>(pattern, pathBase);
         return app;
+    }
+
+    /// <summary>
+    ///     Warns when the shutdown drain cannot fit inside the host's own shutdown budget. A warning and
+    ///     not a throw: <c>Validate</c> throws for values that are <em>invalid</em>, whereas a tight
+    ///     ladder is merely suboptimal, and refusing to start a production app over it would be a far
+    ///     worse failure than the degraded shutdown it is warning about.
+    /// </summary>
+    private static void WarnOnTightShutdownLadder(IServiceProvider services, ILogger? logger)
+    {
+        if (logger is null || services.GetService<RaskServerLimits>() is not { } limits)
+        {
+            return;
+        }
+
+        var drain = limits.ShutdownDrainTimeout;
+        if (drain <= TimeSpan.Zero || services.GetService<IOptions<HostOptions>>()?.Value is not { } host)
+        {
+            return;
+        }
+
+        if (host.ShutdownTimeout > drain)
+        {
+            return;
+        }
+
+        logger.LogWarning(
+            "Rask: ShutdownDrainTimeout ({Drain}) is not below HostOptions.ShutdownTimeout ({Shutdown}), so live "
+            + "sessions will be aborted at shutdown (the browser sees an abnormal 1006 close and reports a timed-out "
+            + "session) instead of closed cleanly. Raise ShutdownTimeout or lower ShutdownDrainTimeout. Note that "
+            + "HostOptions.ServicesStopConcurrently is false by default, so other hosted services spend from the same "
+            + "budget before Rask's drain is even entered.",
+            drain, host.ShutdownTimeout);
     }
 
     /// <summary>
@@ -350,6 +399,19 @@ public static class RaskEndpointExtensions
             if (session is null)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                // Both refusals are 503, but they mean different things to whatever is retrying. A
+                // draining host is being replaced right now and its stand-in is already up, so a second
+                // is the honest hint; a host at capacity needs longer than that to free a slot. No-store
+                // on the drain path so a shared cache can never pin this page after the swap.
+                if (store.IsDraining)
+                {
+                    httpContext.Response.Headers.RetryAfter = "1";
+                    httpContext.Response.Headers.CacheControl = "no-store";
+                    await httpContext.Response.WriteAsync("Server is shutting down; please retry shortly.")
+                        .ConfigureAwait(false);
+                    return;
+                }
+
                 httpContext.Response.Headers.RetryAfter = "5";
                 await httpContext.Response.WriteAsync("Server is at session capacity; please retry shortly.")
                     .ConfigureAwait(false);
@@ -457,7 +519,6 @@ public static class RaskEndpointExtensions
         endpoints.Map(pathBase + WebSocketPath, (RequestDelegate)(async ctx =>
             {
                 var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
-                var lifetime = ctx.RequestServices.GetRequiredService<IHostApplicationLifetime>();
                 // Resolve the per-host safety limits once per connection (not per frame) — the receive
                 // loop reads them via instance fields on the hot path.
                 var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
@@ -489,11 +550,19 @@ public static class RaskEndpointExtensions
                 // frames carry the user's own rendered view, no cross-origin mixing).
                 using var ws = await ctx.WebSockets.AcceptWebSocketAsync(
                     new WebSocketAcceptContext { DangerousEnableCompression = true });
+                // The socket's lifetime hangs off the drain's HARD deadline, not off ApplicationStopping.
+                // This one substitution is what makes a graceful shutdown possible at all: this token
+                // becomes LiveSession._socketCt, so while it was ApplicationStopping every send — the
+                // shutdown announcement included — threw the instant SIGTERM landed, and every in-flight
+                // handler was cancelled before it could finish. Now it trips only when the drain budget
+                // is spent, which is also when the ws.Abort() registered below becomes the right answer.
+                var drain = ctx.RequestServices.GetRequiredService<RaskDrainCoordinator>();
+                using var socketScope = drain.TrackSocket();
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(
-                    ctx.RequestAborted, lifetime.ApplicationStopping);
+                    ctx.RequestAborted, drain.HardStopping);
                 var resume = ctx.RequestServices.GetRequiredService<SessionResumeSupport>();
                 await RunSocketLoop(ws, store, limits, wsUser, resume, appFactory, linked.Token,
-                    lifetime.ApplicationStopping);
+                    drain.HardStopping);
             }));
 
         var script = LoadEmbeddedScript();
