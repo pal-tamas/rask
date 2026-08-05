@@ -19,7 +19,7 @@ internal static class EmailGenerator
         {
             // No DbContext to wire into (none in the project, or several with no --context) — scaffold the body
             // and print the full manual setup so the user can pick the context themselves.
-            return new ScaffoldResult([file], ManualNotes(name)) { Packages = ["Rask.Mail"] };
+            return new ScaffoldResult([file], ManualNotes(name, project.Database)) { Packages = ["Rask.Mail"] };
         }
 
         // Auto-wire: register the mail queue against the resolved context and map its table in OnModelCreating —
@@ -54,12 +54,12 @@ internal static class EmailGenerator
         """;
 
     /// <summary>Next-steps when no DbContext could be resolved — the full manual wiring the user must do.</summary>
-    internal static string ManualNotes(string name) =>
+    internal static string ManualNotes(string name, DatabaseInfo database) =>
         $$"""
         Next steps (no DbContext found to wire into automatically):
           1. Register the services in Program.cs (once):
                builder.Services.AddRaskMail<AppDbContext>(o => { o.From = "no-reply@example.com"; });   // your DbContext
-               builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseRaskSqlite("Data Source=app.db"));
+               builder.Services.AddDbContextFactory<AppDbContext>(o => o.{{database.UseMethod}}("{{database.DefaultConnectionString}}"));
           2. Map the mail table in your DbContext's OnModelCreating (once):
                modelBuilder.AddRaskMail();
           3. Create the schema:

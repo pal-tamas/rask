@@ -77,6 +77,8 @@ public static class GuideCatalog
             "One Person Framework"),
         new("sqlite", "Production SQLite", "WAL + busy-timeout pragmas, continuous backup, snapshots.",
             "bi-database", "One Person Framework"),
+        new("databases", "Choosing a database", "SQLite by default, PostgreSQL when one box isn't enough.",
+            "bi-hdd-stack", "One Person Framework"),
         new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.",
             "bi-rocket", "One Person Framework"),
         new("secrets", "Secrets", "Where passwords and API keys live, and how they reach the server.",

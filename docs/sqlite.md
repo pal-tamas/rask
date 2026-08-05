@@ -531,11 +531,13 @@ not just asserted in prose.
   users/roles/`GRANT`, no stored procedures, no `LISTEN/NOTIFY`. Access control and connection management
   are the app's job.
 
-**Outgrowing it is cheap.** Because Rask's data layer is EF Core, moving to a client-server database
-(e.g. PostgreSQL) when you genuinely need multi-writer scale-out or managed HA is largely a provider +
-connection-string change — the [`Rask.Data`](data.md) aggregates, [`Rask.Cqrs`](cqrs.md) handlers, and the
-generated slices are provider-agnostic. SQLite gets you far enough that most single-person products never
-make the switch.
+**Outgrowing it is cheap.** Moving to a client-server database when you genuinely need multi-writer
+scale-out or managed HA is a provider + connection-string change: `rask new --database postgres` scaffolds
+it, and the [`Rask.Data`](data.md) aggregates, [`Rask.Cqrs`](cqrs.md) handlers and generated slices are
+provider-agnostic either way. What you leave behind is everything on this page that treats the database as
+a *file* — Litestream, snapshots, `rask db backup`. See **[Choosing a database](databases.md)** for the
+full trade, including the multi-instance rules. SQLite gets you far enough that most single-person products
+never make the switch.
 
 ## Testing
 

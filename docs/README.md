@@ -55,6 +55,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [Data access (EF Core)](data-access.md) | EF Core + SQLite in a Server app: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
 | [Rask.Data](data.md) | The `Entity<TId>` base + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, and domain events — via `AddRaskData()` + `ApplyRaskConventions()`. |
 | [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, plus Litestream backup. |
+| [Choosing a database](databases.md) | SQLite (the default) vs PostgreSQL via `rask new --database`: what `UseRaskPostgres` configures, what the file-based batteries leave behind, how deploy changes, and why multi-instance isn't safe yet. |
 | [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / notifications and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |
 | [Background jobs](jobs.md) | Durable enqueued / delayed / recurring work on the app's own database via `AddRaskJobs<Ctx>()` + `IJobQueue` (standalone `Rask.Jobs`) — at-least-once, with backoff. |
 | [Transactional email](mail.md) | Durable email queued on the app's own database via `AddRaskMail<Ctx>()` + `IMailQueue` (standalone `Rask.Mail`) — delivered off the request thread over SMTP with backoff; bodies are Rask components. |

@@ -52,7 +52,7 @@ internal static partial class ProjectGenerator
 
         if (batteries.Docker)
         {
-            files.Add(("Dockerfile", Dockerfile(batteries.Data)));
+            files.Add(("Dockerfile", Dockerfile(batteries)));
             files.Add((".dockerignore", DockerIgnore));
         }
 
@@ -76,11 +76,17 @@ internal static partial class ProjectGenerator
         if (batteries.Data)
         {
             packages.Add("Rask.Data");
-            packages.Add("Rask.SQLite.EntityFrameworkCore");
-            // Continuous backup. Referenced whenever there's a database: the wiring in Program.cs stays
-            // inert until Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
-            // one-env-var path from "single copy on one disk" to "the box is disposable".
-            packages.Add("Rask.SQLite.Litestream");
+            packages.Add(batteries.Database.Package);
+
+            if (batteries.Database.IsFileBased)
+            {
+                // Continuous backup. Referenced whenever there's a SQLite database: the wiring in Program.cs
+                // stays inert until Litestream:ReplicaUrl is set, so this costs an unused reference and buys
+                // a one-env-var path from "single copy on one disk" to "the box is disposable". It replicates
+                // a file's write-ahead log, so it has no counterpart on a client-server database — there,
+                // backup is the provider's job.
+                packages.Add("Rask.SQLite.Litestream");
+            }
         }
 
         if (batteries.Outbox)
@@ -103,7 +109,7 @@ internal static partial class ProjectGenerator
             packages.Add("Rask.Cache");
         }
 
-        if (batteries.Snapshots)
+        if (batteries.AnySqliteOps)
         {
             packages.Add("Rask.SQLite.Snapshots");
         }
@@ -123,9 +129,9 @@ internal static partial class ProjectGenerator
 
     private static string ServerCsproj(ServerBatteries batteries, string version)
     {
-        // Rask.SQLite.EntityFrameworkCore brings UseRaskSqlite (WAL/busy_timeout pragmas) and pulls
-        // Microsoft.EntityFrameworkCore.Sqlite transitively; `rask db` adds EF's Design package on the
-        // first migration, so the base app builds and runs with no design-time dependency.
+        // The database package (Rask.SQLite.EntityFrameworkCore or Rask.Postgres) brings the Use… extension
+        // and pulls its EF Core provider transitively; `rask db` adds EF's Design package on the first
+        // migration, so the base app builds and runs with no design-time dependency.
         var refs = new StringBuilder();
         foreach (var package in ServerPackages(batteries).Skip(2))
         {
@@ -136,7 +142,7 @@ internal static partial class ProjectGenerator
         // told not to, so without this a scaffolded app can't be built offline — and errors outright on a
         // RID with no published asset. The binary belongs on the server (--docker copies it into the
         // image), not in everyone's build.
-        var litestreamProperty = batteries.Data
+        var litestreamProperty = batteries.Data && batteries.Database.IsFileBased
             ? "\n    <!-- The litestream binary ships in the Docker image, not fetched at build time. -->"
               + "\n    <RaskLitestreamDownload>false</RaskLitestreamDownload>"
             : "";
@@ -197,9 +203,13 @@ internal static partial class ProjectGenerator
             sb.Append("using Microsoft.EntityFrameworkCore;\n");
             sb.Append("using Microsoft.EntityFrameworkCore.Diagnostics;\n");
             sb.Append("using Rask.Data;\n");
-            sb.Append("using Rask.SQLite;\n");
-            sb.Append("using Microsoft.Data.Sqlite;\n");
-            sb.Append("using Rask.SQLite.Litestream;\n");
+            sb.Append("using ").Append(batteries.Database.Namespace).Append(";\n");
+
+            if (batteries.Database.IsFileBased)
+            {
+                sb.Append("using Microsoft.Data.Sqlite;\n");
+                sb.Append("using Rask.SQLite.Litestream;\n");
+            }
         }
 
         if (batteries.Jobs)
@@ -222,7 +232,7 @@ internal static partial class ProjectGenerator
             sb.Append("using Rask.Outbox;\n");
         }
 
-        if (batteries.Snapshots)
+        if (batteries.AnySqliteOps)
         {
             sb.Append("using Rask.SQLite.Snapshots;\n");
         }
@@ -277,7 +287,7 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        sb.Append(ShutdownBudgetBlock());
+        sb.Append(ShutdownBudgetBlock(batteries.Data && batteries.Database.IsFileBased));
 
         if (batteries.Cqrs)
         {
@@ -293,7 +303,7 @@ internal static partial class ProjectGenerator
 
         if (batteries.Data)
         {
-            sb.Append("""
+            var sqliteData = """
 
                 // The app's database, on its own disk — no external server. AddRaskData registers the
                 // auditing/soft-delete/concurrency/domain-event interceptors; UseRaskSqlite is a drop-in for
@@ -303,9 +313,9 @@ internal static partial class ProjectGenerator
                 // `rask generate feature X --context AppDbContext` adds a DbSet to AppDbContext;
                 // `rask db add <Name>` / `rask db update` create and apply the migration.
                 __ADDRASKDATA__
-                var connectionString = builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db";
+                var connectionString = builder.Configuration.GetConnectionString("App") ?? "__CONNECTIONSTRING__";
                 __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-                    .UseRaskSqlite(connectionString)
+                    .__USEMETHOD__(connectionString)
                     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
                 // Continuous backup. Litestream streams the write-ahead log to object storage, which is what
@@ -327,7 +337,34 @@ internal static partial class ProjectGenerator
                     });
                 }
 
-                """.TrimStart('\n')
+                """;
+
+            // A client-server database: no Litestream (there is no file to replicate) and no local-file
+            // default — a connection string that silently points at localhost is worse than one that is
+            // obviously a placeholder, so the fallback names the provider's own default and the comment
+            // says where the real one belongs.
+            var serverData = """
+
+                // The app's database. AddRaskData registers the auditing/soft-delete/concurrency/domain-event
+                // interceptors; __USEMETHOD__ is a drop-in for __RAWUSEMETHOD__ that also applies the production
+                // session settings (statement/lock/idle-in-transaction timeouts) and turns on transient-failure
+                // retrying. Set the real connection string via ConnectionStrings:App — in production pass it as
+                // an environment variable, e.g. `rask deploy --env "ConnectionStrings__App=..."`, so it never
+                // lands in source control.
+                // `rask generate feature X --context AppDbContext` adds a DbSet to AppDbContext;
+                // `rask db add <Name>` / `rask db update` create and apply the migration.
+                __ADDRASKDATA__
+                var connectionString = builder.Configuration.GetConnectionString("App") ?? "__CONNECTIONSTRING__";
+                __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+                    .__USEMETHOD__(connectionString)
+                    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+
+                """;
+
+            sb.Append((batteries.Database.IsFileBased ? sqliteData : serverData).TrimStart('\n')
+                    .Replace("__CONNECTIONSTRING__", batteries.Database.DefaultConnectionString, StringComparison.Ordinal)
+                    .Replace("__RAWUSEMETHOD__", batteries.Database.TestUseMethod, StringComparison.Ordinal)
+                    .Replace("__USEMETHOD__", batteries.Database.UseMethod, StringComparison.Ordinal)
                     .Replace("__ADDRASKDATA__", batteries.Outbox
                         ? """
                           builder.Services.AddRaskData(o =>
@@ -387,7 +424,7 @@ internal static partial class ProjectGenerator
                 """);
         }
 
-        if (batteries.Snapshots)
+        if (batteries.AnySqliteOps)
         {
             Block(sb, """
                 // Scheduled point-in-time backups, a second line of defence alongside the continuous replication
@@ -540,7 +577,7 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        if (batteries.Data)
+        if (batteries.Data && batteries.Database.IsFileBased)
         {
             sb.Append("""
 
@@ -645,7 +682,9 @@ internal static partial class ProjectGenerator
         {
             steps.Append("  rask generate feature Post --fields \"Title:string,Body:string\" --context AppDbContext\n");
             steps.Append("  rask db add Init    # create the first migration\n");
-            steps.Append("  rask db update      # apply it to app.db\n");
+            steps.Append(batteries.Database.IsFileBased
+                ? "  rask db update      # apply it to app.db\n"
+                : "  rask db update      # apply it (set ConnectionStrings:App first)\n");
         }
 
         steps.Append("  rask dev            # run with hot reload (or: dotnet run)\n");
@@ -926,20 +965,48 @@ internal static partial class ProjectGenerator
         """;
 
     /// <summary>
-    /// The production image. With <c>--data</c> it also carries the <c>litestream</c> binary the app's
-    /// replicator drives: the wiring in Program.cs is inert without it, so shipping one without the other
-    /// would mean a "continuous backup" that silently never runs. Copied from Litestream's own published
-    /// image — one layer, no package manager, and the right architecture picked by the manifest.
+    /// The production image. With <c>--data</c> on a file database it also carries the <c>litestream</c>
+    /// binary the app's replicator drives: the wiring in Program.cs is inert without it, so shipping one
+    /// without the other would mean a "continuous backup" that silently never runs. Copied from Litestream's
+    /// own published image — one layer, no package manager, and the right architecture picked by the manifest.
     /// </summary>
-    private static string Dockerfile(bool data) =>
-        data
-            ? DockerfileTemplate.Replace(
-                "@@LITESTREAM@@",
-                "\n# The replicator binary Program.cs drives when Litestream__ReplicaUrl is set (see docs/sqlite.md).\n"
-                + "COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /usr/local/bin/litestream\n",
-                StringComparison.Ordinal)
-            : DockerfileTemplate.Replace("@@LITESTREAM@@\n", string.Empty, StringComparison.Ordinal)
-                .Replace("@@LITESTREAM@@", string.Empty, StringComparison.Ordinal);
+    /// <remarks>
+    /// Both spliced extras exist because the database is a <em>file on this box</em>, so a client-server
+    /// database gets neither. The two gates differ on purpose: the <c>/data</c> mount point tracks whatever
+    /// <c>rask deploy</c> mounts — which includes an app that has no <c>--data</c> yet, so adding it later
+    /// doesn't need a new Dockerfile — while the binary is only worth carrying once there is a database to
+    /// replicate.
+    /// </remarks>
+    private static string Dockerfile(ServerBatteries batteries)
+    {
+        var dataDirectory = batteries.Database.IsFileBased;
+        var litestream = batteries.Data && dataDirectory;
+
+        return Splice(Splice(DockerfileTemplate, "@@LITESTREAM@@", litestream ? LitestreamLayer : null),
+            "@@DATADIR@@", dataDirectory ? DataDirectoryLayer : null);
+
+        // Fill the slot, or drop the marker and the line it sits on so an unused slot leaves no stray blank.
+        static string Splice(string template, string marker, string? content) =>
+            content is null
+                ? template.Replace(marker + "\n", string.Empty, StringComparison.Ordinal)
+                    .Replace(marker, string.Empty, StringComparison.Ordinal)
+                : template.Replace(marker, content, StringComparison.Ordinal);
+    }
+
+    // Both layers carry their own leading blank line so a filled slot is separated from what precedes it,
+    // and an empty slot collapses cleanly instead of leaving one behind.
+    private const string LitestreamLayer =
+        "\n# The replicator binary Program.cs drives when Litestream__ReplicaUrl is set (see docs/sqlite.md).\n"
+        + "COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /usr/local/bin/litestream\n";
+
+    private const string DataDirectoryLayer =
+        "\n# A writable data directory for the SQLite database, owned by the image's non-root runtime user\n"
+        + "# ($APP_UID). `rask deploy` mounts a named volume here and points the app at /data/app.db (via\n"
+        + "# ConnectionStrings:App), so the database survives container replacement across redeploys. A fresh\n"
+        + "# named volume inherits this directory's ownership, so the non-root app can create app.db in it.\n"
+        + "USER root\n"
+        + "RUN mkdir -p /data && chown $APP_UID:$APP_UID /data\n"
+        + "USER $APP_UID";
 
     private const string DockerfileTemplate =
         """
@@ -959,14 +1026,7 @@ internal static partial class ProjectGenerator
         WORKDIR /app
         COPY --from=build /app .
         @@LITESTREAM@@
-
-        # A writable data directory for the SQLite database, owned by the image's non-root runtime user
-        # ($APP_UID). `rask deploy` mounts a named volume here and points the app at /data/app.db (via
-        # ConnectionStrings:App), so the database survives container replacement across redeploys. A fresh
-        # named volume inherits this directory's ownership, so the non-root app can create app.db in it.
-        USER root
-        RUN mkdir -p /data && chown $APP_UID:$APP_UID /data
-        USER $APP_UID
+        @@DATADIR@@
 
         EXPOSE 8080
         # The app calls UseHttpsRedirection(); inside the container no HTTPS port is configured,

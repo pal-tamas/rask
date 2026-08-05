@@ -69,13 +69,17 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// AppDbContext resolve — both alone and composed with <c>--auth</c> (which shares the same Program.cs).
     /// </summary>
     [SkippableTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Generated_data_server_project_builds(bool auth)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Generated_data_server_project_builds(bool auth, bool postgres)
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
-        var name = $"DE2E{(auth ? "A" : "")}";
+        var provider = postgres ? DatabaseProvider.Postgres : DatabaseProvider.Sqlite;
+
+        var name = $"DE2E{(auth ? "A" : "")}{(postgres ? "P" : "")}";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
         var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
@@ -83,7 +87,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         try
         {
             var result = ProjectGenerator.GenerateServer(
-                projectDir, name, new ServerBatteries { Auth = auth, Data = true }, version);
+                projectDir, name, new ServerBatteries { Auth = auth, Data = true, Provider = provider }, version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)
@@ -95,7 +99,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
             var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
-            Assert.True(exit == 0, $"[data,auth={auth}] generated project failed to build.{CliBuildE2E.Diagnostics(output)}");
+            Assert.True(exit == 0, $"[data,auth={auth},db={provider}] generated project failed to build.{CliBuildE2E.Diagnostics(output)}");
         }
         finally
         {

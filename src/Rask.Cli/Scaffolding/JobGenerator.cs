@@ -12,7 +12,7 @@ internal static class JobGenerator
     {
         var targetDirectory = Scaffold.TargetDirectory(baseDirectory, outputOverride, Scaffold.FeatureOrShared(feature));
         var file = new ScaffoldFile(Path.Combine(targetDirectory, name + ".cs"), Render(project.NamespaceFor(targetDirectory), name));
-        return new ScaffoldResult([file], Notes(name))
+        return new ScaffoldResult([file], Notes(name, project.Database))
         {
             // Rask.Jobs pulls in the queue/processor; Rask.Cqrs provides the ICommandHandler the job dispatches to.
             Packages = ["Rask.Cqrs", "Rask.Jobs"],
@@ -39,13 +39,13 @@ internal static class JobGenerator
         """;
 
     /// <summary>The "register it and create the schema" next-steps printed after scaffolding.</summary>
-    internal static string Notes(string name) =>
+    internal static string Notes(string name, DatabaseInfo database) =>
         $"""
         Next steps:
           1. Register the services in Program.cs (once):
                builder.Services.AddRaskCqrs();
                builder.Services.AddRaskJobs<AppDbContext>();   // your DbContext
-               builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source=app.db"));
+               builder.Services.AddDbContextFactory<AppDbContext>(o => o.{database.UseMethod}("{database.DefaultConnectionString}"));
           2. Map the jobs tables in your DbContext's OnModelCreating (once):
                modelBuilder.AddRaskJobs();
           3. Create the schema:

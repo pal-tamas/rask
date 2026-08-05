@@ -198,7 +198,9 @@ internal static partial class ProjectGenerator
 
             """.TrimStart('\n'));
 
-        sb.Append(ShutdownBudgetBlock());
+        // The wasm-hosted scaffold wires no database at all, so there is no WAL checkpoint or Litestream
+        // flush for the budget to cover.
+        sb.Append(ShutdownBudgetBlock(fileBasedDatabase: false));
 
         if (auth)
         {
