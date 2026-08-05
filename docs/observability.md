@@ -26,7 +26,7 @@ original exception attached:
 | `Rask.Diff` | Duplicate sibling `Key` (keyed reconciliation silently disabled) |
 | `Rask.Live` | Handler / navigate / JS-invoke faults, malformed frames, coalesce-budget drops |
 | `Rask.JsInvoke` | Failures surfacing a JS-invoke fault back to the caller |
-| `Rask.HotReload` | Dev-time asset/source-watch rerender failures |
+| `Rask.HotReload` | Dev-time hot-reload failures: a registry refresh that threw, a repaint that faulted, or an undeliverable applied-notification |
 
 No wiring is needed — configure log levels for these categories like any other:
 

@@ -1,3 +1,4 @@
+using Rask.Core.HotReload;
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -6,8 +7,14 @@ namespace Rask.Core.Tests.Live;
 
 // The C# Hot Reload → live re-render seam: a component-code edit under `dotnet watch` must re-execute
 // every component's Render() (busting cached subtrees) and re-render every tracked session. These pin the
-// two halves — MarkSubtreeDirtyForHotReload forces a cached child to re-run, and RerenderAllForHotReload /
-// the MetadataUpdateHandler drive registered sessions (resiliently, and only when registered).
+// two halves — MarkSubtreeDirtyForHotReload forces a cached child to re-run, and
+// RerenderAllForHotReloadAsync / the MetadataUpdateHandler drive registered sessions (resiliently, and
+// only when registered).
+//
+// Shares the ScopedAssets collection with HotReloadPhaseTests. Both trigger a hot-reload apply, and
+// the tracked-session list is a process-wide static — so run in parallel they repaint each other's
+// sessions and both classes' render counts come out high.
+[Collection("ScopedAssets")]
 public class ComponentHotReloadTests
 {
     [Fact]
@@ -28,38 +35,38 @@ public class ComponentHotReloadTests
     }
 
     [Fact]
-    public void RerenderAllForHotReload_RequestsRenderOnRegisteredSessions()
+    public async Task RerenderAllForHotReload_RequestsRenderOnRegisteredSessions()
     {
         var session = new TestLiveSession(new Counter(), RenderHarness.EmptyServices());
         session.RegisterForHotReload();
 
-        LiveSessionBase.RerenderAllForHotReload(null);
+        await LiveSessionBase.RerenderAllForHotReloadAsync();
 
         Assert.Equal(1, session.RenderRequests);
         GC.KeepAlive(session);
     }
 
     [Fact]
-    public void RerenderAllForHotReload_DoesNotTouchUnregisteredSessions()
+    public async Task RerenderAllForHotReload_DoesNotTouchUnregisteredSessions()
     {
         var session = new TestLiveSession(new Counter(), RenderHarness.EmptyServices());
         // deliberately not registered
 
-        LiveSessionBase.RerenderAllForHotReload(null);
+        await LiveSessionBase.RerenderAllForHotReloadAsync();
 
         Assert.Equal(0, session.RenderRequests);
         GC.KeepAlive(session);
     }
 
     [Fact]
-    public void RerenderAllForHotReload_SwallowsAFaultingSession_AndStillRendersTheRest()
+    public async Task RerenderAllForHotReload_SwallowsAFaultingSession_AndStillRendersTheRest()
     {
         var faulting = new TestLiveSession(new Counter(), RenderHarness.EmptyServices()) { Throw = true };
         var healthy = new TestLiveSession(new Counter(), RenderHarness.EmptyServices());
         faulting.RegisterForHotReload();
         healthy.RegisterForHotReload();
 
-        LiveSessionBase.RerenderAllForHotReload(null); // must not throw despite `faulting`
+        await LiveSessionBase.RerenderAllForHotReloadAsync(); // must not throw despite `faulting`
 
         Assert.Equal(1, healthy.RenderRequests);
         GC.KeepAlive(faulting);
@@ -67,15 +74,34 @@ public class ComponentHotReloadTests
     }
 
     [Fact]
-    public void UpdateApplication_ReRendersRegisteredSessions()
+    public async Task UpdateApplication_ReRendersRegisteredSessions()
     {
         var session = new TestLiveSession(new Counter(), RenderHarness.EmptyServices());
         session.RegisterForHotReload();
 
-        ComponentHotReloadHandler.UpdateApplication(updatedTypes: null);
+        // The repaint phase is dispatched off the hot-reload agent's thread, so wait for the
+        // coordinator's own completion signal rather than sleeping.
+        await RunUpdateApplicationAsync();
 
         Assert.Equal(1, session.RenderRequests);
         GC.KeepAlive(session);
+    }
+
+    internal static async Task RunUpdateApplicationAsync()
+    {
+        var applied = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnApplied() => applied.TrySetResult();
+
+        RaskHotReload.Applied += OnApplied;
+        try
+        {
+            RaskHotReloadHandler.UpdateApplication(updatedTypes: null);
+            await applied.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+        finally
+        {
+            RaskHotReload.Applied -= OnApplied;
+        }
     }
 
     private sealed class Counter : Component

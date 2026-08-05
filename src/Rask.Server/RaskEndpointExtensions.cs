@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.WebSockets;
+using System.Reflection.Metadata;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -26,6 +27,7 @@ using Rask.Core.Browser;
 using Rask.Core.Components;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
+using Rask.Core.HotReload;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
@@ -56,9 +58,6 @@ public static class RaskEndpointExtensions
     // count &amp; bytes, handler + idle-socket timeouts, reconnect grace periods) live on a per-host
     // RaskServerLimits singleton — resolved once per connection, read on the hot path via instance
     // fields — instead of process-global statics. See RaskServerLimits / RaskServerOptions.
-    private static FileSystemWatcher? _sourceWatcher;
-    private static long _lastSourceChangeTicks;
-
     // A fixed, content-free payload — written as a literal rather than JsonSerializer.Serialize(anonymous)
     // so it needs no reflection-based serialization. Under NativeAOT (reflection JSON disabled) the
     // serializer call threw at static-init and crashed UseRask before the host could start.
@@ -332,7 +331,11 @@ public static class RaskEndpointExtensions
             // baseline so the FIRST interactive WS render ships a diff instead of the whole
             // document. See LiveSession.RenderInitialRoot.
             var html = session.RenderInitialRoot();
-            var content = LivePayload.InjectRootAttr(html, session.Id);
+            // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
+            // from the same predicate that decides whether to subscribe at all, so the two can't
+            // disagree; in production it is never emitted and those branches stay unreachable.
+            var content = LivePayload.InjectRootAttr(
+                html, session.Id, IsDevHotReloadEnabled(httpContext.RequestServices));
             httpContext.Response.ContentType = "text/html; charset=utf-8";
             // The shell embeds the session id (data-rask-root), which is the de-facto bearer
             // for the WS / upload / download endpoints. Forbid any shared-proxy / bfcache /
@@ -511,7 +514,42 @@ public static class RaskEndpointExtensions
 
         var sessionStore = endpoints.ServiceProvider.GetRequiredService<LiveSessionStore>();
         SubscribeAssetChangedDebounced(sessionStore);
-        TryEnableSourceWatcher(sessionStore);
+        SubscribeHotReloadApplied(sessionStore, endpoints.ServiceProvider);
+    }
+
+    /// <summary>
+    ///     Whether the dev-only hot-reload channel is live. Both halves must hold: the process is
+    ///     running under <c>dotnet watch</c> (the feature switch is constant-folded to false in a
+    ///     normal or published run), and the host is in Development. Production therefore never even
+    ///     subscribes, let alone sends.
+    /// </summary>
+    internal static bool IsDevHotReloadEnabled(IServiceProvider services) =>
+        MetadataUpdater.IsSupported &&
+        services.GetService<IHostEnvironment>()?.IsDevelopment() == true;
+
+    private static void SubscribeHotReloadApplied(LiveSessionStore sessionStore, IServiceProvider services)
+    {
+        if (!IsDevHotReloadEnabled(services))
+        {
+            return;
+        }
+
+        RaskHotReload.Applied += () =>
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await sessionStore.BroadcastAsync(LivePayload.HotReloadAppliedFrame).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    RaskDiagnostics.Report(
+                        RaskLogLevel.Warning, "Rask.HotReload",
+                        "Rask: hot-reload applied broadcast failed", ex);
+                }
+            });
+        };
     }
 
     private static void SubscribeAssetChangedDebounced(LiveSessionStore sessionStore)
@@ -539,61 +577,6 @@ public static class RaskEndpointExtensions
                 }
             });
         };
-    }
-
-    private static void TryEnableSourceWatcher(LiveSessionStore sessionStore)
-    {
-        if (_sourceWatcher is not null)
-        {
-            return;
-        }
-
-        if (Environment.GetEnvironmentVariable("DOTNET_WATCH") != "1")
-        {
-            return;
-        }
-
-        try
-        {
-            var watcher = new FileSystemWatcher(Environment.CurrentDirectory)
-            {
-                IncludeSubdirectories = true,
-                Filter = "*.cs",
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
-                EnableRaisingEvents = true
-            };
-
-            void Trigger()
-            {
-                var now = DateTime.UtcNow.Ticks;
-                var prev = Interlocked.Exchange(ref _lastSourceChangeTicks, now);
-                if (now - prev < TimeSpan.FromMilliseconds(250).Ticks)
-                {
-                    return;
-                }
-
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(150).ConfigureAwait(false);
-                    try { await sessionStore.RerenderAllAsync().ConfigureAwait(false); }
-                    catch (Exception ex)
-                    {
-                        RaskDiagnostics.Report(
-                            RaskLogLevel.Warning, "Rask.HotReload", "Rask: source-watch rerender failed", ex);
-                    }
-                });
-            }
-
-            watcher.Changed += (_, _) => Trigger();
-            watcher.Created += (_, _) => Trigger();
-            watcher.Renamed += (_, _) => Trigger();
-            _sourceWatcher = watcher;
-        }
-        catch (Exception ex)
-        {
-            RaskDiagnostics.Report(
-                RaskLogLevel.Warning, "Rask.HotReload", "Rask: source watcher disabled", ex);
-        }
     }
 
     // Parse an inbound WS frame, returning null on malformed JSON instead of throwing.

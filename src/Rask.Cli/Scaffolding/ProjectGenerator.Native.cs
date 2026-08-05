@@ -176,8 +176,13 @@ internal static partial class ProjectGenerator
         steps.Append("Created ").Append(name).Append(" (Rask native mobile app, ").Append(host).Append(" host).\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
         steps.Append("  dotnet workload install ios android   # once, if not already installed\n");
-        steps.Append("  dotnet build -t:Run -f net10.0-android     # Android emulator\n");
-        steps.Append("  dotnet build -t:Run -f net10.0-ios         # iOS simulator (macOS + Xcode)\n");
+        // Shared with the `rask dev` native refusal, which points at these same two commands — the
+        // two would otherwise drift and start telling people different things.
+        foreach (var line in Commands.NativeRunCommands.Lines)
+        {
+            steps.Append("  ").Append(line).Append('\n');
+        }
+
         return steps.ToString();
     }
 

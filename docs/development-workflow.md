@@ -4,6 +4,20 @@ How changes are made, verified, and shipped in this repo. GitHub is the single s
 everything here is committed. AI assistants encode these as playbooks under `.claude/skills/`
 (see [`AGENTS.md`](../AGENTS.md) / `CLAUDE.md`).
 
+## The inner loop
+
+Run the app you're changing with `rask dev`. It wraps `dotnet watch run`, so an edit to a component's
+`Render()`, a scoped `.css`/`.js`, a `[Route]` template or a CQRS handler is applied to the running
+process and every open session repaints in place — a "Hot reload applied" pill confirms it. Edits the
+runtime can't apply (adding a type, changing a signature) restart the app instead, and the page reloads
+itself. [What hot-reloads](cli.md#what-hot-reloads) has the full list, including what doesn't: WASM and
+native apps have no watch channel and must be restarted.
+
+The framework side of that loop has its own gate, `scripts/run-watch-e2e.sh` — it scaffolds an app, runs
+it under a real `dotnet watch`, edits a file, and asserts the change reached the open live session
+without it being torn down. It's opt-in (`RASK_WATCH_E2E=1`); run it when you touch the hot-reload
+coordinator, the scoped-asset registry, the generated registries, or `rask dev`.
+
 ## The definition-of-done gate
 
 Every change passes this gate before a PR (the `rask-ship` skill):

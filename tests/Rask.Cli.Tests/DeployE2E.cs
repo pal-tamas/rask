@@ -88,8 +88,14 @@ internal sealed class EnvScopedProcessRunner(
     IReadOnlyDictionary<string, string> environment,
     IReadOnlyDictionary<string, string> executables) : IProcessRunner
 {
-    public async Task<int> RunAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
+    public async Task<int> RunAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? environment = null)
     {
+        // This shim already applies its own fixed environment; the overlay parameter is unused here.
         var (exit, _) = await CaptureCoreAsync(fileName, arguments, workingDirectory, cancellationToken).ConfigureAwait(false);
         return exit;
     }

@@ -795,11 +795,21 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                 .AppendLine("))]");
         }
 
+        // Init() only bootstraps; RefreshAll() holds the whole body so the hot-reload coordinator
+        // can re-invoke it after a metadata update ([ModuleInitializer] never runs twice). It must
+        // stay idempotent and replace-semantics — see RaskHotReload.RefreshTargetTypeNames, which
+        // lists this class by name.
         sb.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
-        sb.AppendLine("    internal static void Init()");
+        sb.AppendLine("    internal static void Init() => RefreshAll();");
+        sb.AppendLine();
+        sb.AppendLine("    internal static void RefreshAll()");
         sb.AppendLine("    {");
+        // Replace, not Add: Add appends, and every assembly with routed pages calls this. Keying
+        // the set on this class lets a refresh swap just this assembly's routes — picking up
+        // added, edited and deleted [Route] templates — without duplicating them or dropping
+        // another assembly's contribution.
         sb.AppendLine(
-            "        global::Rask.Core.Routing.RouteRegistry.Add(new global::Rask.Core.Routing.RouteRegistration[]");
+            "        global::Rask.Core.Routing.RouteRegistry.Replace(typeof(__RaskRoutesRegistry), new global::Rask.Core.Routing.RouteRegistration[]");
         sb.AppendLine("        {");
         foreach (var c in candidates.OrderBy(x => x.FullyQualifiedName, StringComparer.Ordinal))
         {

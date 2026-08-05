@@ -24,6 +24,11 @@
     let root = document.querySelector("[data-rask-root]");
     if (!root) return;
 
+    // Development-only affordances gate on this. The server stamps data-rask-dev onto <body> only
+    // when the app is in Development AND running under `dotnet watch`, so in production the flag is
+    // absent and every branch below it is unreachable — even if a dev frame somehow arrived.
+    const devMode = root.hasAttribute("data-rask-dev");
+
     // Serializes render application across messages. A navigation diff may defer its
     // body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss), which
     // opens a microtask/timer gap during which the next WS message could arrive. Both
@@ -124,6 +129,11 @@
     const ESCALATE_AFTER_ATTEMPTS = 4;
     // Fallback auto-reload delay after the server reports the session is gone (see showSessionExpired).
     const SESSION_EXPIRED_RELOAD_MS = 4000;
+    // Dev-only counterpart: under `dotnet watch` an unknown session means the app just restarted for
+    // a rude edit, so there is nothing to wait for — get back on screen.
+    const DEV_RESTART_RELOAD_MS = 250;
+    // How long the "hot reload applied" pill stays visible.
+    const HOT_RELOAD_PILL_MS = 1200;
     let overlayTimer = null;
     let sessionExpired = false;
 
@@ -176,6 +186,14 @@
             }
             if (data.type === "session" && data.status === "unknown") {
                 showSessionExpired();
+                return;
+            }
+            // Dev-only: the coordinator finished applying an edit and every session has repainted.
+            // Purely an indicator — the DOM was already updated by the render that preceded this
+            // frame, so it must NOT fall through to applyFullReply (which would morph the document
+            // against a payload that carries no html).
+            if (data.type === "hotReload") {
+                if (devMode && data.status === "applied") showHotReloadPill();
                 return;
             }
             // Handler ack: resolve the slow-link pending bar. Handled synchronously here
@@ -274,9 +292,55 @@
             // ignore
         }
         showOverlay();
-        setOverlayMessage("Your session timed out. Reload to continue.");
+        // Under `dotnet watch` an unknown session is almost always the app having just restarted for
+        // an edit hot reload could not apply — the fresh process has no memory of this session id.
+        // Say that, and get back on screen quickly. The rare genuine expiry resolves the same way (a
+        // reload), just sooner. Production keeps the 4s grace and the accurate wording.
+        setOverlayMessage(devMode
+            ? "Server restarted — reloading…"
+            : "Your session timed out. Reload to continue.");
         setRetryButton("Reload");
-        setTimeout(function () { location.reload(); }, SESSION_EXPIRED_RELOAD_MS);
+        setTimeout(function () { location.reload(); },
+            devMode ? DEV_RESTART_RELOAD_MS : SESSION_EXPIRED_RELOAD_MS);
+    }
+
+    // Dev-only "hot reload applied" indicator. Built lazily on first use, so a production bundle
+    // constructs no DOM and injects no CSS for it at all. data-rask-managed keeps rask-morph.js from
+    // trimming it — it is a framework-owned sibling of the server-rendered tree.
+    let hotReloadPill = null;
+    let hotReloadPillTimer = null;
+
+    function showHotReloadPill() {
+        if (!hotReloadPill) {
+            const style = document.createElement("style");
+            style.setAttribute("data-rask-managed", "");
+            style.textContent =
+                ".rask-hot{position:fixed;right:12px;bottom:12px;z-index:2147483647;" +
+                "padding:6px 12px;border-radius:999px;pointer-events:none;opacity:0;" +
+                "background:rgba(20,20,20,.82);color:#fff;transition:opacity .15s ease;" +
+                "font:12px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;}" +
+                ".rask-hot[data-show]{opacity:1;}";
+            document.head.appendChild(style);
+
+            // DOM APIs rather than innerHTML — keeps the runtime clean under a strict CSP, matching
+            // installOverlay().
+            hotReloadPill = document.createElement("div");
+            hotReloadPill.className = "rask-hot";
+            hotReloadPill.setAttribute("data-rask-managed", "");
+            hotReloadPill.setAttribute("aria-live", "polite");
+            hotReloadPill.textContent = "Hot reload applied";
+            document.documentElement.appendChild(hotReloadPill);
+        }
+
+        // A counter the watch E2E waits on, so it asserts the feature rather than sleeping.
+        window.__raskHotReloadCount = (window.__raskHotReloadCount || 0) + 1;
+
+        hotReloadPill.setAttribute("data-show", "");
+        if (hotReloadPillTimer !== null) clearTimeout(hotReloadPillTimer);
+        hotReloadPillTimer = setTimeout(function () {
+            if (hotReloadPill) hotReloadPill.removeAttribute("data-show");
+            hotReloadPillTimer = null;
+        }, HOT_RELOAD_PILL_MS);
     }
 
     // Toggle the overlay's manual action button. Pass a label to show it, or null to hide it. A single

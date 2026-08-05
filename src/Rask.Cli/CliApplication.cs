@@ -25,7 +25,7 @@ internal sealed class CliApplication
         var commands = new List<CliCommand>
         {
             new NewCommand(console, fileSystem, process, Environment.CurrentDirectory),
-            new DevCommand(console, process),
+            new DevCommand(console, process, fileSystem, new BrowserLauncher(process), Environment.CurrentDirectory),
             new GenerateCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new DbCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new DeployCommand(console, fileSystem, process, Environment.CurrentDirectory),
