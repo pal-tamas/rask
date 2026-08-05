@@ -27,5 +27,13 @@ if (args.Length >= 1 && args[0] == "session-churn")
     return SessionChurnReport.Run(args);
 }
 
+// `session-load` is the throughput half of the same question: those two measure how many sessions FIT,
+// this measures what happens when they are actually used — real sockets, real Kestrel, event round-trip
+// latency at the tail.
+if (args.Length >= 1 && args[0] == "session-load")
+{
+    return SessionLoadReport.Run(args);
+}
+
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 return 0;
