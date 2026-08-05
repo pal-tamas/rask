@@ -91,7 +91,7 @@ internal sealed class DevCommand(
 
         var dotnetArgs = BuildDotnetArguments(
             target.ProjectPath, once, parsed.HasFlag("no-hot-reload"),
-            parsed.Option("launch-profile"), nonInteractive, parsed.Passthrough);
+            parsed.Option("launch-profile"), nonInteractive, parsed.Passthrough, target.Kind);
 
         var environment = BuildEnvironment(
             target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable);
@@ -125,7 +125,8 @@ internal sealed class DevCommand(
         bool noHotReload,
         string? launchProfile,
         bool nonInteractive,
-        IReadOnlyList<string> passthrough)
+        IReadOnlyList<string> passthrough,
+        DevTemplateKind kind = DevTemplateKind.Server)
     {
         var args = new List<string>();
 
@@ -157,6 +158,18 @@ internal sealed class DevCommand(
             }
 
             args.Add("run");
+
+            // A wasm-hosted host serves its client's PUBLISHED bundle by default, which is (a) republished
+            // by a nested emscripten relink on every save and (b) trimmed — and trimming folds
+            // MetadataUpdater.IsSupported to false, so an applied delta could never reach the browser
+            // session. This switches it to the client's build output for the watch session. Not passed
+            // under --no-hot-reload (nothing to apply) or --once (that mode is deliberately a plain run).
+            //
+            // `--property:`, not `-p:`: on `dotnet run` the short form is ambiguous with --project.
+            if (kind == DevTemplateKind.WasmHosted && !noHotReload)
+            {
+                args.Add("--property:RaskWasmDevBundle=true");
+            }
         }
 
         if (once && launchProfile is { Length: > 0 })

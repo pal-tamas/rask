@@ -29,6 +29,12 @@ let root = null;
 // ----- Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) -----
 // @@RASK_PWA@@
 
+// ----- Dev-only "hot reload applied" indicator — Rask.Core/Resources/rask-hotreload.js -----
+// The same source the Server and WASM clients use. Exposes window.__raskHotReloadPill, which the host
+// calls over the WebView bridge (NativeLiveSession) rather than pushing a frame. Inert on a device
+// build, where hot reload is unsupported and nothing ever calls it — see #565.
+// @@RASK_HOTRELOAD@@
+
 // ----- The diff codec: applyDiff(ops, names) + applyFrameInvokes(reply, dispatchOne) — rask-dom.js -----
 // @@RASK_DOM@@
 

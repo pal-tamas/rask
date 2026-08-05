@@ -272,13 +272,21 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 
 Two things it does not cover:
 
-- **WASM and native apps have no watch channel.** A WASM app is republished into its host on build, and
-  a native app runs on a device — neither can receive an applied update in place. Restart them.
+- **Native apps have no watch channel.** A native app runs on a device, and `dotnet watch` cannot drive
+  a simulator or a device — so `rask dev` refuses them and points at `dotnet build -t:Run` instead.
+  Restart them to see a change.
 - **A rude edit is not announced.** `dotnet watch` restarts the process, so nothing in Rask observes the
   edit; what you see is the app coming back and the page reloading.
 
+**WASM is covered** — a wasm-hosted app hot-reloads under `rask dev` like a Server one. To make that
+possible the host serves the client's *build* output for the session rather than its published bundle:
+the published bundle is trimmed, and trimming disables the runtime's metadata-update support outright,
+so no applied edit could ever reach the page. It also drops the nested `dotnet publish` from the inner
+loop, which is most of the wait. `--no-hot-reload` and `--once` keep the published bundle.
+
 In Development you get a small "Hot reload applied" pill in the corner when an edit lands, so a save that
-changed nothing visible is distinguishable from one that didn't apply. It is never present in production.
+changed nothing visible is distinguishable from one that didn't apply. It is never present in production,
+and it looks and behaves the same on every transport — Server, WASM and native share one implementation.
 
 > **If nothing ever applies, suspect the path.** `dotnet watch` produces an empty hot-reload delta —
 > silently, reporting success at every step — when the project path traverses a symlink. `rask dev`

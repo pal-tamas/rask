@@ -14,9 +14,13 @@ namespace Rask.Core.Tests.Resources;
 ///         falls through, an ungated dev affordance, or a stray reload.
 ///     </para>
 ///     <para>
-///         <b>On parity.</b> Only the Server transport receives server-pushed frames, so a naive
-///         "all three dialects contain the branch" assertion would be wrong. WASM and Native have no
-///         server to push one. The contract is deliberately asymmetric — see the tests below.
+///         <b>On parity.</b> All three transports now show the indicator, but each is <i>told</i> to
+///         differently — Server on a pushed <c>hotReload</c> frame, WASM through the
+///         <c>hotReloadApplied()</c> export called from .NET, Native over the WebView bridge. So the
+///         contract is: one shared implementation, three transport-specific triggers. The earlier
+///         version of this file forbade the WASM/Native branch outright and told whoever landed a
+///         channel to hoist the indicator into a shared module rather than copy it; that is what
+///         happened, and these tests now hold it to it.
 ///     </para>
 /// </summary>
 public class HotReloadClientContractTests
@@ -26,6 +30,14 @@ public class HotReloadClientContractTests
     private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.js");
     private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.js");
     private static string NativeJs => Read("src", "Rask.Native", "Resources", "rask.native.js");
+
+    /// <summary>The single implementation every transport splices in.</summary>
+    private static string SharedJs => Read("src", "Rask.Core", "Resources", "rask-hotreload.js");
+
+    // The two built artifacts that are committed (the Server's is assembled into obj/ and embedded, so
+    // there is no checked-in copy to inspect).
+    private static string BuiltWasmJs => Read("src", "Rask.Wasm", "Browser", "rask.wasm.js");
+    private static string BuiltNativeJs => Read("src", "Rask.Native", "Assets", "rask.native.js");
 
     [Fact]
     public void The_server_client_handles_the_hotReload_frame_and_returns()
@@ -54,42 +66,27 @@ public class HotReloadClientContractTests
     }
 
     [Fact]
-    public void The_hotReload_path_never_reloads_the_page()
+    public void The_indicator_never_reloads_the_page()
     {
         // A reload defeats the entire feature — "hot reload that actually works" is defined against
-        // exactly that. Applies to all three dialects.
-        foreach (var (name, js) in AllDialects())
-        {
-            var at = js.IndexOf("showHotReloadPill", StringComparison.Ordinal);
-            if (at < 0)
-            {
-                continue;
-            }
-
-            var fn = js[at..];
-            var end = fn.IndexOf("\n    }", StringComparison.Ordinal);
-            Assert.DoesNotContain("location.reload", fn[..end], StringComparison.Ordinal);
-            Assert.False(string.IsNullOrEmpty(name));
-        }
+        // exactly that. One assertion now covers all three transports, because there is one source.
+        Assert.DoesNotContain("location.reload", SharedJs, StringComparison.Ordinal);
     }
 
     [Fact]
     public void The_indicator_exposes_the_counter_the_watch_E2E_waits_on()
     {
         // The E2E asserts the feature rather than sleeping, by waiting for this to increment.
-        Assert.Contains("window.__raskHotReloadCount", ServerJs, StringComparison.Ordinal);
+        Assert.Contains("window.__raskHotReloadCount", SharedJs, StringComparison.Ordinal);
     }
 
     [Fact]
     public void The_indicator_survives_a_morph()
     {
-        // The pill is a framework-owned sibling of the server-rendered tree; without
-        // data-rask-managed the next morph would trim it mid-animation.
-        var js = ServerJs;
-        var fn = js[js.IndexOf("function showHotReloadPill", StringComparison.Ordinal)..];
-        var end = fn.IndexOf("\n    }", StringComparison.Ordinal);
-
-        Assert.Contains("data-rask-managed", fn[..end], StringComparison.Ordinal);
+        // The pill and its <style> are framework-owned siblings of the rendered tree; without
+        // data-rask-managed the next morph would trim them mid-animation. Both nodes need it — count
+        // the actual calls, not the string, so a passing mention in a comment can't satisfy this.
+        Assert.Equal(2, Occurrences(SharedJs, """setAttribute("data-rask-managed", "")"""));
     }
 
     [Fact]
@@ -97,25 +94,66 @@ public class HotReloadClientContractTests
     {
         // Guarded by `if (!hotReloadPill)`, so a production bundle constructs no DOM and injects no
         // CSS for it — only the (unreachable) function body ships.
-        var js = ServerJs;
-        var fn = js[js.IndexOf("function showHotReloadPill", StringComparison.Ordinal)..];
+        var fn = SharedJs[SharedJs.IndexOf("function showHotReloadPill", StringComparison.Ordinal)..];
 
-        Assert.Contains("if (!hotReloadPill)", fn[..200], StringComparison.Ordinal);
+        Assert.Contains("if (!hotReloadPill)", fn[..400], StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Only_the_server_dialect_branches_on_the_pushed_frame()
+    public void The_indicator_is_one_shared_module_not_three_copies()
     {
-        // WASM runs in-browser with no Rask server, and Native is fed by its host over the WebView
-        // bridge — neither has a socket a hotReload frame could arrive on. Adding the branch there
-        // would be dead code, and in WASM's case would also force a regenerated commit of the
-        // checked-in built artifact (src/Rask.Wasm/Browser/rask.wasm.js).
-        //
-        // If a WASM/Native hot-reload channel ever lands, promote the indicator into a shared
-        // rask-*.js module at that point — don't just copy this branch across.
+        // The point of the hoist. Each dialect carries the splice marker and nothing else — no
+        // dialect may grow its own copy of the pill, which is how the three would drift.
+        foreach (var (name, js) in AllDialects())
+        {
+            Assert.True(
+                js.Contains("// @@RASK_HOTRELOAD@@", StringComparison.Ordinal),
+                $"{name} does not splice the shared hot-reload indicator.");
+            Assert.False(
+                js.Contains("function showHotReloadPill", StringComparison.Ordinal),
+                $"{name} declares its own showHotReloadPill — it must splice the shared module instead.");
+        }
+    }
+
+    [Fact]
+    public void The_committed_built_artifacts_carry_the_spliced_indicator()
+    {
+        // src/Rask.Wasm/Browser/rask.wasm.js and src/Rask.Native/Assets/rask.native.js are generated
+        // by the build and COMMITTED. Editing the shared module without rebuilding leaves them stale,
+        // which no other test would catch — the marker would still be sitting there unsubstituted.
+        foreach (var (name, built) in BuiltArtifacts())
+        {
+            Assert.True(
+                built.Contains("window.__raskHotReloadPill = showHotReloadPill", StringComparison.Ordinal),
+                $"{name} is stale — rebuild its project to re-run the splice, and commit the result.");
+            Assert.False(
+                built.Contains("@@RASK_HOTRELOAD@@", StringComparison.Ordinal),
+                $"{name} still contains an unsubstituted splice marker.");
+        }
+    }
+
+    [Fact]
+    public void Each_transport_triggers_the_indicator_its_own_way()
+    {
+        // Shared implementation, transport-specific trigger. Only Server has a socket a frame can
+        // arrive on; WASM is called from .NET through a JS export; Native comes over the WebView
+        // bridge, so its template needs no trigger of its own at all.
         Assert.Contains("data.type === \"hotReload\"", ServerJs, StringComparison.Ordinal);
-        Assert.DoesNotContain("hotReload", WasmJs, StringComparison.Ordinal);
-        Assert.DoesNotContain("hotReload", NativeJs, StringComparison.Ordinal);
+        Assert.Contains("window.__raskHotReloadPill()", ServerJs, StringComparison.Ordinal);
+
+        Assert.Contains("export function hotReloadApplied", WasmJs, StringComparison.Ordinal);
+        Assert.DoesNotContain("data.type === \"hotReload\"", WasmJs, StringComparison.Ordinal);
+        Assert.DoesNotContain("data.type === \"hotReload\"", NativeJs, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_indicator_cannot_throw_across_the_interop_boundary()
+    {
+        // WASM's export is called from .NET. If a future build ever drops the splice, a missing pill
+        // must not surface as a failed hot reload — hence the guard rather than a bare call.
+        var fn = WasmJs[WasmJs.IndexOf("export function hotReloadApplied", StringComparison.Ordinal)..];
+
+        Assert.Contains("if (window.__raskHotReloadPill)", fn[..200], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -134,6 +172,24 @@ public class HotReloadClientContractTests
         yield return ("rask.js", ServerJs);
         yield return ("rask.wasm.js", WasmJs);
         yield return ("rask.native.js", NativeJs);
+    }
+
+    private static IEnumerable<(string Name, string Js)> BuiltArtifacts()
+    {
+        yield return ("src/Rask.Wasm/Browser/rask.wasm.js", BuiltWasmJs);
+        yield return ("src/Rask.Native/Assets/rask.native.js", BuiltNativeJs);
+    }
+
+    private static int Occurrences(string haystack, string needle)
+    {
+        var count = 0;
+        for (var i = haystack.IndexOf(needle, StringComparison.Ordinal); i >= 0;
+             i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal))
+        {
+            count++;
+        }
+
+        return count;
     }
 
     private static string Read(params string[] parts) =>

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Rask.Core.Live;
 
 namespace Rask.Wasm.Hosting;
@@ -96,6 +98,25 @@ public static class RaskWasmEndpointExtensions
         var resolved = bundlePath ?? WasmAppBundle.ResolveFromAssembly(Assembly.GetEntryAssembly());
         var bundleDir = string.IsNullOrEmpty(resolved) || !Directory.Exists(resolved) ? null : resolved;
 
+        // Dev bundle: serve the client's BUILD output (via its static-web-assets manifest) instead of
+        // the published one. Gated on all three of Development, hot reload being supported in this
+        // process, and the manifest existing — so a published deployment, a Release run, and a host
+        // built without a WASM reference all take the untouched path below.
+        //
+        // This is what makes WASM hot reload possible at all: a published bundle is trimmed, and
+        // trimming folds MetadataUpdater.IsSupported to false, so the session in the browser never
+        // registers for hot reload no matter what the host serves.
+        //
+        // Decided BEFORE the missing-bundle guard, and deliberately: turning the dev bundle on skips
+        // the nested publish, so there is usually no publish directory at all. Checking the publish
+        // path first would 503 exactly the setup this feature creates — which is precisely what
+        // happened, and what the WASM watch E2E caught.
+        var devManifest = WasmAppBundle.ResolveDevManifest(Assembly.GetEntryAssembly());
+        var dev = MetadataUpdater.IsSupported
+                  && endpoints.ServiceProvider.GetService<IHostEnvironment>()?.IsDevelopment() == true
+                  && !string.IsNullOrEmpty(devManifest)
+                  && File.Exists(devManifest);
+
         // Scoped asset endpoint. Registered before the static-file middleware so a /_rask/a/{hash}.{ext}
         // URL is served from the in-process ScopedAssetRegistry (populated by module initializers from
         // the referenced WASM assembly as soon as it's loaded into this host). On a registry miss it
@@ -105,7 +126,9 @@ public static class RaskWasmEndpointExtensions
         // skipped and can't serve the baked file itself. The baked copy is authoritative.
         RaskAssetEndpoint.MapRaskAssets(endpoints, pathBaseNormalized, bundleDir);
 
-        if (string.IsNullOrEmpty(resolved) || !Directory.Exists(resolved))
+        // `!dev`: with the dev bundle on there is no published directory to find — skipping the nested
+        // publish is the point — so the missing-bundle guard must not fire.
+        if (!dev && (string.IsNullOrEmpty(resolved) || !Directory.Exists(resolved)))
         {
             var reason = string.IsNullOrEmpty(resolved)
                 ? "no bundle configured (add a <ProjectReference> to a project that sets <WasmGenerateAppBundle>true</WasmGenerateAppBundle>, with ReferenceOutputAssembly=\"false\" SkipGetTargetFrameworkProperties=\"true\", or pass bundlePath explicitly)"
@@ -140,14 +163,30 @@ public static class RaskWasmEndpointExtensions
                 "IApplicationBuilder (e.g. WebApplication).");
         }
 
-        var fileProvider = new PhysicalFileProvider(resolved);
+        // Past the guard above, `resolved` is non-null on the published path; on the dev path it may be
+        // absent entirely, and nothing below reads it.
+        IFileProvider fileProvider = dev
+            ? new StaticWebAssetsManifestFileProvider(devManifest!)
+            : new PhysicalFileProvider(resolved!);
+
+        if (dev)
+        {
+            Console.WriteLine($"Rask.Wasm.Hosting: serving the WASM build output (hot reload) from {devManifest}");
+        }
 
         // Precompressed siblings first: if the WASM publish step emitted .br/.gz next to
         // each asset (set <CompressionEnabled>true</CompressionEnabled> on the WASM
         // project), serve those directly with the matching Content-Encoding header — zero
         // request-time CPU and CDN-cacheable. Falls through to UseStaticFiles + the
         // runtime UseResponseCompression below when no sibling exists.
-        app.UseMiddleware<PrecompressedFileMiddleware>(fileProvider);
+        // Both compression paths are skipped in dev. `dotnet watch`'s browser-refresh middleware injects
+        // its script tag by rewriting the HTML response body, and it cannot rewrite an encoded one — and
+        // that script is the single condition Mono's in-browser delta applier self-arms on. A gzipped
+        // shell therefore means no hot reload, silently.
+        if (!dev)
+        {
+            app.UseMiddleware<PrecompressedFileMiddleware>(fileProvider);
+        }
 
         // If the host called services.AddRask() (which registers brotli/gzip providers and
         // adds application/wasm + application/octet-stream to the compressible MIME set),
@@ -155,7 +194,7 @@ public static class RaskWasmEndpointExtensions
         // ship compressed. Skipped silently when not registered — the host still works,
         // just without compression. With the precompressed-sibling middleware ahead, this
         // only fires for files without a baked sibling (e.g. index.html if not pre-encoded).
-        if (app.ApplicationServices.GetService<IResponseCompressionProvider>() is not null)
+        if (!dev && app.ApplicationServices.GetService<IResponseCompressionProvider>() is not null)
         {
             app.UseResponseCompression();
         }
@@ -220,7 +259,22 @@ public static class RaskWasmEndpointExtensions
             }
         });
 
-        var indexPath = Path.Combine(resolved, "index.html");
+        // In dev the shell comes from the manifest, not from disk next to the bundle: the build output's
+        // wwwroot/ holds only _framework/, and /index.html maps to a placeholder-filled shell under obj/
+        // whose import map and preload hints carry the build fingerprints. The raw index.html in the
+        // source tree still has those placeholders empty and cannot boot the runtime.
+        //
+        // SendFileAsync is kept on both paths. It was worth checking, since `dotnet watch`'s
+        // browser-refresh middleware injects its script by rewriting the response body and the delta
+        // applier arms on nothing else — but it rewrites the SendFileAsync path too, verified against a
+        // running host on both the published and the build bundle.
+        var indexPath = dev
+            ? fileProvider.GetFileInfo("index.html").PhysicalPath
+              ?? throw new InvalidOperationException(
+                  $"The WASM dev bundle manifest has no index.html entry ({devManifest}). Rebuild the "
+                  + "client project, or run without -p:RaskWasmDevBundle=true to serve the published bundle.")
+            : Path.Combine(resolved!, "index.html");
+
         if (pathBaseNormalized.Length == 0)
         {
             endpoints.MapFallback(async ctx =>
