@@ -7,6 +7,35 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`Rask.Dashboard` — a built-in operator dashboard for the batteries.** One package reference and one
+  `AddRaskDashboard<AppDbContext>()` mounts `/_ops`, reading the outbox, jobs, mail and cache out of the
+  app's own database. Every queue is split into due / delayed / **failed** / processed, where failed means
+  what the processors mean by giving up — out of attempts and still unprocessed — with the last error and
+  the stored payload one click away. This closes the roadmap's *"no UI, CLI command, or metric shows you
+  what has given up"* gap for reading; the retry actions follow.
+  A panel appears only when its battery is both registered *and* mapped into the `DbContext`, so the nav is
+  an inventory of what the deployment actually runs. Also shows cache keys with size and expiry, SQLite
+  pragmas read live, database size, and the recurring-job schedule joined to when each job last fired.
+  **It fails closed:** pages are gated on a `RaskDashboard` authorization policy applied to the route
+  layout (so it covers every page and is re-checked on in-app navigation). Define that policy and it
+  decides; leave it undefined and the dashboard is open only in Development — with a warning banner — and
+  **denies everyone** in every other environment. Panels poll, compare, and re-render only on a real
+  change, and the loop is bounded, because every open tab competes with the processors for SQLite's single
+  write lock.
+- **`BsStat`** — a stat-tile primitive for `Rask.Bootstrap`: a number, its label, an optional caption and
+  tone. Tone colours the value rather than the card, so one red number reads as a signal instead of one
+  panel among many coloured panels.
+- **`LitestreamStatus`** — a singleton published by the Litestream supervisor reporting whether replication is
+  currently running, when it last started and exited, its last exit code or error, and how many times it has
+  restarted. "Is my backup actually running?" was previously answerable only by the absence of a log line.
+- **`ISqliteSnapshotStore.ListAsync`** — enumerate stored snapshots (name, size, timestamp), newest first and
+  scoped to the store's search pattern, so what you can see is what retention manages. A default interface
+  implementation returns an empty list, so existing custom stores keep compiling.
+- **`JobOptions.RecurringJobs`** — the registered recurring schedule (name, interval, factory) is now public.
+  Pair an entry with the `RecurringJobState` row of the same name to see when it last fired, or call its
+  factory to enqueue an off-schedule run.
+
 ### Fixed
 - **A row changing underneath the jobs or outbox drain no longer discards the whole batch's progress.** Both
   processors ran a batch and then wrote every outcome in a single `SaveChangesAsync`. Anything else modifying

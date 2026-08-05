@@ -32,6 +32,7 @@
         <Project Path="src/Rask.Core/Rask.Core.csproj"/>
         <Project Path="src/Rask.Cqrs/Rask.Cqrs.csproj"/>
         <Project Path="src/Rask.Cqrs.Generators/Rask.Cqrs.Generators.csproj"/>
+        <Project Path="src/Rask.Dashboard/Rask.Dashboard.csproj"/>
         <Project Path="src/Rask.Data/Rask.Data.csproj"/>
         <Project Path="src/Rask.Jobs/Rask.Jobs.csproj"/>
         <Project Path="src/Rask.Jobs.Generators/Rask.Jobs.Generators.csproj"/>
@@ -62,6 +63,7 @@
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Tests/Rask.Cqrs.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Generators.Tests/Rask.Cqrs.Generators.Tests.csproj"/>
+        <Project Path="tests/Rask.Dashboard.Tests/Rask.Dashboard.Tests.csproj"/>
         <Project Path="tests/Rask.Data.Tests/Rask.Data.Tests.csproj"/>
         <Project Path="tests/Rask.Jobs.Tests/Rask.Jobs.Tests.csproj"/>
         <Project Path="tests/Rask.Jobs.Generators.Tests/Rask.Jobs.Generators.Tests.csproj"/>
