@@ -95,8 +95,15 @@ analyzer.
 
 <!-- demo:props-aria -->
 
-**Attribute order** is fixed: base props first (`id`, `class`, `style`, `data-*`, `role`, `tabindex`,
-`aria-*`), then tag-specific. Tests enforce it, so the output is predictable for diffing and DOM tooling:
+**Attribute order** is fixed: base props first (`id`, `class`, `style`, `title`, `data-*`, `role`,
+`tabindex`, `aria-*`), then tag-specific. Tests enforce it, so the output is predictable for diffing and
+DOM tooling:
+
+`Title` is the global `title` attribute — the browser's hover tooltip. Reach for it where a cell shows an
+abbreviated value and the exact one belongs behind it (a relative timestamp over the precise instant, a
+truncated string over its full text). It is **not** a label: `title` is invisible to touch users,
+unreliable with screen readers, and unfocusable, so it may carry supplementary detail but never the only
+copy of something the reader needs — use `Aria` for an accessible name.
 
 <!-- demo:props-attribute-order -->
 

@@ -8,9 +8,13 @@ public class StyleTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
+        // `title` is the ordinary global attribute (on <style> it names an alternative stylesheet), so it
+        // is inherited from Element and renders in the global group after style — not among <style>'s own
+        // type/media/nonce, where it used to sit as a redeclared property.
         Assert.Equal(
-            "<style id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" type=\"text/css\" media=\"all\" title=\"main\" nonce=\"abc\"></style>",
-            Style("text/css", "all", "main", "abc", "i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" })
+            "<style id=\"i\" class=\"c\" style=\"s\" title=\"main\" data-k=\"v\" type=\"text/css\" media=\"all\" nonce=\"abc\"></style>",
+            Style("text/css", "all", "abc", "i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" },
+                    Title: "main")
                 .ToHtml());
     }
 
