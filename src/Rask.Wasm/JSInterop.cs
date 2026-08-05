@@ -124,6 +124,14 @@ internal static partial class JSInterop
     [JSImport("applyRender", ModuleName)]
     public static partial void ApplyRender([JSMarshalAs<JSType.MemoryView>] Span<byte> payload);
 
+    /// <summary>
+    ///     Dev-only. Shows the "hot reload applied" indicator once the coordinator has finished
+    ///     applying an update and every open session has repainted — the WASM analogue of the Server's
+    ///     out-of-band <c>hotReload</c> frame, which a WASM app has no server to receive.
+    /// </summary>
+    [JSImport("hotReloadApplied", ModuleName)]
+    public static partial void HotReloadApplied();
+
     [JSImport("getLocation", ModuleName)]
     public static partial string GetLocation();
 
@@ -190,6 +198,13 @@ internal static partial class JSInterop
     public static void PushHistory(string url, bool replace) { }
 
     public static string GetBasePath() => "/";
+
+    /// <summary>Counts the indicator calls so the non-browser tests can assert the bridge fired.</summary>
+    public static int HotReloadAppliedCount { get; private set; }
+
+    public static void HotReloadApplied() => HotReloadAppliedCount++;
+
+    internal static void ResetHotReloadAppliedCount() => HotReloadAppliedCount = 0;
 
     public static Task<byte[]> ReadFileChunkAsync(string @ref, int offset, int length) =>
         Task.FromResult(Array.Empty<byte>());

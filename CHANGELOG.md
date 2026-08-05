@@ -50,6 +50,13 @@ them until tagged releases begin.
   `rask dev` also now recognises a wasm-hosted app by what it *references* rather than by a `.Client`
   naming convention.
 
+  The **"Hot reload applied" pill now shows on every transport**, from one implementation. It moved out
+  of the Server client into a shared module spliced into all three (`rask-hotreload.js`), so Server,
+  WASM and native cannot drift; only the trigger differs — a pushed frame, a `[JSImport]` call from
+  .NET, or the WebView bridge. The native half is wired for completeness and costs a device build
+  nothing: native hot reload still needs a device-side delta agent that does not exist, so nothing ever
+  raises it there.
+
 ### Fixed
 - **Scoped CSS and scoped JS now work in apps built against the NuGet packages — they never had.** The
   generators read nothing but `@(AdditionalFiles)`, and the `**\*.css` / `**\*.js` globs that populate it

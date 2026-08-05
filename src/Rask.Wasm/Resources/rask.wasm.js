@@ -19,6 +19,12 @@ let basePath = null;
 // can't work over the WebSocket round-trip (or need WASM-only boot behaviour).
 // @@RASK_WASM_API@@
 
+// Dev-only "hot reload applied" indicator, spliced from Rask.Core/Resources/rask-hotreload.js — the
+// same source the Server and Native clients use. It exposes window.__raskHotReloadPill; here the
+// notification arrives through the hotReloadApplied() export below rather than over a socket, because
+// a WASM app has no Rask server to push it a frame.
+// @@RASK_HOTRELOAD@@
+
 // Serializes render application across payloads. A navigation diff/full reply may defer
 // its body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss /
 // preloadNewHeadStylesheets), opening a microtask/timer gap during which .NET could
@@ -301,6 +307,17 @@ export function applyRender(payload) {
         return;
     }
     handle(reply);
+}
+
+// Dev-only. Called from .NET (WasmHotReloadBridge) once the hot-reload coordinator has finished
+// applying an update and every open session has repainted — the WASM analogue of the Server's
+// {"type":"hotReload","status":"applied"} frame. Purely an indicator: the DOM was already updated by
+// the repaint that preceded this call, so it must not touch the tree.
+//
+// Guarded because the pill is spliced in from a shared module: if a future build ever drops the
+// splice, a missing indicator should not throw across the interop boundary into .NET.
+export function hotReloadApplied() {
+    if (window.__raskHotReloadPill) window.__raskHotReloadPill();
 }
 
 // File registry for input[type=file]: maps short refs -> live File objects.

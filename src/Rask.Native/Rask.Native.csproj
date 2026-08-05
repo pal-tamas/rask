@@ -159,7 +159,7 @@
     above and re-generated (WriteOnlyWhenDifferent) whenever a shared module or the template changes.
   -->
   <Target Name="_RaskSpliceNativeClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths;BeforeCompile"
-          Inputs="Resources\rask.native.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js;..\Rask.Core\Resources\rask-pwa.js;..\Rask.Core\Resources\rask-input.js;..\Rask.Core\Resources\rask-scoped.js"
+          Inputs="Resources\rask.native.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js;..\Rask.Core\Resources\rask-pwa.js;..\Rask.Core\Resources\rask-input.js;..\Rask.Core\Resources\rask-scoped.js;..\Rask.Core\Resources\rask-hotreload.js"
           Outputs="Assets\rask.native.js">
     <PropertyGroup>
       <_RaskNativeTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.native.js'))</_RaskNativeTemplate>
@@ -170,7 +170,8 @@
       <_RaskPwaBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-pwa.js'))</_RaskPwaBody>
       <_RaskInputBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-input.js'))</_RaskInputBody>
       <_RaskScopedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-scoped.js'))</_RaskScopedBody>
-      <_RaskNativeJs>$(_RaskNativeTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)').Replace('// @@RASK_INPUT@@', '$(_RaskInputBody)').Replace('// @@RASK_SCOPED@@', '$(_RaskScopedBody)'))</_RaskNativeJs>
+      <_RaskHotReloadBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-hotreload.js'))</_RaskHotReloadBody>
+      <_RaskNativeJs>$(_RaskNativeTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)').Replace('// @@RASK_INPUT@@', '$(_RaskInputBody)').Replace('// @@RASK_SCOPED@@', '$(_RaskScopedBody)').Replace('// @@RASK_HOTRELOAD@@', '$(_RaskHotReloadBody)'))</_RaskNativeJs>
     </PropertyGroup>
     <MakeDir Directories="Assets"/>
     <WriteLinesToFile File="Assets\rask.native.js" Lines="$(_RaskNativeJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>

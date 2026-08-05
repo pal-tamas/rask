@@ -6,6 +6,15 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <NoWarn>$(NoWarn);RASK014</NoWarn>
+
+    <!--
+      NativeHotReloadBridge.Attach early-returns unless MetadataUpdater.IsSupported, which the SDK
+      turns OFF in Release — and the unit gate runs Release. Without this its tests would attach to
+      nothing and assert against a WebView nobody calls: green, proving nothing. The switch needs BOTH
+      halves; DOTNET_MODIFIABLE_ASSEMBLIES has no MSBuild property, hence the runsettings.
+    -->
+    <MetadataUpdaterSupport>true</MetadataUpdaterSupport>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)/hotreload.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>

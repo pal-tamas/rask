@@ -285,7 +285,8 @@ so no applied edit could ever reach the page. It also drops the nested `dotnet p
 loop, which is most of the wait. `--no-hot-reload` and `--once` keep the published bundle.
 
 In Development you get a small "Hot reload applied" pill in the corner when an edit lands, so a save that
-changed nothing visible is distinguishable from one that didn't apply. It is never present in production.
+changed nothing visible is distinguishable from one that didn't apply. It is never present in production,
+and it looks and behaves the same on every transport — Server, WASM and native share one implementation.
 
 > **If nothing ever applies, suspect the path.** `dotnet watch` produces an empty hot-reload delta —
 > silently, reporting success at every step — when the project path traverses a symlink. `rask dev`

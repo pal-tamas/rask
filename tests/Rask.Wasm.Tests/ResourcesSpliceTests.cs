@@ -15,6 +15,7 @@ public sealed class ResourcesSpliceTests
         var wasmApiPath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Resources", "rask-wasm-api.js");
         var inputPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-input.js");
         var scopedPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-scoped.js");
+        var hotReloadPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-hotreload.js");
         var browserPath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "rask.wasm.js");
 
         var template = File.ReadAllText(templatePath);
@@ -26,6 +27,7 @@ public sealed class ResourcesSpliceTests
         var wasmApi = File.ReadAllText(wasmApiPath);
         var input = File.ReadAllText(inputPath);
         var scoped = File.ReadAllText(scopedPath);
+        var hotReload = File.ReadAllText(hotReloadPath);
         var committed = File.ReadAllText(browserPath);
 
         // Mirror the marker splice order in _RaskSpliceClientJs (Rask.Wasm.csproj): the diff codec
@@ -33,7 +35,8 @@ public sealed class ResourcesSpliceTests
         // the extended event delegation + keyboard/drag (rask-events.js), the transport-agnostic PWA
         // helpers (rask-pwa.js — shared with the Server client), the WASM-only helpers (rask-wasm-api.js),
         // then the shared rAF input/scroll coalescing (rask-input.js) and scoped-CSS FOUC gating
-        // (rask-scoped.js) — the last two shared with rask.js + rask.native.js.
+        // (rask-scoped.js), and finally the shared dev-only hot-reload indicator (rask-hotreload.js) —
+        // the last three shared with rask.js + rask.native.js.
         var spliced = template
             .Replace("// @@RASK_DOM@@", dom)
             .Replace("// @@RASK_MORPH@@", morph)
@@ -42,7 +45,8 @@ public sealed class ResourcesSpliceTests
             .Replace("// @@RASK_PWA@@", pwa)
             .Replace("// @@RASK_WASM_API@@", wasmApi)
             .Replace("// @@RASK_INPUT@@", input)
-            .Replace("// @@RASK_SCOPED@@", scoped);
+            .Replace("// @@RASK_SCOPED@@", scoped)
+            .Replace("// @@RASK_HOTRELOAD@@", hotReload);
 
         Assert.True(
             spliced == committed,

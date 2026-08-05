@@ -6,6 +6,22 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <NoWarn>$(NoWarn);RASK014</NoWarn>
+
+    <!--
+      WasmHotReloadBridge early-returns unless MetadataUpdater.IsSupported, which the SDK turns OFF in
+      Release — and the unit gate runs Release. Without this the bridge tests would subscribe to
+      nothing and assert against a counter nobody increments: green, and proving nothing.
+
+      The switch needs BOTH halves; DOTNET_MODIFIABLE_ASSEMBLIES=debug has no MSBuild property, hence
+      the runsettings. WasmHotReloadBridgeTests.The_feature_switch_is_on_in_this_assembly guards it.
+
+      Safe to enable assembly-wide here, unlike on Rask.Server.Tests: these tests raise the Applied
+      event directly rather than running the coordinator, so no other class's sessions get pulled into
+      a repaint loop. Sessions do start registering in the (weak, static) hot-reload registry, but
+      nothing in this assembly ever walks it.
+    -->
+    <MetadataUpdaterSupport>true</MetadataUpdaterSupport>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)/hotreload.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
