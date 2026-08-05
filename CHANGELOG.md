@@ -112,6 +112,18 @@ them until tagged releases begin.
   drives the real chain over a real WebSocket: an applied update repaints every open session and *then*
   announces itself, in that order. It is a separate assembly because the session registry is
   process-global.
+- **A live session now hands its pooled arrays back when it ends.** Tearing a session down released its
+  file stores, its locks and its DI scope, but simply dropped the rendered-HTML buffer pair and the two
+  frame writers behind the render cache — all of them `ArrayPool` rentals held for the session's whole
+  life. Not a leak: they were collected. But they never went *back*, so every teardown quietly cost the
+  pool the arrays it had just sized to the page, and the next session paid to allocate them again. On a
+  large page these are the dominant per-session term, so the waste scaled with page size. `FrameWriter`
+  gained the return path it never had (it rented in its constructor and had no way to give the array
+  back), and the session releases both **inside** the render lock — everything else in teardown fails
+  loudly on a racing caller, whereas returning an array early would fail silently, in whichever unrelated
+  session later rented it. Worth **~19% of the allocation** a create-render-dispose cycle costs on a
+  200-row page (2,418,177 → 1,959,329 bytes/cycle, `session-churn`), and the residue a 500-cycle run
+  leaves behind drops from 96 bytes to zero.
 - **A contended write no longer fails with "cannot start a transaction within a transaction".** The
   busy-retry loop re-issued the identical statement on every pass with no cleanup between attempts, and
   cleared a leaked transaction only *once*, before the loop. That caught a transaction the pooled handle

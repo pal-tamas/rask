@@ -143,6 +143,11 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         try
         {
             await ComponentLifecycle.DisposeComponentTreeAsync(View).ConfigureAwait(false);
+            // Inside the lock, unlike the rest of teardown: these arrays go back to a shared pool, and a
+            // render that raced this would then be writing into an array another session already owns.
+            // Everything below fails loudly on a racing caller (a disposed semaphore or scope); this
+            // would fail silently, which is the one outcome worth paying a few microseconds to avoid.
+            ReleasePooledBuffers();
         }
         finally
         {
@@ -164,6 +169,9 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         try
         {
             ComponentLifecycle.DisposeComponentTree(View);
+            // See DisposeAsync: returned under the lock so a racing render cannot write into an array
+            // that now belongs to another session.
+            ReleasePooledBuffers();
         }
         finally
         {
@@ -213,6 +221,22 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             InHandlerScope = false;
             Lock.Release();
         }
+    }
+
+    /// <summary>
+    ///     Hands this session's pooled arrays back to <see cref="ArrayPool{T}" />.
+    /// </summary>
+    /// <remarks>
+    ///     The rendered-HTML buffer pair and the two frame writers behind the render cache are all pool
+    ///     rentals held for the session's whole life. Dropping the references collects them but never
+    ///     returns them, so every session teardown quietly cost the pool the arrays it had just warmed —
+    ///     and the next session paid to allocate them again. On a large page these are the dominant
+    ///     per-session term, so the cost scaled with page size.
+    /// </remarks>
+    private void ReleasePooledBuffers()
+    {
+        _htmlBuffers.Dispose();
+        _renderCache?.Dispose();
     }
 
     private void ReleaseFileStores()
