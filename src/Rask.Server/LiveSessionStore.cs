@@ -14,6 +14,12 @@ public sealed class LiveSessionStore : IAsyncDisposable
     private readonly RaskMetrics? _metrics;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingRemovals = new();
     private readonly IServiceScopeFactory _scopeFactory;
+    // How many sessions a whole-store fan-out touches at once. Bounded so a host with thousands of
+    // sessions doesn't hand the thread pool thousands of simultaneous socket writes; large enough that a
+    // handful of slow clients can't dominate. Both fan-outs are dev-time today, but this is the code the
+    // planned Broadcast pillar inherits, where the fan-out is a user-facing feature.
+    private const int FanOutConcurrency = 32;
+
     private readonly ConcurrentDictionary<string, LiveSession> _sessions = new();
     private readonly CancellationToken _stopping;
 
@@ -319,18 +325,25 @@ public sealed class LiveSessionStore : IAsyncDisposable
             return;
         }
 
-        foreach (var session in _sessions.Values)
-        {
-            try
+        // Bounded-concurrent for the same reason as BroadcastAsync: sequentially, one session stuck on a
+        // send holds up every session behind it. Rendering distinct sessions on distinct threads is not a
+        // new property — independent handler dispatches already do it — because each session serialises
+        // itself on its own render lock and the render walk's ambient scopes are thread-static.
+        await Parallel.ForEachAsync(
+            _sessions.Values,
+            new ParallelOptions { MaxDegreeOfParallelism = FanOutConcurrency },
+            async (session, _) =>
             {
-                Component.MarkSubtreeDirtyForHotReload(session.View);
-                await session.View.StateHasChangedAsync().ConfigureAwait(false);
-            }
-            catch
-            {
-                // One bad tree must not stop the rest — matches RerenderAllForHotReloadAsync.
-            }
-        }
+                try
+                {
+                    Component.MarkSubtreeDirtyForHotReload(session.View);
+                    await session.View.StateHasChangedAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                    // One bad tree must not stop the rest — matches RerenderAllForHotReloadAsync.
+                }
+            }).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -346,16 +359,24 @@ public sealed class LiveSessionStore : IAsyncDisposable
             return;
         }
 
-        foreach (var session in _sessions.Values)
-        {
-            try
+        // Concurrently, with a bounded degree. Sequentially, the cost of a broadcast is the SUM of every
+        // session's send rather than the slowest one — and each of those sends waits on that session's
+        // render lock behind whatever frame is already in flight. One session on a stalled link would
+        // hold up delivery to everyone behind it in the dictionary's enumeration order. The bound keeps a
+        // large fan-out from saturating the pool; a session whose send faults is skipped, not propagated.
+        await Parallel.ForEachAsync(
+            _sessions.Values,
+            new ParallelOptions { MaxDegreeOfParallelism = FanOutConcurrency },
+            async (session, _) =>
             {
-                await session.SendOutOfBandAsync(payload).ConfigureAwait(false);
-            }
-            catch
-            {
-                // A closed/faulted socket must not stop the broadcast.
-            }
-        }
+                try
+                {
+                    await session.SendOutOfBandAsync(payload).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // A closed/faulted socket must not stop the broadcast.
+                }
+            }).ConfigureAwait(false);
     }
 }

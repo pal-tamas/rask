@@ -62,6 +62,7 @@ WebSocket safety caps and session grace periods — only the ASP.NET host has th
 | `UnconnectedSessionGracePeriod` | `10 s` | How long a GET-minted session is retained before its first `hello` arrives. |
 | `IdleSocketTimeout` | `0` (off) | Close a connected socket that sends no inbound frame for this long (the session survives for reconnect). Reclaims silently-idle connections. |
 | `MaxPendingHandlerBytes` | `0` (off) | Aggregate-bytes companion to `MaxPendingHandlers` — bounds the queued cloned-payload *memory*, not just the queue length. |
+| `SendTimeout` | `30 s` | How long one outbound frame may take before the socket is aborted. A client that stops reading TCP would otherwise pin its session's render lock — and its disposal — indefinitely. The session survives for the grace period, so a briefly-stalled link reconnects normally. `0` disables. |
 | `HandlerTimeout` | `0` (off) | Cancel a handler's `Component.CancellationToken` after this long. A handler that threads that token into its async work unwinds cleanly instead of pinning the render pipeline (cooperative — a token-ignoring handler can't be force-aborted). |
 
 ### Reconnect UX
