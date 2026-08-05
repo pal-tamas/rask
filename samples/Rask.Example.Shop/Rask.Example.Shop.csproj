@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Mail\Rask.Mail.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cache\Rask.Cache.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Dashboard\Rask.Dashboard.csproj"/>
     <ProjectReference Include="..\..\src\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>
     <ProjectReference Include="..\..\src\Rask.SQLite.Litestream\Rask.SQLite.Litestream.csproj"/>
     <ProjectReference Include="..\..\src\Rask.WebPush\Rask.WebPush.csproj"/>

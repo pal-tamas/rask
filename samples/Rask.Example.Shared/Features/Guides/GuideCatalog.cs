@@ -159,6 +159,8 @@ public static class GuideCatalog
             "bi-database", "Integration"),
         new("accessibility", "Accessibility", "ARIA, focus management, the img-alt analyzer.",
             "bi-universal-access", "Integration"),
+        new("dashboard", "Dashboard", "An operator dashboard over every battery's table.",
+            "bi-speedometer2", "Integration"),
         new("observability", "Observability", "Logging, tracing, diagnostics.",
             "bi-activity", "Integration"),
         new("configuration", "Configuration", "App configuration and settings.",

@@ -195,6 +195,23 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         Assert.Contains("/login", _page.Url, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_built_in_dashboard_is_gated_on_the_operator_policy()
+    {
+        // The whole point of the fail-closed design, end to end: /_ops is behind the RaskDashboard policy,
+        // so an anonymous deep link never reaches a page that shows job payloads and stored email bodies.
+        await _page.GotoAsync("/_ops");
+        Assert.Contains("/login", _page.Url, StringComparison.Ordinal);
+
+        await SignInAsync();
+        await _page.GotoAsync("/_ops");
+
+        // Signed in, the operator sees the panels for the pillars this app actually registered.
+        Assert.DoesNotContain("/login", _page.Url, StringComparison.Ordinal);
+        await Assertions.Expect(_page.Locator("a.nav-link", new() { HasTextString = "Jobs" })).ToBeVisibleAsync();
+        await Assertions.Expect(_page.Locator("a.nav-link", new() { HasTextString = "Outbox" })).ToBeVisibleAsync();
+    }
+
     private async Task SignInAsync()
     {
         await _page.GotoAsync("/login");

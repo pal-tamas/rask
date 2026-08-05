@@ -27,6 +27,7 @@ service to operate.
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |
 | **Web Push (server send)** | ✅ | [`webpush.md`](webpush.md) — `Rask.WebPush`: VAPID (RFC 8292) + aes128gcm (RFC 8291), zero deps. |
 | **Deploy to one box** | ✅ | [`rask deploy`](cli.md) — bare-VPS setup (Docker, deploy login, firewall, SSH hardening), build over SSH, zero-downtime, auto-HTTPS (Caddy), multi-app on one host, GitHub Actions. |
+| **Dead letters & queue health** | ✅ | [`dashboard.md`](dashboard.md) — `Rask.Dashboard` mounts `/_ops` over the outbox, jobs, mail and cache: queue depth, **what has given up**, the error behind it, and one click to retry. Plus a log tail and the live SQLite pragmas. Fail-closed behind an authorization policy. |
 | **Operate what you shipped** | ✅ | [`rask deploy status` / `logs` / `rollback`](cli.md) — what's running, its logs, and putting the previous image back. |
 | **Continuous backup** | ✅ | [`sqlite.md`](sqlite.md) — `rask new --data` wires [Litestream](sqlite.md#continuous-backup-with-litestream); one variable at deploy time turns it on. |
 | **Secrets** | ◐ | [`secrets.md`](secrets.md) — environment variables, remembered by name so a redeploy can't drop one. **No** vault, rotation, or encryption at rest. |
@@ -66,11 +67,6 @@ Nothing in the framework. The docs point you at a reverse-proxy rate limit in se
 `rask deploy` provisions a stock Caddy, which can't do it without a plugin — so today that means adding one
 yourself, or a WAF in front. Worth knowing before you put a login form on the internet: there is **no
 built-in login-attempt throttle**.
-
-### A dead-letter surface for the background pillars
-[Jobs](jobs.md), [mail](mail.md) and the [outbox](outbox.md) each retry with backoff and then stop, leaving
-the row in place. That's the right durability behaviour, but there is no UI, CLI command, or metric that
-shows you what has given up — inspecting or retrying a dead letter means SQL against `app.db`.
 
 ### Secrets beyond environment variables
 See [`secrets.md`](secrets.md) for what does exist and, at the bottom, a blunt list of what doesn't.
