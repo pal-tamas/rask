@@ -180,6 +180,10 @@
     let overlayTimer = null;
     let sessionExpired = false;
     let serverShuttingDown = false;
+    // The one free retry a known redeploy gets before the ordinary backoff takes over. Without it a
+    // replacement that isn't up yet would spin: every failed connect closes, and every close would take
+    // the immediate-retry branch again.
+    let shutdownRetryUsed = false;
 
     function setOverlayMessage(text) {
         if (overlayMsg) overlayMsg.textContent = text;
@@ -255,11 +259,15 @@
                 if (devMode && data.status === "applied") window.__raskHotReloadPill();
                 return;
             }
-            // The server is shutting down (a redeploy, a restart). Live session state is per-process and
-            // cannot hand over, so a reload is unavoidable — but it is an update, not an expiry, and
-            // saying so is the difference between "Updating…" and a four-second "Your session timed
-            // out". Carries no html, so like the hotReload frame it must NOT fall through to
-            // applyFullReply. Deliberately not dev-gated: production is exactly where this matters.
+            // The server is shutting down (a redeploy, a restart). This frame only *announces* it — the
+            // close that follows drives what happens next, and deliberately so: the announcement's job is
+            // to make the drop expected, so the client can reconnect at once instead of walking the
+            // backoff ladder guessing whether the server is coming back. Whether the reconnect lands on a
+            // host that can rebuild this page, or on one that has never heard of it, is the server's
+            // answer to give — not something to pre-empt here with a reload.
+            //
+            // Carries no html, so like the hotReload frame it must NOT fall through to applyFullReply.
+            // Deliberately not dev-gated: production is exactly where this matters.
             if (data.type === "shutdown") {
                 serverShuttingDown = true;
                 setInert(true);
@@ -305,8 +313,28 @@
         // shutdown frame's braces: if the frame was missed (sent while this socket was mid-render, say),
         // the close status still identifies a deployment. An aborted socket is 1006, which is not this.
         // `error` passes a plain Event with no code, hence the feature test.
-        if (serverShuttingDown || (e && e.code === 1001)) {
-            reloadForUpdate();
+        //
+        // A known redeploy earns exactly ONE immediate retry, not a reload. Under a blue-green swap the
+        // replacement is already serving before the old container is stopped, so the backoff's first
+        // 500 ms is pure latency — and reloading here would throw away everything the reconnect could
+        // still recover, since it is the reconnect (not this handler) that carries whatever the client
+        // holds to a host that never knew this session. If that attempt also drops we fall through to the
+        // ordinary ladder below, which is the right shape when the replacement genuinely is not up yet.
+        if ((serverShuttingDown || (e && e.code === 1001)) && !shutdownRetryUsed) {
+            shutdownRetryUsed = true;
+            serverShuttingDown = true;
+            open = false;
+            resetPending();
+            setInert(true);
+            if (overlayTimer !== null) {
+                clearTimeout(overlayTimer);
+                overlayTimer = null;
+            }
+            showOverlay();
+            setOverlayMessage(UPDATING_MSG);
+            setRetryButton(null);
+            attempt = 0;
+            connect();
             return;
         }
         open = false;
@@ -336,7 +364,10 @@
     // explanatory one and reveal a manual "Retry now" button. Left alone during an auth handshake and
     // once the session has expired (both own the overlay message).
     function updateOverlayState() {
-        if (authInProgress || sessionExpired) return;
+        // serverShuttingDown owns the message for the same reason authInProgress does: the drop is
+        // explained, so escalating to "Still trying to reconnect…" would be telling the user something is
+        // wrong when we know exactly what is happening and that it ends.
+        if (authInProgress || sessionExpired || serverShuttingDown) return;
         const offline = ("onLine" in navigator) && !navigator.onLine;
         const escalated = offline || attempt > ESCALATE_AFTER_ATTEMPTS;
         setOverlayMessage(escalated
@@ -360,8 +391,12 @@
         connect();
     }
 
-    // The server is being replaced. Reload onto the replacement, quickly and quietly: this is a
-    // deployment, not a failure, and the user should end up back where they were.
+    // The FALLBACK for a redeploy: we reconnected, and the host that answered could not carry this page
+    // over — so a reload is the only way back. Quiet and quick, because this is still a deployment rather
+    // than a failure, and the user should land where they were.
+    //
+    // Reached only from showSessionExpired, never from the close handler: a redeploy reconnects first (see
+    // scheduleReconnect), and only the server's answer decides whether the page survives.
     function reloadForUpdate() {
         serverShuttingDown = true;
         // Reuse the expiry latch rather than running a parallel state machine: it drops late frames,
@@ -430,6 +465,14 @@
     // UI state is gone and a reload is unavoidable. Warn the user and give them the click instead of
     // yanking the page out from under them mid-action; auto-reload as a fallback after a few seconds.
     function showSessionExpired() {
+        // Same reply, two very different causes. During a redeploy this means the host we reconnected to
+        // could not carry the page over, which is an update finishing — not a session that sat idle too
+        // long. Say the true thing and get back on screen fast.
+        if (serverShuttingDown) {
+            reloadForUpdate();
+            return;
+        }
+
         sessionExpired = true;
         if (reconnectTimer !== null) {
             clearTimeout(reconnectTimer);

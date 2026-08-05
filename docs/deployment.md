@@ -34,8 +34,9 @@ Dockerfile below (override with `--dockerfile`).
   different path with `--health-path <path>`, or skip the probe with `--no-health-check`.
   HTTP requests are zero-downtime; **live sessions re-establish**, because a session is a component tree
   and a DI scope inside *that* container and cannot hand over to the next one. The retiring container
-  announces its shutdown first, so open pages show "Updating…" and reload onto the new instance at their
-  previous scroll position rather than reporting a timeout — see
+  announces its shutdown first, so open pages show "Updating…" and reconnect to the new instance
+  immediately instead of reporting a timeout — reloading only if the host that answers cannot rebuild the
+  page, and then at their previous scroll position. See
   [Shutdown and redeploy](configuration.md#shutdown-and-redeploy).
 - **Durable SQLite database.** Every deploy runs a fresh container, so the database can't live inside it.
   `rask deploy` mounts a per-app named volume and points the app at it (`ConnectionStrings:App` →

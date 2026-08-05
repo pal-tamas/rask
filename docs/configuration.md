@@ -76,7 +76,8 @@ wiring on your part:
 1. **Admission closes.** New sessions are refused with `503` + `Retry-After: 1`, and the `ready`-tagged
    health check goes unhealthy so a proxy or load balancer with active probes stops routing here.
 2. **Connected browsers are told.** Every live session gets a `{"type":"shutdown"}` frame, so the client
-   shows **"Updating…"** rather than the reconnect spinner.
+   shows **"Updating…"** rather than the reconnect spinner — and, because the drop is now *expected* rather
+   than guessed at, it reconnects immediately instead of walking a 500 ms → 5 s backoff ladder first.
 3. **In-flight handlers finish.** A click that is mid-`SaveChangesAsync` completes rather than being
    cancelled halfway.
 4. **Sockets close cleanly** — WebSocket status `1001` ("going away"), not an abort — and the sessions
@@ -85,13 +86,18 @@ wiring on your part:
 Anything still connected when `ShutdownDrainTimeout` elapses is aborted, and
 `rask.shutdown.sessions.abandoned` counts it.
 
-> **A redeploy does reload connected browsers, and that is not avoidable.** A live session is a component
-> tree plus a DI scope living in *that* process; the replacement container cannot inherit it. What the
-> drain fixes is the *experience*: instead of a frozen page, an abnormal disconnect, and a four-second
-> "Your session timed out", the page says "Updating…", reloads onto the new instance in ~250 ms, and
-> restores your scroll position and focus. Form field values are deliberately **not** restored — the new
-> server renders those from its own state, and overwriting them with stale client copies would turn a
-> cosmetic loss into a data one.
+> **What happens to the page itself is the replacement server's decision, not the client's.** A live
+> session is a component tree plus a DI scope living in *that* process, so the new instance cannot inherit
+> it. The client therefore reconnects and lets the host that answers decide: if it can rebuild the page,
+> nothing reloads at all; if it reports the session unknown, the client reloads — in ~250 ms, saying
+> "Updating…", and restoring your scroll position and focus.
+>
+> The drain's job is to make that drop *expected*. Before it, the socket was aborted with no close frame,
+> so the browser could not tell a deployment from a crash: it froze, backed off, and eventually announced
+> a four-second "Your session timed out" for a session that had not timed out.
+>
+> Form field values are deliberately **not** restored across a reload — the new server renders those from
+> its own state, and overwriting them with stale client copies would turn a cosmetic loss into a data one.
 
 `ShutdownDrainTimeout` must fit inside `HostOptions.ShutdownTimeout`, which must fit inside whatever your
 container runtime allows between `SIGTERM` and `SIGKILL` (`rask deploy` uses 20 s). Rask logs a warning at

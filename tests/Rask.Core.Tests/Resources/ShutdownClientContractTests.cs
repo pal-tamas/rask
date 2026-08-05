@@ -51,6 +51,62 @@ public class ShutdownClientContractTests
     }
 
     [Fact]
+    public void A_known_redeploy_reconnects_rather_than_reloading()
+    {
+        // The load-bearing property. Reloading straight from the close handler would throw away whatever
+        // the reconnect could still recover — it is the reconnect that carries the client's state to a
+        // host which never knew this session, so only the server's answer may decide the page is lost.
+        var js = ServerJs;
+        var fn = js[js.IndexOf("function scheduleReconnect", StringComparison.Ordinal)..];
+        var branch = fn[..fn.IndexOf("\n    }", StringComparison.Ordinal)];
+
+        var fastPath = branch[..branch.IndexOf("open = false;\n        resetPending();", StringComparison.Ordinal)];
+        Assert.Contains("connect();", fastPath, StringComparison.Ordinal);
+        Assert.DoesNotContain("location.reload", fastPath, StringComparison.Ordinal);
+        Assert.DoesNotContain("reloadForUpdate()", fastPath, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_immediate_retry_happens_once_so_a_missing_replacement_cannot_spin()
+    {
+        // Every failed connect closes, and every close re-enters scheduleReconnect. Without a latch the
+        // redeploy branch would take itself again forever, hammering a host that is not up yet.
+        var js = ServerJs;
+        var fn = js[js.IndexOf("function scheduleReconnect", StringComparison.Ordinal)..];
+        var branch = fn[..fn.IndexOf("\n    }", StringComparison.Ordinal)];
+
+        Assert.Contains("!shutdownRetryUsed", branch, StringComparison.Ordinal);
+        Assert.Contains("shutdownRetryUsed = true;", branch, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_reload_is_reachable_only_from_the_servers_own_answer()
+    {
+        // reloadForUpdate is the fallback for "we reconnected and the new host could not rebuild us",
+        // which is showSessionExpired's job to detect. Any other caller would be pre-empting the server.
+        var js = ServerJs;
+        // The trailing semicolon is what distinguishes a call from the `function reloadForUpdate() {`
+        // declaration.
+        var callSites = js.Split("reloadForUpdate();", StringSplitOptions.None).Length - 1;
+
+        Assert.Equal(1, callSites);
+        var expired = js[js.IndexOf("function showSessionExpired", StringComparison.Ordinal)..];
+        Assert.Contains("reloadForUpdate();", expired[..400], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_redeploy_never_escalates_to_the_something_is_wrong_wording()
+    {
+        // The drop is explained and it ends, so "Still trying to reconnect…" would be telling the user
+        // something is broken while we know exactly what is happening.
+        var js = ServerJs;
+        var fn = js[js.IndexOf("function updateOverlayState", StringComparison.Ordinal)..];
+        var guard = fn[..fn.IndexOf(';', StringComparison.Ordinal)];
+
+        Assert.Contains("serverShuttingDown", guard, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_update_reload_says_updating_not_timed_out()
     {
         var js = ServerJs;
