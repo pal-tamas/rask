@@ -228,6 +228,13 @@ them until tagged releases begin.
   it. Visible in the `/_ops` dashboard and in metrics: a job that succeeds first time now shows
   `Attempts = 1` rather than `0`.
 
+  **A shutdown is the one interruption that does not count.** Where the two behaviours meet — an item
+  claimed, then cut off by a redeploy outliving its `ShutdownGracePeriod` — the processor gives the
+  increment back and hands the lease over with it. Without that, `MaxAttempts` would silently become a
+  function of *deploy cadence*: at the default of 10, ten unlucky redeploys would dead-letter an item that
+  never once failed, and nothing in the logs would connect the two. Releasing the lease also means the next
+  boot sees the item immediately instead of waiting out a claim held by a process that no longer exists.
+
   The migration adds two nullable columns to each of the three tables — additive, no backfill. Skipping it
   is the one failure mode worth knowing about: the processors throw on every poll, the exception is caught
   rather than crashing the app, and it logs the same error every five seconds while looking healthy. All

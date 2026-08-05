@@ -102,12 +102,19 @@ public sealed class OutboxProcessor<TContext>(
         try
         {
             await using var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            // Attempts goes back with the lease. ClaimAsync increments it up front so a message that takes
+            // the process down still reaches MaxAttempts — but a shutdown is not that, and every row still
+            // holding our lease unpublished either never started or was cut off mid-publish. Leaving the
+            // increment counted would make MaxAttempts a function of DEPLOY CADENCE: at the default of 10,
+            // ten unlucky redeploys dead-letter a message that never once failed, with nothing connecting
+            // the two. A message that genuinely failed already released its own lease, so it is not here.
             await db.Set<OutboxMessage>()
                 .Where(m => m.ClaimToken == _lease && m.ProcessedAt == null)
                 .ExecuteUpdateAsync(
                     s => s
                         .SetProperty(m => m.ClaimToken, (Guid?)null)
-                        .SetProperty(m => m.ClaimedUntil, (DateTime?)null),
+                        .SetProperty(m => m.ClaimedUntil, (DateTime?)null)
+                        .SetProperty(m => m.Attempts, m => m.Attempts - 1),
                     CancellationToken.None)
                 .ConfigureAwait(false);
         }
@@ -245,6 +252,10 @@ public sealed class OutboxProcessor<TContext>(
                     // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
                     // while a handler's own OperationCanceledException still falls through to the generic
                     // catch below and counts as the real failure it is.
+                    // Attempts and the lease are both given back by StopAsync, which owns every row this
+                    // instance still holds — including ones claimed in this batch but never started. It
+                    // cannot be done here: this `break` skips the per-item SaveChanges below, so an
+                    // in-memory edit would be discarded while the claim's increment is already on disk.
                     metrics.Interrupted(message.Type);
                     logger.LogWarning(
                         "Outbox message {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it "

@@ -62,7 +62,9 @@ public sealed class OutboxShutdownGraceTests : IDisposable
         Assert.True(gate.Completed.Task.IsCompletedSuccessfully, "the handler ran to completion");
         var message = await SingleMessageAsync();
         Assert.NotNull(message.ProcessedAt);
-        Assert.Equal(0, message.Attempts);
+        // 1, not 0: the claim counts attempts *started*, so a message that publishes first time shows one.
+        // The roll-back on the shutdown path only applies to work that did NOT finish.
+        Assert.Equal(1, message.Attempts);
     }
 
     [Fact]
@@ -70,6 +72,10 @@ public sealed class OutboxShutdownGraceTests : IDisposable
     {
         // MaxAttempts is 10 here: counting a redeploy as an attempt would let ten unlucky deploys abandon
         // a message nobody ever failed to publish.
+        //
+        // This became load-bearing once the claim started incrementing Attempts up front (so a message
+        // that takes the process down still reaches MaxAttempts). The shutdown path has to give that
+        // increment back, or MaxAttempts silently becomes a function of how often you deploy.
         var gate = Build(TimeSpan.FromMilliseconds(50));
         await EnqueueGatedAsync();
 
@@ -82,6 +88,10 @@ public sealed class OutboxShutdownGraceTests : IDisposable
         Assert.Null(message.ProcessedAt);
         Assert.Equal(0, message.Attempts);
         Assert.Null(message.Error);
+        // And the lease goes back with it: the next boot must see the message immediately, not wait out a
+        // LeaseDuration for a claim held by a process that no longer exists.
+        Assert.Null(message.ClaimToken);
+        Assert.Null(message.ClaimedUntil);
     }
 
     [Fact]

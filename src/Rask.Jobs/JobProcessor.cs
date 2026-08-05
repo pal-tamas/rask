@@ -236,6 +236,10 @@ public sealed class JobProcessor<TContext>(
                     // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
                     // while a handler's own OperationCanceledException still falls through to the generic
                     // catch below and counts as the real failure it is.
+                    // Attempts and the lease are both given back by StopAsync, which owns every row this
+                    // instance still holds — including ones claimed in this batch but never started. It
+                    // cannot be done here: this `break` skips the per-item SaveChanges below, so an
+                    // in-memory edit would be discarded while the claim's increment is already on disk.
                     metrics.Interrupted(job.Type);
                     logger.LogWarning(
                         "Job {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it will run "
@@ -322,12 +326,19 @@ public sealed class JobProcessor<TContext>(
         try
         {
             await using var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            // Attempts goes back with the lease. ClaimAsync increments it up front so a job that takes the
+            // process down still reaches MaxAttempts — but a shutdown is not that, and every row still
+            // holding our lease unprocessed either never started or was cut off mid-run. Leaving the
+            // increment counted would make MaxAttempts a function of DEPLOY CADENCE: at the default of 10,
+            // ten unlucky redeploys dead-letter a job that never once failed, with nothing connecting the
+            // two. A job that genuinely failed already released its own lease, so it is not in this set.
             await db.Set<Job>()
                 .Where(j => j.ClaimToken == _lease && j.ProcessedAt == null)
                 .ExecuteUpdateAsync(
                     s => s
                         .SetProperty(j => j.ClaimToken, (Guid?)null)
-                        .SetProperty(j => j.ClaimedUntil, (DateTime?)null),
+                        .SetProperty(j => j.ClaimedUntil, (DateTime?)null)
+                        .SetProperty(j => j.Attempts, j => j.Attempts - 1),
                     CancellationToken.None)
                 .ConfigureAwait(false);
         }
