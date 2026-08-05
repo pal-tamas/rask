@@ -124,7 +124,15 @@ the job, not get reconfigured by CI.
 
 ## Backups
 
-`rask deploy` mounts a named volume so the database survives redeploys — but a volume is still **one copy
+Two different questions, two answers. **"Let me look at what production has"**, or "that migration was a
+mistake, put last night's file back" — that is [`rask db backup` / `rask db restore`](cli.md#backup-and-restore):
+
+```bash
+rask db backup --remote                 # a consistent copy of the deployed database, pulled down
+rask db restore last-good.db --remote   # stops the app, replaces it, starts it again
+```
+
+**"The server is gone"** is the rest of this section. `rask deploy` mounts a named volume so the database survives redeploys — but a volume is still **one copy
 on one disk**. An app scaffolded with `--data` is already wired for [Litestream](sqlite.md#continuous-backup-with-litestream),
 which streams the write-ahead log to object storage; it stays inert until you point it somewhere:
 

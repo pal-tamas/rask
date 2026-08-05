@@ -74,6 +74,62 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     }
 
     /// <summary>
+    ///     <c>rask db backup --remote</c> then <c>rask db restore --remote</c>, against a real deployed app:
+    ///     write rows, back up, change them, restore, and assert the original rows came back.
+    /// </summary>
+    /// <remarks>
+    ///     This is the case that cannot be mocked. It needs a real Docker host to prove the throwaway
+    ///     container can reach the named volume, that <c>docker cp</c> can address a created-but-never-started
+    ///     helper, that the app really is stopped and restarted around the swap, and that the file that comes
+    ///     back is a readable SQLite database rather than a torn one. A unit test can only pin the argv.
+    /// </remarks>
+    [SkippableFact]
+    public async Task Backup_and_restore_round_trip_against_the_deployed_volume()
+    {
+        var project = Start(out var console, out var deploy);
+        string[] deployArgs = ["--host", host.Host, "--port", "8083", "--name", "backupapp"];
+        Assert.True(await deploy.ExecuteAsync(deployArgs, CancellationToken.None) == 0, $"deploy failed.\n{console.ErrorText}");
+
+        // A real SQLite database in the app's volume, with a row worth losing.
+        await SqlAsync("CREATE TABLE t(v TEXT NOT NULL); INSERT INTO t VALUES('original');");
+        Assert.Equal("original", await SqlAsync("SELECT v FROM t;"));
+
+        var db = new DbCommand(console, new SystemFileSystem(), new EnvScopedProcessRunner(host.Environment, host.Executables), project);
+        var backup = Path.Combine(project, "backup.db");
+
+        Assert.True(
+            await db.ExecuteAsync(["backup", "--remote", "--host", host.Host, "--app", "backupapp", "--output", backup], CancellationToken.None) == 0,
+            $"backup failed.\n{console.ErrorText}");
+        Assert.True(File.Exists(backup), "the backup never arrived locally");
+        Assert.True(new FileInfo(backup).Length > 0, "the backup is empty");
+
+        // Diverge, so a restore that silently did nothing would still fail the assertion below.
+        await SqlAsync("UPDATE t SET v='changed';");
+        Assert.Equal("changed", await SqlAsync("SELECT v FROM t;"));
+
+        Assert.True(
+            await db.ExecuteAsync(["restore", backup, "--remote", "--host", host.Host, "--app", "backupapp", "--force"], CancellationToken.None) == 0,
+            $"restore failed.\n{console.ErrorText}");
+
+        Assert.Equal("original", await SqlAsync("SELECT v FROM t;"));
+
+        // The app was brought back up, not left stopped — a restore that ends in an outage is a failure.
+        var (_, running) = await host.DockerAsync("inspect", "--format", "{{.State.Running}}", "backupapp");
+        Assert.Contains("true", running, StringComparison.Ordinal);
+    }
+
+    // Run one statement against the deployed app's database, the same way the backup does: a throwaway
+    // container mounted on the named volume.
+    private async Task<string> SqlAsync(string sql)
+    {
+        var (exit, output) = await host.DockerAsync(
+            "run", "--rm", "-v", "backupapp-data:/data", "alpine:3.21",
+            "sh", "-c", $"apk add --no-cache sqlite >/dev/null && sqlite3 /data/app.db \"{sql}\"");
+        Assert.True(exit == 0, $"sqlite in the volume failed: {output}");
+        return output.Trim();
+    }
+
+    /// <summary>
     /// The zero-downtime path: a blue-green swap behind the shared Caddy proxy. This is the one that needs a
     /// real host most — the Caddyfile is generated as text and only a running Caddy can say whether it is
     /// valid, and the colour bookkeeping is read back from live container labels.
