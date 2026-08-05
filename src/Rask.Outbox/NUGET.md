@@ -11,6 +11,8 @@ crash-safe domain-event delivery on the app's own database, with no broker or Re
   with retries and an attempt count.
 - Published messages are **purged after `RetentionPeriod`** (default 7 days) so the table doesn't grow
   forever. Dead letters are never purged — they have no `ProcessedAt` for the predicate to match.
+- **Metrics** on the `Rask.Outbox` meter: processed / failed / **dead-lettered** counters, a duration
+  histogram, and pending / dead-letter gauges. `rask.outbox.deadletters` is the one to alert on.
 - A **source generator** registers every `IOutboxEvent` type for reflection-free lookup on the drain path.
 
 ## Use

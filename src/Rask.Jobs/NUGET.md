@@ -10,6 +10,8 @@ app's own database, with no broker or Redis.
 - **Delayed** (`ScheduleAsync(job, delay)`) and durable **interval-recurring** (`AddRecurring<T>(name, every, …)`)
   jobs — recurring runs are tracked in the DB, so a restart never double-runs them. Read the schedule back
   from `JobOptions.RecurringJobs`.
+- **Metrics** on the `Rask.Jobs` meter: processed / failed / **dead-lettered** counters, a duration
+  histogram, and pending / dead-letter gauges. `rask.jobs.deadletters` is the one to alert on.
 - A **source generator** registers every `IJob` type for reflection-free rehydration on the run path.
 
 ## Use

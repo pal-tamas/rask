@@ -20,6 +20,7 @@ public sealed class JobProcessor<TContext>(
     IServiceScopeFactory scopeFactory,
     JobOptions options,
     TimeProvider timeProvider,
+    JobMetrics metrics,
     ILogger<JobProcessor<TContext>> logger) : BackgroundService
     where TContext : DbContext
 {
@@ -51,6 +52,7 @@ public sealed class JobProcessor<TContext>(
             await EnqueueDueRecurringAsync(cancellationToken).ConfigureAwait(false);
             await DrainAsync(cancellationToken).ConfigureAwait(false);
             await PurgeAsync(cancellationToken).ConfigureAwait(false);
+            await SampleQueueDepthAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -93,10 +95,21 @@ public sealed class JobProcessor<TContext>(
             if (command is null)
             {
                 Fail(job, $"No registered job type '{job.Type}'.");
+
+                // An unregistered type is a failure like any other, and counts toward the dead letter it
+                // will become — a renamed job that nobody re-registered is the most ordinary way a
+                // production queue starts abandoning work, so it must not be invisible to metrics.
+                metrics.Failed(job.Type);
+                if (job.Attempts >= options.MaxAttempts)
+                {
+                    metrics.DeadLettered(job.Type);
+                }
+
                 logger.LogError("Job {Id} has an unregistered type '{Type}'.", job.Id, job.Type);
             }
             else
             {
+                var startedAt = timeProvider.GetTimestamp();
                 try
                 {
                     // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
@@ -105,6 +118,7 @@ public sealed class JobProcessor<TContext>(
                     await dispatcher.DispatchAsync(command, cancellationToken).ConfigureAwait(false);
                     job.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                     job.Error = null;
+                    metrics.Processed(job.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -115,6 +129,12 @@ public sealed class JobProcessor<TContext>(
 #pragma warning restore CA1031
                 {
                     Fail(job, ex.Message);
+                    metrics.Failed(job.Type);
+                    if (job.Attempts >= options.MaxAttempts)
+                    {
+                        metrics.DeadLettered(job.Type);
+                    }
+
                     logger.LogError(ex, "Job {Id} failed (attempt {Attempts}).", job.Id, job.Attempts);
                 }
             }
@@ -227,5 +247,28 @@ public sealed class JobProcessor<TContext>(
                 break;
             }
         }
+    }
+
+    // Only pays for the counts while something is collecting the gauges — see JobMetrics' remarks. Two
+    // COUNT(*)s on every 5s poll forever, for an app that exports no metrics, would be a tax on the write
+    // lock that nobody asked for.
+    private async Task SampleQueueDepthAsync(CancellationToken cancellationToken)
+    {
+        if (!metrics.WantsQueueDepth)
+        {
+            return;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        var pending = await db.Set<Job>()
+            .CountAsync(j => j.ProcessedAt == null && j.Attempts < options.MaxAttempts, cancellationToken)
+            .ConfigureAwait(false);
+        var deadLetters = await db.Set<Job>()
+            .CountAsync(j => j.ProcessedAt == null && j.Attempts >= options.MaxAttempts, cancellationToken)
+            .ConfigureAwait(false);
+
+        metrics.ObserveQueueDepth(pending, deadLetters);
     }
 }

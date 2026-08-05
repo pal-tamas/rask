@@ -18,6 +18,7 @@ public sealed class OutboxProcessor<TContext>(
     IServiceScopeFactory scopeFactory,
     OutboxOptions options,
     TimeProvider timeProvider,
+    OutboxMetrics metrics,
     ILogger<OutboxProcessor<TContext>> logger) : BackgroundService
     where TContext : DbContext
 {
@@ -48,6 +49,7 @@ public sealed class OutboxProcessor<TContext>(
         {
             await DrainAsync(cancellationToken).ConfigureAwait(false);
             await PurgeAsync(cancellationToken).ConfigureAwait(false);
+            await SampleQueueDepthAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -92,15 +94,27 @@ public sealed class OutboxProcessor<TContext>(
             {
                 message.Attempts++;
                 message.Error = $"No registered outbox event type '{message.Type}'.";
+
+                // An unregistered type is a failure like any other, and counts toward the dead letter it
+                // will become — a renamed event that nobody re-registered is the most ordinary way a
+                // production outbox starts abandoning work, so it must not be invisible to metrics.
+                metrics.Failed(message.Type);
+                if (message.Attempts >= options.MaxAttempts)
+                {
+                    metrics.DeadLettered(message.Type);
+                }
+
                 logger.LogError("Outbox message {Id} has an unregistered type '{Type}'.", message.Id, message.Type);
             }
             else
             {
+                var startedAt = timeProvider.GetTimestamp();
                 try
                 {
                     await dispatcher.PublishAsync(notification, cancellationToken).ConfigureAwait(false);
                     message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                     message.Error = null;
+                    metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -112,6 +126,12 @@ public sealed class OutboxProcessor<TContext>(
                 {
                     message.Attempts++;
                     message.Error = ex.Message;
+                    metrics.Failed(message.Type);
+                    if (message.Attempts >= options.MaxAttempts)
+                    {
+                        metrics.DeadLettered(message.Type);
+                    }
+
                     logger.LogError(ex, "Outbox message {Id} failed to publish (attempt {Attempts}).", message.Id, message.Attempts);
                 }
             }
@@ -177,5 +197,25 @@ public sealed class OutboxProcessor<TContext>(
                 break;
             }
         }
+    }
+
+    // Only pays for the counts while something is collecting the gauges — see OutboxMetrics' remarks.
+    private async Task SampleQueueDepthAsync(CancellationToken cancellationToken)
+    {
+        if (!metrics.WantsQueueDepth)
+        {
+            return;
+        }
+
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        var pending = await db.Set<OutboxMessage>()
+            .CountAsync(m => m.ProcessedAt == null && m.Attempts < options.MaxAttempts, cancellationToken)
+            .ConfigureAwait(false);
+        var deadLetters = await db.Set<OutboxMessage>()
+            .CountAsync(m => m.ProcessedAt == null && m.Attempts >= options.MaxAttempts, cancellationToken)
+            .ConfigureAwait(false);
+
+        metrics.ObserveQueueDepth(pending, deadLetters);
     }
 }

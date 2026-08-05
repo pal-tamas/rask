@@ -1,10 +1,12 @@
 # Observability
 
-Rask's server host is instrumented for production operations with standard .NET primitives — no
-extra packages, OpenTelemetry-exportable out of the box. Four surfaces:
+Rask is instrumented for production operations with standard .NET primitives — no extra packages,
+OpenTelemetry-exportable out of the box. Four surfaces:
 
 1. **Structured logging** — framework faults flow into your `ILogger` pipeline.
-2. **Metrics** — a `Meter` named `Rask.Server` with session, handler, and frame counters/histograms.
+2. **Metrics** — a `Meter` named `Rask.Server` with session, handler, and frame counters/histograms, plus
+   one meter per DB-backed pillar (`Rask.Jobs`, `Rask.Outbox`, `Rask.Mail`) carrying throughput, failures
+   and **dead letters**.
 3. **Tracing** — an `ActivitySource` named `Rask.Server` spanning handler dispatch.
 4. **Health checks** — a live-session capacity check.
 
@@ -65,17 +67,50 @@ The `rask.ws.frames.rejected` counter is the headline DoS-visibility signal: a s
 `reason=rate` or `reason=backlog` means a client is being throttled by the per-connection frame-rate
 cap or the pending-handler backpressure breaker.
 
+## Pillar metrics
+
+Each DB-backed pillar publishes on its own meter, registered by its `AddRaskX` call. The shape is the same
+for all three — only the noun changes.
+
+| Instrument | Kind | Tags | Meaning |
+| --- | --- | --- | --- |
+| `rask.jobs.processed` | Counter | `job.type` | Jobs that ran to completion. |
+| `rask.jobs.failed` | Counter | `job.type` | Attempts that threw — **every attempt**, not every job. |
+| `rask.jobs.deadlettered` | Counter | `job.type` | Jobs that exhausted `MaxAttempts`, counted once. |
+| `rask.jobs.duration` | Histogram (ms) | `job.type` | Wall-clock duration of one execution. |
+| `rask.jobs.pending` | Gauge | | Not yet processed and not yet exhausted. |
+| `rask.jobs.deadletters` | Gauge | | **The number worth alerting on.** |
+
+`Rask.Outbox` publishes the same six as `rask.outbox.*` tagged by `message.type`; `Rask.Mail` publishes
+`rask.mail.sent` / `failed` / `deadlettered` / `duration` / `pending` / `deadletters`.
+
+**`rask.*.deadletters` is the alert.** Delivery is at-least-once with backoff, so a pillar retrying itself
+to death still shows a healthy `processed` rate — the dead-letter gauge is the one that says work has been
+abandoned. Pair it with the [dashboard](dashboard.md), which shows *which* rows and why.
+
+> **Why mail has no type tag.** Jobs and the outbox tag by their registered type, a closed set fixed at
+> build time by a source generator. Mail's only per-message dimensions are subject and recipient, both
+> unbounded — tagging by either would mint a time series per email sent.
+
+> **The queue-depth gauges cost nothing until you subscribe.** They are sampled by the processor's existing
+> poll and only while a listener is attached, rather than running `COUNT(*)` inside the observable-gauge
+> callback — which would otherwise put read load on the app's database on the collector's schedule.
+
 ### Reading metrics locally
 
 ```bash
-dotnet-counters monitor --counters Rask.Server --process-id <pid>
+dotnet-counters monitor --counters Rask.Server,Rask.Jobs,Rask.Outbox,Rask.Mail --process-id <pid>
 ```
 
 ### Exporting via OpenTelemetry
 
 ```csharp
 builder.Services.AddOpenTelemetry()
-    .WithMetrics(m => m.AddMeter(RaskTelemetry.MeterName))
+    .WithMetrics(m => m
+        .AddMeter(RaskTelemetry.MeterName)
+        .AddMeter(JobMetrics.MeterName)
+        .AddMeter(OutboxMetrics.MeterName)
+        .AddMeter(MailMetrics.MeterName))
     .WithTracing(t => t.AddSource(RaskTelemetry.ActivitySourceName));
 ```
 

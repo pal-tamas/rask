@@ -26,6 +26,7 @@ public static class RaskOutboxServiceCollectionExtensions
 
         services.TryAddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<OutboxMetrics>();
 
         if (!services.Any(static d => d.ImplementationType == typeof(OutboxInterceptor)))
         {

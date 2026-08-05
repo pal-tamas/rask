@@ -29,6 +29,7 @@ public static class RaskMailServiceCollectionExtensions
 
         services.TryAddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<MailMetrics>();
         services.TryAddSingleton<IMailSender>(sp => CreateSender(sp, options));
         services.TryAddSingleton<IMailQueue, MailQueue<TContext>>();
 
