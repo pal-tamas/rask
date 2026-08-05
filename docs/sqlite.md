@@ -140,9 +140,15 @@ that took the write lock up front (its wait, though, blocks the thread inside Mi
 use `ExecuteInImmediateTransactionAsync` when you want the non-blocking retry).
 
 Because the lock is taken through the pooled native handle, the path is defensive about connection
-reuse: it clears a leaked transaction before `BEGIN IMMEDIATE`, and never hands a mid-transaction handle
-back to the pool. If a statement genuinely fails it throws a `SqliteException` carrying the extended
-result code and the autocommit state, so a rare failure is attributable rather than an opaque
+reuse: it clears a leaked transaction before **every** `BEGIN IMMEDIATE` attempt, and never hands a
+mid-transaction handle back to the pool. Before every attempt rather than once, because a transaction can
+appear between passes as well as arrive with the handle — an extended `SQLITE_BUSY` (`BUSY_SNAPSHOT`,
+`BUSY_RECOVERY`, which the primary result code hides) can leave `BEGIN`'s own transaction open, and
+retrying `BEGIN` inside it fails with the non-retryable "cannot start a transaction within a transaction".
+Both rollbacks — the one before each attempt and the one that cleans up on the way out — go through the
+same retry, so a rollback blocked by a still-active statement costs a pass instead of poisoning the next
+lease. If a statement genuinely fails it throws a `SqliteException` carrying the extended result code and
+the autocommit state, so a rare failure is attributable rather than an opaque
 `SQLite Error 1: 'not an error'`.
 
 ### Entity Framework Core — opt-in retry strategy
