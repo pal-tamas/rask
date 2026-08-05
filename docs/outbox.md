@@ -74,6 +74,19 @@ Add a migration for the new table before running — `rask db add AddOutbox && r
 - **The `Rask.Outbox` source generator** registers every `IOutboxEvent` type (name → CLR type) at module
   load, so the processor rehydrates a stored message with no runtime `Type.GetType` or assembly scanning.
 
+## Shutdown
+
+On `SIGTERM` the processor stops picking up **new** messages immediately, but the one already inside your
+handler gets `OutboxOptions.ShutdownGracePeriod` (default 5s) to finish rather than being cancelled
+mid-call. Only one message is ever in that window, so shutdown is extended by at most a single grace period.
+
+A message that outlives its grace is cancelled and re-published whole on the next boot. It does **not** count
+a failed attempt — `MaxAttempts` defaults to 10, so counting redeploys would let ten unlucky deploys abandon
+a message nobody ever failed to publish. `rask.outbox.interrupted` counts these, and a warning is logged.
+
+`ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`: once that elapses the host stops waiting
+for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero` cancels immediately.
+
 ## Notes
 
 - **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a

@@ -75,6 +75,29 @@ public sealed class MailOptions
     /// <summary>How long sent messages are kept before being purged. <see cref="TimeSpan.Zero"/> keeps them forever. Default 7 days.</summary>
     public TimeSpan RetentionPeriod { get; set; } = TimeSpan.FromDays(7);
 
+    /// <summary>
+    /// How long a send that is already in flight may keep going after the host is asked to stop.
+    /// <para>
+    /// On <c>SIGTERM</c> the processor immediately stops picking up <em>new</em> messages, but the send
+    /// already talking to your SMTP server is given this long to finish rather than being cancelled
+    /// mid-conversation.
+    /// </para>
+    /// <para>
+    /// <b>This is the one battery where the grace period buys more than tidiness.</b> Delivery and the row
+    /// update are not one transaction, so a send cancelled during the SMTP <c>DATA</c> phase may already
+    /// have been accepted and queued by the server while the row still reads unsent — and the next boot
+    /// re-sends it. Mail is at-least-once and cannot be made otherwise from here; the grace period is what
+    /// makes that window rare rather than routine. Default 10s — double the other batteries, because an
+    /// interrupted send is a possible <em>duplicate</em>, not a clean retry.
+    /// </para>
+    /// <para>
+    /// Cannot exceed <c>HostOptions.ShutdownTimeout</c>: once that elapses the host stops waiting for
+    /// hosted services, so a grace longer than it silently does not happen.
+    /// <see cref="TimeSpan.Zero"/> cancels immediately.
+    /// </para>
+    /// </summary>
+    public TimeSpan ShutdownGracePeriod { get; set; } = TimeSpan.FromSeconds(10);
+
     /// <summary>Validates the option values (called at registration, so a bad value fails fast rather than tearing down the host later).</summary>
     internal void Validate()
     {
@@ -116,6 +139,20 @@ public sealed class MailOptions
         if (RetentionPeriod < TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(RetentionPeriod), RetentionPeriod, "RetentionPeriod cannot be negative.");
+        }
+
+        if (ShutdownGracePeriod < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ShutdownGracePeriod), ShutdownGracePeriod, "ShutdownGracePeriod cannot be negative (Zero cancels immediately).");
+        }
+
+        // CancellationTokenSource.CancelAfter throws above int.MaxValue milliseconds, and it would throw
+        // from the shutdown path — the worst place to find out.
+        if (ShutdownGracePeriod.TotalMilliseconds > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ShutdownGracePeriod), ShutdownGracePeriod, $"ShutdownGracePeriod must be at most {TimeSpan.FromMilliseconds(int.MaxValue)}.");
         }
     }
 

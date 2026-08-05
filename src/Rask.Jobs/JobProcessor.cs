@@ -84,6 +84,20 @@ public sealed class JobProcessor<TContext>(
             return;
         }
 
+        // The in-flight job gets a bounded grace after SIGTERM instead of being cancelled mid-call. The
+        // host token ARMS a deadline on this source rather than cancelling it, so user code keeps a live
+        // token for ShutdownGracePeriod past the stop signal. (Same shape as the Litestream executor's
+        // graceful stop.) One CTS per batch, not per job: the loop's pre-check below refuses to START
+        // anything new the moment the host token fires, so at most ONE job is ever behind this deadline —
+        // the extra shutdown time is bounded by a single grace period, not one per remaining job.
+        //
+        // Declaration order is load-bearing: `graceCts` must be declared before `registration` so
+        // disposal runs registration-first. The reverse order lets the callback call CancelAfter on an
+        // already-disposed source and throw during shutdown.
+        using var graceCts = new CancellationTokenSource();
+        using var registration = cancellationToken.Register(() => graceCts.CancelAfter(options.ShutdownGracePeriod));
+        var graceToken = graceCts.Token;
+
         foreach (var job in batch)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -115,14 +129,29 @@ public sealed class JobProcessor<TContext>(
                     // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
                     await using var scope = scopeFactory.CreateAsyncScope();
                     var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
-                    await dispatcher.DispatchAsync(command, cancellationToken).ConfigureAwait(false);
+                    await dispatcher.DispatchAsync(command, graceToken).ConfigureAwait(false);
                     job.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                     job.Error = null;
                     metrics.Processed(job.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    break; // shutting down — leave this and the rest for the next run
+                    // Shutdown outlived the grace. Attempts and RunAt are deliberately untouched: a
+                    // redeploy is not a failed attempt, and counting it would march never-failing work
+                    // toward its dead letter at the cadence you deploy. The row stays immediately eligible
+                    // and re-runs whole on restart — metered and logged so a grace period that is too
+                    // short for the work is visible rather than silent.
+                    //
+                    // The filter stays on the HOST token, not the grace token: the grace deadline is only
+                    // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
+                    // while a handler's own OperationCanceledException still falls through to the generic
+                    // catch below and counts as the real failure it is.
+                    metrics.Interrupted(job.Type);
+                    logger.LogWarning(
+                        "Job {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it will run "
+                        + "again on restart, so its handler must be idempotent.",
+                        job.Id, job.Type, options.ShutdownGracePeriod);
+                    break; // leave this and the rest for the next run
                 }
 #pragma warning disable CA1031 // A failing job must not stop the drain or crash the app — record + retry with backoff.
                 catch (Exception ex)

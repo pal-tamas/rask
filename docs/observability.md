@@ -96,12 +96,19 @@ for all three — only the noun changes.
 | `rask.jobs.processed` | Counter | `job.type` | Jobs that ran to completion. |
 | `rask.jobs.failed` | Counter | `job.type` | Attempts that threw — **every attempt**, not every job. |
 | `rask.jobs.deadlettered` | Counter | `job.type` | Jobs that exhausted `MaxAttempts`, counted once. |
+| `rask.jobs.interrupted` | Counter | `job.type` | Cancelled by shutdown past `ShutdownGracePeriod`. Re-runs on restart; counts **no** attempt. |
 | `rask.jobs.duration` | Histogram (ms) | `job.type` | Wall-clock duration of one execution. |
 | `rask.jobs.pending` | Gauge | | Not yet processed and not yet exhausted. |
 | `rask.jobs.deadletters` | Gauge | | **The number worth alerting on.** |
 
-`Rask.Outbox` publishes the same six as `rask.outbox.*` tagged by `message.type`; `Rask.Mail` publishes
-`rask.mail.sent` / `failed` / `deadlettered` / `duration` / `pending` / `deadletters`.
+`Rask.Outbox` publishes the same seven as `rask.outbox.*` tagged by `message.type`; `Rask.Mail` publishes
+`rask.mail.sent` / `failed` / `deadlettered` / `interrupted` / `duration` / `pending` / `deadletters`.
+
+**`rask.*.interrupted` says your shutdown budget is too short.** It counts work that a `SIGTERM` cancelled
+after its `ShutdownGracePeriod` — which re-runs from the top on the next boot, so any non-idempotent handler
+is repeating its side effects. For `rask.mail.interrupted` it is sharper than that: because a cancelled SMTP
+conversation can be accepted by the server before the row is marked, it is the direct answer to *"did that
+deploy duplicate any mail?"* See [Shutdown and redeploy](configuration.md#shutdown-and-redeploy).
 
 **`rask.*.deadletters` is the alert.** Delivery is at-least-once with backoff, so a pillar retrying itself
 to death still shows a healthy `processed` rate — the dead-letter gauge is the one that says work has been

@@ -22,6 +22,42 @@ public sealed record TickJob : IJob;
 /// </summary>
 public sealed record SaboteurJob : IJob;
 
+/// <summary>A job whose handler parks until the test releases it — the lever for the shutdown-grace tests.</summary>
+public sealed record GateJob : IJob;
+
+/// <summary>
+/// A job whose handler throws <see cref="OperationCanceledException"/> from its <em>own</em> reasoning, with
+/// no shutdown in progress. Pins the catch-filter: only a cancellation that coincides with the host stopping
+/// is an interruption; this one is an ordinary failure and must count an attempt.
+/// </summary>
+public sealed record SelfCancellingJob : IJob;
+
+/// <summary>Latches for driving a handler across a shutdown: entered → (test acts) → released → completed.</summary>
+public sealed class Gate
+{
+    public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+}
+
+public sealed class GateJobHandler(Gate gate) : ICommandHandler<GateJob>
+{
+    public async Task HandleAsync(GateJob command, CancellationToken cancellationToken)
+    {
+        gate.Entered.TrySetResult();
+        // Observes the token, so a grace expiry actually cancels it — a handler that ignored its token
+        // could not be cancelled at all and would prove nothing about the grace period.
+        await gate.Release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        gate.Completed.TrySetResult();
+    }
+}
+
+public sealed class SelfCancellingJobHandler : ICommandHandler<SelfCancellingJob>
+{
+    public Task HandleAsync(SelfCancellingJob command, CancellationToken cancellationToken) =>
+        throw new OperationCanceledException("the handler gave up on its own");
+}
+
 /// <summary>Thread-safe sink the job handlers write to (they run on the processor's background thread).</summary>
 public sealed class Recorder
 {
@@ -117,6 +153,7 @@ public sealed class JobsHarness : IAsyncDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(Recorder);
+        services.AddSingleton(Gate);
         services.AddSingleton<TimeProvider>(Clock); // registered first so AddRaskJobs' TryAddSingleton keeps it
         services.AddRaskCqrs();
         services.AddRaskJobs<JobsDbContext>(o =>
@@ -136,6 +173,9 @@ public sealed class JobsHarness : IAsyncDisposable
     public FakeTimeProvider Clock { get; }
 
     public Recorder Recorder { get; } = new();
+
+    /// <summary>Latches for <see cref="GateJob"/>, so a test can hold a handler open across a shutdown.</summary>
+    public Gate Gate { get; } = new();
 
     public IJobQueue Queue => _provider.GetRequiredService<IJobQueue>();
 

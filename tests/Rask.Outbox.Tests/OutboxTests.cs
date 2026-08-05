@@ -27,6 +27,14 @@ public sealed class Order : Entity<Guid>
         return order;
     }
 
+    // Raises the event whose handler parks until a test releases it — see OutboxShutdownGraceTests.
+    public static Order PlaceRaisingGated()
+    {
+        var order = new Order { Id = Guid.NewGuid(), Customer = "gated" };
+        order.Raise(new GatedEvent());
+        return order;
+    }
+
     // Raises the event whose handler deletes a message out of the batch being drained — see SaboteurEvent.
     public static Order PlaceRaisingSaboteur()
     {
