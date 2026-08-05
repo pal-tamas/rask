@@ -120,4 +120,8 @@ origins you actually use, and consider `report-uri`/`report-to` to catch violati
 - ☑ Treat the **session id as a bearer secret** — HTTPS only, never logged or placed in URLs that leak via `Referer`.
 - ☑ Behind a reverse proxy, wire **ForwardedHeaders** so the host-only same-origin checks (redeem + WS) see the public host.
 - ☑ For untrusted-traffic hosts, set `RaskLiveOptions.MaxSessions` and a reverse-proxy rate limit to bound session creation. The receive loop also bounds per-connection inbound-frame size, rate, and handler backlog automatically (see [Hardening reference](#hardening-reference)).
-- ☑ Rotate signing keys; manage the Data Protection key ring (persisted, encrypted at rest).
+- ☑ Rotate signing keys; manage the Data Protection key ring (persisted, encrypted at rest). `rask new`
+  scaffolds the persistence half: the ring is written to `/data/keys`, the volume `rask deploy` mounts,
+  because the default ring lives inside the container and **a deploy replaces the container** — new keys,
+  and every cookie already issued stops validating, so every user is silently signed out. Override the
+  location with `Rask:DataProtection:KeyPath`; encryption at rest is still yours to add.

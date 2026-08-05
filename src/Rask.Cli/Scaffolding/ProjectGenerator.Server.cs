@@ -169,7 +169,7 @@ internal static partial class ProjectGenerator
     {
         var sb = new StringBuilder();
         // App (and, with --data, AppDbContext) live in the Features/Shared bucket.
-        sb.Append("using Company.RaskServer.Features.Shared;\nusing Microsoft.AspNetCore.HttpOverrides;\nusing Rask.Server;\nusing Rask.Server.Diagnostics;\n");
+        sb.Append("using Company.RaskServer.Features.Shared;\nusing Microsoft.AspNetCore.DataProtection;\nusing Microsoft.AspNetCore.HttpOverrides;\nusing Rask.Server;\nusing Rask.Server.Diagnostics;\n");
         if (batteries.Auth)
         {
             sb.Append("using Company.RaskServer.Features.Auth;\n");
@@ -261,6 +261,24 @@ internal static partial class ProjectGenerator
             // and SIGKILLs 20s later, so a budget under that is what lets in-flight requests drain and a
             // SQLite WAL checkpoint / Litestream flush complete instead of being killed mid-write.
             builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(15));
+
+            // Data-protection keys sign the auth cookie (and anything else the app protects). The default key
+            // ring is written inside the container, and every deploy replaces the container — so without this
+            // a redeploy mints a fresh ring and every cookie already issued stops validating: all your
+            // signed-in users are silently signed out. `rask deploy` mounts a volume at /data, so persisting
+            // the ring there makes it outlive the container the same way the database does. SetApplicationName
+            // matters as much as the path: the default discriminator is derived from the content root, which
+            // differs between the build and runtime images. Set Rask:DataProtection:KeyPath to override the
+            // location; when neither it nor /data exists (a plain `dotnet run`), this is skipped and ASP.NET's
+            // per-user development key ring applies.
+            var keyRingPath = builder.Configuration["Rask:DataProtection:KeyPath"]
+                              ?? (Directory.Exists("/data") ? "/data/keys" : null);
+            if (keyRingPath is not null)
+            {
+                builder.Services.AddDataProtection()
+                    .PersistKeysToFileSystem(Directory.CreateDirectory(keyRingPath))
+                    .SetApplicationName(builder.Environment.ApplicationName);
+            }
 
             """.TrimStart('\n'));
 

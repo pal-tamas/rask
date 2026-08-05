@@ -46,6 +46,18 @@ them until tagged releases begin.
   Note NuGet applies `build/` only to a **direct** `PackageReference`, so a class library that gets a host
   package transitively still needs its own reference to glob — the same reach the global usings in
   `build/Rask.Server.props` have always had.
+- **A deploy no longer signs out every user.** Nothing in the scaffolded app persisted the Data Protection
+  key ring, so it landed in the container's own filesystem — and `rask deploy` replaces the container on
+  every deploy. The replacement came up with a fresh ring, every auth cookie already issued failed to
+  unprotect, and everyone who was signed in was silently signed out. Nothing said so: the deploy reported
+  success, `/health` was green, and users simply found themselves logged out. `rask new` now writes the ring
+  to `/data/keys` — the volume the deploy already mounts for the database — so it outlives the container the
+  same way the data does. `SetApplicationName` is set alongside the path and is equally load-bearing: the
+  default discriminator is derived from the content root, which differs between the build and runtime
+  images, so a persisted ring on its own would still have failed to unprotect. Override the location with
+  `Rask:DataProtection:KeyPath`; a plain `dotnet run` has neither that nor `/data`, so it skips the block
+  and keeps ASP.NET's per-user development ring. Existing deployments sign everyone out once more, when the
+  persisted ring first replaces the ephemeral one, and never again.
 - **A contended write no longer fails with "cannot start a transaction within a transaction".** The
   busy-retry loop re-issued the identical statement on every pass with no cleanup between attempts, and
   cleared a leaked transaction only *once*, before the loop. That caught a transaction the pooled handle
