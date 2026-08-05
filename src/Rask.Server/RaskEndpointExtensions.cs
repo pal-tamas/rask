@@ -158,6 +158,11 @@ public static class RaskEndpointExtensions
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
+        // The declared state bag (docs/lifecycle.md). Scoped = one per live session, like RouteState. A
+        // session's component tree can't be serialized, so it can't be moved or saved; what an app names
+        // here is what survives the session being rebuilt somewhere else.
+        services.AddScoped<PersistentState>();
+        services.AddScoped<IPersistentState>(sp => sp.GetRequiredService<PersistentState>());
         // Transient user messages / toasts (a flash-message pattern). Scoped = one queue per session, so a
         // message queued before a client-side NavigateTo survives the navigation and shows once on arrival.
         services.AddScoped<IToaster, Toaster>();

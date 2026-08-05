@@ -30,6 +30,12 @@ public sealed class WasmHostBuilder
         Services = new ServiceCollection();
         Services.AddLogging();
         Services.AddSingleton<RouteState>();
+        // The declared state bag. Singleton here for the same reason RouteState is: the whole WASM app is a
+        // single session. It works exactly as it does on the server — what differs is that nothing carries
+        // it anywhere, because a WASM app has no server-side session to rebuild. Registered so a component
+        // shared between the two hosts resolves on both instead of failing DI only on this one.
+        Services.AddSingleton<PersistentState>();
+        Services.AddSingleton<IPersistentState>(sp => sp.GetRequiredService<PersistentState>());
         Services.AddSingleton<IBrowserFileBackend, WasmFileBackend>();
         Services.AddSingleton<IDownloadSink, WasmDownloadSink>();
         Services.AddSingleton<Navigator>();
