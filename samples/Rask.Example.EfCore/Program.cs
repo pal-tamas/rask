@@ -35,6 +35,15 @@ builder.Services.AddRaskMail<CatalogDbContext>(o =>
 // and the background CachePurger sweeps expired rows (a short interval keeps the demo tidy).
 builder.Services.AddRaskCache<CatalogDbContext>(o => o.PurgeInterval = TimeSpan.FromSeconds(30));
 
+// Match what `rask deploy` allows: it sends SIGTERM and SIGKILLs 20s later, so the app budgets under that.
+// ServicesStopConcurrently is the other half — stopped one at a time (the .NET default) each hosted
+// service's own shutdown grace sums inside this one budget instead of overlapping. See docs/deployment.md.
+builder.Services.Configure<HostOptions>(options =>
+{
+    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
+    options.ServicesStopConcurrently = true;
+});
+
 var app = builder.Build();
 
 // Create the schema and seed sample data once at startup.

@@ -74,13 +74,45 @@ public sealed class ProjectGeneratorTests
             "UseForwardedHeaders must come before UseHsts, or the scheme it corrects is read too late.");
     }
 
-    /// <summary>`rask deploy` SIGKILLs 20s after SIGTERM, so the host's own budget must be under that.</summary>
+    /// <summary>
+    /// The scaffold emits whatever the ladder says, whatever that is — asserted against
+    /// <see cref="ShutdownBudget"/> rather than the literal, because the app's budget and the deploy's
+    /// SIGKILL grace used to be two hardcoded numbers coupled only by a comment, free to drift apart.
+    /// </summary>
     [Fact]
-    public void Shutdown_finishes_inside_the_deploy_grace_period()
+    public void Shutdown_budget_is_scaffolded_from_the_deploy_ladder()
     {
         var (files, _) = Generate();
 
-        Assert.Contains("ShutdownTimeout = TimeSpan.FromSeconds(15)", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains(
+            FormattableString.Invariant($"ShutdownTimeout = TimeSpan.FromSeconds({ShutdownBudget.HostShutdownSeconds})"),
+            files["Program.cs"],
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Without this, each hosted service's own shutdown grace (Litestream's WAL flush, an in-flight email
+    /// send, a running job) SUMS inside the one budget instead of overlapping — and whichever service stops
+    /// last gets none of it, decided by the order of AddRaskX calls in Program.cs.
+    /// </summary>
+    [Fact]
+    public void Hosted_services_are_scaffolded_to_stop_concurrently()
+    {
+        var (files, _) = Generate();
+
+        Assert.Contains("ServicesStopConcurrently = true", files["Program.cs"], StringComparison.Ordinal);
+    }
+
+    /// <summary>The ladder itself has to be sane — this is what fails if someone edits one rung alone.</summary>
+    [Fact]
+    public void The_app_budget_leaves_room_inside_the_docker_stop_grace()
+    {
+        Assert.True(ShutdownBudget.HostShutdownSeconds < ShutdownBudget.DockerStopSeconds,
+            "the app must finish before docker SIGKILLs it");
+        Assert.True(ShutdownBudget.DockerStopSeconds - ShutdownBudget.HostShutdownSeconds >= 5,
+            "leave margin for container teardown and log flush after Host.StopAsync returns");
+        Assert.True(ShutdownBudget.PreStopDrainSeconds < ShutdownBudget.HostShutdownSeconds,
+            "the pre-stop pause must not dominate the deploy");
     }
 
     /// <summary>

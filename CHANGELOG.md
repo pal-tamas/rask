@@ -48,6 +48,26 @@ them until tagged releases begin.
   `ResumeTokenLifetime` (default 1 hour). **Requires a persisted data-protection key ring** — a record
   sealed before a redeploy cannot be opened after one otherwise, which is what the scaffold's `/data/keys`
   change below is for.
+- **One shutdown ladder instead of three unrelated numbers.** `docker stop -t 20` and the scaffolded
+  `HostOptions.ShutdownTimeout = 15s` were two hardcoded constants coupled only by a code comment, free to
+  drift apart silently — and the generator test pinned the literal `15`, so it would have kept passing.
+  Both now derive from a single `ShutdownBudget`, and the test asserts the *relationship* (the app budget
+  fits inside the deploy grace, with margin) rather than the number. Scaffolded apps also set
+  **`ServicesStopConcurrently = true`**, which turns out to be load-bearing rather than a tune-up: stopped
+  one at a time — the .NET default — each pillar's own shutdown grace *sums* inside the single budget
+  (10 + 10 + 5 + 5 = 30s against 15s), so whichever hosted service stopped last got no grace at all, and
+  *which* one that was depended on the order of `AddRaskX` calls in someone's `Program.cs`. Stopped
+  concurrently they overlap at 10s. `rask deploy` also now pauses briefly between pointing Caddy at the new
+  container and stopping the old one: `caddy reload` returns as soon as the config applies, but Caddy still
+  holds pooled connections to the old upstream, and a request it was about to write onto one when SIGTERM
+  landed became an un-retried 502 (`lb_try_duration` defaults to 0). There was previously no gap at all.
+
+### Fixed
+- **Every web-host sample now budgets its shutdown.** Nine of the ten inherited .NET's default 30s
+  `ShutdownTimeout`, which *exceeds* the 20s `rask deploy` allows between SIGTERM and SIGKILL — so a sample
+  deployed as written would be killed mid-shutdown. Only `Rask.Example.Shop` was right, which meant a reader
+  copying from any other sample inherited the wrong lesson. A repo-scanning test now guards the next one
+  somebody adds, since that is the real failure mode.
 - **A graceful shutdown for live sessions — a redeploy no longer tells every user their session timed
   out.** `rask deploy` advertises zero-downtime deploys, and the container swap really is blue-green, but
   the app had no drain: `ApplicationStopping` fired `ws.Abort()` on every socket, so the browser saw an

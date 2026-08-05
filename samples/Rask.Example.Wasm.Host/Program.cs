@@ -12,6 +12,15 @@ builder.Services.AddRask();
 // pushes it sends — the complete subscribe → send → notify loop in one app. See docs/pwa.md.
 builder.Services.AddPushDemo(builder.Configuration);
 
+// Match what `rask deploy` allows: it sends SIGTERM and SIGKILLs 20s later, so the app budgets under that.
+// ServicesStopConcurrently is the other half — stopped one at a time (the .NET default) each hosted
+// service's own shutdown grace sums inside this one budget instead of overlapping. See docs/deployment.md.
+builder.Services.Configure<HostOptions>(options =>
+{
+    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
+    options.ServicesStopConcurrently = true;
+});
+
 var app = builder.Build();
 
 // Web Push backend endpoints (must precede the UseRask catch-all): GET /_push/key,

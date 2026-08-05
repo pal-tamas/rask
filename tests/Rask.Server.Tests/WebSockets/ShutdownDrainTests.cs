@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Rask.Core.Live;
 using Rask.Server.Diagnostics;
 using Rask.Server.Tests.Infrastructure;
@@ -191,6 +192,27 @@ public class ShutdownDrainTests
 
         var during = await host.Http.GetAsync("/health");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, during.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_drain_still_works_when_hosted_services_stop_concurrently()
+    {
+        // The scaffold sets HostOptions.ServicesStopConcurrently = true so the batteries' shutdown grace
+        // periods overlap this drain instead of summing ahead of it. That removes the reverse-registration
+        // stop ORDER the drain would otherwise lean on — so this pins that it doesn't need it. It works
+        // because Kestrel's own StopAsync waits for in-flight requests, and a WebSocket is an in-flight
+        // request: the drain runs while Kestrel waits.
+        using var host = RaskTestHost.Create<TestApp>(
+            configureServices: s => s.Configure<HostOptions>(o => o.ServicesStopConcurrently = true));
+        using var ws = await ConnectAsync(host);
+
+        await host.StopAsync();
+
+        Assert.Equal(LivePayload.ServerShutdownJson, await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)));
+        var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(2));
+        Assert.NotNull(close);
+        Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, close.Value.Status);
+        Assert.Equal(0, host.Store.Count);
     }
 
     [Fact]
