@@ -9,10 +9,14 @@ namespace Rask.Cli.Commands;
 /// directory and installing the <c>dotnet-ef</c> tool on first use if it's missing. Anything after
 /// <c>--</c> is forwarded to <c>dotnet ef</c> verbatim (an escape hatch for <c>--verbose</c> etc.).
 /// </summary>
-internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
+internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
 {
-    private static readonly string[] Subcommands = ["add", "remove", "list", "update", "drop"];
+    private static readonly string[] Subcommands = ["add", "remove", "list", "update", "drop", "backup", "restore"];
+
+    // These two never touch EF: they copy a file through SQLite (locally) or through a container on
+    // the host, so they must not pay for a dotnet-ef install, and must work on an app that has none.
+    private static readonly string[] FileSubcommands = ["backup", "restore"];
 
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IProcessRunner _process = process;
@@ -20,15 +24,15 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
 
     public override string Name => "db";
 
-    public override string Summary => "Manage EF Core migrations (add, remove, list, update, drop).";
+    public override string Summary => "Manage EF Core migrations, and back the database up or restore it.";
 
     public override string Usage =>
-        "rask db <add|remove|list|update|drop> [<name>] [--project <path>] [--startup-project <path>] [--context <Name>] [--output <dir>] [--force] [-- <ef args>]";
+        "rask db <add|remove|list|update|drop|backup|restore> [<name|file>] [--project <path>] [--startup-project <path>] [--context <Name>] [--output <path>] [--remote] [--host <user@host>] [--app <name>] [--force] [-- <ef args>]";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
     [
-        ("<add|remove|list|update|drop>", "The migration action to run."),
-        ("[<name>]", "Migration name — required for 'add', e.g. InitialCreate."),
+        ("<add|remove|list|update|drop|backup|restore>", "The action to run."),
+        ("[<name|file>]", "Migration name for 'add' (e.g. InitialCreate), or the backup file for 'restore'."),
     ];
 
     public override IReadOnlyList<string> Examples =>
@@ -37,6 +41,9 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
         "rask db update",
         "rask db list",
         "rask db drop --force",
+        "rask db backup",
+        "rask db backup --remote --output backups/",
+        "rask db restore backups/shop-20260805-081500.db --remote",
     ];
 
     public override ArgumentSchema? OptionSchema => CreateSchema();
@@ -46,8 +53,11 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
             .Option("project", 'p', "path", "Project containing the DbContext (default: found from the current directory).")
             .Option("startup-project", 's', "path", "Startup project (default: same as --project).")
             .Option("context", 'c', "Name", "DbContext to use when the project defines more than one.")
-            .Option("output", 'o', "dir", "Directory for the migration files (add only).")
-            .Flag("force", 'f', "Skip the confirmation prompt (drop only).");
+            .Option("output", 'o', "path", "Migration output directory (add), or the backup file or directory to write (backup).")
+            .Flag("remote", null, "Act on the deployed database instead of the local one (backup, restore).")
+            .Option("host", null, "user@host", "Deployment host for --remote (default: the one in .rask/deploy.json).")
+            .Option("app", null, "name", "Deployed app name for --remote (default: the one in .rask/deploy.json).")
+            .Flag("force", 'f', "Skip the confirmation prompt (drop, restore).");
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -87,36 +97,73 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
         }
 
         var output = parsed.Option("output");
-        if (output is not null && subcommand != "add")
+        if (output is not null && subcommand is not ("add" or "backup"))
         {
-            Console.Error.WriteLine("--output only applies to 'rask db add'.");
+            Console.Error.WriteLine("--output only applies to 'rask db add' and 'rask db backup'.");
             return 1;
         }
 
-        if (parsed.HasFlag("force") && subcommand != "drop")
+        if (parsed.HasFlag("force") && subcommand is not ("drop" or "restore"))
         {
-            Console.Error.WriteLine("--force only applies to 'rask db drop'.");
+            Console.Error.WriteLine("--force only applies to 'rask db drop' and 'rask db restore'.");
+            return 1;
+        }
+
+        var remote = parsed.HasFlag("remote");
+        foreach (var option in new[] { "remote", "host", "app" })
+        {
+            var supplied = option == "remote" ? remote : parsed.Option(option) is not null;
+            if (supplied && !FileSubcommands.Contains(subcommand))
+            {
+                Console.Error.WriteLine($"--{option} only applies to 'rask db backup' and 'rask db restore'.");
+                return 1;
+            }
+        }
+
+        if (!remote && (parsed.Option("host") is not null || parsed.Option("app") is not null))
+        {
+            Console.Error.WriteLine("--host and --app only apply with --remote.");
             return 1;
         }
 
         // An explicit --project wins; otherwise fall back to the single .csproj at or above the CWD. EF
         // accepts a directory here and finds the project inside it, so the located directory is enough.
+        //
+        // A remote backup/restore is the one case that needs no project at all: it acts on a container on
+        // another machine, identified by host and app name. Requiring a .csproj would stop you taking a
+        // copy of production from a scratch directory, or from CI.
         var project = parsed.Option("project");
         if (project is null)
         {
             var located = ProjectLocator.Locate(_fileSystem, _workingDirectory);
-            if (located is null)
+            if (located is null && !(remote && FileSubcommands.Contains(subcommand)))
             {
                 Console.Error.WriteLine($"Couldn't find a single .csproj at or above '{_workingDirectory}'. Run this inside a project, or pass --project.");
                 return 1;
             }
 
-            project = located.ProjectDirectory;
+            project = located?.ProjectDirectory ?? _workingDirectory;
         }
 
         // The startup project configures the DbContext (DI); in a typical single-project Rask app it's the
         // same project that owns the migrations, so it defaults to --project.
         var startupProject = parsed.Option("startup-project") ?? project;
+
+        // backup/restore branch off before the EF tooling: they copy a database, they don't migrate one, so
+        // they must not install dotnet-ef or require the project to reference EF's design package.
+        if (FileSubcommands.Contains(subcommand))
+        {
+            return await ExecuteFileActionAsync(
+                subcommand,
+                name,
+                project,
+                output,
+                remote,
+                parsed.Option("host"),
+                parsed.Option("app"),
+                parsed.HasFlag("force"),
+                cancellationToken).ConfigureAwait(false);
+        }
 
         // `--force`'s own help has always said it "skips the confirmation prompt" — and there was no
         // prompt. `dotnet ef database drop` does its own, but only when it has a terminal, so a drop run
@@ -204,7 +251,10 @@ internal sealed class DbCommand(IConsole console, IFileSystem fileSystem, IProce
             case "add" when string.IsNullOrWhiteSpace(name):
                 error = "'rask db add' needs a migration name, e.g. rask db add InitialCreate.";
                 return false;
-            case "remove" or "list" or "drop" when name is not null:
+            case "restore" when string.IsNullOrWhiteSpace(name):
+                error = "'rask db restore' needs the backup file to restore, e.g. rask db restore app-20260805-081500.db.";
+                return false;
+            case "remove" or "list" or "drop" or "backup" when name is not null:
                 error = $"'rask db {subcommand}' takes no name argument.";
                 return false;
             default:

@@ -1,8 +1,9 @@
 # The `rask` CLI
 
 `Rask.Cli` is a [.NET tool](https://learn.microsoft.com/dotnet/core/tools/global-tools) that gives
-Rask a short, task-focused command line on top of the .NET SDK. It is dependency-free, it generates or
-shells out to `dotnet` for everything it does, and it never gets in the way of the tools you already use.
+Rask a short, task-focused command line on top of the .NET SDK. It generates, or shells out to `dotnet`,
+for almost everything it does — its one package reference is SQLite, which `rask db backup` needs to take
+a consistent copy of a live database — and it never gets in the way of the tools you already use.
 
 > **In a hurry?** The [cheat sheet](cheatsheet.md) lists every command on one page, and the
 > [recipes](recipes.md) answer "how do I do X?" with the command and the wiring line.
@@ -279,7 +280,7 @@ Two things it does not cover:
 In Development you get a small "Hot reload applied" pill in the corner when an edit lands, so a save that
 changed nothing visible is distinguishable from one that didn't apply. It is never present in production.
 
-## `rask db` — EF Core migrations
+## `rask db` — migrations, and getting the database in and out
 
 ```bash
 rask db add InitialCreate            # create a migration for the current model
@@ -288,6 +289,9 @@ rask db update                       # apply pending migrations to the database
 rask db update 20240101_Init         # migrate up/down to a specific migration
 rask db remove                       # undo the last (unapplied) migration
 rask db drop --force                 # drop the database (a dev reset)
+rask db backup                       # a consistent copy of the local database
+rask db backup --remote -o backups/  # ...of the deployed one, pulled down
+rask db restore backups/app-20260805-081500.db --remote
 ```
 
 A friendly wrapper over `dotnet ef` for the everyday migration lifecycle, meant to pair with what
@@ -302,6 +306,8 @@ current directory — override with `--project`), and if the EF Core tools aren'
 | `list` | `dotnet ef migrations list` | show migrations and applied state |
 | `update [<target>]` | `dotnet ef database update` | apply pending, or migrate to a named point |
 | `drop` | `dotnet ef database drop` | drops the database; prompts unless `--force` |
+| `backup` | — | a consistent copy; `--output/-o` a file or directory, `--remote` for the deployed one |
+| `restore <file>` | — | replaces the database with a copy; prompts unless `--force` |
 
 Shared options: `--project/-p` (the project owning the `DbContext`), `--startup-project/-s` (the app
 that configures it; defaults to `--project`), and `--context/-c` (when the app has more than one
@@ -309,7 +315,42 @@ that configures it; defaults to `--project`), and `--context/-c` (when the app h
 
 The EF Core tools need the startup project to reference `Microsoft.EntityFrameworkCore.Design` —
 projects from `rask generate feature` already do, and `rask db` adds it for you (via `dotnet add
-package`) if it's missing.
+package`) if it's missing. `backup` and `restore` need none of that: they copy a database rather than
+migrate one, so they never install `dotnet-ef`.
+
+### Backup and restore
+
+```bash
+rask db backup                                  # ./<app>-20260805-081500.db
+rask db backup --output backups/                # into a directory, same generated name
+rask db backup --output nightly.db              # a name you choose
+rask db backup --remote                         # the deployed database, pulled down
+rask db restore nightly.db                      # replace the local database
+rask db restore nightly.db --remote --force     # ...and the deployed one, unattended
+```
+
+**A file copy of a live SQLite database is not a backup.** With WAL on — and every Rask app has it, it is
+one of the [production pragmas](sqlite.md) — committed transactions live in the `-wal` sidecar until a
+checkpoint, so the `.db` file on its own is torn or stale. Both paths go through SQLite instead: locally
+via the Online Backup API, remotely via `VACUUM INTO`. Either way what lands is a single self-contained
+file with the WAL already folded in, taken while the app keeps serving.
+
+The remote path needs **nothing installed on the host**. It runs the copy inside a throwaway container
+mounted on the app's data volume — the same shape the deploy's readiness probe uses — and brings the
+result down over the existing `docker -H ssh://…` connection. The host does need to be able to pull
+`alpine`, which it already does for every deploy. Host and app name come from `.rask/deploy.json`, so a
+repeat backup is a bare `rask db backup --remote`; override with `--host` and `--app`.
+
+**Restore replaces a database, so it behaves like `rask db drop`**: it asks first, takes `--force` to skip
+the prompt, and refuses outright when there's no terminal to ask on rather than guessing. A remote restore
+also **stops the app first and starts it again afterwards** — replacing the file under a live writer
+leaves the running process holding the database it thinks it has, and its next checkpoint writes that
+belief back over the restored one. If it can't stop the app, it refuses. The stale `-wal`/`-shm` sidecars
+go with the old file for the same reason: left behind, SQLite replays them over the restored database.
+
+> Backups are a copy at a moment; [Litestream](sqlite.md#continuous-backup-with-litestream) is continuous
+> replication for when the box dies. They answer different questions — "let me look at what production
+> has" and "the server is gone" — and an app that matters wants both.
 
 ## `rask deploy` — ship to a single host over SSH
 

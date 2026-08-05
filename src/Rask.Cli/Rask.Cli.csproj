@@ -14,7 +14,7 @@
 
     <PackageId>Rask.Cli</PackageId>
     <Title>Rask.Cli — the `rask` command-line tool</Title>
-    <Description>The `rask` .NET tool: a productivity front-door for the Rask framework. Scaffold a new project (`rask new`), run it with hot reload (`rask dev`), manage EF Core migrations (`rask db`), and deploy to a single host over SSH with auto-HTTPS (`rask deploy`) — a thin, dependency-free wrapper over the .NET SDK. Install with `dotnet tool install -g Rask.Cli`.</Description>
+    <Description>The `rask` .NET tool: a productivity front-door for the Rask framework. Scaffold a new project (`rask new`), run it with hot reload (`rask dev`), manage EF Core migrations and back the database up (`rask db`), and deploy to a single host over SSH with auto-HTTPS (`rask deploy`) — a thin wrapper over the .NET SDK, with SQLite as its only dependency. Install with `dotnet tool install -g Rask.Cli`.</Description>
     <PackageTags>rask cli dotnet-tool scaffolding tooling dotnet net10</PackageTags>
 
     <!-- This is an executable tool, not a consumed library: no public API surface to document. -->
@@ -26,6 +26,19 @@
   <ItemGroup>
     <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
     <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- `rask db backup` has to take a *consistent* copy of a live SQLite database: with WAL on, the .db
+         file alone is torn or stale, so it needs the Online Backup API. This is the tool's only package
+         reference, and it buys the one thing that cannot be shelled out to — the SDK ships no sqlite
+         verb, and requiring a `sqlite3` binary on the machine would trade a dependency we can pin for one
+         we cannot. Remote backups still need nothing locally: they run inside a container on the host. -->
+    <PackageReference Include="Microsoft.Data.Sqlite"/>
+    <!-- Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one Microsoft.Data.Sqlite
+         pins (CVE-2025-6965). A direct reference is the only lever under CPM — transitive pinning does
+         not move it. See Directory.Packages.props. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
   </ItemGroup>
 
   <ItemGroup>

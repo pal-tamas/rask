@@ -7,6 +7,22 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
+  backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
+  for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,
+  restore last night's file"*. A plain file copy of a live SQLite database is not a backup — with WAL on,
+  committed transactions sit in the `-wal` sidecar until a checkpoint, so the `.db` alone is torn or stale.
+  Both paths go through SQLite instead: locally through the Online Backup API, remotely through
+  `VACUUM INTO` in a throwaway container mounted on the app's data volume, fetched over the
+  `docker -H ssh://…` connection the deploy already uses — nothing to install on the host. `restore`
+  behaves like `rask db drop`: it asks first, takes `--force`, and refuses when there is no terminal to ask
+  on. A remote restore stops the app before replacing the file and starts it afterwards, and removes the
+  stale WAL sidecars with the old database — restoring under a live writer, or leaving a `-wal` behind,
+  silently produces a hybrid of the two. The CLI gains its first package reference for this
+  (`Microsoft.Data.Sqlite`); the alternative was requiring a `sqlite3` binary on the machine, a dependency
+  we could neither pin nor install.
+
 ### Fixed
 - **A contended write no longer fails with "cannot start a transaction within a transaction".** The
   busy-retry loop re-issued the identical statement on every pass with no cleanup between attempts, and
