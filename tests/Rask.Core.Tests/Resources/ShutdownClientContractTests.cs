@@ -95,15 +95,21 @@ public class ShutdownClientContractTests
     }
 
     [Fact]
-    public void A_redeploy_never_escalates_to_the_something_is_wrong_wording()
+    public void A_redeploy_keeps_its_wording_but_still_offers_a_way_out()
     {
-        // The drop is explained and it ends, so "Still trying to reconnect…" would be telling the user
-        // something is broken while we know exactly what is happening.
+        // Two things at once, and the second is the easy one to lose. The drop is explained, so escalating
+        // to "Still trying to reconnect…" would report something broken — but a deploy CAN fail, and
+        // leaving the user frozen on "Updating…" with nothing to click would be worse than the reconnect
+        // state this replaced. Keep the wording, keep the escape hatch.
         var js = ServerJs;
         var fn = js[js.IndexOf("function updateOverlayState", StringComparison.Ordinal)..];
-        var guard = fn[..fn.IndexOf(';', StringComparison.Ordinal)];
+        var body = fn[..fn.IndexOf("\n    }", StringComparison.Ordinal)];
+        var branch = body[body.IndexOf("if (serverShuttingDown)", StringComparison.Ordinal)..];
+        var branchEnd = branch[..branch.IndexOf("return;", StringComparison.Ordinal)];
 
-        Assert.Contains("serverShuttingDown", guard, StringComparison.Ordinal);
+        Assert.Contains("setOverlayMessage(UPDATING_MSG)", branchEnd, StringComparison.Ordinal);
+        Assert.Contains("setRetryButton(escalated ? \"Retry now\" : null)", branchEnd, StringComparison.Ordinal);
+        Assert.DoesNotContain("Still trying to reconnect", branchEnd, StringComparison.Ordinal);
     }
 
     [Fact]

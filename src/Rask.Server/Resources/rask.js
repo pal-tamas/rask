@@ -364,12 +364,18 @@
     // explanatory one and reveal a manual "Retry now" button. Left alone during an auth handshake and
     // once the session has expired (both own the overlay message).
     function updateOverlayState() {
-        // serverShuttingDown owns the message for the same reason authInProgress does: the drop is
-        // explained, so escalating to "Still trying to reconnect…" would be telling the user something is
-        // wrong when we know exactly what is happening and that it ends.
-        if (authInProgress || sessionExpired || serverShuttingDown) return;
+        if (authInProgress || sessionExpired) return;
         const offline = ("onLine" in navigator) && !navigator.onLine;
         const escalated = offline || attempt > ESCALATE_AFTER_ATTEMPTS;
+        // A redeploy keeps its own wording: the drop is explained, so "Still trying to reconnect…" would
+        // report something wrong when we know exactly what is happening. But the escape hatch still
+        // appears once the replacement is clearly not coming — a deploy CAN fail, and leaving the user on
+        // a frozen "Updating…" with nothing to click would be worse than the reconnect state it replaced.
+        if (serverShuttingDown) {
+            setOverlayMessage(UPDATING_MSG);
+            setRetryButton(escalated ? "Retry now" : null);
+            return;
+        }
         setOverlayMessage(escalated
             ? (offline ? "You're offline — waiting to reconnect…" : "Still trying to reconnect…")
             : RECONNECT_MSG);

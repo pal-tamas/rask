@@ -64,8 +64,8 @@ public class ShutdownDrainTests
     {
         // The regression that matters most behind the UI: a click that is mid-SaveChangesAsync used to
         // be cancelled and dropped, because the socket's token was ApplicationStopping itself.
-        GatedCounterApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var host = RaskTestHost.Create<GatedCounterApp>();
+        DrainGateApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var host = RaskTestHost.Create<DrainGateApp>();
         var html = await host.Http.GetStringAsync("/start");
         var sessionId = MarkupAssert.SessionId(html);
         var handlerId = MarkupAssert.FirstHandlerId(html);
@@ -84,7 +84,7 @@ public class ShutdownDrainTests
         await Task.Delay(150);
         Assert.False(stop.IsCompleted);
 
-        GatedCounterApp.Gate.SetResult();
+        DrainGateApp.Gate.SetResult();
         await stop;
 
         Assert.Equal(0, session.PendingHandlers);
@@ -107,10 +107,12 @@ public class ShutdownDrainTests
     [Fact]
     public async Task A_handler_that_never_returns_costs_the_budget_not_the_shutdown()
     {
-        HangingApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Own app again, not HangingApp: HandlerBackpressureTests owns that static gate, and xUnit runs the
+        // two classes in parallel.
+        DrainGateApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
-            using var host = RaskTestHost.Create<HangingApp>(
+            using var host = RaskTestHost.Create<DrainGateApp>(
                 configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
             var html = await host.Http.GetStringAsync("/start");
             var sessionId = MarkupAssert.SessionId(html);
@@ -134,7 +136,7 @@ public class ShutdownDrainTests
         }
         finally
         {
-            HangingApp.Gate.TrySetResult();
+            DrainGateApp.Gate.TrySetResult();
         }
     }
 
