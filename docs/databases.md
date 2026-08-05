@@ -172,6 +172,21 @@ explicit `SNAPSHOT` isolation, SQL Server raises error 3960 rather than allowing
 processor's per-cycle catch turns that into "retry next poll", so it is safe by failure rather than safe by
 design.
 
+## Redis, for the cache
+
+Choosing a database provider is separate from choosing where the [cache](cache.md) lives. The cache rides
+the app's database by default, and that stays the recommendation — but `ICache` works over any
+`IDistributedCache`, so an app that already operates Redis can point it there with two lines and no
+`CacheEntry` table:
+
+```csharp
+builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:6379");
+builder.Services.AddRaskCache();   // no <AppDbContext>
+```
+
+Only the cache. Jobs, mail and the outbox stay on the database — they need transactions, which is the
+point of them being there.
+
 ### Other providers
 
 None yet. The seam exists and adding one is mostly mechanical, but each provider needs its own production

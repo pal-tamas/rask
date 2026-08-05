@@ -166,6 +166,23 @@ them until tagged releases begin.
 
   Running several instances is safe — see the leasing entry below.
 
+- **`ICache` can be backed by Redis — or any `IDistributedCache` — with a non-generic `AddRaskCache()`.**
+  The database-backed cache stays the default and the recommendation; the case against Redis in
+  [`cache.md`](docs/cache.md) is about not standing one *up* for a cache, not about refusing to use one you
+  already operate.
+
+  The typed layer always worked over the interface, so this mostly removes a trap rather than adding a
+  feature: `AddRaskCache<TContext>()` also registers the purge worker, so an app that pointed `ICache` at
+  Redis still had to map the `CacheEntry` table and run a migration for it, or watch the purger throw every
+  five minutes. The new overload registers `ICache` alone.
+
+  It takes **no `CacheOptions`**, deliberately — `PurgeInterval` and `DefaultSlidingExpiration` are both
+  implemented by the database-backed store, so against another one they would be settings that silently did
+  nothing. Expiry is that store's business. There is no `Rask.Cache.Redis` package either:
+  `Microsoft.Extensions.Caching.StackExchangeRedis` is the standard .NET API and wrapping it would only add
+  a layer to keep in step. Only the cache moves — jobs, mail and the outbox stay on the database, because
+  they need transactions.
+
 - **SQL Server too, via `Rask.SqlServer` and `rask new --database sqlserver`.** `UseRaskSqlServer(...)` is
   the SQL Server counterpart of `UseRaskPostgres`: `SET LOCK_TIMEOUT` and `SET XACT_ABORT ON` on every
   connection open, a client command timeout, and `EnableRetryOnFailure`.
