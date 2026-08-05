@@ -134,7 +134,7 @@ public struct LeanFrame
 ///     a regular class (not a <c>ref struct</c>) so <see cref="HtmlSerializer" /> can
 ///     thread an optional reference through its recursive call chain without ceremony.
 /// </summary>
-public sealed class FrameWriter
+public sealed class FrameWriter : IDisposable
 {
     private RenderFrame[] _buffer;
 
@@ -286,13 +286,41 @@ public sealed class FrameWriter
         };
     }
 
+    /// <summary>
+    ///     Returns the frame buffer to the pool. A live session holds two of these for its whole life, so
+    ///     without this their rentals were simply never given back — collected rather than reused, leaving
+    ///     the pool to allocate a fresh array for the next session that came along.
+    /// </summary>
+    /// <remarks>
+    ///     Cleared on return because a <see cref="RenderFrame" /> holds string references: handing the
+    ///     array back dirty would keep a disposed session's tag and attribute strings alive for as long as
+    ///     the pool held the array. Safe to call more than once, and safe to keep using the writer
+    ///     afterwards — it re-rents on the next growth.
+    /// </remarks>
+    public void Dispose()
+    {
+        if (_buffer.Length > 0)
+        {
+            ArrayPool<RenderFrame>.Shared.Return(_buffer, true);
+        }
+
+        _buffer = [];
+        Count = 0;
+    }
+
     private int Reserve()
     {
         if (Count == _buffer.Length)
         {
-            var bigger = ArrayPool<RenderFrame>.Shared.Rent(_buffer.Length * 2);
+            // Math.Max keeps the doubling honest from a zero-length buffer, which is what a disposed
+            // writer holds — otherwise Rent(0) would hand back an array that can never fit a frame.
+            var bigger = ArrayPool<RenderFrame>.Shared.Rent(Math.Max(16, _buffer.Length * 2));
             Array.Copy(_buffer, bigger, Count);
-            ArrayPool<RenderFrame>.Shared.Return(_buffer, true);
+            if (_buffer.Length > 0)
+            {
+                ArrayPool<RenderFrame>.Shared.Return(_buffer, true);
+            }
+
             _buffer = bigger;
         }
 

@@ -138,8 +138,9 @@ Every one of these is rented at the size the page turns out to need, then grows 
 and is reused, so per-session cost converges. Cost is a function of your largest page, not of uptime.
 
 These are steady-state figures, and steady state is what a session settles into: a soak of 100 sessions
-over 200 updates each holds flat to the byte, and 500 create-and-dispose cycles leave under 100 bytes
-behind.
+over 200 updates each holds flat to the byte, and 500 create-and-dispose cycles leave nothing behind at
+all. Teardown also hands every pooled array back, so the next session reuses them instead of paying to
+allocate its own — worth ~19% of the allocation a create-render-dispose cycle costs on a 200-row page.
 
 ### Fitting is not the same as serving
 
