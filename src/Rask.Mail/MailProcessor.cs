@@ -179,12 +179,40 @@ public sealed class MailProcessor<TContext>(
 
         _lastPurge = now;
         var cutoff = now - options.RetentionPeriod;
+        const int page = 1000;
 
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        await db.Set<QueuedMail>()
-            .Where(m => m.ProcessedAt != null && m.ProcessedAt < cutoff)
-            .ExecuteDeleteAsync(cancellationToken)
-            .ConfigureAwait(false);
+
+        // Paged rather than one unbounded DELETE. The single statement was correct — a set-based delete is
+        // idempotent, so concurrent sweeps can't corrupt each other — but on the first run of an app that
+        // has been sending for months it holds SQLite's one write lock for the whole sweep, stalling every
+        // request behind it. A page at a time keeps each lock short; looping until drained keeps retention
+        // able to catch up. Same shape as the jobs and outbox sweeps.
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var stale = await db.Set<QueuedMail>()
+                .Where(m => m.ProcessedAt != null && m.ProcessedAt < cutoff)
+                .OrderBy(m => m.Id)
+                .Take(page)
+                .Select(m => m.Id)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (stale.Count == 0)
+            {
+                break;
+            }
+
+            await db.Set<QueuedMail>()
+                .Where(m => stale.Contains(m.Id))
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (stale.Count < page)
+            {
+                break;
+            }
+        }
     }
 
     // Only pays for the counts while something is collecting the gauges — see MailMetrics' remarks.

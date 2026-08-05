@@ -253,13 +253,17 @@ public sealed class JobProcessor<TContext>(
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
 
         // Delete in pages until drained, so retention keeps up even with a high completion rate rather than
-        // removing only one page per run.
+        // removing only one page per run. Deleted by id through ExecuteDelete rather than by loading and
+        // RemoveRange-ing the entities: a tracked delete of a row that vanished underneath the sweep raises
+        // DbUpdateConcurrencyException and fails the whole cycle, which is exactly what two processors
+        // purging concurrently would do to each other. The outbox's sweep already worked this way.
         while (!cancellationToken.IsCancellationRequested)
         {
             var stale = await db.Set<Job>()
                 .Where(j => j.ProcessedAt != null && j.ProcessedAt < cutoff)
                 .OrderBy(j => j.Id)
                 .Take(page)
+                .Select(j => j.Id)
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
 
@@ -268,8 +272,10 @@ public sealed class JobProcessor<TContext>(
                 break;
             }
 
-            db.Set<Job>().RemoveRange(stale);
-            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await db.Set<Job>()
+                .Where(j => stale.Contains(j.Id))
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             if (stale.Count < page)
             {
