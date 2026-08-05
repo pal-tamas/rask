@@ -59,13 +59,21 @@ public sealed class LogsPage(
         return [
             Div(Class: "d-flex align-items-center gap-3 mb-3")[
                 H1(Class: "h4 mb-0")["Logs"],
+                // Deliberately says "at most": the dashboard's own floor is only half the story. The
+                // logging pipeline applies the app's `Logging:LogLevel` rules FIRST, so an entry below
+                // those never reaches this buffer however low LogMinimumLevel is set. Promising
+                // "Information and above" while appsettings.Production.json says Warning is how an
+                // operator concludes the panel is broken when it is working exactly as configured.
                 Span(Class: "text-body-secondary small")[
-                    $"last {options.LogBufferSize} entries at {options.LogMinimumLevel} and above, in memory only"
+                    $"at most {options.LogBufferSize} entries, {options.LogMinimumLevel} and above, in memory only"
                 ]
             ],
             Filters(),
             entries.Count == 0
-                ? DashboardParts.Empty("Nothing captured yet", "Entries appear here as the application logs them.")
+                ? DashboardParts.Empty(
+                    "Nothing captured yet",
+                    "Entries appear here as the application logs them — subject to the app's own "
+                    + "Logging:LogLevel configuration, which filters before the dashboard sees them.")
                 : Table(entries, now),
         ];
     }

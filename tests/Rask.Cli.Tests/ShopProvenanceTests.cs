@@ -22,7 +22,8 @@ public sealed class ShopProvenanceTests
         "Features/Shared/DbInitializer.cs",   // a real app migrates; this one uses EnsureCreated so it just runs
         "Features/Orders/OrderCreatedHandler.cs", // the generator scaffolds a logging stub; this is the body
         "Features/Orders/OrderConfirmation.cs",   // ditto, for the email content
-        "Features/Ops/OpsPage.cs",                // the dashboard over every pillar's table
+        "Features/Ops/OpsPage.cs",                // the hand-rolled dashboard over every pillar's table
+        "Features/Ops/BackupProbe.cs",            // lights up the built-in dashboard's Backup card
         "Program.cs",                             // + the DbInitializer call and SnapshotOnStartup
         "Rask.Example.Shop.csproj",               // ProjectReference instead of PackageReference, in-repo
         "README.md",
