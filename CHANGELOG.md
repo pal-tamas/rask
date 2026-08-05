@@ -23,6 +23,22 @@ them until tagged releases begin.
   **denies everyone** in every other environment. Panels poll, compare, and re-render only on a real
   change, and the loop is bounded, because every open tab competes with the processors for SQLite's single
   write lock.
+- **The dashboard can fix what it finds, and tail the log.** `Retry` puts a dead letter back in the queue
+  (`Attempts = 0`, due now, error cleared); `Retry all failed` does the queue at once; `Purge processed`
+  clears completed rows older than a week. Each is a single `ExecuteUpdate`/`ExecuteDelete` whose guard
+  lives in the `WHERE` clause, evaluated by the database at the moment of the write — and the retry guard
+  is the **inverse of the drain query**, so it can only ever match rows a processor has already given up
+  on. A row in flight is invisible to it, which is what makes retry safe against a live queue with no
+  coordination. Purge only ever touches `ProcessedAt IS NOT NULL`, so outstanding work and dead letters
+  survive whatever cutoff you pass.
+  Deleting a row, and flushing the whole cache, destroy work rather than reschedule it, so they need
+  `Actions = RaskDashboardActions.All`; the default stays `Safe`. Buttons for a tier that's off are hidden
+  rather than disabled.
+  A new **Logs** panel keeps a bounded in-memory tail of the standard `ILogger` pipeline (last N entries at
+  or above a level, filterable by level and category, with stack traces inline). It is fed by a registered
+  `ILoggerProvider`, so it sees exactly what every other sink sees — including Litestream exiting, a job
+  type that won't deserialize, and handler faults, none of which leave a row in any table. It's a tail,
+  not a log store: the buffer is memory-only and gone on restart.
 - **`BsStat`** — a stat-tile primitive for `Rask.Bootstrap`: a number, its label, an optional caption and
   tone. Tone colours the value rather than the card, so one red number reads as a signal instead of one
   panel among many coloured panels.

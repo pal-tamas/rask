@@ -11,8 +11,13 @@ own database** — the tables are already there, so there is nothing to run and 
 - **The error behind the row.** Expand any row for its last failure message and its stored payload.
 - **Only what you run.** A panel appears only when its battery is both registered *and* mapped into the
   `DbContext`, so the nav is an inventory of this deployment rather than a menu of dead links.
-- **Cache, system and schedule.** Cache keys with sizes and expiry, SQLite pragmas read live, database
-  size, and the recurring-job schedule joined to when each job last actually fired.
+- **Fix it from here.** Retry a dead letter (or all of them), purge processed rows, evict a cache key. The
+  retry guard is the inverse of the processors' own drain query, so it can only match rows they've already
+  given up on — a row in flight is untouchable, and no coordination with a running processor is needed.
+- **Cache, logs, system and schedule.** Cache keys with sizes and expiry; a bounded in-memory tail of the
+  `ILogger` pipeline (the failures that leave no row anywhere — Litestream exiting, an unregistered job
+  type, handler faults); SQLite pragmas read live, database size, and the recurring-job schedule joined to
+  when each job last actually fired.
 - **Fail-closed by default.** See below — this matters more than any of the above.
 
 ## Use
@@ -53,6 +58,13 @@ builder.Services.AddRaskDashboard<AppDbContext>(o =>
     o.RefreshInterval = TimeSpan.FromSeconds(2);   // how often an open panel re-reads
     o.MaxPollDuration = TimeSpan.FromMinutes(5);   // then it parks and offers Resume
     o.PageSize        = 25;
+
+    o.Actions         = RaskDashboardActions.Safe; // default: retry, purge, evict
+    // o.Actions      = RaskDashboardActions.All;  // adds delete-a-row and flush-the-cache
+
+    o.LogBufferSize   = 500;
+    o.LogMinimumLevel = LogLevel.Information;
+    // o.CaptureLogs  = false;                     // no logging provider is registered at all
 });
 ```
 
