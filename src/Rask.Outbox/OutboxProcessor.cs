@@ -82,6 +82,20 @@ public sealed class OutboxProcessor<TContext>(
         await using var scope = scopeFactory.CreateAsyncScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
+        // The in-flight message gets a bounded grace after SIGTERM instead of being cancelled mid-call.
+        // The host token ARMS a deadline on this source rather than cancelling it, so user code keeps a
+        // live token for ShutdownGracePeriod past the stop signal. (Same shape as the Litestream
+        // executor's graceful stop.) One CTS per batch, not per message: the loop's pre-check below
+        // refuses to START anything new the moment the host token fires, so at most ONE message is ever
+        // behind this deadline.
+        //
+        // Declaration order is load-bearing: `graceCts` must be declared before `registration` so
+        // disposal runs registration-first. The reverse order lets the callback call CancelAfter on an
+        // already-disposed source and throw during shutdown.
+        using var graceCts = new CancellationTokenSource();
+        using var registration = cancellationToken.Register(() => graceCts.CancelAfter(options.ShutdownGracePeriod));
+        var graceToken = graceCts.Token;
+
         foreach (var message in batch)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -111,14 +125,29 @@ public sealed class OutboxProcessor<TContext>(
                 var startedAt = timeProvider.GetTimestamp();
                 try
                 {
-                    await dispatcher.PublishAsync(notification, cancellationToken).ConfigureAwait(false);
+                    await dispatcher.PublishAsync(notification, graceToken).ConfigureAwait(false);
                     message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                     message.Error = null;
                     metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    break; // shutting down — leave this and the rest for the next run
+                    // Shutdown outlived the grace. Attempts is deliberately untouched: a redeploy is not a
+                    // failed attempt, and counting it would march never-failing work toward its dead
+                    // letter at the cadence you deploy. The row stays immediately eligible and is
+                    // re-published whole on restart — metered and logged so a grace period that is too
+                    // short for the work is visible rather than silent.
+                    //
+                    // The filter stays on the HOST token, not the grace token: the grace deadline is only
+                    // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
+                    // while a handler's own OperationCanceledException still falls through to the generic
+                    // catch below and counts as the real failure it is.
+                    metrics.Interrupted(message.Type);
+                    logger.LogWarning(
+                        "Outbox message {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it "
+                        + "will be published again on restart, so its handlers must be idempotent.",
+                        message.Id, message.Type, options.ShutdownGracePeriod);
+                    break; // leave this and the rest for the next run
                 }
 #pragma warning disable CA1031 // A failing handler must not stop the drain or crash the app — record + retry.
                 catch (Exception ex)

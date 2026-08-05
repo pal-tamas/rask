@@ -27,6 +27,7 @@ public sealed class OutboxMetrics : IDisposable
     private readonly Counter<long> _processed;
     private readonly Counter<long> _failed;
     private readonly Counter<long> _deadLettered;
+    private readonly Counter<long> _interrupted;
     private readonly Histogram<double> _duration;
     private readonly ObservableGauge<int> _pendingGauge;
     private readonly ObservableGauge<int> _deadLetterGauge;
@@ -49,6 +50,9 @@ public sealed class OutboxMetrics : IDisposable
             "rask.outbox.failed", "{attempt}", "Outbox attempts that threw. Counts every attempt, not every message.");
         _deadLettered = _meter.CreateCounter<long>(
             "rask.outbox.deadlettered", "{message}", "Outbox that exhausted MaxAttempts and will not be retried.");
+        _interrupted = _meter.CreateCounter<long>(
+            "rask.outbox.interrupted", "{message}",
+            "Messages cancelled by shutdown after ShutdownGracePeriod. They re-publish on restart and count no attempt.");
         _duration = _meter.CreateHistogram<double>(
             "rask.outbox.duration", "ms", "Wall-clock duration of publishing one outbox message.");
 
@@ -97,6 +101,16 @@ public sealed class OutboxMetrics : IDisposable
     /// <summary>Records a message crossing into dead-letter state — counted once, on the attempt that exhausts it.</summary>
     public void DeadLettered(string messageType) =>
         _deadLettered.Add(1, new KeyValuePair<string, object?>("message.type", messageType));
+
+    /// <summary>
+    ///     Records a message that shutdown cancelled after its grace period. Deliberately not a
+    ///     <see cref="Failed" />: the publish did not fail, it was interrupted, and it runs again on
+    ///     restart with its attempt count untouched. A nonzero rate means
+    ///     <c>OutboxOptions.ShutdownGracePeriod</c> is shorter than the work — and, since an interrupted
+    ///     message re-publishes whole, that any non-idempotent handler is repeating its side effects.
+    /// </summary>
+    public void Interrupted(string messageType) =>
+        _interrupted.Add(1, new KeyValuePair<string, object?>("message.type", messageType));
 
     /// <inheritdoc/>
     public void Dispose() => _meter.Dispose();

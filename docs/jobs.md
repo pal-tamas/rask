@@ -81,6 +81,28 @@ await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(2
 - **The `Rask.Jobs` source generator** registers every `IJob` type (name → CLR type) at module load, so the
   processor rehydrates a stored job with no runtime `Type.GetType` or assembly scanning.
 
+## Shutdown
+
+On `SIGTERM` — a redeploy, a container recycle, `Ctrl+C` — the processor stops picking up **new** jobs
+immediately, but the job already inside your handler gets `JobOptions.ShutdownGracePeriod` (default 5s) to
+finish rather than being cancelled mid-call. A job halfway through a `SaveChangesAsync` completes instead of
+being torn in two.
+
+Only one job is ever in that window: because no new job starts once the stop signal arrives, shutdown is
+extended by at most a single grace period, never one per remaining job.
+
+A job that outlives its grace **is** cancelled, and re-runs from the top on the next boot. It does **not**
+count a failed attempt — a redeploy is not a failure, and counting it would march never-failing work toward
+its dead letter at the cadence you deploy. `rask.jobs.interrupted` counts these, and a warning is logged;
+a nonzero rate means your grace period is shorter than your work.
+
+> **Handlers must be idempotent regardless.** There is no lease, claim or visibility-timeout column — an
+> interrupted job re-runs *whole*, not from where it stopped. That is also why an interrupted job is
+> immediately eligible again rather than waiting out a lease after a redeploy.
+
+`ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`: once that elapses the host stops waiting
+for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero` cancels immediately.
+
 ## Notes
 
 - **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a

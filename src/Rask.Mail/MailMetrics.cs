@@ -32,6 +32,7 @@ public sealed class MailMetrics : IDisposable
     private readonly Counter<long> _sent;
     private readonly Counter<long> _failed;
     private readonly Counter<long> _deadLettered;
+    private readonly Counter<long> _interrupted;
     private readonly Histogram<double> _duration;
     private readonly ObservableGauge<int> _pendingGauge;
     private readonly ObservableGauge<int> _deadLetterGauge;
@@ -53,6 +54,9 @@ public sealed class MailMetrics : IDisposable
             "rask.mail.failed", "{attempt}", "Delivery attempts that threw. Counts every attempt, not every email.");
         _deadLettered = _meter.CreateCounter<long>(
             "rask.mail.deadlettered", "{mail}", "Emails that exhausted MaxAttempts and will not be retried.");
+        _interrupted = _meter.CreateCounter<long>(
+            "rask.mail.interrupted", "{mail}",
+            "Sends cancelled by shutdown after ShutdownGracePeriod. They re-send on restart and may already have been delivered.");
         _duration = _meter.CreateHistogram<double>(
             "rask.mail.duration", "ms", "Wall-clock duration of delivering one email.");
 
@@ -94,6 +98,19 @@ public sealed class MailMetrics : IDisposable
 
     /// <summary>Records an email crossing into dead-letter state — counted once, on the attempt that exhausts it.</summary>
     public void DeadLettered() => _deadLettered.Add(1);
+
+    /// <summary>
+    ///     Records a send that shutdown cancelled after its grace period. Deliberately not a
+    ///     <see cref="Failed" />: it did not fail, it was interrupted, and it re-sends on restart with its
+    ///     attempt count untouched.
+    ///     <para>
+    ///         This is the most operationally interesting counter in the pillar. Because a cancelled SMTP
+    ///         conversation can be accepted by the server before the row is marked, this is the direct
+    ///         answer to "did that deploy duplicate any mail?" — and a nonzero rate means
+    ///         <c>MailOptions.ShutdownGracePeriod</c> is shorter than your SMTP server's round trip.
+    ///     </para>
+    /// </summary>
+    public void Interrupted() => _interrupted.Add(1);
 
     /// <inheritdoc/>
     public void Dispose() => _meter.Dispose();

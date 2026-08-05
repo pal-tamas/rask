@@ -76,6 +76,25 @@ public sealed class MailProcessor<TContext>(
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        // The in-flight send gets a bounded grace after SIGTERM instead of being cancelled mid-call. The
+        // host token ARMS a deadline on this source rather than cancelling it, so the SMTP conversation
+        // keeps a live token for ShutdownGracePeriod past the stop signal. (Same shape as the Litestream
+        // executor's graceful stop.) One CTS per batch, not per message: the loop's pre-check below
+        // refuses to START anything new the moment the host token fires, so at most ONE send is ever
+        // behind this deadline.
+        //
+        // This matters more here than in Jobs/Outbox. Delivery and the row update are not one
+        // transaction, so a send cancelled during the SMTP DATA phase may already have been accepted by
+        // the server while the row still reads unsent — and the next boot re-sends it. The grace period
+        // cannot close that window (nothing local can), it makes it rare.
+        //
+        // Declaration order is load-bearing: `graceCts` must be declared before `registration` so
+        // disposal runs registration-first. The reverse order lets the callback call CancelAfter on an
+        // already-disposed source and throw during shutdown.
+        using var graceCts = new CancellationTokenSource();
+        using var registration = cancellationToken.Register(() => graceCts.CancelAfter(options.ShutdownGracePeriod));
+        var graceToken = graceCts.Token;
+
         foreach (var message in batch)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -91,14 +110,30 @@ public sealed class MailProcessor<TContext>(
                 // IMailSender isn't captured by this singleton processor.
                 await using var scope = scopeFactory.CreateAsyncScope();
                 var sender = scope.ServiceProvider.GetRequiredService<IMailSender>();
-                await sender.SendAsync(outgoing, cancellationToken).ConfigureAwait(false);
+                await sender.SendAsync(outgoing, graceToken).ConfigureAwait(false);
                 message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                 message.Error = null;
                 metrics.Sent(timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                break; // shutting down — leave this and the rest for the next run
+                // Shutdown outlived the grace. Attempts is deliberately untouched: a redeploy is not a
+                // failed attempt, and counting it would march never-failing mail toward its dead letter at
+                // the cadence you deploy. The row stays immediately eligible and is re-sent on restart —
+                // and because delivery may already have happened, this counter is the direct answer to
+                // "did that deploy duplicate any mail?".
+                //
+                // The filter stays on the HOST token, not the grace token: the grace deadline is only ever
+                // armed by the host token firing, so any grace expiry necessarily satisfies it, while a
+                // sender's own OperationCanceledException still falls through to the generic catch below
+                // and counts as the real failure it is.
+                metrics.Interrupted();
+                logger.LogWarning(
+                    "Email {Id} was interrupted by shutdown after its {Grace} grace period. It will be sent again on "
+                    + "restart — and it may already have been delivered, since a cancelled SMTP conversation can be "
+                    + "accepted by the server before the row is marked.",
+                    message.Id, options.ShutdownGracePeriod);
+                break; // leave this and the rest for the next run
             }
 #pragma warning disable CA1031 // A failing send must not stop the drain or crash the app — record + retry with backoff.
             catch (Exception ex)

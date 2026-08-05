@@ -23,6 +23,10 @@ public static class RaskOutboxServiceCollectionExtensions
 
         var options = new OutboxOptions();
         configure?.Invoke(options);
+        // Fail fast here, the way AddRaskJobs/AddRaskMail/AddRaskCache already do. Without this a value
+        // like PollInterval = Zero throws out of `new PeriodicTimer(...)` on the background thread, which
+        // (BackgroundServiceExceptionBehavior.StopHost) tears the host down at an unrelated moment.
+        options.Validate();
 
         services.TryAddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
