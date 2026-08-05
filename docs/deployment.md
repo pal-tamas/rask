@@ -169,6 +169,34 @@ refusing sessions with `503` says so rather than answering a bare "up"), and shu
 the 20s grace period the deploy allows before `SIGKILL`, so in-flight requests drain and SQLite checkpoints
 cleanly.
 
+### Your users stay signed in across a deploy
+
+The same volume holds the **Data Protection key ring**, at `/data/keys`. This matters more than it looks.
+Those keys sign the auth cookie, and the default ring is written inside the container — so a deploy, which
+replaces the container, would mint a fresh ring and invalidate every cookie already issued. Every signed-in
+user would be silently signed out by every deploy, with nothing in the logs to say why.
+
+`rask new` scaffolds the fix, and it has two halves that are equally load-bearing:
+
+```csharp
+var keyRingPath = builder.Configuration["Rask:DataProtection:KeyPath"]
+                  ?? (Directory.Exists("/data") ? "/data/keys" : null);
+if (keyRingPath is not null)
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(Directory.CreateDirectory(keyRingPath))
+        .SetApplicationName(builder.Environment.ApplicationName);
+}
+```
+
+`SetApplicationName` is not optional garnish: the default discriminator is derived from the content root,
+which differs between the build and runtime images, so a persisted ring alone would still fail to unprotect.
+Set `Rask:DataProtection:KeyPath` to put the ring elsewhere. On a plain `dotnet run` there is no `/data`
+and no override, so the block is skipped and ASP.NET's per-user development ring applies.
+
+If you're carrying an app that predates this, add the block — an existing deployment will sign everyone out
+once, when the persisted ring first replaces the ephemeral one, and never again.
+
 ## Scaffolding a Dockerfile — `--docker`
 
 The three web templates take an opt-in `--docker` flag that drops a production-ready multi-stage

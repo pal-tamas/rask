@@ -84,6 +84,34 @@ public sealed class ProjectGeneratorTests
     }
 
     /// <summary>
+    /// Every deploy replaces the container. With the default key ring — written inside that container —
+    /// the replacement mints new keys and every auth cookie already issued stops validating, so a deploy
+    /// silently signs out every user. The ring has to live on the volume `rask deploy` mounts.
+    /// </summary>
+    [Fact]
+    public void Data_protection_keys_outlive_the_container_a_deploy_replaces()
+    {
+        var (files, _) = Generate();
+        var program = files["Program.cs"];
+
+        Assert.Contains("using Microsoft.AspNetCore.DataProtection;", program, StringComparison.Ordinal);
+        Assert.Contains(".PersistKeysToFileSystem(", program, StringComparison.Ordinal);
+
+        // The volume `rask deploy` mounts (DeployCommand mounts {slug}-data at /data), overridable for
+        // hosts that put it elsewhere.
+        Assert.Contains("\"/data/keys\"", program, StringComparison.Ordinal);
+        Assert.Contains("Rask:DataProtection:KeyPath", program, StringComparison.Ordinal);
+
+        // Load-bearing alongside the path: the default discriminator comes from the content root, which
+        // differs between the build and runtime images — so a persisted ring alone still wouldn't validate.
+        Assert.Contains(".SetApplicationName(", program, StringComparison.Ordinal);
+
+        // A plain `dotnet run` has no /data and no override, and must not try to create one at the
+        // filesystem root — the block is skipped entirely there.
+        Assert.Contains("Directory.Exists(\"/data\")", program, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// docs/observability.md tells the reader to set Logging:LogLevel:Rask.Live — which needs somewhere
     /// to put it. The files must also be real JSON to the provider that will load them (it skips comments).
     /// </summary>
@@ -735,6 +763,20 @@ public sealed class ProjectGeneratorTests
         var health = program.IndexOf("UseHealthChecks(\"/health\")", StringComparison.Ordinal);
         var redirect = program.IndexOf("UseHttpsRedirection()", StringComparison.Ordinal);
         Assert.True(health >= 0 && redirect >= 0 && health < redirect, "/health precedes UseHttpsRedirection");
+    }
+
+    // ...and the same key-ring contract: this host issues the auth cookie for the WASM client, so a
+    // deploy that replaces the container would sign every user out without a persisted ring.
+    [Fact]
+    public void WasmHosted_server_persists_data_protection_keys_to_the_mounted_volume()
+    {
+        var program = GenerateWasmHosted()["App.Server/Program.cs"];
+
+        Assert.Contains("using Microsoft.AspNetCore.DataProtection;", program, StringComparison.Ordinal);
+        Assert.Contains(".PersistKeysToFileSystem(", program, StringComparison.Ordinal);
+        Assert.Contains("\"/data/keys\"", program, StringComparison.Ordinal);
+        Assert.Contains(".SetApplicationName(", program, StringComparison.Ordinal);
+        Assert.Contains("Directory.Exists(\"/data\")", program, StringComparison.Ordinal);
     }
 
     [Fact]
