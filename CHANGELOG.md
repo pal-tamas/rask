@@ -21,6 +21,33 @@ them until tagged releases begin.
   It reports no memory column on purpose: the generator shares a process with the host, so a heap reading
   counts the client's own sockets — an early version did exactly that and produced a figure that didn't
   rise with page size.
+- **A restart or a redeploy no longer costs your users their page.** A live session is a component tree, a
+  DI scope and a set of cancellation tokens — it cannot be serialized, so it cannot be moved or saved. Until
+  now that meant the process holding it going away took the page with it: every `rask deploy` blue-green
+  swap answered every connected client with *"Your session timed out. Reload to continue."* The swap was
+  zero-downtime for HTTP and a full reload for everyone actually using the app.
+  What travels instead is a small sealed record of where the page was and what the app declared through the
+  new **`IPersistentState`** — and a host that has never heard of the session **rebuilds** the page around
+  it. Nothing resumes; the page is built again, which is why what you declare is what comes back. Declare
+  the state a user would be annoyed to lose (a filter, a wizard step, an unsaved draft) and let the rest
+  come back from the database. Even an app that declares nothing gets the route, so a deploy becomes a
+  re-render rather than a reload.
+  The record is held by the browser, so this needs **no shared store, no sticky routing and no new
+  infrastructure** — the same property that will later let a reconnect land on a different replica. It is
+  encrypted and authenticated under its own data-protection purpose; expiry is enforced by ASP.NET's
+  time-limited protector, so an expired record cannot be opened at all rather than relying on a field
+  somebody remembers to check; it carries no principal but is bound to the identity it was issued to and
+  compared in fixed time, so it cannot be replayed onto another account or inherited across a sign-in; and
+  a rebuild takes a `MaxSessions` slot through the same atomic reservation a `GET` uses, so the reconnect
+  storm after a deploy sheds like ordinary traffic instead of walking past the cap. The bag is capped at
+  16 KB — over budget a session keeps working but declares itself unresumable and falls back to the reload
+  it would have had, with a diagnostic saying so.
+  It rides **inside the render payload**, beside `history` and `auth`, rather than arriving as its own
+  frame: a `hello` with nothing pending must still emit no frame at all. Costs nothing when absent — the
+  payload-byte benchmark is unchanged to the byte. Configure with `SessionResume` (default on) and
+  `ResumeTokenLifetime` (default 1 hour). **Requires a persisted data-protection key ring** — a record
+  sealed before a redeploy cannot be opened after one otherwise, which is what the scaffold's `/data/keys`
+  change below is for.
 - **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
   backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
   for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,

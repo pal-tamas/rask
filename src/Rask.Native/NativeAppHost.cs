@@ -51,6 +51,11 @@ public sealed class NativeAppHost
         Services.AddLogging();
         Services.AddSingleton<RouteState>();
         Services.AddSingleton<Navigator>();
+        // The declared state bag. Singleton for the same reason RouteState is (one session per app), and
+        // registered here so a component shared with the server host resolves on both. Nothing carries it
+        // anywhere on native — there is no server-side session to rebuild.
+        Services.AddSingleton<PersistentState>();
+        Services.AddSingleton<IPersistentState>(sp => sp.GetRequiredService<PersistentState>());
         // Singleton = one queue for the app instance (the whole native app is a single session), so a
         // message queued before a NavigateTo survives it. Same model as WasmHostBuilder.
         Services.AddSingleton<IToaster, Toaster>();

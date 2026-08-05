@@ -39,6 +39,12 @@ internal sealed class RaskServerLimits
     /// <summary>How long one outbound frame may take before the socket is aborted. Zero = off.</summary>
     public TimeSpan SendTimeout { get; init; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>Whether a client may rebuild its page on a host that never knew its session. See <see cref="RaskServerOptions.SessionResume" />.</summary>
+    public bool SessionResume { get; init; } = true;
+
+    /// <summary>How long a resume record stays redeemable. See <see cref="RaskServerOptions.ResumeTokenLifetime" />.</summary>
+    public TimeSpan ResumeTokenLifetime { get; init; } = TimeSpan.FromHours(1);
+
     /// <summary>Projects a validated <see cref="RaskServerOptions" /> into the per-host limit snapshot.</summary>
     public static RaskServerLimits From(RaskServerOptions o) => new()
     {
@@ -51,5 +57,7 @@ internal sealed class RaskServerLimits
         HandlerTimeout = o.HandlerTimeout,
         MaxPendingHandlerBytes = o.MaxPendingHandlerBytes,
         SendTimeout = o.SendTimeout,
+        SessionResume = o.SessionResume,
+        ResumeTokenLifetime = o.ResumeTokenLifetime,
     };
 }
