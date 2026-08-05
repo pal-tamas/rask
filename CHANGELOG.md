@@ -82,6 +82,15 @@ them until tagged releases begin.
   separators but never follows a link, which is why an earlier attempt to rule this out came back
   negative. This was also the cause of the framework's own watch E2E never being green (#536); those
   two cases now run in the default gate instead of being skipped.
+- **The hot-reload dev channel is now actually exercised by the unit gate.** `MetadataUpdater.IsSupported`
+  is a per-process feature switch the SDK turns off in Release, and the gate runs Release — so both
+  hot-reload gates were closed, no server subscribed, no session registered, and the one test that
+  checked them degraded to `false == false` and passed proving nothing. A new
+  `Rask.Server.HotReload.Tests` assembly turns the switch on (it needs the `MetadataUpdaterSupport`
+  property *and* `DOTNET_MODIFIABLE_ASSEMBLIES=debug`, only one of which has an MSBuild property) and
+  drives the real chain over a real WebSocket: an applied update repaints every open session and *then*
+  announces itself, in that order. It is a separate assembly because the session registry is
+  process-global.
 - **A contended write no longer fails with "cannot start a transaction within a transaction".** The
   busy-retry loop re-issued the identical statement on every pass with no cleanup between attempts, and
   cleared a leaked transaction only *once*, before the loop. That caught a transaction the pooled handle

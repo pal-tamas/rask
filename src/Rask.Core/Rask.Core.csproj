@@ -36,6 +36,8 @@
     <InternalsVisibleTo Include="Rask.Bootstrap.Tests"/>
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
+    <!-- Same surface as Rask.Server.Tests; a separate assembly so MetadataUpdaterSupport can be on. -->
+    <InternalsVisibleTo Include="Rask.Server.HotReload.Tests"/>
     <InternalsVisibleTo Include="Rask.Wasm"/>
     <InternalsVisibleTo Include="Rask.Wasm.Tests"/>
     <InternalsVisibleTo Include="Rask.Native"/>

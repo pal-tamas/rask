@@ -1,0 +1,77 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);RASK014</NoWarn>
+
+    <!--
+      The whole reason this assembly exists.
+
+      MetadataUpdater.IsSupported is a per-process feature switch that the SDK turns OFF in Release.
+      The unit gate runs Release (scripts/run-unit-local.sh), and both hot-reload gates —
+      RaskEndpointExtensions.IsDevHotReloadEnabled and LiveSessionBase's registration — AND on it. So
+      in the gate no server ever subscribes, no session ever registers, and the dev channel's positive
+      path is never executed: HotReloadMessageTests' agreement check degrades to false == false and
+      passes vacuously. Turning the switch on here makes the positive path real in BOTH configurations.
+
+      Why a separate assembly rather than setting this on Rask.Server.Tests: the hot-reload session
+      registry is process-global and RerenderAllForHotReloadAsync awaits every registered session in
+      turn. Flipping the switch there would enrol every session from every other test class — including
+      the deliberately-hanging ones — into that serial loop the moment a test invokes UpdateApplication.
+      A dedicated assembly starts with an empty registry and keeps the blast radius to these tests.
+    -->
+    <MetadataUpdaterSupport>true</MetadataUpdaterSupport>
+
+    <!-- The switch above is only half of it; see hotreload.runsettings for the other half. -->
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)/hotreload.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!--
+    Share Rask.Server.Tests' host/socket helpers by linking rather than copying — RaskTestHost and
+    ConnectedSession already do the /start → socket → hello → drain dance, and a second copy would drift.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Server.Tests\Infrastructure\RaskTestHost.cs" LinkBase="Infrastructure"/>
+    <Compile Include="..\Rask.Server.Tests\Infrastructure\ConnectedSession.cs" LinkBase="Infrastructure"/>
+    <Compile Include="..\Rask.Server.Tests\Infrastructure\WebSocketHelper.cs" LinkBase="Infrastructure"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <Using Include="Rask.Core.Routing.Generated" Static="true"/>
+    <Using Include="Rask.Testing"/>
+    <Using Include="Rask.TestSupport"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

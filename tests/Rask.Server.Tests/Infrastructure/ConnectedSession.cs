@@ -41,10 +41,15 @@ internal sealed class ConnectedSession : IAsyncDisposable
         Host.Dispose();
     }
 
-    public static async Task<ConnectedSession> Connect<TApp>(LiveDiffMode diffMode = LiveDiffMode.Auto)
+    /// <summary>
+    ///     <paramref name="environment" /> defaults to whatever <c>WebApplication</c> picks (Production
+    ///     under test); pass <c>Development</c> to exercise the dev-gated behaviour, e.g. hot reload.
+    /// </summary>
+    public static async Task<ConnectedSession> Connect<TApp>(
+        LiveDiffMode diffMode = LiveDiffMode.Auto, string? environment = null)
         where TApp : Component
     {
-        var host = RaskTestHost.Create<TApp>(diffMode: diffMode);
+        var host = RaskTestHost.Create<TApp>(diffMode: diffMode, environment: environment);
         var initial = await host.Http.GetAsync("/start");
         var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
