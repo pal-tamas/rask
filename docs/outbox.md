@@ -34,6 +34,7 @@ builder.Services.AddRaskOutbox<AppDbContext>(o =>
     o.PollInterval = TimeSpan.FromSeconds(5);
     o.BatchSize = 100;
     o.MaxAttempts = 10;
+    o.RetentionPeriod = TimeSpan.FromDays(7);   // TimeSpan.Zero keeps published messages forever
 });
 
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
@@ -64,7 +65,9 @@ Add a migration for the new table before running — `rask db add AddOutbox && r
   `OutboxMessage` rows on the same context (atomic with the change).
 - **`OutboxProcessor<TContext>`** — a hosted `BackgroundService` that polls the table on `PollInterval`,
   publishes the oldest unprocessed batch through `IDispatcher`, and stamps `ProcessedAt` (or records the
-  error + attempt count, retrying up to `MaxAttempts`). A failing handler never crashes the app, and neither
+  error + attempt count, retrying up to `MaxAttempts`). Published messages older than `RetentionPeriod`
+  are purged hourly, in pages, so the table doesn't grow for the life of the app — **dead letters are never
+  purged**, because they have no `ProcessedAt` for the retention predicate to match. A failing handler never crashes the app, and neither
   does a failing poll — a transient database error is logged and retried on the next one. Each message's
   outcome is saved on its own, so a row edited or deleted underneath the drain costs that one row rather than
   re-publishing everything the batch had already delivered.

@@ -9,6 +9,8 @@ crash-safe domain-event delivery on the app's own database, with no broker or Re
 - A background **`OutboxProcessor`** polls the table and publishes each message through
   [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs) (`IDispatcher.PublishAsync`) — **at-least-once**,
   with retries and an attempt count.
+- Published messages are **purged after `RetentionPeriod`** (default 7 days) so the table doesn't grow
+  forever. Dead letters are never purged — they have no `ProcessedAt` for the predicate to match.
 - A **source generator** registers every `IOutboxEvent` type for reflection-free lookup on the drain path.
 
 ## Use

@@ -21,6 +21,9 @@ public sealed class OutboxProcessor<TContext>(
     ILogger<OutboxProcessor<TContext>> logger) : BackgroundService
     where TContext : DbContext
 {
+    private static readonly TimeSpan PurgeInterval = TimeSpan.FromHours(1);
+    private DateTime _lastPurge;
+
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -44,6 +47,7 @@ public sealed class OutboxProcessor<TContext>(
         try
         {
             await DrainAsync(cancellationToken).ConfigureAwait(false);
+            await PurgeAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -117,6 +121,61 @@ public sealed class OutboxProcessor<TContext>(
             // message whose save failed, never the whole batch: one row deleted or edited underneath the drain
             // would otherwise abort the entire SaveChanges and re-publish every event already delivered from it.
             await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+    }
+
+    // Retention. Published messages are history; a busy app writes them faster than anyone reads them, and
+    // without this the table is the only pillar's table that grows without bound for the life of the app.
+    private async Task PurgeAsync(CancellationToken cancellationToken)
+    {
+        if (options.RetentionPeriod <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (now - _lastPurge < PurgeInterval)
+        {
+            return;
+        }
+
+        _lastPurge = now;
+        var cutoff = now - options.RetentionPeriod;
+        const int page = 1000;
+
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        // Paged, and deleted by id rather than by predicate. Two reasons, both about the first run on an
+        // app that has been writing events for months with no retention at all:
+        //   * one unbounded DELETE would hold SQLite's single write lock for the length of the whole sweep,
+        //     stalling every request behind it. A page at a time keeps each lock short.
+        //   * the delete is a set-based ExecuteDelete over ids, not tracked entities, so a row vanishing
+        //     underneath the sweep can't raise a concurrency exception the way a RemoveRange would.
+        // Looping until drained (rather than one page per hour) is what lets retention actually catch up.
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var stale = await db.Set<OutboxMessage>()
+                .Where(m => m.ProcessedAt != null && m.ProcessedAt < cutoff)
+                .OrderBy(m => m.Id)
+                .Take(page)
+                .Select(m => m.Id)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (stale.Count == 0)
+            {
+                break;
+            }
+
+            await db.Set<OutboxMessage>()
+                .Where(m => stale.Contains(m.Id))
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (stale.Count < page)
+            {
+                break;
+            }
         }
     }
 }
