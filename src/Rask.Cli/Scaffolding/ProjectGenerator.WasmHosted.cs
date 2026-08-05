@@ -275,7 +275,7 @@ internal static partial class ProjectGenerator
         var steps = new StringBuilder();
         steps.Append("Created ").Append(name).Append(" (Rask WASM + ASP.NET host).\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
-        steps.Append("  rask dev --project ").Append(name).Append(".Server   # run the host with hot reload\n");
+        steps.Append("  rask dev            # run the host with hot reload (finds the .Server project)\n");
         if (docker)
         {
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:8080 …\n");

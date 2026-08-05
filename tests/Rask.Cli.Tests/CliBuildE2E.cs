@@ -80,7 +80,37 @@ internal static class CliBuildE2E
         // used because no other package's id starts with it (Rask.Wasm.* would match two).
         var nupkg = Directory.GetFiles(feed, "Rask.Server.*.nupkg").Single();
         var version = Path.GetFileNameWithoutExtension(nupkg)["Rask.Server.".Length..];
+
+        EvictFromGlobalCache(version);
         return (feed, version);
+    }
+
+    /// <summary>
+    ///     Drops this version of the Rask packages from the NuGet global cache, so the restore below has to
+    ///     take the ones just packed.
+    /// </summary>
+    /// <remarks>
+    ///     MinVer stamps a version from the commit and its height, so every pack of an un-committed working
+    ///     tree produces the <em>same</em> version string with different content. NuGet keys its cache on
+    ///     id+version alone: once <c>Rask.Server 0.19.1-alpha.0.31</c> is extracted there, every later
+    ///     restore reuses it and silently ignores the freshly packed nupkg in the local feed — so the gate
+    ///     builds against whatever the first pack of that version happened to contain, and a change made
+    ///     afterwards is never actually tested. That is a green gate over stale bits, which is worse than no
+    ///     gate. Evicting is safe: these are prerelease packages this repo just built, and they are always
+    ///     re-restorable from the feed.
+    /// </remarks>
+    private static void EvictFromGlobalCache(string version)
+    {
+        var root = Environment.GetEnvironmentVariable("NUGET_PACKAGES")
+                   ?? Path.Combine(
+                       Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
+
+        foreach (var package in FeedPackages)
+        {
+            // The cache lowercases both segments.
+            var dir = Path.Combine(root, package.ToLowerInvariant(), version.ToLowerInvariant());
+            TryDeleteDirectory(dir);
+        }
     }
 
     // The packages a generated project needs, written straight into the csproj. Rask.* come from the local

@@ -68,6 +68,23 @@ them until tagged releases begin.
   (`Add` appends), dropping another assembly's, or clearing the default 404 fallback — which is seeded once
   by a `[ModuleInitializer]` and could not be restored. `Add` keeps its existing append semantics.
 
+### Fixed
+- **The CLI build gates no longer pass over stale packages.** They pack this commit's Rask packages to a
+  local feed, but MinVer derives the version from the commit and its height — so every pack of an
+  uncommitted working tree produces the *same* version string with different content. NuGet keys its global
+  cache on id+version alone, so once a version was extracted there, every later restore reused it and
+  silently ignored the freshly packed nupkg: the gate built against whatever the first pack of that version
+  happened to contain, and any change made afterwards was never actually tested. The gates now evict that
+  version before restoring. (Found while building the watch gate below, which reported a feature missing
+  that was demonstrably present in the packed assembly.)
+
+### Docs
+- **"What hot-reloads and what doesn't" is written down.** [`docs/cli.md`](docs/cli.md#what-hot-reloads) now
+  lists every edit and what actually happens to it — applied live, or a rude edit that restarts — including
+  the two gaps: WASM and native apps have no watch channel, and a rude edit is never announced (the process
+  simply restarts). `docs/development-workflow.md` gained an inner-loop section, since it described the
+  definition-of-done gate but never how to run the thing you're changing.
+
 ### Removed
 - **The dev-time `.cs` `FileSystemWatcher` in `Rask.Server`.** It fired on *save* — before the new IL was
   applied — so it repainted against the old code and the real hot-reload repaint then did it again: a
