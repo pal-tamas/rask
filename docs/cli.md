@@ -280,6 +280,11 @@ Two things it does not cover:
 In Development you get a small "Hot reload applied" pill in the corner when an edit lands, so a save that
 changed nothing visible is distinguishable from one that didn't apply. It is never present in production.
 
+> **If nothing ever applies, suspect the path.** `dotnet watch` produces an empty hot-reload delta —
+> silently, reporting success at every step — when the project path traverses a symlink. `rask dev`
+> resolves the path for you, so this only bites if you drive `dotnet watch` yourself; run it against the
+> resolved path (on macOS, `/private/var/…` rather than `/var/…`) and edits apply again.
+
 ## `rask db` — migrations, and getting the database in and out
 
 ```bash

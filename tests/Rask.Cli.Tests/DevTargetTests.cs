@@ -1,3 +1,5 @@
+using Rask.Cli.Scaffolding;
+
 namespace Rask.Cli.Tests;
 
 /// <summary>
@@ -176,5 +178,46 @@ public sealed class DevTargetTests
 
         Assert.Equal("http://localhost:5000", target!.LaunchUrl);
         Assert.False(target.ProfileLaunchesBrowser);
+    }
+
+    /// <summary>
+    ///     The path handed to <c>dotnet watch</c> must have its symlinks resolved. Watch computes an
+    ///     <b>empty</b> hot-reload delta — silently, with no error — when the project path traverses one,
+    ///     so a developer working under a symlinked directory would get a <c>rask dev</c> that watches,
+    ///     rebuilds, reports success, and never applies an edit (#536).
+    /// </summary>
+    /// <remarks>
+    ///     Uses the real filesystem rather than <c>FakeFileSystem</c>: a symlink is exactly the thing an
+    ///     in-memory double cannot model, and modelling it would test the double instead of the behaviour.
+    /// </remarks>
+    [Fact]
+    public void The_project_path_is_resolved_through_symlinks()
+    {
+        var root = RealPath.Resolve(Path.Combine(Path.GetTempPath(), "rask-dev-link-" + Guid.NewGuid().ToString("N")));
+        var real = Path.Combine(root, "real");
+        Directory.CreateDirectory(real);
+        File.WriteAllText(Path.Combine(real, "App.csproj"), ServerCsproj);
+
+        var link = Path.Combine(root, "link");
+        Directory.CreateSymbolicLink(link, real);
+
+        try
+        {
+            var target = DevTarget.Detect(new SystemFileSystem(), link, Path.Combine(link, "App.csproj"));
+
+            Assert.Equal(Path.Combine(real, "App.csproj"), target!.ProjectPath);
+            Assert.Equal(real, target.ProjectDirectory);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException)
+            {
+                // best-effort cleanup
+            }
+        }
     }
 }

@@ -54,9 +54,14 @@ internal sealed record DevTarget(
             return null;
         }
 
-        var directory = Path.GetDirectoryName(Path.GetFullPath(csproj)) ?? workingDirectory;
+        // Resolve symlinks, not just `..` and separators. Handing `dotnet watch` a project path that
+        // traverses a symlink makes it compute an EMPTY hot-reload delta — the edit is seen, the workspace
+        // document is updated, and then nothing is applied and nothing is reported. On macOS this is the
+        // default for anything under the temp directory (/var → /private/var). See RealPath.
+        var resolved = RealPath.Resolve(csproj);
+        var directory = Path.GetDirectoryName(resolved) ?? workingDirectory;
         var (url, launchesBrowser) = ReadLaunchProfile(fileSystem, directory);
-        return new DevTarget(Classify(fileSystem, csproj), csproj, directory, url, launchesBrowser);
+        return new DevTarget(Classify(fileSystem, csproj), resolved, directory, url, launchesBrowser);
     }
 
     private static string? ResolveCsproj(IFileSystem fileSystem, string projectPathOrDirectory)
