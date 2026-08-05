@@ -5,10 +5,12 @@ using System.Globalization;
 using System.Net.WebSockets;
 using System.Reflection.Metadata;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -63,6 +65,7 @@ public static class RaskEndpointExtensions
     // serializer call threw at static-init and crashed UseRask before the host could start.
     private static readonly byte[] SessionUnknownPayload =
         Encoding.UTF8.GetBytes("""{"type":"session","status":"unknown"}""");
+
 
     // 50ms trailing-edge debounce for ScopedAssetRegistry.AssetChanged. A multi-file edit
     // (or a single hot-reload UpdateApplication burst that re-registers every component
@@ -147,6 +150,30 @@ public static class RaskEndpointExtensions
         }
 
         services.AddSingleton(RaskServerLimits.From(serverOptions));
+
+        // Seals the record a client carries from one session to the next. Live only when the host has Data
+        // Protection (WebApplication.CreateBuilder does; a hand-rolled host might not) AND resume is on —
+        // absent either, a reconnect to an unknown session falls back to the reload it did before rather
+        // than failing the host at startup. Note this is what makes a persisted key ring load-bearing: with
+        // the default per-container ring, a record sealed before a redeploy cannot be opened after it.
+        var resumeEnabled = serverOptions.SessionResume;
+        var resumeLifetime = serverOptions.ResumeTokenLifetime;
+        if (resumeEnabled)
+        {
+            // Ask for Data Protection rather than assuming it. WebApplication.CreateBuilder does NOT
+            // register it — it arrives only because something else pulled it in (antiforgery, cookie auth,
+            // session), which an app with none of those does not have. The call is idempotent and
+            // additive, exactly as ASP.NET's own components use it: an app that configures the key ring
+            // itself (the PersistKeysToFileSystem `rask new` scaffolds) is configuring this same instance.
+            services.AddDataProtection();
+        }
+
+        services.TryAddSingleton(sp =>
+        {
+            var provider = resumeEnabled ? sp.GetService<IDataProtectionProvider>() : null;
+            return new SessionResumeSupport(
+                provider is null ? null : new SessionHandoffProtector(provider, resumeLifetime));
+        });
 
         // Metrics singleton (Meter "Rask.Server"). TryAdd so a host can pre-register its own.
         services.TryAddSingleton<RaskMetrics>();
@@ -270,7 +297,16 @@ public static class RaskEndpointExtensions
         var pathBaseNormalized = RaskPath.Normalize(pathBase);
         LiveOptions.PathBase = pathBaseNormalized;
 
-        EnsureRuntimeMapped(endpoints, pathBaseNormalized);
+        // How a session's tree is built, captured once here because two call sites need it: the GET that
+        // mints a session, and the WebSocket that rebuilds one from a resume record. Wrapping the App in an
+        // implicit RootErrorBoundary means an uncaught render / lifecycle / event-handler exception
+        // anywhere in the user's tree renders a styled fallback page instead of an HTTP 500. Declared in
+        // this generic method so TApp's DynamicallyAccessedMembers annotation flows into the closure —
+        // EnsureRuntimeMapped is deliberately non-generic (its double-map guard is per host, not per TApp).
+        Func<IServiceProvider, Component> appFactory =
+            sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp));
+
+        EnsureRuntimeMapped(endpoints, pathBaseNormalized, appFactory);
 
         // Scope the catch-all SPA route under the prefix when set. The pattern
         // default ("/{**path}") is interpreted relative to the prefix root, so
@@ -310,14 +346,7 @@ public static class RaskEndpointExtensions
             // built so untrusted GET traffic can't exhaust memory (and a concurrent burst can't
             // race past the cap). Checked after the auth guard above so challenge/forbid
             // redirects (which create no session) still work.
-            var session = store.TryCreate(sp =>
-            {
-                // Wrap the App in an implicit RootErrorBoundary so an uncaught render /
-                // lifecycle / event-handler exception anywhere in the user's tree renders a
-                // styled fallback page instead of an HTTP 500.
-                var app = ActivatorUtilities.CreateInstance<TApp>(sp);
-                return new RootErrorBoundary(app);
-            });
+            var session = store.TryCreate(appFactory);
             if (session is null)
             {
                 httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
@@ -410,7 +439,8 @@ public static class RaskEndpointExtensions
         return new QueryCollection(dict);
     }
 
-    private static void EnsureRuntimeMapped(IEndpointRouteBuilder endpoints, string pathBase)
+    private static void EnsureRuntimeMapped(
+        IEndpointRouteBuilder endpoints, string pathBase, Func<IServiceProvider, Component> appFactory)
     {
         var marker = endpoints.ServiceProvider.GetRequiredService<RaskLiveMarker>();
         if (marker.RuntimeMapped)
@@ -461,7 +491,9 @@ public static class RaskEndpointExtensions
                     new WebSocketAcceptContext { DangerousEnableCompression = true });
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(
                     ctx.RequestAborted, lifetime.ApplicationStopping);
-                await RunSocketLoop(ws, store, limits, wsUser, linked.Token, lifetime.ApplicationStopping);
+                var resume = ctx.RequestServices.GetRequiredService<SessionResumeSupport>();
+                await RunSocketLoop(ws, store, limits, wsUser, resume, appFactory, linked.Token,
+                    lifetime.ApplicationStopping);
             }));
 
         var script = LoadEmbeddedScript();
@@ -601,7 +633,8 @@ public static class RaskEndpointExtensions
     }
 
     private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, RaskServerLimits limits,
-        ClaimsPrincipal wsUser, CancellationToken ct, CancellationToken stopping)
+        ClaimsPrincipal wsUser, SessionResumeSupport resume, Func<IServiceProvider, Component> appFactory,
+        CancellationToken ct, CancellationToken stopping)
     {
         using var abortReg = stopping.Register(() =>
         {
@@ -767,8 +800,30 @@ public static class RaskEndpointExtensions
                     session = store.Get(sessionId);
                     if (session is null)
                     {
-                        await SendSessionUnknownAsync(ws, ct).ConfigureAwait(false);
-                        return;
+                        // This host has never heard of the session. Before the resume protocol that was
+                        // the end of it — the client reloaded and the user lost their page. If the client
+                        // carries a record we can open, rebuild the page around it instead.
+                        var resumeToken =
+                            root.TryGetProperty("resume", out var rt) && rt.ValueKind == JsonValueKind.String
+                                ? rt.GetString()
+                                : null;
+
+                        session = resumeToken is null
+                            ? null
+                            : TryResumeSession(resumeToken, wsUser, resume, store, metrics, appFactory);
+
+                        if (session is null)
+                        {
+                            await SendSessionUnknownAsync(ws, ct).ConfigureAwait(false);
+                            return;
+                        }
+
+                        // The rebuilt session has a NEW id. The client learns it from the full frame below,
+                        // which re-stamps data-rask-root — see LiveSessionBase's full-payload path.
+                        session.AttachSocket(ws, ct);
+                        session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
+                        await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
+                        continue;
                     }
 
                     session.AttachSocket(ws, ct);
@@ -1141,6 +1196,56 @@ public static class RaskEndpointExtensions
         }
         catch { }
     }
+
+    /// <summary>
+    ///     Opens a resume record and builds a new session around it, or returns <c>null</c> and lets the
+    ///     caller fall back to telling the client its session is gone.
+    /// </summary>
+    /// <remarks>
+    ///     The rebuilt session is an ordinary new session in every respect — new id, new DI scope, new
+    ///     tree, and a capacity slot taken through the same atomic reservation a GET uses. That last part
+    ///     matters more than it looks: a deploy hands every connected client a record at once, so the
+    ///     reconnect storm that follows must shed against <c>MaxSessions</c> exactly like fresh traffic
+    ///     rather than walking straight past the cap.
+    /// </remarks>
+    private static LiveSession? TryResumeSession(
+        string token,
+        ClaimsPrincipal user,
+        SessionResumeSupport resume,
+        LiveSessionStore store,
+        RaskMetrics? metrics,
+        Func<IServiceProvider, Component> appFactory)
+    {
+        if (resume.Protector is not { } protector)
+        {
+            return null;
+        }
+
+        if (!protector.TryUnprotect(token, user, out var record, out var rejection))
+        {
+            metrics?.ResumeRejected(rejection.ToString().ToLowerInvariant());
+            return null;
+        }
+
+        var session = store.TryCreate(appFactory);
+        if (session is null)
+        {
+            metrics?.ResumeRejected("atcapacity");
+            return null;
+        }
+
+        // Seed the route and the declared state BEFORE the first render, so the page builds against them
+        // rather than rendering a default and then correcting itself in a second frame the user would see.
+        var (path, query) = SplitUrl(record!.Url);
+        var routeState = session.Services.GetRequiredService<RouteState>();
+        routeState.Path = path;
+        routeState.Query = query;
+        session.Services.GetRequiredService<PersistentState>().Restore(record.Entries);
+
+        metrics?.SessionResumed();
+        return session;
+    }
+
 
     private static void HandleJsResult(LiveSession session, JsonElement root)
     {

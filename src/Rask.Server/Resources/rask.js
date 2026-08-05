@@ -79,7 +79,44 @@
         return b + url.slice(1);
     }
 
-    const sessionId = root.getAttribute("data-rask-root");
+    // Not a constant: when the server rebuilds this page from a resume record it does so as a NEW
+    // session, and tells us by re-stamping data-rask-root on the document it sends back. Treating the
+    // id as derived from the document rather than as a value read once at startup means the next
+    // reconnect claims the session we actually have.
+    let sessionId = root.getAttribute("data-rask-root");
+
+    // The sealed record that lets a server which has never heard of this session rebuild the page
+    // anyway — after a restart, a redeploy, or (later) a reconnect routed to another node. Opaque
+    // here: it is encrypted and signed by the server, and we only ever hand it back. Mirrored into
+    // sessionStorage so a plain F5 resumes too, and keyed by the storage key alone because
+    // sessionStorage is already scoped to this tab and origin. It dies with the tab, which is the
+    // lifetime we want — a record is state, not a credential, and never outlives the browsing session.
+    const RESUME_STORAGE_KEY = "rask.resume";
+    let resumeToken = null;
+    try {
+        resumeToken = sessionStorage.getItem(RESUME_STORAGE_KEY);
+    } catch (err) {
+        // Storage can throw outright in a partitioned or cookie-blocked context. Resume then works
+        // for a reconnect (the token still lives in memory) but not across an F5. Not worth failing over.
+    }
+
+    function rememberResumeToken(token) {
+        resumeToken = token;
+        try {
+            sessionStorage.setItem(RESUME_STORAGE_KEY, token);
+        } catch (err) {
+            // See above — memory-only is a working degradation.
+        }
+    }
+
+    function forgetResumeToken() {
+        resumeToken = null;
+        try {
+            sessionStorage.removeItem(RESUME_STORAGE_KEY);
+        } catch (err) {
+        }
+    }
+
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     const baseWsUrl = proto + "//" + location.host + prependBase("/rask/ws");
 
@@ -159,7 +196,13 @@
             open = true;
             attempt = 0;
             suppressEvents = false;
-            ws.send(JSON.stringify({type: "hello", session: sessionId}));
+            // The resume record rides along so a server that doesn't know this session can rebuild the
+            // page instead of telling us to reload. A server that DOES know it ignores the field
+            // entirely — the intact session is always the better outcome, and is what a normal
+            // reconnect within the grace period gets.
+            const hello = {type: "hello", session: sessionId};
+            if (resumeToken) hello.resume = resumeToken;
+            ws.send(JSON.stringify(hello));
             for (const m of queue) ws.send(m);
             queue.length = 0;
             // Auth reconnect completed — restore the default message for any future drop.
@@ -183,7 +226,19 @@
                 return;
             }
             if (data.type === "session" && data.status === "unknown") {
+                // The server could not rebuild us — either we carried no record, or it refused the one
+                // we had (expired, issued to another user, or sealed under a key ring this host does not
+                // have). Drop it: replaying a record the server has already refused just fails again on
+                // every future reconnect, and keeps a stale page's state alive across the reload.
+                forgetResumeToken();
                 showSessionExpired();
+                return;
+            }
+            // A fresh sealed record. Purely something to hold: it changes nothing on screen, and must
+            // not fall through to applyFullReply, which would morph the document against a frame that
+            // carries no html.
+            if (data.type === "resume") {
+                if (typeof data.token === "string") rememberResumeToken(data.token);
                 return;
             }
             // Dev-only: the coordinator finished applying an edit and every session has repainted.
@@ -835,6 +890,13 @@
             if (freshHtml) {
                 morph(document.documentElement, freshHtml);
                 root = document.querySelector("[data-rask-root]") || root;
+                // Every full frame re-stamps data-rask-root, so this is where a rebuilt session's NEW
+                // id arrives — the server answered our hello by building a fresh session around the
+                // resume record rather than by finding the one we asked for. Following the document
+                // keeps the next reconnect pointed at the session we actually have; without it we would
+                // keep claiming an id no server will ever know again.
+                const stamped = root && root.getAttribute("data-rask-root");
+                if (stamped) sessionId = stamped;
                 // Pick up any newly-inserted Head-declared external assets (e.g., a
                 // page-specific Script in Component.Head) so their load events feed the gate.
                 scanHeadAssets();

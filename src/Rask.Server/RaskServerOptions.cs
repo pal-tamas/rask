@@ -120,6 +120,41 @@ public sealed class RaskServerOptions
     public TimeSpan SendTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
+    ///     Whether a client may rebuild its page on a host that has never heard of its session — after a
+    ///     restart, a redeploy, or (later) a reconnect routed to another node. <c>true</c> by default.
+    ///     <para>
+    ///         A live session cannot be moved or saved: it is a component tree, a DI scope and a set of
+    ///         cancellation tokens. So this does not resume anything. The server hands the client an
+    ///         encrypted record of the page's URL and whatever the app declared through
+    ///         <see cref="Rask.Core.Live.IPersistentState" />, and a host that receives it back
+    ///         <em>rebuilds</em> the page around it. Undeclared state is gone either way — but the user
+    ///         gets their page back instead of the "session timed out, reload" they get today.
+    ///     </para>
+    ///     <para>
+    ///         Worth having even for an app that declares nothing: the URL alone turns a deploy's
+    ///         full-page reload into a re-render. Turn it off to keep the reload — the record rides the
+    ///         socket, so an app whose pages are expensive to build may prefer the reload's clean slate.
+    ///     </para>
+    /// </summary>
+    public bool SessionResume { get; set; } = true;
+
+    /// <summary>
+    ///     How long a resume record stays redeemable. Default 1 hour.
+    ///     <para>
+    ///         This is not the reconnect grace period (<see cref="SessionGracePeriod" />, 30 s), which
+    ///         covers a blip against the <em>intact</em> session. This covers the session being gone:
+    ///         a laptop that slept through a deploy, a tunnel that dropped for twenty minutes. The record
+    ///         is encrypted and signed, bound to the principal it was issued for, and lives in the tab's
+    ///         <c>sessionStorage</c>, so it dies with the tab regardless.
+    ///     </para>
+    ///     <para>
+    ///         Enforced by ASP.NET's time-limited data protector rather than a field we check ourselves,
+    ///         so an expired record fails to unprotect at all.
+    ///     </para>
+    /// </summary>
+    public TimeSpan ResumeTokenLifetime { get; set; } = TimeSpan.FromHours(1);
+
+    /// <summary>
     ///     Throws <see cref="ArgumentOutOfRangeException" /> if any value is out of range. Called by
     ///     <c>AddRask</c> after the caller's <c>configureServer</c> runs, so a bad value (a negative
     ///     grace period that would crash <c>Task.Delay</c> and leak the session, a non-positive
@@ -188,6 +223,15 @@ public sealed class RaskServerOptions
             throw new ArgumentOutOfRangeException(
                 nameof(SendTimeout), SendTimeout,
                 "SendTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
+        }
+
+        // Zero is not "off" here — SessionResume is. A zero or negative lifetime would mint records that
+        // are already expired, so every reconnect would pay to build one and then be refused it.
+        if (SessionResume && ResumeTokenLifetime <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ResumeTokenLifetime), ResumeTokenLifetime,
+                "ResumeTokenLifetime must be positive. Set SessionResume = false to disable resume.");
         }
     }
 }
