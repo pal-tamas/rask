@@ -64,8 +64,11 @@ All metrics publish on the meter named **`Rask.Server`** (`RaskTelemetry.MeterNa
 | `rask.ws.frames.rejected` | Counter | `reason` = `size` \| `rate` \| `backlog` \| `idle` | Inbound frames refused by a safety limit. |
 | `rask.sessions.resumed` | Counter | | Pages rebuilt on a host that had never heard of the session, from the client's [resume record](configuration.md#surviving-a-restart-or-a-redeploy). |
 | `rask.sessions.resume_rejected` | Counter | `reason` = `malformed` \| `unprotect` \| `principal` \| `toolarge` \| `atcapacity` | Resume records refused. |
-| `rask.ws.frames.rejected` | Counter | `reason` = `size` \| `rate` \| `backlog` | Inbound frames refused by a safety limit. |
 | `rask.shutdown.sessions.abandoned` | Counter | | Sessions still connected when the shutdown drain budget ran out; their sockets were aborted. |
+| `rask.sessions.connected` | Gauge | | Sessions with a socket attached — people actually looking at the app, as opposed to `active`, which also counts GET-minted sessions whose socket never arrived and sessions riding out their reconnect grace. |
+| `rask.handlers.pending` | Gauge | | Handler dispatches queued across all sessions. The backpressure breaker's *input* — `frames.rejected{reason=backlog}` is its output. |
+| `rask.render.duration` | Histogram (ms) | | Time to render a session and write its frame. The framework's half of a slow interaction; `handler.duration` is your half. |
+| `rask.payload.bytes` | Histogram (By) | | Size of a frame sent to a client. Watch the distribution: a page that quietly stops diffing jumps to its full size here long before anyone notices the bandwidth. |
 
 A nonzero `rask.shutdown.sessions.abandoned` is the signal that `ShutdownDrainTimeout` — or the
 `HostOptions.ShutdownTimeout` containing it — is shorter than your app's real shutdown, so some users saw
@@ -154,12 +157,21 @@ app.UseRask<App>();
 
 | Status | Condition |
 | --- | --- |
-| `Healthy` | Below 80% of `MaxSessions` (or `MaxSessions == 0`, i.e. uncapped). |
-| `Degraded` | At or above 80% of `MaxSessions` — the host is filling up. |
-| `Unhealthy` | At `MaxSessions` — new sessions are being refused with `503`. |
+| `Healthy` | Below 80% of `MaxSessions` (or uncapped), and memory below 80% of the limit. |
+| `Degraded` | At or above 80% of `MaxSessions`, **or** memory at 80% of the limit. |
+| `Unhealthy` | At `MaxSessions` (new sessions are being refused with `503`), **or** memory at 92%. |
 
-The active and maximum session counts are attached to the health-check result `data` for dashboards.
-Pair the capacity cap with a reverse-proxy rate limit for precise admission control.
+**Memory is checked as well as the session count, and outranks it.** A cap alone can't keep a host
+healthy, because what a session costs is a property of the page rather than of the user: the same host
+holds ~66,000 sessions of a trivial page or ~735 of a 200-row grid. A cap sized for the small page is no
+protection on the big one. The reading comes from `GCMemoryInfo`, which honours a container memory limit,
+so it reflects the ceiling a deployed app actually runs under — and an uncapped host, which is what most
+apps run, now reports something before an OOM does. A memory position the runtime won't disclose is
+treated as healthy, not as full: a host must not shed load because it can't measure itself.
+
+`activeSessions`, `connectedSessions`, `maxSessions` and `memoryLoad` are attached to the health-check
+result `data` for dashboards. Pair the capacity cap with a reverse-proxy rate limit for precise admission
+control.
 
 ### Readiness
 

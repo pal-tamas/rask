@@ -896,6 +896,9 @@ public static class RaskEndpointExtensions
                     }
 
                     session.AttachSocket(ws, ct);
+                    // Counted here rather than inside AttachSocket: the store owns the number, and the
+                    // session has no reason to know a store exists.
+                    store.SocketAttached();
                     session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
 
                     // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the
@@ -1001,11 +1004,13 @@ public static class RaskEndpointExtensions
                 // against the intact session and resumes from current state.
                 var payloadBytes = (long)payload.Length;
                 var pending = capturedSession.IncrementPendingHandlers();
+                store.HandlerQueued();
                 var pendingBytes = capturedSession.AddPendingHandlerBytes(payloadBytes);
                 if ((limits.MaxPendingHandlers > 0 && pending > limits.MaxPendingHandlers)
                     || (limits.MaxPendingHandlerBytes > 0 && pendingBytes > limits.MaxPendingHandlerBytes))
                 {
                     capturedSession.DecrementPendingHandlers();
+                    store.HandlerDequeued();
                     capturedSession.SubtractPendingHandlerBytes(payloadBytes);
                     metrics?.FrameRejected("backlog");
                     await ClosePolicyViolationAsync(ws, "handler backlog").ConfigureAwait(false);
@@ -1017,6 +1022,7 @@ public static class RaskEndpointExtensions
                 var capturedRoot = root.Clone();
                 capturedSession.LastHandlerTask = ChainHandlerDispatchAsync(
                     capturedSession.LastHandlerTask,
+                    store,
                     capturedSession,
                     capturedHandlerId,
                     capturedRoot,
@@ -1033,6 +1039,7 @@ public static class RaskEndpointExtensions
             if (session is not null)
             {
                 session.DetachSocket();
+                store.SocketDetached();
                 store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
             }
 
@@ -1062,6 +1069,7 @@ public static class RaskEndpointExtensions
 
     private static async Task ChainHandlerDispatchAsync(
         Task previous,
+        LiveSessionStore store,
         LiveSession session,
         string handlerId,
         JsonElement root,
@@ -1104,6 +1112,7 @@ public static class RaskEndpointExtensions
             // Pairs with the Increment/AddPendingHandlerBytes in the receive loop when this dispatch
             // was queued, so the backpressure count and byte total track the live chain depth.
             session.DecrementPendingHandlers();
+            store.HandlerDequeued();
             session.SubtractPendingHandlerBytes(payloadBytes);
         }
     }
