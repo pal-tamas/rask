@@ -110,6 +110,30 @@ them until tagged releases begin.
   said it. The reading comes from `GCMemoryInfo`, which honours a container limit, so it reflects the
   ceiling a deployed app actually runs under. A memory position the runtime won't disclose is treated as
   healthy rather than full — a host must not shed load because it can't measure itself.
+- **Jobs, the outbox and mail now let in-flight work finish when the host shuts down.** All three passed the
+  host's stopping token straight into user code, so a `SIGTERM` — a redeploy, a container recycle —
+  cancelled a handler *mid-call*: a job halfway through a `SaveChangesAsync` was simply torn in two. For mail
+  it was worse than untidy: cancelling during the SMTP `DATA` phase drops the connection, but the server may
+  already have accepted the message, so the row stayed unsent and the next boot **sent it again**. Each
+  pillar now gives the item already running a bounded `ShutdownGracePeriod` (jobs and outbox 5s, mail 10s)
+  before cancelling it, using the same shape `Rask.SQLite.Litestream` already used for its final WAL flush:
+  the host token *arms* a deadline rather than cancelling, so user code keeps a live token past the stop
+  signal. The loop still refuses to *start* anything new the instant the stop arrives, so shutdown is
+  extended by at most one grace period, never one per remaining item. Work that outlives its grace is
+  cancelled and re-runs whole on the next boot, and deliberately **does not count a failed attempt** — a
+  redeploy is not a failure, and counting it would march never-failing work toward its dead letter at the
+  cadence you deploy (`MaxAttempts` is 10 for outbox and mail). New `rask.{jobs,outbox,mail}.interrupted`
+  counters plus a warning make a too-short grace visible instead of silent; `rask.mail.interrupted` is the
+  direct answer to "did that deploy duplicate any mail?". `Rask.Cache` deliberately gets no knob: its only
+  in-flight work is one bulk delete of expired rows, which is abort-safe by construction.
+
+### Fixed
+- **`AddRaskOutbox` now validates its options.** It was the only battery whose registration didn't — jobs,
+  mail and cache all call `Validate()` — and `OutboxOptions` had no `Validate()` method at all. So
+  `PollInterval = TimeSpan.Zero` didn't fail fast at registration; it threw out of `new PeriodicTimer(...)`
+  on the background thread, which with the default `BackgroundServiceExceptionBehavior.StopHost` took the
+  host down at an unrelated moment with an unrelated-looking stack. Every value it now rejects already threw
+  at runtime, just later and less legibly.
 - **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
   backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
   for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,

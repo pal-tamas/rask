@@ -27,6 +27,7 @@ public sealed class JobMetrics : IDisposable
     private readonly Counter<long> _processed;
     private readonly Counter<long> _failed;
     private readonly Counter<long> _deadLettered;
+    private readonly Counter<long> _interrupted;
     private readonly Histogram<double> _duration;
     private readonly ObservableGauge<int> _pendingGauge;
     private readonly ObservableGauge<int> _deadLetterGauge;
@@ -49,6 +50,9 @@ public sealed class JobMetrics : IDisposable
             "rask.jobs.failed", "{attempt}", "Job attempts that threw. Counts every attempt, not every job.");
         _deadLettered = _meter.CreateCounter<long>(
             "rask.jobs.deadlettered", "{job}", "Jobs that exhausted MaxAttempts and will not be retried.");
+        _interrupted = _meter.CreateCounter<long>(
+            "rask.jobs.interrupted", "{job}",
+            "Jobs cancelled by shutdown after ShutdownGracePeriod. They re-run on restart and count no attempt.");
         _duration = _meter.CreateHistogram<double>(
             "rask.jobs.duration", "ms", "Wall-clock duration of a job execution.");
 
@@ -97,6 +101,16 @@ public sealed class JobMetrics : IDisposable
     /// <summary>Records a job crossing into dead-letter state — counted once, on the attempt that exhausts it.</summary>
     public void DeadLettered(string jobType) =>
         _deadLettered.Add(1, new KeyValuePair<string, object?>("job.type", jobType));
+
+    /// <summary>
+    ///     Records a job that shutdown cancelled after its grace period. Deliberately not a
+    ///     <see cref="Failed" />: the job did not fail, it was interrupted, and it re-runs on restart with
+    ///     its attempt count untouched. A nonzero rate means <c>JobOptions.ShutdownGracePeriod</c> is
+    ///     shorter than the work — and, since an interrupted job re-runs from the top, that any
+    ///     non-idempotent handler is repeating its side effects.
+    /// </summary>
+    public void Interrupted(string jobType) =>
+        _interrupted.Add(1, new KeyValuePair<string, object?>("job.type", jobType));
 
     /// <inheritdoc/>
     public void Dispose() => _meter.Dispose();

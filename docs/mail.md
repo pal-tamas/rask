@@ -98,6 +98,31 @@ Switch to real delivery in production by setting `o.Smtp`. Nothing else changes.
   else `PickupDirectoryMailSender`, else `LogMailSender`. Register your own `IMailSender` **before**
   `AddRaskMail` to send through a provider API instead.
 
+## Shutdown, and the duplicate-send window
+
+On `SIGTERM` the processor stops picking up **new** messages immediately, but the send already talking to
+your SMTP server gets `MailOptions.ShutdownGracePeriod` (default **10s** — double the other pillars) to
+finish rather than being cancelled mid-conversation.
+
+That default is deliberate, and this is the one place where at-least-once has a visible cost:
+
+> **A shutdown-interrupted send may already have been delivered.** Delivery and the row update are not one
+> transaction. Cancel during the SMTP `DATA` phase and the client drops the connection to avoid protocol
+> desync — but the server may already have accepted and queued the message. The row still reads unsent, so
+> the next boot sends it again, and the recipient gets it twice.
+>
+> There is no local fix: the send is not idempotent and its outcome is genuinely unknown to us. The only two
+> options are *duplicate* (leave the row pending) or *silent loss* (mark it sent optimistically). Rask
+> chooses **duplicate** — a duplicate email is an annoyance, a lost transactional email is a bug.
+
+What the grace period buys is that the send is no longer racing a token that fires at `SIGTERM`; it is racing
+one that fires ten seconds later, which converts nearly every deploy-interrupted send into a completed one.
+`rask.mail.interrupted` is the direct answer to *"did that deploy duplicate any mail?"* — a nonzero rate means
+your grace period is shorter than your SMTP server's round trip.
+
+An interrupted send does **not** count a failed attempt, so a redeploy never marches mail toward its dead
+letter. `ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`; `TimeSpan.Zero` cancels immediately.
+
 ## Notes
 
 - **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a

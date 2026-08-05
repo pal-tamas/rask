@@ -21,6 +21,27 @@ public sealed class JobOptions
     /// <summary>How long completed jobs are kept before being purged. <see cref="TimeSpan.Zero"/> keeps them forever. Default 7 days.</summary>
     public TimeSpan RetentionPeriod { get; set; } = TimeSpan.FromDays(7);
 
+    /// <summary>
+    /// How long a job that is already running may keep running after the host is asked to stop.
+    /// <para>
+    /// On <c>SIGTERM</c> the processor immediately stops picking up <em>new</em> jobs, but the one already
+    /// in your handler is given this long to finish rather than being cancelled mid-call — so a job that
+    /// is halfway through a <c>SaveChangesAsync</c> completes instead of being torn in two.
+    /// </para>
+    /// <para>
+    /// A job that outlives the grace is cancelled and re-runs from the top on the next boot. It does
+    /// <b>not</b> count a failed attempt: a redeploy is not a failure, and counting it would march
+    /// never-failing work toward its dead letter at the cadence you deploy. Handlers must be idempotent
+    /// either way — there is no lease or claim column, so an interrupted job always re-runs whole.
+    /// </para>
+    /// <para>
+    /// Cannot exceed <c>HostOptions.ShutdownTimeout</c>: once that elapses the host stops waiting for
+    /// hosted services, so a grace longer than it silently does not happen. Default 5s;
+    /// <see cref="TimeSpan.Zero"/> cancels immediately.
+    /// </para>
+    /// </summary>
+    public TimeSpan ShutdownGracePeriod { get; set; } = TimeSpan.FromSeconds(5);
+
     /// <summary>The registered interval-recurring jobs.</summary>
     internal List<RecurringJobDefinition> Recurring { get; } = [];
 
@@ -63,6 +84,29 @@ public sealed class JobOptions
         if (RetentionPeriod < TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(RetentionPeriod), RetentionPeriod, "RetentionPeriod cannot be negative.");
+        }
+
+        ValidateShutdownGracePeriod(ShutdownGracePeriod);
+    }
+
+    /// <summary>
+    /// Range check for the shutdown grace. The upper bound is not pedantry:
+    /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)"/> throws above <see cref="int.MaxValue"/>
+    /// milliseconds, and it would throw from the shutdown path — the worst place to find out. Each
+    /// battery carries its own copy; they are independent packages that must not reference each other.
+    /// </summary>
+    private static void ValidateShutdownGracePeriod(TimeSpan value)
+    {
+        if (value < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ShutdownGracePeriod), value, "ShutdownGracePeriod cannot be negative (Zero cancels immediately).");
+        }
+
+        if (value.TotalMilliseconds > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ShutdownGracePeriod), value, $"ShutdownGracePeriod must be at most {TimeSpan.FromMilliseconds(int.MaxValue)}.");
         }
     }
 

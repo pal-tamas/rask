@@ -27,6 +27,16 @@ public sealed class RecordingMailSender : IMailSender
     /// <summary>Fail every attempt.</summary>
     public bool AlwaysFail { get; set; }
 
+    /// <summary>
+    /// When set, the send parks on <see cref="Release"/> instead of completing — standing in for an SMTP
+    /// conversation still in flight when the host is asked to stop. <see cref="Entered"/> signals that the
+    /// send has actually begun, so a test never races the poll loop.
+    /// </summary>
+    public TaskCompletionSource? Release { get; set; }
+
+    /// <summary>Signalled once a gated send has started. Pairs with <see cref="Release"/>.</summary>
+    public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     public IReadOnlyList<OutgoingMail> Sent
     {
         get { lock (_sent) { return _sent.ToArray(); } }
@@ -34,7 +44,7 @@ public sealed class RecordingMailSender : IMailSender
 
     public int Attempts => Volatile.Read(ref _attempts);
 
-    public Task SendAsync(OutgoingMail mail, CancellationToken cancellationToken = default)
+    public async Task SendAsync(OutgoingMail mail, CancellationToken cancellationToken = default)
     {
         var n = Interlocked.Increment(ref _attempts);
         if (AlwaysFail || n <= FailFirst)
@@ -42,8 +52,15 @@ public sealed class RecordingMailSender : IMailSender
             throw new InvalidOperationException("smtp boom");
         }
 
+        if (Release is { } gate)
+        {
+            Entered.TrySetResult();
+            // Observes the token, so a grace expiry actually cancels the send — a sender that ignored its
+            // token could not be cancelled at all and would prove nothing about the grace period.
+            await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         lock (_sent) { _sent.Add(mail); }
-        return Task.CompletedTask;
     }
 }
 
