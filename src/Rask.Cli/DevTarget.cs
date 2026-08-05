@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli;
@@ -157,13 +158,63 @@ internal sealed record DevTarget(
 
         if (text.Contains("Microsoft.NET.Sdk.Web", StringComparison.Ordinal))
         {
-            // A Server host that references a sibling .Client project is the wasm-hosted shape.
-            return text.Contains(".Client", StringComparison.Ordinal)
+            // A Server host that references a sibling .Client project is the wasm-hosted shape. The
+            // name check is what `rask new` produces, and it costs no I/O — but it is only a naming
+            // convention, so fall back to actually reading the referenced projects. Without that,
+            // a host whose client is not called *.Client (the repo's own Rask.Example.Wasm.Host among
+            // them) is misread as a plain Server and never gets the WASM dev bundle.
+            return text.Contains(".Client", StringComparison.Ordinal) || ReferencesWasmProject(fileSystem, csproj, text)
                 ? DevTemplateKind.WasmHosted
                 : DevTemplateKind.Server;
         }
 
         return DevTemplateKind.Unknown;
+    }
+
+    /// <summary>
+    ///     Does any <c>ProjectReference</c> point at a WASM client? Reads each referenced csproj and looks
+    ///     for the WebAssembly SDK or Rask's own <c>&lt;RaskWasm&gt;</c> marker — the same marker
+    ///     <c>Rask.Wasm.Hosting.targets</c> probes for at build time, so the CLI and the build agree on
+    ///     what a wasm-hosted solution is.
+    /// </summary>
+    private static bool ReferencesWasmProject(IFileSystem fileSystem, string csprojPath, string text)
+    {
+        var hostDirectory = Path.GetDirectoryName(Path.GetFullPath(csprojPath));
+        if (hostDirectory is null)
+        {
+            return false;
+        }
+
+        foreach (Match match in Regex.Matches(text, @"<ProjectReference\s+Include\s*=\s*""([^""]+)"""))
+        {
+            var relative = match.Groups[1].Value.Replace('\\', Path.DirectorySeparatorChar);
+            var referenced = Path.GetFullPath(Path.Combine(hostDirectory, relative));
+            if (!fileSystem.FileExists(referenced))
+            {
+                continue;
+            }
+
+            var referencedText = ReadOrEmpty(fileSystem, referenced);
+            if (referencedText.Contains("Microsoft.NET.Sdk.WebAssembly", StringComparison.Ordinal)
+                || referencedText.Contains("<RaskWasm>true</RaskWasm>", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string ReadOrEmpty(IFileSystem fileSystem, string path)
+    {
+        try
+        {
+            return fileSystem.ReadAllText(path);
+        }
+        catch (IOException)
+        {
+            return string.Empty;
+        }
     }
 
     /// <summary>

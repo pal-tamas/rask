@@ -181,6 +181,46 @@ public sealed class DevTargetTests
     }
 
     /// <summary>
+    ///     A wasm-hosted host is recognised by what it <em>references</em>, not by what it is called.
+    ///     The <c>.Client</c> naming convention is what <c>rask new</c> emits, but the repo's own
+    ///     <c>Rask.Example.Wasm.Host</c> references <c>Rask.Example.Wasm</c> — so a name-only check reads
+    ///     it as a plain Server and it never gets the WASM dev bundle (and therefore never hot-reloads).
+    /// </summary>
+    [Fact]
+    public void A_host_referencing_a_wasm_client_is_wasm_hosted_even_without_the_Client_suffix()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/app/App.Host.csproj", """
+            <Project Sdk="Microsoft.NET.Sdk.Web">
+              <ItemGroup>
+                <ProjectReference Include="../App.Wasm/App.Wasm.csproj" ReferenceOutputAssembly="false"/>
+              </ItemGroup>
+            </Project>
+            """);
+        fs.Seed("/App.Wasm/App.Wasm.csproj", """
+            <Project Sdk="Microsoft.NET.Sdk.WebAssembly"><PropertyGroup><RaskWasm>true</RaskWasm></PropertyGroup></Project>
+            """);
+
+        Assert.Equal(DevTemplateKind.WasmHosted, DevTarget.Detect(fs, "/app", null)!.Kind);
+    }
+
+    [Fact]
+    public void A_web_host_referencing_no_wasm_client_stays_a_server()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/app/App.csproj", """
+            <Project Sdk="Microsoft.NET.Sdk.Web">
+              <ItemGroup>
+                <ProjectReference Include="../Lib/Lib.csproj"/>
+              </ItemGroup>
+            </Project>
+            """);
+        fs.Seed("/Lib/Lib.csproj", """<Project Sdk="Microsoft.NET.Sdk"></Project>""");
+
+        Assert.Equal(DevTemplateKind.Server, DevTarget.Detect(fs, "/app", null)!.Kind);
+    }
+
+    /// <summary>
     ///     The path handed to <c>dotnet watch</c> must have its symlinks resolved. Watch computes an
     ///     <b>empty</b> hot-reload delta — silently, with no error — when the project path traverses one,
     ///     so a developer working under a symlinked directory would get a <c>rask dev</c> that watches,

@@ -36,6 +36,20 @@ them until tagged releases begin.
   (`Microsoft.Data.Sqlite`); the alternative was requiring a `sqlite3` binary on the machine, a dependency
   we could neither pin nor install.
 
+### Added
+- **`rask dev` hot-reloads a wasm-hosted app.** WASM had no watch channel at all: the host serves its
+  client's *published* bundle, which a nested `dotnet publish` (an emscripten relink) rebuilt on every
+  save, and which is trimmed — and trimming folds `MetadataUpdater.IsSupported` to false, so an applied
+  update could never reach the browser session even if one arrived. Under `rask dev` the host now serves
+  the client's **build** output instead, read through its static-web-assets manifest (the build
+  `wwwroot/` holds only `_framework/`; the shell, `main.js`, `rask.wasm.js`, scoped-asset bundles and
+  RCL content live in other content roots). The nested publish disappears from the inner loop, the
+  bundle is untrimmed, and everything downstream was already wired — `WasmLiveSession` derives from the
+  same base as the Server one, so it already registers for hot reload and already repaints.
+  Opt out with `rask dev --no-hot-reload` or `--once`, both of which keep the published bundle.
+  `rask dev` also now recognises a wasm-hosted app by what it *references* rather than by a `.Client`
+  naming convention.
+
 ### Fixed
 - **Scoped CSS and scoped JS now work in apps built against the NuGet packages — they never had.** The
   generators read nothing but `@(AdditionalFiles)`, and the `**\*.css` / `**\*.js` globs that populate it
