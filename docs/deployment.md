@@ -49,6 +49,8 @@ Dockerfile below (override with `--dockerfile`).
   host's live containers on every deploy, so a second app never disturbs the first.
 - **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own
   reverse proxy / TLS in front — see the container sections below.
+- **One box, and how far it goes.** [Scaling](scaling.md) has the measured numbers — sessions held and
+  events served — plus where the wall actually is and what to do when you reach it.
 
 **Prerequisites:** the Docker CLI locally, and a host you can `ssh` into non-interactively with a key.
 That's it — **you never have to SSH in and prepare the box yourself**; see below. The host, domain, and

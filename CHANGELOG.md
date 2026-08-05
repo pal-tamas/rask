@@ -271,6 +271,19 @@ them until tagged releases begin.
   beside the existing live tail. Two modes rather than one merged view because the store's writer flushes on
   an interval — the newest lines are buffered but not yet on disk, and a merged view would quietly disagree
   with itself for a second at a time. Live remains the default and still reads nothing from disk.
+- **[`docs/scaling.md`](docs/scaling.md) — how far one box goes, measured rather than asserted.** The docs
+  said "one server runs the whole product" in several places and then never said what one server does. This
+  puts both numbers next to each other — sessions held and events served, each reproducible from a report
+  in this repo — and they turn out to have different shapes: in memory a 5-row page already costs 3× an
+  empty shell, while in throughput the two are within noise and the cost arrives later but harder. The
+  practical version: **look at your largest page before you look at your user count.**
+  It also states where the wall is, which is not the session count or the event rate but the single SQLite
+  writer, and what it takes to get past it. And it says plainly that `rask deploy` ships **no `--replicas`
+  flag** — every DB-backed pillar writes to the app's own database, so a second replica of a normal Rask
+  app is a corruption risk rather than a scaling step. Recorded in the roadmap's "not shipped" list next to
+  the other honest gaps. What did change: a session reconnecting to a host that never knew it is now
+  rebuilt rather than refused, so sticky routing is an optimisation for sessions — though uploads,
+  downloads and sign-in redeem still require it.
 - **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
   backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
   for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,
