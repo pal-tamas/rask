@@ -93,7 +93,8 @@ Add pages and components to taste — `rask generate` is the fast path.
 | `--outbox` | A transactional outbox for durable domain-event delivery. Also turns **off** the in-process publisher, so events aren't delivered twice. Implies `--data`. |
 | `--push` | Server-sent Web Push (VAPID) with `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` and a subscription store. Implies `--pwa`. |
 | `--snapshots` | Scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup `--data` already wires. Implies `--data`. |
-| `--ops` | An [operator dashboard](dashboard.md) at `/_ops` over every battery's table — queue depth, dead letters and the error behind each, a log tail, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
+| `--logs` | A [durable log store](logging.md) in a SQLite file of its own, so the application log survives a restart — buffered off the request thread, with retention by age and row count. The **only** battery that does *not* imply `--data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
+| `--ops` | An [operator dashboard](dashboard.md) at `/_ops` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
 | `--all-batteries` | Every battery above — the full One Person Framework stack in one app. |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
 | `--host` | `local` (default) or `server` — which native mode to scaffold (the `native` template only). |

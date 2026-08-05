@@ -53,6 +53,7 @@ public sealed class ServerBatteriesTests
         Assert.True(all.Outbox);
         Assert.True(all.Push);
         Assert.True(all.Snapshots);
+        Assert.True(all.Logs);
         Assert.True(all.Ops);
         Assert.True(all.Data);
         Assert.True(all.Cqrs);
@@ -69,6 +70,21 @@ public sealed class ServerBatteriesTests
         Assert.True(ops.Ops);
         Assert.True(ops.Data);
         Assert.True(ops.Cqrs);
+    }
+
+    [Fact]
+    public void Logs_does_not_imply_data_because_the_store_owns_its_own_file()
+    {
+        // The exception to the rule every other battery follows. AddRaskLogging takes a connection string
+        // rather than a TContext, so an app with no database at all can still keep its log — and pulling
+        // --data in behind it would scaffold an EF Core layer nobody asked for.
+        var logs = NewCommand.ToBatteries(["logs"]).Normalized();
+
+        Assert.True(logs.Logs);
+        Assert.False(logs.Data);
+        Assert.False(logs.Cqrs);
+        Assert.False(logs.AnyDbPillar);
+        Assert.False(logs.AnySqliteOps);
     }
 
     [Fact]

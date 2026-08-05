@@ -114,6 +114,11 @@ internal static partial class ProjectGenerator
             packages.Add("Rask.SQLite.Snapshots");
         }
 
+        if (batteries.Logs)
+        {
+            packages.Add("Rask.Logging");
+        }
+
         if (batteries.Push)
         {
             packages.Add("Rask.WebPush");
@@ -235,6 +240,11 @@ internal static partial class ProjectGenerator
         if (batteries.AnySqliteOps)
         {
             sb.Append("using Rask.SQLite.Snapshots;\n");
+        }
+
+        if (batteries.Logs)
+        {
+            sb.Append("using Rask.Logging;\n");
         }
 
         if (batteries.Ops)
@@ -441,6 +451,33 @@ internal static partial class ProjectGenerator
                 """);
         }
 
+        if (batteries.Logs)
+        {
+            // Litestream only replicates a SQLite file, so naming it here on a client-server database
+            // would point someone at a backup path that does not exist for them.
+            var logBackupCaveat = batteries.Database.IsFileBased
+                ? "`rask db backup` or Litestream"
+                : "your database's backups";
+            Block(sb, """
+                // The application log, kept in a database of its own so it survives the restart that hid it.
+                // This registers an ILoggerProvider, so it captures exactly what every other sink sees; log
+                // calls never wait on the disk (entries are buffered and written in batches), and retention
+                // drops them by age and by row count.
+                //
+                // A SEPARATE FILE, on purpose — unlike the other database-backed batteries this one does not
+                // map onto AppDbContext. Log lines arrive at machine rates, and the line you most want is the
+                // one written while a transaction is failing, which on the app's context would roll back with
+                // it. The trade-off: this file is NOT covered by @@LOGBACKUP@@, and log lines
+                // can contain secrets — treat it as sensitive and keep it on the same persistent volume as
+                // your database (`rask deploy` sets ConnectionStrings:Logs to a path on that volume).
+                // Tip: an EF Core app logs every SQL command at Information, which will dominate the store
+                // on the default settings. Either raise the floor for that category in Logging:LogLevel, or
+                // skip it here:  o => o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database")
+                builder.Services.AddRaskLogging(
+                    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+                """.Replace("@@LOGBACKUP@@", logBackupCaveat, StringComparison.Ordinal));
+        }
+
         if (batteries.Push)
         {
             Block(sb, """
@@ -471,8 +508,9 @@ internal static partial class ProjectGenerator
         {
             Block(sb, """
                 // An operator dashboard at /_ops over every battery's table: queue depth, dead letters and the
-                // errors behind them, cache contents, a log tail, and how this database is configured. A panel
-                // only appears for a battery this app actually registered.
+                // errors behind them, cache contents, the log, and how this database is configured. A panel
+                // only appears for a battery this app actually registered — the Logs page keeps a live tail
+                // in memory, and gains a searchable History over the stored log when Rask.Logging is on.
                 builder.Services.AddRaskDashboard<AppDbContext>();
                 """);
 
@@ -662,7 +700,11 @@ internal static partial class ProjectGenerator
               // Quieter than development: request logging on a live site is mostly noise, and the
               // Rask.Server meter + activity source carry the operational signal instead.
               "Default": "Warning",
-              "Microsoft.AspNetCore": "Error"
+              "Microsoft.AspNetCore": "Error",
+              // Kept at Information deliberately: these are the start/stop lines, and knowing exactly
+              // when the app last restarted is one of the things a durable log (--logs) exists to
+              // answer. Two lines per lifetime is not noise.
+              "Microsoft.Hosting.Lifetime": "Information"
             }
           }
 

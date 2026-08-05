@@ -163,6 +163,8 @@ public static class GuideCatalog
             "bi-universal-access", "Integration"),
         new("dashboard", "Dashboard", "An operator dashboard over every battery's table.",
             "bi-speedometer2", "Integration"),
+        new("logging", "Logging", "A durable log store in a database of its own.",
+            "bi-journal-text", "Integration"),
         new("observability", "Observability", "Logging, tracing, diagnostics.",
             "bi-activity", "Integration"),
         new("configuration", "Configuration", "App configuration and settings.",

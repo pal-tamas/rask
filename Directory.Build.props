@@ -150,5 +150,7 @@
           Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Mail\build\Rask.Mail.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Cache\build\Rask.Cache.props"
           Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Cache\build\Rask.Cache.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Logging\build\Rask.Logging.props"
+          Condition=" '$(_RaskExampleOpfUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Logging\build\Rask.Logging.props') "/>
 
 </Project>

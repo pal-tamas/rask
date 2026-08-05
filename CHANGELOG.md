@@ -244,6 +244,33 @@ them until tagged releases begin.
   about: both processors read the same `RecurringJobState`, both saw it due, and both enqueued — and the two
   `LastEnqueuedAt` writes raced with no concurrency token, so neither lost. The result was N× every
   recurring job, for as long as the app ran. The tick is now claimed with a compare-and-swap on due-ness.
+- **`Rask.Logging` — the application log, kept in a database of its own.** The failures that matter most
+  leave no row in any table: Litestream exiting, a job type that won't deserialize, a handler that threw on
+  the one request that mattered. Those are log lines, and on a single box they lived in a container's stdout
+  that the next restart took with it — the dashboard's tail said so itself, in as many words: *"a tail, not
+  a log store"*. `builder.Services.AddRaskLogging("Data Source=logs.db")` is the whole setup. It registers a
+  standard `ILoggerProvider`, so it captures exactly what every other sink sees, and the schema is created on
+  first use, so there is no migration to add. `rask new --logs` scaffolds it.
+  - **A log call never waits on the disk.** Entries go into a bounded in-memory channel and a background
+    writer batches them out on an interval; when the buffer is full the entry is *dropped* and counted on
+    `rask.logs.dropped`, rather than queued unbounded or blocked on. A batch lost to a failed write is
+    counted the same way, so that one number stays the honest answer to *"is the log I'm reading complete?"*
+    Shutdown drains what's buffered under a bounded timeout — the lines just before a stop are the ones most
+    worth keeping.
+  - **Retention by age *and* row count**, both on by default (14 days / 100,000 entries), swept in pages of
+    1,000 so the write lock is never held for a whole sweep. Age alone doesn't bound the disk: a log storm
+    fills it well inside the window.
+  - **Its own SQLite file, deliberately** — the one battery that doesn't map onto your `DbContext`, and the
+    one flag that doesn't imply `--data`. Log lines arrive at machine rates and would put a high-frequency
+    writer on the same single write lock the request path already contends for; and the most valuable line
+    is the one written *while a transaction is failing*, which on the app's context would roll back with the
+    failure. The trade-off is stated rather than hidden: `logs.db` is **not** covered by `rask db backup` or
+    Litestream, and log lines can contain secrets. `rask deploy` points it at the same mounted volume.
+- **The dashboard's Logs page gained a History mode.** With `Rask.Logging` installed, `/_ops/logs` offers a
+  paged, searchable view of the stored log (level, category, and full-text over the message and exception)
+  beside the existing live tail. Two modes rather than one merged view because the store's writer flushes on
+  an interval — the newest lines are buffered but not yet on disk, and a merged view would quietly disagree
+  with itself for a second at a time. Live remains the default and still reads nothing from disk.
 - **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
   backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
   for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,

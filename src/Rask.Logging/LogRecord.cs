@@ -1,0 +1,65 @@
+using Microsoft.Extensions.Logging;
+
+namespace Rask.Logging;
+
+/// <summary>One stored log entry.</summary>
+/// <param name="Id">
+/// The store's monotonic row id — the stable key for a list row, since timestamps collide. Zero on an entry
+/// that has not been persisted yet (the value the logger hands to the writer); the store assigns the real id.
+/// </param>
+/// <param name="Timestamp">When it was logged (UTC).</param>
+/// <param name="Level">Its severity.</param>
+/// <param name="Category">The logger category, e.g. <c>Rask.Live</c>.</param>
+/// <param name="EventId">The <see cref="Microsoft.Extensions.Logging.EventId"/>'s numeric id, or 0.</param>
+/// <param name="Message">The formatted message.</param>
+/// <param name="Exception">The exception's <c>ToString()</c>, if one was attached.</param>
+public sealed record LogRecord(
+    long Id,
+    DateTimeOffset Timestamp,
+    LogLevel Level,
+    string Category,
+    int EventId,
+    string Message,
+    string? Exception);
+
+/// <summary>
+/// A filter over the stored log. Every property is optional; leaving them all unset asks for the newest page
+/// of everything.
+/// </summary>
+public sealed record LogQuery
+{
+    /// <summary>Only entries at or above this level.</summary>
+    public LogLevel? MinimumLevel { get; init; }
+
+    /// <summary>Only entries whose category contains this substring (case-insensitive).</summary>
+    public string? Category { get; init; }
+
+    /// <summary>Only entries whose message or exception contains this substring (case-insensitive).</summary>
+    public string? Search { get; init; }
+
+    /// <summary>Only entries logged at or after this instant.</summary>
+    public DateTimeOffset? From { get; init; }
+
+    /// <summary>Only entries logged at or before this instant.</summary>
+    public DateTimeOffset? To { get; init; }
+
+    /// <summary>The 1-based page number. Values below 1 are treated as 1.</summary>
+    public int Page { get; init; } = 1;
+
+    /// <summary>How many entries a page holds. Default 50.</summary>
+    public int PageSize { get; init; } = 50;
+}
+
+/// <summary>One page of query results, plus the total the filter matched.</summary>
+/// <param name="Entries">The matching entries, newest first.</param>
+/// <param name="TotalCount">How many entries match the filter in total, across every page.</param>
+/// <param name="Page">The 1-based page these entries came from.</param>
+/// <param name="PageSize">The page size the query ran with.</param>
+public sealed record LogPage(IReadOnlyList<LogRecord> Entries, long TotalCount, int Page, int PageSize)
+{
+    /// <summary>An empty page, for a store with nothing in it yet.</summary>
+    public static LogPage Empty(int page, int pageSize) => new([], 0, page, pageSize);
+
+    /// <summary>How many pages the filter spans, at least 1.</summary>
+    public int PageCount => TotalCount <= 0 ? 1 : (int)((TotalCount + PageSize - 1) / PageSize);
+}
