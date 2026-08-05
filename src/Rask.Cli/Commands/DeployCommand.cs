@@ -48,10 +48,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     /// <summary>The default path the HTTP readiness probe hits — the endpoint <c>rask new</c> scaffolds.</summary>
     internal const string DefaultHealthPath = "/health";
 
-    /// <summary>Seconds a graceful <c>docker stop</c> waits after SIGTERM before SIGKILL — long enough for a
-    /// SQLite WAL checkpoint and, when one is configured, the app's Litestream flush (whose own shutdown
-    /// grace is 10s).</summary>
-    internal const int StopTimeoutSeconds = 20;
+    /// <summary>Seconds a graceful <c>docker stop</c> waits after SIGTERM before SIGKILL. The top rung of
+    /// <see cref="ShutdownBudget"/> — see there for the whole ladder and why each rung is the size it is.</summary>
+    internal const int StopTimeoutSeconds = ShutdownBudget.DockerStopSeconds;
 
     /// <summary>
     /// The tag the running app is built to, and the one holding the version it replaced.
@@ -77,6 +76,10 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     internal TimeSpan ReadinessDelay { get; set; } = TimeSpan.FromSeconds(2);
 
     internal int ReadinessAttempts { get; set; } = 10;
+
+    /// <summary>How long to wait after the proxy has been pointed at the new color before stopping the old
+    /// one — see <see cref="ShutdownBudget.PreStopDrainSeconds"/>. Overridden to zero in tests.</summary>
+    internal TimeSpan PreStopDrainDelay { get; set; } = TimeSpan.FromSeconds(ShutdownBudget.PreStopDrainSeconds);
 
     public override string Name => "deploy";
 
@@ -509,6 +512,20 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         {
             Console.WriteErrorLine("Caddy reload failed — the new container is running but not yet routed. Check `docker -H ssh://" + host + " logs rask-caddy`.", ConsoleStyle.Error);
             return 1;
+        }
+
+        // Let the proxy finish with the old color before pulling it out from under itself. `caddy reload`
+        // returns as soon as the admin API applies the config, but Caddy still holds pooled keep-alive
+        // connections to the old upstream — a request it is about to write onto one of those when SIGTERM
+        // lands gets a broken connection, and with the default lb_try_duration of 0 it is not retried, i.e.
+        // a 502 to a real user. There used to be no gap here at all.
+        //
+        // Deliberately NOT sized for live sessions: a WebSocket to the old color survives until the app
+        // closes it, so the SIGTERM is what triggers the client's move to the new container. Draining those
+        // gracefully is the app's job (RaskServerOptions.ShutdownDrainTimeout), not this pause's.
+        if (PreStopDrainDelay > TimeSpan.Zero)
+        {
+            await Task.Delay(PreStopDrainDelay, cancellationToken).ConfigureAwait(false);
         }
 
         // Traffic is on the new color: retire the old container(s) of this app. Graceful stop first so

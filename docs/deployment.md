@@ -177,8 +177,38 @@ before `SIGKILL`.
 
 Within that budget the app closes admission, tells connected browsers it is going away, lets in-flight
 HTTP requests and event handlers finish, closes each WebSocket with a proper `1001` handshake, and
-checkpoints SQLite. These are budgets, not guarantees: work that outlives its budget is cancelled, and
-`rask.shutdown.sessions.abandoned` (plus a warning in the logs) tells you when that happened.
+checkpoints SQLite.
+
+### The shutdown ladder
+
+Every rung fits inside the one above it, and hosted services stop **concurrently** — so each pillar's own
+grace overlaps the others instead of queueing behind them:
+
+| Rung | Budget | Set by |
+| --- | --- | --- |
+| `docker stop -t` before `SIGKILL` | 20s | `rask deploy` |
+| App `HostOptions.ShutdownTimeout` | 15s | scaffolded `Program.cs` |
+| Live-session drain | 5s | `RaskServerOptions.ShutdownDrainTimeout` |
+| Litestream final WAL flush | 10s | `LitestreamOptions.ShutdownGracePeriod` |
+| In-flight email send | 10s | `MailOptions.ShutdownGracePeriod` |
+| In-flight job / outbox message | 5s | `Job`/`OutboxOptions.ShutdownGracePeriod` |
+
+> **`ServicesStopConcurrently` is load-bearing, not a micro-optimisation.** Stopped one at a time — the
+> .NET default — those inner graces *sum*: 10 + 10 + 5 + 5 = 30s against a 15s budget, so whichever hosted
+> service stops last gets none of its grace at all, decided by the order of your `AddRaskX` calls in
+> `Program.cs`. Stopped concurrently they overlap at 10s, leaving real headroom. The scaffold sets it
+> alongside the timeout for exactly this reason.
+
+These are budgets, not guarantees. Work that outlives its rung is cancelled: live sessions are aborted
+(`rask.shutdown.sessions.abandoned`), and a job, outbox message or email is re-run from the top on the next
+boot without counting a failed attempt (`rask.{jobs,outbox,mail}.interrupted`). Both are logged as warnings,
+so a budget that is too short for your app says so rather than silently degrading.
+
+One honest caveat of stopping concurrently: Litestream stops alongside a job that is still writing inside
+*its* grace, so the very last rows such a job writes may not reach the replica. Sequential stop wouldn't
+actually protect against that either — the order is reverse-registration, so nothing guarantees Litestream
+is last today — and the exposure is narrow, since the Docker volume survives redeploys and Litestream only
+matters for losing the machine itself.
 
 ### Your users stay signed in across a deploy
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Cli;
 using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
@@ -63,8 +64,13 @@ public sealed class DeployCommandTests
 
     [Fact]
     public void Stop_arguments_use_a_graceful_timeout() =>
+        // Built from the ladder, not a literal, so the deploy's grace and the budget the scaffold hands the
+        // app cannot drift apart.
         Assert.Equal(
-            ["-H", "ssh://deploy@box", "stop", "-t", "20", "shop-blue"],
+            [
+                "-H", "ssh://deploy@box", "stop", "-t",
+                ShutdownBudget.DockerStopSeconds.ToString(CultureInfo.InvariantCulture), "shop-blue"
+            ],
             DeployCommand.BuildStopArguments("deploy@box", "shop-blue"));
 
     [Theory]
@@ -137,7 +143,13 @@ public sealed class DeployCommandTests
     private static DeployCommand Create(FakeFileSystem fs, FakeProcessRunner runner, StringConsole console)
     {
         fs.Seed("/proj/Dockerfile", "FROM scratch");
-        return new DeployCommand(console, fs, runner, WorkingDir) { ReadinessDelay = TimeSpan.Zero, ReadinessAttempts = 1 };
+        return new DeployCommand(console, fs, runner, WorkingDir)
+        {
+            ReadinessDelay = TimeSpan.Zero,
+            ReadinessAttempts = 1,
+            // Zeroed so the suite doesn't actually sleep; the real default is asserted separately.
+            PreStopDrainDelay = TimeSpan.Zero,
+        };
     }
 
     /// <summary>
@@ -390,7 +402,8 @@ public sealed class DeployCommandTests
         var runs = runner.Invocations.Where(i => !i.Captured).ToList();
         int StartNew = runs.FindIndex(i => i.Arguments.Contains("run") && i.Arguments.Contains("demo-green"));
         int Reload = runs.FindIndex(i => i.Arguments.Contains("reload"));
-        int StopOld = runs.FindIndex(i => i.Arguments is ["-H", "ssh://deploy@box", "stop", "-t", "20", "demo-blue"]);
+        int StopOld = runs.FindIndex(i =>
+            i.Arguments.SequenceEqual(DeployCommand.BuildStopArguments("deploy@box", "demo-blue")));
         int RemoveOld = runs.FindIndex(i => i.Arguments is ["-H", "ssh://deploy@box", "rm", "-f", "demo-blue"]);
 
         Assert.True(StartNew >= 0 && Reload >= 0 && StopOld >= 0 && RemoveOld >= 0);
@@ -399,6 +412,19 @@ public sealed class DeployCommandTests
         // Graceful stop (SIGTERM → Litestream flush + WAL checkpoint) before the force-remove, so the last
         // writes reach the replica instead of being SIGKILLed.
         Assert.True(StopOld < RemoveOld, "the old container is stopped gracefully before it's removed");
+    }
+
+    [Fact]
+    public void The_pre_stop_pause_defaults_to_the_ladder_value()
+    {
+        // The suite zeroes this so it doesn't sleep, which is exactly how a test-only default leaks into
+        // production unnoticed — so assert the real one on a plainly-constructed command.
+        var command = new DeployCommand(new StringConsole(), new FakeFileSystem(), new FakeProcessRunner(), WorkingDir);
+
+        Assert.Equal(TimeSpan.FromSeconds(ShutdownBudget.PreStopDrainSeconds), command.PreStopDrainDelay);
+        Assert.True(command.PreStopDrainDelay > TimeSpan.Zero,
+            "without a pause, a request Caddy is writing onto a pooled connection to the old color when "
+            + "SIGTERM lands becomes a 502 — lb_try_duration is 0, so it is not retried");
     }
 
     [Fact]

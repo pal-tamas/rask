@@ -1,9 +1,43 @@
+using System.Globalization;
+
 namespace Rask.Cli.Scaffolding;
 
 // Template content shared by more than one template, emitted verbatim with the Company.RaskServer
 // namespace token replaced centrally (see ProjectGenerator.Materialize).
 internal static partial class ProjectGenerator
 {
+    /// <summary>
+    ///     The <c>Program.cs</c> shutdown block, shared by every web template and derived from
+    ///     <see cref="ShutdownBudget"/> rather than hardcoded — the app's budget and the deploy's grace used
+    ///     to be two literals coupled only by a comment, free to drift apart silently.
+    /// </summary>
+    private static string ShutdownBudgetBlock()
+    {
+        // Pre-converted so the interpolation below formats nothing — the raw literal already contains the
+        // braces of a lambda body, which is why it is $$"""…""" with {{…}} holes.
+        var dockerStop = ShutdownBudget.DockerStopSeconds.ToString(CultureInfo.InvariantCulture);
+        var hostShutdown = ShutdownBudget.HostShutdownSeconds.ToString(CultureInfo.InvariantCulture);
+
+        return $$"""
+
+        // Finish shutting down before the container runtime loses patience. `rask deploy` sends SIGTERM and
+        // SIGKILLs {{dockerStop}}s later, so a budget under that is what lets in-flight requests drain, live
+        // sessions close cleanly, and a SQLite WAL checkpoint / Litestream flush complete instead of being
+        // killed mid-write.
+        //
+        // ServicesStopConcurrently matters as much as the number: stopped one at a time (the .NET default)
+        // each hosted service's own shutdown grace — Litestream's WAL flush, an in-flight email send, a
+        // running job — SUMS inside this one budget, and whichever stops last gets none of it, decided by
+        // the order of your AddRaskX calls. Stopped together they overlap instead.
+        builder.Services.Configure<HostOptions>(options =>
+        {
+            options.ShutdownTimeout = TimeSpan.FromSeconds({{hostShutdown}});
+            options.ServicesStopConcurrently = true;
+        });
+
+        """.TrimStart('\n');
+    }
+
     // The app shell every page renders through (RASK021), living in Features/Shared/ — the cross-cutting
     // bucket a new project shares across its feature slices. Styled with Bootstrap so there is no scoped
     // .css to pair. The welcome home page is its own Features/Home slice (see HomePageCs).
