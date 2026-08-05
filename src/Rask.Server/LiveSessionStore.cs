@@ -28,6 +28,9 @@ public sealed class LiveSessionStore : IAsyncDisposable
     // on a failed build), so a concurrent GET burst can never exceed MaxSessions.
     private int _liveCount;
 
+    // 1 once DisposeAsync has run. See DisposeAsync for why it must be once-only.
+    private int _disposed;
+
     public LiveSessionStore(
         IServiceScopeFactory scopeFactory,
         IHostApplicationLifetime? lifetime = null,
@@ -107,6 +110,14 @@ public sealed class LiveSessionStore : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // Runs once. The store is a DI singleton, so the container disposes it — and a host or a test that
+        // disposes it too would otherwise reach a Cancel() on an already-disposed token source. Salvaged
+        // from #572, which found it; the rest of that PR is superseded by this drain.
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+        {
+            return;
+        }
+
         CancelAllPending();
         foreach (var key in _sessions.Keys.ToArray())
         {

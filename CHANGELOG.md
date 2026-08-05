@@ -68,6 +68,8 @@ them until tagged releases begin.
   Budget via `RaskServerOptions.ShutdownDrainTimeout` (default 5s; `Zero` restores the old abort), which
   must fit inside `HostOptions.ShutdownTimeout`; a startup warning says so when it doesn't, and
   `rask.shutdown.sessions.abandoned` counts anything still connected when the budget ran out.
+  `LiveSessionStore.DisposeAsync` also became idempotent: the store is a DI singleton, so a host or a test
+  that disposed it *as well as* the container reached `Cancel()` on an already-disposed token source.
   The load-bearing change is a one-line token substitution: the socket's cancellation token now derives
   from the drain's hard deadline rather than from `ApplicationStopping`, which is what makes it possible
   to send anything at all — including the shutdown frame — after the stop signal arrives.

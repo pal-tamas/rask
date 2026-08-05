@@ -97,6 +97,22 @@ public class LiveSessionStoreTests
         Assert.Equal(0, store.Count);
     }
 
+    // The store is a DI singleton, so the container disposes it — and a host or a test that disposes it
+    // as well used to reach Cancel() on an already-disposed token source. A second dispose must be inert,
+    // including with a pending removal outstanding, which is what owns that token source.
+    [Fact]
+    public async Task DisposeAsync_IsIdempotent()
+    {
+        var store = NewStore();
+        var session = store.Create(_ => new BasicComponent());
+        store.ScheduleRemoval(session.Id, TimeSpan.FromMinutes(5));
+
+        await store.DisposeAsync();
+        await store.DisposeAsync();
+
+        Assert.Equal(0, store.Count);
+    }
+
     private static LiveSessionStore NewStore()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
