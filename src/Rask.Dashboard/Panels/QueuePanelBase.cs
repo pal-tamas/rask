@@ -90,6 +90,76 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         return (rows, total);
     }
 
+    public Task<int> RetryAsync(long id, CancellationToken cancellationToken) =>
+        RetryWhereAsync(e => EF.Property<long>(e, "Id") == id, cancellationToken);
+
+    public Task<int> RetryAllAsync(CancellationToken cancellationToken) =>
+        RetryWhereAsync(_ => true, cancellationToken);
+
+    public async Task<int> PurgeProcessedAsync(TimeSpan olderThan, CancellationToken cancellationToken)
+    {
+        if (!IsAvailable)
+        {
+            return 0;
+        }
+
+        var cutoff = timeProvider.GetUtcNow().UtcDateTime - olderThan;
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        // ProcessedAt IS NOT NULL is the whole guard: outstanding work and dead letters are both
+        // untouched, whatever cutoff the caller passes.
+        return await db.Set<TEntity>()
+            .Where(e => EF.Property<DateTime?>(e, "ProcessedAt") != null
+                        && EF.Property<DateTime?>(e, "ProcessedAt") < cutoff)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<int> DeleteAsync(long id, CancellationToken cancellationToken)
+    {
+        if (!IsAvailable)
+        {
+            return 0;
+        }
+
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        // Outstanding only. Deleting a processed row would erase the record of work that actually
+        // happened, which is the one thing an operator can never undo.
+        return await db.Set<TEntity>()
+            .Where(e => EF.Property<long>(e, "Id") == id && EF.Property<DateTime?>(e, "ProcessedAt") == null)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    // The retry guard is the inverse of the drain query, so it can only ever match rows the processor has
+    // already given up on — a row in flight is invisible to it, which is what makes this safe to run
+    // against a live queue with no coordination.
+    private async Task<int> RetryWhereAsync(
+        Expression<Func<TEntity, bool>> scope, CancellationToken cancellationToken)
+    {
+        if (!IsAvailable)
+        {
+            return 0;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var max = MaxAttempts;
+        var runAt = RunAtProperty;
+
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        return await db.Set<TEntity>()
+            .Where(scope)
+            .Where(e => EF.Property<DateTime?>(e, "ProcessedAt") == null && EF.Property<int>(e, "Attempts") >= max)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(e => EF.Property<int>(e, "Attempts"), 0)
+                    .SetProperty(e => EF.Property<DateTime>(e, runAt), now)
+                    .SetProperty(e => EF.Property<string?>(e, "Error"), (string?)null),
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     private Task<int> CountAsync(TContext db, QueueFilter filter, DateTime now, CancellationToken ct) =>
         Filter(db.Set<TEntity>(), filter, now).CountAsync(ct);
 

@@ -64,6 +64,7 @@ public sealed class DashboardLayout(
         }
 
         yield return NavLink(Routes.CachePage(), "Cache", BsIconName.Archive, exact: false);
+        yield return NavLink(Routes.LogsPage(), "Logs", BsIconName.ListUl, exact: false);
         yield return NavLink(Routes.SystemPage(), "System", BsIconName.HddStack, exact: false);
     }
 

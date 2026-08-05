@@ -61,9 +61,10 @@ public readonly record struct QueueCounts(int Due, int Delayed, int Failed, int 
 }
 
 /// <summary>
-/// A queue the dashboard can show. Implemented once per battery; the page never names an entity type.
+/// A queue the dashboard can show and act on. Implemented once per battery; the page never names an
+/// entity type.
 /// </summary>
-public interface IQueuePanel
+public interface IQueuePanel : IQueueActions
 {
     /// <summary>URL-safe identity, e.g. <c>jobs</c>. Also the route segment.</summary>
     string Slug { get; }
