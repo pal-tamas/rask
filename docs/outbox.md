@@ -64,7 +64,10 @@ Add a migration for the new table before running — `rask db add AddOutbox && r
   `OutboxMessage` rows on the same context (atomic with the change).
 - **`OutboxProcessor<TContext>`** — a hosted `BackgroundService` that polls the table on `PollInterval`,
   publishes the oldest unprocessed batch through `IDispatcher`, and stamps `ProcessedAt` (or records the
-  error + attempt count, retrying up to `MaxAttempts`). A failing handler never crashes the app.
+  error + attempt count, retrying up to `MaxAttempts`). A failing handler never crashes the app, and neither
+  does a failing poll — a transient database error is logged and retried on the next one. Each message's
+  outcome is saved on its own, so a row edited or deleted underneath the drain costs that one row rather than
+  re-publishing everything the batch had already delivered.
 - **The `Rask.Outbox` source generator** registers every `IOutboxEvent` type (name → CLR type) at module
   load, so the processor rehydrates a stored message with no runtime `Type.GetType` or assembly scanning.
 

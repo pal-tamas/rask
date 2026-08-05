@@ -24,6 +24,14 @@ public sealed class JobOptions
     /// <summary>The registered interval-recurring jobs.</summary>
     internal List<RecurringJobDefinition> Recurring { get; } = [];
 
+    /// <summary>
+    /// The registered interval-recurring jobs, in registration order — the schedule an operator or an ops
+    /// dashboard reads to answer "what is supposed to run, and how often?". Pair each entry with the
+    /// <see cref="RecurringJobState"/> row of the same <see cref="RecurringJobDefinition.Name"/> to see when it
+    /// last fired, and call <see cref="RecurringJobDefinition.Factory"/> to enqueue an off-schedule run.
+    /// </summary>
+    public IReadOnlyList<RecurringJobDefinition> RecurringJobs => Recurring;
+
     /// <summary>Validates the option values (called at registration, so a bad value fails fast rather than tearing down the host later).</summary>
     internal void Validate()
     {
@@ -103,4 +111,7 @@ public sealed class JobOptions
 }
 
 /// <summary>A registered interval-recurring job: its durable name, cadence, and a factory for each run.</summary>
-internal sealed record RecurringJobDefinition(string Name, TimeSpan Interval, Func<IJob> Factory);
+/// <param name="Name">The durable name, matching the <see cref="RecurringJobState.Name"/> that tracks its last run.</param>
+/// <param name="Interval">How often the processor enqueues a fresh instance.</param>
+/// <param name="Factory">Builds the job to enqueue on each tick. Call it to run one off-schedule.</param>
+public sealed record RecurringJobDefinition(string Name, TimeSpan Interval, Func<IJob> Factory);

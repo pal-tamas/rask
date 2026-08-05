@@ -34,15 +34,33 @@ public sealed class JobProcessor<TContext>(
         {
             do
             {
-                await EnqueueDueRecurringAsync(stoppingToken).ConfigureAwait(false);
-                await DrainAsync(stoppingToken).ConfigureAwait(false);
-                await PurgeAsync(stoppingToken).ConfigureAwait(false);
+                await RunCycleAsync(stoppingToken).ConfigureAwait(false);
             }
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
         }
         catch (OperationCanceledException)
         {
             // Normal shutdown.
+        }
+    }
+
+    private async Task RunCycleAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await EnqueueDueRecurringAsync(cancellationToken).ConfigureAwait(false);
+            await DrainAsync(cancellationToken).ConfigureAwait(false);
+            await PurgeAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw; // shutting down — let ExecuteAsync end
+        }
+#pragma warning disable CA1031 // A transient DB error (e.g. SQLITE_BUSY) must not fault the service and stop the host — retry next poll.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogError(ex, "Job processing cycle failed; retrying on the next poll.");
         }
     }
 
@@ -66,39 +84,48 @@ public sealed class JobProcessor<TContext>(
 
         foreach (var job in batch)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+
             var command = JobSerializerRegistry.Deserialize(job.Type, job.Payload);
             if (command is null)
             {
                 Fail(job, $"No registered job type '{job.Type}'.");
                 logger.LogError("Job {Id} has an unregistered type '{Type}'.", job.Id, job.Type);
-                continue;
             }
-
-            try
+            else
             {
-                // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
-                await using var scope = scopeFactory.CreateAsyncScope();
-                var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
-                await dispatcher.DispatchAsync(command, cancellationToken).ConfigureAwait(false);
-                job.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
-                job.Error = null;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break; // shutting down — leave the rest for the next run
-            }
+                try
+                {
+                    // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
+                    await using var scope = scopeFactory.CreateAsyncScope();
+                    var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+                    await dispatcher.DispatchAsync(command, cancellationToken).ConfigureAwait(false);
+                    job.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
+                    job.Error = null;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break; // shutting down — leave this and the rest for the next run
+                }
 #pragma warning disable CA1031 // A failing job must not stop the drain or crash the app — record + retry with backoff.
-            catch (Exception ex)
+                catch (Exception ex)
 #pragma warning restore CA1031
-            {
-                Fail(job, ex.Message);
-                logger.LogError(ex, "Job {Id} failed (attempt {Attempts}).", job.Id, job.Attempts);
+                {
+                    Fail(job, ex.Message);
+                    logger.LogError(ex, "Job {Id} failed (attempt {Attempts}).", job.Id, job.Attempts);
+                }
             }
-        }
 
-        // Persist with None: jobs in this batch already ran (their side effects happened), so their
-        // ProcessedAt must be written even when the host is stopping — otherwise they'd re-run on restart.
-        await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            // Persist THIS job's outcome before moving on (with None so a job that already ran is still
+            // marked during shutdown — otherwise it re-runs on restart). Saving per job bounds an
+            // at-least-once re-run to the single job whose save failed, never the whole batch: one row
+            // deleted or edited underneath the drain would otherwise abort the entire SaveChanges and
+            // strip ProcessedAt from every already-executed job in it.
+            await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
     }
 
     // Record a failed attempt and push the next run out by the exponential backoff.

@@ -26,9 +26,45 @@ public sealed class Order : Entity<Guid>
         order.Raise(new @event.KeywordEvent(7));
         return order;
     }
+
+    // Raises the event whose handler deletes a message out of the batch being drained — see SaboteurEvent.
+    public static Order PlaceRaisingSaboteur()
+    {
+        var order = new Order { Id = Guid.NewGuid(), Customer = "saboteur" };
+        order.Raise(new SaboteurEvent());
+        return order;
+    }
 }
 
 public sealed record OrderPlaced(Guid Id, string Customer) : IOutboxEvent;
+
+/// <summary>
+/// An event whose handler deletes the highest-numbered still-unprocessed outbox row — i.e. one sitting in the
+/// very batch being drained. Stands in for anything writing to the outbox table underneath the processor.
+/// </summary>
+public sealed record SaboteurEvent : IOutboxEvent;
+
+public sealed class SaboteurEventHandler(IDbContextFactory<OutboxDbContext> factory) : INotificationHandler<SaboteurEvent>
+{
+    public async Task HandleAsync(SaboteurEvent notification, CancellationToken cancellationToken)
+    {
+        await using var db = await factory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var doomed = await db.Set<OutboxMessage>()
+            .Where(m => m.ProcessedAt == null)
+            .OrderByDescending(m => m.Id)
+            .Select(m => m.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (doomed != 0)
+        {
+            await db.Set<OutboxMessage>()
+                .Where(m => m.Id == doomed)
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+}
 
 public sealed class Recorder
 {
@@ -125,11 +161,10 @@ public sealed class OutboxTests : IDisposable
         await processor.StartAsync(CancellationToken.None);
         try
         {
-            // Wait for the LAST thing the drain does, not the first. It publishes the whole batch (which is
-            // what fills the recorder) and only then persists ProcessedAt, in a single end-of-batch
-            // SaveChangesAsync — so waiting on the recorder and then asserting on ProcessedAt races that
-            // save, and loses whenever the write is slow. Waiting on ProcessedAt implies the publish already
-            // happened, so it covers both assertions below.
+            // Wait for the LAST thing the drain does to a message, not the first. It publishes (which is what
+            // fills the recorder) and only then persists ProcessedAt — so waiting on the recorder and then
+            // asserting on ProcessedAt races that save, and loses whenever the write is slow. Waiting on
+            // ProcessedAt implies the publish already happened, so it covers both assertions below.
             await WaitUntilAsync(
                 async () =>
                 {
