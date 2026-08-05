@@ -93,6 +93,23 @@ them until tagged releases begin.
   The load-bearing change is a one-line token substitution: the socket's cancellation token now derives
   from the drain's hard deadline rather than from `ApplicationStopping`, which is what makes it possible
   to send anything at all — including the shutdown frame — after the stop signal arrives.
+- **The signals that say what a host is doing, not just what it refused to do.** The meter could report a
+  rejected frame and an evicted session, and little about the state that produced either. Four additions:
+  `rask.sessions.connected` separates people actually looking at the app from the `active` count, which
+  also includes `GET`-minted sessions whose socket never arrived and sessions riding out their reconnect
+  grace — so "the host is filling up" becomes actionable instead of ambiguous. `rask.handlers.pending`
+  exposes the backpressure breaker's *input*; only its output was visible, so you could watch it trip and
+  never watch it coming. `rask.render.duration` times the framework's half of an interaction, which
+  `rask.handler.duration` (your half) was routinely mistaken for. `rask.payload.bytes` makes a page that
+  quietly stopped diffing visible as a distribution shift, long before it shows up as bandwidth.
+- **`/health` now degrades on memory, not just on the session count.** A cap alone can't keep a host
+  healthy, because what a session costs is a property of the page rather than of the user — the same host
+  holds ~66,000 sessions of a trivial page or ~735 of a 200-row grid, so a cap sized for one is no
+  protection on the other. And the common configuration, `MaxSessions` uncapped, previously reported
+  `Healthy` unconditionally: the one signal an orchestrator polls could say nothing at all until an OOM
+  said it. The reading comes from `GCMemoryInfo`, which honours a container limit, so it reflects the
+  ceiling a deployed app actually runs under. A memory position the runtime won't disclose is treated as
+  healthy rather than full — a host must not shed load because it can't measure itself.
 - **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
   backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
   for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,
