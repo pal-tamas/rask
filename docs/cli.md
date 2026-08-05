@@ -267,7 +267,7 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 | A job or outbox event type's body | ✅ Applied live. |
 | **Adding or removing a type** — a new component, page, handler, job | ⚠️ Rude edit → the app restarts, and the browser reloads itself. |
 | **Changing a signature** — a new factory parameter, a changed method signature | ⚠️ Rude edit → restart. |
-| Renaming a job or outbox event type | ⚠️ Applied, but the old name stays registered until the next restart. |
+| Renaming a job or outbox event type | ✅ Applied. The old name stops resolving too. |
 
 Two things it does not cover:
 

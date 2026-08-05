@@ -28,7 +28,7 @@ public class JobRegistryGeneratorTests
 
         var source = run.GeneratedSource("__RaskJobsRegistry");
         Assert.Contains(
-            """RegisterJob("Demo.SendWelcomeEmail", typeof(global::Demo.SendWelcomeEmail));""",
+            """("Demo.SendWelcomeEmail", typeof(global::Demo.SendWelcomeEmail)),""",
             source,
             StringComparison.Ordinal);
         Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", source, StringComparison.Ordinal);
@@ -50,7 +50,7 @@ public class JobRegistryGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            """RegisterJob("Demo.OrderJobs.RequestReview", typeof(global::Demo.OrderJobs.RequestReview));""",
+            """("Demo.OrderJobs.RequestReview", typeof(global::Demo.OrderJobs.RequestReview)),""",
             run.GeneratedSource("__RaskJobsRegistry"),
             StringComparison.Ordinal);
     }
@@ -71,7 +71,7 @@ public class JobRegistryGeneratorTests
 
         var source = run.GeneratedSource("__RaskJobsRegistry");
         Assert.Contains(
-            """RegisterJob("Demo.event.RequestReview", typeof(global::Demo.@event.RequestReview));""",
+            """("Demo.event.RequestReview", typeof(global::Demo.@event.RequestReview)),""",
             source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("\"Demo.@event", source, StringComparison.Ordinal);
@@ -88,7 +88,7 @@ public class JobRegistryGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            """RegisterJob("Demo.class", typeof(global::Demo.@class));""",
+            """("Demo.class", typeof(global::Demo.@class)),""",
             run.GeneratedSource("__RaskJobsRegistry"),
             StringComparison.Ordinal);
     }
@@ -125,7 +125,7 @@ public class JobRegistryGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            """RegisterJob("RequestReview", typeof(global::RequestReview));""",
+            """("RequestReview", typeof(global::RequestReview)),""",
             run.GeneratedSource("__RaskJobsRegistry"),
             StringComparison.Ordinal);
     }
@@ -182,7 +182,7 @@ public class JobRegistryGeneratorTests
         Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK035");
 
         var source = run.GeneratedSource("__RaskJobsRegistry");
-        Assert.Contains("""RegisterJob("Demo.PurgeCancelled", """, source, StringComparison.Ordinal);
+        Assert.Contains("""("Demo.PurgeCancelled", """, source, StringComparison.Ordinal);
         Assert.DoesNotContain("Demo.MaintenanceJob\"", source, StringComparison.Ordinal);
     }
 
@@ -213,7 +213,7 @@ public class JobRegistryGeneratorTests
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Equal(1, CountOccurrences(run.GeneratedSource("__RaskJobsRegistry"), "RegisterJob("));
+        Assert.Equal(1, CountOccurrences(run.GeneratedSource("__RaskJobsRegistry"), "(\"Demo.RequestReview\", "));
     }
 
     [Fact]
