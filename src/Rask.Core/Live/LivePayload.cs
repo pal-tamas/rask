@@ -45,6 +45,26 @@ public static class LivePayload
     internal static readonly byte[] HotReloadAppliedFrame = Encoding.UTF8.GetBytes(HotReloadAppliedJson);
 
     /// <summary>
+    ///     The "this server is going away — reconnect somewhere else" control frame, broadcast to every
+    ///     connected session at the top of a graceful shutdown. A fixed literal for the same reasons as
+    ///     <see cref="HotReloadAppliedJson" />: no reflection-based serialization, no allocation.
+    ///     <para>
+    ///         Unlike the hot-reload frame this is <b>not</b> dev-gated. A production redeploy is exactly
+    ///         when it matters: it is what lets the client say "Updating…" and come back where it was,
+    ///         instead of reading the new process's <c>session/unknown</c> reply as an idle timeout and
+    ///         showing "Your session timed out".
+    ///     </para>
+    ///     <para>
+    ///         The client branches on this exact text; <c>ShutdownDrainTests</c> and the
+    ///         <c>rask.js</c> source contract both assert against this same constant so the two halves
+    ///         cannot drift.
+    ///     </para>
+    /// </summary>
+    internal const string ServerShutdownJson = """{"type":"shutdown","status":"draining"}""";
+
+    internal static readonly byte[] ServerShutdownFrame = Encoding.UTF8.GetBytes(ServerShutdownJson);
+
+    /// <summary>
     ///     Stamps the session id onto <c>&lt;body&gt;</c> as <c>data-rask-root</c>, and in development
     ///     also <c>data-rask-dev</c> — the flag the client requires before it will act on any dev-only
     ///     frame. Production HTML never carries it, so those branches are unreachable there even if a

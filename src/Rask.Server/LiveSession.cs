@@ -113,15 +113,30 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     public IServiceScope Scope { get; }
     public SemaphoreSlim Lock { get; } = new(1, 1);
 
+    private Task _lastHandlerTask = Task.CompletedTask;
+
     /// <summary>
     ///     Tail of the WS-message handler chain. Each inbound handler dispatch awaits
     ///     this task before running, then assigns its own continuation back here, so
-    ///     handlers run strictly in WS-arrival order. The WS receive loop is single-
-    ///     threaded for this session, so reads / writes of this property don't race —
-    ///     no synchronisation needed. <see cref="Task.CompletedTask" /> initially so
-    ///     the first handler runs immediately.
+    ///     handlers run strictly in WS-arrival order. <see cref="Task.CompletedTask" />
+    ///     initially so the first handler runs immediately.
+    ///     <para>
+    ///         The WS receive loop is this property's sole <em>writer</em> and is single-threaded per
+    ///         session, so writes never race each other. It gained a second <em>reader</em> on another
+    ///         thread when the shutdown drain began awaiting the chain
+    ///         (<see cref="RaskDrainService" />), hence the volatile accessors: reference assignment is
+    ///         already atomic, but without the fence the drain thread can observe a stale tail on a weak
+    ///         memory model and conclude a still-running handler had finished.
+    ///     </para>
     /// </summary>
-    internal Task LastHandlerTask { get; set; } = Task.CompletedTask;
+    internal Task LastHandlerTask
+    {
+        get => Volatile.Read(ref _lastHandlerTask);
+        set => Volatile.Write(ref _lastHandlerTask, value);
+    }
+
+    /// <summary>Handler dispatches queued on the chain but not yet complete. Read by the drain to settle.</summary>
+    internal int PendingHandlers => Volatile.Read(ref _pendingHandlers);
 
     // Number of handler dispatches queued on the LastHandlerTask chain but not yet completed.
     // Each queued dispatch retains a cloned JsonElement, so an unbounded chain (a flood of input
@@ -456,6 +471,57 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             }
 
             await SendGuardedAsync(payload).ConfigureAwait(false);
+        }
+        finally
+        {
+            _renderLock.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Sends the WebSocket close frame for a graceful shutdown: status 1001
+    ///     (<see cref="WebSocketCloseStatus.EndpointUnavailable" />, "going away") with a reason the
+    ///     client can read. Best-effort — a socket already closing or faulted is not an error here.
+    ///     <para>
+    ///         <b>Why <c>CloseOutputAsync</c> and not <c>CloseAsync</c>.</b> This is called from the drain,
+    ///         not from the receive loop, and the receive loop is parked in <c>ReceiveAsync</c> at the
+    ///         time. <c>CloseAsync</c> sends the close frame <em>and then receives</em> until the peer
+    ///         echoes, which would be a second concurrent receive and throws. <c>CloseOutputAsync</c> is
+    ///         send-only: the parked <c>ReceiveAsync</c> then observes the browser's echo as an ordinary
+    ///         close message and the loop unwinds through its own <c>finally</c>.
+    ///     </para>
+    ///     <para>
+    ///         <b>Why not just cancel the socket token.</b> Cancelling a token a <c>ReceiveAsync</c> is
+    ///         using <em>aborts</em> the WebSocket — no close frame, and the browser sees 1006. That is
+    ///         precisely the behaviour this method exists to replace, so the cancellation path must stay
+    ///         the deadline backstop and never the ordinary route.
+    ///     </para>
+    /// </summary>
+    /// <param name="ct">
+    ///     The drain's budget token. Deliberately not <c>_socketCt</c>: that one is cancelled by the
+    ///     deadline, and using it here would make the close throw at exactly the moment it most needs to
+    ///     complete.
+    /// </param>
+    internal async Task CloseForShutdownAsync(CancellationToken ct)
+    {
+        if (_socket is null || _socket.State != WebSocketState.Open)
+        {
+            return;
+        }
+
+        // Behind the render lock so the close frame cannot interleave a render's SendAsync — the same
+        // discipline SendOutOfBandAsync uses, and the reason the shutdown announcement is guaranteed to
+        // reach the wire before this close does.
+        await _renderLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            if (_socket is null || _socket.State != WebSocketState.Open)
+            {
+                return;
+            }
+
+            await _socket.CloseOutputAsync(
+                WebSocketCloseStatus.EndpointUnavailable, "server-shutdown", ct).ConfigureAwait(false);
         }
         finally
         {

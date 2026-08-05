@@ -118,6 +118,44 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
+    public void Validate_RejectsANegativeShutdownDrainTimeout()
+    {
+        var o = new RaskServerOptions { ShutdownDrainTimeout = TimeSpan.FromSeconds(-1) };
+
+        Assert.Throws<ArgumentOutOfRangeException>(o.Validate);
+    }
+
+    [Fact]
+    public void Validate_RejectsAShutdownDrainTimeoutCancelAfterCannotTake()
+    {
+        // CancellationTokenSource.CancelAfter throws above int.MaxValue milliseconds — and it would
+        // throw from the shutdown path, the worst possible place to find out.
+        var o = new RaskServerOptions { ShutdownDrainTimeout = TimeSpan.FromDays(30) };
+
+        Assert.Throws<ArgumentOutOfRangeException>(o.Validate);
+    }
+
+    [Fact]
+    public void Validate_AllowsZeroToDisableTheDrain()
+    {
+        // The documented opt-out: Zero restores the pre-drain behaviour of aborting immediately.
+        var o = new RaskServerOptions { ShutdownDrainTimeout = TimeSpan.Zero };
+
+        Assert.Null(Record.Exception(o.Validate));
+    }
+
+    [Fact]
+    public void ShutdownDrainTimeout_FlowsIntoThePerHostLimits()
+    {
+        var services = new ServiceCollection()
+            .AddRask(configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromSeconds(3));
+
+        var limits = services.BuildServiceProvider().GetRequiredService<RaskServerLimits>();
+
+        Assert.Equal(TimeSpan.FromSeconds(3), limits.ShutdownDrainTimeout);
+    }
+
+    [Fact]
     public void AppSettings_BindIntoServerOptions_RoundTrips()
     {
         // The documented operator pattern: AddRask(configureServer: o => config.GetSection("Rask").Bind(o)).

@@ -169,8 +169,17 @@
     // Dev-only counterpart: under `dotnet watch` an unknown session means the app just restarted for
     // a rude edit, so there is nothing to wait for — get back on screen.
     const DEV_RESTART_RELOAD_MS = 250;
+    // The server told us it is shutting down, so the reload is a deployment, not a timeout. Reload fast:
+    // a blue-green swap moves the proxy to the replacement BEFORE stopping this one, so the replacement
+    // is already serving by the time we get here.
+    const SHUTDOWN_RELOAD_MS = 250;
+    const UPDATING_MSG = "Updating…";
+    // Where the pre-reload scroll/focus snapshot lives. Keyed by path so a reload that lands somewhere
+    // else (a redirect, a changed route) never restores a position from an unrelated page.
+    const RESTORE_KEY = "rask:restore";
     let overlayTimer = null;
     let sessionExpired = false;
+    let serverShuttingDown = false;
 
     function setOverlayMessage(text) {
         if (overlayMsg) overlayMsg.textContent = text;
@@ -180,6 +189,10 @@
         if ("inert" in document.body) document.body.inert = value;
     }
 
+    // Before the socket: if the last page left a restore point (it was reloaded onto a replacement
+    // server), put the user back where they were. The GET shell is fully server-rendered by now, so the
+    // scroll target already exists.
+    applyRestorePoint();
     connect();
 
     function connect() {
@@ -242,6 +255,23 @@
                 if (devMode && data.status === "applied") window.__raskHotReloadPill();
                 return;
             }
+            // The server is shutting down (a redeploy, a restart). Live session state is per-process and
+            // cannot hand over, so a reload is unavoidable — but it is an update, not an expiry, and
+            // saying so is the difference between "Updating…" and a four-second "Your session timed
+            // out". Carries no html, so like the hotReload frame it must NOT fall through to
+            // applyFullReply. Deliberately not dev-gated: production is exactly where this matters.
+            if (data.type === "shutdown") {
+                serverShuttingDown = true;
+                setInert(true);
+                if (overlayTimer !== null) {
+                    clearTimeout(overlayTimer);
+                    overlayTimer = null;
+                }
+                showOverlay();
+                setOverlayMessage(UPDATING_MSG);
+                setRetryButton(null);
+                return;
+            }
             // Handler ack: resolve the slow-link pending bar. Handled synchronously here
             // (not inside _renderQueue) so a CSS-gated deferred body swap can't keep the
             // bar up after the round-trip has actually completed.
@@ -269,8 +299,16 @@
         ws.addEventListener("error", scheduleReconnect);
     }
 
-    function scheduleReconnect() {
+    function scheduleReconnect(e) {
         if (reconnectTimer !== null || sessionExpired) return;
+        // Close code 1001 is "going away" — the drain's own close handshake. It is the belt to the
+        // shutdown frame's braces: if the frame was missed (sent while this socket was mid-render, say),
+        // the close status still identifies a deployment. An aborted socket is 1006, which is not this.
+        // `error` passes a plain Event with no code, hence the feature test.
+        if (serverShuttingDown || (e && e.code === 1001)) {
+            reloadForUpdate();
+            return;
+        }
         open = false;
         resetPending();
         // Freeze interaction immediately (inert) so events during the outage can't queue up and replay
@@ -320,6 +358,72 @@
         attempt = 0;
         updateOverlayState();
         connect();
+    }
+
+    // The server is being replaced. Reload onto the replacement, quickly and quietly: this is a
+    // deployment, not a failure, and the user should end up back where they were.
+    function reloadForUpdate() {
+        serverShuttingDown = true;
+        // Reuse the expiry latch rather than running a parallel state machine: it drops late frames,
+        // short-circuits scheduleReconnect, freezes updateOverlayState, and makes the overlay button
+        // reload — all four of which are exactly what's wanted here too.
+        sessionExpired = true;
+        if (reconnectTimer !== null) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+        }
+        if (overlayTimer !== null) {
+            clearTimeout(overlayTimer);
+            overlayTimer = null;
+        }
+        saveRestorePoint();
+        setInert(true);
+        showOverlay();
+        setOverlayMessage(UPDATING_MSG);
+        setRetryButton("Reload");
+        setTimeout(function () { location.reload(); },
+            devMode ? DEV_RESTART_RELOAD_MS : SHUTDOWN_RELOAD_MS);
+    }
+
+    // Stash where the user was, so the unavoidable reload doesn't also lose their place. Scroll and
+    // focus only — deliberately NOT form values: the replacement server renders those from its own
+    // state, and writing stale client copies over correct server output would turn a cosmetic loss
+    // into a data one.
+    function saveRestorePoint() {
+        try {
+            sessionStorage.setItem(RESTORE_KEY, JSON.stringify({
+                path: location.pathname + location.search,
+                y: window.scrollY || 0,
+                id: (document.activeElement && document.activeElement.id) || ""
+            }));
+        } catch (e) {
+            // Private mode, quota, disabled storage — losing the scroll position is not worth throwing.
+        }
+    }
+
+    // Apply a restore point left by the reload above, once. Runs at boot: the GET shell is fully
+    // server-rendered by the time this script executes, so the page is already tall enough to scroll.
+    function applyRestorePoint() {
+        let saved;
+        try {
+            saved = sessionStorage.getItem(RESTORE_KEY);
+            // Consume unconditionally — a restore point must never apply to a second navigation.
+            sessionStorage.removeItem(RESTORE_KEY);
+        } catch (e) {
+            return;
+        }
+        if (!saved) return;
+        try {
+            const point = JSON.parse(saved);
+            if (!point || point.path !== location.pathname + location.search) return;
+            if (point.y) window.scrollTo(0, point.y);
+            if (point.id) {
+                const el = document.getElementById(point.id);
+                if (el && typeof el.focus === "function") el.focus({preventScroll: true});
+            }
+        } catch (e) {
+            // A malformed entry is not worth breaking boot over.
+        }
     }
 
     // The server evicted this session (idle past RaskServerOptions.SessionGracePeriod), so the in-memory

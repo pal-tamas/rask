@@ -50,6 +50,27 @@ public sealed class LiveSessionStore : IAsyncDisposable
     public int Count => _sessions.Count;
 
     /// <summary>
+    ///     The host's shutdown state, set by <c>AddRask</c> right after construction. Assigned rather than
+    ///     injected because this type's constructor is public while <see cref="RaskDrainCoordinator" /> is
+    ///     internal — and because leaving it null keeps every directly-constructed test store working
+    ///     unchanged (it simply never drains).
+    /// </summary>
+    internal RaskDrainCoordinator? Drain { get; set; }
+
+    /// <summary>True while the host is shutting down: admission is closed and the drain owns teardown.</summary>
+    internal bool IsDraining => Drain?.IsDraining == true;
+
+    /// <summary>
+    ///     A point-in-time snapshot of the live sessions. <c>ConcurrentDictionary.Values</c> already
+    ///     copies, which is what the broadcast path relies on, so the drain can iterate while the socket
+    ///     loops are still removing themselves.
+    /// </summary>
+    internal ICollection<LiveSession> Snapshot() => _sessions.Values;
+
+    /// <summary>Ids of the live sessions, for a teardown loop that must tolerate concurrent removal.</summary>
+    internal ICollection<string> SessionIds() => _sessions.Keys;
+
+    /// <summary>
     ///     Reserved + in-flight + committed session count — the authoritative capacity number that
     ///     <see cref="TryCreate" /> / <see cref="AtCapacity" /> gate on. Differs from
     ///     <see cref="Count" /> (committed sessions only) during the window where a reserved session's
@@ -150,6 +171,15 @@ public sealed class LiveSessionStore : IAsyncDisposable
     /// </summary>
     internal LiveSession? TryCreate(Func<IServiceProvider, Component> factory)
     {
+        // Refuse before reserving anything: a session minted during the drain is one the drain has
+        // already snapshotted past, so it would be built (component tree + DI scope) only to be torn
+        // down moments later — and the client would be handed a page whose session is already dead.
+        if (IsDraining)
+        {
+            _metrics?.SessionRejected();
+            return null;
+        }
+
         var reserved = Interlocked.Increment(ref _liveCount);
         if (MaxSessions > 0 && reserved > MaxSessions)
         {
@@ -227,6 +257,14 @@ public sealed class LiveSessionStore : IAsyncDisposable
 
     internal void ScheduleRemoval(string id, TimeSpan delay)
     {
+        // Draining: the drain owns teardown and disposes every session awaited, inside the shutdown
+        // window. Doing anything here would be worse than nothing — this used to fire off an unawaited
+        // RemoveAsync, so a component's async unmount raced process exit with nobody observing it.
+        if (IsDraining)
+        {
+            return;
+        }
+
         if (_stopping.IsCancellationRequested)
         {
             _ = RemoveAsync(id);
