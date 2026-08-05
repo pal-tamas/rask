@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,6 +12,7 @@ using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Authentication;
+using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
 
@@ -83,12 +85,18 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // value is fixed for the session's lifetime rather than resolved on every send.
     private readonly TimeSpan _sendTimeout;
 
-    public LiveSession(string id, Component view, IServiceScope scope, LiveDiffMode diffMode)
+    // The host's meter, or null for a store built without one (tests, a bare harness). Held per session
+    // so the render path records without resolving anything.
+    private readonly RaskMetrics? _metrics;
+
+    public LiveSession(
+        string id, Component view, IServiceScope scope, LiveDiffMode diffMode, RaskMetrics? metrics = null)
         : base(view, scope.ServiceProvider, diffMode)
     {
         Id = id;
         Scope = scope;
         _sendTimeout = scope.ServiceProvider.GetService<RaskServerLimits>()?.SendTimeout ?? TimeSpan.Zero;
+        _metrics = metrics;
     }
 
     public bool SuppressEventsUntilReconnect { get; set; }
@@ -625,12 +633,19 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
                 return;
             }
 
+            var renderStarted = Stopwatch.GetTimestamp();
+
             WritePayload(html, frameWriter, download, jsInvokes, historyUrl, replace,
                 commitCache: true, auth, Id);
 
             // Emit via the shared double-buffered send (dedup + swap in LiveSessionBase). Force the
             // send when something out-of-band (navigation, auth, download) must flow even if the
             // rendered bytes are byte-identical to the previous frame — otherwise the dedup skips it.
+            // Read BEFORE the emit: TryEmitFrameAsync swaps _writeBuffer with the previous-frame buffer
+            // for the zero-copy dedup, so afterwards this field is the OTHER buffer and its count is the
+            // reset one. Measuring it there silently records zero for every frame.
+            var payloadBytes = _writeBuffer.WrittenCount;
+
             var force = historyUrl is not null || auth is not null || download is not null;
             bool sent;
             try
@@ -651,6 +666,13 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             if (sent)
             {
                 _htmlBuffers.Commit();
+
+                // Only when a frame actually went out. Recording a deduped render — one whose bytes
+                // matched the last frame and was suppressed — would put a zero-byte sample in the payload
+                // histogram and count work the client never saw, which is precisely the case these two
+                // signals exist to distinguish from a real one.
+                _metrics?.RecordRenderDuration(Stopwatch.GetElapsedTime(renderStarted).TotalMilliseconds);
+                _metrics?.RecordPayloadBytes(payloadBytes);
             }
         }
         finally

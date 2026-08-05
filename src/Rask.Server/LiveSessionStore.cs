@@ -31,6 +31,11 @@ public sealed class LiveSessionStore : IAsyncDisposable
     // 1 once DisposeAsync has run. See DisposeAsync for why it must be once-only.
     private int _disposed;
 
+    // Sessions with a socket attached, and handler dispatches queued across all of them. See the
+    // properties below for why each is tracked here rather than derived on scrape.
+    private int _connectedCount;
+    private int _pendingHandlerCount;
+
     public LiveSessionStore(
         IServiceScopeFactory scopeFactory,
         IHostApplicationLifetime? lifetime = null,
@@ -48,6 +53,8 @@ public sealed class LiveSessionStore : IAsyncDisposable
         // committed) — the same number admission and the health check gate on — so the gauge, the
         // capacity cap, and /health never disagree by the count of mid-build sessions.
         _metrics?.TrackActiveSessions(() => LiveCount);
+        _metrics?.TrackConnectedSessions(() => ConnectedCount);
+        _metrics?.TrackPendingHandlers(() => PendingHandlerCount);
     }
 
     public int Count => _sessions.Count;
@@ -80,6 +87,34 @@ public sealed class LiveSessionStore : IAsyncDisposable
     ///     component tree is still building.
     /// </summary>
     internal int LiveCount => Volatile.Read(ref _liveCount);
+
+    /// <summary>
+    ///     Sessions with a socket attached right now — the number of people actually looking at the app.
+    /// </summary>
+    /// <remarks>
+    ///     Distinct from <see cref="LiveCount" />, which also counts sessions minted by a bare <c>GET</c>
+    ///     whose WebSocket never arrived and sessions riding out their reconnect grace. Those hold
+    ///     capacity, so admission is right to count them — but they are not users, and a host cannot tell
+    ///     "filling up with real traffic" from "filling up with probes and dropped connections" if the two
+    ///     numbers are the same number.
+    /// </remarks>
+    public int ConnectedCount => Volatile.Read(ref _connectedCount);
+
+    /// <summary>Handler dispatches queued across every session — the backpressure breaker's input.</summary>
+    /// <remarks>
+    ///     Only the <em>rejections</em> were observable before: you could see the breaker trip and had no
+    ///     way to see it coming. A store-level counter rather than a sum over sessions on scrape, because
+    ///     scraping is not the moment to walk tens of thousands of them.
+    /// </remarks>
+    public int PendingHandlerCount => Volatile.Read(ref _pendingHandlerCount);
+
+    internal void SocketAttached() => Interlocked.Increment(ref _connectedCount);
+
+    internal void SocketDetached() => Interlocked.Decrement(ref _connectedCount);
+
+    internal void HandlerQueued() => Interlocked.Increment(ref _pendingHandlerCount);
+
+    internal void HandlerDequeued() => Interlocked.Decrement(ref _pendingHandlerCount);
 
     /// <summary>The metrics sink threaded into the WS loop for frame/handler instrumentation (may be null).</summary>
     internal RaskMetrics? Metrics => _metrics;
@@ -232,7 +267,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
             throw;
         }
 
-        var session = new LiveSession(sessionId, view, scope, DiffMode);
+        var session = new LiveSession(sessionId, view, scope, DiffMode, _metrics);
         // Bind the per-scope LiveSessionAccessor so RaskJSRuntime (resolved from the same
         // scope) can find this session when components inject IJSRuntime.
         if (scope.ServiceProvider.GetService<LiveSessionAccessor>() is { } accessor)

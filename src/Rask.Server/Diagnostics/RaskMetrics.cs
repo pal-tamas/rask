@@ -19,6 +19,8 @@ public sealed class RaskMetrics : IDisposable
     private readonly Counter<long> _framesRejected;
     private readonly Counter<long> _sessionsResumed;
     private readonly Counter<long> _sessionsResumeRejected;
+    private readonly Histogram<double> _renderDuration;
+    private readonly Histogram<long> _payloadBytes;
     private readonly Counter<long> _handlersDispatched;
     private readonly Counter<long> _handlersFaulted;
     private readonly Counter<long> _handlersTimedOut;
@@ -62,6 +64,10 @@ public sealed class RaskMetrics : IDisposable
         _sessionsAbandonedAtDrain = _meter.CreateCounter<long>(
             "rask.shutdown.sessions.abandoned", "{session}",
             "Live sessions still connected when the shutdown drain budget ran out (their sockets were aborted).");
+        _renderDuration = _meter.CreateHistogram<double>(
+            "rask.render.duration", "ms", "Wall-clock time to render a session and write its frame.");
+        _payloadBytes = _meter.CreateHistogram<long>(
+            "rask.payload.bytes", "By", "Size of a frame sent to a client.");
     }
 
     // Exposed for tests so a MeterListener can scope to this exact meter instance and ignore
@@ -74,6 +80,31 @@ public sealed class RaskMetrics : IDisposable
     public void TrackActiveSessions(Func<int> readCount) =>
         _meter.CreateObservableGauge(
             "rask.sessions.active", readCount, "{session}", "Live sessions currently held by the store.");
+
+    /// <summary>
+    ///     Registers the connected-session gauge — sessions with a socket attached, i.e. people actually
+    ///     looking at the app.
+    /// </summary>
+    /// <remarks>
+    ///     The companion to <c>rask.sessions.active</c>, which also counts sessions minted by a bare
+    ///     <c>GET</c> whose socket never arrived and sessions riding out their reconnect grace. Those hold
+    ///     capacity and admission is right to count them, but a host cannot tell "filling up with users"
+    ///     from "filling up with probes" while the only number it publishes conflates the two.
+    /// </remarks>
+    public void TrackConnectedSessions(Func<int> readCount) =>
+        _meter.CreateObservableGauge(
+            "rask.sessions.connected", readCount, "{session}", "Sessions with a WebSocket attached.");
+
+    /// <summary>
+    ///     Registers the pending-handler depth gauge — the backpressure breaker's input.
+    /// </summary>
+    /// <remarks>
+    ///     Until now only the breaker's <em>output</em> was observable: you could count the frames it
+    ///     rejected and had no way to watch the queue that made it fire.
+    /// </remarks>
+    public void TrackPendingHandlers(Func<int> readCount) =>
+        _meter.CreateObservableGauge(
+            "rask.handlers.pending", readCount, "{handler}", "Handler dispatches queued across all sessions.");
 
     public void SessionCreated() => _sessionsCreated.Add(1);
 
@@ -120,4 +151,25 @@ public sealed class RaskMetrics : IDisposable
     /// </summary>
     public void ResumeRejected(string reason) =>
         _sessionsResumeRejected.Add(1, new KeyValuePair<string, object?>("reason", reason));
+    /// <summary>
+    ///     Records how long one render-and-send took.
+    /// </summary>
+    /// <remarks>
+    ///     Distinct from <c>rask.handler.duration</c>, which times the user's handler. Those two answer
+    ///     different questions and get confused constantly: a slow interaction is either the app's code or
+    ///     the framework's render, and until both are measured there is no way to tell which without a
+    ///     profiler. This one is the framework's half.
+    /// </remarks>
+    public void RecordRenderDuration(double milliseconds) => _renderDuration.Record(milliseconds);
+
+    /// <summary>
+    ///     Records the size of a frame sent to a client.
+    /// </summary>
+    /// <remarks>
+    ///     Worth watching as a distribution rather than a total: the diff codec's whole job is keeping
+    ///     these small, and a page that quietly stops diffing — a structural change, a Raw sibling, an
+    ///     out-of-band side effect — shows up here as the histogram jumping to the page's full size long
+    ///     before anyone notices the bandwidth.
+    /// </remarks>
+    public void RecordPayloadBytes(long bytes) => _payloadBytes.Record(bytes);
 }
