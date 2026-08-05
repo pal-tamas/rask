@@ -12,7 +12,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <PackageReference Include="Microsoft.Data.Sqlite"/>
     <!-- Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one
          Microsoft.Data.Sqlite / EF Core pin (CVE-2025-6965). A direct reference is the only
          lever under CPM — transitive pinning does not move it. See Directory.Packages.props. -->
@@ -29,22 +29,11 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
-    <Using Include="Rask.Dashboard"/>
-    <Using Include="Rask.Dashboard.Panels"/>
-    <Using Include="Rask.Cqrs"/>
+    <Using Include="Rask.Logging"/>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Rask.Dashboard\Rask.Dashboard.csproj"/>
-    <!-- Rask.Core is PrivateAssets="all" from Rask.Dashboard (it ships transitively from a host
-         package), so an in-repo consumer must reference it directly. -->
-    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <!-- AddRaskCqrs: the jobs and outbox processors dispatch through the mediator, so registering
-         those batteries in the harness needs it. -->
-    <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
-    <!-- The Logs page grows a store-backed History mode; these render it without a browser. -->
     <ProjectReference Include="..\..\src\Rask.Logging\Rask.Logging.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
   </ItemGroup>
 
 </Project>

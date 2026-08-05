@@ -118,6 +118,9 @@ jobs:
       - name: Pack Rask.Cache
         run: dotnet pack src/Rask.Cache/Rask.Cache.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Logging
+        run: dotnet pack src/Rask.Logging/Rask.Logging.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Dashboard
         run: dotnet pack src/Rask.Dashboard/Rask.Dashboard.csproj -c Release --no-build -o ./artifacts
 

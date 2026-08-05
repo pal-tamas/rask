@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Logging</PackageId>
+    <Title>Rask.Logging — a durable log store on your database</Title>
+    <Description>A durable, queryable log store for a Rask app, kept in its own SQLite file — no agent, no hosted log service. Registers a standard `ILoggerProvider`, so it captures exactly what every other sink sees, buffers entries through a bounded channel that never blocks the caller, and writes them in batches on a background service. Retention is enforced by age and by row count, swept in short pages so the write lock is never held for long. Pairs with Rask.Dashboard, whose Logs page reads the store. Server-side; depends only on Microsoft.Data.Sqlite.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — a standalone server-side log store. -->
+    <PackageTags>logging log-store ilogger structured-logging sqlite background-service observability dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.SQLite\Rask.SQLite.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Microsoft.Data.Sqlite flows in transitively via Rask.SQLite; referenced explicitly because the
+         store issues its own commands against it. Same reasoning as Rask.SQLite's own csproj. -->
+    <PackageReference Include="Microsoft.Data.Sqlite"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Logging.Tests"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Logging;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

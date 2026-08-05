@@ -21,7 +21,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     internal static readonly string[] FeatureFlags =
     [
         "auth", "pwa", "cqrs", "data", "docker",
-        "jobs", "mail", "cache", "outbox", "push", "snapshots", "ops", "all-batteries",
+        "jobs", "mail", "cache", "outbox", "push", "snapshots", "logs", "ops", "all-batteries",
     ];
 
 
@@ -31,8 +31,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
     public override string Usage =>
         "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--data] "
-        + "[--jobs] [--mail] [--cache] [--outbox] [--push] [--snapshots] [--ops] [--all-batteries] "
-        + "[--docker] [--host local|server] [--output <dir>]";
+        + "[--jobs] [--mail] [--cache] [--outbox] [--push] [--snapshots] [--logs] [--ops] "
+        + "[--all-batteries] [--docker] [--host local|server] [--output <dir>]";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
         [("<name>", "Name of the project to create (scaffolds ./<name>/).")];
@@ -70,6 +70,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("outbox", description: "Transactional outbox for durable domain events (implies --data).")
             .Flag("push", description: "Server-sent Web Push with subscribe endpoints (implies --pwa).")
             .Flag("snapshots", description: "Scheduled point-in-time SQLite backups (implies --data).")
+            .Flag("logs", description: "Keep the application log in a database of its own, so it survives a restart.")
             .Flag("ops", description: "An operator dashboard at /_ops over every battery's table (implies --data).")
             .Flag("all-batteries", description: "Every battery above — the full One Person Framework stack.")
             .Flag("dry-run", description: "Print the files that would be written without touching disk.");
@@ -236,6 +237,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Outbox = all || flags.Contains("outbox"),
             Push = all || flags.Contains("push"),
             Snapshots = (all || flags.Contains("snapshots")) && DatabaseCatalog.For(provider).IsFileBased,
+            Logs = all || flags.Contains("logs"),
             Ops = all || flags.Contains("ops"),
         };
     }

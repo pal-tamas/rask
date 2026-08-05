@@ -159,6 +159,7 @@ public sealed class ServerBatteryScaffoldTests
             "AddRaskCqrs()", "AddRaskData(", "AddRaskOutbox<AppDbContext>()", "AddDbContextFactory<AppDbContext>",
             "AddRaskJobs<AppDbContext>()", "AddRaskMail<AppDbContext>(", "AddRaskCache<AppDbContext>()",
             "AddRaskSqliteSnapshots(", "AddRaskSqliteLitestream(", "AddRaskWebPush(", "AddRaskPwa(",
+            "AddRaskLogging(", "AddRaskDashboard<AppDbContext>()",
             "AddAuthentication(",
         })
         {
@@ -168,6 +169,62 @@ public sealed class ServerBatteryScaffoldTests
         Assert.Contains("Dockerfile", files.Keys);
         Assert.Contains("Features/Shared/AppDbContext.cs", files.Keys);
         Assert.Contains("Features/Push/PushSubscriptions.cs", files.Keys);
+    }
+
+    // ── The log store ───────────────────────────────────────────────────────────────────────────────
+    // Alone among the batteries it keeps a file of its own, which is why none of the assertions above fit it.
+
+    [Fact]
+    public void The_log_store_adds_its_package_and_registration()
+    {
+        var files = Generate("logs");
+
+        Assert.Contains(
+            $"""<PackageReference Include="Rask.Logging" Version="{Version}"/>""",
+            files["App.csproj"],
+            StringComparison.Ordinal);
+        Assert.Contains("using Rask.Logging;", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddRaskLogging(", files["Program.cs"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_log_store_reads_its_own_connection_string()
+    {
+        // ConnectionStrings:Logs, not :App — a store that shared the application's connection string would
+        // put a high-frequency writer back on the very file this design exists to keep it off. `rask deploy`
+        // sets this to a path on the mounted volume.
+        var program = Generate("logs")["Program.cs"];
+
+        Assert.Contains("""GetConnectionString("Logs")""", program, StringComparison.Ordinal);
+        Assert.Contains("?? \"Data Source=logs.db\"", program, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The one battery that does not drag the database in behind it. An app with no EF Core, no
+    /// <c>AppDbContext</c> and no migrations can still keep its log — and if this regressed, <c>--logs</c>
+    /// would silently scaffold a whole data layer nobody asked for.
+    /// </summary>
+    [Fact]
+    public void The_log_store_does_not_imply_a_database()
+    {
+        var files = Generate("logs");
+
+        Assert.DoesNotContain("Features/Shared/AppDbContext.cs", files.Keys);
+        Assert.DoesNotContain("AddRaskData(", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("AddDbContextFactory", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "<PackageReference Include=\"Rask.Data\"",
+            files["App.csproj"],
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_log_store_says_out_loud_that_its_file_is_not_backed_up()
+    {
+        // The scaffolded comment is the only place a reader learns the trade-off before they need it.
+        var program = Generate("logs")["Program.cs"];
+
+        Assert.Contains("NOT covered by `rask db backup`", program, StringComparison.Ordinal);
     }
 
     [Fact]

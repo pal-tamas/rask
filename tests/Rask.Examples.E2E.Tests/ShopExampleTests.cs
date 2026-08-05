@@ -212,6 +212,34 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         await Assertions.Expect(_page.Locator("a.nav-link", new() { HasTextString = "Outbox" })).ToBeVisibleAsync();
     }
 
+    [Fact]
+    public async Task The_stored_log_is_searchable_from_the_dashboard()
+    {
+        // The one thing no unit test can show: a real app's real log lines, written by the real
+        // ILoggerProvider through the real background writer, coming back out of the store's own file.
+        await SignInAsync();
+        await _page.GotoAsync("/_ops/logs?view=history");
+
+        // History exists at all only because Rask.Logging is registered — without it the page is the
+        // in-memory tail and offers no such mode.
+        await Assertions.Expect(_page.Locator("a.nav-link", new() { HasTextString = "History" }))
+            .ToBeVisibleAsync();
+        await Assertions.Expect(_page.GetByText(new Regex("stored entries, kept across restarts")))
+            .ToBeVisibleAsync();
+
+        // The app logs its start-up lines, and the writer flushes on an interval — so this is also the
+        // assertion that the buffer really does reach disk. It only holds because the sample keeps
+        // Microsoft.Hosting.Lifetime at Information: the logging pipeline filters before the store ever
+        // sees an entry, which is why an app on `"Default": "Warning"` alone stores nothing at all.
+        await Assertions.Expect(_page.Locator("table tbody tr").First).ToBeVisibleAsync(
+            new() { Timeout = 15_000 });
+        await Assertions.Expect(_page.GetByText("Application started")).ToBeVisibleAsync();
+
+        // The live tail is still there beside it, reading nothing from disk.
+        await _page.ClickAsync("a.nav-link:has-text('Live')");
+        await Assertions.Expect(_page.GetByText(new Regex("in memory only"))).ToBeVisibleAsync();
+    }
+
     private async Task SignInAsync()
     {
         await _page.GotoAsync("/login");

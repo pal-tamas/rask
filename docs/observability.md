@@ -1,7 +1,7 @@
 # Observability
 
 Rask is instrumented for production operations with standard .NET primitives — no extra packages,
-OpenTelemetry-exportable out of the box. Four surfaces:
+OpenTelemetry-exportable out of the box. Five surfaces:
 
 1. **Structured logging** — framework faults flow into your `ILogger` pipeline.
 2. **Metrics** — a `Meter` named `Rask.Server` with session, handler, and frame counters/histograms, plus
@@ -9,6 +9,8 @@ OpenTelemetry-exportable out of the box. Four surfaces:
    and **dead letters**.
 3. **Tracing** — an `ActivitySource` named `Rask.Server` spanning handler dispatch.
 4. **Health checks** — a live-session capacity check.
+5. **Durable logs** — opt-in: [`Rask.Logging`](logging.md) keeps the `ILogger` pipeline in a database of its
+   own, so what happened survives the restart that hid it.
 
 Everything is on by default with zero configuration; you opt in to *exporting* it.
 
@@ -46,6 +48,22 @@ No wiring is needed — configure log levels for these categories like any other
 
 When no `ILoggerFactory` is registered (e.g. a bare test host), the seam keeps its default behaviour
 and writes the same diagnostics to `stderr`.
+
+### Keeping the log
+
+Everything above is a *transport*: the diagnostics reach whatever sinks you configured, which on a
+single-box deployment usually means the container's stdout — gone with the next restart. Add
+[`Rask.Logging`](logging.md) to keep them:
+
+```csharp
+builder.Services.AddRaskLogging(
+    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+```
+
+It registers an `ILoggerProvider`, so it captures exactly what every other sink sees — the categories above
+included — into a SQLite file of its own, with retention by age and row count and a searchable view in the
+[dashboard](dashboard.md). Its `rask.logs.dropped` counter is the one metric that tells you the stored log is
+incomplete.
 
 ## Metrics
 

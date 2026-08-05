@@ -915,6 +915,11 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             args.AddRange(["-v", $"{slug}-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db"]);
         }
 
+        // The log store keeps a file of its own, so it needs its own pointer onto the same volume — without
+        // this it would land in the container's writable layer and be destroyed by the very restart it
+        // exists to survive. Harmless on an app that doesn't use Rask.Logging: nothing reads the value.
+        args.AddRange(["-e", "ConnectionStrings__Logs=Data Source=/data/logs.db"]);
+
         if (envFilePath is not null)
         {
             args.AddRange(["--env-file", envFilePath]);

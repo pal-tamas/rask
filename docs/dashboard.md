@@ -25,7 +25,7 @@ builder.Services.AddAuthorization(o =>
 | **Overview** | Is anything wrong? One tile per queue, plus a banner the moment any dead letter exists. |
 | **Queues** — outbox / jobs / mail | Due, delayed, **failed**, processed. Expand a row for its last error and stored payload. |
 | **Cache** | Keys, sizes, expiry, and how many are expired but not yet swept. |
-| **Logs** | A tail of the `ILogger` pipeline — the failures that leave no row anywhere. |
+| **Logs** | A live tail of the `ILogger` pipeline — the failures that leave no row anywhere — plus a searchable **History** over the stored log when [`Rask.Logging`](logging.md) is installed. |
 | **System** | SQLite pragmas read live, database size, and the recurring-job schedule with when each last fired. |
 
 A panel appears **only when its battery is registered and its table is mapped**. An app with jobs and
@@ -107,9 +107,24 @@ A bounded in-memory ring buffer fed by a registered `ILoggerProvider`, so it see
 sink sees. That is the point: the failures this dashboard exists for often leave no row in any table —
 Litestream exiting, a job type that won't deserialize, a handler that threw.
 
-**It is a tail, not a log store.** Memory-only, bounded by count, gone on restart. Point a real logging
-provider somewhere durable for anything you need to keep, and remember that log lines can contain secrets —
-another reason the policy is fail-closed.
+**On its own, it is a tail rather than a log store.** Memory-only, bounded by count, gone on restart. Log
+lines can contain secrets, which is another reason the policy is fail-closed.
+
+Install [`Rask.Logging`](logging.md) and the page grows a second mode:
+
+| Mode | Reads | Survives a restart | Cost |
+| --- | --- | --- | --- |
+| **Live** (default) | The in-memory buffer above | No | None — no query at all, and it renders on a real log line rather than a timer |
+| **History** | The durable store, paged, with level/category filters and a full-text search | Yes | One query per refresh, against the log store's **own** SQLite file — never the application database |
+
+```csharp
+builder.Services.AddRaskLogging(
+    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db");
+```
+
+They are two modes rather than one merged view because the store's writer flushes on an interval: the newest
+lines are in the buffer but not yet on disk, and a merged view would quietly disagree with itself for a second
+at a time.
 
 > **`LogMinimumLevel` is a floor, not an override.** The logging pipeline applies your
 > `Logging:LogLevel` configuration *first*, so an entry filtered there never reaches the dashboard however
