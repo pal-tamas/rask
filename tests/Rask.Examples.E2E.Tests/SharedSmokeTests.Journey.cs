@@ -746,6 +746,7 @@ public abstract partial class SharedSmokeTests
         // The heading match is case-sensitive; this page's h1 is just "Data grid" (the Bootstrap group pages
         // read "Bootstrap — buttons & badges", which is why those walks assert lowercase).
         await SideAsync("Data grid", "Data grid", "main .markdown-body h1");
+        await AssertGuideDemosAsync(4, "data-grid");
 
         // === Sorting — clicking a header re-orders the rows in the real DOM and flips aria-sort. ===
         var demo = Page.Locator("#grid-demo");
@@ -847,12 +848,21 @@ public abstract partial class SharedSmokeTests
         await Expect(emptyGrid).ToHaveCountAsync(1,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
 
+        await WalkDataGridStickyAsync();
+
+        // ---- advanced subpage (docs/data-grid-advanced.md) ----
+        // Grouping, the column chooser, selection and row detail moved here in the hub/subpage split.
+        await SideAsync("Data grid — advanced", "advanced features", "main .markdown-body h1");
+        await AssertGuideDemosAsync(4, "data-grid-advanced");
         await WalkDataGridGroupAsync();
         await WalkDataGridColumnsAsync();
         await WalkDataGridSelectionAsync();
         await WalkDataGridRowsAsync();
+
+        // ---- server-side subpage (docs/data-grid-server.md) ----
+        await SideAsync("Data grid — server-side", "server-side data & URL state", "main .markdown-body h1");
+        await AssertGuideDemosAsync(1, "data-grid-server");
         await WalkDataGridLoadingAsync();
-        await WalkDataGridStickyAsync();
     }
 
     // The column chooser, driven from the keyboard-first menu. The unit tests pin the fold/reorder arithmetic;
@@ -1223,21 +1233,59 @@ public abstract partial class SharedSmokeTests
     }
 
 
-    // Composition guide: context, callbacks, virtualize, keyed lists, drag & drop, and error boundaries
-    // — their standalone example pages folded into docs/composition.md as inline live demos. Open the
-    // guide once and drive each demo in place; locators are scoped by unique #id or by the enclosing
-    // .guide-demo (badges/result panes repeat across demos on the one page).
+    // Every `<!-- demo:key -->` marker on a guide page must become a live demo, not inert markdown.
+    // Asserts through Expect (which retries) rather than a bare CountAsync (which does not) — the demos
+    // hydrate after the markdown paints, so a one-shot count races the slower transports.
+    protected async Task AssertGuideDemosAsync(int atLeast, string page)
+    {
+        var cards = Page.Locator(".guide-demo .sample-card");
+        try
+        {
+            await cards.Nth(atLeast - 1).WaitForAsync(
+                new LocatorWaitForOptions { State = WaitForSelectorState.Attached, Timeout = 45_000 });
+        }
+        catch (PlaywrightException)
+        {
+            Assert.Fail(
+                $"docs/{page}.md declares {atLeast} <!-- demo: --> markers but only " +
+                $"{await cards.CountAsync()} rendered as live demos. Either a demo lost its DemoRegistry " +
+                "key, or the markers moved to another page and this walk needs to follow them.");
+        }
+    }
+
+    // Composition guide. The demos live across THREE pages since the guide was split into a hub plus
+    // subpages: the hub carries the component tiers, "callbacks & context" carries the folded events,
+    // callback and context demos, and "lists & more" carries virtualize, keyed lists, toasts, drag &
+    // drop and the error boundaries. Walk each in turn and drive its demos in place; locators are
+    // scoped by unique #id or by the enclosing .guide-demo (badges/result panes repeat within a page).
+    //
+    // The per-page counts below are the `<!-- demo: -->` markers in the matching docs/composition*.md.
+    // Keep them in step: a demo that moves between pages without the walk following it is exactly how
+    // this check went stale last time — it asserted 14 demos on a hub the split had left with one, and
+    // failed every run on every transport until someone read past "flaky".
     protected async Task TestCompositionGuideAsync()
     {
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
 
+        // ---- hub (docs/composition.md) ----
         await SideAsync("Composition", "Composition", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 14,
-            "expected the Composition guide to embed the demos (incl. component-tiers, the folded events, toast + master-detail) as live demos");
-        // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
-        // interaction, so a fill/click never races the guide still hydrating on the slower transports.
-        await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        await AssertGuideDemosAsync(1, "composition");
+
+        // Component tiers: the three ways to author a unit (static method · stateless · stateful) side
+        // by side. Tier 0's inlined badge and Tier 1's stateless greeting render statically; only the
+        // Tier-2 counter holds state — clicking it re-renders in place with no StateHasChanged. Scoped
+        // by the demo's #component-tiers container.
+        var tiers = Page.Locator("#component-tiers");
+        await Expect(tiers).ToContainTextAsync("inlined", contains);   // Tier 0 static helper badge
+        await Expect(tiers).ToContainTextAsync("Hello, Ada", contains); // Tier 1 stateless greeting
+        var tierCounter = tiers.Locator("button:has-text('Clicked')");
+        await tierCounter.ClickAsync();
+        await tierCounter.ClickAsync();
+        await Expect(tierCounter).ToContainTextAsync("Clicked 2 times", contains);
+
+        // ---- callbacks & context (docs/composition-callbacks-context.md) ----
+        await SideAsync("Composition — callbacks & context", "callbacks & context", "main .markdown-body h1");
+        await AssertGuideDemosAsync(7, "composition-callbacks-context");
 
         // Context: toggling a provider updates a deep consumer straight through a render-cached
         // intermediate. Scope to this demo — badges appear in other demos on the page too.
@@ -1252,18 +1300,6 @@ public abstract partial class SharedSmokeTests
         var cb = Page.Locator("#callback-rating");
         await cb.Locator("button").Nth(3).ClickAsync();
         await Expect(cb.Locator("p")).ToContainTextAsync("You rated: 4/5", contains);
-
-        // Component tiers: the three ways to author a unit (static method · stateless · stateful) side
-        // by side. Tier 0's inlined badge and Tier 1's stateless greeting render statically; only the
-        // Tier-2 counter holds state — clicking it re-renders in place with no StateHasChanged. Scoped
-        // by the demo's #component-tiers container.
-        var tiers = Page.Locator("#component-tiers");
-        await Expect(tiers).ToContainTextAsync("inlined", contains);   // Tier 0 static helper badge
-        await Expect(tiers).ToContainTextAsync("Hello, Ada", contains); // Tier 1 stateless greeting
-        var tierCounter = tiers.Locator("button:has-text('Clicked')");
-        await tierCounter.ClickAsync();
-        await tierCounter.ClickAsync();
-        await Expect(tierCounter).ToContainTextAsync("Clicked 2 times", contains);
 
         // Events (the full GlobalEventHandlers surface — its standalone /events page folded into this
         // guide). Scope each interaction to its own .guide-demo; result panes/inputs repeat across demos.
@@ -1293,6 +1329,14 @@ public abstract partial class SharedSmokeTests
         await Expect(eSurface).ToContainTextAsync("double-clicks: 1", contains);
         await eSurface.Locator("div[tabindex='0']").ClickAsync();
         await Expect(eSurface).ToContainTextAsync("focused", contains);
+
+        // ---- lists, toasts, drag & error boundaries (docs/composition-lists.md) ----
+        await SideAsync("Composition — lists & more", "lists, toasts, drag", "main .markdown-body h1");
+        await AssertGuideDemosAsync(10, "composition-lists");
+        // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
+        // interaction, so a fill/click never races the page still hydrating on the slower transports.
+        await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
         // Toast: a producer raises an IToaster message; the headless ToastOutlet drains it (consumed-once)
         // and renders a dismissible BsAlert — live-diff state, no client JS. The demo's ToastOutlet sets
@@ -1400,8 +1444,7 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkLifecycleGuideAsync()
     {
         await SideAsync("Lifecycle", "Lifecycle", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 8,
-            "expected the Lifecycle guide to embed the lifecycle demos (incl. the folded live ticker) as live demos");
+        await AssertGuideDemosAsync(8, "lifecycle");
         // Guide prose code fences are syntax-highlighted server-side (runs on every host, including
         // StandaloneWasm which can't deep-link): the ```csharp blocks carry ColorCode token spans.
         await Expect(Page.Locator("main .markdown-body pre code span[class]").First)
@@ -1477,8 +1520,7 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkRoutingGuideAsync()
     {
         await SideAsync("Routing", "Routing", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 1,
-            "expected the Routing guide to embed the Navigator demo as a live demo");
+        await AssertGuideDemosAsync(4, "routing");
         var navDemo = Page.Locator(".guide-demo:has(#nav-query)");
         await Expect(navDemo.Locator("#nav-query")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
@@ -1493,15 +1535,17 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     }
 
-    // JS-interop guide: the Element refs / Scoped CSS / IJSRuntime / Asset-loading example pages folded
-    // into docs/js-interop.md as inline live demos. Open the guide once, hydration-gate on a late demo
-    // (the lazy-mount toggle near the end), then drive each demo by #id / scoped locator.
+    // JS-interop guide, across its two pages since the hub/subpage split: the hub carries scoped CSS and
+    // the asset-loading/bundle demos, and "JS interop — runtime" carries IJSRuntime, element refs and the
+    // third-party (Gantt) wrapper. Hydration-gate each page on a late demo, then drive by #id / scoped
+    // locator. Counts are the `<!-- demo: -->` markers in the matching docs/js-interop*.md.
     protected async Task WalkJsInteropGuideAsync()
     {
         await ClearJsRuntimeStorageAsync();
+
+        // ---- hub (docs/js-interop.md) ----
         await SideAsync("JavaScript interop", "JavaScript interop", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 8,
-            "expected the JS-interop guide to embed the demos as live demos");
+        await AssertGuideDemosAsync(5, "js-interop");
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameString = "Show LazyChild" })).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
@@ -1513,6 +1557,46 @@ public abstract partial class SharedSmokeTests
         var bg1 = await boxes.Nth(1).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
         Assert.NotEqual(bg0, bg1);
         Assert.NotEqual("rgba(0, 0, 0, 0)", bg0);
+
+        // Asset loading: scoped CSS/JS each ship as ONE content-addressed bundle, so a lazily-mounted
+        // component is styled the instant its node is inserted — no extra <link>, no FOUC.
+        var cssLinkSel = "head link[rel='stylesheet'][href^='/_rask/a/']";
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+        Assert.Equal(1, await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync());
+        await Page.EvaluateAsync(@"() => {
+            window.__raskLazyApplied = null;
+            const obs = new MutationObserver(() => {
+                if (window.__raskLazyApplied !== null) return;
+                if (!document.querySelector('.lazy-child')) return;
+                let applied = false;
+                document.head.querySelectorAll('link[rel=""stylesheet""]').forEach((l) => {
+                    if (!l.sheet) return;
+                    try { for (const r of l.sheet.cssRules) if (r.cssText.indexOf('lazy-child') >= 0) applied = true; } catch (e) {}
+                });
+                window.__raskLazyApplied = applied;
+                obs.disconnect();
+            });
+            obs.observe(document.documentElement, {
+                childList: true, subtree: true, attributes: true, attributeFilter: ['class']
+            });
+        }");
+        await Page.GetByRole(AriaRole.Button, new() { NameString = "Show LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+        await Page.WaitForFunctionAsync("() => window.__raskLazyApplied !== null",
+            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+        Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskLazyApplied === true"),
+            "LazyChild's scoped rule (from the bundle) must be applied when the node is inserted (no FOUC)");
+        await Page.GetByRole(AriaRole.Button, new() { NameString = "Hide LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+
+        // ---- runtime subpage (docs/js-interop-runtime.md) ----
+        await SideAsync("JS interop — runtime", "IJSRuntime, typed APIs & refs", "main .markdown-body h1");
+        await AssertGuideDemosAsync(3, "js-interop-runtime");
+        await Expect(Page.Locator("button:has-text('Measure the box')").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
         // Element refs: focus a built-in, then measure the box via the sibling scoped JS.
         var elDemo = Page.Locator(".guide-demo:has(button:has-text('Measure the box'))");
@@ -1566,40 +1650,6 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#demo-remove").ClickAsync();
         await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Removed",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Asset loading: scoped CSS/JS each ship as ONE content-addressed bundle, so a lazily-mounted
-        // component is styled the instant its node is inserted — no extra <link>, no FOUC.
-        var cssLinkSel = "head link[rel='stylesheet'][href^='/_rask/a/']";
-        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
-        Assert.Equal(1, await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync());
-        await Page.EvaluateAsync(@"() => {
-            window.__raskLazyApplied = null;
-            const obs = new MutationObserver(() => {
-                if (window.__raskLazyApplied !== null) return;
-                if (!document.querySelector('.lazy-child')) return;
-                let applied = false;
-                document.head.querySelectorAll('link[rel=""stylesheet""]').forEach((l) => {
-                    if (!l.sheet) return;
-                    try { for (const r of l.sheet.cssRules) if (r.cssText.indexOf('lazy-child') >= 0) applied = true; } catch (e) {}
-                });
-                window.__raskLazyApplied = applied;
-                obs.disconnect();
-            });
-            obs.observe(document.documentElement, {
-                childList: true, subtree: true, attributes: true, attributeFilter: ['class']
-            });
-        }");
-        await Page.GetByRole(AriaRole.Button, new() { NameString = "Show LazyChild" }).ClickAsync();
-        await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
-        await Page.WaitForFunctionAsync("() => window.__raskLazyApplied !== null",
-            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
-        Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskLazyApplied === true"),
-            "LazyChild's scoped rule (from the bundle) must be applied when the node is inserted (no FOUC)");
-        await Page.GetByRole(AriaRole.Button, new() { NameString = "Hide LazyChild" }).ClickAsync();
-        await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
-        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
 
         await WalkGanttDemoAsync();
     }
@@ -1706,8 +1756,7 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkElementsGuideAsync()
     {
         await SideAsync("Elements & the DSL", "Elements & the DSL", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 26,
-            "expected the Elements guide to embed the DSL/element demos as live demos");
+        await AssertGuideDemosAsync(26, "elements");
         // Gate on a late demo's distinctive element (the Interactive-elements demo, near the end).
         await Expect(Page.Locator(".guide-demo .sample-result-body details[open] summary").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
@@ -1748,8 +1797,7 @@ public abstract partial class SharedSmokeTests
         // The HttpClient+DI, file-upload and file-download example pages were folded into
         // docs/http-and-files.md as inline live demos. Drive the guide and assert each demo mounted.
         await SideAsync("HTTP & files", "HTTP & files", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 4,
-            "expected the HTTP & files guide to embed the http/upload/download demos as live demos");
+        await AssertGuideDemosAsync(4, "http-and-files");
 
         // HttpClient + DI: the injected client loads a post card in OnMountAsync. This also guards the
         // WASM base-address fix — the relative fetch must resolve against the app root from the two-segment
@@ -1774,11 +1822,11 @@ public abstract partial class SharedSmokeTests
         // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
         // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
         await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 25,
-            "expected the Forms guide to embed the forms demos as live demos");
-        // The guide co-mounts every forms demo on one (large) page; wait for a late demo's control (the
-        // multi-select, near the end) before driving any interaction so clicks never race hydration.
-        await Expect(Page.Locator("#ms-interests")).ToBeVisibleAsync(
+        await AssertGuideDemosAsync(16, "forms");
+        // The hub co-mounts its forms demos on one (large) page; wait for a late demo's control (the
+        // floating-label form, the last marker on the page) before driving any interaction so clicks
+        // never race hydration.
+        await Expect(Page.Locator("#ff-FullName")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
         // Two-way binding: typed bind echo (the per-type / nullable / clear-to-null matrix is unit-
@@ -1799,23 +1847,6 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("pre code.language-csharp span").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
-        // the async validator shows "Checking…" then "taken". (Attribute-specific messages and the
-        // latest-wins cancellation are unit-tested in Rask.Validation.DataAnnotations.Tests.)
-        await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
-        await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
-            .ToContainTextAsync("required",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
-        var asyncForm = Page.Locator("form:has(#v3-username)");
-        await asyncForm.Locator("#v3-username").FillAsync("admin");
-        await asyncForm.Locator("#v3-username").BlurAsync();
-        await Expect(asyncForm.Locator(".validating-indicator"))
-            .ToContainTextAsync("Checking",
-                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
-        await Expect(asyncForm.Locator(".text-danger"))
-            .ToContainTextAsync("taken",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
-
         // Floating labels: the reusable Floating* wrappers (input/select/textarea). An empty submit
         // surfaces the Bootstrap .invalid-feedback under a field (shown via .d-block, no is-invalid
         // toggle); a valid submit reaches the success banner. (Structure/id/label derivation is
@@ -1832,6 +1863,13 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".sample-result-body .alert-success")
                 .Filter(new LocatorFilterOptions { HasText = "Ada Lovelace" }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // ---- advanced subpage (docs/forms-advanced.md) ----
+        // Nested models, control groups and the multi-select moved here in the hub/subpage split.
+        await SideAsync("Forms — advanced", "nested models & control groups", "main .markdown-body h1");
+        await AssertGuideDemosAsync(10, "forms-advanced");
+        await Expect(Page.Locator("#ms-interests")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
         // Radio & checkbox groups: single-value radio bind + ICollection checkbox bind. Scope the
         // option locators to this demo — the "Pro"/"AI" values also appear in the form-controls and
@@ -1904,6 +1942,11 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#ms-controlled .dropdown-menu.show")).ToBeHiddenAsync(
             new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
+        // ---- back to the hub for the form-controls demos (docs/forms.md) ----
+        await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
+        await Expect(Page.Locator("#fc-select-controlled")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
         // Form controls page: every control in controlled (Value + OnChange) and bound (two-way) shape,
         // each with a derived readout rendered OUTSIDE the control / Form. Each readout must update live
         // with no StateHasChanged in the demo — including the Component-style controls (BsRadioGroup /
@@ -1945,6 +1988,27 @@ public abstract partial class SharedSmokeTests
         await fcMulti.Locator(".position-fixed").DispatchEventAsync("click");
         await Expect(fcMulti.Locator(".dropdown-menu.show")).ToBeHiddenAsync(
             new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
+        // ---- validation subpage (docs/forms-validation.md) ----
+        await SideAsync("Forms — validation", "Forms — validation", "main .markdown-body h1");
+        await AssertGuideDemosAsync(11, "forms-validation");
+
+        // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
+        // the async validator shows "Checking…" then "taken". (Attribute-specific messages and the
+        // latest-wins cancellation are unit-tested in Rask.Validation.DataAnnotations.Tests.)
+        await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
+        await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
+            .ToContainTextAsync("required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        var asyncForm = Page.Locator("form:has(#v3-username)");
+        await asyncForm.Locator("#v3-username").FillAsync("admin");
+        await asyncForm.Locator("#v3-username").BlurAsync();
+        await Expect(asyncForm.Locator(".validating-indicator"))
+            .ToContainTextAsync("Checking",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
+        await Expect(asyncForm.Locator(".text-danger"))
+            .ToContainTextAsync("taken",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
     }
 
     protected async Task WalkStylingDataAndAppPagesAsync()
@@ -2073,9 +2137,10 @@ public abstract partial class SharedSmokeTests
         // wait for the LAST demo's control so no interaction races hydration, then drive a representative
         // set: one-shot reads, storage/clipboard round-trips, and JS→C# push. Exhaustive per-wrapper
         // behaviour is covered by the demo unit tests.
-        await SideAsync("Browser APIs", "Browser APIs", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 20,
-            "expected the Browser APIs guide to embed the typed wrappers as live demos");
+        // The demos all live on the reference subpage — the hub is prose and carries none, so walking it
+        // would assert nothing (docs/browser-apis.md has zero `<!-- demo: -->` markers).
+        await SideAsync("Browser APIs — reference & demos", "reference & live demos", "main .markdown-body h1");
+        await AssertGuideDemosAsync(33, "browser-apis-reference");
         await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
@@ -2288,7 +2353,7 @@ public abstract partial class SharedSmokeTests
                     ["downloadThroughput"] = 50 * 1024,
                     ["uploadThroughput"] = 50 * 1024,
                 });
-                await Page.GotoAsync("/guides/composition");
+                await Page.GotoAsync("/guides/composition-callbacks-context");
                 var bump = Page.Locator(".guide-demo .sample-result-body button:has-text('Clicks:')").First;
                 await Expect(bump).ToBeVisibleAsync(
                     new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
@@ -2319,9 +2384,10 @@ public abstract partial class SharedSmokeTests
         if (opts.OfflineReconnect)
         {
             // Drop and restore the WebSocket; server-held state must survive the reconnect. The events
-            // click-counter demo now lives on the Composition guide (its /events page was folded in).
-            await Page.GotoAsync("/guides/composition");
-            await Expect(Page.Locator("main .markdown-body h1")).ToContainTextAsync("Composition",
+            // click-counter demo lives on the Composition guide's callbacks & context subpage (its
+            // standalone /events page was folded in, then moved here by the hub/subpage split).
+            await Page.GotoAsync("/guides/composition-callbacks-context");
+            await Expect(Page.Locator("main .markdown-body h1")).ToContainTextAsync("callbacks & context",
                 new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
             var clicks = Page.Locator(".guide-demo .sample-result-body button:has-text('Clicks:')").First;
             await clicks.ClickAsync();
