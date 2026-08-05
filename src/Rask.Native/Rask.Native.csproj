@@ -117,6 +117,8 @@
     a `rask new` native project + build cannot resolve Component, the element factories, or [Route].
   -->
   <Import Project="..\RaskAnalyzerPack.targets"/>
+  <!-- Rask.Core's build integration packed to build/, imported by build/Rask.Native.targets. -->
+  <Import Project="..\RaskCoreBuildPack.targets"/>
 
   <PropertyGroup>
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_RaskAddCoreToLib</TargetsForTfmSpecificBuildOutput>

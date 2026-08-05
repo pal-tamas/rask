@@ -22,6 +22,18 @@
   -->
 
   <!--
+    Rask.Core's build integration (scoped-CSS/JS globs + CompilerVisibleProperty), packed alongside this
+    file by src\RaskCoreBuildPack.targets. NuGet auto-imports only build/<PackageId>.{props,targets}, so
+    it has to be pulled in from here — without it a consuming WASM app gets no scoped CSS/JS at all (#544).
+
+    The Exists guard is NOT cosmetic: this file is also imported in-repo by Directory.Build.targets, where
+    Rask.Core.targets has no sibling here (it is packed from Rask.Core's own build/ folder), and an
+    unguarded import of a missing file is MSB4019 across every project in the repo.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Core.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Core.targets') "/>
+
+  <!--
     Contribute the framework boot JS (main.js, rask.wasm.js) as computed static web assets
     at the app root, so every consuming WASM project gets them served at /main.js and
     /rask.wasm.js without copying framework files into its own tree (no drift). main.js

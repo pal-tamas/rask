@@ -18,8 +18,17 @@
        <RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>.
 
     Auto-imported in this repo via Directory.Build.targets at the repo root.
-    Downstream NuGet consumers get the same auto-import via the build/ folder
-    packed into the .nupkg.
+    Downstream NuGet consumers reach it a different way: Rask.Core is IsPackable=false,
+    and NuGet auto-imports only build/<PackageId>.{props,targets}, so this file is packed
+    into each host package's build/ folder by src\RaskCoreBuildPack.targets and imported
+    from that package's own build/<PackageId>.targets.
+
+    Only ever imported once per project: nothing copies this file into a host package's build/
+    folder on disk, so the packaged route's Exists guard is false in the repo and the in-repo
+    route is unreachable from a restored package. Note a same-file sentinel could NOT enforce
+    that — MSBuild evaluates properties and items in separate passes, so a property set at the
+    bottom of this file is already true when the ItemGroups below are evaluated, and every
+    group would silently vanish.
   -->
 
   <!--

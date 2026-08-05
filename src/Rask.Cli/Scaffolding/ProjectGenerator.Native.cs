@@ -261,7 +261,9 @@ internal static partial class ProjectGenerator
                     P(Style: "margin:0;font-size:.9rem;color:#6b7280")[
                         "Edit this page in ",
                         Code()["HomePage.cs"],
-                        ". Full guides at ",
+                        " — drop a ",
+                        Code()["HomePage.css"],
+                        " beside it and its rules are scoped to this page. Full guides at ",
                         A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
                         "."
                     ]

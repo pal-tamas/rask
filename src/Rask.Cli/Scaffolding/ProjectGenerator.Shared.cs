@@ -66,7 +66,9 @@ internal static partial class ProjectGenerator
                             P(Class: "mb-0 small text-body-secondary")[
                                 "Edit this page in ",
                                 Code()["HomePage.cs"],
-                                ". Full guides at ",
+                                " — drop a ",
+                                Code()["HomePage.css"],
+                                " beside it and its rules are scoped to this page. Full guides at ",
                                 A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
                                 "."
                             ]

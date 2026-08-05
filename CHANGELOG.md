@@ -24,6 +24,28 @@ them until tagged releases begin.
   we could neither pin nor install.
 
 ### Fixed
+- **Scoped CSS and scoped JS now work in apps built against the NuGet packages — they never had.** The
+  generators read nothing but `@(AdditionalFiles)`, and the `**\*.css` / `**\*.js` globs that populate it
+  live in `Rask.Core.targets`, which reached no consumer at all: `Rask.Core` is `IsPackable=false`, so its
+  own `Pack="true"` item was inert, and `Rask.Server` / `Rask.Wasm` / `Rask.Native` each packed only their
+  own `build/` folder. So in every app `rask new` produced, a `Counter.css` beside `Counter.cs` was
+  silently ignored, RASK015/RASK017 could never fire, and `RaskGlobalUsings` / `RaskScopedJsAutoInclude` /
+  `RaskFactoryNavigation` were not compiler-visible, so setting any of them to `false` did nothing. Nothing
+  caught it because every in-repo project imports the file directly through `Directory.Build.targets` — the
+  defect existed only on the far side of a `dotnet pack`. The file is now packed into each host package's
+  `build/` folder and imported from that package's `build/<PackageId>.targets` (NuGet auto-imports nothing
+  else), guarded by a pack-time error and by tests on both sides: a structural contract in the default gate
+  and a build-E2E that compiles a scaffolded app with a scoped `.css` and requires an orphan one to fail
+  with RASK015.
+
+  **This can turn a previously-green consumer build red, which is the feature working.** RASK015 and
+  RASK017 are errors, so a stray `.css`/`.js` with no matching component in the same folder now fails the
+  build. `wwwroot/`, `bin/`, `obj/` and `node_modules/` are excluded, which covers the documented home for
+  global stylesheets; otherwise move the file under `wwwroot/`, or opt out with
+  `<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>` / `<RaskScopedJsAutoInclude>false</…>`.
+  Note NuGet applies `build/` only to a **direct** `PackageReference`, so a class library that gets a host
+  package transitively still needs its own reference to glob — the same reach the global usings in
+  `build/Rask.Server.props` have always had.
 - **A contended write no longer fails with "cannot start a transaction within a transaction".** The
   busy-retry loop re-issued the identical statement on every pass with no cleanup between attempts, and
   cleared a leaked transaction only *once*, before the loop. That caught a transaction the pooled handle
