@@ -61,11 +61,20 @@ All metrics publish on the meter named **`Rask.Server`** (`RaskTelemetry.MeterNa
 | `rask.handlers.faulted` | Counter | | Handler dispatches that threw (isolated; session survives). |
 | `rask.handlers.timedout` | Counter | | Handler dispatches cancelled by `HandlerTimeout`. |
 | `rask.handler.duration` | Histogram (ms) | | Wall-clock duration of an event-handler dispatch. |
-| `rask.ws.frames.rejected` | Counter | `reason` = `size` \| `rate` \| `backlog` | Inbound frames refused by a safety limit. |
+| `rask.ws.frames.rejected` | Counter | `reason` = `size` \| `rate` \| `backlog` \| `idle` | Inbound frames refused by a safety limit. |
+| `rask.sessions.resumed` | Counter | | Pages rebuilt on a host that had never heard of the session, from the client's [resume record](configuration.md#surviving-a-restart-or-a-redeploy). |
+| `rask.sessions.resume_rejected` | Counter | `reason` = `malformed` \| `unprotect` \| `principal` \| `toolarge` \| `atcapacity` | Resume records refused. |
 
 The `rask.ws.frames.rejected` counter is the headline DoS-visibility signal: a spike on
 `reason=rate` or `reason=backlog` means a client is being throttled by the per-connection frame-rate
-cap or the pending-handler backpressure breaker.
+cap or the pending-handler backpressure breaker. `reason=idle` is the `IdleSocketTimeout` reclaiming a
+silently-idle connection, not an attack.
+
+`rask.sessions.resume_rejected` is worth an alert of its own. A steady trickle is normal — expired records
+from laptops that slept. **A spike on `reason=unprotect` immediately after a deploy means your
+data-protection key ring is not surviving the deploy**, so every user is getting a reload instead of their
+page back (and, if you use cookie auth, being signed out). See
+[surviving a restart](configuration.md#surviving-a-restart-or-a-redeploy).
 
 ## Pillar metrics
 

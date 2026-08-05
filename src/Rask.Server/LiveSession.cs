@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +10,7 @@ using Rask.Core.Authentication;
 using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.Server.Authentication;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
 
@@ -98,6 +100,14 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // (children reconcile by (Type, position), not Key, so a same-position page instance is reused and
     // its OnMountAsync never re-runs — leaving data loaded for the old identity/tenant).
     public string? PendingAuthNavigation { get; set; }
+
+    // What the client's current resume record was built from. -1 means it has none, so the first payload
+    // always carries one. The URL is tracked alongside the version because a navigation moves the page
+    // without touching the bag: version alone would leave the client holding a record that rebuilds the
+    // route they were on two pages ago. Touched only from TakeResumeToken, which WritePayload calls under
+    // the render lock.
+    private int _lastResumeVersion = -1;
+    private string? _lastResumeUrl;
 
     public string Id { get; }
     public IServiceScope Scope { get; }
@@ -191,6 +201,60 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     }
 
     protected override Task RenderInScopeCoreAsync() => RenderAndSendAsync(null, false);
+
+    /// <summary>
+    ///     Seals a resume record for this session when the page has moved since the last one.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This is the only host that overrides it: a server session can outlive neither a restart nor
+    ///         a redeploy, so the client has to be able to hand its page back to whatever process answers
+    ///         next. Riding the render payload rather than its own frame means a handler that writes twenty
+    ///         keys produces one record, and a render that changed nothing produces none.
+    ///     </para>
+    ///     <para>
+    ///         A session whose bag has overflowed its budget is skipped — it has declared itself
+    ///         unresumable, and a record it can never redeem is wire cost for nothing.
+    ///     </para>
+    /// </remarks>
+    protected override string? TakeResumeToken()
+    {
+        if (_disposed || Scope.ServiceProvider.GetService<SessionResumeSupport>()?.Protector is not { } protector)
+        {
+            return null;
+        }
+
+        var state = Scope.ServiceProvider.GetRequiredService<PersistentState>();
+        if (state.Overflowed)
+        {
+            return null;
+        }
+
+        var route = Scope.ServiceProvider.GetRequiredService<RouteState>();
+        var url = QueryString.Build(route.Path, route.Query);
+        if (state.Version == _lastResumeVersion && string.Equals(url, _lastResumeUrl, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        // Mark issued before attempting the seal, not after: a protector that throws will throw again on
+        // the next render too, and retrying it per frame would turn a broken key ring into a per-render
+        // cost for a record that is never going to be produced.
+        _lastResumeVersion = state.Version;
+        _lastResumeUrl = url;
+
+        try
+        {
+            return protector.Protect(
+                url, Scope.ServiceProvider.GetRequiredService<SessionUserProvider>().Current, state.Entries);
+        }
+        catch (CryptographicException)
+        {
+            // No usable key ring (unwritable directory, revoked keys). Resume simply doesn't happen on this
+            // host; it must not take the render down with it.
+            return null;
+        }
+    }
 
     protected override async Task RequestRenderInternalAsync(bool publishOnly)
     {
