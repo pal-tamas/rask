@@ -33,4 +33,40 @@ public static class RaskCacheServiceCollectionExtensions
         services.AddHostedService<CachePurger<TContext>>();
         return services;
     }
+
+    /// <summary>
+    /// Registers the typed <see cref="ICache"/> over an <see cref="IDistributedCache"/> you supply — Redis,
+    /// for instance — instead of over the app's own database. Register the backing store first.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The database-backed cache is the default and the recommendation: it needs no second piece of
+    /// infrastructure to run, secure and back up. Reach for this overload when you already operate Redis for
+    /// other reasons, or when several instances need a cache the database shouldn't carry.
+    /// </para>
+    /// <para>
+    /// No <see cref="CacheOptions"/>, deliberately. Both of them — <see cref="CacheOptions.PurgeInterval"/>
+    /// and <see cref="CacheOptions.DefaultSlidingExpiration"/> — are implemented by
+    /// <see cref="RaskDistributedCache{TContext}"/>, so against another store they would be settings that
+    /// silently do nothing. Expiry is the store's own business: Redis evicts on its own schedule, and a
+    /// default expiration belongs in its configuration or in the per-call
+    /// <see cref="DistributedCacheEntryOptions"/>.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:6379");
+    /// builder.Services.AddRaskCache();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IServiceCollection AddRaskCache(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        // No IDistributedCache and no purger: this overload's whole point is that the store is somebody
+        // else's. Nothing here needs a DbContext, so an app using it never maps the CacheEntry table and
+        // never runs a migration for it.
+        services.TryAddSingleton<ICache, Cache>();
+        return services;
+    }
 }

@@ -75,7 +75,7 @@ internal static class FeatureGenerator
         }
 
         var root = spec.Root;
-        var (programUsings, programRegistrations) = ProgramWiring(context, rootNs, generateContext, options.UseOutbox);
+        var (programUsings, programRegistrations) = ProgramWiring(context, rootNs, generateContext, options.UseOutbox, project.Database);
 
         // With --context, the sets the user must add to their own DbContext so EF maps the new entities, plus
         // the usings those sets reference (the entity types live in the feature's namespace, not the context's).
@@ -97,9 +97,9 @@ internal static class FeatureGenerator
 
         return new ScaffoldResult(
             files,
-            RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests))
+            RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests, project.Database))
         {
-            Packages = FeaturePackages(options.Validation, options.UseBs, options.UseOutbox, generateContext),
+            Packages = FeaturePackages(options.Validation, options.UseBs, options.UseOutbox, generateContext, project.Database),
             ProgramUsings = programUsings,
             ProgramRegistrations = programRegistrations,
             ContextDbSets = contextDbSets,
@@ -146,7 +146,7 @@ internal static class FeatureGenerator
     /// user already registers their own context, so only the framework services are added.
     /// </summary>
     private static (IReadOnlyList<string> Usings, IReadOnlyList<string> Registrations) ProgramWiring(
-        string context, string contextNs, bool generateContext, bool useOutbox)
+        string context, string contextNs, bool generateContext, bool useOutbox, DatabaseInfo database)
     {
         var usings = new List<string> { "Rask.Cqrs", "Rask.Data" };
         var registrations = new List<string> { "builder.Services.AddRaskCqrs();" };
@@ -167,15 +167,17 @@ internal static class FeatureGenerator
         {
             usings.Add("Microsoft.EntityFrameworkCore");
             usings.Add("Microsoft.EntityFrameworkCore.Diagnostics");
-            usings.Add("Rask.SQLite");
+            usings.Add(database.Namespace);
             usings.Add(contextNs);
-            // UseRaskSqlite is a drop-in for UseSqlite that also applies the production pragma set (WAL,
-            // busy_timeout, foreign_keys), so the app survives concurrent writers (jobs/mail/outbox) instead of
-            // hitting "database is locked". The connection string falls back to a local file but honours a
-            // ConnectionStrings:App override, so `rask deploy` can point it at a mounted volume that survives redeploys.
+            // The Use… call is the provider's Rask drop-in, which also applies its production settings — for
+            // SQLite the pragma set (WAL, busy_timeout, foreign_keys) so the app survives concurrent writers
+            // (jobs/mail/outbox) instead of hitting "database is locked"; for a client-server database the
+            // session timeouts and transient-failure retrying. The connection string falls back to the
+            // provider's default but honours a ConnectionStrings:App override, so `rask deploy` can point it
+            // at a mounted volume (SQLite) or a managed instance.
             registrations.Add(
                 $"builder.Services.AddDbContextFactory<{context}>((sp, o) => o\n"
-                + "    .UseRaskSqlite(builder.Configuration.GetConnectionString(\"App\") ?? \"Data Source=app.db\")\n"
+                + $"    .{database.UseMethod}(builder.Configuration.GetConnectionString(\"App\") ?? \"{database.DefaultConnectionString}\")\n"
                 + "    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));");
         }
 
@@ -398,7 +400,7 @@ internal static class FeatureGenerator
                 // generateContext ⇒ contextNs is the root namespace (never null; only --context leaves it null).
                 files.Add(new ScaffoldFile(
                     Path.Combine(testDirectory, plural + "PersistenceTests.cs"),
-                    RenderPersistenceTests(testNamespace, ns, contextNs!, entityName, plural, context, idType, fields, useValueObjects)));
+                    RenderPersistenceTests(testNamespace, ns, contextNs!, entityName, plural, context, idType, fields, useValueObjects, project.Database)));
             }
         }
 
@@ -753,9 +755,9 @@ internal static class FeatureGenerator
         return sb.ToString();
     }
 
-    // Persistence test: the entity round-trips through a real SQLite file, proving the configuration's
+    // Persistence test: the entity round-trips through a real database, proving the configuration's
     // columns + value-object converters persist and rehydrate.
-    private static string RenderPersistenceTests(string testNs, string featureNs, string contextNs, string entity, string plural, string context, string idType, IReadOnlyList<FieldSpec> fields, bool useValueObjects)
+    private static string RenderPersistenceTests(string testNs, string featureNs, string contextNs, string entity, string plural, string context, string idType, IReadOnlyList<FieldSpec> fields, bool useValueObjects, DatabaseInfo database)
     {
         var sb = new StringBuilder();
         sb.Append("using Microsoft.EntityFrameworkCore;");
@@ -765,15 +767,33 @@ internal static class FeatureGenerator
         sb.Append(Usings(testNs, [featureNs, contextNs])).Append("\n\n");
         sb.Append("namespace ").Append(testNs).Append(";\n\n");
         sb.Append("public sealed class ").Append(plural).Append("PersistenceTests : IDisposable\n{\n");
-        sb.Append("    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $\"rask-test-{Guid.NewGuid():N}.db\");\n\n");
-        sb.Append("    private ").Append(context).Append(" NewContext()\n    {\n");
-        sb.Append("        var options = new DbContextOptionsBuilder<").Append(context).Append(">()\n");
-        sb.Append("            .UseSqlite($\"Data Source={_dbPath}\")\n");
-        sb.Append("            .Options;\n");
-        sb.Append("        return new ").Append(context).Append("(options);\n    }\n\n");
+
+        if (database.IsFileBased)
+        {
+            sb.Append("    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $\"rask-test-{Guid.NewGuid():N}.db\");\n\n");
+            sb.Append("    private ").Append(context).Append(" NewContext()\n    {\n");
+            sb.Append("        var options = new DbContextOptionsBuilder<").Append(context).Append(">()\n");
+            sb.Append("            .UseSqlite($\"Data Source={_dbPath}\")\n");
+            sb.Append("            .Options;\n");
+            sb.Append("        return new ").Append(context).Append("(options);\n    }\n\n");
+        }
+        else
+        {
+            // A client-server database has no temp file to stand in for isolation, so the test creates and
+            // drops a uniquely-named database of its own. It points at the same local server the app's own
+            // default connection string does; RASK_TEST_DB overrides that for CI.
+            sb.Append("    private readonly string _connectionString =\n");
+            sb.Append("        Environment.GetEnvironmentVariable(\"RASK_TEST_DB\")\n");
+            sb.Append("        ?? $\"").Append(TestDatabaseTemplate(database)).Append("\";\n\n");
+            sb.Append("    private ").Append(context).Append(" NewContext()\n    {\n");
+            sb.Append("        var options = new DbContextOptionsBuilder<").Append(context).Append(">()\n");
+            sb.Append("            .").Append(database.TestUseMethod).Append("(_connectionString)\n");
+            sb.Append("            .Options;\n");
+            sb.Append("        return new ").Append(context).Append("(options);\n    }\n\n");
+        }
 
         sb.Append("    [Fact]\n");
-        sb.Append("    public async Task ").Append(entity).Append("_round_trips_through_sqlite()\n    {\n");
+        sb.Append("    public async Task ").Append(entity).Append("_round_trips_through_").Append(database.Key).Append("()\n    {\n");
         sb.Append("        ").Append(idType).Append(" id;\n");
         sb.Append("        await using (var db = NewContext())\n        {\n");
         sb.Append("            await db.Database.EnsureCreatedAsync();\n");
@@ -787,10 +807,32 @@ internal static class FeatureGenerator
         sb.Append(SampleAsserts("entity", fields, useValueObjects, second: false, indent: "            ")).Append("\n        }\n    }\n\n");
 
         sb.Append("    public void Dispose()\n    {\n");
-        sb.Append("        if (File.Exists(_dbPath))\n        {\n");
-        sb.Append("            File.Delete(_dbPath);\n        }\n    }\n}\n");
+        if (database.IsFileBased)
+        {
+            sb.Append("        if (File.Exists(_dbPath))\n        {\n");
+            sb.Append("            File.Delete(_dbPath);\n        }\n    }\n}\n");
+        }
+        else
+        {
+            sb.Append("        using var db = NewContext();\n");
+            sb.Append("        db.Database.EnsureDeleted();\n    }\n}\n");
+        }
+
         return sb.ToString();
     }
+
+    /// <summary>
+    /// The throwaway database a generated persistence test creates, as an interpolated-string body. Derived
+    /// from the provider's own default connection string with the database name swapped for a unique one, so
+    /// the test reaches the same server the scaffolded app does without a second set of credentials to keep
+    /// in step.
+    /// </summary>
+    private static string TestDatabaseTemplate(DatabaseInfo database) =>
+        string.Join(';', database.DefaultConnectionString
+            .Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.TrimStart().StartsWith("Database=", StringComparison.OrdinalIgnoreCase)
+                ? "Database=rask_test_{Guid.NewGuid():N}"
+                : part));
 
     // The Create/Update argument list — one sample literal per field (the `second` set differs so an
     // Update visibly changes every value).
@@ -934,29 +976,30 @@ internal static class FeatureGenerator
     }
 
     // The NuGet packages the generated slice references — the command adds these to the project.
-    private static IReadOnlyList<string> FeaturePackages(string validation, bool useBs, bool useOutbox, bool generateContext)
+    private static IReadOnlyList<string> FeaturePackages(
+        string validation, bool useBs, bool useOutbox, bool generateContext, DatabaseInfo database)
     {
-        var packages = new List<string>
-        {
-            "Microsoft.EntityFrameworkCore.Sqlite",
+        var packages = new List<string> { database.EfPackage };
 
+        if (database.IsFileBased)
+        {
             // Security: EF Core Sqlite pins the SQLitePCLRaw 2.1.11 family, whose lib.e_sqlite3 bundles
             // SQLite 3.49.1 — vulnerable to CVE-2025-6965 (memory corruption). The 3.x bundle drops that
             // package entirely for SourceGear.sqlite3 (SQLite 3.50.4+). A direct reference is the only lever
             // that lifts it: transitive pinning does not move it. Every project in this repo that touches EF
             // Core Sqlite carries the same reference — see Directory.Packages.props.
-            "SQLitePCLRaw.bundle_e_sqlite3",
+            packages.Add("SQLitePCLRaw.bundle_e_sqlite3");
+        }
 
-            "Microsoft.EntityFrameworkCore.Design",
-            "Rask.Cqrs",
-            "Rask.Data", // the Entity<TId> base + interceptors every generated entity inherits
-        };
+        packages.Add("Microsoft.EntityFrameworkCore.Design");
+        packages.Add("Rask.Cqrs");
+        packages.Add("Rask.Data"); // the Entity<TId> base + interceptors every generated entity inherits
 
-        // When the run owns the DbContext it registers UseRaskSqlite (production pragmas); with --context the
-        // existing context's project already carries this reference.
+        // When the run owns the DbContext it registers the provider's Rask drop-in (production settings);
+        // with --context the existing context's project already carries this reference.
         if (generateContext)
         {
-            packages.Add("Rask.SQLite.EntityFrameworkCore");
+            packages.Add(database.Package);
         }
 
         if (useOutbox)
@@ -981,13 +1024,14 @@ internal static class FeatureGenerator
         return packages;
     }
 
-    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests)
+    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests, DatabaseInfo database)
     {
         var steps = new StringBuilder();
         var step = 0;
         steps.Append("Next steps:\n");
 
-        steps.Append("  ").Append(++step).Append(". The required packages were added for you (EF Core + SQLite, Rask.Cqrs, Rask.Data");
+        steps.Append("  ").Append(++step).Append(". The required packages were added for you (EF Core + ")
+            .Append(database.ShortName).Append(", Rask.Cqrs, Rask.Data");
         if (useBs)
         {
             steps.Append(", Rask.Bootstrap");

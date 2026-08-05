@@ -56,6 +56,21 @@ public sealed class QueuedMail
 
     /// <summary>When the email was enqueued (UTC).</summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// The processor instance currently holding this email, or <c>null</c> when nobody does.
+    /// </summary>
+    /// <remarks>
+    /// Also the optimistic-concurrency token, which is what stops an instance whose lease expired
+    /// mid-send from stamping its outcome over the row another instance has since taken.
+    /// </remarks>
+    public Guid? ClaimToken { get; set; }
+
+    /// <summary>
+    /// When the current claim expires (UTC). Null or in the past means the email is claimable — which is
+    /// also how a processor that died mid-send releases its work: the lease simply runs out.
+    /// </summary>
+    public DateTime? ClaimedUntil { get; set; }
 }
 
 /// <summary>The EF Core mapping for <see cref="QueuedMail"/>.</summary>
@@ -69,8 +84,12 @@ public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMai
         entity.Property(x => x.From).IsRequired();
         entity.Property(x => x.To).IsRequired();
         entity.Property(x => x.Subject).IsRequired();
-        // Drives the "due, oldest first" claim query.
+        // Drives the "due, oldest first" claim query. ClaimedUntil stays out of it: in a healthy queue
+        // almost every candidate row is unclaimed, so it costs nothing as a residual filter, and a
+        // filtered index would need provider-specific SQL.
         entity.HasIndex(x => new { x.ProcessedAt, x.RunAt, x.Id });
+        // Fences the completion write — see Job.ClaimToken for why.
+        entity.Property(x => x.ClaimToken).IsConcurrencyToken();
     }
 }
 

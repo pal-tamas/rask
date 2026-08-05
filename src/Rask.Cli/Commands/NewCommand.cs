@@ -56,10 +56,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
             .Option("host", valueHint: "local|server", description: "Native host mode: local (default) or server. Native template only.")
+            .Option("database", valueHint: DatabaseCatalog.Keys, description: "Database for --data: sqlite (default, one file, no server) or postgres. Server template only.")
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
             .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
-            .Flag("data", description: "Pre-wire SQLite + EF Core: an AppDbContext ready for `rask generate feature --context AppDbContext` (server only).")
+            .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext ready for `rask generate feature --context AppDbContext` (server only). See --database.")
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")
             .Flag("force", description: "Scaffold into a directory that already has files in it, overwriting on collision.")
@@ -133,6 +134,34 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return 1;
         }
 
+        // --database only applies to the server template, which is the only one with a database at all.
+        var databaseKey = parsed.Option("database");
+        if (databaseKey is not null && template.Key != "server")
+        {
+            Console.Error.WriteLine(
+                $"Template '{template.Key}' does not support --database. It applies only to the server template, "
+                + "which is the only one that scaffolds a database.");
+            return 1;
+        }
+
+        if (!DatabaseCatalog.TryGet(databaseKey ?? DatabaseCatalog.Default.Key, out var database))
+        {
+            var available = string.Join(", ", DatabaseCatalog.All.Select(d => d.Key));
+            Console.Error.WriteLine($"Unknown database '{databaseKey}'. Available databases: {available}.");
+            return 1;
+        }
+
+        // Snapshots copy the database file, so on a client-server database the battery has no meaning.
+        // Reject rather than drop it: a backup that silently didn't get wired is discovered too late.
+        if (requestedFlags.Contains("snapshots") && !database.IsFileBased)
+        {
+            Console.Error.WriteLine(
+                $"--snapshots needs a file-based database, but --database {database.Key} is a server. "
+                + $"Scheduled snapshots (and Litestream continuous backup) copy the SQLite file; on "
+                + $"{database.DisplayName} use your provider's backups instead. Drop --snapshots, or use --database sqlite.");
+            return 1;
+        }
+
         // --host only applies to the native template (which mode to scaffold). Reject it elsewhere so a
         // misplaced flag is a clear error rather than silently ignored.
         var host = parsed.Option("host");
@@ -171,7 +200,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(dir, name, auth, pwa, docker, version),
                     "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(dir, name, auth, pwa, docker, version),
-                    _ => ProjectGenerator.GenerateServer(dir, name, ToBatteries(requestedFlags), version),
+                    _ => ProjectGenerator.GenerateServer(dir, name, ToBatteries(requestedFlags, database.Provider), version),
                 };
             },
             cancellationToken).ConfigureAwait(false);
@@ -181,7 +210,16 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// Maps the requested flag names onto the server template's battery set. <c>--all-batteries</c> expands to
     /// every DB-backed pillar, which is what the tutorial and the showcase sample use.
     /// </summary>
-    internal static ServerBatteries ToBatteries(IReadOnlyCollection<string> flags)
+    /// <remarks>
+    /// <paramref name="provider"/> narrows the <c>--all-batteries</c> expansion: snapshots copy a database
+    /// <em>file</em>, so on a client-server database "every battery" simply doesn't include them. That is not
+    /// the same as dropping a battery the user asked for by name — an explicit <c>--snapshots</c> against
+    /// such a provider is rejected in <see cref="ExecuteAsync"/> instead, because silently ignoring a
+    /// requested backup is the kind of thing you discover after losing data.
+    /// </remarks>
+    internal static ServerBatteries ToBatteries(
+        IReadOnlyCollection<string> flags,
+        DatabaseProvider provider = DatabaseProvider.Sqlite)
     {
         var all = flags.Contains("all-batteries");
         return new ServerBatteries
@@ -190,13 +228,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Pwa = flags.Contains("pwa"),
             Cqrs = flags.Contains("cqrs"),
             Data = flags.Contains("data"),
+            Provider = provider,
             Docker = flags.Contains("docker"),
             Jobs = all || flags.Contains("jobs"),
             Mail = all || flags.Contains("mail"),
             Cache = all || flags.Contains("cache"),
             Outbox = all || flags.Contains("outbox"),
             Push = all || flags.Contains("push"),
-            Snapshots = all || flags.Contains("snapshots"),
+            Snapshots = (all || flags.Contains("snapshots")) && DatabaseCatalog.For(provider).IsFileBased,
             Ops = all || flags.Contains("ops"),
         };
     }
@@ -225,7 +264,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return args;
         }
 
-        foreach (var flag in FeatureFlags.Where(template.SupportedFlags.Contains))
+        // Snapshots is asked last, after the database is known: it only applies to a file-based database, and
+        // the wizard must never let someone assemble a combination that ExecuteAsync then rejects.
+        foreach (var flag in FeatureFlags.Where(f => f != "snapshots").Where(template.SupportedFlags.Contains))
         {
             if (prompt.Confirm($"Add --{flag}?", @default: false))
             {
@@ -233,8 +274,36 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
         }
 
+        var database = DatabaseCatalog.Default;
+        if (args.Any(DataImplyingFlags.Contains))
+        {
+            var databaseKey = prompt.Select(
+                "Database",
+                [.. DatabaseCatalog.All.Select(d => (d.Key, $"{d.Key} — {d.DisplayName}"))],
+                DatabaseCatalog.Default.Key);
+
+            args.Add("--database");
+            args.Add(databaseKey);
+            _ = DatabaseCatalog.TryGet(databaseKey, out database);
+        }
+
+        if (database.IsFileBased
+            && template.SupportedFlags.Contains("snapshots")
+            && !args.Contains("--all-batteries", StringComparer.Ordinal)
+            && prompt.Confirm("Add --snapshots?", @default: false))
+        {
+            args.Add("--snapshots");
+        }
+
         return args;
     }
+
+    /// <summary>
+    /// The flags that pull in a database, so the wizard knows when the <c>--database</c> question is worth
+    /// asking. Mirrors the implications <see cref="ServerBatteries.Normalized"/> applies.
+    /// </summary>
+    private static readonly string[] DataImplyingFlags =
+        ["--data", "--jobs", "--mail", "--cache", "--outbox", "--ops", "--all-batteries"];
 
     private async Task<int> GenerateDirectAsync(
         TemplateInfo template, string name, string? output, bool dryRun, bool force, bool noRestore,

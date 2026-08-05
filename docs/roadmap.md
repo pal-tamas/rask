@@ -22,6 +22,7 @@ service to operate.
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database, delivered off the request thread over SMTP; bodies are Rask components. |
 | **Cache** | ✅ | [`Rask.Cache`](cache.md) — a developer-facing cache on the app's own database; standard `IDistributedCache` plus a typed `ICache` with `GetOrCreateAsync`, absolute/sliding expiry. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
+| **The door out of one box** | ✅ | [`databases.md`](databases.md) — `rask new --database postgres|sqlserver` wires PostgreSQL or SQL Server via `Rask.Postgres` / `Rask.SqlServer` (production session settings + retry), and deploy/`rask db` follow. Jobs, mail and the outbox **lease** the work they claim, so several instances is safe; a lease bounds, but does not eliminate, a duplicate side effect. |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — cookie & JWT sessions, claims, authorization, and hardening guidance. |
 | **Auth — user store** | ❌ | Not shipped. `rask new --auth` scaffolds a **demo** `ICredentialStore` with hardcoded logins, clearly marked as such; you supply the real one. See [below](#not-shipped). |
 | **PWA & native** | ✅ | [`pwa.md`](pwa.md) / [`native.md`](native.md). |

@@ -26,7 +26,7 @@ internal static class TemplateCatalog
             new HashSet<string>(
                 [
                     "auth", "pwa", "cqrs", "data", "docker",
-                    "jobs", "mail", "cache", "outbox", "push", "litestream", "snapshots", "ops", "all-batteries",
+                    "jobs", "mail", "cache", "outbox", "push", "snapshots", "ops", "all-batteries",
                 ],
                 StringComparer.Ordinal)),
         new("wasm", "Rask browser-WASM SPA",

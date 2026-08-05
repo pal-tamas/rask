@@ -25,6 +25,107 @@ public sealed class OutboxProcessor<TContext>(
     private static readonly TimeSpan PurgeInterval = TimeSpan.FromHours(1);
     private DateTime _lastPurge;
 
+    /// <summary>Identifies this instance in logs — not persisted; the per-batch token is what rows carry.</summary>
+    private readonly Guid _instanceId = Guid.NewGuid();
+
+    /// <summary>The token on the batch currently in flight, so shutdown can hand it back.</summary>
+    private Guid _lease;
+
+    /// <summary>
+    /// Atomically takes a batch of unpublished messages for this instance, so a second processor cannot
+    /// publish them too. See <c>JobProcessor.ClaimAsync</c> for why the compare-and-swap is portable and
+    /// why the predicate tests lease expiry rather than <c>ClaimToken == null</c>.
+    /// </summary>
+    internal async Task<List<OutboxMessage>> ClaimAsync(TContext db, DateTime now, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+
+        var ids = await db.Set<OutboxMessage>()
+            .Where(m => m.ProcessedAt == null
+                && m.Attempts < options.MaxAttempts
+                && (m.ClaimedUntil == null || m.ClaimedUntil <= now))
+            .OrderBy(m => m.Id)
+            .Take(options.BatchSize)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        ids.Sort();
+
+        var token = Guid.NewGuid();
+        var until = now + options.LeaseDuration;
+
+        // Attempts is incremented HERE, not on failure — a handler that takes the process down never
+        // reaches the failure path, and counting only failures would retry it forever.
+        var claimed = await db.Set<OutboxMessage>()
+            .Where(m => ids.Contains(m.Id)
+                && m.ProcessedAt == null
+                && (m.ClaimedUntil == null || m.ClaimedUntil <= now))
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(m => m.ClaimToken, token)
+                    .SetProperty(m => m.ClaimedUntil, until)
+                    .SetProperty(m => m.Attempts, m => m.Attempts + 1),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (claimed == 0)
+        {
+            return [];
+        }
+
+        _lease = token;
+
+        return await db.Set<OutboxMessage>()
+            .Where(m => ids.Contains(m.Id) && m.ClaimToken == token)
+            .OrderBy(m => m.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>Hands back whatever this instance still holds — see <c>JobProcessor.StopAsync</c>.</remarks>
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await base.StopAsync(cancellationToken).ConfigureAwait(false);
+
+        if (_lease == Guid.Empty)
+        {
+            return;
+        }
+
+        try
+        {
+            await using var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            // Attempts goes back with the lease. ClaimAsync increments it up front so a message that takes
+            // the process down still reaches MaxAttempts — but a shutdown is not that, and every row still
+            // holding our lease unpublished either never started or was cut off mid-publish. Leaving the
+            // increment counted would make MaxAttempts a function of DEPLOY CADENCE: at the default of 10,
+            // ten unlucky redeploys dead-letter a message that never once failed, with nothing connecting
+            // the two. A message that genuinely failed already released its own lease, so it is not here.
+            await db.Set<OutboxMessage>()
+                .Where(m => m.ClaimToken == _lease && m.ProcessedAt == null)
+                .ExecuteUpdateAsync(
+                    s => s
+                        .SetProperty(m => m.ClaimToken, (Guid?)null)
+                        .SetProperty(m => m.ClaimedUntil, (DateTime?)null)
+                        .SetProperty(m => m.Attempts, m => m.Attempts - 1),
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // Shutdown must not throw: the lease expires on its own, so this is an optimisation.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogWarning(ex, "Could not release outbox leases on shutdown; they expire in {Lease}.", options.LeaseDuration);
+        }
+    }
+
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -59,6 +160,19 @@ public sealed class OutboxProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
+            if (IsMissingLeaseColumn(ex))
+            {
+                // The generic message would send someone reading a stack trace instead of running two
+                // commands. This failure is also invisible without it: the exception is swallowed here,
+                // so the app looks healthy while logging the same error every poll, forever.
+                logger.LogError(
+                    ex,
+                    "Rask.Outbox added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
+                    + "Run: rask db add AddOutboxLeases && rask db update. See docs/{Doc}.",
+                    "databases.md#running-more-than-one-instance");
+                return;
+            }
+
             logger.LogError(ex, "Outbox processing cycle failed; retrying on the next poll.");
         }
     }
@@ -67,12 +181,7 @@ public sealed class OutboxProcessor<TContext>(
     {
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
 
-        var batch = await db.Set<OutboxMessage>()
-            .Where(m => m.ProcessedAt == null && m.Attempts < options.MaxAttempts)
-            .OrderBy(m => m.Id)
-            .Take(options.BatchSize)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
+        var batch = await ClaimAsync(db, timeProvider.GetUtcNow().UtcDateTime, cancellationToken).ConfigureAwait(false);
 
         if (batch.Count == 0)
         {
@@ -106,8 +215,8 @@ public sealed class OutboxProcessor<TContext>(
             var notification = OutboxSerializerRegistry.Deserialize(message.Type, message.Payload);
             if (notification is null)
             {
-                message.Attempts++;
                 message.Error = $"No registered outbox event type '{message.Type}'.";
+                Release(message);
 
                 // An unregistered type is a failure like any other, and counts toward the dead letter it
                 // will become — a renamed event that nobody re-registered is the most ordinary way a
@@ -128,6 +237,7 @@ public sealed class OutboxProcessor<TContext>(
                     await dispatcher.PublishAsync(notification, graceToken).ConfigureAwait(false);
                     message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                     message.Error = null;
+                    Release(message);
                     metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -142,6 +252,10 @@ public sealed class OutboxProcessor<TContext>(
                     // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
                     // while a handler's own OperationCanceledException still falls through to the generic
                     // catch below and counts as the real failure it is.
+                    // Attempts and the lease are both given back by StopAsync, which owns every row this
+                    // instance still holds — including ones claimed in this batch but never started. It
+                    // cannot be done here: this `break` skips the per-item SaveChanges below, so an
+                    // in-memory edit would be discarded while the claim's increment is already on disk.
                     metrics.Interrupted(message.Type);
                     logger.LogWarning(
                         "Outbox message {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it "
@@ -153,8 +267,8 @@ public sealed class OutboxProcessor<TContext>(
                 catch (Exception ex)
 #pragma warning restore CA1031
                 {
-                    message.Attempts++;
                     message.Error = ex.Message;
+                    Release(message);
                     metrics.Failed(message.Type);
                     if (message.Attempts >= options.MaxAttempts)
                     {
@@ -169,12 +283,62 @@ public sealed class OutboxProcessor<TContext>(
             // still marked during shutdown). Saving per message bounds an at-least-once re-publish to the single
             // message whose save failed, never the whole batch: one row deleted or edited underneath the drain
             // would otherwise abort the entire SaveChanges and re-publish every event already delivered from it.
-            await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // ClaimToken is the concurrency token, so this means our lease expired mid-dispatch and
+                // another instance owns the row now. Its outcome wins; discard ours. The event was
+                // published twice — at-least-once was always the contract, and the fix for *this* cause is
+                // a longer LeaseDuration.
+                logger.LogWarning(
+                    "Outbox message {Id} lost its lease mid-dispatch on instance {Instance}; another instance owns it now. "
+                    + "Increase OutboxOptions.LeaseDuration past the time this handler takes.",
+                    message.Id,
+                    _instanceId);
+
+                // The context is shared across the batch: a failed entry left attached is retried by the
+                // next message's SaveChanges and fails that one too.
+                db.Entry(message).State = EntityState.Detached;
+            }
         }
+    }
+
+    // Hand the row back so the next poll can see it without waiting for the lease to expire.
+    private static void Release(OutboxMessage message)
+    {
+        message.ClaimToken = null;
+        message.ClaimedUntil = null;
     }
 
     // Retention. Published messages are history; a busy app writes them faster than anyone reads them, and
     // without this the table is the only pillar's table that grows without bound for the life of the app.
+    /// <summary>
+    /// True when the failure is "the lease columns aren't in the database" — i.e. the package was upgraded
+    /// but the migration was never applied.
+    /// </summary>
+    /// <remarks>
+    /// Matched on the message because every provider words it differently and none of them has a shared
+    /// error code for "no such column". A false positive costs a wrong-but-adjacent log line; a false
+    /// negative is just the generic message, so erring toward matching is safe here.
+    /// </remarks>
+    private static bool IsMissingLeaseColumn(Exception exception)
+    {
+        for (var e = exception; e is not null; e = e.InnerException)
+        {
+            if (e is System.Data.Common.DbException
+                && (e.Message.Contains(nameof(OutboxMessage.ClaimToken), StringComparison.OrdinalIgnoreCase)
+                    || e.Message.Contains(nameof(OutboxMessage.ClaimedUntil), StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
         if (options.RetentionPeriod <= TimeSpan.Zero)

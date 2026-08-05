@@ -3,11 +3,25 @@ namespace Rask.Jobs;
 /// <summary>Options for the <see cref="JobProcessor{TContext}"/>.</summary>
 public sealed class JobOptions
 {
+    /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="Validate"/> for why there is one.</summary>
+    internal const int MaxBatchSize = 1000;
+
     /// <summary>How often the processor polls the jobs table for due work. Default 5s.</summary>
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(5);
 
-    /// <summary>How many jobs to run per poll. Default 100.</summary>
+    /// <summary>How many jobs to claim and run per poll. Default 100, maximum 1000.</summary>
     public int BatchSize { get; set; } = 100;
+
+    /// <summary>
+    /// How long a claimed job stays invisible to other processor instances. Default 5 minutes.
+    /// </summary>
+    /// <remarks>
+    /// This is the recovery window, not a timeout: nothing cancels a job that overruns it. A processor
+    /// that dies mid-job makes its work claimable again after this long, so it must comfortably exceed the
+    /// longest job you run — set it too low and a slow job is picked up by a second instance while the
+    /// first is still working on it, which is the duplicate the lease exists to prevent.
+    /// </remarks>
+    public TimeSpan LeaseDuration { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>How many times to attempt a failing job before it is left as a dead letter (kept for inspection). Default 25.</summary>
     public int MaxAttempts { get; set; } = 25;
@@ -61,9 +75,28 @@ public sealed class JobOptions
             throw new ArgumentOutOfRangeException(nameof(PollInterval), PollInterval, "PollInterval must be positive.");
         }
 
-        if (BatchSize < 1)
+        if (BatchSize is < 1 or > MaxBatchSize)
         {
-            throw new ArgumentOutOfRangeException(nameof(BatchSize), BatchSize, "BatchSize must be at least 1.");
+            // Capped because the claim sends the candidate ids as an IN list. EF translates a parameterized
+            // Contains to json_each / = ANY / OPENJSON rather than one parameter per id, so the classic
+            // 999/2100 ceilings shouldn't bite — this is the belt to that pair of braces.
+            throw new ArgumentOutOfRangeException(
+                nameof(BatchSize), BatchSize, $"BatchSize must be between 1 and {MaxBatchSize}.");
+        }
+
+        if (LeaseDuration <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(LeaseDuration), LeaseDuration, "LeaseDuration must be positive.");
+        }
+
+        if (LeaseDuration <= PollInterval)
+        {
+            // A lease that expires within one poll guarantees every job is stolen mid-flight by the next
+            // instance to look — strictly worse than no lease at all, so it is refused rather than warned about.
+            throw new ArgumentOutOfRangeException(
+                nameof(LeaseDuration),
+                LeaseDuration,
+                $"LeaseDuration must be longer than PollInterval ({PollInterval}), or every claimed job is stolen before it finishes.");
         }
 
         if (MaxAttempts < 1)

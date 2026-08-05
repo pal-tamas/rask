@@ -7,11 +7,27 @@ namespace Rask.Cli.Scaffolding;
 /// directory it derives the folder-based namespace a generated file should declare, matching the C#
 /// convention (root namespace + the folder path relative to the project).
 /// </summary>
-internal sealed partial class ProjectContext(string projectDirectory, string rootNamespace)
+internal sealed partial class ProjectContext(
+    string projectDirectory,
+    string rootNamespace,
+    DatabaseProvider provider = DatabaseProvider.Sqlite)
 {
     public string ProjectDirectory { get; } = projectDirectory;
 
     public string RootNamespace { get; } = rootNamespace;
+
+    /// <summary>
+    /// The database this project is wired to, read off its package references rather than asked for again.
+    /// </summary>
+    /// <remarks>
+    /// Detected, not configured: the provider was already decided by <c>rask new --database</c>, and a
+    /// second source of truth is a second thing to get out of sync — a <c>rask generate feature</c> that
+    /// emitted SQLite wiring into a PostgreSQL app would not fail until runtime.
+    /// </remarks>
+    public DatabaseProvider Provider { get; } = provider;
+
+    /// <summary>The scaffolding facts for <see cref="Provider"/>.</summary>
+    public DatabaseInfo Database => DatabaseCatalog.For(Provider);
 
     /// <summary>The namespace a file in <paramref name="targetDirectory"/> should declare.</summary>
     public string NamespaceFor(string targetDirectory)
@@ -83,7 +99,10 @@ internal static class ProjectLocator
             var projects = fileSystem.ListFiles(directory, "*.csproj");
             if (projects.Count == 1)
             {
-                return new ProjectContext(directory, ProjectContext.ReadRootNamespace(fileSystem, projects[0]));
+                return new ProjectContext(
+                    directory,
+                    ProjectContext.ReadRootNamespace(fileSystem, projects[0]),
+                    DatabaseCatalog.DetectProvider(fileSystem.ReadAllText(projects[0])));
             }
 
             if (projects.Count > 1)
