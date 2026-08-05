@@ -8,6 +8,22 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Every DB-backed pillar now publishes metrics.** `Rask.Jobs`, `Rask.Outbox` and `Rask.Mail` each own a
+  meter (`Rask.Jobs`, `Rask.Outbox`, `Rask.Mail`) with processed/failed/**dead-lettered** counters, a
+  duration histogram, and pending/dead-letter gauges — so the number that matters can drive an alert
+  instead of only a dashboard someone has to be looking at. `docs/observability.md` covered only
+  `Rask.Server` before; the batteries had none at all.
+  Jobs and the outbox tag by their registered type, a closed set fixed at build time. **Mail is untagged on
+  purpose** — its only per-message dimensions are subject and recipient, both unbounded, and tagging by
+  either would mint a time series per email sent.
+  The queue-depth gauges are **sampled by the processor's existing poll, and only while a listener is
+  attached**, rather than running `COUNT(*)` inside the observable-gauge callback: a collector on a
+  one-second schedule would otherwise put continuous read load on the app's own database just by
+  subscribing.
+  Instrumenting this also surfaced a gap in what counts as a failure: a message whose **type is no longer
+  registered** — a renamed job or event nobody re-registered, and the most ordinary way a production queue
+  starts abandoning work — recorded an error on the row but was invisible to the new counters, because it
+  never reaches a handler. It now counts as a failed attempt and as a dead letter like any other.
 - **`Rask.Dashboard` — a built-in operator dashboard for the batteries.** One package reference and one
   `AddRaskDashboard<AppDbContext>()` mounts `/_ops`, reading the outbox, jobs, mail and cache out of the
   app's own database. Every queue is split into due / delayed / **failed** / processed, where failed means

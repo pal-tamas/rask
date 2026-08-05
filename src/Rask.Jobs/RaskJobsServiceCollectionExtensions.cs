@@ -25,6 +25,7 @@ public static class RaskJobsServiceCollectionExtensions
 
         services.TryAddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<JobMetrics>();
         services.TryAddSingleton<IJobQueue, JobQueue<TContext>>();
 
         // AddHostedService uses TryAddEnumerable, so a repeated call registers only one processor.

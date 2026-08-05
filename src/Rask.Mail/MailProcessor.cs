@@ -18,6 +18,7 @@ public sealed class MailProcessor<TContext>(
     IServiceScopeFactory scopeFactory,
     MailOptions options,
     TimeProvider timeProvider,
+    MailMetrics metrics,
     ILogger<MailProcessor<TContext>> logger) : BackgroundService
     where TContext : DbContext
 {
@@ -48,6 +49,7 @@ public sealed class MailProcessor<TContext>(
         {
             await DrainAsync(cancellationToken).ConfigureAwait(false);
             await PurgeAsync(cancellationToken).ConfigureAwait(false);
+            await SampleQueueDepthAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -81,6 +83,7 @@ public sealed class MailProcessor<TContext>(
                 break;
             }
 
+            var startedAt = timeProvider.GetTimestamp();
             try
             {
                 var outgoing = MailSerializer.ToOutgoing(message);
@@ -91,6 +94,7 @@ public sealed class MailProcessor<TContext>(
                 await sender.SendAsync(outgoing, cancellationToken).ConfigureAwait(false);
                 message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                 message.Error = null;
+                metrics.Sent(timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -101,6 +105,12 @@ public sealed class MailProcessor<TContext>(
 #pragma warning restore CA1031
             {
                 Fail(message, ex.Message);
+                metrics.Failed();
+                if (message.Attempts >= options.MaxAttempts)
+                {
+                    metrics.DeadLettered();
+                }
+
                 logger.LogError(ex, "Email {Id} failed to send (attempt {Attempts}).", message.Id, message.Attempts);
             }
 
@@ -140,5 +150,25 @@ public sealed class MailProcessor<TContext>(
             .Where(m => m.ProcessedAt != null && m.ProcessedAt < cutoff)
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    // Only pays for the counts while something is collecting the gauges — see MailMetrics' remarks.
+    private async Task SampleQueueDepthAsync(CancellationToken cancellationToken)
+    {
+        if (!metrics.WantsQueueDepth)
+        {
+            return;
+        }
+
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        var pending = await db.Set<QueuedMail>()
+            .CountAsync(m => m.ProcessedAt == null && m.Attempts < options.MaxAttempts, cancellationToken)
+            .ConfigureAwait(false);
+        var deadLetters = await db.Set<QueuedMail>()
+            .CountAsync(m => m.ProcessedAt == null && m.Attempts >= options.MaxAttempts, cancellationToken)
+            .ConfigureAwait(false);
+
+        metrics.ObserveQueueDepth(pending, deadLetters);
     }
 }
