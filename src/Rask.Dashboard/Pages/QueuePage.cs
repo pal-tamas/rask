@@ -134,8 +134,8 @@ public sealed class QueuePage(
         var isDead = row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
         yield return Tr(Key: row.Id, Class: isDead ? "table-danger" : null)[
             Td(Class: "text-body-secondary")[row.Id.ToString()],
-            Td()[Div(Class: "text-truncate", Style: "max-width:28rem")[row.Type]],
-            Td()[DashboardParts.Ago(row.CreatedAt, now)],
+            Td()[Div(Class: "text-truncate", Style: "max-width:28rem", Title: row.Type)[row.Type]],
+            Td(Title: row.CreatedAt.ToString("u"))[DashboardParts.Ago(row.CreatedAt, now)],
             Td()[row.Attempts.ToString()],
             Td()[StatusBadge(row, isDead, now)],
             Td(Class: "text-end")[

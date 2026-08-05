@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Element.Title`** — the global `title` attribute, available on every element, so a cell can show an
+  abbreviated value with the exact one behind it on hover. There was previously no way to express a
+  tooltip at all: `Aria` reaches screen readers but renders nothing visible, and `Data` only emits
+  `data-*`. The dashboard now puts precise UTC instants behind its relative timestamps, and the full text
+  behind its truncated cells.
+  Two details. It renders in a new slot — `id, class, style, **title**, data-*, role, tabindex, aria-*` —
+  and it is **declared last among `Element`'s properties on purpose**: factory parameters are ordered
+  derived-first then by declaration span, so putting it beside `Style` would have shifted the positional
+  index of `Data`/`Role`/`TabIndex`/`Aria` on every element in the framework. `Style` no longer declares
+  its own `Title`; it inherits the global one, which moves `<style title="…">` into the global attribute
+  group (the one observable behaviour change here).
 - **Every DB-backed pillar now publishes metrics.** `Rask.Jobs`, `Rask.Outbox` and `Rask.Mail` each own a
   meter (`Rask.Jobs`, `Rask.Outbox`, `Rask.Mail`) with processed/failed/**dead-lettered** counters, a
   duration histogram, and pending/dead-letter gauges — so the number that matters can drive an alert

@@ -137,7 +137,9 @@ public sealed class LogsPage(
         BsTable(Small: true, Hover: true, Responsive: true)[
             Thead()[Tr()[Th()["When"], Th()["Level"], Th()["Category"], Th()["Message"]]],
             Tbody()[entries.Select(e => Tr(Key: e.Sequence)[
-                Td(Class: "text-nowrap text-body-secondary")[DashboardParts.Ago(e.Timestamp.UtcDateTime, now)],
+                Td(Class: "text-nowrap text-body-secondary", Title: e.Timestamp.UtcDateTime.ToString("u"))[
+                    DashboardParts.Ago(e.Timestamp.UtcDateTime, now)
+                ],
                 Td()[LevelBadge(e.Level)],
                 Td(Class: "font-monospace small text-body-secondary")[e.Category],
                 Td()[

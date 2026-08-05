@@ -89,10 +89,10 @@ public sealed class CachePage(
         BsTable(Small: true, Hover: true, Responsive: true)[
             Thead()[Tr()[Th()["Key"], Th()["Size"], Th()["Written"], Th()["Expires"], Th()["Sliding"], Th()]],
             Tbody()[_rows.Select(r => Tr(Key: r.Key, Class: r.ExpiresAt <= now ? "text-body-secondary" : null)[
-                Td()[Div(Class: "text-truncate font-monospace small", Style: "max-width:28rem")[r.Key]],
+                Td()[Div(Class: "text-truncate font-monospace small", Style: "max-width:28rem", Title: r.Key)[r.Key]],
                 Td()[DashboardParts.Bytes(r.Bytes)],
-                Td()[DashboardParts.Ago(r.CreatedAt, now)],
-                Td()[
+                Td(Title: r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)],
+                Td(Title: r.ExpiresAt.ToString("u"))[
                     r.ExpiresAt <= now
                         ? BsBadge(Color: BsColor.Secondary)["expired"]
                         : Span()[DashboardParts.Ago(r.ExpiresAt, now)]

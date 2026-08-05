@@ -12,6 +12,7 @@ public abstract partial class Element : Component
     public string? Id { get; set; }
     public string? Class { get; set; }
     public string? Style { get; set; }
+
     public IReadOnlyDictionary<string, string?>? Data { get; set; }
 
     // Accessibility, available on every element. `Aria` is the data-* model applied to ARIA: each
@@ -39,6 +40,24 @@ public abstract partial class Element : Component
         get => AriaInternal;
         set => AriaInternal = value;
     }
+
+    /// <summary>
+    ///     The global <c>title</c> attribute — advisory text the browser shows as a tooltip on hover.
+    ///     Useful wherever a cell shows an abbreviated value and the precise one belongs behind it: a
+    ///     relative timestamp over the exact instant, a truncated string over its full text.
+    ///     <para>
+    ///         Not a substitute for a label. <c>title</c> is invisible to touch users, unreliable for
+    ///         screen readers, and cannot be focused — so it may carry supplementary detail, never the
+    ///         only copy of something the user needs. For an accessible name use <see cref="Aria" />.
+    ///     </para>
+    ///     <para>
+    ///         Declared last among Element's own properties on purpose. Factory parameters are ordered
+    ///         derived-first, then by declaration span, so inserting this next to <see cref="Style" />
+    ///         would have shifted the positional index of Data/Role/TabIndex/Aria for every element in
+    ///         the framework — a silent source break for anyone passing them positionally.
+    ///     </para>
+    /// </summary>
+    public string? Title { get; set; }
 
     // A stable DOM handle for JS interop. When set, emits data-rask-ref="{id}" in the data-* group;
     // the client reviver resolves an ElementRef arg to this element via [data-rask-ref="..."].
@@ -91,6 +110,13 @@ public abstract partial class Element : Component
         if (Style is not null)
         {
             AppendAttr(sb, "style", Style);
+        }
+
+        // Slotted with the other plain global attributes (id/class/style) and ahead of the prefixed
+        // data-*/aria-* groups, so the documented order stays "globals first, grouped".
+        if (Title is not null)
+        {
+            AppendAttr(sb, "title", Title);
         }
 
         // Effective keyed-list identity: this element's own Key, else a key forwarded from a
