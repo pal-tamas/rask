@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **A contended write no longer fails with "cannot start a transaction within a transaction".** The
+  busy-retry loop re-issued the identical statement on every pass with no cleanup between attempts, and
+  cleared a leaked transaction only *once*, before the loop. That caught a transaction the pooled handle
+  arrived with, and missed one that appeared later — including `BEGIN IMMEDIATE`'s own, which an extended
+  `SQLITE_BUSY` (`BUSY_SNAPSHOT`, `BUSY_RECOVERY`, hidden behind the primary result code) can leave open.
+  The next pass then began a transaction inside the one its own previous attempt had opened, turning a
+  waitable lock into a non-retryable `SQLITE_ERROR`. The rollback is now part of every attempt, so a
+  contended rollback simply costs a pass instead of poisoning the next one. The `finally` rollback is
+  retried on the same footing rather than fire-and-forget, so a still-active statement no longer returns a
+  mid-transaction handle to the pool. Only ever seen under real multi-writer WAL load — it was the
+  intermittent stress-test failure that blocked commits.
+
 ### Added
 - **Every DB-backed pillar now publishes metrics.** `Rask.Jobs`, `Rask.Outbox` and `Rask.Mail` each own a
   meter (`Rask.Jobs`, `Rask.Outbox`, `Rask.Mail`) with processed/failed/**dead-lettered** counters, a

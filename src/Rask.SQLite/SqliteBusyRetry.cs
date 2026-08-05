@@ -12,12 +12,19 @@ namespace Rask.SQLite;
 /// </summary>
 internal static class SqliteBusyRetry
 {
+    // requiresAutocommit: roll back any transaction open on the handle before EVERY attempt, not just
+    // the first. Set it for BEGIN, the one statement that cannot run inside a transaction: a BEGIN
+    // IMMEDIATE answered with an extended SQLITE_BUSY variant (BUSY_SNAPSHOT, BUSY_RECOVERY) can leave
+    // the transaction open, and re-issuing the same BEGIN on the next pass then fails with the
+    // non-retryable "cannot start a transaction within a transaction" instead of the contended lock it
+    // actually met.
     internal static async Task ExecAsync(
         sqlite3 handle,
         string sql,
         SqliteBusyRetryOptions options,
         TimeProvider timeProvider,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool requiresAutocommit = false)
     {
         var startedAt = timeProvider.GetTimestamp();
 
@@ -25,10 +32,20 @@ internal static class SqliteBusyRetry
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var rc = raw.sqlite3_exec(handle, sql);
+            // The precondition is part of the attempt, so a rollback that is itself contended simply
+            // costs this pass and is retried like any other busy result — it never runs `sql` on a
+            // handle that is still mid-transaction.
+            var rc = requiresAutocommit && raw.sqlite3_get_autocommit(handle) == 0
+                ? raw.sqlite3_exec(handle, "ROLLBACK;")
+                : raw.SQLITE_OK;
+
             if (rc == raw.SQLITE_OK)
             {
-                return;
+                rc = raw.sqlite3_exec(handle, sql);
+                if (rc == raw.SQLITE_OK)
+                {
+                    return;
+                }
             }
 
             // Only a contended lock is retryable; every other result code is a real error. Compare the
