@@ -8,7 +8,10 @@ public sealed class Style : Element
 
     public string? Type { get; set; }
     public string? Media { get; set; }
-    public string? Title { get; set; }
+
+    // `title` on <style> names an alternative stylesheet, but it is the same global attribute every
+    // element has — so it is inherited from Element rather than redeclared here, and renders in the
+    // global slot (with id/class/style) instead of among the tag-specific ones.
     public string? Nonce { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
@@ -22,11 +25,6 @@ public sealed class Style : Element
         if (Media is not null)
         {
             AppendAttr(sb, "media", Media);
-        }
-
-        if (Title is not null)
-        {
-            AppendAttr(sb, "title", Title);
         }
 
         if (Nonce is not null)

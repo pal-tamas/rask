@@ -137,7 +137,7 @@ public sealed class SystemPage(
                 Tbody()[_snapshots.Take(10).Select(s => Tr(Key: s.Name)[
                     Td(Class: "font-monospace small")[s.Name],
                     Td()[DashboardParts.Bytes(s.SizeBytes)],
-                    Td()[DashboardParts.Ago(s.CreatedAt, now)]
+                    Td(Title: s.CreatedAt.ToString("u"))[DashboardParts.Ago(s.CreatedAt, now)]
                 ])]
             ];
 
@@ -157,7 +157,7 @@ public sealed class SystemPage(
                         Td(Class: "font-monospace small")[r.Name],
                         Td()[DashboardParts.Duration(r.Interval)],
                         Td()[r.LastEnqueuedAt is { } last
-                            ? Span()[DashboardParts.Ago(last, now)]
+                            ? Span(Title: last.ToString("u"))[DashboardParts.Ago(last, now)]
                             // Declared but never fired: either the app just started, or this one is stuck.
                             : BsBadge(Color: BsColor.Secondary)["never"]]
                     ])]

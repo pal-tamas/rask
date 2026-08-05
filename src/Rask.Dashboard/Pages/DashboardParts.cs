@@ -45,7 +45,7 @@ internal static class DashboardParts
 
     /// <summary>
     /// A UTC instant as "how long ago", which is what an operator actually reads a queue timestamp for.
-    /// Element carries no title attribute, so the absolute instant is shown in the row detail instead.
+    /// Callers put the exact instant in the cell's Title, so hovering gives the precise value.
     /// </summary>
     public static string Ago(DateTime utc, DateTime now)
     {

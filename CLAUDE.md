@@ -48,7 +48,7 @@ dotnet run --project samples/Rask.Example.Server
 ## Primitives & rules (the load-bearing invariants)
 - `Component` (base: `Render`, `Children`, `Key`, `TagName`, `WriteAttributes`) → `Element` (universal
   HTML attrs). `Text` encodes; `Raw` is verbatim. `Fragment`/`Doctype` special-cased in `HtmlSerializer`.
-- **Attribute render order: id, class, style, data-*, role, tabindex, aria-*, then tag-specific — tests assert it; preserve it.**
+- **Attribute render order: id, class, style, title, data-*, role, tabindex, aria-*, then tag-specific — tests assert it; preserve it.**
 - Children via the indexer `Div()[Span(), "hi"]` (no `Children:` param; `..` spread breaks — pass enumerables).
   Page root must render the full shell (`Doctype`/`Html`/`Head`/`Body`) — RASK021. Runtime `<script>` auto-appended.
 - **Factory params** (generated per public prop): nullable→optional(null); non-nullable no-initializer→**required**

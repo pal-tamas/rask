@@ -56,4 +56,32 @@ public class DivTests
                 Role: "dialog",
                 TabIndex: 0,
                 Aria: new Dictionary<string, string?> { ["label"] = "L" }).ToHtml());
+
+    [Fact]
+    public void Render_Title_EmitsTheGlobalTooltipAttribute() =>
+        Assert.Equal("<div title=\"2026-01-01 12:00:00Z\"></div>", Div(Title: "2026-01-01 12:00:00Z").ToHtml());
+
+    [Fact]
+    public void Render_Title_IsEncoded() =>
+        Assert.Equal("<div title=\"a &amp; &lt;b&gt;\"></div>", Div(Title: "a & <b>").ToHtml());
+
+    [Fact]
+    // Title joins the plain global attributes after style, ahead of the prefixed data-*/aria-* groups.
+    public void Render_Title_SitsAfterStyleAndBeforeData() =>
+        Assert.Equal(
+            "<div id=\"i\" class=\"c\" style=\"s\" title=\"t\" data-k=\"v\" role=\"dialog\" tabindex=\"0\" aria-label=\"L\"></div>",
+            Div(
+                Id: "i",
+                Class: "c",
+                Style: "s",
+                Title: "t",
+                Data: new Dictionary<string, string?> { ["k"] = "v" },
+                Role: "dialog",
+                TabIndex: 0,
+                Aria: new Dictionary<string, string?> { ["label"] = "L" }).ToHtml());
+
+    [Fact]
+    // An unset Title must emit nothing — every element in the framework gained this property, and any
+    // stray attribute would change the rendered output (and the diff) of every existing page.
+    public void Render_TitleUnset_EmitsNothing() => Assert.Equal("<div></div>", Div().ToHtml());
 }
