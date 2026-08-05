@@ -10,7 +10,13 @@
 # They are opt-in because they pack this commit's packages, build the generated app, and run several
 # watch sessions with 2-minute ceilings — far too slow for the pre-commit inner loop.
 #
+# If an edit ever stops applying here, check the PATH before anything else: `dotnet watch` computes an
+# empty Edit-and-Continue delta, with no error, when the project path traverses a symlink (macOS temp is
+# /var/folders/… and /var → /private/var). The harness resolves it via RealPath; that one character of
+# difference is what kept two of these red for months. See #536 and the class remarks.
+#
 # Usage:  scripts/run-watch-e2e.sh
+# Verbose watch diagnostics: RASK_WATCH_E2E_VERBOSE=1 scripts/run-watch-e2e.sh
 # Skip:   RASK_SKIP_WATCH_E2E=1
 set -euo pipefail
 

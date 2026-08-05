@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <!--
+      MetadataUpdater.IsSupported needs BOTH halves, and the csproj can only provide one:
+
+        1. the feature switch  — <MetadataUpdaterSupport>true</MetadataUpdaterSupport>, which the SDK
+           writes into the runtimeconfig (and turns OFF by default in Release);
+        2. DOTNET_MODIFIABLE_ASSEMBLIES=debug — an ENVIRONMENT variable the runtime also requires, and
+           which `dotnet watch` sets on the app it launches. There is no MSBuild property for it, so it
+           has to reach the test host this way.
+
+      With only the first, the switch reads false and every hot-reload assertion in this assembly passes
+      vacuously — which is exactly the failure mode The_feature_switch_is_on_in_this_assembly guards.
+
+      Scoped to this project (RunSettingsFilePath in the csproj) rather than set globally, so no other
+      test assembly starts registering sessions for hot reload as a side effect.
+    -->
+    <EnvironmentVariables>
+      <DOTNET_MODIFIABLE_ASSEMBLIES>debug</DOTNET_MODIFIABLE_ASSEMBLIES>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>
