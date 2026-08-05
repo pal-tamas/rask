@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Rask.Jobs.Tests;
 
@@ -151,7 +152,7 @@ public sealed class JobsHarness : IAsyncDisposable
         Clock = new FakeTimeProvider(start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
         var services = new ServiceCollection();
-        services.AddLogging();
+        services.AddLogging(b => b.AddProvider(new CapturingLoggerProvider(Logs)));
         services.AddSingleton(Recorder);
         services.AddSingleton(Gate);
         services.AddSingleton<TimeProvider>(Clock); // registered first so AddRaskJobs' TryAddSingleton keeps it
@@ -169,6 +170,9 @@ public sealed class JobsHarness : IAsyncDisposable
     }
 
     public string DbPath { get; }
+
+    /// <summary>Every formatted log message the processor wrote, for asserting on diagnostics.</summary>
+    public System.Collections.Concurrent.ConcurrentBag<string> Logs { get; } = [];
 
     public FakeTimeProvider Clock { get; }
 
@@ -240,6 +244,35 @@ public sealed class JobsHarness : IAsyncDisposable
         if (_ownsDb && File.Exists(DbPath))
         {
             File.Delete(DbPath);
+        }
+    }
+}
+
+/// <summary>Collects formatted log messages so a test can assert on what the processor actually said.</summary>
+internal sealed class CapturingLoggerProvider(System.Collections.Concurrent.ConcurrentBag<string> sink) : ILoggerProvider
+{
+    public ILogger CreateLogger(string categoryName) => new CapturingLogger(sink);
+
+    public void Dispose()
+    {
+    }
+
+    private sealed class CapturingLogger(System.Collections.Concurrent.ConcurrentBag<string> sink) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            ArgumentNullException.ThrowIfNull(formatter);
+            sink.Add(formatter(state, exception));
         }
     }
 }

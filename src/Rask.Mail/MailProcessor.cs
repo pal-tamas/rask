@@ -156,6 +156,19 @@ public sealed class MailProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
+            if (IsMissingLeaseColumn(ex))
+            {
+                // The generic message would send someone reading a stack trace instead of running two
+                // commands. This failure is also invisible without it: the exception is swallowed here,
+                // so the app looks healthy while logging the same error every poll, forever.
+                logger.LogError(
+                    ex,
+                    "Rask.Mail added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
+                    + "Run: rask db add AddMailLeases && rask db update. See docs/{Doc}.",
+                    "databases.md#running-more-than-one-instance");
+                return;
+            }
+
             logger.LogError(ex, "Mail processing cycle failed; retrying on the next poll.");
         }
     }
@@ -282,6 +295,30 @@ public sealed class MailProcessor<TContext>(
     {
         message.ClaimToken = null;
         message.ClaimedUntil = null;
+    }
+
+    /// <summary>
+    /// True when the failure is "the lease columns aren't in the database" — i.e. the package was upgraded
+    /// but the migration was never applied.
+    /// </summary>
+    /// <remarks>
+    /// Matched on the message because every provider words it differently and none of them has a shared
+    /// error code for "no such column". A false positive costs a wrong-but-adjacent log line; a false
+    /// negative is just the generic message, so erring toward matching is safe here.
+    /// </remarks>
+    private static bool IsMissingLeaseColumn(Exception exception)
+    {
+        for (var e = exception; e is not null; e = e.InnerException)
+        {
+            if (e is System.Data.Common.DbException
+                && (e.Message.Contains(nameof(QueuedMail.ClaimToken), StringComparison.OrdinalIgnoreCase)
+                    || e.Message.Contains(nameof(QueuedMail.ClaimedUntil), StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task PurgeAsync(CancellationToken cancellationToken)

@@ -143,6 +143,19 @@ public sealed class JobProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
+            if (IsMissingLeaseColumn(ex))
+            {
+                // The generic message would send someone reading a stack trace instead of running two
+                // commands. This failure is also invisible without it: the exception is swallowed here,
+                // so the app looks healthy while logging the same error every poll, forever.
+                logger.LogError(
+                    ex,
+                    "Rask.Jobs added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
+                    + "Run: rask db add AddJobLeases && rask db update. See docs/{Doc}.",
+                    "databases.md#running-more-than-one-instance");
+                return;
+            }
+
             logger.LogError(ex, "Job processing cycle failed; retrying on the next poll.");
         }
     }
@@ -325,7 +338,7 @@ public sealed class JobProcessor<TContext>(
         }
     }
 
-    private async Task EnqueueDueRecurringAsync(CancellationToken cancellationToken)
+    internal async Task EnqueueDueRecurringAsync(CancellationToken cancellationToken)
     {
         if (options.Recurring.Count == 0)
         {
@@ -342,35 +355,93 @@ public sealed class JobProcessor<TContext>(
             .ToDictionaryAsync(s => s.Name, cancellationToken)
             .ConfigureAwait(false);
 
-        var changed = false;
         foreach (var definition in options.Recurring)
         {
-            if (!states.TryGetValue(definition.Name, out var state))
-            {
-                state = new RecurringJobState { Name = definition.Name };
-                db.Set<RecurringJobState>().Add(state);
-            }
-            else if (state.LastEnqueuedAt is { } last && now - last < definition.Interval)
-            {
-                continue; // not due yet
-            }
+            states.TryGetValue(definition.Name, out var state);
 
-            var (type, payload) = JobSerializerRegistry.Serialize(definition.Factory());
-            db.Set<Job>().Add(new Job { Type = type, Payload = payload, RunAt = now, CreatedAt = now });
+            if (state is null && !await TryCreateStateAsync(db, definition.Name, cancellationToken).ConfigureAwait(false))
+            {
+                // Another instance created the row between our read and our insert. It will have taken the
+                // tick too, so there is nothing to do this cycle; the next poll takes the normal path.
+                continue;
+            }
 
             // Anchor the next run to the schedule (last + interval), not the (late) poll time, so cadence
             // doesn't drift by a poll interval each cycle. If we fell more than one interval behind (e.g. the
             // app was down), reset to now so we don't burst a run of catch-up jobs.
-            state.LastEnqueuedAt = state.LastEnqueuedAt is { } prev && now - prev < definition.Interval * 2
+            var next = state?.LastEnqueuedAt is { } prev && now - prev < definition.Interval * 2
                 ? prev + definition.Interval
                 : now;
-            changed = true;
-        }
 
-        if (changed)
-        {
+            // Claim the tick with a compare-and-swap on *due-ness*, so exactly one instance enqueues it.
+            // Without this, two instances both read the same state, both see it due, and both enqueue —
+            // and the two LastEnqueuedAt writes race with nothing to detect the conflict, so neither loses.
+            // The result is N× every recurring job, for as long as the app runs.
+            //
+            // The predicate must be `<= dueBefore`, never `== theValueWeRead`: EF renders equality as
+            // `LastEnqueuedAt = @p`, which is never true when the column is NULL, so the very first tick of
+            // every recurring job would deadlock forever. This form is null-safe by construction.
+            var dueBefore = now - definition.Interval;
+            var won = await db.Set<RecurringJobState>()
+                .Where(s => s.Name == definition.Name && (s.LastEnqueuedAt == null || s.LastEnqueuedAt <= dueBefore))
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastEnqueuedAt, next), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (won == 0)
+            {
+                continue; // not due, or another instance took this tick
+            }
+
+            var (type, payload) = JobSerializerRegistry.Serialize(definition.Factory());
+            db.Set<Job>().Add(new Job { Type = type, Payload = payload, RunAt = now, CreatedAt = now });
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Creates the bookkeeping row for a recurring job, returning false when another instance won the race
+    /// to create it. Only ever happens once in the lifetime of each recurring job.
+    /// </summary>
+    private static async Task<bool> TryCreateStateAsync(TContext db, string name, CancellationToken cancellationToken)
+    {
+        var state = new RecurringJobState { Name = name };
+        db.Set<RecurringJobState>().Add(state);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException)
+        {
+            // Name is the primary key, so the loser gets a constraint violation. Detach it, or the next
+            // SaveChanges on this context retries the same doomed insert.
+            db.Entry(state).State = EntityState.Detached;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// True when the failure is "the lease columns aren't in the database" — i.e. the package was upgraded
+    /// but the migration was never applied.
+    /// </summary>
+    /// <remarks>
+    /// Matched on the message because every provider words it differently and none of them has a shared
+    /// error code for "no such column". A false positive costs a wrong-but-adjacent log line; a false
+    /// negative is just the generic message, so erring toward matching is safe here.
+    /// </remarks>
+    private static bool IsMissingLeaseColumn(Exception exception)
+    {
+        for (var e = exception; e is not null; e = e.InnerException)
+        {
+            if (e is System.Data.Common.DbException
+                && (e.Message.Contains(nameof(Job.ClaimToken), StringComparison.OrdinalIgnoreCase)
+                    || e.Message.Contains(nameof(Job.ClaimedUntil), StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task PurgeAsync(CancellationToken cancellationToken)

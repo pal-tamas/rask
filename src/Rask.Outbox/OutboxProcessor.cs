@@ -153,6 +153,19 @@ public sealed class OutboxProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
+            if (IsMissingLeaseColumn(ex))
+            {
+                // The generic message would send someone reading a stack trace instead of running two
+                // commands. This failure is also invisible without it: the exception is swallowed here,
+                // so the app looks healthy while logging the same error every poll, forever.
+                logger.LogError(
+                    ex,
+                    "Rask.Outbox added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
+                    + "Run: rask db add AddOutboxLeases && rask db update. See docs/{Doc}.",
+                    "databases.md#running-more-than-one-instance");
+                return;
+            }
+
             logger.LogError(ex, "Outbox processing cycle failed; retrying on the next poll.");
         }
     }
@@ -291,6 +304,30 @@ public sealed class OutboxProcessor<TContext>(
 
     // Retention. Published messages are history; a busy app writes them faster than anyone reads them, and
     // without this the table is the only pillar's table that grows without bound for the life of the app.
+    /// <summary>
+    /// True when the failure is "the lease columns aren't in the database" — i.e. the package was upgraded
+    /// but the migration was never applied.
+    /// </summary>
+    /// <remarks>
+    /// Matched on the message because every provider words it differently and none of them has a shared
+    /// error code for "no such column". A false positive costs a wrong-but-adjacent log line; a false
+    /// negative is just the generic message, so erring toward matching is safe here.
+    /// </remarks>
+    private static bool IsMissingLeaseColumn(Exception exception)
+    {
+        for (var e = exception; e is not null; e = e.InnerException)
+        {
+            if (e is System.Data.Common.DbException
+                && (e.Message.Contains(nameof(OutboxMessage.ClaimToken), StringComparison.OrdinalIgnoreCase)
+                    || e.Message.Contains(nameof(OutboxMessage.ClaimedUntil), StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
         if (options.RetentionPeriod <= TimeSpan.Zero)

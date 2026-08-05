@@ -163,6 +163,50 @@ public sealed class JobLeaseTests
     }
 
     [Fact]
+    public async Task Two_instances_do_not_double_enqueue_a_recurring_job()
+    {
+        // A hazard the drain's lease does nothing about: both instances read the same RecurringJobState,
+        // both see it due, and both enqueue. The two LastEnqueuedAt writes then race with nothing to detect
+        // the conflict, so neither loses — N× every recurring job, for as long as the app runs.
+        var path = Path.Combine(Path.GetTempPath(), $"rask-lease-test-{Guid.NewGuid():N}.db");
+        await using var a = new JobsHarness(
+            o => o.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob()), Start, path);
+        await using var b = new JobsHarness(
+            o => o.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob()), Start, path);
+
+        await a.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+        await b.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+
+        Assert.Equal(1, await a.CountJobsAsync());
+
+        // ...and still one per interval on the next tick, not one per instance.
+        a.Clock.Advance(TimeSpan.FromHours(1));
+        b.Clock.Advance(TimeSpan.FromHours(1));
+        await a.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+        await b.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+
+        Assert.Equal(2, await a.CountJobsAsync());
+    }
+
+    [Fact]
+    public async Task The_first_ever_recurring_tick_is_enqueued_exactly_once()
+    {
+        // The first tick is the one case with no state row to compare-and-swap against: both instances try
+        // to create it and one loses on the primary key. It must not enqueue on the way past — and, the
+        // other half, the winner must not be blocked by a NULL comparison that is never true.
+        var path = Path.Combine(Path.GetTempPath(), $"rask-lease-test-{Guid.NewGuid():N}.db");
+        await using var a = new JobsHarness(
+            o => o.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob()), Start, path);
+        await using var b = new JobsHarness(
+            o => o.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob()), Start, path);
+
+        await a.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+        await b.Jobs.EnqueueDueRecurringAsync(CancellationToken.None);
+
+        Assert.Equal(1, await a.CountJobsAsync());
+    }
+
+    [Fact]
     public async Task A_claim_leaves_no_lease_on_a_completed_job()
     {
         // A finished job must not sit there looking claimed until its lease runs out.
