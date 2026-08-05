@@ -20,13 +20,35 @@ public sealed class LiveSessionStore : IAsyncDisposable
     // planned Broadcast pillar inherits, where the fan-out is a user-facing feature.
     private const int FanOutConcurrency = 32;
 
+    // How long the shutdown drain may take in total. Generous enough for a large fan-out, small enough to
+    // leave the rest of the shutdown budget intact: the scaffolded host allows 15s and `rask deploy`
+    // SIGKILLs 20s after SIGTERM, and what runs after this — disposing every session, checkpointing the
+    // WAL, flushing a Litestream replica — is the part that loses data if it is cut short.
+    private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(2);
+
     private readonly ConcurrentDictionary<string, LiveSession> _sessions = new();
     private readonly CancellationToken _stopping;
+
+    // Cancelled once the shutdown drain has finished (or given up). Sockets abort on THIS, not on
+    // ApplicationStopping: the drain has to reach clients while their sockets are still alive, and
+    // CancellationToken callback order is not guaranteed, so registering the aborts on the same token the
+    // drain runs from would be a coin flip. Also cancelled by DisposeAsync so a host with no lifetime
+    // (tests, a hand-rolled host) still tears its sockets down.
+    private readonly CancellationTokenSource _drained = new();
+
+    /// <summary>
+    ///     Cancelled when connected sockets should stop. See <see cref="_drained" /> for why this exists
+    ///     rather than the sockets simply watching <c>ApplicationStopping</c>.
+    /// </summary>
+    public CancellationToken Drained => _drained.Token;
 
     // Atomic count of live + in-flight sessions, used by the hard capacity reservation in
     // TryCreate. Incremented BEFORE the component tree is built and decremented on removal (or
     // on a failed build), so a concurrent GET burst can never exceed MaxSessions.
     private int _liveCount;
+
+    // 1 once DisposeAsync has run. See DisposeAsync for why it must be once-only.
+    private int _disposed;
 
     public LiveSessionStore(
         IServiceScopeFactory scopeFactory,
@@ -86,7 +108,20 @@ public sealed class LiveSessionStore : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // Runs once. The store is a DI singleton, so the container disposes it — and a host or a test that
+        // disposes it too would otherwise reach a Cancel() on an already-disposed token source.
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+        {
+            return;
+        }
+
         CancelAllPending();
+
+        // Backstop for a host that never raised ApplicationStopping — a test server, or one built without
+        // an IHostApplicationLifetime. Sockets watch this token, so leaving it uncancelled would leave
+        // their receive loops waiting on a store that no longer exists.
+        _drained.Cancel();
+
         foreach (var key in _sessions.Keys.ToArray())
         {
             if (Detach(key) is { } session)
@@ -94,6 +129,8 @@ public sealed class LiveSessionStore : IAsyncDisposable
                 await session.DisposeAsync().ConfigureAwait(false);
             }
         }
+
+        _drained.Dispose();
     }
 
     // The single removal point all three paths (Remove / RemoveAsync / DisposeAsync) funnel through:
@@ -110,6 +147,57 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    ///     Tells every connected client to reconnect now, then releases the sockets.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Without this, a client discovers its host is gone only when the socket drops, and then walks
+    ///         a backoff ladder — up to five seconds of a frozen page — before trying the replacement that
+    ///         has already been serving the whole time. During a <c>rask deploy</c> the new container is
+    ///         live and the proxy is pointed at it before the old one is stopped, so a client told to
+    ///         reconnect immediately lands on the new host and (with a resume record) gets its page rebuilt
+    ///         with no visible interruption at all.
+    ///     </para>
+    ///     <para>
+    ///         Awaited by <see cref="LiveSessionDrainService" /> rather than run from an
+    ///         <c>ApplicationStopping</c> callback. Those callbacks are synchronous, so reaching this from
+    ///         one meant blocking a thread on the sends — and a host shutting down under load has a busy
+    ///         thread pool, which is exactly when blocking on work that needs the pool to make progress
+    ///         stops making progress. A hosted service's <c>StopAsync</c> is awaited properly and still
+    ///         runs while the sockets are alive, because they now watch <see cref="Drained" />.
+    ///     </para>
+    ///     <para>
+    ///         Bounded twice over — by <see cref="DrainTimeout" /> here and per-send by <c>SendTimeout</c>
+    ///         — because everything that follows (disposing sessions, the WAL checkpoint, a Litestream
+    ///         flush) is what actually loses data if the shutdown budget runs out.
+    ///     </para>
+    /// </remarks>
+    internal async Task DrainAsync()
+    {
+        try
+        {
+            if (!_sessions.IsEmpty)
+            {
+                await BroadcastAsync(LivePayload.DrainFrame).WaitAsync(DrainTimeout).ConfigureAwait(false);
+            }
+        }
+        catch (TimeoutException)
+        {
+            // Someone did not take their frame in time. Their loss is a reload; everyone else already has
+            // theirs, and the rest of the shutdown budget belongs to the database now.
+        }
+        catch
+        {
+            // A faulted broadcast must never be the reason a host fails to shut down cleanly.
+        }
+        finally
+        {
+            // Whatever happened above, the sockets go now — they are waiting on this.
+            _drained.Cancel();
+        }
     }
 
     private void CancelAllPending()

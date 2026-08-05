@@ -23,6 +23,24 @@ them until tagged releases begin.
   (`Microsoft.Data.Sqlite`); the alternative was requiring a `sqlite3` binary on the machine, a dependency
   we could neither pin nor install.
 
+### Added
+- **A deploy now hands its connected clients over instead of dropping them.** The proxy is pointed at the
+  new container before the old one is stopped, so the replacement is already serving by the time anything
+  goes away — but a browser has no way to know that. Left to itself it discovers the drop when its socket
+  dies, then waits out a reconnect backoff (up to five seconds, page frozen) before trying an address that
+  has been healthy the whole time. The departing host now says so: on `SIGTERM` it sends every connected
+  client a `drain` frame *while their sockets still work*, and the client reconnects on the next tick
+  rather than backing off. Paired with session resume, a deploy stops being visible at all — the client
+  reconnects immediately and has its page rebuilt.
+  Nothing to configure and no flag to tune: the graceful stop `rask deploy` already performs is the
+  window. The ordering is the load-bearing part — sockets are now released when the drain *finishes*, not
+  when shutdown begins, because `CancellationToken` callback order is not guaranteed and the previous
+  arrangement would have raced the frame against the socket teardown. The drain is bounded at two seconds
+  and is awaited by a hosted service rather than blocking a thread, since a host shutting down under load
+  has a busy thread pool — exactly when blocking on work that needs the pool stops making progress.
+  Everything after it (disposing sessions, the WAL checkpoint, a Litestream flush) keeps the rest of the
+  budget, because that is the part that loses data if it runs out.
+
 ### Fixed
 - **A client that stops reading can no longer wedge its live session, or hold up delivery to everyone
   else.** `WebSocket.SendAsync` completes when a frame reaches the transport, not when the client reads it,

@@ -136,6 +136,9 @@
     const HOT_RELOAD_PILL_MS = 1200;
     let overlayTimer = null;
     let sessionExpired = false;
+    // Set by a "drain" frame: the host announced its own shutdown, so the drop that follows is expected
+    // and the replacement is already up. Makes the next reconnect immediate instead of backed off.
+    let draining = false;
 
     function setOverlayMessage(text) {
         if (overlayMsg) overlayMsg.textContent = text;
@@ -196,6 +199,15 @@
                 if (devMode && data.status === "applied") showHotReloadPill();
                 return;
             }
+            // The host is shutting down and told us so while our socket still works. During a deploy the
+            // replacement is already serving and the proxy already points at it, so reconnecting NOW
+            // lands there — instead of discovering the drop on our own and sitting out up to five
+            // seconds of backoff first, with the page frozen, while a perfectly good host waits.
+            // Carries no html: it must not fall through to applyFullReply.
+            if (data.type === "drain") {
+                draining = true;
+                return;
+            }
             // Handler ack: resolve the slow-link pending bar. Handled synchronously here
             // (not inside _renderQueue) so a CSS-gated deferred body swap can't keep the
             // bar up after the round-trip has actually completed.
@@ -233,8 +245,17 @@
             overlayTimer = setTimeout(showOverlay, OVERLAY_GRACE_MS);
         }
         const delays = [500, 1000, 2000, 4000, 5000];
-        const delay = delays[Math.min(attempt, delays.length - 1)];
-        attempt++;
+        // A drop we were WARNED about is not a failure to back off from: the host told us it was going
+        // away, which during a deploy means the replacement is already serving behind the same address.
+        // Reconnect on the next tick and don't count the attempt, so a genuine failure to reach the new
+        // host still escalates normally from zero. One-shot — cleared here so only the drop the host
+        // announced skips the wait, not every drop after it.
+        const delay = draining ? 0 : delays[Math.min(attempt, delays.length - 1)];
+        if (draining) {
+            draining = false;
+        } else {
+            attempt++;
+        }
         reconnectTimer = setTimeout(() => {
             reconnectTimer = null;
             connect();

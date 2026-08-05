@@ -28,6 +28,13 @@ internal sealed class RaskTestHost : IDisposable
 
     public Uri WebSocketUri => new(new Uri(Server.BaseAddress, "/rask/ws").ToString().Replace("http://", "ws://"));
 
+    /// <summary>
+    ///     Stops the host the way a SIGTERM does — running hosted services' <c>StopAsync</c>, which is
+    ///     where the live-session drain lives. Signalling <c>IHostApplicationLifetime.StopApplication</c>
+    ///     alone is not equivalent: nothing awaits the hosted services, so the drain never runs.
+    /// </summary>
+    public Task StopAsync() => _app.StopAsync();
+
     public void Dispose()
     {
         Http.Dispose();

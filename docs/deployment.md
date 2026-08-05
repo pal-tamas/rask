@@ -169,6 +169,27 @@ refusing sessions with `503` says so rather than answering a bare "up"), and shu
 the 20s grace period the deploy allows before `SIGKILL`, so in-flight requests drain and SQLite checkpoints
 cleanly.
 
+### Connected clients are handed over, not dropped
+
+A deploy swaps containers under people who are actively using the app. The proxy is pointed at the new
+container **before** the old one is stopped, so the replacement is already serving by the time anything
+goes away — but a browser has no way to know that. Left to itself it discovers the drop when its socket
+dies, then waits out a reconnect backoff (up to five seconds, page frozen) before trying an address that
+has been healthy the whole time.
+
+So the old container says goodbye on its way out. On `SIGTERM` it sends every connected client a
+`drain` frame while their sockets still work; the client reconnects on the next tick instead of backing
+off, and lands on the new container. Nothing to configure, and no flag to tune — the graceful stop the
+deploy already performs (`docker stop -t 20`) *is* the window.
+
+The drain is bounded at two seconds and never blocks a thread waiting for it. What follows shutdown —
+disposing sessions, checkpointing the WAL, flushing a Litestream replica — is the part that loses data if
+the budget runs out, so it keeps the lion's share of it. A client that doesn't take its frame in time
+simply reconnects the old way.
+
+Pair it with [session resume](configuration.md#surviving-a-restart-or-a-redeploy) and the handover
+finishes the job: the client reconnects immediately *and* gets its page rebuilt, rather than reloading.
+
 ## Scaffolding a Dockerfile — `--docker`
 
 The three web templates take an opt-in `--docker` flag that drops a production-ready multi-stage

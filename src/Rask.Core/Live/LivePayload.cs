@@ -45,6 +45,20 @@ public static class LivePayload
     internal static readonly byte[] HotReloadAppliedFrame = Encoding.UTF8.GetBytes(HotReloadAppliedJson);
 
     /// <summary>
+    ///     "This host is going away — reconnect now rather than waiting to notice."
+    /// </summary>
+    /// <remarks>
+    ///     Sent to every connected session as the host shuts down. Without it a client learns its host is
+    ///     gone only when the socket drops, then walks its reconnect backoff — up to five seconds of a
+    ///     frozen page — before trying the replacement that has been serving the whole time. A fixed
+    ///     literal like the hot-reload and session-unknown frames, so it needs no serializer and can be
+    ///     sent without allocating on a path that has none to spare.
+    /// </remarks>
+    internal const string DrainJson = """{"type":"drain"}""";
+
+    internal static readonly byte[] DrainFrame = Encoding.UTF8.GetBytes(DrainJson);
+
+    /// <summary>
     ///     Stamps the session id onto <c>&lt;body&gt;</c> as <c>data-rask-root</c>, and in development
     ///     also <c>data-rask-dev</c> — the flag the client requires before it will act on any dev-only
     ///     frame. Production HTML never carries it, so those branches are unreachable there even if a

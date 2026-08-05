@@ -156,6 +156,9 @@ public static class RaskEndpointExtensions
             sp.GetService<RaskMetrics>())
         { MaxSessions = maxSessions, DiffMode = diffMode });
         services.AddSingleton<RaskLiveMarker>();
+        // Drains connected clients on shutdown so a deploy doesn't leave them staring at a frozen page
+        // while they back off from a host that announced its own departure. See LiveSessionDrainService.
+        services.AddHostedService<LiveSessionDrainService>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
         // Transient user messages / toasts (a flash-message pattern). Scoped = one queue per session, so a
@@ -422,7 +425,6 @@ public static class RaskEndpointExtensions
         endpoints.Map(pathBase + WebSocketPath, (RequestDelegate)(async ctx =>
             {
                 var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
-                var lifetime = ctx.RequestServices.GetRequiredService<IHostApplicationLifetime>();
                 // Resolve the per-host safety limits once per connection (not per frame) — the receive
                 // loop reads them via instance fields on the hot path.
                 var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
@@ -454,9 +456,14 @@ public static class RaskEndpointExtensions
                 // frames carry the user's own rendered view, no cross-origin mixing).
                 using var ws = await ctx.WebSockets.AcceptWebSocketAsync(
                     new WebSocketAcceptContext { DangerousEnableCompression = true });
+                // store.Drained, NOT lifetime.ApplicationStopping. The shutdown drain has to reach clients
+                // while their sockets are still usable, so the socket's lifetime is tied to the point the
+                // drain FINISHES rather than the point shutdown begins. The store cancels it either way —
+                // after the broadcast, after the timeout, or from its own disposal — so a socket can never
+                // outlive the host by waiting on a token nobody trips.
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(
-                    ctx.RequestAborted, lifetime.ApplicationStopping);
-                await RunSocketLoop(ws, store, limits, wsUser, linked.Token, lifetime.ApplicationStopping);
+                    ctx.RequestAborted, store.Drained);
+                await RunSocketLoop(ws, store, limits, wsUser, linked.Token, store.Drained);
             }));
 
         var script = LoadEmbeddedScript();
@@ -596,9 +603,11 @@ public static class RaskEndpointExtensions
     }
 
     private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, RaskServerLimits limits,
-        ClaimsPrincipal wsUser, CancellationToken ct, CancellationToken stopping)
+        ClaimsPrincipal wsUser, CancellationToken ct, CancellationToken drained)
     {
-        using var abortReg = stopping.Register(() =>
+        // Fires once the shutdown drain has finished, not when shutdown began — so a client gets its
+        // "reconnect now" frame before its socket is pulled out from under it. See LiveSessionStore.Drained.
+        using var abortReg = drained.Register(() =>
         {
             try { ws.Abort(); }
             catch { }

@@ -278,6 +278,13 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         return html;
     }
 
+    /// <summary>
+    ///     Whether a socket is currently attached — i.e. whether this session can be sent to at all. Tests
+    ///     wait on it to know the server has processed a <c>hello</c>, which is otherwise unobservable from
+    ///     the client side and races anything that then asks the session to send.
+    /// </summary>
+    internal bool IsAttached => _socket is not null;
+
     public void AttachSocket(WebSocket socket, CancellationToken ct)
     {
         _socketCt = ct;
