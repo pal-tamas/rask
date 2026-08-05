@@ -46,6 +46,11 @@ public sealed class SessionRenderCache : IDisposable
 
     public void Dispose()
     {
+        // Dispose, not just null: each FrameWriter holds a pooled RenderFrame[] that dropping the
+        // reference would abandon rather than return. The scratch owns only plain managed objects, so
+        // releasing it is enough.
+        _previous?.Dispose();
+        _current?.Dispose();
         _previous = null;
         _current = null;
         _hasPrevious = false;
