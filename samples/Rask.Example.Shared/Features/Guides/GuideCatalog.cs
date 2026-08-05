@@ -81,6 +81,8 @@ public static class GuideCatalog
             "bi-hdd-stack", "One Person Framework"),
         new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.",
             "bi-rocket", "One Person Framework"),
+        new("scaling", "Scaling", "How far one box goes, measured — and where the wall actually is.",
+            "bi-graph-up", "One Person Framework"),
         new("secrets", "Secrets", "Where passwords and API keys live, and how they reach the server.",
             "bi-key", "One Person Framework"),
 

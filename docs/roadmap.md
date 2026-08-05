@@ -73,6 +73,18 @@ built-in login-attempt throttle**.
 ### Secrets beyond environment variables
 See [`secrets.md`](secrets.md) for what does exist and, at the bottom, a blunt list of what doesn't.
 
+### Horizontal scale
+No `rask deploy --replicas`. Not an oversight, and not a "later" — it would be a flag that is wrong for
+the shape of app this framework tells you to build. Every DB-backed pillar writes to the app's own SQLite
+database, and [SQLite runs one writer](sqlite.md#in-a-docker-container), so a second replica of a normal
+Rask app is a corruption risk rather than a scaling step.
+
+What one box actually does is [measured, not asserted](scaling.md) — sessions held and events served,
+both reproducible from reports in this repo. Read that before assuming you need a second box; the usual
+answer is a smaller page. If you genuinely do outgrow it, the door is a client-server database, and
+`scaling.md` covers what else would have to change (uploads, downloads and sign-in redeem still require
+sticky routing; sessions no longer do).
+
 ---
 
 Every pillar above is wired together in [`samples/Rask.Example.Shop`](../samples/Rask.Example.Shop), and

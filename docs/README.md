@@ -68,6 +68,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [Observability](observability.md) | Structured logging, the `Rask.Server` meter and activity source, health checks — what to export and what the numbers mean. |
 | [Configuration](configuration.md) | The options every host reads, and where to set them. |
 | [Deployment](deployment.md) | Ship to a single box with `rask deploy`: Docker over SSH, a shared Caddy proxy for automatic HTTPS, zero-downtime blue-green swaps gated on `/health`, and bare-VPS setup. |
+| [Scaling](scaling.md) | How far one box goes — measured, in sessions and in events per second — what survives a restart or a deploy, where the wall actually is, and what it takes to get past it. |
 
 ## Bootstrap components
 
