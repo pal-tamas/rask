@@ -174,6 +174,51 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
     }
 
     [Fact]
+    public async Task Recovers_when_a_transaction_appears_between_retry_attempts()
+    {
+        // #504. The entry guard ran once, before the retry loop, so it only ever caught a transaction the
+        // handle *arrived* with. A transaction that appears after the first BEGIN attempt was missed
+        // entirely, and the next pass re-issued BEGIN inside it — SQLITE_ERROR "cannot start a transaction
+        // within a transaction", which is not BUSY/LOCKED, so it threw instead of retrying.
+        //
+        // In production that second transaction is BEGIN's own: an extended SQLITE_BUSY (BUSY_SNAPSHOT /
+        // BUSY_RECOVERY, which the primary result code hides) can leave one open, and those need real
+        // multi-writer WAL contention to provoke. Here it is injected deterministically instead: hold the
+        // write lock so BEGIN must retry, then open a *deferred* transaction on the waiting handle mid-loop
+        // — deferred takes no write lock, so it only flips autocommit, which is exactly the state the bug
+        // needs. Fails with SQLITE_ERROR (1) before the fix; passes after.
+        await using var holder = new SqliteConnection(_connectionString);
+        await holder.OpenAsync();
+        using var holderTx = holder.BeginImmediate();
+
+        await using var waiter = new SqliteConnection(_connectionString);
+        await waiter.OpenAsync();
+        var waiterHandle = waiter.Handle!;
+
+        var injected = Task.Run(async () =>
+        {
+            await Task.Delay(150); // the retry loop is polling by now
+            raw.sqlite3_exec(waiterHandle, "BEGIN;"); // autocommit -> 0, no write lock taken
+            await Task.Delay(150);
+            holderTx.Commit(); // release the write lock so BEGIN IMMEDIATE can finally succeed
+        });
+
+        await waiter.ExecuteInImmediateTransactionAsync(
+            new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(10), PollInterval = TimeSpan.FromMilliseconds(10) },
+            async (c, ct) =>
+            {
+                await using var cmd = c.CreateCommand();
+                cmd.CommandText = "INSERT INTO t(v) VALUES('after-injected-transaction');";
+                await cmd.ExecuteNonQueryAsync(ct);
+            });
+
+        await injected;
+
+        Assert.Equal(1, Count());
+        Assert.Equal(1, raw.sqlite3_get_autocommit(waiterHandle)); // handle left clean
+    }
+
+    [Fact]
     public async Task Leaves_the_handle_in_autocommit_after_work_throws()
     {
         // The finally guard must never return a mid-transaction handle to the pool, even when work throws.
