@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Components;
+using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Live;
 
@@ -18,42 +19,6 @@ namespace Rask.Server.Tests.Live;
 /// </remarks>
 public sealed class SendTimeoutTests
 {
-    /// <summary>An open socket whose sends never complete until the test says so.</summary>
-    private sealed class StallingWebSocket : WebSocket
-    {
-        private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public int Aborted { get; private set; }
-
-        public override WebSocketState State { get; } = WebSocketState.Open;
-        public override WebSocketCloseStatus? CloseStatus => null;
-        public override string? CloseStatusDescription => null;
-        public override string? SubProtocol => null;
-
-        public void Release() => _released.TrySetResult();
-
-        public override async Task SendAsync(
-            ArraySegment<byte> buffer, WebSocketMessageType type, bool end, CancellationToken ct) =>
-            await _released.Task.WaitAsync(ct);
-
-        public override async ValueTask SendAsync(
-            ReadOnlyMemory<byte> buffer, WebSocketMessageType type, bool end, CancellationToken ct) =>
-            await _released.Task.WaitAsync(ct);
-
-        public override void Abort()
-        {
-            Aborted++;
-            _released.TrySetCanceled();
-        }
-
-        public override Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken ct) =>
-            throw new NotSupportedException("This socket only ever sends.");
-
-        public override Task CloseAsync(WebSocketCloseStatus s, string? d, CancellationToken ct) => Task.CompletedTask;
-        public override Task CloseOutputAsync(WebSocketCloseStatus s, string? d, CancellationToken ct) => Task.CompletedTask;
-        public override void Dispose() { }
-    }
-
     private sealed class Shell : Component
     {
         protected override Component? Render() =>
