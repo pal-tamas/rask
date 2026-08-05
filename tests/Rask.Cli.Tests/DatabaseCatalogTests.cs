@@ -7,6 +7,7 @@ public sealed class DatabaseCatalogTests
     [Theory]
     [InlineData("sqlite")]
     [InlineData("postgres")]
+    [InlineData("sqlserver")]
     public void Resolves_each_known_database_by_key(string key)
     {
         Assert.True(DatabaseCatalog.TryGet(key, out var database));
@@ -47,7 +48,7 @@ public sealed class DatabaseCatalogTests
     [Fact]
     public void Keys_lists_every_database_for_help_text()
     {
-        Assert.Equal("sqlite|postgres", DatabaseCatalog.Keys);
+        Assert.Equal("sqlite|postgres|sqlserver", DatabaseCatalog.Keys);
     }
 
     [Fact]

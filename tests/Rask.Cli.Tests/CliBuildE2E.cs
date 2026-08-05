@@ -38,6 +38,7 @@ internal static class CliBuildE2E
         "Rask.SQLite.Litestream",           // --data — continuous backup on the golden path
         "Rask.SQLite.Snapshots",            // --snapshots — AddRaskSqliteSnapshots
         "Rask.Postgres",                    // --database postgres — UseRaskPostgres
+        "Rask.SqlServer",                   // --database sqlserver — UseRaskSqlServer
         "Rask.WebPush",                     // --push — AddRaskWebPush + the subscription endpoints
         "Rask.Outbox",                      // generate feature --outbox, and tutorial ch7
         "Rask.Jobs",                        // generate job, and tutorial ch4

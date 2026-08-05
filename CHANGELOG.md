@@ -166,6 +166,23 @@ them until tagged releases begin.
 
   Running several instances is safe — see the leasing entry below.
 
+- **SQL Server too, via `Rask.SqlServer` and `rask new --database sqlserver`.** `UseRaskSqlServer(...)` is
+  the SQL Server counterpart of `UseRaskPostgres`: `SET LOCK_TIMEOUT` and `SET XACT_ABORT ON` on every
+  connection open, a client command timeout, and `EnableRetryOnFailure`.
+
+  Deliberately not a mirror of the PostgreSQL options. SQL Server has no server-side statement timeout — so
+  the ceiling on a runaway query has to be the *client* command timeout — and nothing corresponding to
+  `idle_in_transaction_session_timeout`, so neither is invented. What it has and PostgreSQL does not need is
+  `XACT_ABORT`, on by default: with it off, a statement error inside an explicit transaction leaves that
+  transaction open and holding locks, and the connection returns to the pool in that state.
+
+  Verified against a real engine, not asserted: `scripts/run-providers-local.sh` now races 20 processor
+  instances for 200 jobs on SQL Server as well as PostgreSQL. Doing that also caught a bad assertion in the
+  PostgreSQL suite — it required all 200 jobs to be claimed in a single round, which passed on PostgreSQL by
+  timing alone. Every instance runs the same deterministic candidate query, so most legitimately claim
+  nothing and poll again; the invariant is that no job is claimed *twice*, not that one round drains the
+  queue.
+
 - **Jobs, mail and the outbox now lease the work they claim, so more than one instance is safe.**
   **⚠️ Action required: `rask db add AddLeases && rask db update`.**
 

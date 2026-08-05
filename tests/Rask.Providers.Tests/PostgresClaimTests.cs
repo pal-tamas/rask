@@ -82,12 +82,19 @@ public sealed class PostgresClaimTests : IAsyncLifetime
 
         var ids = claimed.SelectMany(batch => batch.Select(j => j.Id)).ToList();
 
-        // The assertion the design rests on: no id appears twice across every instance's batch.
+        // The assertion the design rests on, and the only one that is actually invariant: no id appears
+        // twice across every instance's batch.
         Assert.Equal(ids.Count, ids.Distinct().Count());
-        Assert.NotEmpty(ids);
 
-        // And nothing was lost: 20 instances × 25 covers all 200, so every job ended up claimed exactly once.
-        Assert.Equal(jobs, ids.Count);
+        // Progress was made, and nothing was invented.
+        Assert.NotEmpty(ids);
+        Assert.True(ids.Count <= jobs, $"claimed {ids.Count} of {jobs} jobs — more than exist.");
+
+        // Deliberately NOT asserting that all 200 were claimed in this one round. Every instance runs the
+        // same deterministic candidate query, so they all compete for the same top-N and most legitimately
+        // come away with nothing; how many rounds it takes to drain is pure interleaving. An earlier version
+        // of this test asserted full coverage and passed on PostgreSQL by timing alone — SQL Server, being
+        // slower to hand out the losers' locks, is what exposed it.
     }
 
     [PostgresFact]

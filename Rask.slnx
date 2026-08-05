@@ -44,6 +44,7 @@
         <Project Path="src/Rask.Native/Rask.Native.csproj"/>
         <Project Path="src/Rask.Postgres/Rask.Postgres.csproj"/>
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
+        <Project Path="src/Rask.SqlServer/Rask.SqlServer.csproj"/>
         <Project Path="src/Rask.SQLite/Rask.SQLite.csproj"/>
         <Project Path="src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj"/>
         <Project Path="src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj"/>
@@ -85,6 +86,7 @@
         <Project Path="tests/Rask.Providers.Tests/Rask.Providers.Tests.csproj"/>
         <Project Path="tests/Rask.Server.HotReload.Tests/Rask.Server.HotReload.Tests.csproj"/>
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj"/>
+        <Project Path="tests/Rask.SqlServer.Tests/Rask.SqlServer.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Tests/Rask.SQLite.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.EntityFrameworkCore.Tests/Rask.SQLite.EntityFrameworkCore.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Limitations.Tests/Rask.SQLite.Limitations.Tests.csproj"/>

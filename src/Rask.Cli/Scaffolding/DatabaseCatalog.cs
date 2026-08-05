@@ -14,6 +14,9 @@ internal enum DatabaseProvider
 
     /// <summary>PostgreSQL, via <c>Rask.Postgres</c>.</summary>
     Postgres,
+
+    /// <summary>Microsoft SQL Server, via <c>Rask.SqlServer</c>.</summary>
+    SqlServer,
 }
 
 /// <summary>
@@ -86,6 +89,17 @@ internal static class DatabaseCatalog
             DefaultConnectionString: "Host=localhost;Database=app;Username=postgres;Password=postgres",
             EfPackage: "Npgsql.EntityFrameworkCore.PostgreSQL",
             TestUseMethod: "UseNpgsql"),
+        new(
+            Key: "sqlserver",
+            Provider: DatabaseProvider.SqlServer,
+            ShortName: "SQL Server",
+            DisplayName: "SQL Server (a server you run or rent)",
+            Package: "Rask.SqlServer",
+            Namespace: "Rask.SqlServer",
+            UseMethod: "UseRaskSqlServer",
+            DefaultConnectionString: "Server=localhost;Database=app;User Id=sa;Password=Your_password123;TrustServerCertificate=true",
+            EfPackage: "Microsoft.EntityFrameworkCore.SqlServer",
+            TestUseMethod: "UseSqlServer"),
     ];
 
     /// <summary>The default when <c>--database</c> is omitted — SQLite, and deliberately so.</summary>

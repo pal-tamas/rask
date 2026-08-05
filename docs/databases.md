@@ -7,7 +7,7 @@ server's local disk, no network hop to a database tier, and every stateful pilla
 
 This page is about the other door. When one box genuinely isn't enough — a managed database with someone
 else on call for it, a read replica, or an app tier you want to scale horizontally — Rask can wire
-PostgreSQL instead.
+PostgreSQL or SQL Server instead.
 
 **Most solo products never walk through this door.** Read [the load-test numbers](sqlite.md#load-test-numbers)
 before assuming you need to.
@@ -17,6 +17,7 @@ before assuming you need to.
 ```bash
 rask new Shop --data                        # SQLite (the default)
 rask new Shop --data --database postgres    # PostgreSQL
+rask new Shop --data --database sqlserver   # SQL Server
 ```
 
 You choose once. Everything after that — `rask generate feature`, `rask db`, `rask deploy` — reads the
@@ -32,6 +33,7 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 
 `UseRaskPostgres` is a drop-in for `UseNpgsql` that also applies the production session settings and turns
 on transient-failure retrying — the same role [`UseRaskSqlite`](sqlite.md) plays for pragmas.
+`UseRaskSqlServer` does the same for SQL Server.
 
 | Setting | Default | Why |
 |---|---|---|
@@ -47,15 +49,15 @@ Set any timeout to `TimeSpan.Zero` to leave it alone, so a server- or role-level
 Everything Rask does that treats the database as **a file on this machine** has no counterpart on a
 client-server database. These are not degraded — there is no file, so there is nothing to do:
 
-| | SQLite | PostgreSQL |
-|---|---|---|
-| Continuous backup ([Litestream](sqlite.md#continuous-backup-with-litestream)) | ✅ | ❌ your provider's backups |
-| Scheduled snapshots (`--snapshots`) | ✅ | ❌ your provider's snapshots |
-| `rask db backup` / `restore` | ✅ | ❌ `pg_dump` / `pg_restore` |
-| `/data` volume on deploy | ✅ automatic | ❌ you point at the database |
-| `rask db add` / `update` (migrations) | ✅ | ✅ unchanged |
-| Jobs, mail, cache, outbox | ✅ | ✅ |
-| [`Rask.Data`](data.md) entities + interceptors | ✅ | ✅ |
+| | SQLite | PostgreSQL | SQL Server |
+|---|---|---|---|
+| Continuous backup ([Litestream](sqlite.md#continuous-backup-with-litestream)) | ✅ | ❌ your provider's backups | ❌ your provider's backups |
+| Scheduled snapshots (`--snapshots`) | ✅ | ❌ your provider's snapshots | ❌ your provider's snapshots |
+| `rask db backup` / `restore` | ✅ | ❌ `pg_dump` / `pg_restore` | ❌ `BACKUP DATABASE` |
+| `/data` volume on deploy | ✅ automatic | ❌ you point at the database | ❌ you point at the database |
+| `rask db add` / `update` (migrations) | ✅ | ✅ unchanged | ✅ unchanged |
+| Jobs, mail, cache, outbox | ✅ | ✅ | ✅ |
+| [`Rask.Data`](data.md) entities + interceptors | ✅ | ✅ | ✅ |
 
 `rask new --snapshots --database postgres` is an **error**, not a silently dropped flag — a backup you
 believe you configured is worse than one you know you haven't. `--all-batteries` simply expands to the
@@ -89,8 +91,8 @@ job runs on one instance and an email is sent by one instance.
 Claiming a batch is one `UPDATE` whose predicate re-tests claimability. Every provider re-evaluates that
 predicate against the row version the winner committed, so the row goes to exactly one instance — no
 `SKIP LOCKED`, no provider-specific SQL, and the same code path on SQLite. That last part is a claim about
-the *server*, so it is tested against a real one: `scripts/run-providers-local.sh` races 20 instances for
-200 jobs on PostgreSQL and asserts no job is claimed twice. A claim marks the rows with a
+the *server*, so it is tested against real ones: `scripts/run-providers-local.sh` races 20 instances for
+200 jobs on both PostgreSQL and SQL Server and asserts no job is claimed twice. A claim marks the rows with a
 token and an expiry (`LeaseDuration`, default 5 minutes); finishing hands them back, and so does a graceful
 shutdown, so a rolling deploy doesn't park a batch.
 
@@ -150,8 +152,28 @@ database. On SQLite it uses a temp file. On PostgreSQL it creates and drops a un
 the same local server the app's default connection string points at, so `dotnet test` works against a
 local PostgreSQL with no extra setup. Point it elsewhere — CI, say — with `RASK_TEST_DB`.
 
-## SQL Server, and others
+## SQL Server
 
-Not yet. The provider seam exists and adding one is mostly mechanical, but each provider needs its own
-production defaults and its own test run before it can be claimed to work. Rask ships providers it has
-actually exercised.
+`--database sqlserver` wires [`Rask.SqlServer`](https://www.nuget.org/packages/Rask.SqlServer). Its
+defaults are shaped by what SQL Server actually has, not by symmetry with PostgreSQL:
+
+| Setting | Default | Why |
+|---|---|---|
+| `CommandTimeout` | 30s | SQL Server has **no server-side statement timeout**, so this client-side ceiling is the only bound on a runaway query. |
+| `LockTimeout` | 10s | `SET LOCK_TIMEOUT`. Without it, a statement stuck behind a lock waits out the command timeout and reports as a slow query. |
+| `AbortOnError` | `true` | `SET XACT_ABORT ON`. With it off, a statement error inside an explicit transaction leaves that transaction open and holding locks — and the connection goes back to the pool that way. |
+| `MaxRetryCount` / `MaxRetryDelay` | 6 / 30s | SQL Server's own `EnableRetryOnFailure`, including the Azure SQL failover error numbers. |
+
+There is no `statement_timeout` equivalent and nothing corresponding to
+`idle_in_transaction_session_timeout`, so neither is invented.
+
+One thing to know about isolation: the claim is safe under both locking READ COMMITTED and RCSI. Under
+explicit `SNAPSHOT` isolation, SQL Server raises error 3960 rather than allowing a double-claim — the
+processor's per-cycle catch turns that into "retry next poll", so it is safe by failure rather than safe by
+design.
+
+### Other providers
+
+None yet. The seam exists and adding one is mostly mechanical, but each provider needs its own production
+defaults and its own run against a real server before it can be claimed to work. Rask ships providers it
+has actually exercised — see `scripts/run-providers-local.sh`.

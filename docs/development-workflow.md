@@ -102,8 +102,9 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   (bypass with `RASK_SKIP_DEPLOY_E2E=1`). **Not covered:** real DNS and Let's Encrypt issuance — the gate
   uses a `.test` domain, so ACME never runs.
 - **The provider gate runs locally, on changes to the claim or to provider registration.**
-  `scripts/run-providers-local.sh` starts a real PostgreSQL container and races 20 processor instances for
-  200 jobs. It exists because the leasing design rests on one claim about the *server* — that an
+  `scripts/run-providers-local.sh` starts real PostgreSQL and SQL Server containers and races 20 processor
+  instances for 200 jobs against each. (On arm64 it substitutes Azure SQL Edge, which is the SQL Server
+  engine but not the full image — full SQL Server coverage needs an amd64 host.) It exists because the leasing design rests on one claim about the *server* — that an
   `UPDATE … WHERE <claimable>` re-evaluates its predicate against the row version the winner committed —
   and that cannot be proven on SQLite, where there is only one writer to begin with. Deliberately not part
   of `run-unit-local.sh`: requiring a Docker daemon on every commit is how a gate ends up permanently
