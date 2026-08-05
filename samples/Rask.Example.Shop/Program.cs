@@ -19,6 +19,8 @@ using Rask.Mail;
 using Rask.Cache;
 using Rask.Outbox;
 using Rask.Dashboard;
+using Rask.Dashboard.Panels;
+using Rask.Example.Shop.Features.Ops;
 using Rask.SQLite.Snapshots;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -157,6 +159,11 @@ builder.Services.AddSingleton<PushSubscriptionStore>();
 // next door is the hand-rolled version of the same idea — it exists to show that the pillars really are
 // just tables you can SELECT from. This is what you get without writing it.
 builder.Services.AddRaskDashboard<AppDbContext>();
+
+// Lights up the dashboard's Backup card. The dashboard can't read Litestream/snapshot state itself
+// without dragging a native SQLite provider bundle into every consumer, so this app — which already
+// uses both — supplies the reading. See Features/Ops/BackupProbe.cs.
+builder.Services.AddSingleton<IDashboardBackupProbe, BackupProbe>();
 
 // WHO MAY OPERATE THE APP. The dashboard exposes job payloads, stored email bodies and log lines, so it
 // is gated on this policy. Without one it would deny everyone outside Development. The demo credential

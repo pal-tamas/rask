@@ -111,6 +111,12 @@ Litestream exiting, a job type that won't deserialize, a handler that threw.
 provider somewhere durable for anything you need to keep, and remember that log lines can contain secrets —
 another reason the policy is fail-closed.
 
+> **`LogMinimumLevel` is a floor, not an override.** The logging pipeline applies your
+> `Logging:LogLevel` configuration *first*, so an entry filtered there never reaches the dashboard however
+> low you set this. The scaffolded `appsettings.Production.json` sets `"Default": "Warning"` — so a
+> production app shows warnings and errors here and no `Information`, which is correct rather than broken.
+> Lower the level in configuration if you want more.
+
 ## Backups
 
 The backup card is opt-in. Reading Litestream and snapshot state directly would pull a native SQLitePCLRaw
@@ -118,25 +124,38 @@ provider bundle into every consumer and tie a provider-agnostic dashboard to SQL
 a probe:
 
 ```csharp
-public sealed class BackupProbe(LitestreamStatus litestream, ISqliteSnapshotStore snapshots)
+// Both dependencies are OPTIONAL on purpose — see the warning below.
+public sealed class BackupProbe(LitestreamStatus? litestream = null, ISqliteSnapshotStore? snapshots = null)
     : IDashboardBackupProbe
 {
     public Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken ct)
     {
+        if (litestream is null)
+        {
+            return Task.FromResult<BackupReplicationInfo?>(null);
+        }
+
         var s = litestream.Current;
         return Task.FromResult<BackupReplicationInfo?>(
             new(s.IsReplicating, s.LastStartedAt, s.RestartCount, s.LastError));
     }
 
     public async Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken ct) =>
-        [.. (await snapshots.ListAsync(ct)).Select(s => new BackupSnapshotInfo(s.Name, s.SizeBytes, s.CreatedAt))];
+        snapshots is null
+            ? []
+            : [.. (await snapshots.ListAsync(ct)).Select(s => new BackupSnapshotInfo(s.Name, s.SizeBytes, s.CreatedAt))];
 }
 
 builder.Services.AddSingleton<IDashboardBackupProbe, BackupProbe>();
 ```
 
-Without one the card stays hidden — reporting "no backups" when the app simply never said is a claim the
-dashboard can't support.
+> **Take those dependencies as optional.** `AddRaskSqliteLitestream` is config-gated in everything
+> `rask new` scaffolds: with no `Litestream:ReplicaUrl` set it never runs, so `LitestreamStatus` is not in
+> the container. A probe that requires it starts cleanly and then throws the first time somebody opens the
+> System panel — a failure that shows up only in the environment which skipped the configuration.
+
+Without a probe the card stays hidden — reporting "no backups" when the app simply never said is a claim
+the dashboard can't support.
 
 ## Cost
 
