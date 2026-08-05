@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Server-only: every panel reads the application's DbContext, and a WASM app has no database.
+         Single-targeted (no net10.0-browser) so that constraint is enforced by the compiler. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Dashboard</PackageId>
+    <Title>Rask — Batteries Dashboard</Title>
+    <Description>A built-in operator dashboard for the Rask One Person Framework batteries. Mounts at /_ops and shows the outbox, background jobs, queued mail and cache from the application's own database — queue depth, dead letters, the errors behind them, stored email previews, the recurring-job schedule, SQLite pragmas and backup status. Panels appear only for the batteries the app actually registered. Protected by an authorization policy that fails closed outside Development.</Description>
+    <PackageTags>web component framework net10 dashboard ops admin observability jobs outbox mail cache sqlite</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Dashboard.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PrivateAssets="all": Rask.Core is IsPackable=false and ships transitively from the host
+         packages (Rask.Server), so listing it as a nuspec dependency would reference a package that
+         exists on no feed and make Rask.Dashboard unrestorable. Guarded by PackageDependencyTests. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+
+    <!-- The panels read these packages' entity types directly. Referencing all four is what lets a
+         single package light up whichever batteries an app registered, with no glue from the caller. -->
+    <ProjectReference Include="..\Rask.Bootstrap\Rask.Bootstrap.csproj"/>
+    <ProjectReference Include="..\Rask.Cache\Rask.Cache.csproj"/>
+    <ProjectReference Include="..\Rask.Jobs\Rask.Jobs.csproj"/>
+    <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
+    <ProjectReference Include="..\Rask.Outbox\Rask.Outbox.csproj"/>
+
+    <!-- Emits this assembly's own Generated.* factories and the __RaskRoutesRegistry module
+         initializer that registers the dashboard's [Route] pages into the host's RouteRegistry. -->
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <!-- The system panel reads SQLite PRAGMAs through the open DbConnection. Relational (not a provider)
+         is what exposes DatabaseFacade.GetDbConnection; every app with a relational provider already has
+         it, and depending on it here keeps the dashboard provider-agnostic. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+    <!-- The dashboard defines its own authorization policy default, so it references authorization
+         directly rather than relying on Rask.Core's (PrivateAssets) transitive reference. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+</Project>
