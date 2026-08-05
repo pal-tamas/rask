@@ -71,7 +71,8 @@ public sealed class OutboxConcurrencyTests : IDisposable
 
         Assert.Equal(2, messages.Count);
         Assert.All(messages, m => Assert.NotNull(m.ProcessedAt));
-        Assert.All(messages, m => Assert.Equal(0, m.Attempts));
+        // One attempt started each, none of them a retry — Attempts counts claims, not failures.
+        Assert.All(messages, m => Assert.Equal(1, m.Attempts));
 
         // The real payoff: each event was delivered exactly once.
         Assert.Equal(1, _recorder.Events.Count(e => e.Customer == "b"));

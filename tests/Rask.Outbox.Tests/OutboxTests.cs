@@ -226,7 +226,7 @@ public sealed class OutboxTests : IDisposable
         // asserting only on ProcessedAt would miss the bug entirely.
         Assert.NotNull(message.ProcessedAt);
         Assert.Null(message.Error);
-        Assert.Equal(0, message.Attempts);
+        Assert.Equal(1, message.Attempts); // attempts *started* — one claim, no failure (see OutboxMessage.Attempts)
         Assert.DoesNotContain('@', message.Type); // stored as the runtime name, unescaped
         Assert.Contains(_keywordRecorder.Events, e => e.N == 7); // the handler really ran
     }

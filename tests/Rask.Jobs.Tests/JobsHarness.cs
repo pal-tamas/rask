@@ -196,7 +196,13 @@ public sealed class JobsHarness : IAsyncDisposable
         }
     }
 
-    public IHostedService Processor =>
+    public IHostedService Processor => Jobs;
+
+    /// <summary>
+    /// The processor, typed — so a test can drive <c>ClaimAsync</c> directly instead of racing two
+    /// background services and hoping the interleaving it wants actually happens.
+    /// </summary>
+    public JobProcessor<JobsDbContext> Jobs =>
         _provider.GetServices<IHostedService>().OfType<JobProcessor<JobsDbContext>>().Single();
 
     public JobsDbContext NewContext() =>

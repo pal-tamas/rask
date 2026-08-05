@@ -25,6 +25,103 @@ public sealed class MailProcessor<TContext>(
     private static readonly TimeSpan PurgeInterval = TimeSpan.FromHours(1);
     private DateTime _lastPurge;
 
+    /// <summary>Identifies this instance in logs — not persisted; the per-batch token is what rows carry.</summary>
+    private readonly Guid _instanceId = Guid.NewGuid();
+
+    /// <summary>The token on the batch currently in flight, so shutdown can hand it back.</summary>
+    private Guid _lease;
+
+    /// <summary>
+    /// Atomically takes a batch of due emails for this instance, so a second processor cannot send them
+    /// too. See <c>JobProcessor.ClaimAsync</c> for why the compare-and-swap is portable and why the
+    /// predicate tests lease expiry rather than <c>ClaimToken == null</c>.
+    /// </summary>
+    internal async Task<List<QueuedMail>> ClaimAsync(TContext db, DateTime now, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+
+        var ids = await db.Set<QueuedMail>()
+            .Where(m => m.ProcessedAt == null
+                && m.Attempts < options.MaxAttempts
+                && m.RunAt <= now
+                && (m.ClaimedUntil == null || m.ClaimedUntil <= now))
+            .OrderBy(m => m.RunAt)
+            .ThenBy(m => m.Id)
+            .Take(options.BatchSize)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        ids.Sort();
+
+        var token = Guid.NewGuid();
+        var until = now + options.LeaseDuration;
+
+        // Attempts is incremented HERE, not on failure — a send that takes the process down never reaches
+        // the failure path, and counting only failures would retry it forever.
+        var claimed = await db.Set<QueuedMail>()
+            .Where(m => ids.Contains(m.Id)
+                && m.ProcessedAt == null
+                && (m.ClaimedUntil == null || m.ClaimedUntil <= now))
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(m => m.ClaimToken, token)
+                    .SetProperty(m => m.ClaimedUntil, until)
+                    .SetProperty(m => m.Attempts, m => m.Attempts + 1),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (claimed == 0)
+        {
+            return [];
+        }
+
+        _lease = token;
+
+        return await db.Set<QueuedMail>()
+            .Where(m => ids.Contains(m.Id) && m.ClaimToken == token)
+            .OrderBy(m => m.RunAt)
+            .ThenBy(m => m.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>Hands back whatever this instance still holds — see <c>JobProcessor.StopAsync</c>.</remarks>
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await base.StopAsync(cancellationToken).ConfigureAwait(false);
+
+        if (_lease == Guid.Empty)
+        {
+            return;
+        }
+
+        try
+        {
+            await using var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            await db.Set<QueuedMail>()
+                .Where(m => m.ClaimToken == _lease && m.ProcessedAt == null)
+                .ExecuteUpdateAsync(
+                    s => s
+                        .SetProperty(m => m.ClaimToken, (Guid?)null)
+                        .SetProperty(m => m.ClaimedUntil, (DateTime?)null),
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // Shutdown must not throw: the lease expires on its own, so this is an optimisation.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogWarning(ex, "Could not release mail leases on shutdown; they expire in {Lease}.", options.LeaseDuration);
+        }
+    }
+
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -68,13 +165,7 @@ public sealed class MailProcessor<TContext>(
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
-        var batch = await db.Set<QueuedMail>()
-            .Where(m => m.ProcessedAt == null && m.Attempts < options.MaxAttempts && m.RunAt <= now)
-            .OrderBy(m => m.RunAt)
-            .ThenBy(m => m.Id)
-            .Take(options.BatchSize)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
+        var batch = await ClaimAsync(db, now, cancellationToken).ConfigureAwait(false);
 
         // The in-flight send gets a bounded grace after SIGTERM instead of being cancelled mid-call. The
         // host token ARMS a deadline on this source rather than cancelling it, so the SMTP conversation
@@ -113,6 +204,7 @@ public sealed class MailProcessor<TContext>(
                 await sender.SendAsync(outgoing, graceToken).ConfigureAwait(false);
                 message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                 message.Error = null;
+                Release(message);
                 metrics.Sent(timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -152,16 +244,44 @@ public sealed class MailProcessor<TContext>(
             // Persist THIS message's outcome before moving on (with None so a delivered message is still marked
             // during shutdown). Saving per message bounds an at-least-once re-send to the single message whose
             // save failed — never the whole batch of already-sent ones.
-            await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // ClaimToken is the concurrency token, so this means our lease expired mid-send and another
+                // instance owns the row now. Its outcome wins; discard ours. The recipient did get the email
+                // twice — at-least-once was always the contract, and the fix for *this* cause is a longer
+                // LeaseDuration. This warning is how you find out you need one.
+                logger.LogWarning(
+                    "Email {Id} lost its lease mid-send on instance {Instance}; another instance owns it now. "
+                    + "Increase MailOptions.LeaseDuration past the time a send takes.",
+                    message.Id,
+                    _instanceId);
+
+                // The context is shared across the batch: a failed entry left attached is retried by the
+                // next message's SaveChanges and fails that one too.
+                db.Entry(message).State = EntityState.Detached;
+            }
         }
     }
 
-    // Record a failed attempt and push the next send out by the exponential backoff.
+    // Record a failed attempt and push the next send out by the exponential backoff. Attempts is NOT
+    // incremented here — the claim already counted this attempt, so a send that kills the process still
+    // counts toward MaxAttempts instead of being retried forever.
     private void Fail(QueuedMail message, string error)
     {
-        message.Attempts++;
         message.Error = error;
         message.RunAt = timeProvider.GetUtcNow().UtcDateTime + options.RetryDelay(message.Attempts);
+        Release(message);
+    }
+
+    // Hand the row back so the next poll can see it without waiting for the lease to expire.
+    private static void Release(QueuedMail message)
+    {
+        message.ClaimToken = null;
+        message.ClaimedUntil = null;
     }
 
     private async Task PurgeAsync(CancellationToken cancellationToken)

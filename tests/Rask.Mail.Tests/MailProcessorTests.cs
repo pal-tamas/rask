@@ -24,7 +24,7 @@ public sealed class MailProcessorTests
             var row = await harness.SingleMailAsync();
             Assert.NotNull(row.ProcessedAt);
             Assert.Null(row.Error);
-            Assert.Equal(0, row.Attempts);
+            Assert.Equal(1, row.Attempts); // attempts *started* — one claim, no failure (see QueuedMail.Attempts)
         }
         finally
         {
@@ -113,7 +113,7 @@ public sealed class MailProcessorTests
 
             var row = await harness.SingleMailAsync();
             Assert.NotNull(row.ProcessedAt);
-            Assert.Equal(2, row.Attempts);
+            Assert.Equal(3, row.Attempts); // three attempts started: two failed, the third delivered
         }
         finally
         {

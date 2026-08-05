@@ -27,6 +27,87 @@ public sealed class JobProcessor<TContext>(
     private static readonly TimeSpan PurgeInterval = TimeSpan.FromHours(1);
     private DateTime _lastPurge;
 
+    /// <summary>Identifies this instance in logs — not persisted; the per-batch token is what rows carry.</summary>
+    private readonly Guid _instanceId = Guid.NewGuid();
+
+    /// <summary>The token on the batch currently in flight, so shutdown can hand it back.</summary>
+    private Guid _lease;
+
+    /// <summary>
+    /// Atomically takes a batch of due jobs for this instance, so a second processor cannot run them too.
+    /// </summary>
+    /// <remarks>
+    /// Three steps, and the middle one is the whole design: a single <c>UPDATE … WHERE</c> whose predicate
+    /// re-tests claimability. Every supported provider re-evaluates that predicate against the row version
+    /// the winner committed — PostgreSQL through EvaluatePlanQual, SQL Server under its update locks,
+    /// SQLite by having one writer — so a row can be claimed by exactly one instance, with no
+    /// <c>SKIP LOCKED</c> and no provider-specific SQL.
+    ///
+    /// <para>The predicate tests <em>lease expiry</em>, not <c>ClaimToken == null</c>. That is what makes
+    /// crash recovery free: an instance that dies holding rows never clears its token, so a null test would
+    /// hide that work forever and force a second sweeper to exist. Expiry brings it back on its own.</para>
+    /// </remarks>
+    internal async Task<List<Job>> ClaimAsync(TContext db, DateTime now, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+
+        var ids = await db.Set<Job>()
+            .Where(j => j.ProcessedAt == null
+                && j.Attempts < options.MaxAttempts
+                && j.RunAt <= now
+                && (j.ClaimedUntil == null || j.ClaimedUntil <= now))
+            .OrderBy(j => j.RunAt)
+            .ThenBy(j => j.Id)
+            .Take(options.BatchSize)
+            .Select(j => j.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        // Ascending, so two instances updating overlapping id sets lock rows in the same order. A deadlock
+        // is still possible on a client-server database; the cycle's catch turns it into "retry next poll".
+        ids.Sort();
+
+        var token = Guid.NewGuid();
+        var until = now + options.LeaseDuration;
+
+        // Attempts is incremented HERE, not on failure. A job that takes the process down with it (OOM, an
+        // eviction, a FailFast) never reaches the failure path, so counting only failures would leave it
+        // retried by every instance forever — MaxAttempts would never dead-letter it. Claim-time counting
+        // makes "attempts started" the meaning, which is the one that bounds a crash loop.
+        var claimed = await db.Set<Job>()
+            .Where(j => ids.Contains(j.Id)
+                && j.ProcessedAt == null
+                && (j.ClaimedUntil == null || j.ClaimedUntil <= now))
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(j => j.ClaimToken, token)
+                    .SetProperty(j => j.ClaimedUntil, until)
+                    .SetProperty(j => j.Attempts, j => j.Attempts + 1),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (claimed == 0)
+        {
+            return [];
+        }
+
+        _lease = token;
+
+        // Filtered on the id list as well as the token, so this rides the primary key — which is why no
+        // index on ClaimToken is needed.
+        return await db.Set<Job>()
+            .Where(j => ids.Contains(j.Id) && j.ClaimToken == token)
+            .OrderBy(j => j.RunAt)
+            .ThenBy(j => j.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -71,13 +152,7 @@ public sealed class JobProcessor<TContext>(
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
-        var batch = await db.Set<Job>()
-            .Where(j => j.ProcessedAt == null && j.Attempts < options.MaxAttempts && j.RunAt <= now)
-            .OrderBy(j => j.RunAt)
-            .ThenBy(j => j.Id)
-            .Take(options.BatchSize)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
+        var batch = await ClaimAsync(db, now, cancellationToken).ConfigureAwait(false);
 
         if (batch.Count == 0)
         {
@@ -132,6 +207,7 @@ public sealed class JobProcessor<TContext>(
                     await dispatcher.DispatchAsync(command, graceToken).ConfigureAwait(false);
                     job.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                     job.Error = null;
+                    Release(job);
                     metrics.Processed(job.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -173,16 +249,80 @@ public sealed class JobProcessor<TContext>(
             // at-least-once re-run to the single job whose save failed, never the whole batch: one row
             // deleted or edited underneath the drain would otherwise abort the entire SaveChanges and
             // strip ProcessedAt from every already-executed job in it.
-            await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // ClaimToken is the concurrency token, so this means our lease expired mid-job and another
+                // instance has taken the row. Its outcome wins; discard ours rather than stamping over it.
+                // The job did run twice — at-least-once was always the contract, and the fix for *this*
+                // cause is a longer LeaseDuration. This warning is how you find out you need one.
+                logger.LogWarning(
+                    "Job {Id} lost its lease mid-run on instance {Instance}; another instance owns it now. "
+                    + "Increase JobOptions.LeaseDuration past the time this job takes.",
+                    job.Id,
+                    _instanceId);
+
+                // Not optional: the context is shared across the batch, so a failed entry left attached is
+                // retried by the *next* job's SaveChanges and fails that one too.
+                db.Entry(job).State = EntityState.Detached;
+            }
         }
     }
 
-    // Record a failed attempt and push the next run out by the exponential backoff.
+    // Record a failed attempt and push the next run out by the exponential backoff. Attempts is NOT
+    // incremented here — the claim already counted this attempt, so that a job which kills the process
+    // still counts toward MaxAttempts instead of being retried forever.
     private void Fail(Job job, string error)
     {
-        job.Attempts++;
         job.Error = error;
         job.RunAt = timeProvider.GetUtcNow().UtcDateTime + options.RetryDelay(job.Attempts);
+        Release(job);
+    }
+
+    // Hand the row back so the next poll can see it without waiting for the lease to expire.
+    private static void Release(Job job)
+    {
+        job.ClaimToken = null;
+        job.ClaimedUntil = null;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Hands back whatever this instance still holds. Without it a rolling deploy parks up to
+    /// <see cref="JobOptions.BatchSize"/> jobs for a whole <see cref="JobOptions.LeaseDuration"/> — they are
+    /// not lost, but "deployed and the queue went quiet for five minutes" is not what anyone expects.
+    /// Best-effort by design: the lease expiring is the backstop, so a failure here costs latency, not work.
+    /// </remarks>
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await base.StopAsync(cancellationToken).ConfigureAwait(false);
+
+        if (_lease == Guid.Empty)
+        {
+            return;
+        }
+
+        try
+        {
+            await using var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            await db.Set<Job>()
+                .Where(j => j.ClaimToken == _lease && j.ProcessedAt == null)
+                .ExecuteUpdateAsync(
+                    s => s
+                        .SetProperty(j => j.ClaimToken, (Guid?)null)
+                        .SetProperty(j => j.ClaimedUntil, (DateTime?)null),
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // Shutdown must not throw: the lease expires on its own, so this is an optimisation.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogWarning(ex, "Could not release job leases on shutdown; they expire in {Lease}.", options.LeaseDuration);
+        }
     }
 
     private async Task EnqueueDueRecurringAsync(CancellationToken cancellationToken)
