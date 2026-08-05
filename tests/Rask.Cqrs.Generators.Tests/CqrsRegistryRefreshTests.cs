@@ -47,8 +47,29 @@ public class CqrsRegistryRefreshTests
         Assert.Contains("internal static void RefreshAll()", source, StringComparison.Ordinal);
 
         var refresh = Body(source, "internal static void RefreshAll()");
-        Assert.Contains("RegisterRequest(typeof(global::Demo.Ping)", refresh, StringComparison.Ordinal);
-        Assert.Contains("RegisterNotification(typeof(global::Demo.Pinged)", refresh, StringComparison.Ordinal);
+        Assert.Contains("(typeof(global::Demo.Ping), __Request_", refresh, StringComparison.Ordinal);
+        Assert.Contains("(typeof(global::Demo.Pinged), __Notify_", refresh, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RefreshAll_replaces_both_dispatch_tables_rather_than_upserting_into_them()
+    {
+        // Sibling of #537 in the two serializer registries, and the same shape of bug: upserts only ever
+        // add or overwrite, so deleting the last handler for a request left its invoker in the table and
+        // dispatch kept succeeding through IL that no longer had a handler behind it. Replacing this
+        // assembly's whole contribution makes a deletion take effect under `rask dev`.
+        var source = CqrsGeneratorFixture.Run(OneCommandOneNotification).GeneratedSource(RefreshTargetTypeName);
+
+        Assert.Contains(
+            "global::Rask.Cqrs.CqrsRegistry.ReplaceRequests(typeof(__RaskCqrsRegistry), ",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "global::Rask.Cqrs.CqrsRegistry.ReplaceNotifications(typeof(__RaskCqrsRegistry), ",
+            source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("CqrsRegistry.RegisterRequest(", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("CqrsRegistry.RegisterNotification(", source, StringComparison.Ordinal);
     }
 
     [Fact]

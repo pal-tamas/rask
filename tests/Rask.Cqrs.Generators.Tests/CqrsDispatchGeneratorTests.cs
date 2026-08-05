@@ -23,7 +23,7 @@ public sealed class CqrsDispatchGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         var source = run.GeneratedSource("__RaskCqrsRegistry");
         Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", source);
-        Assert.Contains("RegisterRequest(typeof(global::Demo.GetValue)", source);
+        Assert.Contains("(typeof(global::Demo.GetValue), __Request_", source);
         Assert.Contains("DynamicDependency", source);
         Assert.Contains("typeof(global::Demo.GetValueHandler)", source);
         Assert.Contains("global::Rask.Cqrs.IQueryHandler<global::Demo.GetValue, string>", source);
@@ -43,7 +43,7 @@ public sealed class CqrsDispatchGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         var source = run.GeneratedSource("__RaskCqrsRegistry");
         Assert.Contains("global::Rask.Cqrs.Unit", source);
-        Assert.Contains("RegisterRequest(typeof(global::Demo.DoIt)", source);
+        Assert.Contains("(typeof(global::Demo.DoIt), __Request_", source);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class CqrsDispatchGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         var source = run.GeneratedSource("__RaskCqrsRegistry");
-        Assert.Contains("RegisterNotification(typeof(global::Demo.Ping)", source);
+        Assert.Contains("(typeof(global::Demo.Ping), __Notify_", source);
         Assert.Contains("NotificationDispatch.PublishAll", source);
         Assert.Contains("TryAddEnumerable", source);
     }
@@ -114,7 +114,7 @@ public sealed class CqrsDispatchGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         var source = run.GeneratedSource("__RaskCqrsRegistry");
-        Assert.Contains("RegisterRequest(typeof(global::Demo.GetValue)", source);
+        Assert.Contains("(typeof(global::Demo.GetValue), __Request_", source);
         Assert.Contains("typeof(global::Demo.GetValueHandler)", source);
     }
 

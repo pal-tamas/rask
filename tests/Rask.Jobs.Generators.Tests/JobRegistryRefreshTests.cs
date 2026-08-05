@@ -49,10 +49,25 @@ public class JobRegistryRefreshTests
         // be reachable from a refresh.
         var init = source[source.IndexOf("void Init()", StringComparison.Ordinal)..];
         var refreshAt = init.IndexOf("RefreshAll()\n", StringComparison.Ordinal);
-        Assert.DoesNotContain("RegisterJob", init[..Math.Max(refreshAt, 0)], StringComparison.Ordinal);
+        Assert.DoesNotContain("Replace(", init[..Math.Max(refreshAt, 0)], StringComparison.Ordinal);
 
         var refresh = source[source.IndexOf("void RefreshAll()", StringComparison.Ordinal)..];
-        Assert.Contains("RegisterJob(\"Demo.SendWelcomeEmail\"", refresh, StringComparison.Ordinal);
+        Assert.Contains("(\"Demo.SendWelcomeEmail\", ", refresh, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RefreshAll_replaces_this_assemblys_whole_set_rather_than_upserting()
+    {
+        // #537. A run of upserts made a rename additive: the old name kept resolving to a type the
+        // generator no longer produced until the process restarted. One Replace call, keyed on this
+        // assembly's own registry class, swaps the whole contribution and leaves other assemblies alone.
+        var source = Run(OneJob).GeneratedSource("__RaskJobsRegistry");
+
+        Assert.Contains(
+            "global::Rask.Jobs.JobSerializerRegistry.Replace(typeof(__RaskJobsRegistry), ",
+            source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("RegisterJob(", source, StringComparison.Ordinal);
     }
 
     [Fact]

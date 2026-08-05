@@ -278,9 +278,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         // Init() runs once, at module load. RefreshAll() is the re-invocable half the hot-reload
         // coordinator calls after a metadata update (see RaskHotReload.RefreshTargetTypeNames) —
-        // so it must hold ONLY idempotent work. The dispatch tables qualify: RegisterRequest /
-        // RegisterNotification are dictionary upserts, so re-running them swaps in the invoker
-        // built from the new IL. The DI registrations below deliberately do NOT: RegisterServices
+        // so it must hold ONLY idempotent work. The dispatch tables qualify: ReplaceRequests /
+        // ReplaceNotifications install this assembly's whole contribution, so re-running them swaps in
+        // the invokers built from the new IL and drops handlers that no longer exist. The DI
+        // registrations below deliberately do NOT belong there: RegisterServices
         // enqueues onto a queue that is never drained, so refreshing it on every save would grow
         // that queue without bound for the life of the watch session.
         sb.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
@@ -306,18 +307,34 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         sb.AppendLine("    internal static void RefreshAll()");
         sb.AppendLine("    {");
 
+        // One Replace per table, keyed on this class, rather than a run of upserts. An upsert only ever
+        // adds or overwrites, so deleting the last handler for a request left its invoker in the table and
+        // dispatch kept succeeding through IL that no longer had a handler behind it. Replacing this
+        // assembly's whole contribution makes a deletion take effect, while leaving other assemblies alone.
+        sb.AppendLine(
+            "        global::Rask.Cqrs.CqrsRegistry.ReplaceRequests(typeof(__RaskCqrsRegistry), " +
+            "new (global::System.Type, global::Rask.Cqrs.CqrsRegistry.RequestInvoker)[]");
+        sb.AppendLine("        {");
         for (var i = 0; i < requests.Count; i++)
         {
-            sb.Append("        global::Rask.Cqrs.CqrsRegistry.RegisterRequest(typeof(")
-                .Append(requests[i].RequestTypeFqn).Append("), __Request_").Append(i).AppendLine(");");
+            sb.Append("            (typeof(")
+                .Append(requests[i].RequestTypeFqn).Append("), __Request_").Append(i).AppendLine("),");
         }
 
+        sb.AppendLine("        });");
+        sb.AppendLine();
+
+        sb.AppendLine(
+            "        global::Rask.Cqrs.CqrsRegistry.ReplaceNotifications(typeof(__RaskCqrsRegistry), " +
+            "new (global::System.Type, global::Rask.Cqrs.CqrsRegistry.NotificationInvoker)[]");
+        sb.AppendLine("        {");
         for (var i = 0; i < notificationTypes.Count; i++)
         {
-            sb.Append("        global::Rask.Cqrs.CqrsRegistry.RegisterNotification(typeof(")
-                .Append(notificationTypes[i]).Append("), __Notify_").Append(i).AppendLine(");");
+            sb.Append("            (typeof(")
+                .Append(notificationTypes[i]).Append("), __Notify_").Append(i).AppendLine("),");
         }
 
+        sb.AppendLine("        });");
         sb.AppendLine("    }");
         sb.AppendLine();
 
