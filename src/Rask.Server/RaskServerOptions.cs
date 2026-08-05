@@ -96,6 +96,30 @@ public sealed class RaskServerOptions
     public long MaxPendingHandlerBytes { get; set; }
 
     /// <summary>
+    ///     How long a single outbound frame may take before the socket is aborted. Default 30 s;
+    ///     <c>TimeSpan.Zero</c> disables the cap.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>WebSocket.SendAsync</c> completes when the frame reaches the transport, not when the
+    ///         client reads it — so a client that simply stops reading fills the send buffer and the send
+    ///         never returns. Sends happen under the session's render lock, which also guards its teardown,
+    ///         so without this one unresponsive client pins its own session indefinitely: no further
+    ///         renders, and a <c>Dispose</c> that cannot complete.
+    ///     </para>
+    ///     <para>
+    ///         On timeout the socket is aborted rather than the session discarded. The session survives for
+    ///         <see cref="SessionGracePeriod" /> exactly as it would after any other drop, so a client on a
+    ///         briefly-stalled link reconnects to the page it had.
+    ///     </para>
+    ///     <para>
+    ///         The default is deliberately generous: this is a stuck-connection backstop, not a latency
+    ///         budget. A slow mobile link should never trip it.
+    ///     </para>
+    /// </remarks>
+    public TimeSpan SendTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
     ///     Throws <see cref="ArgumentOutOfRangeException" /> if any value is out of range. Called by
     ///     <c>AddRask</c> after the caller's <c>configureServer</c> runs, so a bad value (a negative
     ///     grace period that would crash <c>Task.Delay</c> and leak the session, a non-positive
@@ -157,6 +181,13 @@ public sealed class RaskServerOptions
             throw new ArgumentOutOfRangeException(
                 nameof(MaxPendingHandlerBytes), MaxPendingHandlerBytes,
                 "MaxPendingHandlerBytes must be >= 0 (0 disables the cap).");
+        }
+
+        if (SendTimeout < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(SendTimeout), SendTimeout,
+                "SendTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
         }
     }
 }
