@@ -46,30 +46,50 @@ public sealed class WatchHotReloadE2ETests
 
     /// <summary>
     ///     The two cases below need <c>dotnet watch</c> to produce an actual Edit-and-Continue delta, and
-    ///     it does not do so when the watch session is a grandchild of <c>dotnet test</c>: every edit comes
-    ///     back as <c>No managed code changes to apply</c>, so the running app never picks the change up
-    ///     and the assertions time out on the harness rather than on Rask.
+    ///     it never does here: every edit comes back as <c>No managed code changes to apply</c>, so the
+    ///     running app never picks the change up and the assertions time out on the harness rather than
+    ///     on Rask.
     ///     <para>
-    ///         That this is the harness and not the framework was established by hand: the same edit, to
-    ///         the same generated app, with the same environment (<c>HotReloadAutoRestart=true</c>,
-    ///         <c>--non-interactive</c>, <c>--no-launch-profile</c>, <c>ASPNETCORE_URLS</c>) applies
-    ///         immediately when watch is launched from a shell — the served HTML changes with no restart.
+    ///         <b>It is not the test host.</b> That was the first theory — that watch, as a grandchild of
+    ///         <c>dotnet test</c>, could not produce a delta — and it is wrong. Lifting both scenarios into
+    ///         a plain console app and running them from a shell reproduces the failure exactly, same
+    ///         message, same point. Whatever the cause is, it is not process ancestry.
+    ///     </para>
+    ///     <para>
+    ///         <b>Ruled out, each by experiment rather than reasoning:</b> port collisions; the launch
+    ///         profile overriding <c>ASPNETCORE_URLS</c>; a stray <c>.tmp</c> sibling from an atomic write;
+    ///         a pre-build leaving output newer than sources; a settle/timing race; a stale NuGet cache
+    ///         (that one was real, and is fixed); running under <c>dotnet test</c> at all; the
+    ///         MSBuild/VSTest environment the test host injects into every child process (scrubbing every
+    ///         <c>MSBUILD*</c>/<c>VSTEST*</c>/<c>TESTINGPLATFORM*</c> variable changes nothing); the macOS
+    ///         temp-path symlink, where <c>Path.GetTempPath()</c> returns <c>/var/folders/…</c> and
+    ///         <c>/var</c> resolves to <c>/private/var</c>, so the watcher and Roslyn could have disagreed
+    ///         about the document's identity (resolving it changes nothing); and an Edit-and-Continue
+    ///         baseline captured lazily on the first change, which would make any first edit a guaranteed
+    ///         no-op (a throwaway warm-up edit first changes nothing).
+    ///     </para>
+    ///     <para>
+    ///         <b>What watch itself reports</b>, with <c>RASK_WATCH_E2E_VERBOSE=1</c>: the session starts,
+    ///         the app launches with the delta applier and <c>DOTNET_MODIFIABLE_ASSEMBLIES=debug</c>, the
+    ///         full capability set is negotiated (<c>Baseline AddMethodToExistingType …</c>), and the file
+    ///         change is seen (<c>File updated: …/HomePage.cs</c>) — and then the update is computed as
+    ///         empty. So the plumbing is all present and Roslyn simply finds no difference.
     ///     </para>
     ///     <para>
     ///         <b>Status: these two have never been observed green.</b> They are kept because the
     ///         assertions are the ones worth making, and gated behind <c>RASK_WATCH_E2E_APPLY=1</c> so they
-    ///         cannot report a false pass or a spurious failure. Making them run needs a host that can own
-    ///         a watch session outside the test process; until then the live-socket half of the dev channel
-    ///         is covered only by <c>HotReloadMessageTests</c> (frame shape, Development-only gating) and
-    ///         <c>RerenderAllAsyncTests</c> (broadcast plumbing).
+    ///         cannot report a false pass or a spurious failure. Until the cause is found, the live-socket
+    ///         half of the dev channel is covered only by <c>HotReloadMessageTests</c> (frame shape,
+    ///         Development-only gating) and <c>RerenderAllAsyncTests</c> (broadcast plumbing).
     ///         <c>Editing_a_route_template_serves_the_new_url</c> needs no delta — a <c>[Route]</c> edit
     ///         restarts the app — which is why it runs in the default gate and does cover the
     ///         registry-refresh path end to end.
     ///     </para>
     /// </summary>
     private const string ApplySkipReason =
-        "Needs a real Edit-and-Continue delta, which dotnet watch does not produce under `dotnet test`. " +
-        "Never yet observed green; set RASK_WATCH_E2E_APPLY=1 to attempt it. See the class remarks.";
+        "Needs a real Edit-and-Continue delta, which dotnet watch does not produce against this generated " +
+        "app — from a test host or a shell alike. Never yet observed green; set RASK_WATCH_E2E_APPLY=1 to " +
+        "attempt it, and RASK_WATCH_E2E_VERBOSE=1 for watch's own diagnosis. See the class remarks.";
 
     private static bool ApplyEnabled =>
         Enabled && Environment.GetEnvironmentVariable("RASK_WATCH_E2E_APPLY") == "1";
@@ -275,7 +295,19 @@ public sealed class WatchHotReloadE2ETests
             };
             // --no-launch-profile belongs to `run`, so it follows it. Belt and braces with deleting the
             // profile above: either alone would let ASPNETCORE_URLS win, both make it unambiguous.
-            foreach (var a in new[] { "watch", "--project", csproj, "--non-interactive", "run", "--no-launch-profile" })
+            // RASK_WATCH_E2E_VERBOSE=1 turns on watch's own diagnosis — the launch command line, the
+            // negotiated hot-reload capabilities, and what it decided about each change. It is the only way
+            // to tell "the delta was empty" apart from "the plumbing never came up", which is exactly the
+            // distinction the two apply-dependent cases keep running into.
+            var argv = new List<string> { "watch", "--project", csproj, "--non-interactive" };
+            if (Environment.GetEnvironmentVariable("RASK_WATCH_E2E_VERBOSE") == "1")
+            {
+                argv.Add("--verbose");
+            }
+
+            argv.AddRange(["run", "--no-launch-profile"]);
+
+            foreach (var a in argv)
             {
                 psi.ArgumentList.Add(a);
             }
