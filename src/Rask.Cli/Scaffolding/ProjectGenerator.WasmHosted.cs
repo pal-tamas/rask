@@ -179,10 +179,6 @@ internal static partial class ProjectGenerator
                 options.KnownProxies.Clear();
             });
 
-            // Finish shutting down before the container runtime loses patience: `rask deploy` sends SIGTERM
-            // and SIGKILLs 20s later.
-            builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(15));
-
             // Data-protection keys sign the auth cookie (and anything else the app protects). The default key
             // ring is written inside the container, and every deploy replaces the container — so without this
             // a redeploy mints a fresh ring and every cookie already issued stops validating: all your
@@ -201,6 +197,8 @@ internal static partial class ProjectGenerator
             }
 
             """.TrimStart('\n'));
+
+        sb.Append(ShutdownBudgetBlock());
 
         if (auth)
         {

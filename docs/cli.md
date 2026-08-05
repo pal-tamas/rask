@@ -394,6 +394,10 @@ is waited on until its container is running **and answers an HTTP health check**
 default — the endpoint `rask new` scaffolds), then Caddy is reloaded to point at it before the old one
 is removed. If the new container fails to start, or fails its health probe, the previous version keeps
 serving. Probe a different path with `--health-path`, or skip the probe with `--no-health-check`.
+HTTP requests are zero-downtime; **live sessions re-establish**, because a session lives in the container
+being replaced and cannot hand over. The retiring container announces its shutdown first, so open pages
+show "Updating…" and reload onto the new one at their previous scroll position — see
+[the shutdown ladder](deployment.md#the-shutdown-ladder).
 
 **Multiple apps share one box.** Each app container is labelled, so the proxy's routing is regenerated
 from the host's live containers on every deploy — deploying a second app (a different `--domain`)
@@ -402,7 +406,8 @@ you put your own TLS/reverse proxy in front (there's no zero-downtime swap on a 
 
 **Your database survives redeploys.** Each deploy runs a fresh container, so `rask deploy` mounts a
 per-app named volume and points the app at it (`ConnectionStrings:App` → `Data Source=/data/app.db`) — the
-SQLite database persists across container replacements. The old container is stopped gracefully (SIGTERM →
+SQLite database persists across container replacements. The old container keeps serving for a moment after
+the proxy switches (so a request already in flight to it isn't cut), then is stopped gracefully (SIGTERM →
 its Litestream flush + WAL checkpoint) before removal. The `rask new --docker` Dockerfile prepares a
 writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`. Add
 [`Rask.SQLite.Litestream`](sqlite.md#continuous-backup-with-litestream) to also stream it off the box.

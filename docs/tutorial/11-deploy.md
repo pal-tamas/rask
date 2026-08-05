@@ -56,7 +56,9 @@ Two layers keep the SQLite database safe, and you should understand both:
   can't live inside it. `rask deploy` mounts a per-app Docker volume and points the app at it
   (`ConnectionStrings:App` → `Data Source=/data/app.db`); the volume — and your data — persists across
   container replacements. The old container is stopped gracefully (SIGTERM) before removal, so in-flight
-  writes are checkpointed first rather than killed. *(Bringing your own Dockerfile? Give the runtime a
+  writes are checkpointed first rather than killed — inside a
+  [budget](../deployment.md#the-shutdown-ladder) that also covers open pages, running jobs and queued
+  email. *(Bringing your own Dockerfile? Give the runtime a
   writable `/data`: `RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`. The one `rask new --docker`
   scaffolds already does this.)*
 - **Off the box — Litestream.** The volume survives redeploys; Litestream (Chapter 8) survives losing the

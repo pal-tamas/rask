@@ -311,7 +311,9 @@ app.Run();
 
 `AddRaskSqliteLitestream` registers a hosted `BackgroundService` that runs `litestream replicate` for
 the lifetime of the process and stops it on shutdown — sending a graceful interrupt so the last WAL
-frames flush before a force-kill (`ShutdownGracePeriod`, default 10s). The `litestream` binary is
+frames flush before a force-kill (`ShutdownGracePeriod`, default 10s) — one rung of
+[the shutdown ladder](deployment.md#the-shutdown-ladder), which it must fit inside or the host stops
+waiting for it. The `litestream` binary is
 driven through [CliWrap](https://github.com/Tyrrrz/CliWrap); a backup failure is logged at `Critical`
 but never crashes the app it protects. Point `ConfigPath` at a full `litestream.yml` for multiple
 databases or custom retention.
@@ -372,7 +374,11 @@ must respect:
   opens the database.
 - **Graceful shutdown is handled for you.** App Service recycles the container with `SIGTERM`; the
   hosted service interrupts Litestream and lets it flush within `ShutdownGracePeriod`, so you don't lose
-  the last writes on a redeploy.
+  the last writes on a redeploy. One caveat worth knowing: with `ServicesStopConcurrently` (what the
+  scaffold sets, so the pillars' grace periods overlap rather than sum), Litestream stops alongside a job
+  that is still finishing inside *its* grace — so the very last rows such a job writes may not reach the
+  replica. Sequential stop wouldn't reliably help, since the order is reverse-registration; and the
+  exposure only matters if you lose the machine in those few seconds.
 
 The same recipe applies to any ephemeral-container platform (Kubernetes, Fly.io, Container Apps):
 local-disk DB + `abs://`/`s3://` replica + single writer + restore-on-boot.
