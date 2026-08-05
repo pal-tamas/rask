@@ -306,4 +306,89 @@ public sealed class ProjectGeneratorBuildE2ETests
             CliBuildE2E.TryDeleteDirectory(temp);
         }
     }
+
+    /// <summary>
+    /// Scoped CSS, proven from the far side of a <c>dotnet pack</c> — the only place it can be proven.
+    /// <para>
+    /// The generator reads nothing but <c>@(AdditionalFiles)</c>, and the globs that populate it live in
+    /// <c>Rask.Core.targets</c>, which for a long time reached no consumer at all: Rask.Core is
+    /// <c>IsPackable=false</c> so its own pack item was inert, and the host packages packed only their own
+    /// <c>build/</c> folder. Every in-repo project imports the file directly through
+    /// <c>Directory.Build.targets</c>, so samples, tests and E2E were all immune, and scoped CSS silently
+    /// did nothing in every scaffolded app (#544). The structural half of the guard is
+    /// <see cref="PackagingContractTests"/>, in the default gate; this is the behavioural half.
+    /// </para>
+    /// <para>
+    /// Both directions are asserted, because each catches a different way of getting it wrong. The positive
+    /// proves the glob reached the consumer and the generator emitted a registration. The negative — an
+    /// orphan <c>.css</c> must fail with <b>RASK015</b>, which is a <c>DiagnosticSeverity.Error</c> and so
+    /// cannot be masked — proves the glob is actually feeding the analyzer rather than the build merely
+    /// happening to succeed. Before the fix the positive silently failed and the negative silently passed.
+    /// </para>
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Scoped_css_sibling_is_picked_up_from_the_package(bool wasm)
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        var name = wasm ? "WCssE2E" : "CssE2E";
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var result = wasm
+                ? ProjectGenerator.GenerateWasm(projectDir, name, auth: false, pwa: false, docker: false, version)
+                : ProjectGenerator.GenerateServer(projectDir, name, new ServerBatteries(), version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            // The scaffold ships no .css of its own (HomePage is styled with Bootstrap), so the sibling is
+            // written here rather than relied on from the template — a guard that survives only as a side
+            // effect of scaffold contents is one a future scaffold trim deletes in silence.
+            var css = Path.Combine(projectDir, "Features", "Home", "HomePage.css");
+            fs.WriteAllText(css, ".rask-scoped-probe { color: rebeccapurple; }");
+
+            var generated = Path.Combine(temp, "generated");
+            var csproj = Path.Combine(projectDir, name + ".csproj");
+            var (exit, output) = await CliBuildE2E.RunDotnet(
+                $"build \"{csproj}\" -warnaserror -m:1 -p:EmitCompilerGeneratedFiles=true -p:CompilerGeneratedFilesOutputPath=\"{generated}\"");
+            Assert.True(exit == 0, $"[wasm={wasm}] project with a scoped .css failed to build.{CliBuildE2E.Diagnostics(output)}");
+
+            var registration = Directory
+                .EnumerateFiles(generated, "__RaskScopedCssRegistration.g.cs", SearchOption.AllDirectories)
+                .FirstOrDefault();
+            Assert.True(
+                registration is not null,
+                $"[wasm={wasm}] no __RaskScopedCssRegistration.g.cs was emitted — the **\\*.css glob never reached the consumer, so scoped CSS is dead in scaffolded apps.");
+
+            var emitted = await File.ReadAllTextAsync(registration!);
+            Assert.Contains("RegisterCss(typeof(", emitted, StringComparison.Ordinal);
+            Assert.Contains("rask-scoped-probe", emitted, StringComparison.Ordinal);
+
+            // Negative control. RASK015 fires only if the orphan .css is actually in @(AdditionalFiles);
+            // a build that succeeds here means the glob is absent, which is the defect wearing a green tick.
+            fs.WriteAllText(Path.Combine(projectDir, "Orphan.css"), ".orphan { color: red; }");
+
+            var (orphanExit, orphanOutput) = await CliBuildE2E.RunDotnet($"build \"{csproj}\" -m:1");
+            Assert.True(
+                orphanExit != 0,
+                $"[wasm={wasm}] an orphan .css built cleanly — RASK015 never fired, so the glob is not feeding the analyzer.{CliBuildE2E.Diagnostics(orphanOutput)}");
+            Assert.Contains("RASK015", orphanOutput, StringComparison.Ordinal);
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(temp);
+        }
+    }
 }

@@ -54,8 +54,11 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="build\Rask.Core.targets" Pack="true" PackagePath="build\"/>
-  </ItemGroup>
+  <!--
+    build\Rask.Core.targets is deliberately NOT packed from here — IsPackable=false above makes any
+    Pack="true" item on this project inert, which is exactly how it went unnoticed that consumers were
+    getting no scoped CSS/JS (#544). It is packed into each host package's build/ folder by
+    src\RaskCoreBuildPack.targets instead, and imported by that package's build/<PackageId>.targets.
+  -->
 
 </Project>

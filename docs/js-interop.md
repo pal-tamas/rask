@@ -34,6 +34,12 @@ on the component's elements and rewrites every selector to `selector[data-{scope
 `@font-face`, and `@import` pass through unscoped. Opt a project out of auto-globbing with
 `<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>`.
 
+Auto-globbing arrives with the host package's build integration, so it needs a **direct**
+`PackageReference` to `Rask.Server`, `Rask.Wasm` or `Rask.Native` — NuGet applies a package's
+`build/` folder only to the project that references it. A component class library that picks a host
+package up transitively needs its own reference (the same reach the implicit global usings have).
+`bin/`, `obj/`, `node_modules/` and `wwwroot/` are excluded from the glob.
+
 **Global styles** (a brand palette, `:root` variables, shell tags like `body`, or framework
 classes like Bootstrap's) don't belong in a scoped `{Component}.css` — there is no opt-out
 selector. Put them in a plain stylesheet under `wwwroot` and link it from your App

@@ -1,0 +1,15 @@
+<Project>
+
+  <!--
+    Rask.Server's NuGet auto-import entry point. NuGet imports only build/<PackageId>.{props,targets},
+    so Rask.Core's build integration — packed alongside this file by src\RaskCoreBuildPack.targets —
+    has to be pulled in from here. Without this import a consuming app gets no scoped CSS/JS at all (#544).
+
+    The Exists guard is for the source tree: Rask.Core.targets is packed from Rask.Core's own build/
+    folder and has no sibling here, so in-repo projects take the Directory.Build.targets route instead
+    and this import is a no-op.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Core.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Core.targets') "/>
+
+</Project>
