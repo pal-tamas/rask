@@ -49,10 +49,25 @@ public class OutboxRegistryRefreshTests
         // be reachable from a refresh.
         var init = source[source.IndexOf("void Init()", StringComparison.Ordinal)..];
         var refreshAt = init.IndexOf("RefreshAll()\n", StringComparison.Ordinal);
-        Assert.DoesNotContain("RegisterEvent", init[..Math.Max(refreshAt, 0)], StringComparison.Ordinal);
+        Assert.DoesNotContain("Replace(", init[..Math.Max(refreshAt, 0)], StringComparison.Ordinal);
 
         var refresh = source[source.IndexOf("void RefreshAll()", StringComparison.Ordinal)..];
-        Assert.Contains("RegisterEvent(\"Demo.OrderPlaced\"", refresh, StringComparison.Ordinal);
+        Assert.Contains("(\"Demo.OrderPlaced\", ", refresh, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RefreshAll_replaces_this_assemblys_whole_set_rather_than_upserting()
+    {
+        // #537. A run of upserts made a rename additive: the old name kept resolving to a type the
+        // generator no longer produced until the process restarted. One Replace call, keyed on this
+        // assembly's own registry class, swaps the whole contribution and leaves other assemblies alone.
+        var source = Run(OneEvent).GeneratedSource("__RaskOutboxRegistry");
+
+        Assert.Contains(
+            "global::Rask.Outbox.OutboxSerializerRegistry.Replace(typeof(__RaskOutboxRegistry), ",
+            source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("RegisterEvent(", source, StringComparison.Ordinal);
     }
 
     [Fact]

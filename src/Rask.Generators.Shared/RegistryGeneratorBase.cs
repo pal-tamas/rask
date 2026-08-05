@@ -41,8 +41,12 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
     /// <summary>Name of the generated registry class.</summary>
     protected abstract string RegistryClassName { get; }
 
-    /// <summary>Fully-qualified registration method, e.g. <c>global::Rask.Jobs.JobSerializerRegistry.RegisterJob</c>.</summary>
-    protected abstract string RegisterMethod { get; }
+    /// <summary>
+    /// Fully-qualified group-replacing registration method, e.g.
+    /// <c>global::Rask.Jobs.JobSerializerRegistry.Replace</c>. It takes this assembly's generated registry
+    /// class as the group key and the complete set of entries it owns.
+    /// </summary>
+    protected abstract string ReplaceMethod { get; }
 
     /// <summary>Hint name of the generated file.</summary>
     protected abstract string HintName { get; }
@@ -59,7 +63,7 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
         var noun = ArtifactNoun;
         var generatedNamespace = GeneratedNamespace;
         var registryClass = RegistryClassName;
-        var registerMethod = RegisterMethod;
+        var replaceMethod = ReplaceMethod;
         var hintName = HintName;
 
         var candidates = context.SyntaxProvider
@@ -71,7 +75,7 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
 
         context.RegisterSourceOutput(
             candidates.Collect(),
-            (spc, all) => Emit(spc, all, generatedNamespace, registryClass, registerMethod, hintName));
+            (spc, all) => Emit(spc, all, generatedNamespace, registryClass, replaceMethod, hintName));
     }
 
     private static Candidate? GetCandidate(GeneratorSyntaxContext ctx, string markerInterface, string noun)
@@ -120,7 +124,7 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
         ImmutableArray<Candidate> candidates,
         string generatedNamespace,
         string registryClass,
-        string registerMethod,
+        string replaceMethod,
         string hintName)
     {
         // Warn once per unreachable type. A type split across partial declarations that each carry the
@@ -160,26 +164,33 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
         sb.AppendLine("    {");
         // Init() only bootstraps; RefreshAll() holds the registrations so the hot-reload
         // coordinator can re-invoke them after a metadata update ([ModuleInitializer] never runs
-        // twice). Both registries are name->Type dictionary upserts, so re-running is idempotent.
-        // RaskHotReload.RefreshTargetTypeNames lists both emitted classes by name.
+        // twice). RaskHotReload.RefreshTargetTypeNames lists both emitted classes by name.
+        //
+        // One Replace call keyed on this class, not a run of upserts: an upsert makes a rename
+        // *additive*, so renaming a job or event under `rask dev` would leave the old name resolving
+        // to a type no longer produced until the process restarted. Replace swaps this assembly's whole
+        // contribution in a single store and leaves every other contributor alone.
         sb.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
         sb.AppendLine("        internal static void Init() => RefreshAll();");
         sb.AppendLine();
         sb.AppendLine("        internal static void RefreshAll()");
         sb.AppendLine("        {");
+        sb.Append("            ")
+          .Append(replaceMethod)
+          .AppendLine("(typeof(" + registryClass + "), new (string, global::System.Type)[]");
+        sb.AppendLine("            {");
         foreach (var (key, typeExpression) in entries)
         {
             // The key is the runtime Type.FullName; the expression is escaped, fully-qualified C#.
             // They are deliberately different strings — see SymbolRegistration.
-            sb.Append("            ")
-              .Append(registerMethod)
-              .Append('(')
+            sb.Append("                (")
               .Append(SymbolDisplay.FormatLiteral(key, quote: true))
               .Append(", typeof(")
               .Append(typeExpression)
-              .AppendLine("));");
+              .AppendLine(")),");
         }
 
+        sb.AppendLine("            });");
         sb.AppendLine("        }");
         sb.AppendLine("    }");
         sb.AppendLine("}");

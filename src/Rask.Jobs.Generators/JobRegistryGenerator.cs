@@ -21,7 +21,7 @@ public sealed class JobRegistryGenerator : RegistryGeneratorBase
     protected override string RegistryClassName => "__RaskJobsRegistry";
 
     /// <inheritdoc/>
-    protected override string RegisterMethod => "global::Rask.Jobs.JobSerializerRegistry.RegisterJob";
+    protected override string ReplaceMethod => "global::Rask.Jobs.JobSerializerRegistry.Replace";
 
     /// <inheritdoc/>
     protected override string HintName => "__RaskJobsRegistry.g.cs";

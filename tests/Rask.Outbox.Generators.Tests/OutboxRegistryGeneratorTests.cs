@@ -28,7 +28,7 @@ public class OutboxRegistryGeneratorTests
 
         var source = run.GeneratedSource("__RaskOutboxRegistry");
         Assert.Contains(
-            """RegisterEvent("Demo.OrderPlaced", typeof(global::Demo.OrderPlaced));""",
+            """("Demo.OrderPlaced", typeof(global::Demo.OrderPlaced)),""",
             source,
             StringComparison.Ordinal);
         Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", source, StringComparison.Ordinal);
@@ -50,7 +50,7 @@ public class OutboxRegistryGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            """RegisterEvent("Demo.OrderEvents.Placed", typeof(global::Demo.OrderEvents.Placed));""",
+            """("Demo.OrderEvents.Placed", typeof(global::Demo.OrderEvents.Placed)),""",
             run.GeneratedSource("__RaskOutboxRegistry"),
             StringComparison.Ordinal);
     }
@@ -70,7 +70,7 @@ public class OutboxRegistryGeneratorTests
 
         var source = run.GeneratedSource("__RaskOutboxRegistry");
         Assert.Contains(
-            """RegisterEvent("Demo.event.Raised", typeof(global::Demo.@event.Raised));""",
+            """("Demo.event.Raised", typeof(global::Demo.@event.Raised)),""",
             source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("\"Demo.@event", source, StringComparison.Ordinal);
@@ -87,7 +87,7 @@ public class OutboxRegistryGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            """RegisterEvent("Demo.class", typeof(global::Demo.@class));""",
+            """("Demo.class", typeof(global::Demo.@class)),""",
             run.GeneratedSource("__RaskOutboxRegistry"),
             StringComparison.Ordinal);
     }
@@ -124,7 +124,7 @@ public class OutboxRegistryGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            """RegisterEvent("Raised", typeof(global::Raised));""",
+            """("Raised", typeof(global::Raised)),""",
             run.GeneratedSource("__RaskOutboxRegistry"),
             StringComparison.Ordinal);
     }
@@ -181,7 +181,7 @@ public class OutboxRegistryGeneratorTests
         Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK035");
 
         var source = run.GeneratedSource("__RaskOutboxRegistry");
-        Assert.Contains("""RegisterEvent("Demo.Placed", """, source, StringComparison.Ordinal);
+        Assert.Contains("""("Demo.Placed", """, source, StringComparison.Ordinal);
         Assert.DoesNotContain("Demo.OrderEvent\"", source, StringComparison.Ordinal);
     }
 
@@ -212,7 +212,7 @@ public class OutboxRegistryGeneratorTests
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Equal(1, CountOccurrences(run.GeneratedSource("__RaskOutboxRegistry"), "RegisterEvent("));
+        Assert.Equal(1, CountOccurrences(run.GeneratedSource("__RaskOutboxRegistry"), "(\"Demo.Raised\", "));
     }
 
     [Fact]

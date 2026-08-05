@@ -21,7 +21,7 @@ public sealed class OutboxRegistryGenerator : RegistryGeneratorBase
     protected override string RegistryClassName => "__RaskOutboxRegistry";
 
     /// <inheritdoc/>
-    protected override string RegisterMethod => "global::Rask.Outbox.OutboxSerializerRegistry.RegisterEvent";
+    protected override string ReplaceMethod => "global::Rask.Outbox.OutboxSerializerRegistry.Replace";
 
     /// <inheritdoc/>
     protected override string HintName => "__RaskOutboxRegistry.g.cs";

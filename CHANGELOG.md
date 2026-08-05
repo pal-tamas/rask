@@ -19,6 +19,15 @@ them until tagged releases begin.
   retried on the same footing rather than fire-and-forget, so a still-active statement no longer returns a
   mid-transaction handle to the pool. Only ever seen under real multi-writer WAL load — it was the
   intermittent stress-test failure that blocked commits.
+- **Renaming or deleting a job, outbox event or handler under `rask dev` now takes effect.** The generated
+  registries upserted their entries, so a refresh could only ever add or overwrite: rename
+  `SendWelcomeEmail` to `SendWelcomeMail` and the registry held *both*, with the old name still resolving to
+  a type the generator no longer produced. The same shape bit CQRS harder — delete the last handler for a
+  command and dispatch kept succeeding through the invoker built from the old IL, instead of reporting that
+  nothing handles it. Each generated `RefreshAll()` now installs its assembly's complete set in one call,
+  keyed on its own registry class, so a removal is a removal while every other assembly's contributions and
+  any direct registration are left alone. The swap lands in a single store, so a job dequeued mid-refresh
+  cannot observe a half-built table.
 
 ### Added
 - **`Element.Title`** — the global `title` attribute, available on every element, so a cell can show an
