@@ -184,6 +184,11 @@ public sealed class WasmHostBuilder
         var session = new WasmLiveSession(root, provider, _diffMode);
         JSInterop.Init(session);
 
+        // The session registers itself with the hot-reload coordinator in the base ctor and is
+        // repainted from there; this only adds the "applied" indicator. No-op unless the runtime
+        // supports metadata updates, which a trimmed (published) bundle does not.
+        HotReload.WasmHotReloadBridge.Subscribe();
+
         // InitialRenderAsync builds and pushes the first frame to JS itself (zero-copy applyRender);
         // the returned bytes are just for the diagnostic below.
         var payload = await session.InitialRenderAsync().ConfigureAwait(false);

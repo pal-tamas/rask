@@ -263,6 +263,34 @@ public sealed class DevCommandTests
         }
     }
 
+    /// <summary>
+    ///     A wasm-hosted watch session must serve the client's <b>build</b> output. The published bundle
+    ///     is republished by a nested emscripten relink on every save, and it is trimmed — and trimming
+    ///     folds <c>MetadataUpdater.IsSupported</c> to false, so an applied delta could never reach the
+    ///     browser session even if one arrived.
+    /// </summary>
+    [Fact]
+    public void A_wasm_hosted_watch_session_asks_for_the_dev_bundle()
+    {
+        // --property:, not -p:, which is ambiguous with --project on `dotnet run`.
+        Assert.Contains("--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.WasmHosted));
+
+        // …and only there: a plain Server host has no WASM bundle to switch.
+        Assert.DoesNotContain("--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.Server));
+        Assert.DoesNotContain("--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.WasmStandalone));
+    }
+
+    [Fact]
+    public void The_dev_bundle_is_not_requested_when_there_is_nothing_to_apply()
+    {
+        // --no-hot-reload means "restart instead of applying", and --once is a plain run: in both, the
+        // published bundle is the honest thing to serve.
+        Assert.DoesNotContain(
+            "--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.WasmHosted, noHotReload: true));
+        Assert.DoesNotContain(
+            "--property:RaskWasmDevBundle=true", Args(kind: DevTemplateKind.WasmHosted, once: true));
+    }
+
     // ---- helpers ----
 
     private static IReadOnlyList<string> Args(
@@ -271,8 +299,9 @@ public sealed class DevCommandTests
         bool noHotReload = false,
         string? launchProfile = null,
         bool nonInteractive = false,
-        IReadOnlyList<string>? passthrough = null) =>
-        DevCommand.BuildDotnetArguments(project, once, noHotReload, launchProfile, nonInteractive, passthrough ?? []);
+        IReadOnlyList<string>? passthrough = null,
+        DevTemplateKind kind = DevTemplateKind.Server) =>
+        DevCommand.BuildDotnetArguments(project, once, noHotReload, launchProfile, nonInteractive, passthrough ?? [], kind);
 
     private static IReadOnlyDictionary<string, string> Env(
         DevTemplateKind kind = DevTemplateKind.Server,

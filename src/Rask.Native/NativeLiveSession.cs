@@ -59,6 +59,11 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
         services.GetService<NativeJSRuntime>()?.AttachHost(this, webView);
 
+        // The base ctor already registered this session for hot-reload repaints; this only points the
+        // "applied" indicator at the same WebView. No-op on a device build, where MetadataUpdater is
+        // unsupported and no delta can arrive anyway (#565).
+        HotReload.NativeHotReloadBridge.Attach(webView);
+
         if (services.GetService<IUserProvider>() is { } userProvider)
         {
             _userProvider = userProvider;

@@ -42,6 +42,24 @@
     only fires when the probe actually finds a RaskWasm ref.
   -->
 
+  <!--
+    Dev bundle: serve the WASM client's BUILD output instead of publishing it.
+
+    Under `dotnet watch` the nested `dotnet publish` below runs on every save — an emscripten relink for
+    a one-character edit. Worse, a published bundle is trimmed, and trimming folds
+    MetadataUpdater.IsSupported to false, so a hot-reload delta could never be applied in it even if one
+    arrived. Serving build output is therefore a precondition for WASM hot reload, not an optimisation.
+
+    Opt-in via the property, which `rask dev` passes for a wasm-hosted target. It deliberately does NOT
+    default from $(DOTNET_WATCH): watch sets that variable on the app it *runs*, not on the `dotnet
+    build` it shells out to first, so the property would read empty exactly where it is needed — the
+    publish would run and no dev manifest would be baked. (Verified against a real watch session; the
+    earlier assumption that it defaults cleanly was wrong.)
+
+    Also NOT keyed off $(Configuration): the E2E fixtures run Debug against the PUBLISHED bundle, so
+    flipping on Debug would pull the bundle out from under them.
+  -->
+
   <Target Name="_RaskProbeWasmProjectRef"
           Outputs="%(ProjectReference.Identity)">
     <XmlPeek XmlInputPath="%(ProjectReference.FullPath)"
@@ -49,12 +67,25 @@
              Condition=" '%(ProjectReference.FullPath)' != '' ">
       <Output TaskParameter="Result" PropertyName="_RaskWasmBundleProbe"/>
     </XmlPeek>
+    <!--
+      Read the referenced project's TFM and assembly name too, so neither the bundle path nor the dev
+      manifest path has to hardcode them. (The bundle path used to hardcode net10.0-browser.)
+    -->
+    <XmlPeek XmlInputPath="%(ProjectReference.FullPath)"
+             Query="/Project/PropertyGroup/TargetFramework/text()"
+             Condition=" '%(ProjectReference.FullPath)' != '' ">
+      <Output TaskParameter="Result" PropertyName="_RaskWasmTfmProbe"/>
+    </XmlPeek>
     <ItemGroup>
       <_RaskWasmRef Include="%(ProjectReference.FullPath)"
-                    Condition=" '$(_RaskWasmBundleProbe)' == 'true' "/>
+                    Condition=" '$(_RaskWasmBundleProbe)' == 'true' ">
+        <Tfm Condition=" '$(_RaskWasmTfmProbe)' != '' ">$(_RaskWasmTfmProbe)</Tfm>
+        <Tfm Condition=" '$(_RaskWasmTfmProbe)' == '' ">net10.0-browser</Tfm>
+      </_RaskWasmRef>
     </ItemGroup>
     <PropertyGroup>
       <_RaskWasmBundleProbe></_RaskWasmBundleProbe>
+      <_RaskWasmTfmProbe></_RaskWasmTfmProbe>
     </PropertyGroup>
   </Target>
 
@@ -65,7 +96,17 @@
       Text="Rask.Wasm.Hosting: only one Rask WASM ProjectReference is supported per host (found @(_RaskWasmRef->Count()): @(_RaskWasmRef))."/>
     <PropertyGroup>
       <_RaskWasmProjectDir Condition=" '@(_RaskWasmRef->Count())' == '1' ">$([System.IO.Path]::GetDirectoryName('%(_RaskWasmRef.FullPath)'))</_RaskWasmProjectDir>
-      <_RaskWasmAppBundleDir Condition=" '$(_RaskWasmProjectDir)' != '' ">$(_RaskWasmProjectDir)$([System.IO.Path]::DirectorySeparatorChar)bin$([System.IO.Path]::DirectorySeparatorChar)$(Configuration)$([System.IO.Path]::DirectorySeparatorChar)net10.0-browser$([System.IO.Path]::DirectorySeparatorChar)publish$([System.IO.Path]::DirectorySeparatorChar)wwwroot</_RaskWasmAppBundleDir>
+      <_RaskWasmTfm Condition=" '@(_RaskWasmRef->Count())' == '1' ">%(_RaskWasmRef.Tfm)</_RaskWasmTfm>
+      <_RaskWasmBinDir Condition=" '$(_RaskWasmProjectDir)' != '' ">$(_RaskWasmProjectDir)$([System.IO.Path]::DirectorySeparatorChar)bin$([System.IO.Path]::DirectorySeparatorChar)$(Configuration)$([System.IO.Path]::DirectorySeparatorChar)$(_RaskWasmTfm)</_RaskWasmBinDir>
+      <_RaskWasmAppBundleDir Condition=" '$(_RaskWasmBinDir)' != '' ">$(_RaskWasmBinDir)$([System.IO.Path]::DirectorySeparatorChar)publish$([System.IO.Path]::DirectorySeparatorChar)wwwroot</_RaskWasmAppBundleDir>
+      <!--
+        The build-output manifest. It is the only thing that knows where the client's assets actually
+        are: build wwwroot/ holds nothing but _framework/, and /index.html maps to a placeholder-filled
+        shell under obj/. Baked as assembly metadata unconditionally (not only under RaskWasmDevBundle)
+        so a developer who sets the property on the `dotnet watch` invocation alone still has a path to
+        resolve; the runtime gate is Development + MetadataUpdater.IsSupported, not the build gate.
+      -->
+      <_RaskWasmDevManifest Condition=" '$(_RaskWasmBinDir)' != '' ">$(_RaskWasmBinDir)$([System.IO.Path]::DirectorySeparatorChar)$([System.IO.Path]::GetFileNameWithoutExtension('%(_RaskWasmRef.FullPath)')).staticwebassets.runtime.json</_RaskWasmDevManifest>
     </PropertyGroup>
   </Target>
 
@@ -84,8 +125,17 @@
         and needed -m:1 to dodge the Rask.Core.dll copy race against the top-level WASM build.
         A blank $(RaskWasm) (the normal build/e2e case) still publishes.
       -->
-      <_RaskDoWasmPublish Condition=" '$(_RaskWasmAppBundleDir)' != '' AND '$(RaskWasm)' != 'false' ">true</_RaskDoWasmPublish>
+      <_RaskDoWasmPublish Condition=" '$(_RaskWasmAppBundleDir)' != '' AND '$(RaskWasm)' != 'false' AND '$(RaskWasmDevBundle)' != 'true' ">true</_RaskDoWasmPublish>
     </PropertyGroup>
+    <!--
+      No replacement step is needed when the publish is skipped. ReferenceOutputAssembly="false" leaves
+      BuildReference true, so the host's ordinary build already builds the WASM project and writes its
+      static-web-assets manifest. Deleting the nested emscripten publish from the inner watch loop IS
+      the win.
+    -->
+    <Message Importance="high"
+             Text="Rask.Wasm.Hosting: serving the WASM BUILD output for %(_RaskWasmRef.FullPath) (RaskWasmDevBundle=true — no nested publish)"
+             Condition=" '$(_RaskWasmAppBundleDir)' != '' AND '$(RaskWasmDevBundle)' == 'true' "/>
     <Message Importance="high"
              Text="Rask.Wasm.Hosting: publishing %(_RaskWasmRef.FullPath) ($(Configuration))"
              Condition=" '$(_RaskDoWasmPublish)' == 'true' "/>
@@ -114,6 +164,15 @@
           DependsOnTargets="_RaskComputeWasmBundleDir">
     <ItemGroup Condition=" '$(_RaskWasmAppBundleDir)' != '' ">
       <AssemblyMetadata Include="Rask.WasmAppBundleDir" Value="$(_RaskWasmAppBundleDir)"/>
+    </ItemGroup>
+    <!--
+      Baked ONLY when the build opted into the dev bundle. The runtime gate in UseRask keys off the
+      presence of this attribute, so conditioning it here is what keeps the build decision and the
+      runtime decision from drifting: without it, `-p:RaskWasmDevBundle=false` would still serve build
+      output whenever a manifest happened to be left over from an earlier build.
+    -->
+    <ItemGroup Condition=" '$(_RaskWasmDevManifest)' != '' AND '$(RaskWasmDevBundle)' == 'true' ">
+      <AssemblyMetadata Include="Rask.WasmDevManifest" Value="$(_RaskWasmDevManifest)"/>
     </ItemGroup>
   </Target>
 
