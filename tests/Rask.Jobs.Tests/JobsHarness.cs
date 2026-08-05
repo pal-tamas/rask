@@ -139,6 +139,23 @@ public sealed class JobsHarness : IAsyncDisposable
 
     public IJobQueue Queue => _provider.GetRequiredService<IJobQueue>();
 
+    /// <summary>Resolves a service from the harness's container.</summary>
+    public T Get<T>() where T : notnull => _provider.GetRequiredService<T>();
+
+    /// <summary>Starts the processor, waits for <paramref name="until"/>, and stops it again.</summary>
+    public async Task RunUntilAsync(Func<bool> until, TimeSpan? timeout = null)
+    {
+        await Processor.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => Task.FromResult(until()), timeout);
+        }
+        finally
+        {
+            await Processor.StopAsync(CancellationToken.None);
+        }
+    }
+
     public IHostedService Processor =>
         _provider.GetServices<IHostedService>().OfType<JobProcessor<JobsDbContext>>().Single();
 
