@@ -1,9 +1,9 @@
 # Rask.Cli
 
 **The `rask` command-line tool** — a productivity front-door for the
-[Rask](https://github.com/pal-tamas/rask) framework. It is a thin, dependency-free wrapper over the
-.NET SDK: scaffold a project, run it with hot reload, manage migrations, and deploy it to a single host
-over SSH — all with short, Rask-aware commands.
+[Rask](https://github.com/pal-tamas/rask) framework. It is a thin wrapper over the .NET SDK, with SQLite
+as its only dependency: scaffold a project, run it with hot reload, manage migrations, back the database
+up and restore it, and deploy it to a single host over SSH — all with short, Rask-aware commands.
 
 ## Install
 
