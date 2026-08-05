@@ -49,6 +49,13 @@ internal sealed record ServerBatteries
     /// <summary>Scheduled point-in-time snapshots of the SQLite file. SQLite only.</summary>
     public bool Snapshots { get; init; }
 
+    /// <summary>
+    /// A durable log store. Alone among the batteries it does <b>not</b> imply <c>--data</c>: it keeps a
+    /// SQLite file of its own rather than mapping onto the application's <c>DbContext</c>, so it needs no
+    /// context, no migration, and works on an app that has no database at all.
+    /// </summary>
+    public bool Logs { get; init; }
+
     /// <summary>The operator dashboard at <c>/_ops</c> over every battery's table.</summary>
     public bool Ops { get; init; }
 
@@ -63,6 +70,12 @@ internal sealed record ServerBatteries
     /// <para>Gated on the provider because every one of these copies or replicates <em>a file</em>. On a
     /// client-server database there is no file to copy, so the battery is not "degraded" — it is
     /// meaningless, which is why <c>rask new</c> rejects the combination outright rather than dropping it.</para>
+    ///
+    /// <para>
+    /// <c>Logs</c> is not in here either, for a different reason: the log store owns a separate file, so it
+    /// neither needs the application database nor should drag <c>--data</c> in behind it — and this
+    /// property is one of the things that drives that implication in <see cref="Normalized"/>.
+    /// </para>
     /// </remarks>
     public bool AnySqliteOps => Snapshots && Database.IsFileBased;
 

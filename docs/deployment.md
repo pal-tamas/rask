@@ -165,6 +165,7 @@ Beyond your own `--env` values, every deployed container gets:
 | --- | --- |
 | `ASPNETCORE_ENVIRONMENT=Production` | Selects `appsettings.Production.json` and turns off the developer exception page. Your own `--env` wins if you set it. |
 | `ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
+| `ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
 | `--log-opt max-size=10m --log-opt max-file=3` | Docker's `json-file` logs are unbounded by default; on a one-box deploy a chatty app filling the disk takes down every other app sharing it. |
 | `--security-opt no-new-privileges` | A compromised process can't gain rights through setuid binaries. Nothing a Rask app does needs to escalate. |
 | `--restart unless-stopped` | The app comes back after a reboot or a daemon restart. |
@@ -237,6 +238,21 @@ and no override, so the block is skipped and ASP.NET's per-user development ring
 
 If you're carrying an app that predates this, add the block — an existing deployment will sign everyone out
 once, when the persisted ring first replaces the ephemeral one, and never again.
+
+### The log store
+
+[`Rask.Logging`](logging.md) keeps its own SQLite file rather than mapping onto your `DbContext`, so it needs
+its own pointer onto the volume — which is what `ConnectionStrings__Logs` above is. Without it the log would
+land in the container's writable layer and be destroyed by the very restart it exists to survive.
+
+Two consequences worth knowing before an incident rather than during one:
+
+- **It is not backed up.** `rask db backup` and Litestream cover `app.db`. `logs.db` is deliberately outside
+  that — logs are expendable and high-churn, and including them would make every snapshot and every WAL
+  replication more expensive. Copy the file yourself if you need it archived.
+- **It shares the volume's disk.** Retention bounds it by age *and* row count (14 days / 100,000 entries by
+  default), so it cannot grow without limit — but on a small box, size the volume with both databases in
+  mind, and watch `rask.logs.dropped` to know whether the store is keeping up.
 
 ## Scaffolding a Dockerfile — `--docker`
 

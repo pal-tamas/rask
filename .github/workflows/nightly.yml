@@ -144,6 +144,7 @@ jobs:
           dotnet pack src/Rask.Jobs/Rask.Jobs.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Mail/Rask.Mail.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cache/Rask.Cache.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Logging/Rask.Logging.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Dashboard/Rask.Dashboard.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Testing/Rask.Testing.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cli/Rask.Cli.csproj -c Release -o ./artifacts

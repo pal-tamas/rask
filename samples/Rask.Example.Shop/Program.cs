@@ -15,6 +15,7 @@ using Rask.Example.Shop.Features.Ops;
 using Rask.Example.Shop.Features.Push;
 using Rask.Example.Shop.Features.Shared;
 using Rask.Jobs;
+using Rask.Logging;
 using Rask.Mail;
 using Rask.Outbox;
 using Rask.Server;
@@ -162,6 +163,24 @@ builder.Services.AddRaskSqliteSnapshots(o =>
     o.SnapshotOnStartup = true;
 });
 
+// The application log, kept in a database of its own so it survives the restart that hid it. This
+// registers an ILoggerProvider, so it captures exactly what every other sink sees; log calls never wait
+// on the disk (entries are buffered and written in batches), and retention drops them by age and by row
+// count.
+//
+// A SEPARATE FILE, on purpose — unlike the other database-backed batteries this one does not map onto
+// AppDbContext. Log lines arrive at machine rates, and the line you most want is the one written while a
+// transaction is failing, which on the app's context would roll back with it. The trade-off: this file is
+// NOT covered by `rask db backup` or Litestream, and log lines can contain secrets — treat it as sensitive
+// and keep it on the same persistent volume as your database (`rask deploy` sets ConnectionStrings:Logs to
+// a path on that volume).
+// This sample keeps EF Core's per-command logging out of the store: an EF app logs every SQL statement
+// at Information, and on the default settings that is most of what you would find in here. The floor in
+// Logging:LogLevel is the other lever.
+builder.Services.AddRaskLogging(
+    builder.Configuration.GetConnectionString("Logs") ?? "Data Source=logs.db",
+    o => o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database"));
+
 // Server-sent Web Push (VAPID + RFC 8291), no external service. Generate a key pair once with
 // VapidKeys.Generate() and store it in configuration or user-secrets — the PUBLIC key is handed
 // to the browser to subscribe with; the PRIVATE key signs and must never be served.
@@ -184,7 +203,9 @@ if (!string.IsNullOrWhiteSpace(vapidPublicKey) && !string.IsNullOrWhiteSpace(vap
 builder.Services.AddSingleton<PushSubscriptionStore>();
 
 // An operator dashboard at /_ops over every pillar's table: queue depth, dead letters and the errors
-// behind them, cache contents, a log tail, and how this database is configured. Features/Ops/OpsPage.cs
+// behind them, cache contents, the log, and how this database is configured. Its Logs page keeps a live
+// tail in memory and — because Rask.Logging is registered above — also offers a searchable History over
+// the stored log. Features/Ops/OpsPage.cs
 // next door is the hand-rolled version of the same idea — it exists to show that the pillars really are
 // just tables you can SELECT from. This is what you get without writing it.
 builder.Services.AddRaskDashboard<AppDbContext>();

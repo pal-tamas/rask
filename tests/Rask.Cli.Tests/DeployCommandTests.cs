@@ -55,6 +55,7 @@ public sealed class DeployCommandTests
             // The environment, DB volume and connection string all come before the user env, so --env wins.
             "-e", "ASPNETCORE_ENVIRONMENT=Production",
             "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
+            "-e", "ConnectionStrings__Logs=Data Source=/data/logs.db",
             "-e", "A=1", "shop:current",
         ], args);
     }
@@ -74,6 +75,7 @@ public sealed class DeployCommandTests
             "--label", "rask.managed=true", "--label", "rask.app=shop", "--label", "rask.port=8080",
             "-e", "ASPNETCORE_ENVIRONMENT=Production",
             "-v", "shop-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db",
+            "-e", "ConnectionStrings__Logs=Data Source=/data/logs.db",
             "shop:current",
         ], args);
     }
