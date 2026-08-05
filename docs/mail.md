@@ -127,10 +127,14 @@ letter. `ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`; `Time
 
 - **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a
   browser/WASM concern.
-- **SQLite is single-writer**, so the processor polls and claims sequentially. Run **one processor per app**.
-  Because `SendAsync` writes while the processor may also be writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a
-  `busy_timeout`) on your context so a concurrent send waits for the write lock instead of failing with
-  `SQLITE_BUSY`.
+- **Running more than one instance is safe.** Each processor *leases* the batch it claims, so an email is
+  sent by exactly one instance. See [running more than one instance](databases.md#running-more-than-one-instance)
+  — in particular, the lease bounds but does not eliminate a duplicate send. On SQLite you will still usually
+  run one instance for the unrelated reason that it is single-writer; because `SendAsync` writes while the
+  processor may also be writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a `busy_timeout`) on your context so a
+  concurrent send waits for the write lock instead of failing with `SQLITE_BUSY`.
+- **`Attempts` counts attempts *started*, not failures.** The claim increments it, so a send that takes the
+  process down with it still counts toward `MaxAttempts`. An email delivered first time shows `Attempts = 1`.
 - **Mail vs. jobs.** `Rask.Mail` is a self-contained queue — you don't need [`Rask.Jobs`](jobs.md). If you
   already run jobs and want email as one step of a larger job, send it inline from the job's handler via a
   custom `IMailSender`; otherwise `SendAsync` is all you need.

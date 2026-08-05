@@ -98,8 +98,13 @@ for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero`
   instead of dead-lettering in production. An abstract base carrying `IOutboxEvent` is skipped silently; its
   concrete derivatives register as usual. Nesting inside a plain `static class` is fine, and the usual way
   to group a feature's events.
-- **SQLite is single-writer**, so the processor polls (there is no `SKIP LOCKED` to lean on); WAL + a
-  busy-timeout (see [Rask.SQLite](sqlite.md)) keep reads flowing while it writes. One processor per app.
+- **Running more than one instance is safe.** Each processor *leases* the batch it claims, so a message is
+  published by exactly one instance. See
+  [running more than one instance](databases.md#running-more-than-one-instance). On SQLite you will still
+  usually run one instance for the unrelated reason that it is single-writer; WAL + a busy-timeout (see
+  [Rask.SQLite](sqlite.md)) keep reads flowing while it writes.
+- **`Attempts` counts attempts *started*, not failures.** The claim increments it, so a handler that takes
+  the process down with it still counts toward `MaxAttempts` instead of being retried forever.
 - **Ordering is per-poll, not globally strict.** Each poll publishes the oldest unprocessed batch in insertion
   order, but because delivery is **at-least-once** with retries, a message that fails and is retried can land
   after later ones. Make handlers **idempotent** and don't rely on strict cross-message ordering.

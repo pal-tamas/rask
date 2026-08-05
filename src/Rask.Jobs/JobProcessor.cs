@@ -12,7 +12,8 @@ namespace Rask.Jobs;
 /// a job runs at least once and, on failure, is retried with exponential backoff up to
 /// <see cref="JobOptions.MaxAttempts"/> (after which it is left as a dead letter). Also enqueues due
 /// interval-recurring jobs and purges completed jobs past <see cref="JobOptions.RetentionPeriod"/>. A failing
-/// job never crashes the app. Run <b>one processor per app</b> (SQLite is single-writer).
+/// job never crashes the app. Each processor <b>leases</b> the batch it claims, so several instances is
+/// safe; see <c>docs/databases.md</c> for what a lease does and does not guarantee.
 /// </summary>
 /// <typeparam name="TContext">The application's <see cref="DbContext"/> that owns the jobs tables.</typeparam>
 public sealed class JobProcessor<TContext>(

@@ -83,20 +83,63 @@ Rask does not provision a database for you. Run one in a container beside the ap
 
 ## Running more than one instance
 
-> **Not yet safe, on any provider.** Run a **single instance**.
+The [jobs](jobs.md), [mail](mail.md) and [outbox](outbox.md) processors **lease** the work they claim, so a
+job runs on one instance and an email is sent by one instance.
 
-The [jobs](jobs.md), [mail](mail.md) and [outbox](outbox.md) processors poll for due work and run it
-without claiming or leasing it first. On SQLite that constraint is natural and documented — one writer,
-one processor per app. PostgreSQL invites `replicas > 1`, and there it becomes a trap: **two instances run
-every job and send every email twice.**
+Claiming a batch is one `UPDATE` whose predicate re-tests claimability. Every provider re-evaluates that
+predicate against the row version the winner committed, so the row goes to exactly one instance — no
+`SKIP LOCKED`, no provider-specific SQL, and the same code path on SQLite. A claim marks the rows with a
+token and an expiry (`LeaseDuration`, default 5 minutes); finishing hands them back, and so does a graceful
+shutdown, so a rolling deploy doesn't park a batch.
 
-Leased claiming — where an instance takes a batch for a bounded time, and a crashed instance's work
-becomes claimable again — is tracked in [#552](https://github.com/pal-tamas/rask/issues/552). Until it
-ships, scale vertically and keep `replicas: 1`.
+**A processor that dies keeps nothing.** Its lease simply runs out and the work becomes claimable again.
+There is no sweeper to run and nothing to clean up by hand — expiry *is* the recovery mechanism, which is
+why the claim tests the expiry rather than "is this row unclaimed".
 
-Note this is about the *background processors*, not the request path. Serving traffic from several
-instances is a separate question: [live sessions](architecture/live-rendering.md) hold an open WebSocket, a
-DI scope and a component tree in one process, so a reconnect must reach the same instance.
+### What a lease does not do
+
+> Leases prevent one instance **overwriting another's outcome**. They do not make a side effect happen once.
+
+If an instance overruns its `LeaseDuration`, a second instance may take the row and run the work again
+while the first is still going. The first then finds its lease gone and discards its own result — the
+database stays consistent — but if the work already sent an email, that email is out. At-least-once was
+always the contract; the lease narrows the window from *always, on every instance* to *only when an
+instance overruns its lease*.
+
+So: **set `LeaseDuration` comfortably above your slowest handler**, and make handlers idempotent where the
+side effect matters. When an overrun does happen you get a warning naming the option to raise:
+
+```
+Job 41 lost its lease mid-run on instance …; another instance owns it now.
+Increase JobOptions.LeaseDuration past the time this job takes.
+```
+
+### `Attempts` counts attempts started
+
+The claim increments `Attempts`, not the failure path. A job that takes the whole process down with it —
+an OOM, a pod eviction — never reaches the failure path, so counting only failures would leave it retried
+by every instance forever and `MaxAttempts` would never dead-letter it. A job that succeeds first time
+shows `Attempts = 1`.
+
+### The request path is a separate question
+
+This is about the *background processors*. Serving traffic from several instances is its own problem:
+[live sessions](architecture/live-rendering.md) hold an open WebSocket, a DI scope and a component tree in
+one process, so a reconnect must reach the same instance.
+
+### Upgrading an existing app
+
+The lease adds two nullable columns to the jobs, mail and outbox tables. Additive, no backfill — but the
+migration is **not optional**:
+
+```bash
+rask db add AddLeases
+rask db update
+```
+
+Skip it and the processors fail on every poll with `no such column: ClaimedUntil`. That failure is caught
+and logged rather than crashing the app, so it looks healthy while doing nothing — which is why the log
+says exactly these two commands rather than printing a stack trace.
 
 ## Testing
 

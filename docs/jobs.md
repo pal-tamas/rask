@@ -114,10 +114,15 @@ for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero`
   dead-lettering in production. An abstract base carrying `IJob` is skipped silently; its concrete
   derivatives register as usual. Nesting inside a plain `static class` is fine, and the usual way to group
   a feature's jobs.
-- **SQLite is single-writer**, so the processor polls and claims sequentially (there is no `SKIP LOCKED` to
-  lean on). Run **one processor per app**. Because `EnqueueAsync` writes while the processor may also be
+- **Running more than one instance is safe.** Each processor *leases* the batch it claims, so a job goes to
+  exactly one instance. See [running more than one instance](databases.md#running-more-than-one-instance) for
+  what the lease does and does not guarantee. On SQLite you will still usually run one instance for the
+  unrelated reason that it is single-writer; because `EnqueueAsync` writes while the processor may also be
   writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a `busy_timeout`) on your context so a concurrent enqueue
   waits for the write lock instead of failing with `SQLITE_BUSY`.
+- **`Attempts` counts attempts *started*, not failures.** The claim increments it, so a job that takes the
+  process down with it still counts toward `MaxAttempts` instead of being retried forever. A job that
+  succeeds first time shows `Attempts = 1`.
 - **Jobs vs. the outbox.** A job is *explicitly enqueued*, so its write is its own transaction — it does not
   commit atomically with an unrelated business change. When you need an event delivered atomically *with* a
   data change, raise a domain event and use [`Rask.Outbox`](outbox.md) instead. The two pillars are

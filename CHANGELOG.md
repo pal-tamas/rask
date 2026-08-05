@@ -164,12 +164,45 @@ them until tagged releases begin.
   bug it could have. Migrations are unaffected — `rask db add`/`update` forward to `dotnet ef`, which was
   always provider-agnostic.
 
-  **Multi-instance is not yet safe on any provider.** The jobs, outbox and mail processors have no claiming
-  or leasing, so two instances run every job and send every email twice. That constraint is natural on
-  SQLite (single writer) and is documented as "run one processor per app"; PostgreSQL invites `replicas > 1`,
-  where it becomes a trap. Leased claiming is tracked in
-  [#552](https://github.com/pal-tamas/rask/issues/552) — until it lands, run a single instance on
-  PostgreSQL too.
+  Running several instances is safe — see the leasing entry below.
+
+- **Jobs, mail and the outbox now lease the work they claim, so more than one instance is safe.**
+  **⚠️ Action required: `rask db add AddLeases && rask db update`.**
+
+  Until now the three processors polled for due work and ran it without claiming it first. Two instances
+  therefore read the *same* rows and both processed them: every job ran twice, and every queued email was
+  **sent twice**. On SQLite that constraint was natural and documented ("run one processor per app"), but
+  PostgreSQL invites `replicas > 1`, where it became a trap.
+
+  A batch is now taken with a single `UPDATE` whose predicate re-tests claimability. Every provider
+  re-evaluates that predicate against the row version the winner committed, so the row goes to exactly one
+  instance — no `SKIP LOCKED`, no provider-specific SQL, the same code path on SQLite. The claim marks rows
+  with a token and an expiry (`LeaseDuration`, default 5 minutes, must exceed `PollInterval`). A processor
+  that dies keeps nothing: its lease runs out and the work becomes claimable again, so there is no sweeper
+  to run and nothing to clean up by hand.
+
+  **Be clear about what this buys.** A lease stops one instance overwriting another's outcome; it does not
+  make a side effect happen once. An instance that overruns its `LeaseDuration` can have its row taken while
+  it is still working — the database stays consistent, because the loser's write is rejected and discarded,
+  but an email it already sent is out. At-least-once was always the contract; the lease narrows the window
+  from *always, on every instance* to *only on an overrun*, and logs which `LeaseDuration` to raise when one
+  happens. Set it above your slowest handler.
+
+  **`Attempts` changes meaning: it now counts attempts *started*, not failures.** The claim increments it.
+  A job that takes the whole process down with it — an OOM, a pod eviction — never reaches the failure path,
+  so counting only failures left it retried by every instance forever and `MaxAttempts` never dead-lettered
+  it. Visible in the `/_ops` dashboard and in metrics: a job that succeeds first time now shows
+  `Attempts = 1` rather than `0`.
+
+  The migration adds two nullable columns to each of the three tables — additive, no backfill. Skipping it
+  is the one failure mode worth knowing about: the processors throw on every poll, the exception is caught
+  rather than crashing the app, and it logs the same error every five seconds while looking healthy. All
+  three now recognise that specific failure and print the two commands above instead of a stack trace.
+
+- **Two instances no longer double-enqueue every recurring job.** A hazard the drain's lease does nothing
+  about: both processors read the same `RecurringJobState`, both saw it due, and both enqueued — and the two
+  `LastEnqueuedAt` writes raced with no concurrency token, so neither lost. The result was N× every
+  recurring job, for as long as the app ran. The tick is now claimed with a compare-and-swap on due-ness.
 - **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
   backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
   for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,
@@ -288,6 +321,12 @@ them until tagged releases begin.
   signal uses them today, but this is the code the planned Broadcast pillar inherits, where a fan-out is a
   user-facing feature — and it is a prerequisite for the deploy-drain broadcast, which has to finish
   inside the shutdown budget before `SIGKILL` interrupts a SQLite checkpoint.
+- **The jobs retention sweep fought a second instance.** `JobProcessor.PurgeAsync` loaded the stale rows and
+  `RemoveRange`d them; a tracked delete of a row that vanished underneath the sweep raises
+  `DbUpdateConcurrencyException` and fails the whole cycle — precisely what two processors purging
+  concurrently do to each other. The outbox sweep already deleted by id through `ExecuteDelete` for exactly
+  this reason. `MailProcessor.PurgeAsync`'s single unbounded `DELETE` was correct but held SQLite's one
+  write lock for the length of the sweep; both are now paged like the outbox's.
 - **`rask new`'s template catalog listed a `litestream` flag that could never be requested.** It had been
   removed from the flag list but left in the server template's supported set, where it read as a feature.
   A parity guard now fails the build if a template ever claims a flag `rask new` doesn't accept.

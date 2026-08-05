@@ -39,7 +39,8 @@ await jobs.EnqueueAsync(new SendWelcomeEmail(user.Id));
 await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(24));
 ```
 
-Register your context as an `IDbContextFactory<AppDbContext>` (Rask Server sessions are long-lived), and run
-**one processor per app** — SQLite is single-writer, so the processor claims work by polling and writing
-sequentially. Need a job to commit atomically with a business change? Raise a domain event and deliver it with
+Register your context as an `IDbContextFactory<AppDbContext>` (Rask Server sessions are long-lived).
+Several instances is safe: each processor **leases** the batch it claims, so a job runs on exactly one of
+them. On SQLite you will still usually run one, because SQLite is single-writer, so the processor claims
+work by polling and writing sequentially. Need a job to commit atomically with a business change? Raise a domain event and deliver it with
 [Rask.Outbox](https://www.nuget.org/packages/Rask.Outbox) instead — the two pillars are complementary.
