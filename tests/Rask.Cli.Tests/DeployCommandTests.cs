@@ -9,6 +9,22 @@ public sealed class DeployCommandTests
 {
     private const string WorkingDir = "/proj";
 
+    [Fact]
+    public void Every_example_naming_a_connection_string_uses_the_key_the_app_reads()
+    {
+        // The scaffolded app reads ConnectionStrings:App, and BuildRunArguments injects
+        // ConnectionStrings__App. An example naming anything else is copy-pasteable and silently wrong —
+        // the app starts on its default database and nobody finds out until the data is in the wrong place.
+        var command = new DeployCommand(new StringConsole(), new FakeFileSystem(), new FakeProcessRunner(), WorkingDir);
+
+        var wrong = command.Examples
+            .Where(example => example.Contains("ConnectionStrings__", StringComparison.Ordinal)
+                && !example.Contains("ConnectionStrings__App", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.Empty(wrong);
+    }
+
     // ── Pure builders ───────────────────────────────────────────────────────────────────────────────
 
     [Fact]

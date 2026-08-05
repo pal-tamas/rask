@@ -24,6 +24,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
@@ -38,6 +39,12 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.61.0" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
+    <!--
+      Npgsql's EF Core provider tracks EF Core's major line: 10.0.3 asks for
+      Microsoft.EntityFrameworkCore [10.0.4, 11.0.0), which the 10.0.10 pin above satisfies. Keep the two
+      families on the same major — a provider built against EF Core 11 will not load against 10.
+    -->
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!--
       SQLitePCLRaw is held at the 3.x family deliberately, ahead of what Microsoft.Data.Sqlite and
       Microsoft.EntityFrameworkCore.Sqlite ask for (they still pin the 2.1.11 family).

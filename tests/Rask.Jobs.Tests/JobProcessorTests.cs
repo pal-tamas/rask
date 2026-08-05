@@ -55,7 +55,7 @@ public sealed class JobProcessorTests
         // only on ProcessedAt would miss the bug entirely.
         Assert.NotNull(job.ProcessedAt);
         Assert.Null(job.Error);
-        Assert.Equal(0, job.Attempts);
+        Assert.Equal(1, job.Attempts); // attempts *started* — one claim, no failure (see Job.Attempts)
         Assert.DoesNotContain('@', job.Type); // stored as the runtime name, unescaped
         Assert.Contains("kw", h.Recorder.Values); // the handler really ran
     }
@@ -94,14 +94,17 @@ public sealed class JobProcessorTests
         await h.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await h.WaitUntilAsync(async () => (await h.SingleJobAsync()).Attempts >= 1);
+            // Wait on the attempt *finishing*, not on Attempts: the claim increments Attempts before the
+            // job runs, so `Attempts >= 1` is already true while it is still in flight — advancing the
+            // clock then would race the failure that sets the next RunAt.
+            await h.WaitUntilAsync(async () => await FinishedAttemptsAsync(h) >= 1);
 
             // Frozen clock ⇒ the backed-off retry isn't due; advancing time triggers each next attempt.
             h.Clock.Advance(TimeSpan.FromMinutes(5));
-            await h.WaitUntilAsync(async () => (await h.SingleJobAsync()).Attempts >= 2);
+            await h.WaitUntilAsync(async () => await FinishedAttemptsAsync(h) >= 2);
 
             h.Clock.Advance(TimeSpan.FromMinutes(5));
-            await h.WaitUntilAsync(async () => (await h.SingleJobAsync()).Attempts >= 3);
+            await h.WaitUntilAsync(async () => await FinishedAttemptsAsync(h) >= 3);
 
             // Dead-lettered at MaxAttempts: further time passing does not attempt it again.
             h.Clock.Advance(TimeSpan.FromHours(1));
@@ -116,6 +119,22 @@ public sealed class JobProcessorTests
         Assert.Equal(3, job.Attempts);
         Assert.Null(job.ProcessedAt);
         Assert.NotNull(job.Error);
+    }
+
+    /// <summary>
+    /// How many attempts have finished. <see cref="Job.Attempts"/> counts attempts *started* — the claim
+    /// increments it, so a job that kills the process still counts toward MaxAttempts — which means it goes
+    /// up before the attempt is over. The lease is what says "over": the claim takes it and the outcome
+    /// hands it back, so an unclaimed row has no attempt in flight.
+    /// </summary>
+    /// <remarks>
+    /// Not keyed on <see cref="Job.Error"/>: a failure leaves it set, and the *next* claim doesn't clear
+    /// it, so "Attempts went up and Error is non-null" is briefly true while attempt N+1 is still running.
+    /// </remarks>
+    private static async Task<int> FinishedAttemptsAsync(JobsHarness h)
+    {
+        var job = await h.SingleJobAsync();
+        return job.ClaimToken is null ? job.Attempts : job.Attempts - 1;
     }
 
     [Fact]

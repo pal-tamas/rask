@@ -57,11 +57,25 @@ public sealed class MailOptions
     /// </summary>
     public string? PickupDirectory { get; set; }
 
+    /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="Validate"/> for why there is one.</summary>
+    internal const int MaxBatchSize = 1000;
+
     /// <summary>How often the processor polls the mail table for due messages. Default 5s.</summary>
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>How many messages to send per poll. Default 100.</summary>
     public int BatchSize { get; set; } = 100;
+
+    /// <summary>
+    /// How long a claimed email stays invisible to other processor instances. Default 5 minutes.
+    /// </summary>
+    /// <remarks>
+    /// This is the recovery window, not a timeout: nothing cancels a send that overruns it. A processor
+    /// that dies mid-send makes its work claimable again after this long, so it must comfortably exceed the
+    /// slowest SMTP handshake you see — set it too low and a slow send is picked up by a second instance
+    /// while the first is still waiting on the server, and the recipient gets the email twice.
+    /// </remarks>
+    public TimeSpan LeaseDuration { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>How many times to attempt a failing message before it is left as a dead letter (kept for inspection). Default 10.</summary>
     public int MaxAttempts { get; set; } = 10;
@@ -116,9 +130,28 @@ public sealed class MailOptions
             throw new ArgumentOutOfRangeException(nameof(PollInterval), PollInterval, "PollInterval must be positive.");
         }
 
-        if (BatchSize < 1)
+        if (BatchSize is < 1 or > MaxBatchSize)
         {
-            throw new ArgumentOutOfRangeException(nameof(BatchSize), BatchSize, "BatchSize must be at least 1.");
+            // Capped because the claim sends the candidate ids as an IN list. EF translates a parameterized
+            // Contains to json_each / = ANY / OPENJSON rather than one parameter per id, so the classic
+            // 999/2100 ceilings shouldn't bite — this is the belt to that pair of braces.
+            throw new ArgumentOutOfRangeException(
+                nameof(BatchSize), BatchSize, $"BatchSize must be between 1 and {MaxBatchSize}.");
+        }
+
+        if (LeaseDuration <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(LeaseDuration), LeaseDuration, "LeaseDuration must be positive.");
+        }
+
+        if (LeaseDuration <= PollInterval)
+        {
+            // A lease that expires within one poll guarantees every email is stolen mid-flight by the next
+            // instance to look — and a stolen send is a second copy in someone's inbox.
+            throw new ArgumentOutOfRangeException(
+                nameof(LeaseDuration),
+                LeaseDuration,
+                $"LeaseDuration must be longer than PollInterval ({PollInterval}), or every claimed email is stolen before it finishes.");
         }
 
         if (MaxAttempts < 1)

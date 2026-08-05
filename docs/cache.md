@@ -90,6 +90,31 @@ var widget = await cache.GetAsync("k", AppJsonContext.Default.Widget);
 
 The `IDistributedCache` (`byte[]`) surface is fully trim-safe.
 
+## If you already run Redis
+
+The argument above is about not standing Redis *up* for a cache. It is not an argument against using one you
+already operate — and if you already have it, or you are running several app instances and would rather the
+database didn't carry the cache traffic, `ICache` works over any `IDistributedCache`:
+
+```csharp
+builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:6379");
+builder.Services.AddRaskCache();   // no <AppDbContext> — the store is Redis
+```
+
+That is the whole change. `ICache` and `GetOrCreateAsync` behave identically, because the typed layer only
+ever talks to `IDistributedCache`; nothing about your calling code moves.
+
+There is **no `Rask.Cache.Redis` package**, and there shouldn't be:
+[`Microsoft.Extensions.Caching.StackExchangeRedis`](https://www.nuget.org/packages/Microsoft.Extensions.Caching.StackExchangeRedis)
+is the standard .NET API for this and wrapping it would only add a layer to keep in step.
+
+Note the overload takes **no `CacheOptions`**. Both of them — `PurgeInterval` and
+`DefaultSlidingExpiration` — are implemented by the database-backed store, so against Redis they would be
+settings that silently did nothing. Expiry is Redis's own business: configure it there, or pass a
+`DistributedCacheEntryOptions` per call. Using the `<AppDbContext>` overload with a Redis store registered
+would still work, but it also registers the purge worker and so keeps needing the `CacheEntry` table and a
+migration for it — which is exactly what this overload removes.
+
 ## Notes
 
 - **Server-side.** The store is your EF Core database and the purger is a hosted service — this is not a

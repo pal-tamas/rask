@@ -30,6 +30,21 @@ var rates = await cache.GetOrCreateAsync(
 Register your context as an `IDbContextFactory<AppDbContext>` (Rask Server sessions are long-lived) and run
 **one purger per app** — SQLite is single-writer.
 
+## Already running Redis?
+
+`ICache` works over any `IDistributedCache`, so point it at the one you have — no `CacheEntry` table, no
+purge worker, no migration:
+
+```csharp
+builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:6379");
+builder.Services.AddRaskCache();   // no <AppDbContext>
+```
+
+There is deliberately no `Rask.Cache.Redis` package —
+`Microsoft.Extensions.Caching.StackExchangeRedis` is the standard .NET API for this. The overload takes no
+`CacheOptions`, because both of them are implemented by the database-backed store and would silently do
+nothing against another one.
+
 > **Trim / AOT:** the typed `GetOrCreateAsync<T>`/`GetAsync<T>`/`SetAsync<T>` overloads use reflection-based
 > `System.Text.Json`. In a trimmed or AOT app, use the `JsonTypeInfo<T>` overloads with a source-generated
 > `JsonSerializerContext`. The `IDistributedCache` (`byte[]`) surface is fully trim-safe.

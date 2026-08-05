@@ -77,7 +77,7 @@ internal static class GitHubActionsWorkflow
               #   rask deploy --setup-host
               #
               # Pass app secrets through here as environment variables, e.g.
-              #   run: rask deploy --no-setup-host --env "ConnectionStrings__Db=${{ secrets.DB_CONNECTION }}"
+              #   run: rask deploy --no-setup-host --env "ConnectionStrings__App=${{ secrets.DB_CONNECTION }}"
               #
               # Every variable the app was last deployed with is recorded by name in .rask/deploy.json, and
               # a deploy that doesn't supply one of them FAILS rather than quietly starting the app without

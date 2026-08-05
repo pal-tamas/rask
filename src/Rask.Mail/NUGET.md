@@ -46,7 +46,8 @@ await mail.SendAsync(Email
 await mail.ScheduleAsync(reminder, delay: TimeSpan.FromHours(24));
 ```
 
-Register your context as an `IDbContextFactory<AppDbContext>`, and run **one processor per app** — SQLite is
+Register your context as an `IDbContextFactory<AppDbContext>`. Several instances is safe: each processor
+**leases** the work it claims. On SQLite you will still usually run one, because SQLite is
 single-writer, so the processor claims work by polling and writing. Use
 [`UseRaskSqlite`](https://www.nuget.org/packages/Rask.SQLite) (WAL + a `busy_timeout`) so a concurrent send
 waits for the write lock instead of failing.

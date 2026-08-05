@@ -47,7 +47,8 @@ public sealed class JobProcessorConcurrencyTests
 
         Assert.Equal(2, jobs.Count);
         Assert.All(jobs, j => Assert.NotNull(j.ProcessedAt));
-        Assert.All(jobs, j => Assert.Equal(0, j.Attempts));
+        // One attempt started each, none of them a retry — Attempts counts claims, not failures.
+        Assert.All(jobs, j => Assert.Equal(1, j.Attempts));
 
         // The real payoff: each handler ran exactly once. A rolled-back batch re-runs everything it had already
         // executed, so duplicates here are the user-visible symptom of the bug.

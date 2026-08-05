@@ -99,7 +99,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     [
         "rask deploy --host root@box.example.com --domain app.example.com",
         "rask deploy --host deploy@box.example.com --port 8080",
-        "rask deploy --env ConnectionStrings__Db=... --env-file .env.production",
+        "rask deploy --env ConnectionStrings__App=... --env-file .env.production",
         "rask deploy --github-actions",
         "rask deploy --dry-run",
         "rask deploy status",
@@ -235,6 +235,10 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         var contextDir = Path.GetDirectoryName(Path.GetFullPath(dockerfile)) ?? projectDir;
         var slug = ToContainerSlug(parsed.Option("name") ?? config.Name ?? located?.RootNamespace ?? new DirectoryInfo(projectDir).Name);
 
+        // Read off the project rather than remembered in deploy.json: the provider is a fact about the code
+        // being deployed, so a stored copy could disagree with the app that is actually about to run.
+        var provider = located?.Provider ?? DatabaseProvider.Sqlite;
+
         if (action is null && !_fileSystem.FileExists(dockerfile))
         {
             Console.Error.WriteLine($"No Dockerfile found at '{dockerfile}'.");
@@ -300,9 +304,23 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             return WriteGitHubActionsWorkflow(sshTarget, host, dryRun);
         }
 
+        // A client-server database is not on this box, so nothing can invent a connection string for it.
+        // Checked before --dry-run returns: the point of a dry run is to find out the deploy won't work
+        // *before* running it, and "you never told the app where its database is" qualifies.
+        if (!DatabaseCatalog.For(provider).IsFileBased
+            && !env.Any(e => e.StartsWith("ConnectionStrings__App=", StringComparison.Ordinal)))
+        {
+            Console.WriteErrorLine(
+                $"This app uses {DatabaseCatalog.For(provider).ShortName}, so it needs a connection string.",
+                ConsoleStyle.Error);
+            Console.Error.WriteLine("    Pass it with:  rask deploy --env \"ConnectionStrings__App=...\"");
+            Console.Error.WriteLine("    Or keep it out of your shell history with --env-file (see docs/deployment.md).");
+            return 1;
+        }
+
         if (dryRun)
         {
-            PrintPlan(host, slug, domain, port, containerPort, dockerfile, contextDir, env, healthEnabled, healthPath);
+            PrintPlan(host, slug, domain, port, containerPort, dockerfile, contextDir, env, healthEnabled, healthPath, provider);
             return 0;
         }
 
@@ -357,7 +375,11 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // budget below exists so a replicator can flush before the container dies. Say plainly when there
         // is no replicator: the database is then a single copy on one disk, and the "the box is
         // disposable" story the docs tell is not true of this deployment.
-        if (!env.Any(e => e.StartsWith("Litestream__ReplicaUrl=", StringComparison.Ordinal)))
+        //
+        // None of that applies to a client-server database — it is not on this box, so there is no local
+        // copy to warn about. (That its connection string is configured was already checked above.)
+        if (DatabaseCatalog.For(provider).IsFileBased
+            && !env.Any(e => e.StartsWith("Litestream__ReplicaUrl=", StringComparison.Ordinal)))
         {
             Console.WriteErrorLine(
                 "  ! No Litestream replica configured — this app's database exists only on this box's disk.",
@@ -373,12 +395,12 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         }
 
         return domain is null
-            ? await DeployPortAsync(host, slug, port, containerPort, env, projectSetting, envFile, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false)
-            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, projectSetting, envFile, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false);
+            ? await DeployPortAsync(host, slug, port, containerPort, env, projectSetting, envFile, healthEnabled, healthPath, provider, cancellationToken).ConfigureAwait(false)
+            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, projectSetting, envFile, healthEnabled, healthPath, provider, cancellationToken).ConfigureAwait(false);
     }
 
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
-    private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
+    private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, DatabaseProvider provider, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
     {
         // Retire the old container gracefully (SIGTERM → WAL checkpoint, and a Litestream flush when a
         // replica is configured) before removing it, so the last writes are durable; both no-op on the
@@ -390,7 +412,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         int started;
         try
         {
-            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv), cancellationToken).ConfigureAwait(false);
+            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv, provider), cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -432,7 +454,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     // ── The domain path: blue-green swap behind a shared, multi-app Caddy proxy (zero downtime). ────────
     private async Task<int> DeployWithProxyAsync(
-        string host, string slug, string domain, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
+        string host, string slug, string domain, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, DatabaseProvider provider, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
     {
         // The live containers are the source of truth. Read them once: the current color of this app (to
         // pick the next), plus every other app's route (to regenerate the full Caddyfile).
@@ -453,7 +475,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         int started;
         try
         {
-            started = await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort, tag, runtimeEnv), cancellationToken).ConfigureAwait(false);
+            started = await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort, tag, runtimeEnv, provider), cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -775,7 +797,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     private Task<ProcessResult> Capture(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
         _process.CaptureAsync("docker", args, _workingDirectory, cancellationToken);
 
-    private void PrintPlan(string host, string slug, string? domain, int port, int containerPort, string dockerfile, string contextDir, IReadOnlyList<string> env, bool healthEnabled, string healthPath)
+    private void PrintPlan(string host, string slug, string? domain, int port, int containerPort, string dockerfile, string contextDir, IReadOnlyList<string> env, bool healthEnabled, string healthPath, DatabaseProvider provider)
     {
         var writer = Console.Out;
         writer.WriteLine("Dry run — the following docker commands would run (no changes made):");
@@ -789,7 +811,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         if (domain is null)
         {
             Line(BuildRemoveArguments(host, slug));
-            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted, containerPort));
+            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted, containerPort, provider: provider));
             Line(BuildInspectRunningArguments(host, slug));
             if (healthEnabled)
             {
@@ -802,7 +824,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             var container = $"{slug}-{color}";
             Line(BuildListArguments(host));
             Line(BuildNetworkCreateArguments(host, Network));
-            Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort));
+            Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort, provider: provider));
             Line(BuildInspectRunningArguments(host, container));
             if (healthEnabled)
             {
@@ -848,7 +870,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     /// so the values never appear in this machine's process table the way <c>-e KEY=VALUE</c> does. Entries
     /// whose value spans lines can't be expressed in that format and stay inline.
     /// </summary>
-    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag, string? envFilePath = null)
+    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag, string? envFilePath = null, DatabaseProvider provider = DatabaseProvider.Sqlite)
     {
         var args = new List<string>(Prefix(host)) { "run", "-d" };
 
@@ -883,7 +905,15 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // exception page; relying on the base image's default left a deployed app in whatever environment
         // the image happened to assume. Set before the user's own --env, so an explicit override still wins.
         args.AddRange(["-e", "ASPNETCORE_ENVIRONMENT=Production"]);
-        args.AddRange(["-v", $"{slug}-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db"]);
+
+        // Only a file database gets a volume and a connection string invented for it. On a client-server
+        // database there is nothing on this box to persist, and guessing a connection string would be worse
+        // than having none: the app would start against the wrong database instead of failing. The deploy
+        // path refuses that case up front unless the user supplied ConnectionStrings__App themselves.
+        if (DatabaseCatalog.For(provider).IsFileBased)
+        {
+            args.AddRange(["-v", $"{slug}-data:/data", "-e", "ConnectionStrings__App=Data Source=/data/app.db"]);
+        }
 
         if (envFilePath is not null)
         {

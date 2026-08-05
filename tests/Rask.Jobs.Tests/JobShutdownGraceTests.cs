@@ -27,7 +27,9 @@ public sealed class JobShutdownGraceTests
         Assert.True(h.Gate.Completed.Task.IsCompletedSuccessfully, "the handler ran to completion");
         var job = await h.SingleJobAsync();
         Assert.NotNull(job.ProcessedAt);
-        Assert.Equal(0, job.Attempts);
+        // 1, not 0: the claim counts attempts *started*, so a job that succeeds first time shows one. The
+        // roll-back on the shutdown path only applies to work that did NOT finish.
+        Assert.Equal(1, job.Attempts);
         Assert.Null(job.Error);
     }
 
@@ -73,9 +75,15 @@ public sealed class JobShutdownGraceTests
 
         var job = await h.SingleJobAsync();
         Assert.Null(job.ProcessedAt);
+        // The claim increments Attempts up front, so the shutdown path has to give it back — otherwise
+        // MaxAttempts becomes a function of deploy cadence rather than of failure.
         Assert.Equal(0, job.Attempts);
         Assert.Null(job.Error);
         Assert.Equal(runAtBefore, job.RunAt);
+        // The lease goes back too, so the next boot sees the job at once instead of waiting out a claim
+        // held by a process that no longer exists.
+        Assert.Null(job.ClaimToken);
+        Assert.Null(job.ClaimedUntil);
     }
 
     [Fact]

@@ -29,6 +29,21 @@ public sealed class OutboxMessage
 
     /// <summary>The last failure message, if any.</summary>
     public string? Error { get; set; }
+
+    /// <summary>
+    /// The processor instance currently holding this message, or <c>null</c> when nobody does.
+    /// </summary>
+    /// <remarks>
+    /// Also the optimistic-concurrency token, which is what stops an instance whose lease expired
+    /// mid-dispatch from stamping its outcome over the row another instance has since taken.
+    /// </remarks>
+    public Guid? ClaimToken { get; set; }
+
+    /// <summary>
+    /// When the current claim expires (UTC). Null or in the past means the message is claimable — which is
+    /// also how a processor that died mid-dispatch releases its work: the lease simply runs out.
+    /// </summary>
+    public DateTime? ClaimedUntil { get; set; }
 }
 
 /// <summary>The EF Core mapping for <see cref="OutboxMessage"/>.</summary>
@@ -40,8 +55,12 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         entity.HasKey(x => x.Id);
         entity.Property(x => x.Type).IsRequired().HasMaxLength(512);
         entity.Property(x => x.Payload).IsRequired();
-        // Drives the "oldest unprocessed first" poll query.
+        // Drives the "oldest unprocessed first" poll query. ClaimedUntil stays out of it: in a healthy
+        // outbox almost every candidate row is unclaimed, so it costs nothing as a residual filter, and a
+        // filtered index would need provider-specific SQL.
         entity.HasIndex(x => new { x.ProcessedAt, x.Id });
+        // Fences the completion write — see Job.ClaimToken for why.
+        entity.Property(x => x.ClaimToken).IsConcurrencyToken();
     }
 }
 

@@ -28,7 +28,9 @@ public sealed class MailShutdownGraceTests
         Assert.Single(sender.Sent);
         var mail = await h.SingleMailAsync();
         Assert.NotNull(mail.ProcessedAt);
-        Assert.Equal(0, mail.Attempts);
+        // 1, not 0: the claim counts attempts *started*, so mail that sends first time shows one. The
+        // roll-back on the shutdown path only applies to work that did NOT finish.
+        Assert.Equal(1, mail.Attempts);
     }
 
     [Fact]
@@ -50,8 +52,14 @@ public sealed class MailShutdownGraceTests
 
         var mail = await h.SingleMailAsync();
         Assert.Null(mail.ProcessedAt);
+        // The claim increments Attempts up front, so the shutdown path has to give it back — otherwise
+        // MaxAttempts becomes a function of deploy cadence rather than of failure.
         Assert.Equal(0, mail.Attempts);
         Assert.Null(mail.Error);
+        // The lease goes back too, so the next boot sees the row at once instead of waiting out a claim
+        // held by a process that no longer exists.
+        Assert.Null(mail.ClaimToken);
+        Assert.Null(mail.ClaimedUntil);
     }
 
     [Fact]

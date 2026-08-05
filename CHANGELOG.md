@@ -134,6 +134,116 @@ them until tagged releases begin.
   on the background thread, which with the default `BackgroundServiceExceptionBehavior.StopHost` took the
   host down at an unrelated moment with an unrelated-looking stack. Every value it now rejects already threw
   at runtime, just later and less legibly.
+- **PostgreSQL as an opt-in database, via `Rask.Postgres` and `rask new --database postgres`.** SQLite
+  remains the default and the recommendation — one file, no server, and every pillar riding it is still what
+  a single-developer product should reach for first. But the docs have long promised that *"when you outgrow
+  one box, the door to a client-server database is open"*, and until now nothing in the CLI, the deploy path
+  or `rask db` knew another provider existed. This opens it properly. `UseRaskPostgres(...)` is a drop-in for
+  `UseNpgsql` that applies the production session settings on every connection — `statement_timeout`,
+  `lock_timeout`, `idle_in_transaction_session_timeout` — and turns on Npgsql's transient-failure retrying;
+  it is the direct counterpart of what `UseRaskSqlite` does with pragmas. Unlike `Rask.SQLite` there is no
+  separate raw-ADO package, because Npgsql already provides the pooling and retry that one had to add by
+  hand. `lock_timeout` is validated to sit below `statement_timeout`: above it, the statement timeout always
+  fires first and lock contention gets reported as a slow query, which is exactly the misdiagnosis the
+  setting exists to prevent.
+
+  The provider is chosen once, at `rask new`, and then **detected** everywhere else — `rask generate
+  feature`, `rask db` and `rask deploy` all read it off the project's package references rather than asking
+  again, so there is no second source of truth to drift. Choosing it changes what gets scaffolded: no
+  Litestream, no scheduled snapshots, no `/data` volume in the Dockerfile, and a generated persistence test
+  that creates and drops a database of its own instead of a temp file. Those are not degraded — they
+  replicate or copy *a file*, and there isn't one. For the same reason `--snapshots` with a server database
+  is a usage error rather than a silently dropped flag (a backup you believe you configured is worse than
+  one you know you haven't), while `--all-batteries` simply expands to the batteries that do apply.
+
+  `rask deploy` stops injecting a volume and a `Data Source=/data/app.db` connection string for a
+  server database, and **refuses the deploy** when no `ConnectionStrings__App` was supplied — otherwise the
+  app would start against the placeholder connection string compiled into `Program.cs`, which on the server
+  is either nothing or somebody else's database. `rask db backup`/`restore` refuse too, pointing at
+  `pg_dump`: both copy a SQLite file, and a backup command that quietly does nothing is the worst kind of
+  bug it could have. Migrations are unaffected — `rask db add`/`update` forward to `dotnet ef`, which was
+  always provider-agnostic.
+
+  Running several instances is safe — see the leasing entry below.
+
+- **`ICache` can be backed by Redis — or any `IDistributedCache` — with a non-generic `AddRaskCache()`.**
+  The database-backed cache stays the default and the recommendation; the case against Redis in
+  [`cache.md`](docs/cache.md) is about not standing one *up* for a cache, not about refusing to use one you
+  already operate.
+
+  The typed layer always worked over the interface, so this mostly removes a trap rather than adding a
+  feature: `AddRaskCache<TContext>()` also registers the purge worker, so an app that pointed `ICache` at
+  Redis still had to map the `CacheEntry` table and run a migration for it, or watch the purger throw every
+  five minutes. The new overload registers `ICache` alone.
+
+  It takes **no `CacheOptions`**, deliberately — `PurgeInterval` and `DefaultSlidingExpiration` are both
+  implemented by the database-backed store, so against another one they would be settings that silently did
+  nothing. Expiry is that store's business. There is no `Rask.Cache.Redis` package either:
+  `Microsoft.Extensions.Caching.StackExchangeRedis` is the standard .NET API and wrapping it would only add
+  a layer to keep in step. Only the cache moves — jobs, mail and the outbox stay on the database, because
+  they need transactions.
+
+- **SQL Server too, via `Rask.SqlServer` and `rask new --database sqlserver`.** `UseRaskSqlServer(...)` is
+  the SQL Server counterpart of `UseRaskPostgres`: `SET LOCK_TIMEOUT` and `SET XACT_ABORT ON` on every
+  connection open, a client command timeout, and `EnableRetryOnFailure`.
+
+  Deliberately not a mirror of the PostgreSQL options. SQL Server has no server-side statement timeout — so
+  the ceiling on a runaway query has to be the *client* command timeout — and nothing corresponding to
+  `idle_in_transaction_session_timeout`, so neither is invented. What it has and PostgreSQL does not need is
+  `XACT_ABORT`, on by default: with it off, a statement error inside an explicit transaction leaves that
+  transaction open and holding locks, and the connection returns to the pool in that state.
+
+  Verified against a real engine, not asserted: `scripts/run-providers-local.sh` now races 20 processor
+  instances for 200 jobs on SQL Server as well as PostgreSQL. Doing that also caught a bad assertion in the
+  PostgreSQL suite — it required all 200 jobs to be claimed in a single round, which passed on PostgreSQL by
+  timing alone. Every instance runs the same deterministic candidate query, so most legitimately claim
+  nothing and poll again; the invariant is that no job is claimed *twice*, not that one round drains the
+  queue.
+
+- **Jobs, mail and the outbox now lease the work they claim, so more than one instance is safe.**
+  **⚠️ Action required: `rask db add AddLeases && rask db update`.**
+
+  Until now the three processors polled for due work and ran it without claiming it first. Two instances
+  therefore read the *same* rows and both processed them: every job ran twice, and every queued email was
+  **sent twice**. On SQLite that constraint was natural and documented ("run one processor per app"), but
+  PostgreSQL invites `replicas > 1`, where it became a trap.
+
+  A batch is now taken with a single `UPDATE` whose predicate re-tests claimability. Every provider
+  re-evaluates that predicate against the row version the winner committed, so the row goes to exactly one
+  instance — no `SKIP LOCKED`, no provider-specific SQL, the same code path on SQLite. The claim marks rows
+  with a token and an expiry (`LeaseDuration`, default 5 minutes, must exceed `PollInterval`). A processor
+  that dies keeps nothing: its lease runs out and the work becomes claimable again, so there is no sweeper
+  to run and nothing to clean up by hand.
+
+  **Be clear about what this buys.** A lease stops one instance overwriting another's outcome; it does not
+  make a side effect happen once. An instance that overruns its `LeaseDuration` can have its row taken while
+  it is still working — the database stays consistent, because the loser's write is rejected and discarded,
+  but an email it already sent is out. At-least-once was always the contract; the lease narrows the window
+  from *always, on every instance* to *only on an overrun*, and logs which `LeaseDuration` to raise when one
+  happens. Set it above your slowest handler.
+
+  **`Attempts` changes meaning: it now counts attempts *started*, not failures.** The claim increments it.
+  A job that takes the whole process down with it — an OOM, a pod eviction — never reaches the failure path,
+  so counting only failures left it retried by every instance forever and `MaxAttempts` never dead-lettered
+  it. Visible in the `/_ops` dashboard and in metrics: a job that succeeds first time now shows
+  `Attempts = 1` rather than `0`.
+
+  **A shutdown is the one interruption that does not count.** Where the two behaviours meet — an item
+  claimed, then cut off by a redeploy outliving its `ShutdownGracePeriod` — the processor gives the
+  increment back and hands the lease over with it. Without that, `MaxAttempts` would silently become a
+  function of *deploy cadence*: at the default of 10, ten unlucky redeploys would dead-letter an item that
+  never once failed, and nothing in the logs would connect the two. Releasing the lease also means the next
+  boot sees the item immediately instead of waiting out a claim held by a process that no longer exists.
+
+  The migration adds two nullable columns to each of the three tables — additive, no backfill. Skipping it
+  is the one failure mode worth knowing about: the processors throw on every poll, the exception is caught
+  rather than crashing the app, and it logs the same error every five seconds while looking healthy. All
+  three now recognise that specific failure and print the two commands above instead of a stack trace.
+
+- **Two instances no longer double-enqueue every recurring job.** A hazard the drain's lease does nothing
+  about: both processors read the same `RecurringJobState`, both saw it due, and both enqueued — and the two
+  `LastEnqueuedAt` writes raced with no concurrency token, so neither lost. The result was N× every
+  recurring job, for as long as the app ran. The tick is now claimed with a compare-and-swap on due-ness.
 - **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
   backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
   for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,
@@ -252,6 +362,19 @@ them until tagged releases begin.
   signal uses them today, but this is the code the planned Broadcast pillar inherits, where a fan-out is a
   user-facing feature — and it is a prerequisite for the deploy-drain broadcast, which has to finish
   inside the shutdown budget before `SIGKILL` interrupts a SQLite checkpoint.
+- **The jobs retention sweep fought a second instance.** `JobProcessor.PurgeAsync` loaded the stale rows and
+  `RemoveRange`d them; a tracked delete of a row that vanished underneath the sweep raises
+  `DbUpdateConcurrencyException` and fails the whole cycle — precisely what two processors purging
+  concurrently do to each other. The outbox sweep already deleted by id through `ExecuteDelete` for exactly
+  this reason. `MailProcessor.PurgeAsync`'s single unbounded `DELETE` was correct but held SQLite's one
+  write lock for the length of the sweep; both are now paged like the outbox's.
+- **`rask new`'s template catalog listed a `litestream` flag that could never be requested.** It had been
+  removed from the flag list but left in the server template's supported set, where it read as a feature.
+  A parity guard now fails the build if a template ever claims a flag `rask new` doesn't accept.
+- **`rask deploy --help` and the generated GitHub Actions workflow both showed `ConnectionStrings__Db`**,
+  while everything that works uses `ConnectionStrings__App`. Copy-pasteable and wrong: an app started with
+  the misspelled key falls back to its default database. A guard now checks the examples against the key the
+  deploy actually injects.
 - **A contended write no longer fails with "cannot start a transaction within a transaction".** The
   busy-retry loop re-issued the identical statement on every pass with no cleanup between attempts, and
   cleared a leaked transaction only *once*, before the loop. That caught a transaction the pooled handle
