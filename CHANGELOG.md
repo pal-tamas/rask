@@ -60,6 +60,16 @@ them until tagged releases begin.
   factory to enqueue an off-schedule run.
 
 ### Fixed
+- **The outbox table no longer grows for the life of the application.** It was the only DB-backed pillar
+  with no retention: every domain event ever raised was kept forever, payload included, on the same SQLite
+  file the app serves from — and that Litestream replicates and snapshots copy. New
+  `OutboxOptions.RetentionPeriod` (default 7 days, matching jobs and mail; `TimeSpan.Zero` keeps
+  everything) purges published messages hourly. **Dead letters are never purged** — they have no
+  `ProcessedAt`, so the retention predicate cannot match them whatever cutoff you set. The sweep runs in
+  pages and deletes by id rather than as one unbounded statement, because the first sweep on an app that
+  has been running without retention would otherwise hold SQLite's single write lock for its whole
+  duration; it loops until drained so a large backlog actually clears instead of shrinking by one page an
+  hour.
 - **A row changing underneath the jobs or outbox drain no longer discards the whole batch's progress.** Both
   processors ran a batch and then wrote every outcome in a single `SaveChangesAsync`. Anything else modifying
   one of those rows meanwhile — a manual `UPDATE`/`DELETE` against `app.db`, which is currently the only way
