@@ -134,7 +134,17 @@ public sealed class MailProcessorTests
         try
         {
             await harness.Queue.SendAsync(SampleEmail());
-            await harness.WaitUntilAsync(async () => (await harness.SingleMailAsync()).Attempts == 3, advanceClock: true);
+            // Wait for attempt 3 to *finish*, not just to start: the claim increments Attempts before the
+            // send runs, so `Attempts == 3` is already true while the third send is still in flight — and
+            // the snapshot of sender.Attempts below would then be taken mid-attempt. An unclaimed row is
+            // the signal that nothing is in flight.
+            await harness.WaitUntilAsync(
+                async () =>
+                {
+                    var row = await harness.SingleMailAsync();
+                    return row.Attempts == 3 && row.ClaimToken is null;
+                },
+                advanceClock: true);
 
             // Once at MaxAttempts the message is a dead letter — no longer claimed, never delivered.
             var attemptsAtDeadLetter = sender.Attempts;

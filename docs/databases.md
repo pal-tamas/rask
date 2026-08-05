@@ -88,7 +88,9 @@ job runs on one instance and an email is sent by one instance.
 
 Claiming a batch is one `UPDATE` whose predicate re-tests claimability. Every provider re-evaluates that
 predicate against the row version the winner committed, so the row goes to exactly one instance — no
-`SKIP LOCKED`, no provider-specific SQL, and the same code path on SQLite. A claim marks the rows with a
+`SKIP LOCKED`, no provider-specific SQL, and the same code path on SQLite. That last part is a claim about
+the *server*, so it is tested against a real one: `scripts/run-providers-local.sh` races 20 instances for
+200 jobs on PostgreSQL and asserts no job is claimed twice. A claim marks the rows with a
 token and an expiry (`LeaseDuration`, default 5 minutes); finishing hands them back, and so does a graceful
 shutdown, so a rolling deploy doesn't park a batch.
 

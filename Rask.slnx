@@ -82,6 +82,7 @@
         <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj"/>
         <Project Path="tests/Rask.Native.Tests/Rask.Native.Tests.csproj"/>
         <Project Path="tests/Rask.Postgres.Tests/Rask.Postgres.Tests.csproj"/>
+        <Project Path="tests/Rask.Providers.Tests/Rask.Providers.Tests.csproj"/>
         <Project Path="tests/Rask.Server.HotReload.Tests/Rask.Server.HotReload.Tests.csproj"/>
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Tests/Rask.SQLite.Tests.csproj"/>
