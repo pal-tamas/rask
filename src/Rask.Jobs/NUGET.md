@@ -8,7 +8,8 @@ app's own database, with no broker or Redis.
 - A background **`JobProcessor`** polls the `Job` table and runs each due job — **at-least-once**, with
   **exponential-backoff** retries up to `MaxAttempts` (then left as a dead letter for inspection).
 - **Delayed** (`ScheduleAsync(job, delay)`) and durable **interval-recurring** (`AddRecurring<T>(name, every, …)`)
-  jobs — recurring runs are tracked in the DB, so a restart never double-runs them.
+  jobs — recurring runs are tracked in the DB, so a restart never double-runs them. Read the schedule back
+  from `JobOptions.RecurringJobs`.
 - A **source generator** registers every `IJob` type for reflection-free rehydration on the run path.
 
 ## Use

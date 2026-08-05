@@ -37,6 +37,37 @@ public sealed class JobOptionsTests
     }
 
     [Fact]
+    public void RecurringJobs_exposes_the_registered_schedule()
+    {
+        var options = new JobOptions();
+        options.AddRecurring<TickJob>("tick", TimeSpan.FromMinutes(5), () => new TickJob());
+        options.AddRecurring<RecordJob>("digest", TimeSpan.FromHours(24), () => new RecordJob("digest"));
+
+        // The schedule an operator surface reads: registration order, durable name, cadence.
+        Assert.Collection(
+            options.RecurringJobs,
+            r =>
+            {
+                Assert.Equal("tick", r.Name);
+                Assert.Equal(TimeSpan.FromMinutes(5), r.Interval);
+            },
+            r =>
+            {
+                Assert.Equal("digest", r.Name);
+                Assert.Equal(TimeSpan.FromHours(24), r.Interval);
+            });
+
+        // The factory is reachable, so a caller can enqueue an off-schedule run of a recurring job.
+        Assert.IsType<TickJob>(options.RecurringJobs[0].Factory());
+    }
+
+    [Fact]
+    public void RecurringJobs_is_empty_when_nothing_is_registered()
+    {
+        Assert.Empty(new JobOptions().RecurringJobs);
+    }
+
+    [Fact]
     public void Validate_rejects_a_non_positive_poll_interval()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new JobOptions { PollInterval = TimeSpan.Zero }.Validate());

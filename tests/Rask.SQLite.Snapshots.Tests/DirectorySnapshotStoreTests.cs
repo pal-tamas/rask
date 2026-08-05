@@ -18,6 +18,44 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ListAsync_reports_matching_snapshots_newest_first()
+    {
+        Directory.CreateDirectory(_dir);
+        var baseTime = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        for (var i = 0; i < 3; i++)
+        {
+            var path = Path.Combine(_dir, $"app-{i}.db");
+            await File.WriteAllTextAsync(path, new string('x', i + 1));
+            File.SetLastWriteTimeUtc(path, baseTime.AddMinutes(i));   // app-2 is newest
+        }
+
+        // Same pattern scoping as PruneAsync: what you can see is what retention manages.
+        await File.WriteAllTextAsync(Path.Combine(_dir, "unrelated.txt"), "ignore me");
+
+        var store = new DirectorySnapshotStore(_dir, "app-*.db");
+        var snapshots = await store.ListAsync(CancellationToken.None);
+
+        Assert.Equal(["app-2.db", "app-1.db", "app-0.db"], snapshots.Select(s => s.Name));
+        Assert.Equal(3, snapshots[0].SizeBytes);
+        Assert.Equal(baseTime.AddMinutes(2), snapshots[0].CreatedAt);
+    }
+
+    [Fact]
+    public async Task ListAsync_is_empty_when_the_directory_does_not_exist()
+    {
+        var store = new DirectorySnapshotStore(_dir, "app-*.db");
+        Assert.Empty(await store.ListAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ListAsync_defaults_to_empty_for_a_store_that_does_not_implement_it()
+    {
+        // The default interface method keeps stores written before ListAsync existed compiling.
+        ISqliteSnapshotStore store = new NonListingStore();
+        Assert.Empty(await store.ListAsync(CancellationToken.None));
+    }
+
+    [Fact]
     public async Task PruneAsync_keeps_only_the_newest_retained()
     {
         Directory.CreateDirectory(_dir);
@@ -49,5 +87,14 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
         {
             Directory.Delete(_dir, recursive: true);
         }
+    }
+
+    // A custom store of the shape that existed before ListAsync was added — it must still compile.
+    private sealed class NonListingStore : ISqliteSnapshotStore
+    {
+        public Task SaveAsync(string sourceFilePath, string snapshotName, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+
+        public Task PruneAsync(int retain, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

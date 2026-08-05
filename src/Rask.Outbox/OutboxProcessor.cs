@@ -29,13 +29,31 @@ public sealed class OutboxProcessor<TContext>(
         {
             do
             {
-                await DrainAsync(stoppingToken).ConfigureAwait(false);
+                await RunCycleAsync(stoppingToken).ConfigureAwait(false);
             }
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
         }
         catch (OperationCanceledException)
         {
             // Normal shutdown.
+        }
+    }
+
+    private async Task RunCycleAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await DrainAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw; // shutting down — let ExecuteAsync end
+        }
+#pragma warning disable CA1031 // A transient DB error (e.g. SQLITE_BUSY) must not fault the service and stop the host — retry next poll.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogError(ex, "Outbox processing cycle failed; retrying on the next poll.");
         }
     }
 
@@ -60,35 +78,45 @@ public sealed class OutboxProcessor<TContext>(
 
         foreach (var message in batch)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+
             var notification = OutboxSerializerRegistry.Deserialize(message.Type, message.Payload);
             if (notification is null)
             {
                 message.Attempts++;
                 message.Error = $"No registered outbox event type '{message.Type}'.";
                 logger.LogError("Outbox message {Id} has an unregistered type '{Type}'.", message.Id, message.Type);
-                continue;
             }
-
-            try
+            else
             {
-                await dispatcher.PublishAsync(notification, cancellationToken).ConfigureAwait(false);
-                message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
-                message.Error = null;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break; // shutting down — leave the rest for the next run
-            }
+                try
+                {
+                    await dispatcher.PublishAsync(notification, cancellationToken).ConfigureAwait(false);
+                    message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
+                    message.Error = null;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break; // shutting down — leave this and the rest for the next run
+                }
 #pragma warning disable CA1031 // A failing handler must not stop the drain or crash the app — record + retry.
-            catch (Exception ex)
+                catch (Exception ex)
 #pragma warning restore CA1031
-            {
-                message.Attempts++;
-                message.Error = ex.Message;
-                logger.LogError(ex, "Outbox message {Id} failed to publish (attempt {Attempts}).", message.Id, message.Attempts);
+                {
+                    message.Attempts++;
+                    message.Error = ex.Message;
+                    logger.LogError(ex, "Outbox message {Id} failed to publish (attempt {Attempts}).", message.Id, message.Attempts);
+                }
             }
-        }
 
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            // Persist THIS message's outcome before moving on (with None so an event that already published is
+            // still marked during shutdown). Saving per message bounds an at-least-once re-publish to the single
+            // message whose save failed, never the whole batch: one row deleted or edited underneath the drain
+            // would otherwise abort the entire SaveChanges and re-publish every event already delivered from it.
+            await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
     }
 }

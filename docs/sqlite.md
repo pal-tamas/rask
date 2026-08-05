@@ -310,6 +310,25 @@ driven through [CliWrap](https://github.com/Tyrrrz/CliWrap); a backup failure is
 but never crashes the app it protects. Point `ConfigPath` at a full `litestream.yml` for multiple
 databases or custom retention.
 
+### Checking that backups are running
+
+A `Critical` log line tells you when replication broke; nothing tells you it's *healthy*. Resolve the
+`LitestreamStatus` singleton to read that directly:
+
+```csharp
+app.MapGet("/health/backup", (LitestreamStatus status) => status.Current);
+```
+
+| Property | Meaning |
+| --- | --- |
+| `IsReplicating` | `true` while `litestream replicate` is running. Continuous backup only protects you while this is true. |
+| `LastStartedAt` / `LastExitedAt` | When the current (or most recent) run started and ended, UTC. |
+| `RestartCount` | How many times replication has been restarted. Above zero means backups were interrupted; **climbing means they're flapping**. |
+| `LastExitCode` | The exit code of the most recent run — `null` if it never launched. |
+| `LastError` | Why the most recent run failed to launch, if it did. |
+
+A clean shutdown isn't a failure: it clears `IsReplicating` without counting a restart.
+
 ### The litestream binary is fetched for you
 
 By default the package **downloads the `litestream` binary at build/publish time** and drops it next to
@@ -378,6 +397,11 @@ Each snapshot is a complete standalone database (`app-20260714-030000000.db`). N
 right before a risky migration? Inject `ISqliteSnapshotter` and `await snapshotter.SnapshotAsync(ct)`.
 To send snapshots to object storage instead of a local directory, register your own
 `ISqliteSnapshotStore` before `AddRaskSqliteSnapshots` (then `DestinationDirectory` isn't required).
+
+To show what you've actually captured, `await store.ListAsync(ct)` returns each snapshot's name, size and
+timestamp, newest first — scoped to the same search pattern retention prunes by, so what you can see is what
+the store manages. A custom store inherits a default that returns an empty list, so override it if yours can
+enumerate: callers can't tell "no snapshots yet" from "this store doesn't list".
 
 **Snapshots vs Litestream — use one, or both:** Litestream is continuous (near-zero data loss, point-in-time
 restore) but needs object storage and a sidecar binary; snapshots are periodic, self-contained, need

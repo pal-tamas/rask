@@ -15,6 +15,13 @@ public sealed record FailingJob : IJob;
 
 public sealed record TickJob : IJob;
 
+/// <summary>
+/// A job whose handler deletes the highest-numbered still-pending job row — i.e. one that is sitting in the
+/// very batch currently being drained. Stands in for anything that writes to the jobs table underneath the
+/// processor: a manual SQL fix, an ops dashboard's "delete", a cleanup script.
+/// </summary>
+public sealed record SaboteurJob : IJob;
+
 /// <summary>Thread-safe sink the job handlers write to (they run on the processor's background thread).</summary>
 public sealed class Recorder
 {
@@ -57,6 +64,25 @@ public sealed class TickJobHandler(Recorder recorder) : ICommandHandler<TickJob>
     {
         recorder.Tick();
         return Task.CompletedTask;
+    }
+}
+
+public sealed class SaboteurJobHandler(IDbContextFactory<JobsDbContext> factory) : ICommandHandler<SaboteurJob>
+{
+    public async Task HandleAsync(SaboteurJob command, CancellationToken cancellationToken)
+    {
+        await using var db = await factory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var doomed = await db.Set<Job>()
+            .Where(j => j.ProcessedAt == null)
+            .OrderByDescending(j => j.Id)
+            .Select(j => j.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (doomed != 0)
+        {
+            await db.Set<Job>().Where(j => j.Id == doomed).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 }
 

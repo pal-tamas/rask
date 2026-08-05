@@ -16,18 +16,26 @@ internal sealed class LitestreamReplicationService : BackgroundService
 
     private readonly LitestreamOptions _options;
     private readonly ILitestreamExecutor _executor;
+    private readonly LitestreamStatus _status;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<LitestreamReplicationService> _logger;
 
     public LitestreamReplicationService(
         LitestreamOptions options,
         ILitestreamExecutor executor,
+        LitestreamStatus status,
+        TimeProvider timeProvider,
         ILogger<LitestreamReplicationService> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(executor);
+        ArgumentNullException.ThrowIfNull(status);
+        ArgumentNullException.ThrowIfNull(timeProvider);
         ArgumentNullException.ThrowIfNull(logger);
         _options = options;
         _executor = executor;
+        _status = status;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -38,6 +46,7 @@ internal sealed class LitestreamReplicationService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             _logger.LogInformation("Starting Litestream replication.");
+            _status.MarkStarted(_timeProvider.GetUtcNow());
 
             try
             {
@@ -46,10 +55,12 @@ internal sealed class LitestreamReplicationService : BackgroundService
 
                 if (stoppingToken.IsCancellationRequested)
                 {
+                    _status.MarkStopped(_timeProvider.GetUtcNow());
                     break;
                 }
 
                 // `replicate` runs until cancelled; returning on its own means the backup stream stopped.
+                _status.MarkExited(_timeProvider.GetUtcNow(), exitCode);
                 _logger.LogCritical(
                     "Litestream replication exited unexpectedly with code {ExitCode}; restarting in {Delay}.",
                     exitCode, restartDelay);
@@ -57,12 +68,14 @@ internal sealed class LitestreamReplicationService : BackgroundService
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 // Normal shutdown — the host is stopping and we cancelled the process.
+                _status.MarkStopped(_timeProvider.GetUtcNow());
                 break;
             }
 #pragma warning disable CA1031 // A backup sidecar failing must never crash the app it protects — log and retry.
             catch (Exception ex)
 #pragma warning restore CA1031
             {
+                _status.MarkFailed(_timeProvider.GetUtcNow(), ex.Message);
                 _logger.LogCritical(ex, "Litestream replication could not run; restarting in {Delay}.", restartDelay);
             }
 

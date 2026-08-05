@@ -69,10 +69,15 @@ await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(2
   `ProcessedAt`. On failure it records the error, increments the attempt count, and pushes `RunAt` out by an
   **exponential backoff** (`BaseRetryDelay × 2^(attempts-1)`, capped at `MaxRetryDelay`), retrying until
   `MaxAttempts` — after which the job is left as a **dead letter** for inspection. A failing job never crashes
-  the app. Completed jobs are purged after `RetentionPeriod` (default 7 days; `TimeSpan.Zero` keeps them).
+  the app, and neither does a failing poll — a transient database error is logged and retried on the next one.
+  Each job's outcome is saved on its own, so a row edited or deleted underneath the drain costs that one row
+  rather than re-running everything the batch had already executed. Completed jobs are purged after
+  `RetentionPeriod` (default 7 days; `TimeSpan.Zero` keeps them).
 - **Recurring** — `AddRecurring<T>(name, every, factory)` enqueues a fresh job on each interval, tracked
   durably in `RecurringJobState`, so a restart never double-runs it (and runs a single catch-up if the app was
-  down past the due time).
+  down past the due time). Read the registered schedule back from `JobOptions.RecurringJobs` — join it to the
+  `RecurringJobState` row of the same name to show when each one last fired, or call an entry's `Factory()`
+  and enqueue the result to run one off-schedule.
 - **The `Rask.Jobs` source generator** registers every `IJob` type (name → CLR type) at module load, so the
   processor rehydrates a stored job with no runtime `Type.GetType` or assembly scanning.
 

@@ -12,6 +12,10 @@ public static class LitestreamServiceCollectionExtensions
     /// <see cref="LitestreamOptions.ConfigPath"/>). Call
     /// <see cref="LitestreamStartupExtensions.RestoreSqliteFromLitestreamAsync"/> after
     /// <c>Build()</c> and before opening the database to restore on a fresh host. Idempotent.
+    /// <para>
+    /// Also registers <see cref="LitestreamStatus"/>, a singleton reporting whether replication is currently
+    /// running and how often it has restarted.
+    /// </para>
     /// </summary>
     public static IServiceCollection AddRaskSqliteLitestream(
         this IServiceCollection services,
@@ -33,6 +37,8 @@ public static class LitestreamServiceCollectionExtensions
         options.Validate();
 
         services.TryAddSingleton(options);
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<LitestreamStatus>();
         services.TryAddSingleton<ILitestreamExecutor, CliWrapLitestreamExecutor>();
         services.TryAddSingleton<LitestreamRestorer>();
         services.AddHostedService<LitestreamReplicationService>();
