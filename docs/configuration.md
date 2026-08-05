@@ -63,6 +63,8 @@ WebSocket safety caps and session grace periods — only the ASP.NET host has th
 | `IdleSocketTimeout` | `0` (off) | Close a connected socket that sends no inbound frame for this long (the session survives for reconnect). Reclaims silently-idle connections. |
 | `MaxPendingHandlerBytes` | `0` (off) | Aggregate-bytes companion to `MaxPendingHandlers` — bounds the queued cloned-payload *memory*, not just the queue length. |
 | `SendTimeout` | `30 s` | How long one outbound frame may take before the socket is aborted. A client that stops reading TCP would otherwise pin its session's render lock — and its disposal — indefinitely. The session survives for the grace period, so a briefly-stalled link reconnects normally. `0` disables. |
+| `SessionResume` | `true` | Let a client rebuild its page on a host that has never heard of its session — after a restart or a redeploy. See [surviving a restart](#surviving-a-restart-or-a-redeploy). Turn it off to keep the reload. |
+| `ResumeTokenLifetime` | `1 h` | How long a resume record stays redeemable. Not the reconnect grace period: that covers a blip against the *intact* session, this covers the session being gone. |
 | `HandlerTimeout` | `0` (off) | Cancel a handler's `Component.CancellationToken` after this long. A handler that threads that token into its async work unwinds cleanly instead of pinning the render pipeline (cooperative — a token-ignoring handler can't be force-aborted). |
 
 ### Reconnect UX
@@ -101,6 +103,67 @@ overlay handles the user-facing side automatically — nothing to configure:
 ```csharp
 builder.Services.Configure<RaskUploadOptions>(o => o.MaxFileSize = 10 * 1024 * 1024);
 ```
+
+## Surviving a restart or a redeploy
+
+A live session is a component tree, a DI scope and a set of cancellation tokens. None of that can be
+serialized, so a session cannot be moved or saved — when the process holding it goes away, it is gone.
+
+That used to be the end of the story: every `rask deploy` replaces the container, so every connected
+client got *"Your session timed out. Reload to continue."* The deploy was zero-downtime for HTTP and a
+full reload for everyone actually using the app.
+
+What travels instead is a small sealed record of **where the page was** and **what the app declared**, and
+a host that receives it back **rebuilds** the page around it. Nothing resumes — the page is built again,
+which is exactly why what you declare is what comes back:
+
+```csharp
+public sealed class OrdersPage(IPersistentState state) : Component
+{
+    private string _filter = "";
+
+    protected override void OnMount() => state.TryGet<string>("filter", out _filter!);
+
+    private void Search(string term)
+    {
+        _filter = term;
+        state.Persist("filter", term);   // survives a rebuild; everything else does not
+    }
+}
+```
+
+Inject it through the **constructor** — a settable non-nullable property becomes a required factory
+parameter ([RASK002](diagnostics.md)).
+
+**Declare state, don't stream it.** The bag is capped at 16 KB across all keys and rides the wire inside
+the render payload. Persist identifiers and selections — a filter, a wizard step, a draft — not the rows
+they resolve to. Over budget the session keeps working but declares itself unresumable and falls back to
+the reload it would have had anyway, and logs a warning saying so.
+
+**Even declaring nothing is worth something.** The route alone turns a deploy from a full-page reload into
+a re-render of the page the user was already on.
+
+**What does not come back:** anything you didn't name. In-flight async work, undeclared fields, open
+interop handles. And note that a value only *reads* back if the JSON still fits the type — if you change
+the shape of a persisted type, change its key too, or a renamed property will read back as a default
+rather than a miss.
+
+### What makes it safe
+
+The record lives in the browser, which is what makes it need no shared store, no sticky routing and no new
+infrastructure. It is encrypted and authenticated under its own data-protection purpose, so it is opaque
+and unforgeable to the client holding it. Expiry is enforced by ASP.NET's time-limited protector rather
+than a field we compare, so an expired record cannot be opened at all. It carries **no principal** — a
+reconnect authenticates from its cookie or bearer token exactly as before — but it is bound to the
+identity it was issued to, so it cannot be replayed onto another account, and signing in or out
+invalidates it. A rebuild takes a `MaxSessions` slot through the same atomic reservation a `GET` uses, so
+the reconnect storm after a deploy sheds like ordinary traffic instead of walking past the cap.
+
+> **This needs a persisted key ring.** A record sealed by the container you just replaced can only be
+> opened by the replacement if both share data-protection keys. `rask new` scaffolds that (`/data/keys`,
+> on the volume the deploy already mounts) — see [deployment](deployment.md#your-users-stay-signed-in-across-a-deploy).
+> Without it, every record is refused after a deploy and you are back to the reload. Watch
+> `rask.sessions.resume_rejected{reason="unprotect"}`: a spike right after a deploy is exactly that.
 
 ## Sizing `MaxSessions` for a memory budget
 

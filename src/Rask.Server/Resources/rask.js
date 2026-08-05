@@ -234,13 +234,6 @@
                 showSessionExpired();
                 return;
             }
-            // A fresh sealed record. Purely something to hold: it changes nothing on screen, and must
-            // not fall through to applyFullReply, which would morph the document against a frame that
-            // carries no html.
-            if (data.type === "resume") {
-                if (typeof data.token === "string") rememberResumeToken(data.token);
-                return;
-            }
             // Dev-only: the coordinator finished applying an edit and every session has repainted.
             // Purely an indicator — the DOM was already updated by the render that preceded this
             // frame, so it must NOT fall through to applyFullReply (which would morph the document
@@ -256,6 +249,11 @@
                 satisfySeq(data.seq);
                 return;
             }
+            // A refreshed resume record rides the render payload rather than arriving as its own
+            // frame, so it appears on both shapes below. Taken here, before either is applied: it is
+            // pure bookkeeping, changes nothing on screen, and must not wait on the render queue —
+            // a drop between now and the paint should still leave us holding the newer record.
+            if (typeof data.resume === "string") rememberResumeToken(data.resume);
             // Diff-mode payload (kind:"diff"): apply ops directly against the live DOM.
             // Both render paths chain through _renderQueue so a diff that defers its body
             // for a scoped-CSS load (see applyDiffReply) can't be overtaken by the next

@@ -258,6 +258,21 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
         Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd) ? pd : null;
 
     /// <summary>
+    ///     A sealed session-resume record to attach to the payload being written, or <c>null</c> for none.
+    /// </summary>
+    /// <remarks>
+    ///     Only the ASP.NET host overrides this. A WASM or native app IS the process holding its session,
+    ///     so there is no other host for a record to be redeemed on and nothing to carry — the base returns
+    ///     null and those hosts pay a null check per frame. Named "Take" because an override is expected to
+    ///     mark the record as issued: it is called once per payload and must not hand out the same record
+    ///     on every subsequent frame.
+    /// </remarks>
+    protected virtual string? TakeResumeToken() => null;
+
+    /// <summary>Bytes the <c>"resume":"…"</c> field name, quotes and separator add around the record itself.</summary>
+    private const int ResumeFieldOverhead = 12;
+
+    /// <summary>
     ///     Decide diff-vs-full for the just-rendered <paramref name="html" /> and write the frame
     ///     into <see cref="_writeBuffer" />. Identical on both hosts; the seams are parameters:
     ///     <paramref name="auth" /> (Server only — gates the diff path and rides the full payload;
@@ -270,6 +285,12 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
         AuthInstruction? auth, string sessionId)
     {
         _writeBuffer.ResetWrittenCount();
+
+        // A session-resume record, when this host issues them and the page has moved since the last one.
+        // Taken once per payload — before either branch below — so the diff and full paths carry the same
+        // record and a frame that ends up discarded on size doesn't consume it twice. Null on every host
+        // but the ASP.NET one, which is the only place a session can outlive the process holding it.
+        var resume = TakeResumeToken();
 
         // Out-of-band side effects (auth, download) and structural ops route to the full-HTML morph
         // path; in-place state changes ship a diff. Head changes (per-route <title>, a scoped-asset
@@ -293,12 +314,19 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
             {
                 var headHtml = headChanged ? LiveDiffGate.ExtractHead(html.Span) : null;
                 LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
-                    headHtml, html.Span);
+                    headHtml, html.Span, resume);
 
                 // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally
                 // under Forced. Only the pathological case (nearly every node changed on a tiny page,
                 // so op-list framing exceeds the body) falls back to full HTML on size.
-                if (DiffMode == LiveDiffMode.Forced || _writeBuffer.WrittenCount < html.Length)
+                //
+                // The resume record is discounted from the diff's measured size because the full-HTML
+                // payload would carry the identical record: it is on both sides of this comparison, so
+                // letting it count only against the diff would flip small pages to full HTML purely
+                // because a record happened to be due — a page whose diff is a few hundred bytes would
+                // start shipping its whole body every time the declared state moved.
+                var resumeCost = resume is null ? 0 : resume.Length + ResumeFieldOverhead;
+                if (DiffMode == LiveDiffMode.Forced || _writeBuffer.WrittenCount - resumeCost < html.Length)
                 {
                     usedDiff = true;
                 }
@@ -314,7 +342,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
             // Full-HTML path (first render, structural change, out-of-band side effect, size fallback):
             // this ships the whole body anyway, so materialising it as a string here is not wasted.
             LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, new string(html.Span), sessionId, historyUrl,
-                replace, auth, download, jsInvokes);
+                replace, auth, download, jsInvokes, resume);
             // Keep the cache in lockstep with the client even when shipping full HTML: promote
             // current → previous so the NEXT diff's baseline matches what the client received. Skip
             // when TryComputeDiff already rotated (diffPathEntered), or when the caller defers the

@@ -148,10 +148,11 @@ public static class LivePayload
         bool replace,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
+        IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
+        string? resume = null)
     {
         using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
-        WriteJson(writer, html, historyUrl, replace, auth, download, jsInvokes);
+        WriteJson(writer, html, historyUrl, replace, auth, download, jsInvokes, resume);
     }
 
     /// <summary>
@@ -234,9 +235,10 @@ public static class LivePayload
         bool replace,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
+        IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
+        string? resume = null)
         => BuildPayloadUtf8Spliced(output, html, sessionId, false,
-            historyUrl, replace, auth, download, jsInvokes);
+            historyUrl, replace, auth, download, jsInvokes, resume);
 
     /// <summary>
     ///     Diff-mode payload: writes <c>{ "kind": "diff", "ops": [...] }</c> directly
@@ -285,7 +287,8 @@ public static class LivePayload
         bool replace = false,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
         string? headHtml = null,
-        ReadOnlySpan<char> newHtml = default)
+        ReadOnlySpan<char> newHtml = default,
+        string? resume = null)
     {
         // Pass 1: build the attribute-name symbol table. Intern when the name appears
         // 3+ times — break-even with the table overhead lands around there for typical
@@ -485,6 +488,8 @@ public static class LivePayload
             writer.WriteEndObject();
         }
 
+        WriteResume(writer, resume);
+
         writer.WriteEndObject();
     }
 
@@ -497,7 +502,8 @@ public static class LivePayload
         bool replace,
         AuthInstruction? auth,
         PendingDownload? download,
-        IReadOnlyList<PendingJsInvoke>? jsInvokes)
+        IReadOnlyList<PendingJsInvoke>? jsInvokes,
+        string? resume = null)
     {
         // Find <body> bounds on the UTF-16 source. The prior implementation
         // rented + encoded the entire html to UTF-8 first, scanned the byte span,
@@ -510,7 +516,7 @@ public static class LivePayload
         var bodyOpenChar = IndexOfBodyOpen(html);
         if (bodyOpenChar < 0)
         {
-            BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes);
+            BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes, resume);
             return;
         }
 
@@ -521,7 +527,7 @@ public static class LivePayload
             var tagEndRel = html.AsSpan(bodyOpenChar).IndexOf('>');
             if (tagEndRel < 0)
             {
-                BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes);
+                BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes, resume);
                 return;
             }
 
@@ -529,7 +535,7 @@ public static class LivePayload
             var closeCharIdx = IndexOfIgnoreCase(html, "</body>", afterOpenTagChar);
             if (closeCharIdx < 0)
             {
-                BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes);
+                BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes, resume);
                 return;
             }
 
@@ -575,7 +581,7 @@ public static class LivePayload
             // not embedded into HTML, so the default HTML-safe escaping inflates the "html"
             // field's `<` / `>` 5× for no security benefit. Shaves ~3-5 KB off a 10 KB page.
             using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
-            WriteJsonUtf8Body(writer, span[..cursor], historyUrl, replace, auth, download, jsInvokes);
+            WriteJsonUtf8Body(writer, span[..cursor], historyUrl, replace, auth, download, jsInvokes, resume);
         }
         finally
         {
@@ -618,11 +624,30 @@ public static class LivePayload
         bool replace,
         AuthInstruction? auth,
         PendingDownload? download,
-        IReadOnlyList<PendingJsInvoke>? jsInvokes)
+        IReadOnlyList<PendingJsInvoke>? jsInvokes,
+        string? resume = null)
     {
         writer.WriteStartObject();
         writer.WriteString("html", html);
-        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes);
+        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes, resume);
+    }
+
+    /// <summary>
+    ///     Writes the session-resume record when one is due.
+    /// </summary>
+    /// <remarks>
+    ///     It rides inside the render payload rather than arriving as its own frame, for the same reason
+    ///     <c>history</c> and <c>auth</c> do. The frame stream is a contract: a <c>hello</c> with nothing
+    ///     pending must emit no frame at all, and consumers reason about the last frame of a burst — so an
+    ///     extra frame is observable in ways an extra field is not. It also happens to be exact: the record
+    ///     only changes when the declared state or the route changes, and both always come with a render.
+    /// </remarks>
+    private static void WriteResume(Utf8JsonWriter writer, string? resume)
+    {
+        if (resume is not null)
+        {
+            writer.WriteString("resume", resume);
+        }
     }
 
     private static void WriteJsonUtf8Body(
@@ -632,11 +657,12 @@ public static class LivePayload
         bool replace,
         AuthInstruction? auth,
         PendingDownload? download,
-        IReadOnlyList<PendingJsInvoke>? jsInvokes)
+        IReadOnlyList<PendingJsInvoke>? jsInvokes,
+        string? resume = null)
     {
         writer.WriteStartObject();
         writer.WriteString("html", htmlUtf8);
-        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes);
+        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes, resume);
     }
 
     private static void WriteJsonTail(
@@ -645,8 +671,10 @@ public static class LivePayload
         bool replace,
         AuthInstruction? auth,
         PendingDownload? download,
-        IReadOnlyList<PendingJsInvoke>? jsInvokes)
+        IReadOnlyList<PendingJsInvoke>? jsInvokes,
+        string? resume = null)
     {
+        WriteResume(writer, resume);
         WriteJsInvokesArray(writer, jsInvokes);
 
         if (historyUrl is not null)

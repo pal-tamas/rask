@@ -20,13 +20,10 @@ namespace Rask.Server.Tests.Live;
 /// held the tree is gone, and the one answering the reconnect never knew it.
 /// </para>
 /// <para>
-/// <b>Not yet wired to the client.</b> The server opens a record and rebuilds the page around it, and the
-/// browser sends back whatever record it holds — but nothing pushes a record to the browser yet, so it
-/// never holds one in practice. Delivering it as its own WebSocket frame was tried and reverted: it lands
-/// in the middle of the render stream, and the frame contract is that a hello with nothing pending emits
-/// no frame at all. The record has to ride inside the render payload next to <c>history</c>/<c>auth</c>,
-/// which is the outstanding work. These tests seal the record directly so everything downstream of
-/// holding one is verified against the real protector.
+/// The record rides <em>inside</em> the render payload, next to <c>history</c>/<c>auth</c> — not as its
+/// own frame. That was tried and reverted: an extra frame lands in the middle of the render stream, and
+/// the frame contract is that a hello with nothing pending emits no frame at all, while consumers reason
+/// about the last frame of a burst. A field is invisible to both.
 /// </para>
 /// </remarks>
 public sealed class SessionResumeTests
@@ -54,14 +51,9 @@ public sealed class SessionResumeTests
     }
 
     /// <summary>
-    /// Starts a session, declares some state, and seals the record for it.
+    /// Starts a session, declares some state, and takes the record off the wire the way a browser does —
+    /// as a field on the render payload the state change produces.
     /// </summary>
-    /// <remarks>
-    /// The record is built straight from the host's own protector rather than read off the socket, because
-    /// nothing pushes it to the client yet — see the "not wired to the client" note on the class. That is a
-    /// delivery gap, not a semantic one: this is byte-for-byte the record the server will hand out, so
-    /// everything downstream of holding one is exercised for real.
-    /// </remarks>
     private static async Task<(RaskTestHost Host, string SessionId, string Token)> StartAndCapture(
         int seed, string path = "/start")
     {
@@ -69,22 +61,67 @@ public sealed class SessionResumeTests
         var initial = await host.Http.GetAsync(path);
         var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync());
 
+        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+
+        // Declaring state and asking for a render is what an event handler does; the record rides the
+        // frame that comes back.
         var session = host.Store.Get(sessionId)!;
         session.Services.GetRequiredService<IPersistentState>().Persist(StateKey, seed);
+        await session.View.StateHasChangedAsync();
 
-        return (host, sessionId, SealFor(host, session));
+        var token = await ReadResumeAsync(ws);
+        ws.Dispose();
+
+        return (host, sessionId, token);
     }
 
-    private static string SealFor(RaskTestHost host, LiveSession session)
+    /// <summary>Reads the rebuild frame: the rendered html and the record for the session it created.</summary>
+    private static async Task<(string Html, string Resume)> ReadRebuildAsync(WebSocket ws)
     {
-        var protector = host.Services.GetRequiredService<SessionResumeSupport>().Protector;
-        Assert.NotNull(protector);
+        for (var i = 0; i < 8; i++)
+        {
+            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            if (frame is null)
+            {
+                break;
+            }
 
-        var route = session.Services.GetRequiredService<RouteState>();
-        var state = session.Services.GetRequiredService<PersistentState>();
-        var user = session.Services.GetRequiredService<Rask.Server.Authentication.SessionUserProvider>().Current;
+            using var doc = JsonDocument.Parse(frame);
+            if (doc.RootElement.TryGetProperty("html", out var html)
+                && html.ValueKind == JsonValueKind.String
+                && doc.RootElement.TryGetProperty("resume", out var resume)
+                && resume.ValueKind == JsonValueKind.String)
+            {
+                return (html.GetString()!, resume.GetString()!);
+            }
+        }
 
-        return protector!.Protect(QueryString.Build(route.Path, route.Query), user, state.Entries);
+        Assert.Fail("expected a rebuild frame carrying both html and a resume record");
+        return (string.Empty, string.Empty);
+    }
+
+    /// <summary>Reads frames until one carries a resume record.</summary>
+    private static async Task<string> ReadResumeAsync(WebSocket ws)
+    {
+        for (var i = 0; i < 8; i++)
+        {
+            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            if (frame is null)
+            {
+                break;
+            }
+
+            using var doc = JsonDocument.Parse(frame);
+            if (doc.RootElement.TryGetProperty("resume", out var resume)
+                && resume.ValueKind == JsonValueKind.String)
+            {
+                return resume.GetString()!;
+            }
+        }
+
+        Assert.Fail("expected a render payload carrying a resume record");
+        return string.Empty;
     }
 
     [Fact]
@@ -138,10 +175,12 @@ public sealed class SessionResumeTests
         using (var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None))
         {
             await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });
-            // The rebuilt session's id reaches the client the same way it reaches a browser: stamped on
-            // the html of the frame it gets back.
-            rebuiltId = SessionIdFrom(await ReadFrameWithHtmlAsync(ws));
-            secondToken = SealFor(host, host.Store.Get(rebuiltId)!);
+            // One frame carries both: the rebuilt session's id, stamped on the html exactly as it reaches
+            // a browser, and the record for the session it just became (a fresh session's first payload
+            // always carries one).
+            var (html, resume) = await ReadRebuildAsync(ws);
+            rebuiltId = SessionIdFrom(html);
+            secondToken = resume;
         }
 
         Assert.NotEqual(sessionId, rebuiltId);
@@ -154,6 +193,52 @@ public sealed class SessionResumeTests
 
         var frame = await ReadFrameWithHtmlAsync(second);
         Assert.Contains(">5<", frame, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The record must not cost a frame. This is the constraint that sent the first design back: an app
+    /// that declares nothing and does nothing must still emit no frame after a hello, because that is the
+    /// documented contract and because consumers reason about the last frame of a burst.
+    /// </summary>
+    [Fact]
+    public async Task An_idle_session_still_emits_no_frame_at_all()
+    {
+        using var host = RaskTestHost.Create<CounterApp>();
+        var initial = await host.Http.GetAsync("/start");
+        var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync());
+
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+
+        Assert.Null(await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500)));
+        Assert.Equal(WebSocketState.Open, ws.State);
+    }
+
+    /// <summary>A render that moved nothing must not re-seal and re-send a record the client already holds.</summary>
+    [Fact]
+    public async Task An_unchanged_render_carries_no_record()
+    {
+        using var host = RaskTestHost.Create<CounterApp>();
+        var initial = await host.Http.GetAsync("/start");
+        var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync());
+
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+
+        var session = host.Store.Get(sessionId)!;
+        session.Services.GetRequiredService<IPersistentState>().Persist(StateKey, 1);
+        await session.View.StateHasChangedAsync();
+        await ReadResumeAsync(ws);
+
+        // Same value again: the bag's version moves, so a record is due — but a render with no state or
+        // route change at all is not.
+        await session.View.StateHasChangedAsync();
+
+        var frame = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500));
+        if (frame is not null)
+        {
+            Assert.DoesNotContain("\"resume\"", frame, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -196,14 +281,8 @@ public sealed class SessionResumeTests
     [Fact]
     public async Task A_rebuild_is_refused_when_the_host_is_at_capacity()
     {
-        var host = RaskTestHost.Create<CounterApp>();
+        var (host, sessionId, token) = await StartAndCapture(seed: 3);
         using var _ = host;
-
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync());
-        var session = host.Store.Get(sessionId)!;
-        session.Services.GetRequiredService<IPersistentState>().Persist(StateKey, 3);
-        var token = SealFor(host, session);
 
         await host.Store.RemoveAsync(sessionId);
 
