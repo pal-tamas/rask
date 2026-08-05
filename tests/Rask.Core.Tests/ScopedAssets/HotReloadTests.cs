@@ -1,4 +1,3 @@
-using System.Reflection;
 using Rask.Core.ScopedAssets;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -6,56 +5,19 @@ using Rask.Core.ScopedAssets;
 namespace Rask.Core.Tests.ScopedAssets;
 
 /// <summary>
-///     Covers hot-reload coordination over <see cref="ScopedAssetRegistry" />. Critical
-///     invariant: per-kind invalidation only clears its own bucket — a CSS hot-reload
-///     must not blow away JS state and vice versa.
+///     Registry-level bookkeeping that hot reload depends on. Critical invariant: per-kind
+///     invalidation only clears its own bucket — a CSS hot reload must not blow away JS state and
+///     vice versa.
+///     <para>
+///         The coordinator-driven behaviour (which registries refresh, in what order, and what a
+///         concurrent render observes mid-refresh) lives in
+///         <c>HotReload/HotReloadPhaseTests</c> and <c>StagedRefreshTests</c>.
+///     </para>
 /// </summary>
 [Collection("ScopedAssets")]
 public class HotReloadTests
 {
     public HotReloadTests() => ScopedAssetRegistry.InvalidateAll();
-
-    [Fact]
-    public void CssHotReload_ClearsCss_LeavesJsIntact()
-    {
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
-        ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f(){}");
-        Assert.True(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out _));
-        Assert.True(ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out _));
-
-        InvokeUpdateApplication(
-            "Rask.Core.ScopedCss.ScopedCssHotReloadHandler",
-            new[] { typeof(__RaskScopedCssRegistration) });
-
-        Assert.False(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out _));
-        Assert.True(ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out _));
-    }
-
-    [Fact]
-    public void JsHotReload_ClearsJs_LeavesCssIntact()
-    {
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
-        ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f(){}");
-
-        InvokeUpdateApplication(
-            "Rask.Core.ScopedJs.ScopedJsHotReloadHandler",
-            new[] { typeof(__RaskScopedJsRegistration) });
-
-        Assert.True(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out _));
-        Assert.False(ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out _));
-    }
-
-    [Fact]
-    public void CssHotReload_ClearsScopedAssetRegistryCss()
-    {
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
-
-        InvokeUpdateApplication(
-            "Rask.Core.ScopedCss.ScopedCssHotReloadHandler",
-            new[] { typeof(__RaskScopedCssRegistration) });
-
-        Assert.False(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out _));
-    }
 
     [Fact]
     public void InvalidateAllCss_DropsOnlyCssEntries_FromAssetRegistry()
@@ -133,37 +95,6 @@ public class HotReloadTests
         Assert.Contains((typeof(WidgetA), AssetKind.Js), events);
     }
 
-    [Fact]
-    public void DeletedSibling_AfterHotReload_LeavesNoStaleRegistryEntry()
-    {
-        // When a .css sibling is deleted, the generator re-emits __RaskScopedCssRegistration
-        // without the deleted pair. RefreshAll re-runs over surviving pairs only — if the
-        // hot-reload handler didn't clear first, the deleted component's entry would
-        // persist. This test asserts the clear happens.
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: red; }");
-
-        // Simulate generator re-emit: invalidate then re-register only WidgetB (WidgetA's
-        // sibling was "deleted").
-        InvokeUpdateApplication(
-            "Rask.Core.ScopedCss.ScopedCssHotReloadHandler",
-            new[] { typeof(__RaskScopedCssRegistration) });
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: red; }");
-
-        Assert.False(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out _));
-        Assert.True(ScopedAssetRegistry.TryGetCss(typeof(WidgetB), out _));
-    }
-
-    private static void InvokeUpdateApplication(string handlerFullName, Type[]? types)
-    {
-        var handlerType = typeof(ScopedAssetRegistry).Assembly
-            .GetType(handlerFullName, true)!;
-        var update = handlerType.GetMethod(
-            "UpdateApplication",
-            BindingFlags.Public | BindingFlags.Static)!;
-        update.Invoke(null, new object?[] { types });
-    }
-
     private sealed class WidgetA : Component
     {
         protected override Component? Render() => this;
@@ -172,15 +103,5 @@ public class HotReloadTests
     private sealed class WidgetB : Component
     {
         protected override Component? Render() => this;
-    }
-
-    // Sentinel types whose Name matches the generator-emitted classes — the hot-reload
-    // handler's gate is name-based, so a stand-in is enough for tests.
-    private sealed class __RaskScopedCssRegistration
-    {
-    }
-
-    private sealed class __RaskScopedJsRegistration
-    {
     }
 }

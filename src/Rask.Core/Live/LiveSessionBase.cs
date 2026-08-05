@@ -117,17 +117,19 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
     /// <summary>
     ///     Re-render every tracked live session after a C# Hot Reload apply. Marks each session's whole
-    ///     component tree dirty — not just instances of <paramref name="updatedTypes" />, since an edit to
-    ///     a helper/static a component calls wouldn't show up there — so every component re-executes
-    ///     <c>Render()</c> against the freshly-applied IL, then requests a normal render (a diff frame ships
-    ///     over the existing transport). Best-effort and never throws: a faulting session is skipped so one
-    ///     bad tree can't stop the rest. Only invoked from <see cref="ComponentHotReloadHandler" /> under
-    ///     <c>dotnet watch</c>.
+    ///     component tree dirty — not just instances of the types the runtime reported as updated, since
+    ///     an edit to a helper/static a component calls wouldn't show up there — so every component
+    ///     re-executes <c>Render()</c> against the freshly-applied IL, then requests a normal render (a
+    ///     diff frame ships over the existing transport). Best-effort and never throws: a faulting session
+    ///     is skipped so one bad tree can't stop the rest.
+    ///     <para>
+    ///         Awaiting the returned task is what lets the coordinator announce "hot reload applied" only
+    ///         after the DOM has actually been updated. Only invoked from <c>RaskHotReload</c> under
+    ///         <c>dotnet watch</c>.
+    ///     </para>
     /// </summary>
-    internal static void RerenderAllForHotReload(Type[]? updatedTypes)
+    internal static async Task RerenderAllForHotReloadAsync()
     {
-        _ = updatedTypes; // any apply re-renders everything (see summary); kept for signature symmetry.
-
         List<LiveSessionBase> alive = new();
         lock (_hotReloadLock)
         {
@@ -149,7 +151,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
             try
             {
                 Component.MarkSubtreeDirtyForHotReload(session.View);
-                _ = session.RequestRenderAsync();
+                await session.RequestRenderAsync().ConfigureAwait(false);
             }
             catch
             {

@@ -43,7 +43,12 @@ internal sealed class StringConsole : IConsole
 }
 
 /// <summary>A recorded invocation of the process runner.</summary>
-internal sealed record ProcessInvocation(string FileName, IReadOnlyList<string> Arguments, bool Captured);
+internal sealed record ProcessInvocation(
+    string FileName,
+    IReadOnlyList<string> Arguments,
+    bool Captured,
+    IReadOnlyDictionary<string, string>? Environment = null,
+    string? WorkingDirectory = null);
 
 /// <summary>
 /// A fake <see cref="IProcessRunner"/>: records every invocation and returns scripted results, so command
@@ -69,10 +74,15 @@ internal sealed class FakeProcessRunner : IProcessRunner
 
     public ProcessInvocation? LastRun => Invocations.LastOrDefault(i => !i.Captured);
 
-    public Task<int> RunAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
+    public Task<int> RunAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? environment = null)
     {
         var args = arguments.ToArray();
-        _invocations.Enqueue(new ProcessInvocation(fileName, args, Captured: false));
+        _invocations.Enqueue(new ProcessInvocation(fileName, args, Captured: false, environment, workingDirectory));
         return Task.FromResult(RunHandler?.Invoke(args) ?? RunExitCode);
     }
 
@@ -144,4 +154,23 @@ internal sealed class FakeFileSystem : IFileSystem
     public void TryDelete(string path) => _files.Remove(Normalize(path));
 
     private static string Normalize(string path) => Path.GetFullPath(path);
+}
+
+
+/// <summary>
+/// A fake <see cref="IBrowserLauncher"/>: records the URLs it was asked to open, so `--open` is asserted
+/// without CI ever spawning a browser.
+/// </summary>
+internal sealed class FakeBrowserLauncher : IBrowserLauncher
+{
+    public List<string> Opened { get; } = [];
+
+    /// <summary>Set false to simulate a platform where the open command could not be started.</summary>
+    public bool Succeeds { get; set; } = true;
+
+    public Task<bool> TryOpenAsync(string url, CancellationToken cancellationToken)
+    {
+        Opened.Add(url);
+        return Task.FromResult(Succeeds);
+    }
 }

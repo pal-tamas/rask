@@ -330,7 +330,10 @@ public class RoutesGeneratorTests
 
         Assert.Contains("internal static class __RaskRoutesRegistry", output);
         Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", output);
-        Assert.Contains("global::Rask.Core.Routing.RouteRegistry.Add", output);
+        // Replace, not Add: the registrations moved into a re-invocable RefreshAll() so routes can
+        // hot-reload, and a refresh has to swap this assembly's set rather than append to it.
+        // RoutesRegistryRefreshTests covers that split in full.
+        Assert.Contains("global::Rask.Core.Routing.RouteRegistry.Replace(typeof(__RaskRoutesRegistry)", output);
         Assert.Contains("new(typeof(global::Demo.HomePage), \"/\", null)", output);
         Assert.Contains("new(typeof(global::Demo.DashPage), \"/dashboard\", null)", output);
         Assert.Contains("new(typeof(global::Demo.DashOverview), \"overview\", typeof(global::Demo.DashPage))", output);

@@ -24,6 +24,8 @@ internal sealed class RaskTestHost : IDisposable
     public WebSocketClient WebSockets { get; }
     public LiveSessionStore Store { get; }
 
+    public IServiceProvider Services => Server.Services;
+
     public Uri WebSocketUri => new(new Uri(Server.BaseAddress, "/rask/ws").ToString().Replace("http://", "ws://"));
 
     public void Dispose()
@@ -41,10 +43,15 @@ internal sealed class RaskTestHost : IDisposable
         Action<IApplicationBuilder>? configureMiddleware = null,
         string pathBase = "",
         Action<RaskServerOptions>? configureServer = null,
-        LiveDiffMode diffMode = LiveDiffMode.Auto)
+        LiveDiffMode diffMode = LiveDiffMode.Auto,
+        string? environment = null)
         where TApp : Component
     {
-        var builder = WebApplication.CreateBuilder();
+        // Defaults to whatever WebApplication picks (Production under test, absent an env var).
+        // Pass `environment` to exercise the Development-gated dev-time behaviour.
+        var builder = environment is null
+            ? WebApplication.CreateBuilder()
+            : WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = environment });
         builder.WebHost.UseTestServer();
         builder.Services.AddRouting();
         // Per-host WS / grace-period limits (RaskServerLimits) AND the wire-payload shape (DiffMode,

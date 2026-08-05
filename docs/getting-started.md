@@ -70,11 +70,12 @@ Open the URL printed in the console. **You should see** a single **"Hello, Rask!
 lists the `rask` commands you'll use next. The starter app is deliberately minimal — a clean shell with one
 page — so there's nothing to delete before you start building.
 
-> **Edit-and-refresh with hot reload.** Run `dotnet watch` (or `rask dev`, the CLI's wrapper for it)
-> instead of `dotnet run` for a live inner loop: edit a component's `Render()` (or its scoped `.css`/`.js`)
-> and save, and **C# Hot Reload** applies the change to the running app and Rask re-renders the open session
-> in place — no manual rebuild or browser refresh — about as close to a no-build inner loop as a compiled
-> framework gets.
+> **Edit-and-refresh with hot reload.** Run `rask dev` instead of `dotnet run` for a live inner loop: edit
+> a component's `Render()` (or its scoped `.css`/`.js`), a `[Route]` template, or a CQRS handler and save —
+> **C# Hot Reload** applies the change to the running app and Rask re-renders the open session in place, no
+> manual rebuild or browser refresh. A small "Hot reload applied" pill confirms it landed. Edits the
+> runtime can't apply (adding a type, changing a signature) restart the app instead, and the page reloads
+> itself. The full list is in [what hot-reloads](cli.md#what-hot-reloads).
 
 > **First build is slower, and the IDE may look broken — that's expected.** The first build is when
 > Rask's source generators run. Until then your IDE may flag `HomePage()`, `Counter()`, or

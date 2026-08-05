@@ -276,8 +276,34 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 .Append(", typeof(").Append(impl).AppendLine("))]");
         }
 
+        // Init() runs once, at module load. RefreshAll() is the re-invocable half the hot-reload
+        // coordinator calls after a metadata update (see RaskHotReload.RefreshTargetTypeNames) —
+        // so it must hold ONLY idempotent work. The dispatch tables qualify: RegisterRequest /
+        // RegisterNotification are dictionary upserts, so re-running them swaps in the invoker
+        // built from the new IL. The DI registrations below deliberately do NOT: RegisterServices
+        // enqueues onto a queue that is never drained, so refreshing it on every save would grow
+        // that queue without bound for the life of the watch session.
         sb.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         sb.AppendLine("    internal static void Init()");
+        sb.AppendLine("    {");
+        sb.AppendLine("        RefreshAll();");
+        sb.AppendLine();
+
+        foreach (var impl in handlerImpls)
+        {
+            var method = impl.IsNotification ? "TryAddEnumerable" : "TryAdd";
+            sb.Append("        global::Rask.Cqrs.CqrsRegistry.RegisterServices(static (services, lifetime) => ")
+                .Append("global::Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.")
+                .Append(method).AppendLine("(services,")
+                .Append("            new global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor(typeof(")
+                .Append(impl.ServiceInterfaceFqn).Append("), typeof(").Append(impl.HandlerTypeFqn)
+                .AppendLine("), lifetime)));");
+        }
+
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
+        sb.AppendLine("    internal static void RefreshAll()");
         sb.AppendLine("    {");
 
         for (var i = 0; i < requests.Count; i++)
@@ -290,17 +316,6 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         {
             sb.Append("        global::Rask.Cqrs.CqrsRegistry.RegisterNotification(typeof(")
                 .Append(notificationTypes[i]).Append("), __Notify_").Append(i).AppendLine(");");
-        }
-
-        foreach (var impl in handlerImpls)
-        {
-            var method = impl.IsNotification ? "TryAddEnumerable" : "TryAdd";
-            sb.Append("        global::Rask.Cqrs.CqrsRegistry.RegisterServices(static (services, lifetime) => ")
-                .Append("global::Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.")
-                .Append(method).AppendLine("(services,")
-                .Append("            new global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor(typeof(")
-                .Append(impl.ServiceInterfaceFqn).Append("), typeof(").Append(impl.HandlerTypeFqn)
-                .AppendLine("), lifetime)));");
         }
 
         sb.AppendLine("    }");

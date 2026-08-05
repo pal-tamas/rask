@@ -36,15 +36,34 @@ public static class ScopedAssetRegistry
     // registry path. ConcurrentDictionary makes those reads lock-free so concurrent sessions
     // never serialize on a shared lock. Writes (register/unregister) still run inside _lock so
     // each stays atomic with the refcounted by-hash buckets below.
-    private static readonly ConcurrentDictionary<Type, string> _cssHashByType = new();
-    private static readonly ConcurrentDictionary<Type, string> _jsHashByType = new();
-    private static readonly ConcurrentDictionary<Type, string> _scopeIdByType = new();
+    //
+    // These are swappable references, not readonly, so a hot-reload refresh can install a whole
+    // rebuilt map in one store (see BeginCssRefresh/EndCssRefresh). A lock-free reader therefore
+    // observes either the complete old map or the complete new one — never a half-cleared one,
+    // which is what used to let a render mid-refresh emit elements with no data-r-xxxx scope
+    // attribute. volatile makes the swap promptly visible to those readers.
+    private static volatile ConcurrentDictionary<Type, string> _cssHashByType = new();
+    private static volatile ConcurrentDictionary<Type, string> _jsHashByType = new();
+    private static volatile ConcurrentDictionary<Type, string> _scopeIdByType = new();
 
-    private static readonly Dictionary<string, AssetEntry> _cssByHash =
+    // Only ever touched under _lock, so these need no volatile — but they are swapped by the
+    // refresh path for the same reason, hence not readonly.
+    private static Dictionary<string, AssetEntry> _cssByHash =
         new(StringComparer.Ordinal);
 
-    private static readonly Dictionary<string, AssetEntry> _jsByHash =
+    private static Dictionary<string, AssetEntry> _jsByHash =
         new(StringComparer.Ordinal);
+
+    // Non-null while a hot-reload refresh of that kind is in flight. Registrations land here
+    // instead of in the live maps, and _version does NOT move, so EnsureBundle keeps serving the
+    // complete previous bundle for the whole window rather than briefly caching an empty one
+    // (which would emit a <head> with no stylesheet <link> at all, and make the client morph tear
+    // the tag out). EndCssRefresh/EndJsRefresh swap the staged maps in and bump _version once.
+    private static ConcurrentDictionary<Type, string>? _stagingCssHashByType;
+    private static ConcurrentDictionary<Type, string>? _stagingScopeIdByType;
+    private static Dictionary<string, AssetEntry>? _stagingCssByHash;
+    private static ConcurrentDictionary<Type, string>? _stagingJsHashByType;
+    private static Dictionary<string, AssetEntry>? _stagingJsByHash;
 
     // Strips the leading `export ` (and an optional `default `) from a declaration so the
     // module body can run inside the IIFE. The lookahead lists `async function` alongside
@@ -94,12 +113,12 @@ public static class ScopedAssetRegistry
 
     /// <summary>
     ///     Monotonic mutation counter — bumped under the registry lock on every change to the
-    ///     registered asset set (register, unregister, and the bulk <see cref="InvalidateAll" />
-    ///     / <see cref="InvalidateAllCss" /> / <see cref="InvalidateAllJs" /> paths). Consumers
-    ///     that cache derived output (the head <c>&lt;link rel="preload"&gt;</c> block) compare
-    ///     against this to detect staleness cheaply, without subscribing to
-    ///     <see cref="AssetChanged" /> — which intentionally does not fire on the bulk-clear
-    ///     paths, so it cannot be relied on to invalidate a whole-registry projection.
+    ///     registered asset set (register, unregister, the bulk <see cref="InvalidateAll" /> /
+    ///     <see cref="InvalidateAllCss" /> / <see cref="InvalidateAllJs" /> paths, and the
+    ///     staged hot-reload swap). <c>EnsureBundle</c> is the sole reader: it keys the cached
+    ///     concatenated bundle on this, so a bump is what rebuilds the bundle bytes, hash and
+    ///     immutable URL. It deliberately does not move while a staged refresh is in flight —
+    ///     see <see cref="BeginCssRefresh" />.
     /// </summary>
     internal static long Version => Interlocked.Read(ref _version);
 
@@ -138,32 +157,79 @@ public static class ScopedAssetRegistry
 
         var bytes = Encoding.UTF8.GetBytes(rewritten);
         var hash = ComputeHash(bytes);
-        var changed = false;
+        bool changed;
 
         lock (_lock)
         {
-            if (_cssHashByType.TryGetValue(componentType, out var existing))
+            if (_stagingCssHashByType is not null)
             {
-                if (existing == hash)
-                {
-                    // Same content as before — preserve no-event semantics.
-                    return;
-                }
-
-                DecrementRefLocked(_cssByHash, existing);
+                // A refresh is in flight: build up the replacement set instead of mutating the
+                // live one. No event and no version bump — EndCssRefresh coalesces both.
+                ApplyCssLocked(
+                    _stagingCssHashByType, _stagingScopeIdByType!, _stagingCssByHash!,
+                    componentType, hash, scopeId, bytes);
+                return;
             }
 
-            _cssHashByType[componentType] = hash;
-            _scopeIdByType[componentType] = scopeId;
-            IncrementOrInsertLocked(_cssByHash, hash, bytes);
-            Interlocked.Increment(ref _version);
-            changed = true;
+            // Same content as before — preserve no-event semantics.
+            changed = ApplyCssLocked(
+                _cssHashByType, _scopeIdByType, _cssByHash, componentType, hash, scopeId, bytes);
+            if (changed)
+            {
+                Interlocked.Increment(ref _version);
+            }
         }
 
         if (changed)
         {
             AssetChanged?.Invoke(componentType, AssetKind.Css);
         }
+    }
+
+    // Applies one computed CSS registration to a target map set (live or staged), keeping the
+    // refcounted by-hash bucket in step. Returns false when the content is unchanged. Caller
+    // must hold _lock.
+    private static bool ApplyCssLocked(
+        ConcurrentDictionary<Type, string> hashByType,
+        ConcurrentDictionary<Type, string> scopeIdByType,
+        Dictionary<string, AssetEntry> byHash,
+        Type componentType, string hash, string scopeId, byte[] bytes)
+    {
+        if (hashByType.TryGetValue(componentType, out var existing))
+        {
+            if (existing == hash)
+            {
+                return false;
+            }
+
+            DecrementRefLocked(byHash, existing);
+        }
+
+        hashByType[componentType] = hash;
+        scopeIdByType[componentType] = scopeId;
+        IncrementOrInsertLocked(byHash, hash, bytes);
+        return true;
+    }
+
+    // JS counterpart of ApplyCssLocked — no scope id, otherwise identical.
+    private static bool ApplyJsLocked(
+        ConcurrentDictionary<Type, string> hashByType,
+        Dictionary<string, AssetEntry> byHash,
+        Type componentType, string hash, byte[] bytes)
+    {
+        if (hashByType.TryGetValue(componentType, out var existing))
+        {
+            if (existing == hash)
+            {
+                return false;
+            }
+
+            DecrementRefLocked(byHash, existing);
+        }
+
+        hashByType[componentType] = hash;
+        IncrementOrInsertLocked(byHash, hash, bytes);
+        return true;
     }
 
     /// <summary>
@@ -191,24 +257,21 @@ public static class ScopedAssetRegistry
         var wrapped = WrapModule(componentType.Name, source);
         var bytes = Encoding.UTF8.GetBytes(wrapped);
         var hash = ComputeHash(bytes);
-        var changed = false;
+        bool changed;
 
         lock (_lock)
         {
-            if (_jsHashByType.TryGetValue(componentType, out var existing))
+            if (_stagingJsHashByType is not null)
             {
-                if (existing == hash)
-                {
-                    return;
-                }
-
-                DecrementRefLocked(_jsByHash, existing);
+                ApplyJsLocked(_stagingJsHashByType, _stagingJsByHash!, componentType, hash, bytes);
+                return;
             }
 
-            _jsHashByType[componentType] = hash;
-            IncrementOrInsertLocked(_jsByHash, hash, bytes);
-            Interlocked.Increment(ref _version);
-            changed = true;
+            changed = ApplyJsLocked(_jsHashByType, _jsByHash, componentType, hash, bytes);
+            if (changed)
+            {
+                Interlocked.Increment(ref _version);
+            }
         }
 
         if (changed)
@@ -223,6 +286,17 @@ public static class ScopedAssetRegistry
         bool changed;
         lock (_lock)
         {
+            if (_stagingCssHashByType is not null)
+            {
+                if (_stagingCssHashByType.TryRemove(componentType, out var staged))
+                {
+                    _stagingScopeIdByType!.TryRemove(componentType, out _);
+                    DecrementRefLocked(_stagingCssByHash!, staged);
+                }
+
+                return;
+            }
+
             if (!_cssHashByType.TryGetValue(componentType, out var hash))
             {
                 return;
@@ -247,6 +321,16 @@ public static class ScopedAssetRegistry
         bool changed;
         lock (_lock)
         {
+            if (_stagingJsHashByType is not null)
+            {
+                if (_stagingJsHashByType.TryRemove(componentType, out var staged))
+                {
+                    DecrementRefLocked(_stagingJsByHash!, staged);
+                }
+
+                return;
+            }
+
             if (!_jsHashByType.TryGetValue(componentType, out var hash))
             {
                 return;
@@ -310,6 +394,128 @@ public static class ScopedAssetRegistry
             _jsByHash.Clear();
             Interlocked.Increment(ref _version);
         }
+    }
+
+    /// <summary>
+    ///     Opens a staged CSS refresh: every subsequent <see cref="RegisterCss" /> /
+    ///     <see cref="UnregisterCss" /> builds a replacement set rather than mutating the live
+    ///     one, and neither raises <see cref="AssetChanged" /> nor moves <see cref="Version" />.
+    ///     The hot-reload coordinator calls this, re-invokes every assembly's generated
+    ///     <c>RefreshAll()</c>, then calls <see cref="EndCssRefresh" /> to install the result in
+    ///     one store.
+    ///     <para>
+    ///         This is what makes a refresh invisible to concurrent renders. The naive
+    ///         clear-then-repopulate it replaces exposed two windows: one where a render found no
+    ///         scope id and emitted elements without their <c>data-r-xxxx</c> attribute, and one
+    ///         where the bundle rebuilt as empty so <c>&lt;head&gt;</c> carried no stylesheet link
+    ///         at all.
+    ///     </para>
+    ///     <para>
+    ///         Callers MUST pair this with <see cref="EndCssRefresh" /> in a <c>finally</c>: while
+    ///         staging is open every CSS registration is diverted, so an abandoned refresh would
+    ///         silently swallow all later ones.
+    ///     </para>
+    /// </summary>
+    internal static void BeginCssRefresh()
+    {
+        lock (_lock)
+        {
+            _stagingCssHashByType = new ConcurrentDictionary<Type, string>();
+            _stagingScopeIdByType = new ConcurrentDictionary<Type, string>();
+            _stagingCssByHash = new Dictionary<string, AssetEntry>(StringComparer.Ordinal);
+        }
+    }
+
+    /// <summary>
+    ///     Installs the staged CSS set, replacing the live one. Returns true when the registered
+    ///     set actually changed — including a net deletion, which the old bulk-invalidate path
+    ///     could not report at all (it never raised <see cref="AssetChanged" />, and the re-register
+    ///     of unchanged siblings hit the no-op early return, so deleting a component's only
+    ///     <c>.css</c> repainted nothing). The coordinator turns a true return into a single
+    ///     coalesced <see cref="AssetChanged" />. A no-op when no refresh is open.
+    /// </summary>
+    internal static bool EndCssRefresh()
+    {
+        lock (_lock)
+        {
+            var staged = _stagingCssHashByType;
+            if (staged is null)
+            {
+                return false;
+            }
+
+            var changed = !SameHashes(_cssHashByType, staged);
+            _cssHashByType = staged;
+            _scopeIdByType = _stagingScopeIdByType!;
+            _cssByHash = _stagingCssByHash!;
+            _stagingCssHashByType = null;
+            _stagingScopeIdByType = null;
+            _stagingCssByHash = null;
+
+            if (changed)
+            {
+                Interlocked.Increment(ref _version);
+            }
+
+            return changed;
+        }
+    }
+
+    /// <summary>JS counterpart of <see cref="BeginCssRefresh" />.</summary>
+    internal static void BeginJsRefresh()
+    {
+        lock (_lock)
+        {
+            _stagingJsHashByType = new ConcurrentDictionary<Type, string>();
+            _stagingJsByHash = new Dictionary<string, AssetEntry>(StringComparer.Ordinal);
+        }
+    }
+
+    /// <summary>JS counterpart of <see cref="EndCssRefresh" />.</summary>
+    internal static bool EndJsRefresh()
+    {
+        lock (_lock)
+        {
+            var staged = _stagingJsHashByType;
+            if (staged is null)
+            {
+                return false;
+            }
+
+            var changed = !SameHashes(_jsHashByType, staged);
+            _jsHashByType = staged;
+            _jsByHash = _stagingJsByHash!;
+            _stagingJsHashByType = null;
+            _stagingJsByHash = null;
+
+            if (changed)
+            {
+                Interlocked.Increment(ref _version);
+            }
+
+            return changed;
+        }
+    }
+
+    // Whether two type->hash maps register the same content for the same types. Runs once per
+    // hot-reload apply, so a straight O(n) compare is fine.
+    private static bool SameHashes(
+        ConcurrentDictionary<Type, string> a, ConcurrentDictionary<Type, string> b)
+    {
+        if (a.Count != b.Count)
+        {
+            return false;
+        }
+
+        foreach (var kv in a)
+        {
+            if (!b.TryGetValue(kv.Key, out var other) || !string.Equals(kv.Value, other, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -380,10 +586,11 @@ public static class ScopedAssetRegistry
         // Hash-sorted order makes the bundle bytes (and therefore its hash + the emitted URL)
         // deterministic regardless of registration order — two builds of the same component set
         // produce byte-identical bundles, so the immutable URL stays stable across deployments.
-        var bucket = kind == AssetKind.Css ? _cssByHash : _jsByHash;
         byte[] bytes;
         lock (_lock)
         {
+            // Read the bucket field inside the lock: the refresh path swaps it wholesale.
+            var bucket = kind == AssetKind.Css ? _cssByHash : _jsByHash;
             if (bucket.Count == 0)
             {
                 var empty = new BundleEntry(version, minify, string.Empty, default);
@@ -490,9 +697,9 @@ public static class ScopedAssetRegistry
             return bundle.Bytes;
         }
 
-        var bucket = kind == AssetKind.Css ? _cssByHash : _jsByHash;
         lock (_lock)
         {
+            var bucket = kind == AssetKind.Css ? _cssByHash : _jsByHash;
             if (bucket.TryGetValue(hash, out var entry))
             {
                 return new AssetBytes(entry.Utf8, entry.Etag);

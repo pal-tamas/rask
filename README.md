@@ -209,7 +209,7 @@ rask new MyApp --template wasm            # standalone browser-WASM SPA
 rask new MyApp --template wasm-hosted     # browser-WASM client + ASP.NET host
 rask new MyApp --template native          # native iOS + Android app (WebView hybrid, preview)
 
-cd MyApp && rask dev                       # run with hot reload (native: dotnet build -t:Run -f net10.0-android)
+cd MyApp && rask dev                       # run with hot reload (--open for a browser; native: dotnet build -t:Run -f net10.0-android)
 ```
 
 Add `--auth` for a cookie/JWT-wired starter, `--pwa` (WASM) for an installable offline app, or

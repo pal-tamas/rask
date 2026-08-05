@@ -7,6 +7,91 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Editing a `[Route]` template under `dotnet watch` now takes effect.** Routes, CQRS handlers, jobs and
+  outbox events are all registered from a `[ModuleInitializer]`, and the runtime never re-runs one after a
+  hot-reload apply — so changing a route silently did nothing, and an edited command handler kept dispatching
+  through the invoker built from the old IL, with no error either way. Each generator now emits a
+  re-invocable `RefreshAll()` alongside its initializer, which the hot-reload coordinator calls. The CQRS
+  registry deliberately refreshes only its dispatch table: its DI registrations go onto a queue that is never
+  drained, so re-running them on every save would grow it without bound.
+- **A hot reload no longer repaints against stale scoped CSS.** Rask declared three independent
+  `[MetadataUpdateHandler]`s — scoped CSS, scoped JS, and the live-session re-render — and the runtime does
+  not define the order it invokes them in. When the re-render happened to run first, the frame carried the
+  *previous* bundle hash, so a `.css` edit only appeared on the next interaction. A single coordinator
+  (`RaskHotReloadHandler`) now runs the phases in a fixed order — scoped assets, then the generated
+  registries, then the repaint — and a test asserts the assembly declares exactly one handler so the
+  ambiguity cannot come back.
+- **A render concurrent with a scoped-CSS refresh can no longer emit unscoped elements or a stylesheet-less
+  `<head>`.** The refresh cleared the registry and then repopulated it, leaving two windows open to any
+  render in flight: one where the scope-id lookup missed, so elements were written without their
+  `data-r-xxxx` attribute, and one where the bundle rebuilt as empty, so `<head>` carried no `<link>` at all
+  and the client morph tore the tag out. Registrations now stage into a replacement map that is installed in
+  a single store, so a reader observes either the complete old set or the complete new one.
+- **Deleting a component's only `.css` file now repaints.** Bulk invalidation deliberately raises no
+  `AssetChanged`, and the surviving siblings re-registered byte-identical content — which hits the no-op
+  early return — so nothing fired and the deleted rules stayed on screen until a manual refresh.
+
+### Added
+- **The browser tells you a hot reload landed.** Under `dotnet watch` in Development, the server pushes a
+  `hotReload` frame once every session has repainted, and the client shows a brief "Hot reload applied"
+  pill. Two independent gates keep it out of production: the server only subscribes when the app is in
+  Development *and* the process supports metadata updates, and the client acts only on a `data-rask-dev`
+  flag that production HTML never carries. The indicator is built lazily, so a production bundle
+  constructs no DOM and injects no CSS for it.
+- **A restart for a rude edit gets back on screen in ~250 ms instead of 4 s.** Adding a type or changing a
+  signature is an edit hot reload cannot apply, so `dotnet watch` restarts the process — and the browser,
+  holding a session id the new process has never heard of, showed *"Your session timed out"* and sat there.
+  In development it now says *"Server restarted — reloading…"* and reloads promptly. Production keeps the
+  original grace period and wording.
+
+### Changed
+- **`rask dev` finds the project and sets up the loop.** It was 35 lines of argv over `dotnet watch run`:
+  no project detection, no environment, no output. It now resolves the project the way `rask db` does —
+  picking the `.Server` host in a wasm-hosted solution, and refusing a native app with the
+  `dotnet build -t:Run` command it actually needs, rather than running `dotnet watch` at a simulator. It
+  sets `ASPNETCORE_ENVIRONMENT=Development` when you have set no environment yourself, prints a banner with
+  the URL, and adds `--urls`, `--launch-profile`, `--open`, `--no-open`, `--no-restart`, `--once` and
+  `--no-banner`.
+- **A rude edit no longer hangs `rask dev`.** When `dotnet watch` meets an edit hot reload cannot apply it
+  prompts `Yes (y) / No (n) / Always (a) / Never (v)` — and with no terminal to answer on, that blocked
+  forever. `rask dev` now sets the `HotReloadAutoRestart` MSBuild property so the app restarts instead
+  (`--no-restart` to be asked), and passes `--non-interactive` when stdin is redirected. The property is
+  passed through the environment because `dotnet watch` has no `--property` switch — that is also why
+  `IProcessRunner.RunAsync` gained an optional environment overlay.
+- **`rask dev --no-hot-reload` now means what it says.** It used to run a plain `dotnet run`, which stopped
+  watching altogether *and* cleared `DOTNET_WATCH` — switching off more framework behaviour than its name
+  claims. It now keeps watching and restarts on change; **`--once`** is the new name for the old behaviour.
+- **`RouteRegistry` groups registrations by contributor.** The new `Replace(groupKey, registrations)`
+  installs one contributor's complete set, replacing whatever it registered before. This is what lets the
+  generated per-assembly route registry re-run under `dotnet watch` without duplicating its own routes
+  (`Add` appends), dropping another assembly's, or clearing the default 404 fallback — which is seeded once
+  by a `[ModuleInitializer]` and could not be restored. `Add` keeps its existing append semantics.
+
+### Fixed
+- **The CLI build gates no longer pass over stale packages.** They pack this commit's Rask packages to a
+  local feed, but MinVer derives the version from the commit and its height — so every pack of an
+  uncommitted working tree produces the *same* version string with different content. NuGet keys its global
+  cache on id+version alone, so once a version was extracted there, every later restore reused it and
+  silently ignored the freshly packed nupkg: the gate built against whatever the first pack of that version
+  happened to contain, and any change made afterwards was never actually tested. The gates now evict that
+  version before restoring. (Found while building the watch gate below, which reported a feature missing
+  that was demonstrably present in the packed assembly.)
+
+### Docs
+- **"What hot-reloads and what doesn't" is written down.** [`docs/cli.md`](docs/cli.md#what-hot-reloads) now
+  lists every edit and what actually happens to it — applied live, or a rude edit that restarts — including
+  the two gaps: WASM and native apps have no watch channel, and a rude edit is never announced (the process
+  simply restarts). `docs/development-workflow.md` gained an inner-loop section, since it described the
+  definition-of-done gate but never how to run the thing you're changing.
+
+### Removed
+- **The dev-time `.cs` `FileSystemWatcher` in `Rask.Server`.** It fired on *save* — before the new IL was
+  applied — so it repainted against the old code and the real hot-reload repaint then did it again: a
+  wasted frame and a visible flash. It also watched the entire current directory recursively, including
+  `obj/` and `bin/`, so `dotnet watch`'s own rebuild retriggered it, and it was a never-disposed static.
+  The only thing lost is a repaint on saving a file that does not compile.
+
 ### Docs
 - **The roadmap says what isn't shipped, not only what is.** Every pillar was marked ✅, which made the page
   useless for the decision it exists to support — whether Rask fits your product. A new **Not shipped**

@@ -30,7 +30,27 @@ public static class LivePayload
     [ThreadStatic] private static Dictionary<string, int>? _nameIndexScratch;
     [ThreadStatic] private static List<string>? _internedNamesScratch;
 
-    public static string InjectRootAttr(string html, string sessionId)
+    /// <summary>
+    ///     The dev-only "an apply landed and every session has repainted" control frame. A fixed
+    ///     literal — like the session-unknown payload — so it needs no reflection-based
+    ///     serialization and can be sent without allocating.
+    ///     <para>
+    ///         The client branches on this exact text; <c>HotReloadMessageTests</c> and the
+    ///         <c>rask.js</c> Node fixture both assert against this same constant so the two halves
+    ///         cannot drift.
+    ///     </para>
+    /// </summary>
+    internal const string HotReloadAppliedJson = """{"type":"hotReload","status":"applied"}""";
+
+    internal static readonly byte[] HotReloadAppliedFrame = Encoding.UTF8.GetBytes(HotReloadAppliedJson);
+
+    /// <summary>
+    ///     Stamps the session id onto <c>&lt;body&gt;</c> as <c>data-rask-root</c>, and in development
+    ///     also <c>data-rask-dev</c> — the flag the client requires before it will act on any dev-only
+    ///     frame. Production HTML never carries it, so those branches are unreachable there even if a
+    ///     frame somehow arrived.
+    /// </summary>
+    public static string InjectRootAttr(string html, string sessionId, bool dev = false)
     {
         // Linear scan for the first "<body" (case-insensitive). Faster than a compiled regex
         // for the typical render path and avoids the regex engine's per-call state allocation.
@@ -45,9 +65,14 @@ public static class LivePayload
         var sb = RaskStringBuilderPool.Shared.Get();
         try
         {
-            sb.EnsureCapacity(html.Length + encoded.Length + 32);
+            sb.EnsureCapacity(html.Length + encoded.Length + 48);
             sb.Append(html, 0, insertAt);
             sb.Append(" data-rask-root=\"").Append(encoded).Append('"');
+            if (dev)
+            {
+                sb.Append(" data-rask-dev");
+            }
+
             sb.Append(html, insertAt, html.Length - insertAt);
             return sb.ToString();
         }
