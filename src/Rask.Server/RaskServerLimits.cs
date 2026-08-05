@@ -45,6 +45,9 @@ internal sealed class RaskServerLimits
     /// <summary>How long a resume record stays redeemable. See <see cref="RaskServerOptions.ResumeTokenLifetime" />.</summary>
     public TimeSpan ResumeTokenLifetime { get; init; } = TimeSpan.FromHours(1);
 
+    /// <summary>Budget for the graceful shutdown drain. Zero = off (abort immediately, as before).</summary>
+    public TimeSpan ShutdownDrainTimeout { get; init; } = TimeSpan.FromSeconds(5);
+
     /// <summary>Projects a validated <see cref="RaskServerOptions" /> into the per-host limit snapshot.</summary>
     public static RaskServerLimits From(RaskServerOptions o) => new()
     {
@@ -59,5 +62,6 @@ internal sealed class RaskServerLimits
         SendTimeout = o.SendTimeout,
         SessionResume = o.SessionResume,
         ResumeTokenLifetime = o.ResumeTokenLifetime,
+        ShutdownDrainTimeout = o.ShutdownDrainTimeout,
     };
 }

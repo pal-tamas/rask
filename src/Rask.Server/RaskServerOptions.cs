@@ -155,6 +155,25 @@ public sealed class RaskServerOptions
     public TimeSpan ResumeTokenLifetime { get; set; } = TimeSpan.FromHours(1);
 
     /// <summary>
+    ///     Budget for the graceful shutdown drain: announcing the shutdown to every connected browser,
+    ///     letting in-flight event handlers finish, closing each WebSocket with a real handshake (status
+    ///     1001, "going away") and disposing the sessions. Sockets still open when it elapses are aborted.
+    ///     <para>
+    ///         Must fit inside <c>HostOptions.ShutdownTimeout</c>, which in turn must fit inside whatever
+    ///         your container runtime allows between <c>SIGTERM</c> and <c>SIGKILL</c> (<c>rask deploy</c>
+    ///         uses 20&#160;seconds). Note that <c>HostOptions.ServicesStopConcurrently</c> is <c>false</c>
+    ///         by default, so other hosted services' shutdown work is spent from the same budget before
+    ///         this drain is even entered.
+    ///     </para>
+    ///     <para>
+    ///         <see cref="TimeSpan.Zero" /> disables the drain and restores the previous behaviour —
+    ///         every socket aborted the moment shutdown begins, which the browser sees as an abnormal
+    ///         (1006) closure. Default 5&#160;seconds; a drain normally completes in one round trip.
+    ///     </para>
+    /// </summary>
+    public TimeSpan ShutdownDrainTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
     ///     Throws <see cref="ArgumentOutOfRangeException" /> if any value is out of range. Called by
     ///     <c>AddRask</c> after the caller's <c>configureServer</c> runs, so a bad value (a negative
     ///     grace period that would crash <c>Task.Delay</c> and leak the session, a non-positive
@@ -232,6 +251,22 @@ public sealed class RaskServerOptions
             throw new ArgumentOutOfRangeException(
                 nameof(ResumeTokenLifetime), ResumeTokenLifetime,
                 "ResumeTokenLifetime must be positive. Set SessionResume = false to disable resume.");
+        }
+
+        if (ShutdownDrainTimeout < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ShutdownDrainTimeout), ShutdownDrainTimeout,
+                "ShutdownDrainTimeout must be >= TimeSpan.Zero (Zero disables the drain).");
+        }
+
+        // CancellationTokenSource.CancelAfter throws above int.MaxValue milliseconds, and it would throw
+        // from the shutdown path — the worst possible place to discover a bad value.
+        if (ShutdownDrainTimeout.TotalMilliseconds > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ShutdownDrainTimeout), ShutdownDrainTimeout,
+                $"ShutdownDrainTimeout must be at most {TimeSpan.FromMilliseconds(int.MaxValue)}.");
         }
     }
 }

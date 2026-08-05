@@ -66,6 +66,43 @@ WebSocket safety caps and session grace periods — only the ASP.NET host has th
 | `SessionResume` | `true` | Let a client rebuild its page on a host that has never heard of its session — after a restart or a redeploy. See [surviving a restart](#surviving-a-restart-or-a-redeploy). Turn it off to keep the reload. |
 | `ResumeTokenLifetime` | `1 h` | How long a resume record stays redeemable. Not the reconnect grace period: that covers a blip against the *intact* session, this covers the session being gone. |
 | `HandlerTimeout` | `0` (off) | Cancel a handler's `Component.CancellationToken` after this long. A handler that threads that token into its async work unwinds cleanly instead of pinning the render pipeline (cooperative — a token-ignoring handler can't be force-aborted). |
+| `ShutdownDrainTimeout` | `5 s` | Budget for the graceful shutdown drain: announce the shutdown, let in-flight handlers finish, close each socket with a real handshake, dispose the sessions. `0` disables the drain (abort immediately). See [Shutdown and redeploy](#shutdown-and-redeploy). |
+
+### Shutdown and redeploy
+
+On `SIGTERM` — a redeploy, a container recycle, `Ctrl+C` — Rask drains instead of severing, with no
+wiring on your part:
+
+1. **Admission closes.** New sessions are refused with `503` + `Retry-After: 1`, and the `ready`-tagged
+   health check goes unhealthy so a proxy or load balancer with active probes stops routing here.
+2. **Connected browsers are told.** Every live session gets a `{"type":"shutdown"}` frame, so the client
+   shows **"Updating…"** rather than the reconnect spinner — and, because the drop is now *expected* rather
+   than guessed at, it reconnects immediately instead of walking a 500 ms → 5 s backoff ladder first.
+3. **In-flight handlers finish.** A click that is mid-`SaveChangesAsync` completes rather than being
+   cancelled halfway.
+4. **Sockets close cleanly** — WebSocket status `1001` ("going away"), not an abort — and the sessions
+   are disposed before the host stops.
+
+Anything still connected when `ShutdownDrainTimeout` elapses is aborted, and
+`rask.shutdown.sessions.abandoned` counts it.
+
+> **What happens to the page itself is the replacement server's decision, not the client's.** A live
+> session is a component tree plus a DI scope living in *that* process, so the new instance cannot inherit
+> it. The client therefore reconnects and lets the host that answers decide: if it can rebuild the page,
+> nothing reloads at all; if it reports the session unknown, the client reloads — in ~250 ms, saying
+> "Updating…", and restoring your scroll position and focus.
+>
+> The drain's job is to make that drop *expected*. Before it, the socket was aborted with no close frame,
+> so the browser could not tell a deployment from a crash: it froze, backed off, and eventually announced
+> a four-second "Your session timed out" for a session that had not timed out.
+>
+> Form field values are deliberately **not** restored across a reload — the new server renders those from
+> its own state, and overwriting them with stale client copies would turn a cosmetic loss into a data one.
+
+`ShutdownDrainTimeout` must fit inside `HostOptions.ShutdownTimeout`, which must fit inside whatever your
+container runtime allows between `SIGTERM` and `SIGKILL` (`rask deploy` uses 20 s). Rask logs a warning at
+startup if the first of those doesn't hold. Note that `HostOptions.ServicesStopConcurrently` is `false` by
+default, so other hosted services' shutdown work is spent from the same budget first.
 
 ### Reconnect UX
 
@@ -81,6 +118,8 @@ overlay handles the user-facing side automatically — nothing to configure:
   the client then shows "Your session timed out. Reload to continue." with a **Reload** button (and a
   fallback auto-reload) instead of silently reloading and wiping in-progress UI state. Raise
   `SessionGracePeriod` if your users routinely background the tab longer than the 30 s default.
+- **Deploy aware.** A drop caused by the server shutting down is *not* reported as a timeout — see
+  [Shutdown and redeploy](#shutdown-and-redeploy).
 
 > **Using `HandlerTimeout`:** thread `Component.CancellationToken` into the cancellable async work your
 > event handlers start, so the timeout (or socket close) can unwind them. Inside a handler that token

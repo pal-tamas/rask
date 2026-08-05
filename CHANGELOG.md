@@ -48,6 +48,31 @@ them until tagged releases begin.
   `ResumeTokenLifetime` (default 1 hour). **Requires a persisted data-protection key ring** — a record
   sealed before a redeploy cannot be opened after one otherwise, which is what the scaffold's `/data/keys`
   change below is for.
+- **A graceful shutdown for live sessions — a redeploy no longer tells every user their session timed
+  out.** `rask deploy` advertises zero-downtime deploys, and the container swap really is blue-green, but
+  the app had no drain: `ApplicationStopping` fired `ws.Abort()` on every socket, so the browser saw an
+  abnormal (1006) closure with no close frame, reconnected onto the replacement container, was told
+  `session/unknown`, and displayed **"Your session timed out. Reload to continue."** for four seconds
+  before reloading. Nothing had timed out — and because the browser could not tell a deployment from a
+  crash, it had no better option. On `SIGTERM` the host now closes admission (new sessions get
+  `503` + `Retry-After: 1`, and a new readiness health check goes unhealthy so a probing proxy stops
+  routing), tells every connected browser it is going away, lets in-flight handlers finish — a click that
+  was mid-`SaveChangesAsync` used to be cancelled and dropped — closes each socket with a real `1001`
+  "going away" handshake, and disposes the sessions *awaited*, where the old path fired an unawaited
+  `RemoveAsync` that raced process exit. The client shows **"Updating…"** and, because the drop is now
+  *expected* rather than guessed at, reconnects immediately instead of walking a 500 ms → 5 s backoff
+  ladder — leaving what happens to the page to the host that answers. If that host cannot rebuild the
+  session it reloads, in ~250 ms instead of 4 s, restoring scroll position and focus. Form values are
+  deliberately not restored: the new server renders those from its own state, and writing stale client
+  copies over them would turn a cosmetic loss into a data one.
+  Budget via `RaskServerOptions.ShutdownDrainTimeout` (default 5s; `Zero` restores the old abort), which
+  must fit inside `HostOptions.ShutdownTimeout`; a startup warning says so when it doesn't, and
+  `rask.shutdown.sessions.abandoned` counts anything still connected when the budget ran out.
+  `LiveSessionStore.DisposeAsync` also became idempotent: the store is a DI singleton, so a host or a test
+  that disposed it *as well as* the container reached `Cancel()` on an already-disposed token source.
+  The load-bearing change is a one-line token substitution: the socket's cancellation token now derives
+  from the drain's hard deadline rather than from `ApplicationStopping`, which is what makes it possible
+  to send anything at all — including the shutdown frame — after the stop signal arrives.
 - **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
   backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
   for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,
