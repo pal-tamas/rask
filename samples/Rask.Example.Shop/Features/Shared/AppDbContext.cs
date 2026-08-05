@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Cache;
 using Rask.Data;
-using Rask.Outbox;
+using Rask.Example.Shop.Features.Orders;
+using Rask.Example.Shop.Features.Products;
 using Rask.Jobs;
 using Rask.Mail;
-using Rask.Cache;
-using Rask.Example.Shop.Features.Products;
-using Rask.Example.Shop.Features.Orders;
+using Rask.Outbox;
 
 namespace Rask.Example.Shop.Features.Shared;
 

@@ -1,0 +1,38 @@
+<Project>
+
+  <!--
+    Shared packing of Rask.Core's build integration (the scoped-CSS/JS <AdditionalFiles> globs and the
+    three <CompilerVisibleProperty> entries) into each host package's build/ folder. Imported by the host
+    packages (Rask.Server, Rask.Wasm, Rask.Native). All three live at src/<Name>/, so the ..\Rask.Core
+    relative path — evaluated relative to the IMPORTING project's directory — resolves identically from
+    any of them, keeping the three packages' build payload in lockstep from one place.
+
+    Rask.Core itself is IsPackable=false, so it cannot ship this file; and NuGet auto-imports only
+    build/<PackageId>.{props,targets}, so a build/Rask.Core.targets is payload, not an entry point —
+    each package's own build/<PackageId>.targets imports it (guarded on Exists, because the file is
+    packed from Rask.Core's tree and so has no sibling in the source tree).
+
+    Deliberately pack-only: nothing copies Rask.Core.targets into any src/<Name>/build/ folder on disk.
+    That is what keeps the in-repo import (Directory.Build.targets) and the packaged import from ever
+    both firing for the same project — the Exists guard is false in the repo. Rask.Core.targets is
+    idempotent anyway, but structural impossibility beats a sentinel.
+  -->
+  <ItemGroup>
+    <None Include="..\Rask.Core\build\Rask.Core.targets"
+          Pack="true" PackagePath="build\" Visible="false"/>
+  </ItemGroup>
+
+  <!--
+    Fail loud at pack time rather than silently shipping a package whose consumers get no scoped CSS/JS.
+    A <None Include> of an absent file packs nothing and emits no error, and a missing
+    build/<PackageId>.targets means NuGet never imports the payload above — which is exactly the defect
+    this file exists to fix (#544), undetectable from the outside until someone unzips the .nupkg.
+  -->
+  <Target Name="_RaskVerifyCoreBuildPacked" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('..\Rask.Core\build\Rask.Core.targets')"
+           Text="Rask.Core.targets not found at '..\Rask.Core\build\Rask.Core.targets' — it must ship in this package's build/ folder, or consumers get no scoped CSS/JS and no RaskGlobalUsings/RaskScopedJsAutoInclude/RaskFactoryNavigation opt-outs." />
+    <Error Condition="!Exists('build\$(PackageId).targets')"
+           Text="build\$(PackageId).targets is missing — NuGet auto-imports only build/&lt;PackageId&gt;.{props,targets}, so without it the packed build/Rask.Core.targets is never imported by a consumer." />
+  </Target>
+
+</Project>

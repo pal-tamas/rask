@@ -167,6 +167,8 @@
   -->
   <!-- Analyzer + generator + IDE code-fix payload packed into analyzers/dotnet/cs/ (shared with Rask.Server). -->
   <Import Project="..\RaskAnalyzerPack.targets"/>
+  <!-- Rask.Core's build integration packed to build/, imported by build/Rask.Wasm.targets. -->
+  <Import Project="..\RaskCoreBuildPack.targets"/>
 
   <PropertyGroup>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_RaskAddCoreToLib</TargetsForTfmSpecificContentInPackage>

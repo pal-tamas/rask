@@ -192,6 +192,8 @@ can't be scoped to anything.
 
 **Fix:** rename the file to match its component, move it next to the right component, or exclude it
 with `<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>` if it's a global stylesheet.
+`bin/`, `obj/`, `node_modules/` and `wwwroot/` are already excluded, so a global stylesheet under
+`wwwroot/` — the placement [js-interop.md](js-interop.md#scoped-css) recommends — never trips this.
 
 ## RASK016
 **Ambiguous scoped-CSS match** · Error
