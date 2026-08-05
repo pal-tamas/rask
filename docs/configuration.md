@@ -141,6 +141,35 @@ These are steady-state figures, and steady state is what a session settles into:
 over 200 updates each holds flat to the byte, and 500 create-and-dispose cycles leave under 100 bytes
 behind.
 
+### Fitting is not the same as serving
+
+The table above answers how many sessions a host can *hold*. What it costs to actually *use* them is a
+different question, and a capacity number you can't serve isn't a capacity number:
+
+```bash
+dotnet run -c Release --project benchmarks/Rask.Benchmarks -- session-load
+```
+
+That drives real WebSockets against a real host and times the round trip a user actually feels — the
+click, the render it causes, and the acknowledgement that closes it. Indicative figures (Apple M4, 20
+concurrent sessions, closed loop):
+
+| Page | Events/sec | p50 | p99 |
+| --- | ---: | ---: | ---: |
+| Empty shell | ~100,000 | 0.15 ms | ~1 ms |
+| 5-row table | ~85,000 | 0.19 ms | ~1 ms |
+| 200-row grid | ~26,000 | 0.53 ms | ~6 ms |
+
+Read the shape, not the absolutes: **page size costs you throughput before it costs you memory.** An
+empty shell and a 5-row page are within noise of each other; a 200-row grid costs roughly 4× the
+per-event time and a quarter of the throughput, because every interaction re-renders and re-diffs the
+whole page.
+
+Two things the harness deliberately does not measure. It reports no memory — the load generator shares a
+process with the host it drives, so a heap reading would count the client's own sockets; that is what
+`session-footprint` is for. And it turns off `MaxInboundFramesPerSecond`, because a closed-loop generator
+trips a per-connection DoS cap that no human ever will. Leave that cap on in production.
+
 To pick a number: take the RAM you'll give the process, subtract the app's own baseline, and divide by
 the connected cost of your **largest** page — then leave headroom, because `MaxSessions` also counts
 sessions created by a bare `GET` whose WebSocket never arrived (they hold a slot for

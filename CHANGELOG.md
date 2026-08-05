@@ -8,6 +8,19 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`session-load` — what a host does when its sessions are actually used.** The existing capacity reports
+  answer how many sessions *fit*: a retained-memory question, measured against a stub socket that never
+  receives. Nothing said what happens when those sessions are used, and a capacity number you can't serve
+  isn't a capacity number. This one drives real `ClientWebSocket`s against a real Kestrel host and times
+  the round trip a user feels — the click, the render it causes, and the ack that closes it — reporting
+  events/sec with exact p50/p95/p99. Closed-loop, so throughput and latency stay honest with each other
+  rather than reporting queue depth dressed as latency. The headline: **page size costs throughput before
+  it costs memory** — an empty shell and a 5-row page are within noise, while a 200-row grid costs ~4× the
+  per-event time. Wired into the nightly alongside `session-footprint` and `session-churn`, which had
+  never run in CI at all, so the numbers in `docs/configuration.md` stop being one person's local run.
+  It reports no memory column on purpose: the generator shares a process with the host, so a heap reading
+  counts the client's own sockets — an early version did exactly that and produced a figure that didn't
+  rise with page size.
 - **`rask db backup` and `rask db restore` — get the deployed database down, and a copy back up.** Continuous
   backup (Litestream) covers the box dying; this covers the two things a solo developer actually reaches
   for: *"something looks wrong in production, let me get a copy"* and *"that migration was a mistake,

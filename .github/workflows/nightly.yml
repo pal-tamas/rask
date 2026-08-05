@@ -49,6 +49,15 @@ jobs:
           dotnet run -c Release --project benchmarks/Rask.Benchmarks -p:MinVerSkip=true -- payload-bytes
           dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -p:MinVerSkip=true -- payload-bytes
           dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -p:MinVerSkip=true -- mem-footprint
+      # The live-session capacity reports. Absolute numbers from a shared runner mean little — these are
+      # here so the CSV lands in the log and a change in SHAPE (a page size that stops scaling, a sudden
+      # error count, a throughput collapse) is visible without anyone remembering to run them by hand.
+      # session-load opens real sockets, so it is best-effort like the rest of this job.
+      - name: Live-session capacity reports
+        run: |
+          dotnet run -c Release --project benchmarks/Rask.Benchmarks -p:MinVerSkip=true -- session-footprint
+          dotnet run -c Release --project benchmarks/Rask.Benchmarks -p:MinVerSkip=true -- session-churn
+          dotnet run -c Release --project benchmarks/Rask.Benchmarks -p:MinVerSkip=true -- session-load --sessions=25 --seconds=5 || true
       - name: Full BenchmarkDotNet suites (short job)
         run: |
           dotnet run -c Release --project benchmarks/Rask.Benchmarks -p:MinVerSkip=true -- --filter '*' --job short || true
