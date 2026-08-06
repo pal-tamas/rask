@@ -346,6 +346,12 @@ internal sealed class DevCommand(
         }
 
         Console.Error.WriteLine();
+        foreach (var line in NativeHotReloadGuidance.Lines)
+        {
+            Console.Error.WriteLine(line);
+        }
+
+        Console.Error.WriteLine();
         Console.Error.WriteLine("If you meant a different project, pass --project.");
         return 1;
     }
@@ -376,5 +382,23 @@ internal static class NativeRunCommands
     [
         $"{Android}     # Android emulator",
         $"{IOS}         # iOS simulator (macOS + Xcode)"
+    ];
+}
+
+/// <summary>
+/// What to say about hot reload once <c>rask dev</c> has refused a native app. Applying new IL to a
+/// running app needs a device-side delta agent, which does not exist — so Native + Local means restart.
+/// Native + Server is the exception, and an easy one to miss: that head loads a remote Rask Server
+/// (<c>NativeAppHost.ConnectToServer</c>), so the WebView is a browser and already picks up every edit
+/// a <c>rask dev</c> session on the server project applies. Saying so here is the whole point — the
+/// refusal is where someone is standing when they want the answer.
+/// </summary>
+internal static class NativeHotReloadGuidance
+{
+    public static IReadOnlyList<string> Lines =>
+    [
+        "Hot reload can't reach an app on a device, so a Native + Local head has to be restarted.",
+        "Native + Server is different: it loads a remote Rask Server, so run `rask dev` against that",
+        "server project and the device picks the edit up over the same live connection a browser uses."
     ];
 }
