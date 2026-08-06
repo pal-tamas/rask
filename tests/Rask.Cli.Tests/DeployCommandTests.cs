@@ -277,6 +277,63 @@ public sealed class DeployCommandTests
         Assert.Equal(9000, config.Port);
     }
 
+    /// <summary>
+    ///     Port mode stops the old container before starting the new one, so a bad image used to leave the
+    ///     box serving nothing at all — the health gate reported the failure and stopped there. The
+    ///     downtime is inherent to a single published port and is documented; staying down is not.
+    /// </summary>
+    [Fact]
+    public async Task Port_mode_restores_the_previous_image_when_the_health_gate_fails()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner
+        {
+            CaptureHandler = Captures(),
+            // The probe fails for the image being deployed, and would fail for any probe — so the restore
+            // is asserted on the run that happens, not on a second probe passing.
+            RunHandler = args => args.Contains("curlimages/curl:8.11.1") ? 1 : 0,
+        };
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+
+        // The deploy still failed — that is not in question.
+        Assert.Equal(1, exit);
+
+        // But :previous was started again, so the box is serving the last image that passed this gate.
+        var runs = runner.Invocations.Where(i => !i.Captured && i.Arguments.Contains("run")).ToList();
+        Assert.Contains(runs, i => i.Arguments.Contains("shop:previous"));
+        Assert.Contains("Restoring shop:previous", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Port_mode_says_so_when_there_is_no_previous_image_to_restore()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner
+        {
+            // A first deploy: :current exists, :previous does not.
+            CaptureHandler = args =>
+                IsHostProbe(args) ? new ProcessResult(0, ReadyHostProbe, string.Empty)
+                : args.Contains("inspect") && args.Contains("image") ? new ProcessResult(1, string.Empty, string.Empty)
+                : args.Contains("ps") ? new ProcessResult(0, string.Empty, string.Empty)
+                : args.Contains("inspect") ? new ProcessResult(0, "true\n", string.Empty)
+                : new ProcessResult(0, string.Empty, string.Empty),
+            RunHandler = args => args.Contains("curlimages/curl:8.11.1") ? 1 : 0,
+        };
+        var console = new StringConsole();
+        var command = Create(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("no previous image", console.ErrorText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(
+            runner.Invocations.Where(i => !i.Captured && i.Arguments.Contains("run")),
+            i => i.Arguments.Contains("shop:previous"));
+    }
+
     [Fact]
     public async Task Port_mode_persists_env_file_and_project_for_the_next_deploy()
     {

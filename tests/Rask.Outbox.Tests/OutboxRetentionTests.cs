@@ -141,12 +141,15 @@ public sealed class OutboxRetentionTests : IDisposable
     // One poll cycle, deterministically: start the processor, wait for the sweep, stop. Driving the real
     // hosted service (rather than calling a private method) is what proves the purge is actually wired
     // into the cycle — a PurgeAsync nobody calls would pass every other assertion here.
-    private async Task RunCycleAsync()
+    // Drives exactly one poll, rather than starting the hosted service and sleeping for a fixed 500 ms.
+    // That sleep was a race against the machine: under a full-suite load the first cycle had not finished
+    // when the processor was stopped, so the retention sweep never ran and the assertions below read as
+    // "the sweep is broken" instead of "the sweep never happened". Retention is throttled on the injected
+    // clock, so one explicit cycle per step is exactly what these tests mean.
+    private Task RunCycleAsync()
     {
         var processor = _provider.GetServices<IHostedService>().OfType<OutboxProcessor<OutboxDbContext>>().Single();
-        await processor.StartAsync(CancellationToken.None);
-        await Task.Delay(500);
-        await processor.StopAsync(CancellationToken.None);
+        return processor.RunCycleAsync(CancellationToken.None);
     }
 
     private OutboxDbContext NewContext() =>

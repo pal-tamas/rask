@@ -15,7 +15,10 @@ public sealed class MailProcessorTests
         try
         {
             await harness.Queue.SendAsync(SampleEmail());
-            await harness.WaitUntilAsync(async () => harness.Sender.Sent.Count == 1);
+            // Wait for the ROW, not for the send. The processor marks the row after the sender returns, so
+            // waiting on Sent.Count leaves the ProcessedAt assertion below racing that write — which is
+            // exactly how this failed under a full-suite load while passing every time in isolation.
+            await harness.WaitUntilAsync(async () => (await harness.SingleMailAsync()).ProcessedAt is not null);
 
             var sent = Assert.Single(harness.Sender.Sent);
             Assert.Equal("Welcome", sent.Subject);
