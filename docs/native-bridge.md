@@ -26,6 +26,14 @@ NativeServerShell shell = NativeAppHost.ConnectToServer(new Uri("https://app.exa
 - **Server** makes the device a native, store-distributable shell over a server-driven app — the same
   `Rask.Server` app, now installable with native device APIs available to the page (see below).
 
+> **Only one of the two hot-reloads.** Applying new IL to an app already running on a device needs a
+> device-side delta agent that .NET doesn't ship, and `dotnet watch` can't drive a simulator either — so a
+> **Local** head has to be restarted (`dotnet build -t:Run`) to pick up a C# edit. A **Server** head is a
+> browser onto your server, so it hot-reloads like any other page: point `ConnectToServer` at your dev
+> machine (`http://10.0.2.2:<port>` from the Android emulator — with the cleartext caveat below —
+> `http://localhost:<port>` from the iOS simulator), run [`rask dev`](cli.md#what-hot-reloads) against the
+> *server* project, and every applied edit repaints the device, "Hot reload applied" pill included.
+
 ### Native device APIs from a Server app (the capability bridge)
 
 In Server mode the C# runs on the server and the device is a WebView, so a mid-handler `IShare` call can't

@@ -201,6 +201,28 @@ public sealed class DevCommandTests
         Assert.Empty(runner.Invocations); // nothing spawned
     }
 
+    [Fact]
+    public async Task The_native_refusal_points_a_server_shell_at_its_server_project_for_hot_reload()
+    {
+        // The refusal is where someone stands when they wonder why their edit did nothing, so it has to
+        // answer the hot-reload question rather than leave it to the docs: Native + Local restarts,
+        // Native + Server hot-reloads today by being a browser onto a `rask dev` server.
+        var fs = new FakeFileSystem();
+        fs.Seed("/app/App.csproj", """<Project><TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks></Project>""");
+        var console = new StringConsole();
+        var command = new DevCommand(console, new FakeProcessRunner(), fs, new FakeBrowserLauncher(), "/app");
+
+        await command.ExecuteAsync([], CancellationToken.None);
+
+        foreach (var line in NativeHotReloadGuidance.Lines)
+        {
+            Assert.Contains(line, console.ErrorText, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("Native + Server", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("rask dev", console.ErrorText, StringComparison.Ordinal);
+    }
+
     // ---- browser ----
 
     [Fact]

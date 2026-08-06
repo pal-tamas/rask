@@ -75,6 +75,15 @@ them until tagged releases begin.
   container and stopping the old one: `caddy reload` returns as soon as the config applies, but Caddy still
   holds pooled connections to the old upstream, and a request it was about to write onto one when SIGTERM
   landed became an un-retried 502 (`lb_try_duration` defaults to 0). There was previously no gap at all.
+- **`rask dev` now says which native head hot-reloads, because one of them does.** Refusing a native
+  project and pointing at `dotnet build -t:Run` was correct but only half the answer, and the missing half
+  was the useful one. Applying new IL to an app already running on a device needs a device-side delta agent
+  that .NET doesn't ship, so a **Native + Local** head genuinely has to be restarted. A **Native + Server**
+  head does not: it loads a remote Rask Server, so as far as hot reload is concerned it *is* a browser —
+  point `ConnectToServer` at your dev machine, run `rask dev` against the server project, and every applied
+  edit repaints the device over the ordinary live connection, "Hot reload applied" pill included. That path
+  worked already and nothing said so, which read as "native means no edit loop". The refusal message, `What
+  hot-reloads` and the Local-vs-Server section now all draw the same line.
 
 ### Fixed
 - **The style pass is part of the local gate again, and the "spurious CS1503" that kept it out is
