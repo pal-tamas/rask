@@ -53,6 +53,11 @@ await factory.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
 
 Tune it with `AddRaskSqlite(cs, configureRetry: r => …)` (defaults: 5 s timeout, 1 ms interval).
 
+Your callback **runs at least once, not exactly once**: SQLite can roll a transaction back on its own
+when a contended `COMMIT` is answered with `SQLITE_BUSY`, and the whole transaction is then re-run
+because everything the callback wrote went with it. Keep the callback re-runnable and put side effects
+that must not repeat outside the transaction.
+
 ## Using Entity Framework Core?
 
 Add [`Rask.SQLite.EntityFrameworkCore`](https://www.nuget.org/packages/Rask.SQLite.EntityFrameworkCore)
