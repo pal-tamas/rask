@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-08-06
+
 ### Fixed
 - **`Rask.Postgres` and `Rask.SqlServer` are actually published now.** Both had everything a shipped
   package has — `IsPackable`, a `PackageId`, a description, their own `NUGET.md`, tests — except a
