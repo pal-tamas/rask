@@ -54,13 +54,6 @@ public sealed class PlaygroundView : Component
         _services = services;
     }
 
-    private enum IdeState
-    {
-        Loading,
-        Ready,
-        Unavailable
-    }
-
     // The Rask brand mark (violet-gradient bolt), matching the marketing site + docs. Inlined here
     // because RaskLogo lives in Rask.Example.Shared, which the isolated playground doesn't reference.
     private const string BoltSvg =
@@ -209,7 +202,11 @@ public sealed class PlaygroundView : Component
             _ => (BsColor.Secondary, "Loading IntelliSense…")
         };
 
-        return BsBadge(Color: color, Pill: true, Class: "pg-ide")[text];
+        // The state rides a class as well as the colour and the label: it is what the E2E waits on to know
+        // the workspace has its references, and a colour is not a thing a locator can wait for. See
+        // IdeBadgeState — the mapping is pinned by a unit test precisely because losing it fails as a
+        // three-minute Playwright timeout rather than as anything that names the cause (#593).
+        return BsBadge(Color: color, Pill: true, Class: $"pg-ide {IdeBadgeState.ClassFor(_ide)}")[text];
     }
 
     private Component PreviewBody()

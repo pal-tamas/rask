@@ -77,6 +77,18 @@ public sealed class LogWriterResilienceTests
             "the shutdown drain must give up rather than wait on an unreachable store");
     }
 
+    /// <summary>
+    /// <see cref="RaskLoggingOptions.ShutdownDrainTimeout"/> governs exactly one thing: whether
+    /// <c>StopAsync</c> runs a final flush. These two cases assert that, and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// The writer's own loop is deliberately never started. It is not scenery: the loop drains on its
+    /// first cycle, so a started writer races the test for the same entry and a loaded machine lets the
+    /// loop win — which is not a bug in the writer, since draining an entry claimed before shutdown is
+    /// exactly right. Asserting on the store while both paths can reach it therefore tests the scheduler
+    /// (see #594). With no loop, the drain branch is the only code that can append, so the pair below
+    /// pins the option's effect in both directions with no timing at all.
+    /// </remarks>
     [Fact]
     public async Task NoDrainRunsWhenTheTimeoutIsZero()
     {
@@ -87,11 +99,28 @@ public sealed class LogWriterResilienceTests
             ShutdownDrainTimeout = TimeSpan.Zero,
         });
 
-        await writer.StartAsync(CancellationToken.None);
-        channel.Write(Entry("dropped on shutdown"));
+        channel.Write(Entry("pending at shutdown"));
         await writer.StopAsync(CancellationToken.None);
 
         Assert.Empty(store.Appended);
+        Assert.Equal(0, store.Attempts);
+    }
+
+    /// <inheritdoc cref="NoDrainRunsWhenTheTimeoutIsZero"/>
+    [Fact]
+    public async Task TheDrainRunsWhenTheTimeoutIsPositive()
+    {
+        var store = new FaultyLogStore();
+        using var writer = Build(store, out var channel, new RaskLoggingOptions
+        {
+            FlushInterval = TimeSpan.FromMinutes(5),
+            ShutdownDrainTimeout = TimeSpan.FromSeconds(5),
+        });
+
+        channel.Write(Entry("pending at shutdown"));
+        await writer.StopAsync(CancellationToken.None);
+
+        Assert.Equal("pending at shutdown", Assert.Single(store.Appended).Message);
     }
 
     private static LogWriter Build(ILogStore store, out LogChannel channel, RaskLoggingOptions options)

@@ -16,8 +16,6 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 /// </summary>
 public sealed class StandaloneWasmAppFixture : StaticWwwrootHostFixture
 {
-    protected override int Port => 5096;
-
     protected override string ProjectRelativePath => "samples/Rask.Example.Wasm";
 
     protected override string MissingBundleMessage(string wwwroot) =>

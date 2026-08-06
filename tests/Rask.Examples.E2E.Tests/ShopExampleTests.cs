@@ -233,7 +233,12 @@ public sealed class ShopExampleTests(ShopExampleAppFixture app, PlaywrightFixtur
         // sees an entry, which is why an app on `"Default": "Warning"` alone stores nothing at all.
         await Assertions.Expect(_page.Locator("table tbody tr").First).ToBeVisibleAsync(
             new() { Timeout = 15_000 });
-        await Assertions.Expect(_page.GetByText("Application started")).ToBeVisibleAsync();
+        // `.First`, because the claim is "a start-up line reached the store", not "exactly one did". The
+        // store is a file in the sample's publish directory and the fixture reuses that directory, so the
+        // SECOND run of this suite finds two — and a strict locator then fails with a match-count error
+        // that reads like a UI bug. Which made the gate pass once and fail on the re-run, i.e. exactly
+        // when someone re-runs it after fixing something else.
+        await Assertions.Expect(_page.GetByText("Application started").First).ToBeVisibleAsync();
 
         // The live tail is still there beside it, reading nothing from disk.
         await _page.ClickAsync("a.nav-link:has-text('Live')");
