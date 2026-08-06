@@ -2729,6 +2729,86 @@ function raskShouldSuppressChecked(el, incoming) {
     return false;
 }
 
+// User-edit provenance for the redeploy restore. When a replacement server can't carry a session over,
+// the page reloads, and the Server runtime re-applies the fields the user had actually edited (see
+// saveRestoreFields / applyRestoreFields in rask.js). It re-applies one only when the REPLACEMENT
+// server rendered the same base the old one did — which is what makes that a three-way merge (base /
+// the user's edit / what the new server rendered) rather than a guess about whose value is newer.
+//
+// The base has to be captured the FIRST time a field goes dirty. It cannot be read off the DOM later:
+// every echo of the user's own keystrokes rewrites the `value` ATTRIBUTE, because morph() and the diff
+// both sync attributes unconditionally and guard only the `.value` PROPERTY. By reload time the
+// attribute IS the user's text, base would equal ours, and every edit would compare unequal against a
+// pristine replacement and be dropped — the feature would be a silent no-op. Hence capture-once: a
+// second edit to the same field must not overwrite the base the first one recorded.
+//
+// Same WeakMap-backed-global shape as the two guards above, and for the same reason: reachable from the
+// spliced morph, from rask-input.js and from the host runtime regardless of splice ordering.
+function _raskDirtyFields() {
+    return window.__raskDirtyFields || (window.__raskDirtyFields = new WeakMap());
+}
+
+function raskNoteDirtyField(el) {
+    if (!el) return;
+    const map = _raskDirtyFields();
+    if (map.has(el)) return;                        // capture-once — the first edit owns the base
+    map.set(el, raskFieldBase(el));
+}
+
+function raskIsDirtyField(el) {
+    return !!el && _raskDirtyFields().has(el);
+}
+
+function raskDirtyFieldBase(el) {
+    const map = _raskDirtyFields();
+    return el && map.has(el) ? map.get(el) : undefined;
+}
+
+// What the server rendered for a control, read from ATTRIBUTES only — never from a property. The two
+// disagree in ways that would silently corrupt the comparison: a type=number/date input sanitizes an
+// unparseable attribute to "" on `.value`, and a textarea's `.value` normalizes the CRLF its text
+// content keeps. Bases are only ever compared to other bases, so attribute-vs-attribute is the rule.
+//
+// `null` is preserved and is NOT the same as "": it means the server rendered no `value` attribute at
+// all — an uncontrolled input, which morph deliberately never writes to (see the uncontrolled rule in
+// morph() below). The restore treats the two differently, so they must not be flattened together.
+function raskFieldBase(el) {
+    if (el.tagName === "TEXTAREA") return el.textContent;
+    const type = (el.getAttribute("type") || "").toLowerCase();
+    if (type === "checkbox") return el.hasAttribute("checked");
+    if (type === "radio") return raskRadioGroupBase(el);
+    return el.getAttribute("value");
+}
+
+// A radio's meaningful state is its GROUP's, not its own: "which value is selected" rather than "is
+// this one checked". Per-element `checked` would let a restore re-check the user's pick while the
+// replacement server had moved the selection elsewhere — and natively un-check the server's choice —
+// without the bases ever comparing unequal. So the base is the value of whichever member carries the
+// `checked` attribute, or "" for a group the server rendered with nothing selected.
+//
+// The group is same-name AND same form owner; two forms on one page can each have a `Plan` group.
+function raskRadioGroupBase(el) {
+    const group = raskRadioGroup(el);
+    for (const r of group) {
+        if (r.hasAttribute("checked")) return r.getAttribute("value") || "";
+    }
+
+    return "";
+}
+
+function raskRadioGroup(el) {
+    const name = el.getAttribute("name");
+    if (!name) return [el];
+    const out = [];
+    // Matched by attribute rather than a name selector so this stays free of CSS.escape, which the
+    // shared modules can't assume — a name is app-authored and may hold selector metacharacters.
+    for (const r of document.querySelectorAll("input[type=radio]")) {
+        if (r.getAttribute("name") === name && r.form === el.form) out.push(r);
+    }
+
+    return out.length > 0 ? out : [el];
+}
+
 // Third-party <head> preservation. Libraries routinely inject <style>/<link>/<script> into <head> at
 // runtime (a code editor's theme colours, a charting lib, a syntax highlighter, analytics). Those nodes
 // aren't in the .NET-rendered head, so the reconciler below would trim them on the next head morph. Rather
@@ -3969,6 +4049,10 @@ function queueInput(el) {
 document.addEventListener("input", (e) => {
     const t = e.target.closest("[data-rask-on-input]");
     if (!t || !inRoot(t)) return;
+    // Mark the field user-edited and capture what the server had rendered for it, BEFORE the dispatch
+    // below causes an echo that rewrites the `value` attribute. Only the Server runtime reads this
+    // (its redeploy reload re-applies edited fields); it costs one WeakMap probe everywhere else.
+    raskNoteDirtyField(t);
     // Inputs paired with data-rask-on-change need to dispatch SYNCHRONOUSLY: the change
     // event typically fires in the same task (Playwright fill, browser commit on blur),
     // and a downstream validator triggered by change reads the model state set by the

@@ -50,6 +50,10 @@ function queueInput(el) {
 document.addEventListener("input", (e) => {
     const t = e.target.closest("[data-rask-on-input]");
     if (!t || !inRoot(t)) return;
+    // Mark the field user-edited and capture what the server had rendered for it, BEFORE the dispatch
+    // below causes an echo that rewrites the `value` attribute. Only the Server runtime reads this
+    // (its redeploy reload re-applies edited fields); it costs one WeakMap probe everywhere else.
+    raskNoteDirtyField(t);
     // Inputs paired with data-rask-on-change need to dispatch SYNCHRONOUSLY: the change
     // event typically fires in the same task (Playwright fill, browser commit on blur),
     // and a downstream validator triggered by change reads the model state set by the

@@ -142,16 +142,138 @@ public class ShutdownClientContractTests
     }
 
     [Fact]
-    public void The_restore_point_carries_no_form_values()
+    public void The_scroll_restore_point_still_carries_no_form_values()
     {
-        // Scroll and focus only. The replacement server renders field values from its own state;
-        // writing stale client copies over them would turn a cosmetic loss into a data one.
+        // Scroll and focus only — the fields live under their own key (see below). Keeping them apart
+        // is what stops one oversized textarea failing the quota and taking the scroll position with it.
         var js = ServerJs;
         var fn = js[js.IndexOf("function saveRestorePoint", StringComparison.Ordinal)..];
         var body = fn[..fn.IndexOf("\n    }", StringComparison.Ordinal)];
 
         Assert.DoesNotContain(".value", body, StringComparison.Ordinal);
         Assert.Contains("scrollY", body, StringComparison.Ordinal);
+        Assert.Contains("const RESTORE_FIELDS_KEY = \"rask:restore:fields\";", js, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_field_snapshot_is_written_and_consumed_under_its_own_key()
+    {
+        // Two keys, two try blocks, both consumed unconditionally. If the field write shared the scroll
+        // point's try, a quota failure would silently cost the user their place as well as their typing.
+        var js = ServerJs;
+
+        var save = js[js.IndexOf("function saveRestoreFields", StringComparison.Ordinal)..];
+        var saveBody = save[..save.IndexOf("\n    }", StringComparison.Ordinal)];
+        Assert.Contains("sessionStorage.setItem(RESTORE_FIELDS_KEY", saveBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("RESTORE_KEY,", saveBody, StringComparison.Ordinal);
+
+        var apply = js[js.IndexOf("function applyRestoreFields", StringComparison.Ordinal)..];
+        var applyBody = apply[..apply.IndexOf("\n    }", StringComparison.Ordinal)];
+        var removed = applyBody.IndexOf("removeItem", StringComparison.Ordinal);
+        var firstGuardedReturn = applyBody.IndexOf("if (!saved) return;", StringComparison.Ordinal);
+        Assert.True(removed >= 0 && firstGuardedReturn > removed,
+            "the field snapshot must be consumed before the first early return");
+    }
+
+    [Fact]
+    public void The_field_snapshot_persists_no_handler_ids()
+    {
+        // The scariest failure mode this feature could have had. Handler ids are positional per render,
+        // and the server dispatches on the id alone without cross-checking the frame type — so an id
+        // carried over from the old page would not be rejected on the new one, it would invoke whatever
+        // handler now sits in that slot. The ids must therefore be read from the freshly rendered
+        // element at send time, never from the snapshot.
+        var js = ServerJs;
+
+        var save = js[js.IndexOf("function saveRestoreFields", StringComparison.Ordinal)..];
+        var saveBody = save[..save.IndexOf("\n    }", StringComparison.Ordinal)];
+        Assert.DoesNotContain("data-rask-on-", saveBody, StringComparison.Ordinal);
+
+        // queueConverge is the only place an id is read, and it reads it off the element.
+        var converge = js[js.IndexOf("function queueConverge", StringComparison.Ordinal)..];
+        var convergeBody = converge[..converge.IndexOf("\n    }", StringComparison.Ordinal)];
+        Assert.Contains("el.getAttribute(\"data-rask-on-input\")", convergeBody, StringComparison.Ordinal);
+        Assert.Contains("el.getAttribute(\"data-rask-on-change\")", convergeBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("entry.", convergeBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_field_restore_defers_its_sends_to_the_open_handler()
+    {
+        // applyRestoreFields runs at boot, above `let seqCounter`. Calling send() there walks into
+        // stampSeq and throws a temporal-dead-zone ReferenceError, which the restore's own catch would
+        // swallow — the whole restore would fail 100% of the time, silently. So it queues instead.
+        var js = ServerJs;
+
+        var apply = js[js.IndexOf("function applyRestoreFields", StringComparison.Ordinal)..];
+        var restoreOne = js[js.IndexOf("function restoreOneField", StringComparison.Ordinal)..];
+        var applyBody = apply[..apply.IndexOf("\n    }", StringComparison.Ordinal)];
+        var restoreOneBody = restoreOne[..restoreOne.IndexOf("\n    }", StringComparison.Ordinal)];
+
+        Assert.DoesNotContain("send(", applyBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("send(", restoreOneBody, StringComparison.Ordinal);
+        Assert.Contains("pendingConverge.push", ServerJs, StringComparison.Ordinal);
+
+        // And the queue is drained where a socket exists — after the hello, so the session is known.
+        var open = js[js.IndexOf("ws.addEventListener(\"open\"", StringComparison.Ordinal)..];
+        var openBody = open[..open.IndexOf("\n        });", StringComparison.Ordinal)];
+        var hello = openBody.IndexOf("ws.send(JSON.stringify(hello))", StringComparison.Ordinal);
+        var drain = openBody.IndexOf("for (const payload of pendingConverge) send(payload);", StringComparison.Ordinal);
+        Assert.True(hello >= 0 && drain > hello, "converge messages must be sent after the hello");
+    }
+
+    [Fact]
+    public void Secrets_are_never_snapshotted()
+    {
+        // Unconditional, and checked on both sides so a field that only becomes a secret in the
+        // replacement's render is still not written to.
+        var js = ServerJs;
+
+        Assert.Contains("\"password\"", js, StringComparison.Ordinal);
+        Assert.Contains("\"one-time-code\"", js, StringComparison.Ordinal);
+        Assert.Contains("\"current-password\"", js, StringComparison.Ordinal);
+        Assert.Contains("\"new-password\"", js, StringComparison.Ordinal);
+        Assert.Contains("\"cc-\"", js, StringComparison.Ordinal);
+        Assert.Contains("data-rask-no-restore", js, StringComparison.Ordinal);
+
+        var save = js[js.IndexOf("function saveRestoreFields", StringComparison.Ordinal)..];
+        var saveBody = save[..save.IndexOf("\n    }", StringComparison.Ordinal)];
+        Assert.Contains("restoreExcluded(el)", saveBody, StringComparison.Ordinal);
+
+        var restoreOne = js[js.IndexOf("function restoreOneField", StringComparison.Ordinal)..];
+        var restoreOneBody = restoreOne[..restoreOne.IndexOf("\n    }", StringComparison.Ordinal)];
+        Assert.Contains("restoreExcluded(el)", restoreOneBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_radio_is_keyed_by_its_group_not_by_its_own_id()
+    {
+        // A radio's base and value are the group's — which option is selected. Key it by its own id and
+        // the far side resolves to that one member, leaving its siblings unguarded: the server's first
+        // pristine frame re-checks its original option, which natively un-checks the restored one and
+        // undoes the restore with nothing to show for it.
+        var js = ServerJs;
+        var fn = js[js.IndexOf("function restoreKeyOf", StringComparison.Ordinal)..];
+        var body = fn[..fn.IndexOf("\n    }", StringComparison.Ordinal)];
+
+        Assert.Contains("\"radio\"", body, StringComparison.Ordinal);
+        Assert.Contains("el.getAttribute(\"name\")", body, StringComparison.Ordinal);
+
+        // And the apply side arms the guard across the whole group, for the same reason.
+        var restoreOne = js[js.IndexOf("function restoreOneField", StringComparison.Ordinal)..];
+        var restoreOneBody = restoreOne[..restoreOne.IndexOf("\n    }", StringComparison.Ordinal)];
+        Assert.Contains("for (const r of group) raskNotePendingChecked(r", restoreOneBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Only_the_server_dialect_restores_fields()
+    {
+        // Same asymmetry as the shutdown frame below, for the same reason: neither WASM nor Native has a
+        // server whose redeploy could reload them. The dirty-field CAPTURE is shared (it rides in
+        // rask-morph.js / rask-input.js so the three clients can't drift), but nothing reads it there.
+        Assert.Contains("function saveRestoreFields", ServerJs, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask:restore:fields", WasmJs, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask:restore:fields", NativeJs, StringComparison.Ordinal);
     }
 
     [Fact]

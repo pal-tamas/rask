@@ -160,6 +160,32 @@ binding one `TItem`; `Native: true` falls back to the plain OS `<select>`.
 
 <!-- demo:multi-select-radio -->
 
+## Surviving a redeploy
+
+If the server is replaced while someone is filling a form in, the page may have to reload — and the
+fields they had edited are put back. It is a three-way merge, so a field is only re-applied when the
+replacement server rendered the same value the old one had: if its state changed in the meantime, the
+server wins and the stale edit is dropped. Whatever *is* restored is pushed back over the socket, so the
+model matches what the page shows. [Shutdown and redeploy](configuration.md#shutdown-and-redeploy) has the
+full rules.
+
+Two things to know when building a form:
+
+- **A field needs an `id` or a `name`.** A bound `Input` gets a `name` from the bound property for free,
+  so this is usually nothing to think about — but a key that matches more than one control on the page is
+  skipped rather than guessed at, and a control with neither is never restored.
+- **`data-rask-no-restore` opts out** a field, or every field under it:
+
+```csharp
+Div(Data: new Dictionary<string, string?> { ["rask-no-restore"] = "" })[
+    Input(() => _model.CouponCode, Class: "form-control")   // never carried across a reload
+]
+```
+
+Passwords, file, hidden and one-time-code inputs, and anything with a `cc-*` / `current-password` /
+`new-password` `autocomplete`, are excluded unconditionally — they never reach `sessionStorage` at all.
+`<select>` isn't restored yet.
+
 ## Building your own form controls
 
 The binding system is public: a custom control implementing `IFormControl<T>` gets generator-synthesized
