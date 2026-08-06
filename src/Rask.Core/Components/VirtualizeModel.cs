@@ -119,7 +119,12 @@ public sealed class VirtualizeModel : Component
     {
         if (Body is null)
         {
-            throw new InvalidOperationException("VirtualizeModel: Render delegate is required.");
+            throw new InvalidOperationException(
+                "VirtualizeModel has no Body, so there is nothing for it to render. Body is the first "
+                + "argument and receives the virtualization state — wire its OnScroll to your scroll "
+                + "container and render state.Items inside it: "
+                + "VirtualizeModel(state => Div(OnScroll: state.OnScroll)[ … ], Items: rows, "
+                + "ItemSize: 32).");
         }
 
         if (Items is null == ItemsProvider is null)
@@ -130,7 +135,13 @@ public sealed class VirtualizeModel : Component
 
         if (ItemSize <= 0)
         {
-            throw new InvalidOperationException("VirtualizeModel: ItemSize must be greater than zero.");
+            // ArgumentOutOfRangeException, not InvalidOperationException: the offending value belongs in
+            // the exception rather than only in the prose, and this IS an out-of-range argument.
+            throw new ArgumentOutOfRangeException(
+                nameof(ItemSize), ItemSize,
+                "VirtualizeModel.ItemSize is the pixel height of one row and drives every scroll "
+                + "calculation, so it must be greater than zero. Pass the row height you render, e.g. "
+                + "ItemSize: 32.");
         }
 
         var itemSize = ItemSize;

@@ -27,7 +27,7 @@ internal sealed class RoutePattern
         var literal = 0;
         for (var i = 0; i < parts.Length; i++)
         {
-            segments[i] = ParseSegment(parts[i]);
+            segments[i] = ParseSegment(parts[i], template);
             if (segments[i].Kind == SegmentKind.Literal)
             {
                 literal++;
@@ -37,7 +37,11 @@ internal sealed class RoutePattern
         return new RoutePattern(template, segments, literal);
     }
 
-    private static RouteSegment ParseSegment(string raw)
+    // These are the runtime siblings of RASK003, and they used to be worse off than it: they echoed the
+    // offending segment, never showed a correct one, and — unlike the diagnostic — carried no way to tell
+    // WHICH route it came from, so `Empty parameter in route segment '{}'` was the whole story. The
+    // template is threaded in for that reason.
+    private static RouteSegment ParseSegment(string raw, string template)
     {
         if (raw.Length == 0)
         {
@@ -52,7 +56,9 @@ internal sealed class RoutePattern
         var inner = raw[1..^1];
         if (inner.Length == 0)
         {
-            throw new InvalidOperationException($"Empty parameter in route segment '{raw}'.");
+            throw new InvalidOperationException(
+                $"Route template '{template}' has an empty parameter segment '{raw}'. Give the "
+                + "parameter a name — '{id}' — or make the segment a literal by dropping the braces.");
         }
 
         if (inner.StartsWith("**", StringComparison.Ordinal))
@@ -60,7 +66,9 @@ internal sealed class RoutePattern
             var name = inner[2..];
             if (name.Length == 0)
             {
-                throw new InvalidOperationException($"Catch-all parameter must have a name in '{raw}'.");
+                throw new InvalidOperationException(
+                    $"Route template '{template}' has an unnamed catch-all segment '{raw}'. Name it — "
+                    + "'{**path}' — so the matched remainder has something to bind to.");
             }
 
             return new RouteSegment(SegmentKind.CatchAll, string.Empty, name, true);
@@ -71,7 +79,9 @@ internal sealed class RoutePattern
             var name = inner[1..];
             if (name.Length == 0)
             {
-                throw new InvalidOperationException($"Catch-all parameter must have a name in '{raw}'.");
+                throw new InvalidOperationException(
+                    $"Route template '{template}' has an unnamed catch-all segment '{raw}'. Name it — "
+                    + "'{*path}' — so the matched remainder has something to bind to.");
             }
 
             return new RouteSegment(SegmentKind.CatchAll, string.Empty, name, true);
@@ -92,7 +102,9 @@ internal sealed class RoutePattern
 
         if (paramName.Length == 0)
         {
-            throw new InvalidOperationException($"Parameter must have a name in '{raw}'.");
+            throw new InvalidOperationException(
+                $"Route template '{template}' has an unnamed parameter segment '{raw}'. Put the name "
+                + "before the constraint and the '?' — '{id:guid?}', not '{:guid?}'.");
         }
 
         return new RouteSegment(SegmentKind.Parameter, string.Empty, paramName, optional);

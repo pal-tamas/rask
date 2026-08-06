@@ -131,12 +131,34 @@ public class RaskDiagnosticsTests
     }
 
     [Fact]
-    public void FormatDefault_MessageOnly_RendersMessage()
+    public void FormatDefault_MessageOnly_CarriesCategoryAndLevel()
     {
+        // The event has always carried a level and a category and the default sink dropped both, so on
+        // any host without a logging bridge "framework said something" and "framework reported an error
+        // in the diff codec" printed identically (#611).
         var line = RaskDiagnostics.FormatDefault(
             new RaskDiagnosticEvent(RaskLogLevel.Warning, "Rask.Test", "just a message"));
 
-        Assert.Equal("just a message", line);
+        Assert.Equal("[Rask:Rask.Test] warning: just a message", line);
+    }
+
+    // One Fact rather than a Theory: RaskLogLevel is internal, so it cannot be an InlineData parameter
+    // on a public test method.
+    [Fact]
+    public void FormatDefault_LabelsEveryLevel()
+    {
+        var expected = new[]
+        {
+            (RaskLogLevel.Information, "info"),
+            (RaskLogLevel.Warning, "warning"),
+            (RaskLogLevel.Error, "error"),
+        };
+
+        foreach (var (level, label) in expected)
+        {
+            var line = RaskDiagnostics.FormatDefault(new RaskDiagnosticEvent(level, "Rask.Test", "m"));
+            Assert.Equal($"[Rask:Rask.Test] {label}: m", line);
+        }
     }
 
     [Fact]
@@ -146,8 +168,9 @@ public class RaskDiagnosticsTests
         var line = RaskDiagnostics.FormatDefault(
             new RaskDiagnosticEvent(RaskLogLevel.Error, "Rask.Test", "handler threw", ex));
 
-        // Reproduces the framework's historical "<message>: <exception>" stderr format.
-        Assert.StartsWith("handler threw: ", line);
+        // The exception still travels after the message, separated by a colon; the prefix in front of it
+        // is what changed.
+        Assert.StartsWith("[Rask:Rask.Test] error: handler threw: ", line);
         Assert.Contains("boom", line);
     }
 }

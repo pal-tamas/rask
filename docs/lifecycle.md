@@ -121,13 +121,45 @@ protected override async Task OnRenderedAsync(bool firstRender) =>
     // re-render from another component won't re-fire this — no loop
 ```
 
-## Gotcha: faulted async hooks are silent
+## Gotcha: a faulted async hook takes the page, not the component
 
-**If an async hook faults, the framework logs the exception to `Console.Error` and does NOT trigger a re-render.** It
-does not surface as an error page or a thrown exception up the render stack. The practical symptom: a component stuck
-on a loading placeholder that never resolves is almost always an `OnMountAsync` / `OnPropsChangedAsync` /
-`OnRenderedAsync` that threw. Check `Console.Error`. (Wrap risky work in `try/catch` if you want to render an error
-state yourself, or use an `ErrorBoundary` around the subtree for render/handler faults.)
+**If an async hook faults, it trips the nearest `ErrorBoundary` — and in a live app there is always one.** The host
+wraps your `App` in an implicit root boundary, and every component is stamped with the boundary above it during the
+render walk, so a faulting `OnMountAsync` / `OnPropsChangedAsync` / `OnRenderedAsync` renders that boundary's fallback
+rather than logging quietly.
+
+The practical symptom is therefore the opposite of what you might expect: not a component stuck forever on a loading
+placeholder, but **the whole page replaced by an error page** — because the boundary that caught it is the root one,
+unless you put a closer boundary in the way.
+
+```csharp
+// Without a boundary of your own, a throw here replaces the entire document.
+protected override async Task OnMountAsync() => _rows = await api.LoadAsync();
+
+// With one, the blast radius is the subtree you chose.
+ErrorBoundary(Fallback: (ex, retry) => Div()[
+    P()["Could not load the rows."],
+    Button(OnClick: retry)["Try again"]
+])[
+    RowList()
+]
+```
+
+Two things follow:
+
+- **Scope the damage yourself.** An `ErrorBoundary` around the risky subtree keeps the rest of the page alive, and its
+  `Fallback` receives a `retry` callback that clears the error and re-renders that subtree. A `try/catch` inside the
+  hook is still the right tool when you want to render an error *state* rather than a fallback.
+- **The root error page offers `Try again` as well as `Reload this page`.** The first clears the error and re-renders
+  in place, keeping the session, the state and the scroll position — enough for the common case, a handler that threw
+  and damaged nothing. A render that faults deterministically simply lands back on the error page, and then the reload
+  is what you want.
+
+The initial GET for a page whose render faulted answers **500**, not 200 — the body is still the error page, so both
+buttons work.
+
+`Console.Error` only comes into it when there is genuinely no boundary — a component rendered outside a live render
+context. In a live app that path is unreachable, so do not go looking there for a fault you can see on screen.
 
 ## Gotcha: don't `StateHasChanged()` in unmount
 

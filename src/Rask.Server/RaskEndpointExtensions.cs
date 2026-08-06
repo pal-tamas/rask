@@ -284,6 +284,11 @@ public static class RaskEndpointExtensions
         // readable + hot-reloadable in Development.
         LiveOptions.MinifyScopedAssets ??= !app.Environment.IsDevelopment();
 
+        // Same idea, and the reason it is here rather than in Core: the host knows the answer, and every
+        // way of selecting Development that ISN'T an environment variable — --environment, appsettings,
+        // an IDE profile — used to give you the production error page while developing (#605).
+        LiveOptions.IsDevelopment ??= app.Environment.IsDevelopment();
+
         app.UseWebSockets();
         ((IEndpointRouteBuilder)app).UseRask<TApp>(pattern, pathBase);
         return app;
@@ -433,6 +438,15 @@ public static class RaskEndpointExtensions
             var content = LivePayload.InjectRootAttr(
                 html, session.Id, IsDevHotReloadEnabled(httpContext.RequestServices));
             httpContext.Response.ContentType = "text/html; charset=utf-8";
+            // A page that crashed is not a 200. The root boundary catches the exception and renders the
+            // error document, so without this the response looked entirely healthy to every cache,
+            // crawler and uptime check (#607). The body is unchanged — the error page is still served,
+            // and the live session still attaches, so "Try again" and the reload button both work.
+            if (session.LastRenderFaulted)
+            {
+                httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            }
+
             // The shell embeds the session id (data-rask-root), which is the de-facto bearer
             // for the WS / upload / download endpoints. Forbid any shared-proxy / bfcache /
             // history caching so an authenticated user's session id can't be persisted and
@@ -1809,7 +1823,12 @@ public static class RaskEndpointExtensions
         var asm = typeof(RaskEndpointExtensions).Assembly;
         var name = asm.GetManifestResourceNames()
                        .FirstOrDefault(n => n.EndsWith("rask.js", StringComparison.Ordinal))
-                   ?? throw new InvalidOperationException("rask.js embedded resource not found.");
+                   ?? throw new InvalidOperationException(
+                       $"The Rask client script is missing from {asm.GetName().Name} "
+                       + $"{asm.GetName().Version}. This is a packaging fault rather than anything in "
+                       + "your app: the assembly should embed rask.js. Clear obj/ and bin/ and rebuild; "
+                       + "if it persists, the package is damaged — reinstall it, and please report it "
+                       + "with the assembly version above.");
         using var stream = asm.GetManifestResourceStream(name)!;
         using var reader = new StreamReader(stream, Encoding.UTF8);
         return reader.ReadToEnd();
