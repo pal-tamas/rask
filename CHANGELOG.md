@@ -178,6 +178,23 @@ them until tagged releases begin.
   event name carried per live handler, which costs a reference per handler in every session and buys
   nothing for two empty payloads. The check reads the frame's raw UTF-8 through `JsonElement.ValueEquals`
   — 14 ns and **zero allocation** on the accepted path, on a path that already parses JSON.
+- **The browser E2E gate can pass again — it had been red on `main` since #470.** The playground journey
+  waits for `.pg-ide.is-ready` to know the in-browser Roslyn workspace has its references, and the
+  dark-first design overhaul rewrote the readiness pill into a `BsBadge`, dropping the `is-ready` /
+  `is-off` / `is-loading` classes in favour of a Bootstrap colour. The selector matched nothing from then
+  on. What kept it alive is *how* it failed: an unresolvable Playwright locator fails by **timing out**,
+  and this one sits right after the multi-megabyte reference download — so the report looked like a slow
+  network rather than a missing class, and the whole suite got waved through with `RASK_SKIP_E2E=1`, which
+  is the same habit that would wave a real regression through. The pill carries its state as a class
+  again (`IdeBadgeState`), and the mapping is pinned by unit tests that read both the view and the E2E's
+  own source: the exact edit #470 made now fails the **fast** gate in under a millisecond with a message
+  naming the cause, instead of three minutes into a suite people have learned to skip. Swept the
+  playground's other E2E selectors (`pg-run`, `pg-preview`, `pg-example`, `pg-code-host`) while in there —
+  `pg-ide` was the only casualty. And the suite can now pass **twice**: the shop's stored-log journey
+  asserted on `GetByText("Application started")` strictly, while the log store is a file in the sample's
+  publish directory that the fixture reuses — so the second run found two start-up lines and failed with a
+  match-count error that reads like a UI bug. It now asserts what it means (a start-up line reached the
+  store), which is what makes the gate survive a re-run after fixing something else.
 - **The style pass is part of the local gate again, and the "spurious CS1503" that kept it out is
   root-caused.** `dotnet format Rask.slnx` failed on `main` with `error IMPORTS: Fix imports ordering` in
   `RaskEndpointExtensions.cs` — a `using` that drifted out of order and stayed there, because nothing ran
