@@ -205,16 +205,40 @@ to create and apply with [`rask db`](#rask-db--ef-core-migrations) before it wor
 Every command has short aliases: `rask g` = `rask generate`, and `g f` / `g c` / `g p` scaffold a
 feature / component / page.
 
+### When you get it wrong
+
+A rejected command line always names what was wrong, what is allowed, and what to run next — and,
+where there's an obvious candidate, what you probably meant:
+
+```console
+$ rask genrate
+Unknown command 'genrate'. Did you mean 'generate'?
+
+$ rask new Shop --template srever
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, native.
+Usage: rask new <name> [options]
+Run 'rask new --help' for details.
+
+$ rask db
+Specify a 'rask db' action: add, remove, list, update, drop, backup, restore.
+```
+
+`-h` is `--help` for every command, so no option has `-h` as a short name (`rask deploy --host`
+has no short form). Anything after `--` is your app's, so `rask dev -- --help` passes it through.
+
 ### Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | `0` | Success. |
 | `1` | The command ran and what you asked for failed — a build error, an unreachable host, a refused deploy. |
-| `2` | The command line was wrong — an unknown option, a missing value, options that contradict each other. |
+| `2` | The command line was wrong — an unknown command, option, action, or value; a missing value; options that contradict each other. |
 | `130` | Interrupted with Ctrl+C. |
 
-The `1` / `2` split is what lets a script tell a broken invocation from a broken deploy.
+The `1` / `2` split is what lets a script tell a broken invocation from a broken deploy. The line
+between them is where the bad input came from: anything decidable from the arguments alone is `2`,
+while a value that could have come from `.rask/deploy.json` — or from the state of the disk, the
+network, or the host — is `1`.
 
 ## `rask dev` — run with hot reload
 

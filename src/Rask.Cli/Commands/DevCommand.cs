@@ -32,7 +32,11 @@ internal sealed class DevCommand(
 
     public override string Summary => "Run the app with hot reload (dotnet watch).";
 
-    public override string Usage => "rask dev [--project <path>] [--open] [-- <args passed to the app>]";
+    // The shape only — the options are listed once, in the schema below, which --help renders directly.
+    public override string Usage => "rask dev [options] [-- <args passed to the app>]";
+
+    public override IReadOnlyList<(string Name, string Description)> Arguments =>
+        [("[-- <args>]", "Everything after '--' is passed to your app, not to rask.")];
 
     public override IReadOnlyList<string> Examples =>
     [
@@ -68,8 +72,9 @@ internal sealed class DevCommand(
         var target = DevTarget.Detect(_fileSystem, _workingDirectory, parsed.Option("project"));
         if (target is null)
         {
-            Console.Error.WriteLine(
-                $"Couldn't find a single .csproj at or above '{_workingDirectory}'. Run this inside a project, or pass --project.");
+            Console.WriteErrorLine(
+                $"{ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory)} Run this inside a project, or pass --project.",
+                ConsoleStyle.Error);
             return 1;
         }
 

@@ -65,4 +65,31 @@ internal abstract class CliCommand(IConsole console)
         Console.Error.WriteLine($"Run 'rask {Name} --help' for details.");
         return UsageExitCode;
     }
+
+    /// <summary>
+    /// Reject one bad thing about the command line. Every hand-written validation goes through here rather
+    /// than writing to stderr itself, so a rejected argument always looks the same, is always styled, always
+    /// ends with the way out, and always exits <see cref="UsageExitCode"/>.
+    /// </summary>
+    protected int Fail(string error) => Fail([error]);
+
+    /// <summary>
+    /// Reject a missing or misspelled subcommand against the verbs declared on <paramref name="schema"/>.
+    /// </summary>
+    protected int FailUnknownVerb(string? given, ArgumentSchema schema)
+    {
+        var names = string.Join(", ", schema.Verbs.Select(v => v.Name));
+        if (string.IsNullOrEmpty(given))
+        {
+            return Fail($"Specify a 'rask {Name}' action: {names}.");
+        }
+
+        // Aliases are candidates too: someone who typed 'rask g fe' meant the 'f' alias, and pointing at
+        // 'feature' from there is still the right answer because that is what 'f' resolves to.
+        var candidates = schema.Verbs.SelectMany(v => v.Aliases.Prepend(v.Name)).ToArray();
+        var near = Suggest.Closest(given, candidates);
+        var resolved = near is not null && schema.TryResolveVerb(near, out var canonical) ? canonical : near;
+        var didYouMean = resolved is null ? string.Empty : $" Did you mean '{resolved}'?";
+        return Fail($"Unknown 'rask {Name}' action '{given}'.{didYouMean} Choose one of: {names}.");
+    }
 }
