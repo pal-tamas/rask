@@ -9,12 +9,6 @@ namespace Rask.Dashboard.Tests;
 /// <summary>
 /// The Logs page. The live tail must keep working with no store installed — that is the whole point of it
 /// living in the dashboard package — and History must appear only when one is.
-/// <para>
-/// The rendered assertions cover the live tail, which renders synchronously. History's own reading is
-/// covered through <see cref="LogsPage.BuildQuery"/> plus the store's tests in <c>Rask.Logging.Tests</c>:
-/// <c>PollingPanel</c> loads on an asynchronous mount that <c>RaskTest</c>'s bare render harness does not
-/// drive to completion, which is true of every dashboard page and not specific to this one.
-/// </para>
 /// </summary>
 public sealed class LogsPageTests
 {
@@ -77,6 +71,51 @@ public sealed class LogsPageTests
         Assert.DoesNotContain("routine", html, StringComparison.Ordinal);
     }
 
+    // ── History mode, rendered ──────────────────────────────────────────────────────────────────────
+    // PollingPanel loads on an asynchronous mount, which RaskTest did not drive (#555) — so until now no
+    // dashboard page had ever been render-tested past its placeholder, and History's markup was reachable
+    // only through E2E.
+
+    [Fact]
+    public async Task HistoryRendersTheStoredEntries()
+    {
+        await using var store = new LogStoreFixture();
+        await using var harness = store.Dashboard();
+        await store.AppendAsync("kept across restarts");
+
+        var html = await RenderHistoryAsync(harness);
+
+        Assert.Contains("kept across restarts", html, StringComparison.Ordinal);
+        Assert.Contains("1 stored entries", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HistoryAppliesTheLevelFilterItWasGiven()
+    {
+        // The mapping is unit-tested through BuildQuery; this is the other half — that the query the page
+        // builds is the one it actually reads with, end to end through the store.
+        await using var store = new LogStoreFixture();
+        await using var harness = store.Dashboard();
+        await store.AppendAsync("routine", LogLevel.Information);
+        await store.AppendAsync("broken", LogLevel.Error);
+
+        var html = await RenderHistoryAsync(harness, page => page.Level = nameof(LogLevel.Error));
+
+        Assert.Contains("broken", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("routine", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HistorySaysSoWhenTheStoreIsEmpty()
+    {
+        await using var store = new LogStoreFixture();
+        await using var harness = store.Dashboard();
+
+        var html = await RenderHistoryAsync(harness);
+
+        Assert.Contains("0 stored entries", html, StringComparison.Ordinal);
+    }
+
     // ── The query-string → store-query mapping ──────────────────────────────────────────────────────
     // Where a filter would actually go missing. The store's own filtering is covered in Rask.Logging.Tests.
 
@@ -132,6 +171,16 @@ public sealed class LogsPageTests
         return RaskTest.Render(page, harness.Services).Html;
     }
 
+    // History reads the store on PollingPanel's asynchronous mount, so the first render is the placeholder
+    // — wait for the panel to report its total instead of asserting on markup that has not loaded yet.
+    private static Task<string> RenderHistoryAsync(DashboardHarness harness, Action<LogsPage>? configure = null)
+    {
+        var page = ActivatorUtilities.CreateInstance<LogsPage>(harness.Services);
+        page.View = "history";
+        configure?.Invoke(page);
+        return RaskTest.Render(page, harness.Services).WaitForAsync("stored entries");
+    }
+
     /// <summary>A real log store on a temp file, plus a dashboard harness wired to it.</summary>
     private sealed class LogStoreFixture : IAsyncDisposable
     {
@@ -139,9 +188,21 @@ public sealed class LogsPageTests
             Path.Combine(Path.GetTempPath(), $"rask-dash-logs-{Guid.NewGuid():N}.db");
 
         public DashboardHarness Dashboard(Action<RaskDashboardOptions>? configure = null) =>
-            new(Batteries.None,
+            _dashboard ??= new DashboardHarness(
+                Batteries.None,
                 configure: configure,
                 extra: services => services.AddRaskLogging($"Data Source={_dbPath}"));
+
+        private DashboardHarness? _dashboard;
+
+        /// <summary>
+        /// Writes straight to the store rather than through <c>ILogger</c>: the writer flushes the channel
+        /// on an interval, so a logged line is not on disk yet when the page reads it.
+        /// </summary>
+        public Task AppendAsync(string message, LogLevel level = LogLevel.Information) =>
+            _dashboard!.Get<ILogStore>().AppendAsync([
+                new LogRecord(0, DateTimeOffset.UtcNow, level, "Test", 0, message, null)
+            ]);
 
         public ValueTask DisposeAsync()
         {
