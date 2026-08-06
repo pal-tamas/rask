@@ -125,8 +125,24 @@ function syncFormProperty(el, name, value, isPresent) {
         if (raskShouldSuppressChecked(el, !!isPresent)) return;
         el.checked = !!isPresent;
     } else if (name === "selected" && tag === "OPTION") {
-        el.selected = !!isPresent;
+        if (raskShouldSuppressSelected(el, !!isPresent)) return;
+        applySelected(el, !!isPresent);
     }
+}
+
+// Selecting through the option's own IDL property leaves the group inconsistent between ops: a diff
+// that moves the selection emits a remove on one option and a set on another, and in between a
+// single-select with nothing selected falls back to displaying its first option. Where the option
+// belongs to a single-select, move the SELECT instead — one write that lands on this exact option, by
+// index rather than by value so duplicate option values can't redirect it. Multi-selects (where more
+// than one option is legitimately on) and an option with no select fall back to the property.
+function applySelected(opt, on) {
+    const sel = opt.closest ? opt.closest("select") : null;
+    if (on && sel && !sel.multiple && typeof opt.index === "number") {
+        sel.selectedIndex = opt.index;
+        return;
+    }
+    opt.selected = on;
 }
 
 function applyDiff(ops, names) {
