@@ -127,6 +127,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             .Flag("no-health-check", description: "Skip the post-deploy HTTP health check.")
             .Flag("github-actions", description: "Write a .github/workflows/deploy.yml that runs this deploy on push, and print the secrets to add.")
             .Flag("dry-run", description: "Print the docker commands that would run without changing anything.")
+            .WithJson()
             .Option("tail", valueHint: "n", description: "Log lines to show (logs only; default: 100, 'all' for everything).")
             // No short name. '-f' is --fields CLI-wide: `rask generate feature` is the command people
             // run most and --fields is its primary input, where `deploy logs --follow` is occasional and
@@ -356,7 +357,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         {
             return action switch
             {
-                "status" => await StatusAsync(host, slug, cancellationToken).ConfigureAwait(false),
+                "status" => await StatusAsync(host, slug, parsed.HasFlag("json"), cancellationToken).ConfigureAwait(false),
                 "logs" => await LogsAsync(host, slug, parsed, cancellationToken).ConfigureAwait(false),
                 _ => await RollbackAsync(host, slug, domain, port, containerPort, env, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false),
             };

@@ -14,20 +14,39 @@ internal sealed class InfoCommand(IConsole console, IProcessRunner process) : Cl
 
     public override string Summary => "Show Rask CLI, .NET SDK, and OS environment information.";
 
-    public override string Usage => "rask info";
+    public override string Usage => "rask info [--json]";
 
-    public override IReadOnlyList<string> Examples => ["rask info"];
+    public override IReadOnlyList<string> Examples => ["rask info", "rask info --json"];
+
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    private static ArgumentSchema CreateSchema() => new ArgumentSchema().WithJson();
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
-        // Every other command rejects what it doesn't understand; this one used to ignore its arguments
-        // entirely, so `rask info --json` "succeeded" while quietly printing the plain report.
-        if (args.Count > 0)
+        // This once ignored its arguments entirely, so `rask info --json` "succeeded" while printing the
+        // plain report — the comment that used to sit here is now the feature.
+        var parsed = CreateSchema().Parse(args);
+        if (parsed.HasErrors)
         {
-            return Fail([$"'{args[0]}' isn't an option of `rask info`."]);
+            return Fail(parsed.Errors);
+        }
+
+        if (parsed.Positionals.Count > 0)
+        {
+            return Fail($"'{parsed.Positionals[0]}' isn't an option of `rask info`.");
         }
 
         var sdkVersion = await CaptureSingleLineAsync(["--version"], cancellationToken).ConfigureAwait(false);
+
+        if (parsed.HasFlag("json"))
+        {
+            JsonOutput.Write(
+                Console,
+                new InfoReport(CliMetadata.Version, sdkVersion, RuntimeInformation.OSDescription),
+                CliJsonContext.Default.InfoReport);
+            return 0;
+        }
 
         Console.Out.WriteLine(FormatReport(CliMetadata.Version, sdkVersion, RuntimeInformation.OSDescription));
         return 0;

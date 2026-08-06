@@ -425,7 +425,7 @@ internal sealed partial class DbCommand
         if (Console.IsInputRedirected)
         {
             Console.WriteErrorLine(
-                "This replaces a database. Pass --force to confirm — there's no terminal to ask on.",
+                "This replaces a database. Pass --yes to confirm — there's no terminal to ask on.",
                 ConsoleStyle.Error);
             exitCode = 1;
             return false;

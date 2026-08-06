@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Commands;
@@ -66,7 +67,9 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
             // "don't ask me" — one spelling for two unrelated powers, and the one that destroys a
             // database was the one you could reach by muscle memory from the one that overwrites a file.
             // --yes/-y is what every other tool calls this (#601).
-            .Flag("yes", 'y', "Skip the confirmation prompt (drop, restore).");
+            .Flag("yes", 'y', "Skip the confirmation prompt (drop, restore).")
+            .Flag("dry-run", description: "Print what would run without touching the database.")
+            .WithJson();
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -165,6 +168,27 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
                 return 1;
             }
 
+            // Restore replaces a database and, when remote, stops the app to do it — so "what exactly
+            // would this touch" is worth being able to ask without finding out (#600).
+            if (parsed.HasFlag("dry-run"))
+            {
+                var where = remote
+                    ? $"the deployed database on {parsed.Option("host") ?? "the remembered host"}"
+                    : $"the local database of {project}";
+                WriteDryRun(subcommand, where);
+                if (output is not null)
+                {
+                    WriteDryRun("write to", output);
+                }
+
+                if (name is not null)
+                {
+                    WriteDryRun("read from", name);
+                }
+
+                return 0;
+            }
+
             return await ExecuteFileActionAsync(
                 subcommand,
                 name,
@@ -177,7 +201,25 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
                 cancellationToken).ConfigureAwait(false);
         }
 
-        // `--force`'s own help has always said it "skips the confirmation prompt" — and there was no
+        // Before the confirmation and before the dotnet-ef install: a dry run changes nothing, so asking
+        // permission for it — or refusing it outright for want of a terminal, which is what happened —
+        // makes the one safe way to inspect a destructive command the hardest to reach. `drop` and
+        // `update` are the destructive and the slow one, and neither told you what it was about to do
+        // against which project (#600).
+        if (parsed.HasFlag("dry-run"))
+        {
+            WriteDryRun(
+                "run",
+                "dotnet " + string.Join(
+                    ' ',
+                    BuildEfArguments(
+                        subcommand, name, project, startupProject, parsed.Option("context"), output,
+                        parsed.HasFlag("yes"), parsed.Passthrough)));
+            WriteDryRun("run it in", _workingDirectory);
+            return 0;
+        }
+
+        // `--yes`'s own help has always said it "skips the confirmation prompt" — and there was no
         // prompt. `dotnet ef database drop` does its own, but only when it has a terminal, so a drop run
         // from a script destroyed the database with nothing asked. Ask here, where we know the answer
         // matters, and refuse rather than guess when there's nobody to ask.
@@ -185,7 +227,7 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
         {
             if (Console.IsInputRedirected)
             {
-                Console.WriteErrorLine("`rask db drop` deletes the database. Pass --force to confirm — there's no terminal to ask on.", ConsoleStyle.Error);
+                Console.WriteErrorLine("`rask db drop` deletes the database. Pass --yes to confirm — there's no terminal to ask on.", ConsoleStyle.Error);
                 return 1;
             }
 
@@ -204,7 +246,68 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
         await EnsureDesignPackageAsync(startupProject, cancellationToken).ConfigureAwait(false);
 
         var efArgs = BuildEfArguments(subcommand, name, project, startupProject, parsed.Option("context"), output, parsed.HasFlag("yes"), parsed.Passthrough);
+
+        if (parsed.HasFlag("json"))
+        {
+            return await ListAsJsonAsync(efArgs, cancellationToken).ConfigureAwait(false);
+        }
+
         return await _process.RunAsync("dotnet", efArgs, _workingDirectory, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     <c>rask db list --json</c>. Asks <c>dotnet ef</c> for JSON rather than parsing its human
+    ///     listing, then re-emits it in this CLI's shape.
+    /// </summary>
+    /// <remarks>
+    ///     EF prints a preamble to stdout before the document — "Build started...", "Build succeeded.",
+    ///     and sometimes a tools-version warning — so the payload has to be found rather than assumed to
+    ///     start at byte zero. It is not delimited by markers; the array simply begins at the first line
+    ///     that is <c>[</c>. Verified against real <c>dotnet ef migrations list --json</c> output, and
+    ///     pinned by a fixture test using a captured copy of it.
+    /// </remarks>
+    private async Task<int> ListAsJsonAsync(IReadOnlyList<string> efArgs, CancellationToken cancellationToken)
+    {
+        var result = await _process
+            .CaptureAsync("dotnet", [.. efArgs, "--json"], _workingDirectory, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (result.ExitCode != 0)
+        {
+            // EF already explained itself on stderr; repeating it here in a different voice would only
+            // make the real message harder to find.
+            Console.WriteErrorLine(result.StandardError.Trim(), ConsoleStyle.Error);
+            return 1;
+        }
+
+        if (ExtractJsonArray(result.StandardOutput) is not { } payload)
+        {
+            return Fail(
+                "Could not find the migration list in `dotnet ef`'s output. Run `rask db list` without "
+                + "--json to see what it printed.");
+        }
+
+        var migrations = JsonSerializer.Deserialize(payload, CliJsonContext.Default.EfMigrationArray) ?? [];
+        JsonOutput.Write(
+            Console,
+            new MigrationListReport([.. migrations.Select(m => new MigrationEntry(m.Id, m.Name, m.Applied))]),
+            CliJsonContext.Default.MigrationListReport);
+        return 0;
+    }
+
+    /// <summary>The JSON document inside EF's output, or null when there isn't one.</summary>
+    internal static string? ExtractJsonArray(string stdout)
+    {
+        var lines = stdout.Split('\n');
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].Trim() == "[")
+            {
+                return string.Join('\n', lines.Skip(i));
+            }
+        }
+
+        return null;
     }
 
     // The EF Core tools need the startup project to reference Microsoft.EntityFrameworkCore.Design;

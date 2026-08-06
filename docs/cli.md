@@ -60,6 +60,33 @@ reason — `-f` is `--fields`, which `generate` also takes.
 
 A test enforces all of this, so a new option cannot quietly reuse a letter.
 
+## `--dry-run` and `--json`
+
+**`--dry-run` lists what would happen and changes nothing**, in the same shape everywhere: one
+`[dry-run] would …` line per action. It is on `new`, `generate`, `dev`, `db` and `deploy`.
+
+```bash
+rask db drop --dry-run        # the exact `dotnet ef` command, without the database going anywhere
+rask dev --dry-run            # the `dotnet watch` command line and the environment it sets
+rask generate feature Product Name:string --dry-run            # the files it would write
+rask generate feature Product Name:string --dry-run --verbose  # ...and their contents
+```
+
+A dry run never prompts — it does nothing, so there is nothing to consent to.
+
+**`--json` prints a document and nothing else**, so it pipes into `jq` without filtering banners out:
+
+```bash
+rask info --json
+rask deploy status --json
+rask db list --json
+```
+
+Errors still go to stderr and the exit code still distinguishes `2` (you typed something wrong) from
+`1` (what you asked for failed), so a script never has to parse prose to find out what happened. Fields
+that have no value are **absent** rather than carrying a human placeholder — `rask info --json` on a
+machine with no SDK simply has no `dotnetSdk` key, where the human report prints `not found`.
+
 ## `rask new` — scaffold a project
 
 ```bash

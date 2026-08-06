@@ -63,7 +63,8 @@ internal sealed class DevCommand(
             .Flag("no-hot-reload", description: "Restart on change instead of applying edits live (still watches).")
             .Flag("no-restart", description: "Ask before restarting on an edit hot reload can't apply.")
             .Flag("once", description: "Run once without watching (plain 'dotnet run').")
-            .Flag("no-banner", description: "Suppress the startup banner.");
+            .Flag("no-banner", description: "Suppress the startup banner.")
+            .Flag("dry-run", description: "Print the command that would run without starting anything.");
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -104,6 +105,21 @@ internal sealed class DevCommand(
 
         var environment = BuildEnvironment(
             target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable);
+
+        // The environment overlay is not incidental here (see the remarks on this class): the MSBuild
+        // property that stops a rude edit blocking on an interactive prompt travels through it, so a dry
+        // run that showed only the command line would hide the half people actually come asking about.
+        if (parsed.HasFlag("dry-run"))
+        {
+            WriteDryRun("run", $"dotnet {string.Join(' ', dotnetArgs)}");
+            WriteDryRun("run it in", target.ProjectDirectory);
+            foreach (var (key, value) in environment.OrderBy(e => e.Key, StringComparer.Ordinal))
+            {
+                WriteDryRun("set", $"{key}={value}");
+            }
+
+            return 0;
+        }
 
         if (!parsed.HasFlag("no-banner") && !Console.IsOutputRedirected)
         {

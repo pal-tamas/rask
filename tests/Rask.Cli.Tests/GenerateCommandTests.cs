@@ -239,15 +239,31 @@ public sealed class GenerateCommandTests
     }
 
     [Fact]
-    public async Task Dry_run_writes_nothing_but_prints_the_content()
+    public async Task Dry_run_writes_nothing_and_lists_what_it_would_write()
     {
+        // Contents moved behind --verbose (#600): a feature scaffolds a dozen files, and dumping every
+        // one of them buried the list of what was about to happen in thousands of lines of C#.
         var (console, fs, command) = Build();
 
         var exit = await command.ExecuteAsync(["page", "Products", "--dry-run"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("ProductsPage.cs", StringComparison.Ordinal));
-        Assert.Contains("[dry-run]", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("[dry-run] would write", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("ProductsPage.cs", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class ProductsPage", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Dry_run_with_verbose_also_prints_the_content()
+    {
+        var (console, fs, command) = Build();
+
+        var exit = await command.ExecuteAsync(["page", "Products", "--dry-run", "--verbose"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("ProductsPage.cs", StringComparison.Ordinal));
+        Assert.Contains("[dry-run] would write", console.OutText, StringComparison.Ordinal);
         Assert.Contains("public sealed class ProductsPage", console.OutText, StringComparison.Ordinal);
     }
 
@@ -880,7 +896,9 @@ public sealed class GenerateCommandTests
         // A team default of --bs, with no --bs on the command line.
         fs.Seed("/proj/.rask/generate.json", "{ \"bs\": true }");
 
-        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string", "--dry-run"], CancellationToken.None);
+        // --verbose because this asserts on generated CONTENT, which --dry-run alone no longer prints.
+        var exit = await command.ExecuteAsync(
+            ["feature", "Product", "Name:string", "--dry-run", "--verbose"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         // The Bootstrap create page renders a BsAlert — proof the config default was applied.

@@ -27,6 +27,36 @@ them until tagged releases begin.
     on `db` is now rejected with a suggestion rather than silently ignored.
   - A test enforces the convention: a short name must map to one long option CLI-wide, and must not be
     a flag on one command and a value on another. It fails with the offending pair named.
+- **`--dry-run` behaves the same on every command that has it, and is on two more.** It was on three
+  commands in three shapes: `new` printed indented names, `generate` printed an unindented path followed
+  by the *entire file*, and `deploy` printed docker commands under its own heading. All of them now emit
+  one `[dry-run] would …` line per action.
+  - **`rask generate --dry-run` lists files; `--verbose` adds their contents.** A feature scaffolds a
+    dozen files, so dumping every one buried the list of what was about to happen in thousands of lines
+    of C# — which is the question `--dry-run` is asked.
+  - **`rask db --dry-run`** covers `drop`, `update`, `backup` and `restore` — the destructive and the
+    slow — printing the exact `dotnet ef` command and the directory it would run in. It is checked
+    *before* the confirmation prompt: a dry run changes nothing, so requiring consent for it (or
+    refusing it outright for want of a terminal, which is what happened) made the one safe way to
+    inspect a destructive command the hardest to reach.
+  - **`rask dev --dry-run`** prints the `dotnet watch` command line *and the environment overlay*. The
+    overlay is not incidental — the MSBuild property that stops a rude edit blocking on an interactive
+    prompt travels through it, so showing only the command line would hide the half people come asking
+    about.
+- **`--json` on the three commands worth scripting: `rask info`, `rask deploy status`, `rask db list`.**
+  A `--json` run prints the document and nothing else, so it pipes into `jq` without filtering banners
+  out; errors stay on stderr and the exit code still separates a mistyped command (`2`) from failed work
+  (`1`). Fields with no value are absent rather than carrying a human placeholder — no SDK means no
+  `dotnetSdk` key, where the report prints `not found`.
+  - `rask deploy status --json` keeps the fields the human table folds together for width: `domain` and
+    `ports` stay separate instead of collapsing into one URL column with `(not published)` standing in
+    for both, and an empty list is an empty array rather than prose.
+  - `rask db list --json` asks `dotnet ef` for JSON rather than parsing its human listing. EF prints a
+    build preamble before the document and does not delimit it, so the payload is located rather than
+    assumed to start at byte zero — verified against real `dotnet ef migrations list --json` output, and
+    pinned by a test using a captured copy of it.
+  - `rask info --json` used to "succeed" while printing the plain report, because that command ignored
+    its arguments entirely. It now parses them like every other command.
 - **`rask generate` has a `--project` (`-p`), which it was the only project-scoped command to lack.**
   Project resolution stops whenever a directory holds more than one `.csproj`, and until now the error
   had no escape hatch to suggest. It accepts a `.csproj` or a directory, and the resolution starts from

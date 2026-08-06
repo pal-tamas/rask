@@ -65,7 +65,8 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             // short in the CLI, and it keeps its reason after #601 rather than being an accident.
             .Option("feature", 'F', "Name", "Co-locate under Features/<Name>/ instead of Features/Shared/ (component, job, email).")
             .Flag("force", description: "Overwrite existing files instead of refusing.")
-            .Flag("dry-run", description: "Print what would be written without touching disk.")
+            .Flag("dry-run", description: "List what would be written without touching disk.")
+            .Flag("verbose", description: "With --dry-run, also print each file's contents.")
             .Option("route", 'r', "path", "URL route for the page.", group: "Page options")
             .Option("fields", 'f', "list", "Fields as Name:type,... (or pass them positionally).", FeatureGroup)
             .Option("context", 'c', "Name", "Reuse an existing DbContext instead of generating one.", FeatureGroup)
@@ -250,7 +251,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         var testProjectIsNew = result.TestProject is not null && !_fileSystem.FileExists(result.TestProject.ProjectPath);
 
         var dryRun = parsed.HasFlag("dry-run");
-        var written = Write(result, parsed.HasFlag("force"), dryRun);
+        var written = Write(result, parsed.HasFlag("force"), dryRun, parsed.HasFlag("verbose"));
         if (written == 0 && !dryRun)
         {
             if (parsed.HasFlag("save-defaults"))
@@ -853,7 +854,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         }
     }
 
-    private int Write(ScaffoldResult result, bool force, bool dryRun)
+    private int Write(ScaffoldResult result, bool force, bool dryRun, bool verbose)
     {
         if (!force)
         {
@@ -876,9 +877,17 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         {
             foreach (var file in result.Files.Concat(result.CreateIfAbsent.Where(f => !_fileSystem.FileExists(f.Path))))
             {
-                Console.Out.WriteLine($"[dry-run] would write {Display(file.Path)}:");
-                Console.Out.WriteLine();
-                Console.Out.WriteLine(file.Content);
+                WriteDryRun("write", Display(file.Path));
+
+                // Contents are opt-in now. A feature scaffolds a dozen files, so dumping every one of
+                // them buried the list of what was about to happen in thousands of lines of C# — which
+                // is the question --dry-run is asked.
+                if (verbose)
+                {
+                    Console.Out.WriteLine();
+                    Console.Out.WriteLine(file.Content);
+                    Console.Out.WriteLine();
+                }
             }
 
             return 0;
