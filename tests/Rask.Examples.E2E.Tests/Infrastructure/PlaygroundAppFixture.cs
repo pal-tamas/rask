@@ -10,10 +10,6 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 /// </summary>
 public sealed class PlaygroundAppFixture : StaticWwwrootHostFixture
 {
-    // Unique among the static-host fixtures (Standalone 5096, SubPath 5097) so parallel collections don't
-    // bind-clash.
-    protected override int Port => 5100;
-
     protected override string ProjectRelativePath => "samples/Rask.Example.Playground";
 
     protected override string MissingBundleMessage(string wwwroot) =>

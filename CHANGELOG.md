@@ -195,6 +195,37 @@ them until tagged releases begin.
   publish directory that the fixture reuses — so the second run found two start-up lines and failed with a
   match-count error that reads like a UI bug. It now asserts what it means (a start-up line reached the
   store), which is what makes the gate survive a re-run after fixing something else.
+- **The static-host E2E fixtures take a port from the OS, so a second run — or a second worktree — no
+  longer fails as "address already in use".** Each fixture declared a hard-coded port and a comment
+  explaining that the parallel collections need distinct ones. True as far as it went, but every *copy*
+  of the suite on the machine claimed the same numbers, and this repo's workflow puts several checkouts
+  side by side — so a straggler host, a concurrent suite or another worktree produced a bare
+  `HttpListenerException` in one of two shapes, neither of which names a port: a run where all 41 tests
+  passed and the *run* still failed (xUnit reports a collection-cleanup throw as a failed run, and
+  `DisposeAsync` guarded `Stop()` but not the `Close()` that throws), or a host that never came up and
+  twelve `ERR_CONNECTION_REFUSED` tests that read like a broken app. Both are now gone: the OS assigns
+  the port, `Close()` is guarded like its siblings, and a genuinely unbindable machine gets a message
+  naming the fixture and what to look for instead of a bare listener exception.
+  - The obvious fix does not work, which is worth recording: **`HttpListener` rejects a `:0` prefix**
+    ("Invalid port in prefix") and cannot report an assigned port back. So the port is taken from a
+    throwaway `TcpListener` and `HttpListener.Start()` is the authoritative test — a clash costs another
+    candidate rather than the run. The probe binds the family `localhost` actually resolves to: a
+    `localhost` prefix holds **`[::1]` only** where IPv6 is available, which is why a port can look free
+    on `127.0.0.1` and still refuse to bind, and the explicit `http://[::1]:port/` form that would let
+    us bind both is itself rejected as an invalid prefix.
+  - It also removes a collision that was assumed not to exist: `SiteWasmAppFixture` and
+    `WasmWatchAppFixture` both hard-coded **5101**, in different collections, which xUnit runs in
+    parallel. The fixtures that launch a real `dotnet` process keep their fixed ports — they have to
+    tell a child process where to listen, and they already fail fast on a busy one — so that half is
+    tracked separately rather than folded in here.
+- **A logging test no longer passes by winning a race.** `NoDrainRunsWhenTheTimeoutIsZero` wrote an
+  entry to a started writer and asserted the store stayed empty, on the grounds that a zero
+  `ShutdownDrainTimeout` drops it. But the writer's loop drains on its first cycle and nothing held it
+  back, so the entry only survived to shutdown if the test got there first; on a loaded machine the loop
+  won and appended it — which is not a bug, since draining an entry claimed before shutdown is exactly
+  right. It now asserts what the option actually governs — that `StopAsync` runs no drain — with the
+  loop deliberately not started, so the drain branch is the only code that can reach the store, and a
+  new sibling pins the positive direction. No timing, no scheduler dependency.
 - **The style pass is part of the local gate again, and the "spurious CS1503" that kept it out is
   root-caused.** `dotnet format Rask.slnx` failed on `main` with `error IMPORTS: Fix imports ordering` in
   `RaskEndpointExtensions.cs` — a `using` that drifted out of order and stayed there, because nothing ran
