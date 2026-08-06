@@ -24,7 +24,8 @@ coordinator, the scoped-asset registry, the generated registries, or `rask dev`.
 
 Every change passes this gate before a PR (the `rask-ship` skill):
 
-1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`.
+1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. The `pre-commit` gate
+   runs the verify for you, so this is a fast pre-check rather than the last line of defence.
 2. **Clean build, warnings-as-errors** —
    `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
@@ -67,11 +68,15 @@ Every change passes this gate before a PR (the `rask-ship` skill):
   android/ios). **Tests do not run in CI** — the unit/integration suite and the E2E suites run locally
   (see below).
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
-  solution once, runs `dotnet format whitespace --verify-no-changes`, then every test except the browser
-  E2E. (Whitespace pass, not full `dotnet format`: full format's style/analyzer passes recompile the
-  `Routes.*` source generator through their own workspace and spuriously flag CS1503 in the routing tests;
-  the whitespace pass is compile-independent and reliable. The warnings-as-errors build already enforces
-  error-severity analyzer rules — run full `dotnet format Rask.slnx` before a PR for the style pass.) The
+  solution once, runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
+  analyzers, one workspace load, ~36s), then every test except the browser E2E. The full pass earns its
+  place: import ordering is enforced by `dotnet format` alone — the warnings-as-errors build covers the
+  analyzer rules but not the sorting of using directives, which is how a misordered `using` drifted into
+  `Rask.Server` unnoticed (#584). Before formatting, the script builds `src/*.Generators` in **Debug**:
+  `dotnet format` evaluates the solution in the default configuration, so it resolves the
+  `OutputItemType="Analyzer"` references to `bin/Debug/`, and without those DLLs no source generator runs
+  — `Routes.*` is never emitted and the routing tests fail to bind with CS1503. That is the real cause of
+  the "spurious CS1503" that kept this gate on the whitespace pass alone until #584. The
   `.githooks/pre-commit` hook runs it whenever a commit stages code (enable hooks with
   `git config core.hooksPath .githooks`; bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`).
 - **E2E runs locally, enforced before push.** The browser-journey E2E

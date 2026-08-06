@@ -31,6 +31,15 @@ The bucket decides whether steps 3/3b/4 apply.
 dotnet format Rask.slnx                      # applies .editorconfig style + analyzer fixers
 dotnet format Rask.slnx --verify-no-changes  # must exit 0
 ```
+The `pre-commit` gate (`scripts/run-unit-local.sh`) runs the verify itself, so this step is a fast
+pre-check, not the last line of defence. Run the full pass — not `dotnet format whitespace`: import
+ordering is caught by `dotnet format` alone, never by the warnings-as-errors build.
+
+If it reports CS1503 in the routing tests, the generators are missing from `bin/Debug` — `dotnet format`
+evaluates the solution in the default configuration. Fix it, don't work around it:
+```bash
+for p in src/*.Generators/*.csproj; do dotnet build "$p" -c Debug --nologo -v quiet; done
+```
 
 ## 2. Clean build — warnings as errors
 ```bash

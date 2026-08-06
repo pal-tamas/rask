@@ -71,7 +71,8 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
 ## Commits & pull requests
 
 - Keep PRs focused; include tests; ensure `dotnet build` (warnings-as-errors) and
-  `dotnet test` are green. Run `dotnet format` before committing.
+  `dotnet test` are green. `dotnet format` runs for you in the `pre-commit` gate below — run it by hand
+  first if you'd rather not wait for the whole gate to tell you.
 - **[Conventional Commits](https://www.conventionalcommits.org/)** are required and enforced by
   CI (`commitlint`): `type(scope): subject` with type ∈
   `feat, fix, perf, refactor, docs, test, build, ci, chore, revert`. The local git hooks are **enabled
@@ -86,11 +87,15 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   and CodeQL.
 - **Format + unit tests — `pre-commit`.** The `pre-commit` hook runs `scripts/run-unit-local.sh` when a
   commit stages code (`src/`, `tests/`, `benchmarks/`, `Rask.slnx`, `Directory.*`); docs-only commits skip
-  it. The script builds once, runs `dotnet format whitespace --verify-no-changes`, then every test except
-  the browser E2E. (It uses the *whitespace* pass, not full `dotnet format`: full format's style/analyzer
-  passes run their own compile of the `Routes.*` source generator and spuriously report CS1503 in the
-  routing tests. Run `dotnet format Rask.slnx` before a PR for the style pass — the warnings-as-errors build
-  already enforces error-severity analyzer rules.) Bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`.
+  it. The script builds once, runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace +
+  style + analyzers, ~36s), then every test except the browser E2E. The full pass matters because import
+  ordering is caught by nothing else — the warnings-as-errors build enforces the analyzer rules, but
+  sorting using directives is `dotnet format`'s own job, so a misordered using otherwise drifts in unseen.
+  The script first builds `src/*.Generators` in **Debug**, because `dotnet format` evaluates the solution
+  in the default configuration and resolves the generator project references to `bin/Debug/`; without
+  those DLLs no source generator runs and the routing tests fail with CS1503. Run `dotnet format Rask.slnx`
+  by hand at least once after a Release-only build and you'll see the same thing — build the generators in
+  Debug first. Bypass with `git commit --no-verify` or `RASK_SKIP_UNIT=1`.
 - **E2E runs locally, not in CI.** The browser-journey E2E (`tests/Rask.Examples.E2E.Tests`, Playwright)
   and the on-device native E2E (`tests/Rask.Native.Appium.Tests`, Appium) are not part of the CI
   pipeline. Run the browser gate with `scripts/run-e2e-local.sh` (the `pre-push` hook runs it for you on
