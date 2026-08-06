@@ -1354,6 +1354,17 @@ public abstract class Component
         }
 
         var (owner, handler) = entry;
+
+        // The id said WHICH handler; the frame's own `type` says what it is carrying. Ids are positional
+        // per render, so a frame that outlived its render resolves to whatever now occupies that slot —
+        // and running it because the id happened to resolve is how an `input` message ends up invoking a
+        // parameterless callback. A frame that cannot feed the handler it landed on is a stale id, and is
+        // answered exactly like one.
+        if (!HandlerFrameShape.Accepts(payload, handler))
+        {
+            return false;
+        }
+
         using var __dispatchScope = DispatchServicesScope.Push(services);
 
         // When the host supplied a cancellable dispatch token (a handler timeout is configured), make
