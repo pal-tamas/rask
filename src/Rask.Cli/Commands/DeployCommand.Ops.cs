@@ -141,8 +141,7 @@ internal sealed partial class DeployCommand
 
         if (!TryResolveTail(parsed.Option("tail"), out var tail, out var tailError))
         {
-            Console.Error.WriteLine(tailError);
-            return 1;
+            return Fail(tailError!);
         }
 
         return await Run(BuildLogsArguments(host, container, tail, parsed.HasFlag("follow")), cancellationToken).ConfigureAwait(false);
@@ -194,7 +193,9 @@ internal sealed partial class DeployCommand
         if (image is null)
         {
             Console.WriteErrorLine($"No previous image for '{slug}' on {HostName(host)} — nothing to roll back to.", ConsoleStyle.Error);
-            Console.Error.WriteLine($"A rollback restores {slug}:{PreviousTag}, which is written by the deploy that replaces it. The first deploy of an app has no predecessor.");
+            Console.WriteErrorLine(
+                $"A rollback restores {slug}:{PreviousTag}, which is written by the deploy that replaces it. The first deploy of an app has no predecessor.",
+                ConsoleStyle.Error);
             return 1;
         }
 

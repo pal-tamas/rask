@@ -58,6 +58,7 @@ internal static class CommandHelp
             }
         }
 
+        RenderActions(writer, command.OptionSchema, color);
         RenderOptions(writer, command.OptionSchema, color);
 
         if (command.Examples.Count > 0)
@@ -70,6 +71,26 @@ internal static class CommandHelp
             }
         }
     }
+
+    /// <summary>The command's subcommands and their aliases, straight from the schema that dispatches them.</summary>
+    private static void RenderActions(TextWriter writer, ArgumentSchema? schema, bool color)
+    {
+        if (schema is null || schema.Verbs.Count == 0)
+        {
+            return;
+        }
+
+        writer.WriteLine();
+        writer.WriteLine(Paint("Actions:", ConsoleStyle.Heading, color));
+        var width = schema.Verbs.Max(v => VerbLabel(v).Length);
+        foreach (var verb in schema.Verbs)
+        {
+            writer.WriteLine($"  {Paint(VerbLabel(verb).PadRight(width), ConsoleStyle.Code, color)}   {verb.Description}");
+        }
+    }
+
+    private static string VerbLabel(VerbInfo verb) =>
+        verb.Aliases.Count == 0 ? verb.Name : $"{verb.Name} ({string.Join(", ", verb.Aliases)})";
 
     private static void RenderOptions(TextWriter writer, ArgumentSchema? schema, bool color)
     {
@@ -108,7 +129,11 @@ internal static class CommandHelp
     {
         var label = Label(option);
         var painted = Paint(label.PadRight(width), ConsoleStyle.Code, color);
-        writer.WriteLine(option.Description is { Length: > 0 } d ? $"  {painted}   {d}" : $"  {painted}");
+
+        // Closed sets are listed after the description rather than inside the value hint, which would
+        // widen the aligned label column for every other option on the page.
+        var choices = option.Choices is { Count: > 0 } c ? $" [{string.Join("|", c)}]" : string.Empty;
+        writer.WriteLine(option.Description is { Length: > 0 } d ? $"  {painted}   {d}{choices}" : $"  {painted}{choices}");
     }
 
     /// <summary>The left-column label, e.g. <c>-t, --template &lt;value&gt;</c> or <c>    --auth</c>.</summary>

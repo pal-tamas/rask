@@ -40,6 +40,9 @@ internal static class TemplateCatalog
     /// <summary>The default template when none is specified — a server-rendered app.</summary>
     public static TemplateInfo Default => All[0];
 
+    /// <summary>The accepted <c>--template</c> values, for the schema's choice list, help, and completion.</summary>
+    public static IReadOnlyList<string> Keys { get; } = [.. All.Select(template => template.Key)];
+
     public static bool TryGet(string key, out TemplateInfo template)
     {
         foreach (var candidate in All)

@@ -17,6 +17,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
 
+    /// <summary>The host modes the native template understands (<c>--host</c>).</summary>
+    private static readonly string[] NativeHosts = ["local", "server"];
+
     /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
     internal static readonly string[] FeatureFlags =
     [
@@ -29,10 +32,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
     public override string Summary => "Create a new Rask project from a template.";
 
-    public override string Usage =>
-        "rask new <name> [--template server|wasm|wasm-hosted|native] [--auth] [--pwa] [--cqrs] [--data] "
-        + "[--jobs] [--mail] [--cache] [--outbox] [--push] [--snapshots] [--logs] [--ops] "
-        + "[--all-batteries] [--docker] [--host local|server] [--output <dir>]";
+    // The shape only — the flags are listed once, in the schema below, which --help renders directly.
+    public override string Usage => "rask new <name> [options]";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
         [("<name>", "Name of the project to create (scaffolds ./<name>/).")];
@@ -52,11 +53,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// <summary>The flag/option schema — shared by <see cref="ExecuteAsync"/> and <c>--help</c> so they can't drift.</summary>
     private static ArgumentSchema CreateSchema() =>
         new ArgumentSchema()
-            .Option("template", 't', "name", "Template to scaffold: server (default), wasm, wasm-hosted, or native.")
+            .Option("template", 't', "name", "Template to scaffold (default: server).", choices: TemplateCatalog.Keys)
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
-            .Option("host", valueHint: "local|server", description: "Native host mode: local (default) or server. Native template only.")
-            .Option("database", valueHint: DatabaseCatalog.Keys, description: "Database for --data: sqlite (default, one file, no server) or postgres. Server template only.")
+            .Option("host", valueHint: "mode", description: "Native host mode (default: local). Native template only.", choices: NativeHosts)
+            .Option("database", valueHint: "name", description: "Database for --data (default: sqlite, one file and no server). Server template only.", choices: DatabaseCatalog.Keys)
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
             .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
@@ -99,9 +100,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 return await ExecuteAsync(RunWizard(prompt), allowWizard: false, cancellationToken).ConfigureAwait(false);
             }
 
-            Console.Error.WriteLine("A project name is required.");
-            Console.Error.WriteLine($"Usage: {Usage}");
-            return 1;
+            return Fail("A project name is required, e.g. 'rask new Shop'.");
         }
 
         // The name becomes the root namespace and the csproj filename, so an invalid one (a dash, a leading
@@ -109,19 +108,15 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // rather than writing files the user then has to throw away.
         if (!Identifiers.IsValidNamespaceName(name))
         {
-            Console.Error.WriteLine(
+            return Fail(
                 $"'{name}' isn't a valid project name — it becomes the root namespace, so each dot-separated part must "
                 + "start with a letter or underscore and contain only letters, digits, or underscores (e.g. Shop or Contoso.Shop).");
-            return 1;
         }
 
+        // The schema declares TemplateCatalog.Keys as this option's choices, so the parse already rejected
+        // (and reported) anything else — the lookup here can only succeed.
         var templateKey = parsed.Option("template") ?? TemplateCatalog.Default.Key;
-        if (!TemplateCatalog.TryGet(templateKey, out var template))
-        {
-            var available = string.Join(", ", TemplateCatalog.All.Select(t => t.Key));
-            Console.Error.WriteLine($"Unknown template '{templateKey}'. Available templates: {available}.");
-            return 1;
-        }
+        _ = TemplateCatalog.TryGet(templateKey, out var template);
 
         var requestedFlags = FeatureFlags.Where(parsed.HasFlag).ToArray();
         var unsupported = requestedFlags.Where(flag => !template.SupportedFlags.Contains(flag)).ToArray();
@@ -131,36 +126,29 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 ? "(none)"
                 : string.Join(", ", template.SupportedFlags.OrderBy(f => f, StringComparer.Ordinal).Select(f => "--" + f));
             var rejected = string.Join(", ", unsupported.Select(f => "--" + f));
-            Console.Error.WriteLine($"Template '{template.Key}' does not support: {rejected}. Supported flags: {supported}.");
-            return 1;
+            return Fail($"Template '{template.Key}' does not support: {rejected}. Supported flags: {supported}.");
         }
 
         // --database only applies to the server template, which is the only one with a database at all.
         var databaseKey = parsed.Option("database");
         if (databaseKey is not null && template.Key != "server")
         {
-            Console.Error.WriteLine(
+            return Fail(
                 $"Template '{template.Key}' does not support --database. It applies only to the server template, "
                 + "which is the only one that scaffolds a database.");
-            return 1;
         }
 
-        if (!DatabaseCatalog.TryGet(databaseKey ?? DatabaseCatalog.Default.Key, out var database))
-        {
-            var available = string.Join(", ", DatabaseCatalog.All.Select(d => d.Key));
-            Console.Error.WriteLine($"Unknown database '{databaseKey}'. Available databases: {available}.");
-            return 1;
-        }
+        // Declared choices again — the parse rejected any key the catalog doesn't hold.
+        _ = DatabaseCatalog.TryGet(databaseKey ?? DatabaseCatalog.Default.Key, out var database);
 
         // Snapshots copy the database file, so on a client-server database the battery has no meaning.
         // Reject rather than drop it: a backup that silently didn't get wired is discovered too late.
         if (requestedFlags.Contains("snapshots") && !database.IsFileBased)
         {
-            Console.Error.WriteLine(
+            return Fail(
                 $"--snapshots needs a file-based database, but --database {database.Key} is a server. "
                 + $"Scheduled snapshots (and Litestream continuous backup) copy the SQLite file; on "
                 + $"{database.DisplayName} use your provider's backups instead. Drop --snapshots, or use --database sqlite.");
-            return 1;
         }
 
         // --host only applies to the native template (which mode to scaffold). Reject it elsewhere so a
@@ -168,20 +156,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var host = parsed.Option("host");
         if (host is not null && template.Key != "native")
         {
-            Console.Error.WriteLine($"Template '{template.Key}' does not support --host. It applies only to the native template (--host local|server).");
-            return 1;
+            return Fail($"Template '{template.Key}' does not support --host. It applies only to the native template (--host local|server).");
         }
 
         // Native is generated directly, but with its own shape: a --host choice (local|server), a single
-        // package, and no feature flags.
+        // package, and no feature flags. The value itself is a declared choice, so it is already valid.
         if (template.Key == "native")
         {
             host ??= "local";
-            if (host is not ("local" or "server"))
-            {
-                Console.Error.WriteLine($"Invalid --host '{host}'. The native template supports: local, server.");
-                return 1;
-            }
 
             return await GenerateDirectAsync(
                 template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"), parsed.HasFlag("no-restore"),
@@ -343,7 +325,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             if (_fileSystem.FileExists(restoreTarget))
             {
                 var existing = Path.GetFileName(restoreTarget);
-                Console.Error.WriteLine($"A project already exists at '{targetDirectory}' ({existing}). Choose another name, --output, or pass --force.");
+                Console.WriteErrorLine(
+                    $"A project already exists at '{targetDirectory}' ({existing}). Choose another name, --output, or pass --force.",
+                    ConsoleStyle.Error);
                 return 1;
             }
 
@@ -361,7 +345,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                     Console.Error.WriteLine($"  …and {(clashes.Length - 5).ToString(CultureInfo.InvariantCulture)} more");
                 }
 
-                Console.Error.WriteLine("Choose another name or --output, or pass --force to overwrite.");
+                Console.WriteErrorLine("Choose another name or --output, or pass --force to overwrite.", ConsoleStyle.Error);
                 return 1;
             }
         }
@@ -406,7 +390,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Console.WriteErrorLine(
                 $"The project was written to '{targetDirectory}', but restoring its packages failed — it won't build until that succeeds.",
                 ConsoleStyle.Error);
-            Console.Error.WriteLine("Run 'dotnet restore' there once you're online, or re-run with --no-restore to skip this step.");
+            Console.WriteErrorLine("Run 'dotnet restore' there once you're online, or re-run with --no-restore to skip this step.", ConsoleStyle.Error);
             return 1;
         }
 

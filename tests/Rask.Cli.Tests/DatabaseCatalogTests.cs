@@ -48,7 +48,7 @@ public sealed class DatabaseCatalogTests
     [Fact]
     public void Keys_lists_every_database_for_help_text()
     {
-        Assert.Equal("sqlite|postgres|sqlserver", DatabaseCatalog.Keys);
+        Assert.Equal(["sqlite", "postgres", "sqlserver"], DatabaseCatalog.Keys);
     }
 
     [Fact]

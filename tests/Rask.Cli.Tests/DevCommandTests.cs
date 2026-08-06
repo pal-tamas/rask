@@ -178,7 +178,7 @@ public sealed class DevCommandTests
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
         Assert.Equal(1, exit);
-        Assert.Contains("Couldn't find a single .csproj", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Couldn't find a .csproj", console.ErrorText, StringComparison.Ordinal);
     }
 
     // ---- native refusal ----
