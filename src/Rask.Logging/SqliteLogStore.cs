@@ -26,8 +26,8 @@ namespace Rask.Logging;
 internal sealed class SqliteLogStore : ILogStore
 {
     private const string InsertSql = """
-        INSERT INTO RaskLog (Timestamp, Level, Category, EventId, Message, Exception)
-        VALUES ($timestamp, $level, $category, $eventId, $message, $exception);
+        INSERT INTO RaskLog (Timestamp, Level, Category, EventId, Message, Exception, Scopes)
+        VALUES ($timestamp, $level, $category, $eventId, $message, $exception, $scopes);
         """;
 
     // Deletes are paged so a single unbounded DELETE never holds SQLite's write lock for the length of a
@@ -79,6 +79,7 @@ internal sealed class SqliteLogStore : ILogStore
                         var eventId = command.Parameters.Add("$eventId", SqliteType.Integer);
                         var message = command.Parameters.Add("$message", SqliteType.Text);
                         var exception = command.Parameters.Add("$exception", SqliteType.Text);
+                        var scopes = command.Parameters.Add("$scopes", SqliteType.Text);
 
                         foreach (var record in records)
                         {
@@ -88,6 +89,9 @@ internal sealed class SqliteLogStore : ILogStore
                             eventId.Value = record.EventId;
                             message.Value = record.Message;
                             exception.Value = (object?)record.Exception ?? DBNull.Value;
+                            // Encoded here, on the writer's thread, rather than at the log call — the call
+                            // site only pays for the flattened snapshot (see LogScopes).
+                            scopes.Value = (object?)LogScopeJson.Encode(record.Scopes) ?? DBNull.Value;
                             await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
                         }
                     }
@@ -124,7 +128,7 @@ internal sealed class SqliteLogStore : ILogStore
                 // inside the same clock tick deterministically, and paging over a stable order is the only
                 // way a page boundary doesn't drop or repeat a row.
                 command.CommandText =
-                    $"SELECT Id, Timestamp, Level, Category, EventId, Message, Exception FROM RaskLog{where} "
+                    $"SELECT Id, Timestamp, Level, Category, EventId, Message, Exception, Scopes FROM RaskLog{where} "
                     + "ORDER BY Id DESC LIMIT $limit OFFSET $offset;";
                 Bind(command, filters);
                 command.Parameters.AddWithValue("$limit", pageSize);
@@ -143,7 +147,8 @@ internal sealed class SqliteLogStore : ILogStore
                             reader.GetString(3),
                             reader.GetInt32(4),
                             reader.GetString(5),
-                            reader.IsDBNull(6) ? null : reader.GetString(6)));
+                            reader.IsDBNull(6) ? null : reader.GetString(6),
+                            reader.IsDBNull(7) ? null : LogScopeJson.Decode(reader.GetString(7))));
                     }
                 }
 
@@ -316,7 +321,8 @@ internal sealed class SqliteLogStore : ILogStore
                             Category  TEXT    NOT NULL,
                             EventId   INTEGER NOT NULL,
                             Message   TEXT    NOT NULL,
-                            Exception TEXT
+                            Exception TEXT,
+                            Scopes    TEXT
                         );
                         CREATE INDEX IF NOT EXISTS IX_RaskLog_Timestamp ON RaskLog (Timestamp);
                         CREATE INDEX IF NOT EXISTS IX_RaskLog_Level_Id ON RaskLog (Level, Id DESC);
@@ -324,6 +330,14 @@ internal sealed class SqliteLogStore : ILogStore
                         """;
                     await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                 }
+
+                // Scopes arrived after the first release of this package, and CREATE TABLE IF NOT EXISTS
+                // does nothing to a table that already exists — so a store created by that release would
+                // otherwise fail every insert with "no such column". There is no migration history here
+                // (this database is framework-owned and deliberately outside the app's), so the check is
+                // the schema itself.
+                await AddColumnIfMissingAsync(connection, "Scopes", "TEXT", cancellationToken)
+                    .ConfigureAwait(false);
             }
 
             _schemaReady = true;
@@ -331,6 +345,40 @@ internal sealed class SqliteLogStore : ILogStore
         finally
         {
             _schemaGate.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Adds a column when the table predates it. Idempotent, and cheap enough to run on every schema
+    ///     check — <c>PRAGMA table_info</c> reads the schema SQLite already has in memory.
+    /// </summary>
+    private static async Task AddColumnIfMissingAsync(
+        SqliteConnection connection,
+        string column,
+        string type,
+        CancellationToken cancellationToken)
+    {
+        var probe = connection.CreateCommand();
+        await using (probe.ConfigureAwait(false))
+        {
+            probe.CommandText = "SELECT COUNT(*) FROM pragma_table_info('RaskLog') WHERE name = $name;";
+            probe.Parameters.AddWithValue("$name", column);
+            var present = Convert.ToInt64(
+                await probe.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false),
+                CultureInfo.InvariantCulture);
+            if (present > 0)
+            {
+                return;
+            }
+        }
+
+        var alter = connection.CreateCommand();
+        await using (alter.ConfigureAwait(false))
+        {
+            // Interpolated rather than parameterised because an identifier cannot be a parameter. Both
+            // values are compile-time constants from this file, never user input.
+            alter.CommandText = $"ALTER TABLE RaskLog ADD COLUMN {column} {type};";
+            await alter.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -439,6 +487,26 @@ internal sealed class SqliteLogStore : ILogStore
                 "$search",
                 SqliteType.Text,
                 $"%{EscapeLike(query.Search)}%");
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ScopeKey))
+        {
+            // json_extract rather than a LIKE over the raw column: a LIKE for "RequestId" would also match
+            // an entry whose *message* merely mentioned it, and a value search would match a prefix of a
+            // different id. SQLite ships JSON1 in every build Microsoft.Data.Sqlite bundles.
+            //
+            // The key is concatenated into the JSON path as a PARAMETER, not into the SQL, so a key
+            // containing quotes cannot change the shape of the statement.
+            var clause = string.IsNullOrWhiteSpace(query.ScopeValue)
+                ? "json_extract(Scopes, '$.' || $scopeKey) IS NOT NULL"
+                : "json_extract(Scopes, '$.' || $scopeKey) = $scopeValue";
+
+            Add(clause, "$scopeKey", SqliteType.Text, query.ScopeKey);
+
+            if (!string.IsNullOrWhiteSpace(query.ScopeValue))
+            {
+                filters.Add(new SqliteParameter("$scopeValue", SqliteType.Text) { Value = query.ScopeValue });
+            }
         }
 
         if (query.From is { } from)

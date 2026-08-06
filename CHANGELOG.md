@@ -8,6 +8,20 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The application log now stores the scope state each entry was written under.** `RaskLoggerProvider`
+  returned `null` from `BeginScope`, so the request id, user id and correlation id an app opens a scope with
+  were dropped — and the whole point of keeping logs is answering *"what else happened on that request?"*,
+  which without them has to be reconstructed from message text. Whatever `ILogger.BeginScope` was given is
+  now flattened (outermost first, message templates keeping their values and dropping the format string) and
+  stored beside the entry, queryable through `LogQuery.ScopeKey` / `ScopeValue` and shown on the row in the
+  dashboard's History mode. The filter matches the stored key exactly via `json_extract`, so a request id
+  cannot match an entry that merely mentioned it in a message. Cost sits where it must: flattening happens at
+  the log call, because scope state is short-lived and may be reused the moment the scope closes, while the
+  JSON encoding is deferred to the writer's own thread — the "a log call never waits on the disk" invariant
+  is intact. Bounded by `MaxScopeValues` (16) and `MaxScopeValueLength` (256) so nested scopes can't grow a
+  row without limit, and switchable off with `CaptureScopes = false` for scopes carrying values you would
+  rather not keep at rest. A store created by the previous release gains the column on first use — there is
+  no migration to run, because this database is framework-owned and deliberately outside yours.
 - **`session-load` — what a host does when its sessions are actually used.** The existing capacity reports
   answer how many sessions *fit*: a retained-memory question, measured against a stub socket that never
   receives. Nothing said what happens when those sessions are used, and a capacity number you can't serve

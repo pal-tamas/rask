@@ -66,6 +66,30 @@ public sealed class RaskLoggingOptions
     public TimeSpan ShutdownDrainTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
+    /// Whether the ambient <c>ILogger.BeginScope</c> state — a request id, a user id, a correlation id — is
+    /// stored alongside each entry. On by default: it is what lets the store answer "what else happened on
+    /// that request?" instead of leaving it to be reconstructed from message text.
+    /// <para>
+    /// Turn it off if your scopes carry values you do not want at rest. Note the cost is paid at the log
+    /// call: flattening has to happen there, because scope state is short-lived and may be reused the
+    /// moment the scope closes. Only the JSON encoding is deferred to the writer's own thread.
+    /// </para>
+    /// </summary>
+    public bool CaptureScopes { get; set; } = true;
+
+    /// <summary>
+    /// Upper bound on captured scope pairs per entry. Default 16 — deep enough for any realistic nesting,
+    /// and a bound so a runaway loop of nested scopes cannot grow a row without limit.
+    /// </summary>
+    public int MaxScopeValues { get; set; } = 16;
+
+    /// <summary>
+    /// Upper bound on each captured scope value, in characters. Default 256, so one large object's
+    /// <c>ToString()</c> cannot dominate the store.
+    /// </summary>
+    public int MaxScopeValueLength { get; set; } = 256;
+
+    /// <summary>
     /// The production pragmas applied to every connection the store opens. Defaults to the same tuned set
     /// <c>Rask.SQLite</c> applies to the application database — WAL matters here in particular, since it is
     /// what lets a dashboard read the store while the writer is flushing.
@@ -131,6 +155,19 @@ public sealed class RaskLoggingOptions
         if (BatchSize < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(BatchSize), BatchSize, "BatchSize must be at least 1.");
+        }
+
+        if (MaxScopeValues < 1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(MaxScopeValues), MaxScopeValues,
+                "MaxScopeValues must be at least 1. Set CaptureScopes = false to store no scope state.");
+        }
+
+        if (MaxScopeValueLength < 1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(MaxScopeValueLength), MaxScopeValueLength, "MaxScopeValueLength must be at least 1.");
         }
 
         if (QueueCapacity < 1)
