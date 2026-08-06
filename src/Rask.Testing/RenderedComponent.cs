@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Testing;
 
@@ -8,10 +10,20 @@ namespace Rask.Testing;
 ///     (<see cref="InvokeAsync" />, <see cref="ClickAsync" />) to simulate an event, which dispatches it
 ///     and re-renders, or call <see cref="Render" /> to re-render after mutating external state.
 /// </summary>
-public class RenderedComponent
+public class RenderedComponent : IRenderHandle
 {
     private readonly Component _root;
     private readonly IServiceProvider _services;
+
+    // A render walk is single-threaded per session by contract. Here two threads can reach it: the test,
+    // and the thread-pool continuation of an asynchronous lifecycle hook signalling through this handle.
+    // Serialize them rather than letting a render land mid-walk.
+    private readonly Lock _renderLock = new();
+    private bool _renderRequested;
+
+    // A hook that signals on every render would otherwise spin here. A real host has the same hazard and
+    // the same answer: drain a bounded number, then let the next explicit render carry on.
+    private const int MaxQueuedRenders = 8;
 
     // Not sealed so RenderedComponent<T> can add Instance; the ctor stays internal, so this type is still
     // only constructible — and only derivable — inside the package.
@@ -19,17 +31,108 @@ public class RenderedComponent
     {
         _root = root;
         _services = services;
-        Html = _root.RenderAsLiveRoot(_services);
+
+        // Before the first render: LiveRenderContext snapshots the root's handle when it begins, and
+        // GetOrCreate/AdoptChild hand that same handle down to the component under test — so it renders
+        // through a handle here the way it does under a live session, rather than through none at all.
+        _root.RenderHandle = this;
+        Html = Render();
     }
 
     /// <summary>The current rendered HTML, reflecting the component's state as of the last render.</summary>
-    public string Html { get; private set; }
+    public string Html { get; private set; } = string.Empty;
 
     /// <summary>Re-renders the component (e.g. after mutating state it reads) and refreshes <see cref="Html" />.</summary>
     public string Render()
     {
-        Html = _root.RenderAsLiveRoot(_services);
-        return Html;
+        lock (_renderLock)
+        {
+            _renderRequested = false;
+            Html = _root.RenderAsLiveRoot(_services);
+
+            // Drain renders the walk itself asked for — a lifecycle hook calling StateHasChanged
+            // synchronously, which is legal and which a live session answers with one coalesced render
+            // once the dispatch unwinds rather than by re-entering the walk in flight.
+            for (var i = 0; i < MaxQueuedRenders && _renderRequested; i++)
+            {
+                _renderRequested = false;
+                Html = _root.RenderAsLiveRoot(_services);
+            }
+
+            _renderRequested = false;
+            return Html;
+        }
+    }
+
+    /// <summary>
+    ///     Re-renders until <paramref name="predicate" /> accepts the markup, then returns it — the way to
+    ///     test a component that loads asynchronously. <c>OnMountAsync</c> completes on a thread-pool
+    ///     continuation, so the markup it produces is not there when <see cref="Render" /> returns; this
+    ///     waits for it instead of guessing with a fixed delay.
+    ///     <code>
+    ///     var page = RaskTest.Render(new OrdersPage(store), services);
+    ///     await page.WaitForAsync(html => !html.Contains("Reading…"));
+    ///     </code>
+    /// </summary>
+    /// <param name="predicate">Receives the current markup on every attempt.</param>
+    /// <param name="timeout">How long to keep trying. Defaults to 5 seconds.</param>
+    /// <exception cref="TimeoutException">
+    ///     The predicate never accepted the markup. The message carries the last markup seen, so a failure
+    ///     shows what the component actually rendered rather than only that it timed out.
+    /// </exception>
+    public async Task<string> WaitForAsync(Func<string, bool> predicate, TimeSpan? timeout = null)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        var budget = timeout ?? TimeSpan.FromSeconds(5);
+        var startedAt = Stopwatch.GetTimestamp();
+
+        while (true)
+        {
+            var html = Render();
+            if (predicate(html))
+            {
+                return html;
+            }
+
+            if (Stopwatch.GetElapsedTime(startedAt) >= budget)
+            {
+                throw new TimeoutException(
+                    $"The rendered markup did not satisfy the predicate within {budget}. Last render:{Environment.NewLine}{html}");
+            }
+
+            await Task.Delay(PollInterval).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    ///     Re-renders until the markup contains <paramref name="expected" />, then returns it — the common
+    ///     shape of <see cref="WaitForAsync(Func{string, bool}, TimeSpan?)" />.
+    /// </summary>
+    /// <exception cref="TimeoutException">The text never appeared; the message carries the last markup.</exception>
+    public Task<string> WaitForAsync(string expected, TimeSpan? timeout = null)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        return WaitForAsync(html => html.Contains(expected, StringComparison.Ordinal), timeout);
+    }
+
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(5);
+
+    // The handle the component under test renders through. It records the request rather than rendering
+    // on the spot, which is what a live session does too: inside a dispatch every StateHasChanged sets a
+    // pending flag and ONE coalesced render runs at the end (LiveSession.RequestRenderInternalAsync's
+    // InHandlerScope branch). Rendering inline instead would be wrong twice over — it re-enters a walk
+    // already in progress when a hook signals synchronously, and it renders halfway through a multicast
+    // event, before the later subscribers of the same event (a Router and its Outlet both listen to
+    // RouteState.Changed) have updated the state that render would read.
+    Task IRenderHandle.RequestRenderAsync()
+    {
+        lock (_renderLock)
+        {
+            _renderRequested = true;
+        }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>

@@ -100,6 +100,25 @@ them until tagged releases begin.
   connection pool for the next lease — a plain query, EF or the pragma batch — to inherit. That teardown
   is bounded by a one-second budget rather than the caller's own timeout, so ignoring the token cannot
   turn a cancelled write into a multi-second stall on shutdown.
+- **`RaskTest.Render` now mounts the component it renders.** `OnMount` and `OnMountAsync` never ran, so a
+  component that loads asynchronously rendered its placeholder forever and could not be unit-tested past
+  it (#555). The cause: `Render` wraps the component in a forwarding root, and the render walk fires the
+  lifecycle on the **root** only — which is the wrapper, not the component under test. The framework
+  already solves exactly this for its own two wrapper roots (`RootErrorBoundary` for the App,
+  `RouteChainRenderer` for a page); the test root was the third and was missing it. It now adopts and
+  notifies its child the same way, so `OnMount`, `OnMountAsync`, `OnRendered` and `OnUnmount` all fire,
+  and the component renders through a handle, which records requests and coalesces them the way a live
+  session does inside a dispatch — answering them inline instead re-enters the walk in progress, and
+  renders halfway through a multicast event before its later subscribers have run. Adoption deliberately
+  does **not** go through
+  `GetOrCreate`: that path's reuse branch clears the instance's children, which would delete the subtree
+  of a tree built at the call site (`RaskTest.Render(Div()[Span()])`) on its second render and put
+  `.Instance`'s documented identity under positional-cache rules. Both guarantees are now pinned by
+  tests. New **`RenderedComponent.WaitForAsync(text | predicate, timeout?)`** re-renders until the markup
+  matches and returns it, throwing with the last markup on timeout — the awaitable an asynchronous mount
+  needs, in place of a fixed delay. First use: the dashboard's Logs page History mode is render-tested
+  end to end, which was previously reachable only through E2E; no dashboard page had ever been
+  render-tested past its placeholder.
 - **The local unit gate no longer flakes on two background-processor tests.** Both passed every time in
   isolation and failed only under a full-suite load, which is the worst shape for a gate the pre-commit
   hook enforces: the practical workaround is `--no-verify`, which skips the format and unit checks

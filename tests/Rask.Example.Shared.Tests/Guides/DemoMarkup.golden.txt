@@ -5497,6 +5497,8 @@ li .bg-transparent .list-group-item .ps-2 .small
 code .small
 li .bg-transparent .list-group-item .ps-2 .small
 code .small
+li .bg-transparent .list-group-item .ps-2 .small
+code .small
 
 === master-detail ===
 div .border-0 .card .mb-4 .sample-card .shadow-sm
