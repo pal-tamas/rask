@@ -47,8 +47,35 @@ builder.Services.AddRaskLogging(connectionString, o =>
     o.BatchSize     = 500;
     o.QueueCapacity = 10_000;
     o.ExcludedCategories.Add("Microsoft.AspNetCore.");
+
+    o.CaptureScopes        = true;  // store ambient ILogger.BeginScope state (default)
+    o.MaxScopeValues       = 16;    // per entry
+    o.MaxScopeValueLength  = 256;   // per value
 });
 ```
+
+### Scopes
+
+Whatever an `ILogger.BeginScope` was opened with is stored alongside the entry, so the log answers *"what
+else happened on that request?"* instead of leaving it to be reconstructed from message text:
+
+```csharp
+using (logger.BeginScope("request {RequestId} for {UserId}", requestId, user.Id))
+{
+    logger.LogInformation("charging {Amount}", amount);   // stored with RequestId and UserId
+}
+```
+
+Nested scopes are flattened outermost-first; a scope opened with a bare value (`BeginScope("checkout")`) is
+stored under the key `Scope`. The message template itself is not stored — only the values it formats.
+
+The cost sits where it has to: flattening happens at the log call, because scope state is short-lived and
+may be reused the moment the scope closes. Encoding it to JSON does not — the writer does that on its own
+thread, so the request path keeps the "a log call never waits on the disk" property. Both bounds above exist
+so a runaway loop of nested scopes, or one large object's `ToString()`, cannot grow a row without limit.
+
+Turn `CaptureScopes` off if your scopes carry values you would rather not have at rest. Note the same
+caveat as the rest of the store: **log lines can contain secrets** — treat the file as sensitive.
 
 ### Keeping the noise down
 
@@ -80,12 +107,18 @@ public sealed class IncidentPage(ILogStore store) : Component
         MinimumLevel = LogLevel.Error,
         Category = "Shop.Checkout",
         Search = "declined",
+        ScopeKey = "RequestId",       // entries captured under this scope key…
+        ScopeValue = "0HN7…",         // …with this value. Key alone finds every entry that carried it.
         From = DateTimeOffset.UtcNow.AddHours(-6),
         Page = 1,
         PageSize = 50,
     });
 }
 ```
+
+Each `LogRecord` carries its `Scopes` as key/value pairs. The scope filter matches the stored key exactly
+(via SQLite's `json_extract`) rather than searching the row as text, so a request id cannot match an entry
+that merely mentioned it in a message.
 
 `LogPage` carries the matching entries (newest first), the `TotalCount` behind the filter, and a `PageCount`.
 `ILogStore` also exposes `CategoriesAsync()`, `CountAsync()`, `PurgeAsync(retention, maxRows)` and
@@ -161,10 +194,12 @@ very restart it exists to survive.
 
 - **One writer per app.** SQLite is single-writer; run one process against a given `logs.db`, exactly as with
   the jobs and outbox processors.
-- **Scopes are not captured.** `BeginScope` state (a request id, a user id) is not stored yet — the message,
-  category, level, event id, timestamp and exception are.
-- **Trim / AOT safe.** No reflection, no serializer; the package depends only on `Microsoft.Data.Sqlite` and
-  the logging/hosting abstractions.
+- **Trim / AOT safe.** No reflection. Scope state is encoded with a source-generated
+  `JsonSerializerContext`, not the reflection serializer, so the package stays free of IL2026/IL3050 in a
+  published WASM or AOT app. It depends only on `Microsoft.Data.Sqlite` and the logging/hosting abstractions.
+- **The schema upgrades itself.** The `Scopes` column is added to a store created by an earlier version on
+  first use — this database is framework-owned and deliberately outside your migration history, so there is
+  nothing for you to run.
 
 ## See also
 

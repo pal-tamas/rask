@@ -47,10 +47,11 @@ internal sealed class RaskLoggerProvider(
             _excluded = options.IsExcluded(category);
         }
 
-        // Scopes are not captured. The existing dashboard tail doesn't capture them either, and storing
-        // them properly means a schema for structured state rather than a string column — a deliberate
-        // follow-up, not a silent half-implementation.
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        // Captured when CaptureScopes is on (the default). Returning null here — as this did — is what
+        // dropped the request id, the user id and every correlation id an app opened a scope with, which
+        // is precisely the state that makes a stored log answer "what else happened on that request?".
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull =>
+            _options.CaptureScopes ? LogScopes.Push(state) : null;
 
         // Checked by the logging infrastructure before it formats anything, so an entry below the store's
         // threshold costs a comparison rather than a string.
@@ -79,7 +80,10 @@ internal sealed class RaskLoggerProvider(
                 _category,
                 eventId.Id,
                 formatter(state, exception),
-                exception?.ToString()));
+                exception?.ToString(),
+                _options.CaptureScopes
+                    ? LogScopes.Capture(_options.MaxScopeValues, _options.MaxScopeValueLength)
+                    : null));
         }
     }
 }
