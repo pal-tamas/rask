@@ -63,6 +63,16 @@ them until tagged releases begin.
   landed became an un-retried 502 (`lb_try_duration` defaults to 0). There was previously no gap at all.
 
 ### Fixed
+- **The local unit gate no longer flakes on two background-processor tests.** Both passed every time in
+  isolation and failed only under a full-suite load, which is the worst shape for a gate the pre-commit
+  hook enforces: the practical workaround is `--no-verify`, which skips the format and unit checks
+  entirely. `OutboxRetentionTests` started the real hosted service and slept a fixed 500 ms per step, so
+  under load the first poll had not finished when the processor was stopped and the retention sweep never
+  ran — the assertions then read as "the sweep is broken" rather than "the sweep never happened". It now
+  drives `OutboxProcessor.RunCycleAsync` directly (one explicit poll per step; retention is throttled on
+  the injected clock, so that is exactly what the test means). `MailProcessorTests` waited for
+  `Sender.Sent.Count == 1` and then asserted on `ProcessedAt`, which the processor writes *after* the
+  sender returns — so it asserted on state it had never waited for. It now waits for the row.
 - **A failed port-mode deploy no longer leaves the box serving nothing.** Without `--domain` the app is
   published on a single port, so the old container is stopped before the new one starts — there is no
   blue-green swap to fall back on, and the health gate could only report the failure. A bad image (bad
