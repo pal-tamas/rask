@@ -7,6 +7,22 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **`Rask.Postgres` and `Rask.SqlServer` are actually published now.** Both had everything a shipped
+  package has — `IsPackable`, a `PackageId`, a description, their own `NUGET.md`, tests — except a
+  `dotnet pack` step, and the list of those in `release.yml` and `nightly.yml` is written out by hand.
+  So the two packages `--database postgres|sqlserver` scaffolds a `PackageReference` to, and that
+  [`databases.md`](docs/databases.md) links to a nuget.org page for, existed on no feed: a generated
+  project couldn't restore. Nothing caught it because the packages themselves were fine — they built,
+  their tests passed, and the repo's packaging guard only checked that a shipped package never
+  *depends* on an unpublished one. It now also checks that every packable project under `src/` is
+  named by a pack step in **both** workflows, so the next package can't be forgotten the same way.
+  (Closes #616.)
+  - Corrected two stale claims in `llms.txt` that `docs/databases.md` already contradicted: that
+    multi-instance is unsafe on every provider (the jobs, mail and outbox processors lease the work
+    they claim — several instances are safe, with the caveat that a lease bounds rather than removes a
+    duplicate side effect), and a trailing "SQL Server is NOT shipped".
+
 ### Changed
 - **A wrong `rask` command line now tells you what's wrong, what's allowed, and what to run next.** The
   pieces were all there — a styled console, a self-documenting argument schema, a `--help` renderer that
