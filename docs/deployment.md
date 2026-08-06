@@ -36,7 +36,7 @@ Dockerfile below (override with `--dockerfile`).
   and a DI scope inside *that* container and cannot hand over to the next one. The retiring container
   announces its shutdown first, so open pages show "Updating…" and reconnect to the new instance
   immediately instead of reporting a timeout — reloading only if the host that answers cannot rebuild the
-  page, and then at their previous scroll position. See
+  page, and then at their previous scroll position, with the fields the user had edited restored. See
   [Shutdown and redeploy](configuration.md#shutdown-and-redeploy).
 - **Durable SQLite database.** Every deploy runs a fresh container, so the database can't live inside it.
   `rask deploy` mounts a per-app named volume and points the app at it (`ConnectionStrings:App` →

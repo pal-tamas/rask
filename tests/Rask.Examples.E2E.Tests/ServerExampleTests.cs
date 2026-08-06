@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using Rask.Examples.E2E.Tests.Infrastructure;
+using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
 
@@ -62,4 +63,92 @@ public sealed class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFi
             await Page.Context.SetOfflineAsync(false);
         }
     });
+
+    // The redeploy form restore (#571). When a replacement server can't carry a session over, the page
+    // reloads and rask.js re-applies the fields the user had actually edited — but only when the
+    // replacement rendered the same base the old server did.
+    //
+    // This drives the APPLY half against a real reload, because that is where every risk sits: the
+    // merge decision, arming the value guard against the first pristine frame, and pushing the restored
+    // value back so the SERVER MODEL converges. The last of those is the whole point of the feature and
+    // the only thing that can't be faked — a form showing values the server doesn't have is exactly the
+    // data loss that kept field restore out of the first cut.
+    //
+    // The snapshot is written by hand rather than by forcing a real redeploy: saveRestoreFields runs
+    // inside the client IIFE on a shutdown the harness has no way to stage. Its own half is covered by
+    // RestoreFieldBaseTests (the dirty base capture) and ShutdownClientContractTests (the shape).
+    [Fact]
+    public Task RedeployReload_RestoresEditedFields_AndConvergesTheServerModel() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/guides/forms");
+        // /guides/forms co-mounts many demos; wait for a late one so nothing races hydration.
+        await Expect(Page.Locator("#fc-input-bound")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        var bound = Page.Locator("#fc-input-bound");
+        var echo = Page.Locator("#fc-input-bound-out");
+
+        // Type, and confirm the server really is holding it — the echo renders the bound model.
+        await bound.FillAsync("survives-the-redeploy");
+        await Expect(echo).ToContainTextAsync("survives-the-redeploy",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // The reload lands on a pristine session, so the replacement renders value="" — the same base
+        // the old server had rendered when the field was first touched. Bases match, edit is newest.
+        await WriteRestoreFieldsAsync("/guides/forms",
+            """[{"k":"fc-input-bound","t":"text","b":"","v":"survives-the-redeploy"}]""");
+        await Page.ReloadAsync();
+
+        await Expect(Page.Locator("#fc-input-bound")).ToHaveValueAsync("survives-the-redeploy",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 20_000 });
+        // ...and it STAYS: the first frame the server sends is computed from its own pristine model,
+        // so without the armed value guard the text would be wiped and only flicker back afterwards.
+        await Task.Delay(2_000);
+        await Expect(Page.Locator("#fc-input-bound")).ToHaveValueAsync("survives-the-redeploy");
+        // The assertion that matters. The echo renders the SERVER's model, so this is only green if the
+        // converge message landed and the server holds what the page is showing.
+        await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("survives-the-redeploy",
+            new LocatorAssertionsToContainTextOptions { Timeout = 20_000 });
+
+        // Consume-once: the snapshot must not survive its own reload and re-apply later.
+        await Page.ReloadAsync();
+        await Expect(Page.Locator("#fc-input-bound")).ToHaveValueAsync("",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 20_000 });
+
+        // A base the replacement doesn't match means the new server knows something this stale copy
+        // doesn't — it wins, and the edit is dropped silently.
+        await WriteRestoreFieldsAsync("/guides/forms",
+            """[{"k":"fc-input-bound","t":"text","b":"a-base-the-server-never-rendered","v":"should-be-dropped"}]""");
+        await Page.ReloadAsync();
+        await Expect(Page.Locator("#fc-input-bound")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        await Task.Delay(2_000);
+        await Expect(Page.Locator("#fc-input-bound")).ToHaveValueAsync("");
+        await Expect(Page.Locator("#fc-input-bound-out")).Not.ToContainTextAsync("should-be-dropped");
+    });
+
+    // Secrets are excluded unconditionally, and the exclusion is re-checked on the apply side — so even
+    // a hand-planted snapshot naming a password field is refused rather than trusted.
+    [Fact]
+    public Task RedeployReload_NeverRestoresAPasswordField() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/guides/forms-validation");
+        await Expect(Page.Locator("#v4-password")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        await WriteRestoreFieldsAsync("/guides/forms-validation",
+            """[{"k":"v4-password","t":"password","b":"","v":"hunter2"}]""");
+        await Page.ReloadAsync();
+
+        await Expect(Page.Locator("#v4-password")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        await Task.Delay(2_000);
+        await Expect(Page.Locator("#v4-password")).ToHaveValueAsync("");
+    });
+
+    // Plant a snapshot in the shape rask.js's saveRestoreFields writes, under its own key.
+    private Task WriteRestoreFieldsAsync(string path, string fieldsJson) =>
+        Page.EvaluateAsync(
+            "([p, f]) => sessionStorage.setItem('rask:restore:fields', JSON.stringify({p, f: JSON.parse(f)}))",
+            new[] { path, fieldsJson });
 }

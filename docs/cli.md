@@ -402,7 +402,8 @@ is removed. If the new container fails to start, or fails its health probe, the 
 serving. Probe a different path with `--health-path`, or skip the probe with `--no-health-check`.
 HTTP requests are zero-downtime; **live sessions re-establish**, because a session lives in the container
 being replaced and cannot hand over. The retiring container announces its shutdown first, so open pages
-show "Updating…" and reload onto the new one at their previous scroll position — see
+show "Updating…" and reload onto the new one at their previous scroll position, with whatever the user
+had typed put back — see
 [the shutdown ladder](deployment.md#the-shutdown-ladder).
 
 **Multiple apps share one box.** Each app container is labelled, so the proxy's routing is regenerated

@@ -8,6 +8,34 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A redeploy reload no longer throws away what the user had typed.** When a replacement server can't
+  carry a session over, the page reloads — and until now that restored your scroll position and focus but
+  silently discarded every field you were part-way through filling in. The reason it did was real: there
+  was no way to tell a value the user typed from one the server had rendered, so writing stale client
+  copies back over correct server output would have turned a cosmetic loss into a data one. What makes it
+  answerable is that the DOM keeps the server-rendered `value` **attribute** separate from the user's live
+  `.value` **property**, which gives a merge *base* — so this is a **three-way merge**, not a guess.
+  Only fields the user actually edited are candidates, each carrying the value the server had rendered
+  when they first touched it (captured *then*: every echo of their own keystrokes rewrites the attribute,
+  so reading it later would compare the user's text against itself and restore nothing). After the reload
+  a field is re-applied only when the replacement rendered that same base — its state is unchanged, so the
+  edit is still the newest thing anyone knows. A different base means the replacement knows something the
+  stale copy doesn't: it wins, and the edit is dropped silently, exactly as a reload behaved before. What
+  *is* restored is then pushed back over the socket, so the server's model ends up holding what the page
+  shows rather than the pristine values it just rendered — a form displaying values the server doesn't
+  have is the data loss this feature would otherwise create, not prevent. The restore also arms the
+  existing lagging-frame guards, so the server's first catch-up render (computed from its own pristine
+  model, before the converge message can reach it) is held off rather than wiping the text and flickering
+  it back. Secrets never enter `sessionStorage` at all — password, file, hidden and one-time-code inputs,
+  and anything with a `cc-*` / `current-password` / `new-password` `autocomplete` — and
+  `data-rask-no-restore` opts out a field or a whole subtree. A field needs an `id` or a `name` to be
+  restorable (a bound `Input` gets one from the bound property for free), and a key matching more than one
+  control is skipped rather than guessed at, because writing a restored value into the wrong field is the
+  failure worth refusing. Handler ids are never persisted: they are positional per render, so one carried
+  over from the old page would name a *different* handler on the new one. The field snapshot lives under
+  its own `sessionStorage` key, so a large editor that fails the quota can't cost you the scroll position
+  too. `<select>` is not covered yet — it has no lagging-frame guard to hold the first re-render off with
+  (tracked separately).
 - **The application log now stores the scope state each entry was written under.** `RaskLoggerProvider`
   returned `null` from `BeginScope`, so the request id, user id and correlation id an app opens a scope with
   were dropped — and the whole point of keeping logs is answering *"what else happened on that request?"*,
@@ -185,9 +213,8 @@ them until tagged releases begin.
   `RemoveAsync` that raced process exit. The client shows **"Updating…"** and, because the drop is now
   *expected* rather than guessed at, reconnects immediately instead of walking a 500 ms → 5 s backoff
   ladder — leaving what happens to the page to the host that answers. If that host cannot rebuild the
-  session it reloads, in ~250 ms instead of 4 s, restoring scroll position and focus. Form values are
-  deliberately not restored: the new server renders those from its own state, and writing stale client
-  copies over them would turn a cosmetic loss into a data one.
+  session it reloads, in ~250 ms instead of 4 s, restoring scroll position and focus (and, since the
+  entry below, the fields the user had edited).
   Budget via `RaskServerOptions.ShutdownDrainTimeout` (default 5s; `Zero` restores the old abort), which
   must fit inside `HostOptions.ShutdownTimeout`; a startup warning says so when it doesn't, and
   `rask.shutdown.sessions.abandoned` counts anything still connected when the budget ran out.

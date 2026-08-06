@@ -90,14 +90,31 @@ Anything still connected when `ShutdownDrainTimeout` elapses is aborted, and
 > session is a component tree plus a DI scope living in *that* process, so the new instance cannot inherit
 > it. The client therefore reconnects and lets the host that answers decide: if it can rebuild the page,
 > nothing reloads at all; if it reports the session unknown, the client reloads — in ~250 ms, saying
-> "Updating…", and restoring your scroll position and focus.
+> "Updating…", and restoring your scroll position, your focus, and whatever you had typed.
 >
 > The drain's job is to make that drop *expected*. Before it, the socket was aborted with no close frame,
 > so the browser could not tell a deployment from a crash: it froze, backed off, and eventually announced
 > a four-second "Your session timed out" for a session that had not timed out.
 >
-> Form field values are deliberately **not** restored across a reload — the new server renders those from
-> its own state, and overwriting them with stale client copies would turn a cosmetic loss into a data one.
+> **What the user had typed comes back too, as a three-way merge.** Only fields they actually edited are
+> candidates, each carrying the value the server had rendered *before* they touched it. After the reload
+> a field is re-applied only when the replacement rendered that same value — its state is unchanged, so
+> the edit is still the newest thing anyone knows. If the replacement rendered something different it
+> knows something the stale copy doesn't, so it wins and the edit is dropped silently. Whatever is
+> restored is then pushed back over the socket, so the server's model holds what the page shows rather
+> than the pristine values it just rendered.
+>
+> Two rules worth knowing when you build forms:
+>
+> - **A field needs an `id` or a `name` to be restorable.** A bound `Input` gets a `name` from the bound
+>   property automatically, so this is usually free — but if a key matches more than one control on the
+>   page, that field is skipped rather than guessed at.
+> - **`data-rask-no-restore` opts a field (or a whole subtree) out.** Passwords, file, hidden and
+>   one-time-code inputs, and anything with a `cc-*` / `current-password` / `new-password` `autocomplete`,
+>   are excluded unconditionally and never reach `sessionStorage` in the first place.
+>
+> `<select>` is not restored yet — it has no lagging-frame guard for the first re-render to be held off
+> with, unlike `value` and `checked`.
 
 `ShutdownDrainTimeout` must fit inside `HostOptions.ShutdownTimeout`, which must fit inside whatever your
 container runtime allows between `SIGTERM` and `SIGKILL` (`rask deploy` uses 20 s). Rask logs a warning at
