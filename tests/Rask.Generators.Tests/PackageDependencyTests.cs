@@ -2,8 +2,12 @@ using System.Xml.Linq;
 
 namespace Rask.Generators.Tests;
 
-// Guards a packaging invariant across the whole repo: a shipped package must never declare a NuGet
-// dependency on a project that is never published.
+// Guards the two packaging invariants that hold across the whole repo:
+//   1. a shipped package must never declare a NuGet dependency on a project that is never published;
+//   2. a project that declares itself packable must actually be packed by the publishing workflows.
+//
+// Both are the same class of bug — the package a consumer needs isn't on the feed — and neither shows up
+// in an in-repo build, which resolves everything through ProjectReferences.
 //
 // The regression: Rask.Wasm.Hosting referenced Rask.Core (IsPackable=false) without PrivateAssets="all",
 // so its nuspec listed `<dependency id="Rask.Core" version="1.0.0" />` — an id that exists on no feed, at
@@ -19,10 +23,7 @@ public class PackageDependencyTests
     [Fact]
     public void No_packable_project_depends_on_an_unpackable_one()
     {
-        var projects = Directory
-            .GetFiles(Path.Combine(RepoRoot(), "src"), "*.csproj", SearchOption.AllDirectories)
-            .Where(IsSource)
-            .ToDictionary(p => Path.GetFileNameWithoutExtension(p), p => p, StringComparer.OrdinalIgnoreCase);
+        var projects = SourceProjects();
 
         var offenders = new List<string>();
 
@@ -68,6 +69,45 @@ public class PackageDependencyTests
             + "nuspec will declare a dependency on a package that does not exist and every restore of them fails "
             + "with NU1101:\n  " + string.Join("\n  ", offenders));
     }
+
+    // The list of `dotnet pack` steps in the publishing workflows is maintained by hand, and nothing tied it to
+    // the projects that actually declare themselves packable. Rask.Postgres and Rask.SqlServer were added with a
+    // PackageId, a Description and their own NUGET.md — everything a shipped package has except a pack step — so
+    // they were built, tested and documented (docs/databases.md links their nuget.org page, and `rask new
+    // --database postgres` scaffolds a PackageReference to them) while existing on no feed at all.
+    //
+    // A missing step in release.yml means the package is never published; a missing one in nightly.yml means it
+    // is never smoke-tested from a feed before the release. Matching on the csproj path is what both workflows
+    // are written in terms of, and it covers Rask.Native too, which each packs from a separate macOS job.
+    [Theory]
+    [InlineData("release.yml")]
+    [InlineData("nightly.yml")]
+    public void Every_packable_project_is_packed_by_the_publishing_workflow(string workflow)
+    {
+        var yaml = File.ReadAllText(Path.Combine(RepoRoot(), ".github", "workflows", workflow));
+
+        var missing = SourceProjects()
+            .Where(p => IsPackable(p.Value))
+            .Select(p => Path.GetRelativePath(RepoRoot(), p.Value).Replace(Path.DirectorySeparatorChar, '/'))
+            .Where(relativePath => !yaml.Contains(relativePath, StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(
+            missing.Count == 0,
+            $"These projects are IsPackable but no `dotnet pack` step in .github/workflows/{workflow} names them, "
+            + "so the package they describe is produced by nobody — a consumer following the docs gets NU1101:\n  "
+            + string.Join("\n  ", missing));
+    }
+
+    // Every project under src/, packable or not, keyed by its file name. Both invariants above need the whole set:
+    // one to tell a reference to an unpackable project from a reference to a shipped one, the other to pick the
+    // packable ones out.
+    private static Dictionary<string, string> SourceProjects() =>
+        Directory
+            .GetFiles(Path.Combine(RepoRoot(), "src"), "*.csproj", SearchOption.AllDirectories)
+            .Where(IsSource)
+            .ToDictionary(p => Path.GetFileNameWithoutExtension(p), p => p, StringComparer.OrdinalIgnoreCase);
 
     // Only real sources — never anything a build copied under bin/ or obj/. An all-directories scan can otherwise
     // pick up staged/intermediate csproj copies and see a project twice, so the lookup below would throw on the
