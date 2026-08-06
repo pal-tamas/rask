@@ -1024,6 +1024,46 @@ public abstract class Component
     }
 
 
+    // GetOrCreateChild counts positions up from 0, so this can never collide with one.
+    private const int AdoptedChildPosition = int.MaxValue;
+
+    /// <summary>
+    ///     Registers an already-constructed <paramref name="child" /> as this component's child, outside
+    ///     the positional <see cref="GetOrCreateChild{T}" /> path, and gives it a render handle.
+    /// </summary>
+    /// <remarks>
+    ///     For a render root that forwards to a component it did not build through a generated factory —
+    ///     which is every component handed to <c>RaskTest.Render</c> as an object rather than produced by
+    ///     the factory during the render. Those never reach <c>GetOrCreate</c>, so without adoption they
+    ///     serialize but are invisible to the alive-set walk (no <c>OnRendered</c>, no <c>OnUnmount</c>)
+    ///     and have no handle to re-render through when an asynchronous lifecycle hook completes.
+    ///     <para>
+    ///     Deliberately not <see cref="GetOrCreateChild{T}" />: that path's reuse branch clears the
+    ///     instance's <see cref="Children" />, which would delete the subtree of a tree built at the call
+    ///     site (<c>Div()[Span()]</c>) on its second render, and would put the instance's identity under
+    ///     positional-cache rules. Adoption keeps the caller's object exactly as it was handed over.
+    ///     </para>
+    /// </remarks>
+    internal void AdoptChild(Component child, IRenderHandle? handle)
+    {
+        if (_live?.Children is { } existing)
+        {
+            foreach (var registered in existing.Values)
+            {
+                // Already registered this frame — it came from a generated factory's GetOrCreate, which
+                // has done both halves of this itself.
+                if (ReferenceEquals(registered, child))
+                {
+                    return;
+                }
+            }
+        }
+
+        child.RenderHandle ??= handle;
+        (Live.Children ??= new Dictionary<(Type, int), Component>())[
+            (child.GetType(), AdoptedChildPosition)] = child;
+    }
+
     internal T GetOrCreateChild<T>(
         Func<IServiceProvider, T> factory,
         IServiceProvider? services,
