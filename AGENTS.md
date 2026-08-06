@@ -14,7 +14,8 @@ Apply the matching playbook automatically:
 - **cut-release** — tag `vX.Y.Z`. **check-nuget-updates** — dependency hygiene.
 
 ## The gate (every change)
-1. `dotnet format Rask.slnx` (+ `--verify-no-changes`).
+1. `dotnet format Rask.slnx` (+ `--verify-no-changes`) — the full pass, not `whitespace`; the
+   `pre-commit` gate verifies it too.
 2. `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true` (analyzers clean).
 3. **Unit test every feature**; **E2E test every `samples/` change**.
 4. **Benchmark every framework/render-hotpath change** (quote the Allocated delta).

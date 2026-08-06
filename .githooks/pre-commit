@@ -23,10 +23,10 @@ fi
 root="$(git rev-parse --show-toplevel)"
 
 echo "pre-commit: running the local format + unit gate (staged code changes detected)."
-echo "            build -> dotnet format whitespace --verify-no-changes -> tests. bypass with"
+echo "            build -> dotnet format --verify-no-changes -> tests. bypass with"
 echo "            'git commit --no-verify' or RASK_SKIP_UNIT=1."
 if ! "$root/scripts/run-unit-local.sh"; then
-  echo "pre-commit: format + unit gate FAILED — commit aborted. Fix it (e.g. 'dotnet format whitespace" >&2
-  echo "            Rask.slnx' then restage), or bypass with --no-verify." >&2
+  echo "pre-commit: format + unit gate FAILED — commit aborted. Fix it (e.g. 'dotnet format Rask.slnx'" >&2
+  echo "            then restage), or bypass with --no-verify." >&2
   exit 1
 fi

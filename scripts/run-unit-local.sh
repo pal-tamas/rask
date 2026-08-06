@@ -2,15 +2,24 @@
 # Local format + unit/integration gate.
 #
 # Formatting and the unit suite no longer run in CI — they run here, locally, and the pre-commit hook
-# (.githooks/pre-commit) enforces this before a code commit. Steps: build once, run the whitespace
-# formatter, then run every test EXCEPT the browser E2E (that's its own gate — see run-e2e-local.sh).
+# (.githooks/pre-commit) enforces this before a code commit. Steps: build once, run the FULL formatter
+# (whitespace + style + analyzers), then run every test EXCEPT the browser E2E (that's its own gate —
+# see run-e2e-local.sh).
 #
-# Why the WHITESPACE formatter and not full `dotnet format`: full format's style/analyzer passes compile
-# the whole solution through their own Roslyn workspace, which runs the `Routes.*` source generator
-# differently than `dotnet build` and spuriously reports CS1503 in the routing tests (the real compiler
-# builds them clean). The whitespace pass is compile-independent, so it's reliable AND still catches
-# indentation / spacing / final-newline violations. Run full `dotnet format Rask.slnx` before a PR for the
-# style pass (the build here is warnings-as-errors, so error-severity analyzer rules are already enforced).
+# Why the FULL pass: import ordering is caught by nothing else. The build is warnings-as-errors with
+# EnforceCodeStyleInBuild on, but IDE0055 only reports whitespace computed by the Formatter — sorting
+# using directives is OrganizeImportsService, a separate mechanism that only `dotnet format` runs. So a
+# misordered using drifts in silently (it did: see #584). The full pass is one workspace load, ~36s.
+#
+# This gate ran `dotnet format whitespace` only until #584, because the style/analyzer passes reported
+# CS1503 in the routing tests. That was never spurious, and it is the reason for the Debug step below:
+# `dotnet format` evaluates the solution in the DEFAULT configuration (Debug), so it resolves the
+# OutputItemType="Analyzer" project references to src/*.Generators/bin/DEBUG/. This gate builds Release,
+# so on a machine that has never built Debug those DLLs do not exist — Roslyn then loads no generator,
+# `Rask.Core.Routing.Generated.Route<T>()` is never emitted, and every call site fails to bind with
+# CS1503 ("cannot convert from '?[]'"). Building the generators in Debug costs ~2s and makes the pass
+# deterministic; it is also why the failure looked machine-dependent, since a stale Debug DLL from an
+# earlier build hides it.
 #
 # Usage:  scripts/run-unit-local.sh
 # Skip:   RASK_SKIP_UNIT=1 (also honoured by the pre-commit hook)
@@ -27,8 +36,13 @@ cd "$root"
 echo "==> Build once (Release, no WASM bundle: -p:RaskWasm=false -p:WasmBuildNative=false)"
 dotnet build Rask.slnx -c Release -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true
 
-echo "==> Formatting check (dotnet format whitespace --verify-no-changes)"
-dotnet format whitespace Rask.slnx --verify-no-changes --no-restore
+echo "==> Source generators in Debug (dotnet format resolves analyzers from the default configuration)"
+for proj in src/*.Generators/*.csproj; do
+  dotnet build "$proj" -c Debug --nologo -v quiet
+done
+
+echo "==> Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
+dotnet format Rask.slnx --verify-no-changes --no-restore
 
 echo "==> Unit & integration tests (excludes the browser E2E)"
 dotnet test Rask.slnx -c Release --no-build \
