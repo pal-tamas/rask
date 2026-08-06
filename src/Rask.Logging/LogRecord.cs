@@ -13,6 +13,12 @@ namespace Rask.Logging;
 /// <param name="EventId">The <see cref="Microsoft.Extensions.Logging.EventId"/>'s numeric id, or 0.</param>
 /// <param name="Message">The formatted message.</param>
 /// <param name="Exception">The exception's <c>ToString()</c>, if one was attached.</param>
+/// <param name="Scopes">
+/// The ambient <see cref="ILogger.BeginScope{TState}"/> state the entry was written under — the request id,
+/// the user id, whatever correlation id the app opened a scope with — flattened outermost-first, or
+/// <c>null</c> when no scope was open. This is what makes a stored log answer <em>"what else happened on
+/// that request?"</em> rather than leaving it to be reconstructed from message text.
+/// </param>
 public sealed record LogRecord(
     long Id,
     DateTimeOffset Timestamp,
@@ -20,7 +26,20 @@ public sealed record LogRecord(
     string Category,
     int EventId,
     string Message,
-    string? Exception);
+    string? Exception,
+    IReadOnlyList<LogScopeValue>? Scopes = null);
+
+/// <summary>One key/value pair captured from an open logging scope.</summary>
+/// <param name="Key">
+/// The state key, e.g. <c>RequestId</c>. A scope opened with a bare object rather than key/value state
+/// (<c>BeginScope("checkout")</c>) is stored under <see cref="LogScopeValue.MessageKey"/>.
+/// </param>
+/// <param name="Value">The value, already converted to a string at the call site.</param>
+public readonly record struct LogScopeValue(string Key, string Value)
+{
+    /// <summary>The key a scope with no structured state is stored under.</summary>
+    public const string MessageKey = "Scope";
+}
 
 /// <summary>
 /// A filter over the stored log. Every property is optional; leaving them all unset asks for the newest page
@@ -36,6 +55,19 @@ public sealed record LogQuery
 
     /// <summary>Only entries whose message or exception contains this substring (case-insensitive).</summary>
     public string? Search { get; init; }
+
+    /// <summary>
+    /// Only entries captured under a scope with this key, e.g. <c>RequestId</c>. Combine with
+    /// <see cref="ScopeValue"/> to pin one request; on its own it finds every entry that carried the key.
+    /// </summary>
+    public string? ScopeKey { get; init; }
+
+    /// <summary>
+    /// Only entries whose <see cref="ScopeKey"/> holds this value. Ignored unless <see cref="ScopeKey"/> is
+    /// set — a value without a key would match the same string appearing under any key, which is a
+    /// different (and much less useful) question.
+    /// </summary>
+    public string? ScopeValue { get; init; }
 
     /// <summary>Only entries logged at or after this instant.</summary>
     public DateTimeOffset? From { get; init; }

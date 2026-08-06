@@ -319,11 +319,14 @@ public sealed class LogsPage(
             Aria: disabled ? new Dictionary<string, string?> { ["disabled"] = "true" } : null)[label];
 
     // One row shape for both surfaces, so the two modes cannot drift into rendering an entry differently.
+    // The live tail has no scopes: it is the in-memory ring buffer, which predates the store and captures
+    // only what it is handed. History reads them from the stored row.
     private static LogRow ToRow(DashboardLogEntry entry) => new(
-        entry.Sequence, entry.Timestamp, entry.Level, entry.Category, entry.Message, entry.Exception);
+        entry.Sequence, entry.Timestamp, entry.Level, entry.Category, entry.Message, entry.Exception, null);
 
     private static LogRow ToRow(LogRecord record) => new(
-        record.Id, record.Timestamp, record.Level, record.Category, record.Message, record.Exception);
+        record.Id, record.Timestamp, record.Level, record.Category, record.Message, record.Exception,
+        record.Scopes);
 
     private static Component Table(IEnumerable<LogRow> rows, DateTime now) =>
         BsTable(Small: true, Hover: true, Responsive: true)[
@@ -340,10 +343,24 @@ public sealed class LogsPage(
                     // drown the table, so it renders muted beneath rather than in a separate view.
                     r.Exception is { } ex
                         ? Pre(Class: "small text-body-secondary text-wrap mb-0 mt-1")[ex]
-                        : null
+                        : null,
+                    // The ambient state the entry was written under — the request id, the user id. This is
+                    // what turns one line into a thread you can pull: copy a value into the scope filter
+                    // and the page shows everything else that happened on the same request.
+                    ScopeChips(r.Scopes)
                 ]
             ])]
         ];
+
+    private static Component? ScopeChips(IReadOnlyList<LogScopeValue>? scopes) =>
+        scopes is null || scopes.Count == 0
+            ? null
+            : Div(Class: "d-flex flex-wrap gap-1 mt-1")[
+                scopes.Select(s =>
+                    BsBadge(Color: BsColor.Secondary, Class: "fw-normal font-monospace", Key: s.Key)[
+                        $"{s.Key}={s.Value}"
+                    ])
+            ];
 
     private static Component LevelBadge(LogLevel level) => BsBadge(Color: level switch
     {
@@ -379,5 +396,6 @@ public sealed class LogsPage(
         LogLevel Level,
         string Category,
         string Message,
-        string? Exception);
+        string? Exception,
+        IReadOnlyList<LogScopeValue>? Scopes);
 }
