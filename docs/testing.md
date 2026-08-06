@@ -244,7 +244,11 @@ Payload shapes by event:
 - input / change → `{"value":"…"}`
 - submit → `{"form":{"FieldName":"value", …}}`
 
-`TryInvokeHandlerAsync` returns `false` when no handler matches the id.
+`TryInvokeHandlerAsync` returns `false` when no handler matches the id — and, when the payload carries
+the client's `"type"` field, when that event cannot feed the handler the id resolved to (an `"input"`
+frame landing on a parameterless `OnClick`). Handler ids are positional per render, so a frame that
+outlived its render would otherwise run whatever now occupies that slot. A payload with no `"type"` — the
+shape these examples use — makes no claim, so it dispatches on the id alone as before.
 
 ---
 
