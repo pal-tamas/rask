@@ -177,6 +177,24 @@
     // Where the pre-reload scroll/focus snapshot lives. Keyed by path so a reload that lands somewhere
     // else (a redirect, a changed route) never restores a position from an unrelated page.
     const RESTORE_KEY = "rask:restore";
+    // The user's in-progress edits, in their OWN key rather than widened into the one above. A page with
+    // a large textarea can push a single setItem over quota, and losing the scroll position because the
+    // field snapshot didn't fit would trade a working feature away for a new one.
+    const RESTORE_FIELDS_KEY = "rask:restore:fields";
+    // Converge messages the field restore produces at boot. They cannot be sent from there: send() runs
+    // through stampSeq, which reads `seqCounter` — declared far below and therefore still in its temporal
+    // dead zone at boot. The ReferenceError would be swallowed by the restore's own catch and take the
+    // whole restore down silently. They go out from the socket's open handler instead.
+    const pendingConverge = [];
+    // Never carried across a reload, on either side: a secret, something the client cannot reproduce, or
+    // a control whose "value" was never user input to begin with.
+    const RESTORE_SKIP_TYPES = ["password", "file", "hidden", "image", "submit", "reset", "button"];
+    const RESTORE_SKIP_AUTOCOMPLETE = ["cc-", "one-time-code", "current-password", "new-password"];
+    // Caps, so one page with a big editor can't fill the origin's session storage. Overflow drops the
+    // individual field rather than the snapshot — a partial restore beats none.
+    const RESTORE_MAX_FIELDS = 100;
+    const RESTORE_MAX_FIELD_CHARS = 8 * 1024;
+    const RESTORE_MAX_TOTAL_CHARS = 64 * 1024;
     let overlayTimer = null;
     let sessionExpired = false;
     let serverShuttingDown = false;
@@ -196,6 +214,10 @@
     // Before the socket: if the last page left a restore point (it was reloaded onto a replacement
     // server), put the user back where they were. The GET shell is fully server-rendered by now, so the
     // scroll target already exists.
+    //
+    // Fields first, then scroll and focus: the focused field is often one of the restored ones, and
+    // writing its value after focusing it would drop the caret rather than leave it after the text.
+    applyRestoreFields();
     applyRestorePoint();
     connect();
 
@@ -222,6 +244,11 @@
             ws.send(JSON.stringify(hello));
             for (const m of queue) ws.send(m);
             queue.length = 0;
+            // Values the field restore put back into the DOM at boot, pushed to the server now that
+            // there is a socket to push them over — so the model ends up holding what the page shows
+            // rather than the pristine values it rendered. Sent after the hello, so the session exists.
+            for (const payload of pendingConverge) send(payload);
+            pendingConverge.length = 0;
             // Auth reconnect completed — restore the default message for any future drop.
             if (authInProgress) {
                 authInProgress = false;
@@ -418,6 +445,7 @@
             overlayTimer = null;
         }
         saveRestorePoint();
+        saveRestoreFields();
         setInert(true);
         showOverlay();
         setOverlayMessage(UPDATING_MSG);
@@ -427,9 +455,8 @@
     }
 
     // Stash where the user was, so the unavoidable reload doesn't also lose their place. Scroll and
-    // focus only — deliberately NOT form values: the replacement server renders those from its own
-    // state, and writing stale client copies over correct server output would turn a cosmetic loss
-    // into a data one.
+    // focus only; the fields the user was editing are a separate snapshot under its own key, written
+    // by saveRestoreFields below, because they can be large enough to fail a quota that this must not.
     function saveRestorePoint() {
         try {
             sessionStorage.setItem(RESTORE_KEY, JSON.stringify({
@@ -465,6 +492,220 @@
         } catch (e) {
             // A malformed entry is not worth breaking boot over.
         }
+    }
+
+    // ---- the field half of the restore point ----
+    //
+    // A reload after a redeploy used to throw away whatever the user had typed. It no longer does, and
+    // the reason it is safe to re-apply an edit is that this is a THREE-WAY MERGE, not a guess:
+    //
+    //   base   what the server had rendered when the user first touched the field (captured then, by
+    //          raskNoteDirtyField — see rask-morph.js for why it cannot be read off the DOM later)
+    //   ours   what the user typed
+    //   theirs what the REPLACEMENT server just rendered for the same field
+    //
+    // If theirs === base the replacement's state is unchanged, so the user's edit is still the newest
+    // thing anyone knows and it goes back in. If they differ the replacement knows something this stale
+    // copy doesn't, so it wins and the edit is dropped silently — which is what a reload did before any
+    // of this existed, so nothing regresses. Restoring is then pushed BACK to the server (queueConverge)
+    // so the model holds what the page shows; a form displaying values the server doesn't have is the
+    // data loss this feature would otherwise create.
+
+    // Never carried across the reload. Checked on both sides, so a field that becomes a secret (or is
+    // disabled) in the replacement's render is not written to even if the old page snapshotted it.
+    function restoreExcluded(el) {
+        if (el.disabled || el.readOnly) return true;
+        if (el.closest("[data-rask-no-restore]")) return true;
+        if (RESTORE_SKIP_TYPES.indexOf(restoreTypeOf(el)) >= 0) return true;
+        const auto = (el.getAttribute("autocomplete") || "").toLowerCase();
+        for (const token of RESTORE_SKIP_AUTOCOMPLETE) {
+            if (auto.indexOf(token) >= 0) return true;
+        }
+
+        return false;
+    }
+
+    // The control's kind, as the snapshot records it — persisted and re-checked on the far side, so a
+    // deploy that turns a text field into a date one cannot have "42" written into it (which the
+    // browser would sanitize to "", and we would then converge that empty string over the server's value).
+    function restoreTypeOf(el) {
+        if (el.tagName === "TEXTAREA") return "textarea";
+        return (el.getAttribute("type") || "text").toLowerCase();
+    }
+
+    // id, else name. Never the handler id: those are positional per render, so one from the old page
+    // names a DIFFERENT handler on the new one — and the server dispatches on the id alone.
+    //
+    // A radio is keyed by its GROUP's name even when it carries an id, because its base and its value
+    // are the group's ("which option is selected"), not the element's. Keyed by id, the far side would
+    // resolve to that one member and leave its SIBLINGS unguarded — and checking a radio natively
+    // un-checks the one the server had chosen, so the first pristine frame re-checks the server's
+    // option, un-checks the restored one, and silently undoes the restore.
+    function restoreKeyOf(el) {
+        if (restoreTypeOf(el) === "radio") return el.getAttribute("name") || "";
+        return el.getAttribute("id") || el.getAttribute("name") || "";
+    }
+
+    // Resolve a key back to exactly one control — or, for radios, exactly one group — and otherwise to
+    // nothing. `name` defaults to the bound property's name, so two forms binding the same property
+    // render the same name; writing a restored value into the wrong one of them would be precisely the
+    // data loss being avoided here. Ambiguity is refused rather than guessed at, on both sides, so it
+    // degrades to doing nothing.
+    function restoreResolve(key) {
+        const matches = [];
+        for (const el of root.querySelectorAll("input, textarea")) {
+            if (restoreKeyOf(el) === key) matches.push(el);
+        }
+
+        if (matches.length === 0) return null;
+        if (matches.length === 1) return matches;
+        // Several: the only legitimate shape is one radio group (same name, same form owner).
+        const form = matches[0].form;
+        for (const el of matches) {
+            if (restoreTypeOf(el) !== "radio" || el.form !== form) return null;
+        }
+
+        return matches;
+    }
+
+    // What the user has now, in the same shape as the base it will be compared against.
+    function restoreCurrent(el, type) {
+        if (type === "checkbox") return !!el.checked;
+        if (type === "radio") {
+            for (const r of raskRadioGroup(el)) {
+                if (r.checked) return r.getAttribute("value") || "";
+            }
+
+            return "";
+        }
+
+        return el.value;
+    }
+
+    // Snapshot the fields the user actually edited. Only edited ones are candidates — raskNoteDirtyField
+    // marks them on the first input/change — because a field the user never touched must keep whatever
+    // the replacement renders for it, which may well be newer than what this page is holding.
+    function saveRestoreFields() {
+        try {
+            const fields = [];
+            const seen = Object.create(null);
+            let budget = RESTORE_MAX_TOTAL_CHARS;
+            for (const el of root.querySelectorAll("input, textarea")) {
+                if (fields.length >= RESTORE_MAX_FIELDS) break;
+                if (!raskIsDirtyField(el) || restoreExcluded(el)) continue;
+                const key = restoreKeyOf(el);
+                if (!key || seen[key]) continue;
+                const group = restoreResolve(key);
+                if (!group || group.indexOf(el) < 0) continue;   // ambiguous key
+                const type = restoreTypeOf(el);
+                const base = raskDirtyFieldBase(el);
+                const ours = restoreCurrent(el, type);
+                // Edited and edited back. Skipping is not just an optimisation: converging a `change`
+                // marks the field touched, which would surface validation errors the user never caused.
+                if (base === ours) continue;
+                const chars = typeof ours === "string" ? ours.length : 0;
+                if (chars > RESTORE_MAX_FIELD_CHARS || chars > budget) continue;
+                budget -= chars;
+                seen[key] = true;
+                fields.push({k: key, t: type, b: base, v: ours});
+            }
+
+            if (fields.length === 0) return;
+            sessionStorage.setItem(RESTORE_FIELDS_KEY, JSON.stringify({
+                p: location.pathname + location.search,
+                f: fields
+            }));
+        } catch (e) {
+            // Private mode, quota, disabled storage. Its own try: the scroll point is already written
+            // and must not be lost because the fields didn't fit.
+        }
+    }
+
+    // Re-apply the snapshot, once. Runs at boot, BEFORE the socket and before the first server frame:
+    // the GET shell is already rendered so every field exists, and applying now means the user never
+    // watches their text vanish and come back.
+    function applyRestoreFields() {
+        let saved;
+        try {
+            saved = sessionStorage.getItem(RESTORE_FIELDS_KEY);
+            // Consume unconditionally, like the scroll point: a snapshot that survived its own reload
+            // would later write stale text onto an unrelated navigation.
+            sessionStorage.removeItem(RESTORE_FIELDS_KEY);
+        } catch (e) {
+            return;
+        }
+        if (!saved) return;
+        try {
+            const snap = JSON.parse(saved);
+            if (!snap || !snap.f || snap.p !== location.pathname + location.search) return;
+            for (const entry of snap.f) restoreOneField(entry);
+        } catch (e) {
+            // A malformed entry is not worth breaking boot over.
+        }
+    }
+
+    function restoreOneField(entry) {
+        const group = restoreResolve(entry.k);
+        if (!group) return;
+        const el = group[0];
+        if (restoreTypeOf(el) !== entry.t || restoreExcluded(el)) return;
+        // The merge rule itself. Bases are compared to bases — never to a property: a number/date input
+        // sanitizes an unparseable attribute away on `.value`, and null (the server rendered no `value`
+        // at all, i.e. an uncontrolled input) is a different state from "".
+        if (raskFieldBase(el) !== entry.b) return;
+
+        if (entry.t === "radio") {
+            let target = null;
+            for (const r of group) {
+                if ((r.getAttribute("value") || "") === entry.v) target = r;
+            }
+            if (!target) return;
+            // Arm the whole group before flipping it. Checking one radio natively un-checks the one the
+            // server had chosen, so a pristine catch-up frame would re-check that sibling and silently
+            // undo the restore — the same reasoning as the change dispatch's group-wide guard.
+            for (const r of group) raskNotePendingChecked(r, r.hasAttribute("checked"));
+            target.checked = true;
+            queueConverge(target, entry.t, entry.v);
+            return;
+        }
+
+        if (entry.t === "checkbox") {
+            raskNotePendingChecked(el, el.hasAttribute("checked"));
+            el.checked = !!entry.v;
+            queueConverge(el, entry.t, entry.v);
+            return;
+        }
+
+        // Arm the value guard with what the REPLACEMENT rendered. The server computes its first
+        // catch-up frame from its own pristine model — before our converge message can reach it — so
+        // without this the restored text would be wiped and only flicker back afterwards. Anything
+        // other than that pristine value, including the echo of our own converge, releases the guard.
+        raskNotePendingValue(el, entry.b === null ? "" : entry.b);
+        el.value = entry.v;
+        queueConverge(el, entry.t, entry.v);
+    }
+
+    // Push a restored value back to the server so the model matches what the page now shows. The
+    // handler id is read HERE, off the element the replacement just rendered, and never taken from the
+    // snapshot — ids are positional per render, and dispatch keys on the id alone, so a persisted one
+    // would not be rejected on the new page but would invoke whatever handler now occupies that slot.
+    function queueConverge(el, type, value) {
+        const inputId = el.getAttribute("data-rask-on-input");
+        if (inputId) {
+            pendingConverge.push({id: inputId, type: "input", value: String(value)});
+            return;
+        }
+
+        const changeId = el.getAttribute("data-rask-on-change");
+        // Nothing bound: the value lives only in the DOM anyway, and submitForm's FormData reads it
+        // straight off the element — so the restore is already complete.
+        if (!changeId) return;
+        // A checkbox reports its state rather than its static "on" value, mirroring the change dispatch.
+        pendingConverge.push({
+            id: changeId,
+            type: "change",
+            value: type === "checkbox" ? (value ? "true" : "false") : String(value)
+        });
     }
 
     // The server evicted this session (idle past RaskServerOptions.SessionGracePeriod), so the in-memory
@@ -1267,6 +1508,11 @@
             return;
         }
         if (t.hasAttribute("data-rask-on-change")) {
+            // Mark the field user-edited and capture what the server had rendered for it, BEFORE the
+            // dispatch below causes an echo that rewrites the attributes that base is read from. Only
+            // a change-only control (checkbox, radio, date, number) reaches this without rask-input.js
+            // having already noted it; noting twice is a no-op, since the first edit owns the base.
+            raskNoteDirtyField(t);
             // For a checkbox the meaningful state is el.checked, not el.value (which is the
             // static "on" default). Report it as "true"/"false" so bound checkboxes set the
             // model to the actual state (self-correcting) instead of relying on a server-side
