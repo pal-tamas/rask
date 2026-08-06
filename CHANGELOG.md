@@ -77,6 +77,29 @@ them until tagged releases begin.
   landed became an un-retried 502 (`lb_try_duration` defaults to 0). There was previously no gap at all.
 
 ### Fixed
+- **A contended SQLite `COMMIT` no longer loses the write and blames the wrong statement.**
+  `ExecuteInImmediateTransactionAsync` drove `COMMIT;` through the busy-retry with no transaction-state
+  guard — the only statement that had none. SQLite documents that a statement inside a multi-statement
+  transaction answered with `SQLITE_BUSY` may be **rolled back automatically**, and that
+  `sqlite3_get_autocommit` is the only way to find out; the loop instead slept its poll interval and
+  re-issued `COMMIT` into autocommit, which fails with the non-retryable *"cannot commit - no transaction
+  is active"* (#578). That is the mirror of the `BEGIN` bug fixed in #504: there a contended attempt left
+  a transaction behind, here it takes one away. The retry now recognises the rollback, and — since
+  everything the work delegate wrote went with it — the **whole transaction is re-run from `BEGIN`**,
+  bounded by the same `SqliteBusyRetryOptions.Timeout` measured from entry so the caller's budget is not
+  multiplied. A loss that outlives the budget surfaces as SQLite's own `SQLITE_ABORT_ROLLBACK` naming
+  what was discarded, instead of an error about the wrong statement. **Behaviour change:** the work
+  delegate now runs *at least* once rather than exactly once — keep it re-runnable and put side effects
+  that must not repeat outside the transaction (`docs/sqlite.md`). A transaction that ends *while* the
+  delegate runs is still reported rather than retried, because kept-versus-discarded cannot be told
+  apart there and a duplicated write is worse. Two things found alongside it are fixed too: the failure
+  message now carries the attempt number and the autocommit state on entry to that attempt, without
+  which the original report could not distinguish "arrived with no transaction" from "lost one while
+  running"; and the teardown rollback no longer takes the caller's cancellation token, which made an
+  already-cancelled operation skip the rollback entirely and hand a mid-transaction handle back to the
+  connection pool for the next lease — a plain query, EF or the pragma batch — to inherit. That teardown
+  is bounded by a one-second budget rather than the caller's own timeout, so ignoring the token cannot
+  turn a cancelled write into a multi-second stall on shutdown.
 - **The local unit gate no longer flakes on two background-processor tests.** Both passed every time in
   isolation and failed only under a full-suite load, which is the worst shape for a gate the pre-commit
   hook enforces: the practical workaround is `--no-verify`, which skips the format and unit checks

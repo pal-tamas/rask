@@ -147,9 +147,25 @@ appear between passes as well as arrive with the handle — an extended `SQLITE_
 retrying `BEGIN` inside it fails with the non-retryable "cannot start a transaction within a transaction".
 Both rollbacks — the one before each attempt and the one that cleans up on the way out — go through the
 same retry, so a rollback blocked by a still-active statement costs a pass instead of poisoning the next
-lease. If a statement genuinely fails it throws a `SqliteException` carrying the extended result code and
-the autocommit state, so a rare failure is attributable rather than an opaque
-`SQLite Error 1: 'not an error'`.
+lease. If a statement genuinely fails it throws a `SqliteException` carrying the extended result code, the
+autocommit state on entry to the attempt and the attempt number, so a rare failure is attributable rather
+than an opaque `SQLite Error 1: 'not an error'` — and so a failure on the hundredth pass reads differently
+from one on the first.
+
+**Your callback can run more than once.** SQLite may roll a transaction back *on its own* when a
+contended `COMMIT` is answered with `SQLITE_BUSY` — `sqlite3_get_autocommit` is the only way to find
+out, and the transaction is simply gone. Retrying the `COMMIT` alone would then meet "cannot commit - no
+transaction is active", so the whole transaction is run again from `BEGIN` instead, because everything
+the callback wrote went with the rollback. Re-running stops at the same `Timeout`, measured from entry,
+after which the loss is surfaced as a `SqliteException` with SQLite's own `SQLITE_ABORT_ROLLBACK`. So:
+
+- Build the callback's commands from state it is **handed**, not state it consumes, so a second pass
+  writes the same rows.
+- Keep side effects that must not repeat — sending mail, calling a service, incrementing a counter in
+  memory — **outside** the transaction.
+- Do not issue `COMMIT`, `ROLLBACK` or `END` inside the callback. If the transaction ends while the
+  callback is running, whether its writes were kept or discarded cannot be told apart, so that case is
+  reported rather than retried.
 
 ### Entity Framework Core — opt-in retry strategy
 
