@@ -77,6 +77,22 @@ them until tagged releases begin.
   landed became an un-retried 502 (`lb_try_duration` defaults to 0). There was previously no gap at all.
 
 ### Fixed
+- **The style pass is part of the local gate again, and the "spurious CS1503" that kept it out is
+  root-caused.** `dotnet format Rask.slnx` failed on `main` with `error IMPORTS: Fix imports ordering` in
+  `RaskEndpointExtensions.cs` — a `using` that drifted out of order and stayed there, because nothing ran
+  the check. The pre-commit gate ran `dotnet format whitespace` only, on the belief that the style and
+  analyzer passes flagged CS1503 in the routing tests spuriously. They did not. `dotnet format` evaluates
+  the solution in the **default configuration**, so it resolves the `OutputItemType="Analyzer"` project
+  references to `src/*.Generators/bin/Debug/` — while the gate builds Release. On a machine that has never
+  built Debug, those DLLs are simply absent, Roslyn loads no source generator, `Routes.*` is never emitted,
+  and every call site fails to bind. It looked machine-dependent because a stale Debug DLL from any earlier
+  build hides it entirely. `scripts/run-unit-local.sh` now builds `src/*.Generators` in Debug (~2s) and runs
+  the full pass (~36s, one workspace load), so import ordering is enforced rather than trusted to a "run it
+  before a PR" note — which is exactly the kind of advice this violation survived. Nothing else in the
+  repo was out of order: a comparison matching Roslyn's own comparer over all 2062 `.cs` files found this
+  one file, and no bespoke ordering test was added, since a hand-rolled sorter has to reproduce
+  `UsingsAndExternAliasesDirectiveComparer` exactly — a naive ordinal comparison produces 8 false
+  positives here — for no gain once the real formatter runs in the gate.
 - **A contended SQLite `COMMIT` no longer loses the write and blames the wrong statement.**
   `ExecuteInImmediateTransactionAsync` drove `COMMIT;` through the busy-retry with no transaction-state
   guard — the only statement that had none. SQLite documents that a statement inside a multi-statement
