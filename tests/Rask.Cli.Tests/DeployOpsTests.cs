@@ -163,7 +163,7 @@ public sealed class DeployOpsTests
 
         var exit = await command.ExecuteAsync(["logs", "--host", "deploy@box", "--name", "shop", "--tail", value], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--tail must be", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -219,8 +219,8 @@ public sealed class DeployOpsTests
 
         var exit = await command.ExecuteAsync(["restart"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
-        Assert.Contains("Unknown deploy action 'restart'", console.ErrorText, StringComparison.Ordinal);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("Unknown 'rask deploy' action 'restart'.", console.ErrorText, StringComparison.Ordinal);
         Assert.Contains("status, logs, rollback", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -237,7 +237,7 @@ public sealed class DeployOpsTests
 
         var exit = await command.ExecuteAsync([.. args, "--host", "deploy@box"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains(option, console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -249,7 +249,7 @@ public sealed class DeployOpsTests
 
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--follow"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("only apply to `rask deploy logs`", console.ErrorText, StringComparison.Ordinal);
     }
 }

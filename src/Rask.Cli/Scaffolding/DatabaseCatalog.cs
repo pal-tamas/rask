@@ -105,8 +105,8 @@ internal static class DatabaseCatalog
     /// <summary>The default when <c>--database</c> is omitted — SQLite, and deliberately so.</summary>
     public static DatabaseInfo Default => All[0];
 
-    /// <summary>The accepted <c>--database</c> values, for help text and error messages.</summary>
-    public static string Keys => string.Join("|", All.Select(database => database.Key));
+    /// <summary>The accepted <c>--database</c> values, for the schema's choice list, help, and completion.</summary>
+    public static IReadOnlyList<string> Keys { get; } = [.. All.Select(database => database.Key)];
 
     public static DatabaseInfo For(DatabaseProvider provider)
         => All.First(database => database.Provider == provider);

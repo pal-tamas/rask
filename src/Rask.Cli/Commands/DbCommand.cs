@@ -12,8 +12,6 @@ namespace Rask.Cli.Commands;
 internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
 {
-    private static readonly string[] Subcommands = ["add", "remove", "list", "update", "drop", "backup", "restore"];
-
     // These two never touch EF: they copy a file through SQLite (locally) or through a container on
     // the host, so they must not pay for a dotnet-ef install, and must work on an app that has none.
     private static readonly string[] FileSubcommands = ["backup", "restore"];
@@ -26,12 +24,12 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
 
     public override string Summary => "Manage EF Core migrations, and back the database up or restore it.";
 
-    public override string Usage =>
-        "rask db <add|remove|list|update|drop|backup|restore> [<name|file>] [--project <path>] [--startup-project <path>] [--context <Name>] [--output <path>] [--remote] [--host <user@host>] [--app <name>] [--force] [-- <ef args>]";
+    // The actions and options are listed in full below; spelling them out here too only gave them a
+    // second place to drift from.
+    public override string Usage => "rask db <action> [<name|file>] [options] [-- <ef args>]";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
     [
-        ("<add|remove|list|update|drop|backup|restore>", "The action to run."),
         ("[<name|file>]", "Migration name for 'add' (e.g. InitialCreate), or the backup file for 'restore'."),
     ];
 
@@ -50,6 +48,13 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
 
     private static ArgumentSchema CreateSchema() =>
         new ArgumentSchema()
+            .Verb("add", "Create a migration from the current model.")
+            .Verb("remove", "Delete the most recent migration.")
+            .Verb("list", "List the migrations and which are applied.")
+            .Verb("update", "Apply pending migrations to the database.")
+            .Verb("drop", "Delete the database and everything in it.")
+            .Verb("backup", "Copy the database to a file.")
+            .Verb("restore", "Replace the database from a backup file.")
             .Option("project", 'p', "path", "Project containing the DbContext (default: found from the current directory).")
             .Option("startup-project", 's', "path", "Startup project (default: same as --project).")
             .Option("context", 'c', "Name", "DbContext to use when the project defines more than one.")
@@ -61,21 +66,11 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
-        if (args.Count == 0)
-        {
-            Console.Error.WriteLine($"Specify a migration action: {string.Join(", ", Subcommands)}.");
-            Console.Error.WriteLine($"Usage: {Usage}");
-            return 1;
-        }
-
-        var subcommand = args[0];
-        if (!Subcommands.Contains(subcommand))
-        {
-            Console.Error.WriteLine($"Unknown action '{subcommand}'. Use one of: {string.Join(", ", Subcommands)}.");
-            return 1;
-        }
-
         var schema = CreateSchema();
+        if (!schema.TryResolveVerb(args.FirstOrDefault(), out var subcommand))
+        {
+            return FailUnknownVerb(args.FirstOrDefault(), schema);
+        }
 
         var parsed = schema.Parse(args.Skip(1).ToArray());
         if (parsed.HasErrors)
@@ -85,28 +80,24 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
 
         if (parsed.Positionals.Count > 1)
         {
-            Console.Error.WriteLine($"Unexpected argument '{parsed.Positionals[1]}'. Usage: {Usage}");
-            return 1;
+            return Fail($"Unexpected argument '{parsed.Positionals[1]}'.");
         }
 
         var name = parsed.Positionals.FirstOrDefault();
         if (!ValidatePositional(subcommand, name, out var positionalError))
         {
-            Console.Error.WriteLine(positionalError);
-            return 1;
+            return Fail(positionalError!);
         }
 
         var output = parsed.Option("output");
         if (output is not null && subcommand is not ("add" or "backup"))
         {
-            Console.Error.WriteLine("--output only applies to 'rask db add' and 'rask db backup'.");
-            return 1;
+            return Fail("--output only applies to 'rask db add' and 'rask db backup'.");
         }
 
         if (parsed.HasFlag("force") && subcommand is not ("drop" or "restore"))
         {
-            Console.Error.WriteLine("--force only applies to 'rask db drop' and 'rask db restore'.");
-            return 1;
+            return Fail("--force only applies to 'rask db drop' and 'rask db restore'.");
         }
 
         var remote = parsed.HasFlag("remote");
@@ -115,15 +106,13 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
             var supplied = option == "remote" ? remote : parsed.Option(option) is not null;
             if (supplied && !FileSubcommands.Contains(subcommand))
             {
-                Console.Error.WriteLine($"--{option} only applies to 'rask db backup' and 'rask db restore'.");
-                return 1;
+                return Fail($"--{option} only applies to 'rask db backup' and 'rask db restore'.");
             }
         }
 
         if (!remote && (parsed.Option("host") is not null || parsed.Option("app") is not null))
         {
-            Console.Error.WriteLine("--host and --app only apply with --remote.");
-            return 1;
+            return Fail("--host and --app only apply with --remote.");
         }
 
         // An explicit --project wins; otherwise fall back to the single .csproj at or above the CWD. EF
@@ -138,7 +127,9 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
             var located = ProjectLocator.Locate(_fileSystem, _workingDirectory);
             if (located is null && !(remote && FileSubcommands.Contains(subcommand)))
             {
-                Console.Error.WriteLine($"Couldn't find a single .csproj at or above '{_workingDirectory}'. Run this inside a project, or pass --project.");
+                Console.WriteErrorLine(
+                    $"{ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory)} Run this inside a project, or pass --project.",
+                    ConsoleStyle.Error);
                 return 1;
             }
 
@@ -239,11 +230,11 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
             return;
         }
 
-        Console.Out.WriteLine("Adding Microsoft.EntityFrameworkCore.Design to the startup project (required by the EF Core tools)…");
+        Console.WriteLine("Adding Microsoft.EntityFrameworkCore.Design to the startup project (required by the EF Core tools)…", ConsoleStyle.Dim);
         var exit = await _process.RunAsync("dotnet", ["add", csproj, "package", "Microsoft.EntityFrameworkCore.Design"], _workingDirectory, cancellationToken).ConfigureAwait(false);
         if (exit != 0)
         {
-            Console.Error.WriteLine($"  Couldn't add it automatically — add it manually: dotnet add \"{csproj}\" package Microsoft.EntityFrameworkCore.Design");
+            WriteWarning($"  Couldn't add it automatically — add it manually: dotnet add \"{csproj}\" package Microsoft.EntityFrameworkCore.Design");
         }
     }
 

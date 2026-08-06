@@ -138,9 +138,10 @@ internal sealed partial class DbCommand
         host ??= config.Host;
         if (string.IsNullOrWhiteSpace(host))
         {
-            Console.Error.WriteLine(
-                "No deployment host. Pass --host, or run this in a directory that has deployed before " +
-                "(the host is remembered in .rask/deploy.json).");
+            Console.WriteErrorLine(
+                "No deployment host. Pass --host, or run this in a directory that has deployed before "
+                + "(the host is remembered in .rask/deploy.json).",
+                ConsoleStyle.Error);
             return 1;
         }
 
@@ -149,7 +150,7 @@ internal sealed partial class DbCommand
         // on *this* machine, and the host comes from a file that is committed to the repository.
         if (!SshTarget.TryParse(host, out _, out var hostError))
         {
-            Console.Error.WriteLine(hostError!);
+            Console.WriteErrorLine(hostError!, ConsoleStyle.Error);
             return 1;
         }
 
@@ -167,13 +168,13 @@ internal sealed partial class DbCommand
         var (source, error) = SqliteDatabaseLocator.Locate(_fileSystem, projectDirectory);
         if (source is null)
         {
-            Console.Error.WriteLine(error!);
+            Console.WriteErrorLine(error!, ConsoleStyle.Error);
             return 1;
         }
 
         if (!_fileSystem.FileExists(source))
         {
-            Console.Error.WriteLine($"No database at '{source}'. Run 'rask db update' to create it first.");
+            Console.WriteErrorLine($"No database at '{source}'. Run 'rask db update' to create it first.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -191,16 +192,16 @@ internal sealed partial class DbCommand
         }
         catch (SqliteException ex)
         {
-            Console.Error.WriteLine($"Couldn't back up '{source}': {ex.Message}");
+            Console.WriteErrorLine($"Couldn't back up '{source}': {ex.Message}", ConsoleStyle.Error);
             return 1;
         }
         catch (IOException ex)
         {
-            Console.Error.WriteLine($"Couldn't write '{destination}': {ex.Message}");
+            Console.WriteErrorLine($"Couldn't write '{destination}': {ex.Message}", ConsoleStyle.Error);
             return 1;
         }
 
-        Console.Out.WriteLine($"Backed up to {destination}.");
+        Console.WriteLine($"Backed up to {destination}.", ConsoleStyle.Success);
         return 0;
     }
 
@@ -209,14 +210,17 @@ internal sealed partial class DbCommand
     {
         if (!_fileSystem.FileExists(input))
         {
-            Console.Error.WriteLine($"No such backup: '{input}'.");
+            Console.WriteErrorLine(
+                $"No such backup: '{input}'. 'rask db backup' writes into the current directory unless you "
+                + "pass --output, and prints the path it used.",
+                ConsoleStyle.Error);
             return 1;
         }
 
         var (destination, error) = SqliteDatabaseLocator.Locate(_fileSystem, projectDirectory);
         if (destination is null)
         {
-            Console.Error.WriteLine(error!);
+            Console.WriteErrorLine(error!, ConsoleStyle.Error);
             return 1;
         }
 
@@ -241,16 +245,16 @@ internal sealed partial class DbCommand
         }
         catch (SqliteException ex)
         {
-            Console.Error.WriteLine($"'{input}' isn't a readable SQLite database: {ex.Message}");
+            Console.WriteErrorLine($"'{input}' isn't a readable SQLite database: {ex.Message}", ConsoleStyle.Error);
             return 1;
         }
         catch (IOException ex)
         {
-            Console.Error.WriteLine($"Couldn't write '{destination}': {ex.Message}");
+            Console.WriteErrorLine($"Couldn't write '{destination}': {ex.Message}", ConsoleStyle.Error);
             return 1;
         }
 
-        Console.Out.WriteLine($"Restored {input} to {destination}.");
+        Console.WriteLine($"Restored {input} to {destination}.", ConsoleStyle.Success);
         return 0;
     }
 
@@ -270,10 +274,10 @@ internal sealed partial class DbCommand
         var destination = ResolveOutputPath(output, slug);
         var helper = $"rask-backup-{Guid.NewGuid():N}"[..24];
 
-        Console.Out.WriteLine($"Taking a consistent copy of {slug}'s database on {host}…");
+        Console.WriteLine($"Taking a consistent copy of {slug}'s database on {host}…", ConsoleStyle.Dim);
         if (await DockerAsync(BuildRemoteVacuumArguments(host, slug), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine("Couldn't copy the database inside the container. Is the app deployed, and does the host have network access to pull the sqlite image?");
+            Console.WriteErrorLine("Couldn't copy the database inside the container. Is the app deployed, and does the host have network access to pull the sqlite image?", ConsoleStyle.Error);
             return 1;
         }
 
@@ -281,7 +285,7 @@ internal sealed partial class DbCommand
         {
             if (await DockerAsync(BuildHelperCreateArguments(host, slug, helper), cancellationToken).ConfigureAwait(false) != 0)
             {
-                Console.Error.WriteLine("Couldn't create the helper container that carries the copy down.");
+                Console.WriteErrorLine("Couldn't create the helper container that carries the copy down.", ConsoleStyle.Error);
                 return 1;
             }
 
@@ -293,7 +297,7 @@ internal sealed partial class DbCommand
 
             if (await DockerAsync(BuildCopyDownArguments(host, helper, destination), cancellationToken).ConfigureAwait(false) != 0)
             {
-                Console.Error.WriteLine("Couldn't copy the backup down from the host.");
+                Console.WriteErrorLine("Couldn't copy the backup down from the host.", ConsoleStyle.Error);
                 return 1;
             }
         }
@@ -305,7 +309,7 @@ internal sealed partial class DbCommand
             await DockerAsync(BuildRemoteCleanupArguments(host, slug), CancellationToken.None).ConfigureAwait(false);
         }
 
-        Console.Out.WriteLine($"Backed up to {destination}.");
+        Console.WriteLine($"Backed up to {destination}.", ConsoleStyle.Success);
         return 0;
     }
 
@@ -313,7 +317,10 @@ internal sealed partial class DbCommand
     {
         if (!_fileSystem.FileExists(input))
         {
-            Console.Error.WriteLine($"No such backup: '{input}'.");
+            Console.WriteErrorLine(
+                $"No such backup: '{input}'. 'rask db backup' writes into the current directory unless you "
+                + "pass --output, and prints the path it used.",
+                ConsoleStyle.Error);
             return 1;
         }
 
@@ -325,10 +332,10 @@ internal sealed partial class DbCommand
         // Stopping first is not politeness. Replacing the file under a live writer leaves the running
         // process holding a handle to the database it thinks it has, and the next checkpoint writes that
         // belief back over the restored one — a corrupted hybrid of the two.
-        Console.Out.WriteLine($"Stopping {slug}…");
+        Console.WriteLine($"Stopping {slug}…", ConsoleStyle.Dim);
         if (await DockerAsync(BuildStopArguments(host, slug), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.Error.WriteLine($"Couldn't stop '{slug}' on {host}. Refusing to restore under a running app — it would corrupt the database.");
+            Console.WriteErrorLine($"Couldn't stop '{slug}' on {host}. Refusing to restore under a running app — it would corrupt the database.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -338,19 +345,19 @@ internal sealed partial class DbCommand
         {
             if (await DockerAsync(BuildHelperCreateArguments(host, slug, helper), cancellationToken).ConfigureAwait(false) != 0)
             {
-                Console.Error.WriteLine("Couldn't create the helper container that carries the copy up.");
+                Console.WriteErrorLine("Couldn't create the helper container that carries the copy up.", ConsoleStyle.Error);
                 return 1;
             }
 
             if (await DockerAsync(BuildCopyUpArguments(host, helper, input), cancellationToken).ConfigureAwait(false) != 0)
             {
-                Console.Error.WriteLine("Couldn't copy the backup up to the host.");
+                Console.WriteErrorLine("Couldn't copy the backup up to the host.", ConsoleStyle.Error);
                 return 1;
             }
 
             if (await DockerAsync(BuildRemoteReplaceArguments(host, slug), cancellationToken).ConfigureAwait(false) != 0)
             {
-                Console.Error.WriteLine("Couldn't put the database in place inside the volume.");
+                Console.WriteErrorLine("Couldn't put the database in place inside the volume.", ConsoleStyle.Error);
                 return 1;
             }
 
@@ -362,10 +369,10 @@ internal sealed partial class DbCommand
 
             // Always bring the app back, restored or not: leaving it stopped after a failed restore turns
             // a recoverable problem into an outage.
-            Console.Out.WriteLine($"Starting {slug}…");
+            Console.WriteLine($"Starting {slug}…", ConsoleStyle.Dim);
             if (await DockerAsync(BuildStartArguments(host, slug), CancellationToken.None).ConfigureAwait(false) != 0)
             {
-                Console.Error.WriteLine($"Couldn't start '{slug}' again — start it by hand: docker -H ssh://{host} start {slug}");
+                Console.WriteErrorLine($"Couldn't start '{slug}' again — start it by hand: docker -H ssh://{host} start {slug}", ConsoleStyle.Error);
             }
         }
 
@@ -374,7 +381,7 @@ internal sealed partial class DbCommand
             return 1;
         }
 
-        Console.Out.WriteLine($"Restored {input} to {slug} on {host}.");
+        Console.WriteLine($"Restored {input} to {slug} on {host}.", ConsoleStyle.Success);
         return 0;
     }
 

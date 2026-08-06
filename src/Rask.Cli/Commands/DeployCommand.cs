@@ -65,9 +65,6 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     internal const string PreviousTag = "previous";
 
-    /// <summary>Verbs that operate on an existing deployment. A bare <c>rask deploy</c> deploys.</summary>
-    private static readonly string[] Subcommands = ["status", "logs", "rollback"];
-
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
@@ -87,13 +84,11 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
     [
-        ("[status|logs|rollback]", "Operate on what's already deployed instead of deploying (omit to deploy)."),
+        ("[<action>]", "Operate on what's already deployed instead of deploying (omit to deploy)."),
     ];
 
-    public override string Usage =>
-        "rask deploy [status|logs|rollback] [--host user@box] [--domain app.example.com] [--port <n>] [--container-port <n>] " +
-        "[--project <path>] [--name <slug>] [--dockerfile <path>] [--env KEY=VALUE ...] [--env-file <path>] " +
-        "[--health-path <path>] [--no-health-check] [--setup-host] [--github-actions] [--dry-run]";
+    // The shape only — the actions and options are each listed once below, and --help renders both.
+    public override string Usage => "rask deploy [<action>] [options]";
 
     public override IReadOnlyList<string> Examples =>
     [
@@ -114,7 +109,12 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     private static ArgumentSchema CreateSchema() =>
         new ArgumentSchema()
-            .Option("host", 'h', "user@box", "SSH target to build and run on (remembered in .rask/deploy.json).")
+            .Verb("status", "Show what is running, and on which color.")
+            .Verb("logs", "Print the deployed app's logs.")
+            .Verb("rollback", "Put the previous image back.")
+            // No short name: '-h' is reserved for --help across the whole CLI, and a command that claimed
+            // it would silently print help instead of running (see CliApplication.RequestsHelp).
+            .Option("host", null, "user@box", "SSH target to build and run on (remembered in .rask/deploy.json).")
             .Option("domain", 'd', "host", "Public domain to serve over HTTPS via Caddy (implies ports 80/443).")
             .Option("port", valueHint: "n", description: "Published port when not using --domain (default: 8080).")
             .Option("container-port", valueHint: "n", description: "Port the app listens on inside the container (default: 8080; remembered).")
@@ -147,24 +147,20 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         }
 
         // A bare `rask deploy` deploys; a verb after it operates on what is already deployed.
-        if (parsed.Positionals.Count > 0 && !Subcommands.Contains(parsed.Positionals[0], StringComparer.Ordinal))
+        if (parsed.Positionals.Count > 0 && !schema.TryResolveVerb(parsed.Positionals[0], out _))
         {
-            Console.Error.WriteLine($"Unknown deploy action '{parsed.Positionals[0]}' — expected one of: {string.Join(", ", Subcommands)}.");
-            Console.Error.WriteLine($"Usage: {Usage}");
-            return 1;
+            return FailUnknownVerb(parsed.Positionals[0], schema);
         }
 
         if (parsed.Positionals.Count > 1)
         {
-            Console.Error.WriteLine($"Unexpected argument '{parsed.Positionals[1]}'. Usage: {Usage}");
-            return 1;
+            return Fail($"Unexpected argument '{parsed.Positionals[1]}'.");
         }
 
         var action = parsed.Positionals.Count > 0 ? parsed.Positionals[0] : null;
         if (!TryRejectMisplacedOptions(parsed, action, out var optionError))
         {
-            Console.Error.WriteLine(optionError);
-            return 1;
+            return Fail(optionError!);
         }
 
         // Flags win over the persisted config; anything unset falls back to .rask/deploy.json.
@@ -176,13 +172,13 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
         if (!TryResolvePort(parsed.Option("port"), config.Port, out var port, out var portError))
         {
-            Console.Error.WriteLine(portError);
+            Console.WriteErrorLine(portError!, ConsoleStyle.Error);
             return 1;
         }
 
         if (!TryResolveContainerPort(parsed.Option("container-port"), config.ContainerPort, out var containerPort, out var containerPortError))
         {
-            Console.Error.WriteLine(containerPortError);
+            Console.WriteErrorLine(containerPortError!, ConsoleStyle.Error);
             return 1;
         }
 
@@ -205,17 +201,14 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // than silently ignore --port (which also covers a --port passed against a remembered domain).
         if (parsed.Option("port") is not null && domain is not null)
         {
-            Console.Error.WriteLine(parsed.Option("domain") is not null
+            return Fail(parsed.Option("domain") is not null
                 ? "--port doesn't apply with --domain (the app is served over HTTPS on 80/443 via the proxy)."
                 : $"This app is deployed with --domain {domain} (remembered in .rask/deploy.json), so --port doesn't apply. Remove \"domain\" from .rask/deploy.json to switch to a published port.");
-            return 1;
         }
 
         if (host is null)
         {
-            Console.Error.WriteLine("No host to deploy to. Pass --host user@box (it's remembered for next time).");
-            Console.Error.WriteLine($"Usage: {Usage}");
-            return 1;
+            return Fail("No host to deploy to. Pass --host user@box (it's remembered for next time).");
         }
 
         // Validated here, at the boundary, because the host reaches the `ssh` binary as an argument and
@@ -241,7 +234,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
         if (action is null && !_fileSystem.FileExists(dockerfile))
         {
-            Console.Error.WriteLine($"No Dockerfile found at '{dockerfile}'.");
+            Console.WriteErrorLine($"No Dockerfile found at '{dockerfile}'.", ConsoleStyle.Error);
             Console.Error.WriteLine("Scaffold one with `rask new <name> --docker`, or point at yours with --dockerfile <path>.");
             return 1;
         }
@@ -249,7 +242,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // Gather runtime env from --env and an optional --env-file (KEY=VALUE lines; # comments allowed).
         if (!TryResolveEnv(parsed.MultiOption("env"), envFile, out var env, out var envError))
         {
-            Console.Error.WriteLine(envError);
+            Console.WriteErrorLine(envError!, ConsoleStyle.Error);
             return 1;
         }
 
@@ -276,8 +269,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // overrides the path (and re-enables a config-remembered disable). Both are remembered.
         if (parsed.HasFlag("no-health-check") && parsed.Option("health-path") is not null)
         {
-            Console.Error.WriteLine("--health-path doesn't apply with --no-health-check (the HTTP probe is disabled).");
-            return 1;
+            return Fail("--health-path doesn't apply with --no-health-check (the HTTP probe is disabled).");
         }
 
         var healthEnabled = !parsed.HasFlag("no-health-check")
@@ -286,8 +278,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
         if (!TryResolveSetup(parsed, out var setupMode, out var bootstrapOptions, out var setupError))
         {
-            Console.Error.WriteLine(setupError);
-            return 1;
+            return Fail(setupError!);
         }
 
         // Pure scaffolding — never touches the host, so it works offline and before the box exists.

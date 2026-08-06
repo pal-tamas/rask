@@ -9,16 +9,19 @@ namespace Rask.Cli.Commands;
 /// </summary>
 internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliCommand> commands) : CliCommand(console)
 {
-    private static readonly string[] Shells = ["bash", "zsh", "fish"];
-
     public override string Name => "completion";
 
     public override string Summary => "Print a shell completion script (bash, zsh, or fish).";
 
-    public override string Usage => "rask completion <bash|zsh|fish>";
+    public override string Usage => "rask completion <shell>";
 
-    public override IReadOnlyList<(string Name, string Description)> Arguments =>
-        [("<bash|zsh|fish>", "The shell to generate a completion script for.")];
+    public override ArgumentSchema? OptionSchema => CreateSchema();
+
+    private static ArgumentSchema CreateSchema() =>
+        new ArgumentSchema()
+            .Verb("bash", "A bash completion function.")
+            .Verb("zsh", "A zsh completion function.")
+            .Verb("fish", "Fish completion definitions.");
 
     public override IReadOnlyList<string> Examples =>
     [
@@ -29,12 +32,9 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
 
     public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
-        var shell = args.Count > 0 ? args[0] : null;
-        if (shell is null || !Shells.Contains(shell))
+        if (!CreateSchema().TryResolveVerb(args.FirstOrDefault(), out var shell))
         {
-            Console.Error.WriteLine($"Specify a shell: {string.Join(", ", Shells)}.");
-            Console.Error.WriteLine($"Usage: {Usage}");
-            return Task.FromResult(1);
+            return Task.FromResult(FailUnknownVerb(args.FirstOrDefault(), CreateSchema()));
         }
 
         // Exclude self from the completed command list — but keep it a valid word so `rask compl<tab>` works.
@@ -50,11 +50,31 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
         return Task.FromResult(0);
     }
 
-    private IReadOnlyList<string> OptionsFor(string commandName)
+    private ArgumentSchema? SchemaFor(string commandName) =>
+        commands.FirstOrDefault(c => c.Name.Equals(commandName, StringComparison.Ordinal))?.OptionSchema;
+
+    /// <summary>
+    /// Every word that can follow a command: its subcommands first, then its options. Verbs come from the
+    /// same schema that dispatches them, so <c>rask db &lt;tab&gt;</c> can't drift from what <c>rask db</c> accepts.
+    /// </summary>
+    private IReadOnlyList<string> WordsFor(string commandName)
     {
-        var command = commands.FirstOrDefault(c => c.Name.Equals(commandName, StringComparison.Ordinal));
-        return command?.OptionSchema?.Declared.Select(o => "--" + o.LongName).ToArray() ?? [];
+        var schema = SchemaFor(commandName);
+        if (schema is null)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. schema.Verbs.Select(v => v.Name),
+            .. schema.Declared.Select(o => "--" + o.LongName),
+        ];
     }
+
+    /// <summary>The options of <paramref name="commandName"/> that take a value from a closed set.</summary>
+    private IEnumerable<OptionInfo> ChoiceOptionsFor(string commandName) =>
+        SchemaFor(commandName)?.Declared.Where(o => o.Choices is { Count: > 0 }) ?? [];
 
     private string Bash(IReadOnlyList<string> commandNames)
     {
@@ -67,14 +87,27 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
         builder.AppendLine("  if [ \"$cword\" -le 1 ]; then");
         builder.AppendLine("    COMPREPLY=( $(compgen -W \"$commands\" -- \"$cur\") ); return 0");
         builder.AppendLine("  fi");
+        builder.AppendLine("  prev=\"${words[cword-1]}\"");
         builder.AppendLine("  case \"${words[1]}\" in");
         foreach (var command in commandNames)
         {
-            var options = OptionsFor(command);
-            if (options.Count > 0)
+            var words = WordsFor(command);
+            if (words.Count == 0)
             {
-                builder.AppendLine($"    {command}) COMPREPLY=( $(compgen -W \"{string.Join(' ', options)}\" -- \"$cur\") );;");
+                continue;
             }
+
+            builder.AppendLine($"    {command})");
+
+            // An option with a closed set completes its own values, keyed off the preceding word — nested
+            // inside the command's branch because the same option name means different things elsewhere
+            // (`--host` is a set of native modes for `new`, a free-form SSH target for `deploy`).
+            foreach (var option in ChoiceOptionsFor(command))
+            {
+                builder.AppendLine($"      if [ \"$prev\" = \"--{option.LongName}\" ]; then COMPREPLY=( $(compgen -W \"{string.Join(' ', option.Choices!)}\" -- \"$cur\") ); return 0; fi");
+            }
+
+            builder.AppendLine($"      COMPREPLY=( $(compgen -W \"{string.Join(' ', words)}\" -- \"$cur\") );;");
         }
 
         builder.AppendLine("    *) COMPREPLY=( $(compgen -f -- \"$cur\") );;");
@@ -95,14 +128,23 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
         builder.AppendLine("  if (( CURRENT <= 2 )); then");
         builder.AppendLine("    compadd -- $commands; return");
         builder.AppendLine("  fi");
+        builder.AppendLine("  local prev=\"${words[CURRENT-1]}\"");
         builder.AppendLine("  case \"${words[2]}\" in");
         foreach (var command in commandNames)
         {
-            var options = OptionsFor(command);
-            if (options.Count > 0)
+            var words = WordsFor(command);
+            if (words.Count == 0)
             {
-                builder.AppendLine($"    {command}) compadd -- {string.Join(' ', options)} ;;");
+                continue;
             }
+
+            builder.AppendLine($"    {command})");
+            foreach (var option in ChoiceOptionsFor(command))
+            {
+                builder.AppendLine($"      if [[ \"$prev\" == \"--{option.LongName}\" ]]; then compadd -- {string.Join(' ', option.Choices!)}; return; fi");
+            }
+
+            builder.AppendLine($"      compadd -- {string.Join(' ', words)} ;;");
         }
 
         builder.AppendLine("    *) _files ;;");
@@ -128,10 +170,20 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
 
         foreach (var command in commands)
         {
+            foreach (var verb in command.OptionSchema?.Verbs ?? [])
+            {
+                var description = verb.Description.Replace("'", "", StringComparison.Ordinal);
+                builder.AppendLine($"complete -c rask -f -n '__fish_seen_subcommand_from {command.Name}' -a {verb.Name} -d '{description}'");
+            }
+
             foreach (var option in command.OptionSchema?.Declared ?? [])
             {
                 var description = (option.Description ?? string.Empty).Replace("'", "", StringComparison.Ordinal);
-                builder.AppendLine($"complete -c rask -n '__fish_seen_subcommand_from {command.Name}' -l {option.LongName} -d '{description}'");
+                // -r marks an option that takes a value, so fish stops offering it its own siblings; -a
+                // supplies that value's completions when the set is closed.
+                var takesValue = option.IsFlag ? string.Empty : " -r";
+                var values = option.Choices is { Count: > 0 } c ? $" -a '{string.Join(' ', c)}'" : string.Empty;
+                builder.AppendLine($"complete -c rask -n '__fish_seen_subcommand_from {command.Name}' -l {option.LongName}{takesValue}{values} -d '{description}'");
             }
         }
 
