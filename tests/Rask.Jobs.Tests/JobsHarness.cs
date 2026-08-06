@@ -224,14 +224,38 @@ public sealed class JobsHarness : IAsyncDisposable
         return await db.Set<Job>().SingleAsync();
     }
 
-    public async Task WaitUntilAsync(Func<Task<bool>> condition, TimeSpan? timeout = null)
+    /// <summary>
+    /// How many attempts have finished. <see cref="Job.Attempts"/> counts attempts *started* — the claim
+    /// increments it, so a job that kills the process still counts toward MaxAttempts — which means it goes
+    /// up before the attempt is over. The lease is what says "over": the claim takes it and the outcome
+    /// hands it back, so an unclaimed row has no attempt in flight.
+    /// </summary>
+    /// <remarks>
+    /// This is the predicate to wait on before acting on an attempt's outcome — including before stopping
+    /// the processor, which rolls back the claim of anything it still holds. Not keyed on
+    /// <see cref="Job.Error"/>: a failure leaves it set, and the *next* claim doesn't clear it, so "Attempts
+    /// went up and Error is non-null" is briefly true while attempt N+1 is still running.
+    /// </remarks>
+    public async Task<int> FinishedAttemptsAsync()
     {
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
+        var job = await SingleJobAsync();
+        return job.ClaimToken is null ? job.Attempts : job.Attempts - 1;
+    }
+
+    public async Task WaitUntilAsync(
+        Func<Task<bool>> condition,
+        TimeSpan? timeout = null,
+        [System.Runtime.CompilerServices.CallerArgumentExpression(nameof(condition))] string? expression = null)
+    {
+        var limit = timeout ?? TimeSpan.FromSeconds(10);
+        var deadline = DateTime.UtcNow + limit;
         while (!await condition())
         {
             if (DateTime.UtcNow > deadline)
             {
-                throw new TimeoutException("Condition not met in time.");
+                // Named, because the alternative is a timeout that says nothing and an assertion twenty
+                // lines later that blames the wrong thing.
+                throw new TimeoutException($"`{expression}` was still false after {limit}.");
             }
 
             await Task.Delay(20);

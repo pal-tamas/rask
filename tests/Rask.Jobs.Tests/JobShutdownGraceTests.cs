@@ -139,11 +139,13 @@ public sealed class JobShutdownGraceTests
         await h.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await h.WaitUntilAsync(async () =>
-            {
-                await using var db = h.NewContext();
-                return await db.Set<Job>().AnyAsync(j => j.Attempts > 0);
-            });
+            // The attempt has to have FINISHED, not merely been claimed. `Attempts > 0` is true from the
+            // moment of the claim, which is before the handler is dispatched at all — stopping there races
+            // the drain's own pre-check, which refuses to start anything new once the host token is set. Win
+            // that race and the job never runs, StopAsync hands its claim (and its attempt) straight back,
+            // and the assertions below see a pristine row. It only passed because the tests that ran first
+            // warmed the query cache enough to close the window.
+            await h.WaitUntilAsync(async () => await h.FinishedAttemptsAsync() >= 1);
         }
         finally
         {

@@ -37,9 +37,10 @@ internal sealed class ParsedArguments(
 
 /// <summary>
 /// A declared flag or option: its names, whether it takes a value (and a hint for it), a one-line
-/// description, and an optional <see cref="Group"/> label so help can bucket, say, <c>generate</c>'s
-/// feature-only flags apart from the common ones. This is the single source of truth that both parses
-/// arguments and documents them — <c>--help</c> renders straight from this list, so it can never drift.
+/// description, an optional <see cref="Group"/> label so help can bucket, say, <c>generate</c>'s
+/// feature-only flags apart from the common ones, and an optional closed set of <see cref="Choices"/>.
+/// This is the single source of truth that both parses arguments and documents them — <c>--help</c> and
+/// shell completion render straight from this list, so they can never drift.
 /// </summary>
 internal sealed record OptionInfo(
     string LongName,
@@ -47,7 +48,16 @@ internal sealed record OptionInfo(
     bool IsFlag,
     string? ValueHint,
     string? Description,
-    string? Group);
+    string? Group,
+    IReadOnlyList<string>? Choices = null);
+
+/// <summary>
+/// A declared subcommand of a command, e.g. <c>add</c> under <c>rask db</c>. Recording verbs on the schema
+/// (rather than in a private array per command) means dispatch, the unknown-action error, <c>--help</c>,
+/// and shell completion all read the same list — including the aliases, which used to be invisible in
+/// both help and errors.
+/// </summary>
+internal sealed record VerbInfo(string Name, string Description, IReadOnlyList<string> Aliases);
 
 /// <summary>
 /// A tiny, dependency-free argument parser. Each command declares its boolean <see cref="Flag"/>s and
@@ -64,9 +74,13 @@ internal sealed class ArgumentSchema
     private readonly HashSet<string> _options = new(StringComparer.Ordinal);
     private readonly HashSet<string> _multiOptions = new(StringComparer.Ordinal);
     private readonly List<OptionInfo> _declared = [];
+    private readonly List<VerbInfo> _verbs = [];
 
     /// <summary>Every flag/option declared on this schema, in declaration order — the source for <c>--help</c>.</summary>
     public IReadOnlyList<OptionInfo> Declared => _declared;
+
+    /// <summary>Every subcommand declared on this schema, in declaration order.</summary>
+    public IReadOnlyList<VerbInfo> Verbs => _verbs;
 
     public ArgumentSchema Flag(string longName, char? shortName = null, string? description = null, string? group = null)
     {
@@ -76,24 +90,65 @@ internal sealed class ArgumentSchema
         return this;
     }
 
-    public ArgumentSchema Option(string longName, char? shortName = null, string? valueHint = null, string? description = null, string? group = null)
+    public ArgumentSchema Option(
+        string longName,
+        char? shortName = null,
+        string? valueHint = null,
+        string? description = null,
+        string? group = null,
+        IReadOnlyList<string>? choices = null)
     {
         _options.Add(longName);
         Register(longName, shortName);
-        _declared.Add(new OptionInfo(longName, shortName, IsFlag: false, valueHint, description, group));
+        _declared.Add(new OptionInfo(longName, shortName, IsFlag: false, valueHint, description, group, choices));
         return this;
+    }
+
+    /// <summary>
+    /// Declare a subcommand. <paramref name="aliases"/> resolve to the same verb, so <c>rask g f</c> and
+    /// <c>rask generate feature</c> take one path and both are documented.
+    /// </summary>
+    public ArgumentSchema Verb(string name, string description, params string[] aliases)
+    {
+        _verbs.Add(new VerbInfo(name, description, aliases));
+        return this;
+    }
+
+    /// <summary>
+    /// Resolve a typed token to a declared verb name, following aliases. False when the token names no
+    /// verb — the caller reports that through <see cref="CliCommand.FailUnknownVerb"/>.
+    /// </summary>
+    public bool TryResolveVerb(string? token, out string name)
+    {
+        foreach (var verb in _verbs)
+        {
+            if (verb.Name.Equals(token, StringComparison.Ordinal) || verb.Aliases.Contains(token, StringComparer.Ordinal))
+            {
+                name = verb.Name;
+                return true;
+            }
+        }
+
+        name = string.Empty;
+        return false;
     }
 
     /// <summary>
     /// A valued option that may be supplied more than once (e.g. <c>--env A=1 --env B=2</c>); every value is
     /// collected in order and read via <see cref="ParsedArguments.MultiOption"/> rather than overwriting.
     /// </summary>
-    public ArgumentSchema MultiOption(string longName, char? shortName = null, string? valueHint = null, string? description = null, string? group = null)
+    public ArgumentSchema MultiOption(
+        string longName,
+        char? shortName = null,
+        string? valueHint = null,
+        string? description = null,
+        string? group = null,
+        IReadOnlyList<string>? choices = null)
     {
         _options.Add(longName);
         _multiOptions.Add(longName);
         Register(longName, shortName);
-        _declared.Add(new OptionInfo(longName, shortName, IsFlag: false, valueHint, description, group));
+        _declared.Add(new OptionInfo(longName, shortName, IsFlag: false, valueHint, description, group, choices));
         return this;
     }
 
@@ -147,7 +202,12 @@ internal sealed class ArgumentSchema
 
             if (!_aliases.TryGetValue(body, out var longName))
             {
-                errors.Add($"Unknown option '{token}'.");
+                // Only long tokens get a suggestion: a mistyped single letter is as likely to be a
+                // different option as a typo of this one, so guessing there would be noise.
+                var near = isLong ? Suggest.Closest(body, _declared.Select(o => o.LongName)) : null;
+                errors.Add(near is null
+                    ? $"Unknown option '{token}'."
+                    : $"Unknown option '{token}'. Did you mean '--{near}'?");
                 continue;
             }
 
@@ -174,6 +234,11 @@ internal sealed class ArgumentSchema
                 }
             }
 
+            if (!TryNormalizeChoice(longName, ref value, errors))
+            {
+                continue;
+            }
+
             if (_multiOptions.Contains(longName))
             {
                 if (!multiOptions.TryGetValue(longName, out var values))
@@ -195,6 +260,38 @@ internal sealed class ArgumentSchema
             StringComparer.Ordinal);
 
         return new ParsedArguments(positionals, options, multi, flags, passthrough, errors);
+    }
+
+    /// <summary>
+    /// Check a value against the option's declared <see cref="OptionInfo.Choices"/>, if it has any, and
+    /// rewrite it to the declared spelling so <c>--template SERVER</c> reaches the command as
+    /// <c>server</c> — every consumer downstream compares ordinally.
+    /// <para>
+    /// One phrasing for every closed-set option in the CLI, naming both the nearest match and the whole
+    /// set: the list is short by definition, so printing it beats sending the reader to <c>--help</c>.
+    /// </para>
+    /// </summary>
+    private bool TryNormalizeChoice(string longName, ref string value, List<string> errors)
+    {
+        var choices = _declared.FirstOrDefault(o => o.LongName.Equals(longName, StringComparison.Ordinal))?.Choices;
+        if (choices is null)
+        {
+            return true;
+        }
+
+        foreach (var choice in choices)
+        {
+            if (choice.Equals(value, StringComparison.OrdinalIgnoreCase))
+            {
+                value = choice;
+                return true;
+            }
+        }
+
+        var near = Suggest.Closest(value, choices);
+        var didYouMean = near is null ? string.Empty : $" Did you mean '{near}'?";
+        errors.Add($"Option '--{longName}' does not accept '{value}'.{didYouMean} Choose one of: {string.Join(", ", choices)}.");
+        return false;
     }
 
     private static void ApplyFlag(string longName, string? inlineValue, HashSet<string> flags, List<string> errors)

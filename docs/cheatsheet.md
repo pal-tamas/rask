@@ -24,20 +24,33 @@ rask g component PriceTag             # → Features/Shared/PriceTag.cs
 rask g component PriceTag -F Orders   # → Features/Orders/PriceTag.cs (co-locate in a slice)
 rask g job SendWelcomeEmail           # → Features/Shared/… (IJob + handler)  + Rask.Jobs
 rask g email WelcomeEmail             # → Features/Shared/… (email-body component)  + Rask.Mail
+rask g cache PopularProducts          # → a cached read accessor  + Rask.Cache
 rask g p Orders --dry-run             # print what would be written, touch nothing
 
 # database (wraps dotnet-ef; installs it on first use)
 rask db add InitialCreate             # generate a migration from the current model
 rask db update                        # apply it — creates app.db
+rask db list                          # which migrations exist, and which are applied
+rask db remove                        # undo the last migration
+rask db drop --force                  # delete the database, no prompt
+rask db backup                        # copy it to ./<app>-<timestamp>.db
+rask db restore backups/shop.db       # put a copy back (--remote for the deployed one)
 
 # ship it
 rask deploy --host root@box --domain shop.example.com   # bare box → live HTTPS
 rask deploy                           # redeploy (host/domain remembered), zero-downtime
 rask deploy --github-actions          # write .github/workflows/deploy.yml
+rask deploy status                    # what's running, and on which color
+rask deploy logs --follow             # tail the deployed app
+rask deploy rollback                  # put the previous image back
+
+# tab completion
+rask completion zsh > "${fpath[1]}/_rask"   # also: bash, fish
 ```
 
-Short aliases everywhere: `rask g` = `rask generate`; `g f`/`g c`/`g p`/`g j`/`g e` =
-feature / component / page / job / email.
+Short aliases everywhere: `rask g` = `rask generate`; `g f`/`g c`/`g p`/`g j`/`g e`/`g ca` =
+feature / component / page / job / email / cache. Every command's own list is in
+`rask <command> --help`, and a wrong one tells you what you probably meant.
 
 ## Feature field tokens
 

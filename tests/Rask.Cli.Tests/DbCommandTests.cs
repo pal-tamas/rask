@@ -141,7 +141,7 @@ public sealed class DbCommandTests
 
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("add, remove, list, update, drop", console.ErrorText);
     }
@@ -153,7 +153,7 @@ public sealed class DbCommandTests
 
         var exit = await command.ExecuteAsync(["migrate"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
     }
 
@@ -164,7 +164,7 @@ public sealed class DbCommandTests
 
         var exit = await command.ExecuteAsync(["add"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("needs a migration name", console.ErrorText);
     }
@@ -176,7 +176,7 @@ public sealed class DbCommandTests
 
         var exit = await command.ExecuteAsync(["remove", "Oops"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
     }
 
@@ -201,7 +201,7 @@ public sealed class DbCommandTests
 
         var exit = await command.ExecuteAsync(["list", "--output", "Migrations"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("--output only applies", console.ErrorText);
     }
@@ -213,7 +213,7 @@ public sealed class DbCommandTests
 
         var exit = await command.ExecuteAsync(["update", "--force"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("--force only applies", console.ErrorText);
     }

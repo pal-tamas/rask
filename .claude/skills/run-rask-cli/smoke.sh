@@ -73,7 +73,10 @@ fi
 echo "==> Shell completion (generated from the live command + option set)"
 check "completion bash"  0 "complete -F _rask_complete rask" -- completion bash
 check "completion fish"  0 "complete -c rask"                 -- completion fish
-check "completion bad shell" 1 "Specify a shell"              -- completion tcsh
+check "completion bad shell" 2 "Unknown 'rask completion' action" -- completion tcsh
+# Completion is generated from the schema, so subcommands and closed-set values come along for free.
+check "completion knows db's actions" 0 "backup"              -- completion bash
+check "completion knows --template's values" 0 "wasm-hosted"  -- completion zsh
 
 echo "==> new --dry-run previews without writing"
 check "new --dry-run"    0 "would write"      -- new Ghost --template server --output "$WORK/Ghost" --dry-run
@@ -83,7 +86,7 @@ echo "==> Scaffold a new server project"
 check "new Shop"        0 "Created Shop"      -- new Shop --template server --output "$WORK/Shop"
 have "$WORK/Shop/Shop.csproj"
 have "$WORK/Shop/Program.cs"
-have "$WORK/Shop/App.cs"
+have "$WORK/Shop/Features/Shared/App.cs"
 
 echo "==> Generate into it (real write: a page — no packages, no network)"
 ( cd "$WORK/Shop" && rask generate page Dashboard --route /dashboard ) >/dev/null 2>&1 \
@@ -116,15 +119,25 @@ else
 fi
 checkin "$WORK/Shop" "deploy --github-actions won't clobber" 1 "already exists"             -- deploy --host root@box.example.com --name shop --github-actions
 # Contradictory host-setup flags must be caught before anything reaches the network.
-checkin "$WORK/Shop" "deploy rejects a bad --deploy-user" 1 "isn't a valid Linux user name" -- deploy --host root@box --name shop --deploy-user "bad; rm -rf /"
+checkin "$WORK/Shop" "deploy rejects a bad --deploy-user" 2 "isn't a valid Linux user name" -- deploy --host root@box --name shop --deploy-user "bad; rm -rf /"
 
-echo "==> Error paths (must exit 1 with a helpful message)"
+echo "==> A wrong command line exits 2, names the fix, and guesses what you meant"
 mkdir -p "$WORK/empty"
+check                 "unknown command suggests"   2 "Did you mean 'generate'"        -- genrate
+check                 "unknown command"            2 "Unknown command"                -- frobnicate
+check                 "bad option value suggests"  2 "Did you mean 'server'"          -- new X --template srever
+check                 "unknown option suggests"    2 "Did you mean '--template'"      -- new X --tempate server
+check                 "missing action lists them"  2 "Specify a 'rask db' action"     -- db
+check                 "unknown action suggests"    2 "Did you mean 'backup'"          -- db bakcup
+check                 "every rejection says where to look" 2 "Run 'rask db --help' for details" -- db bakcup
+# `-h` is help for every command; `deploy --host` therefore has no short form.
+check                 "-h is help, not --host"     0 "Usage: rask deploy"             -- deploy -h root@box
+
+echo "==> Error paths (work that was attempted and failed still exits 1)"
 # Project is resolved by walking UP for a single .csproj — so "no project" must run in an empty dir,
 # and field validation (which happens AFTER project resolution) must run INSIDE the Shop project.
-checkin "$WORK/empty" "generate outside a project" 1 "Couldn't find a single .csproj" -- generate page Nope --dry-run
-check                 "unknown command"            1 "Unknown command"                -- frobnicate
-checkin "$WORK/Shop"  "bad field type"             1 "Unknown field type"             -- generate feature Bad Name:wobble --dry-run
+checkin "$WORK/empty" "generate outside a project" 1 "Couldn't find a .csproj"        -- generate page Nope --dry-run
+checkin "$WORK/Shop"  "bad field type"             2 "Unknown field type"             -- generate feature Bad Name:wobble --dry-run
 
 echo
 echo "==> $PASS passed, $FAIL failed."

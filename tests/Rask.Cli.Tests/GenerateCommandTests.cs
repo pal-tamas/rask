@@ -52,7 +52,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["page", "Products", "--feature", "Orders"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--feature only applies", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -234,7 +234,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["job", "Cleanup", "--route", "/x"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--route only applies to 'generate page'", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -283,7 +283,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["component", "2Cool"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.DoesNotContain(fs.Files, f => f.Value.Contains("class", StringComparison.Ordinal));
         Assert.Contains("not a valid C# type name", console.ErrorText, StringComparison.Ordinal);
     }
@@ -587,7 +587,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["feature", "Product"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(fs.Files.Where(f => f.Key.EndsWith("Product.cs", StringComparison.Ordinal)).ToArray());
         Assert.Contains("needs fields", console.ErrorText, StringComparison.Ordinal);
     }
@@ -615,7 +615,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["feature", "Product", "Name:string", "--fields", "Price:decimal"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("CreateProduct.cs", StringComparison.Ordinal));
         Assert.Contains("not both", console.ErrorText, StringComparison.Ordinal);
     }
@@ -627,7 +627,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["page", "Home", "Name:string"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("Unexpected argument 'Name:string'", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -638,7 +638,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:blob"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("Unknown field type 'blob'", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -660,7 +660,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Product:string"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("Product.cs", StringComparison.Ordinal));
         Assert.Contains("can't share the entity's name", console.ErrorText, StringComparison.Ordinal);
     }
@@ -672,7 +672,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--context", "App-Db Context"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(fs.Files.Where(f => f.Key.EndsWith("Product.cs", StringComparison.Ordinal)).ToArray());
         Assert.Contains("not a valid C# type name for --context", console.ErrorText, StringComparison.Ordinal);
     }
@@ -695,7 +695,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["page", "Products", "--fields", "Name:string"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--fields only applies to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -717,7 +717,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["page", "Dashboard", "--no-restore"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--no-restore only applies to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -781,8 +781,9 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string", "--id", "ulid"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
-        Assert.Contains("--id must be", console.ErrorText, StringComparison.Ordinal);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("Option '--id' does not accept 'ulid'.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: guid, int, long.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -792,8 +793,9 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["controller", "Products"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
-        Assert.Contains("Unknown artifact 'controller'", console.ErrorText, StringComparison.Ordinal);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("Unknown 'rask generate' action 'controller'.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: page, component, feature, job, email, cache.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -803,7 +805,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["page"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("A name is required", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -814,7 +816,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["page", "Reports", "--route", "a\"b"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("ReportsPage.cs", StringComparison.Ordinal));
         Assert.Contains("not a valid route path", console.ErrorText, StringComparison.Ordinal);
     }
@@ -826,7 +828,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["component", "class"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.DoesNotContain(fs.Files, f => f.Value.Contains("class class", StringComparison.Ordinal));
         Assert.Contains("not a valid C# type name", console.ErrorText, StringComparison.Ordinal);
     }
@@ -838,7 +840,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["component", "PriceTag", "--route", "/x"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--route only applies", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -851,8 +853,24 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["component", "PriceTag"], CancellationToken.None);
 
+        // 1, not the usage code: the command line was fine, the directory it ran in wasn't.
         Assert.Equal(1, exit);
-        Assert.Contains("Couldn't find a single .csproj", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Couldn't find a .csproj", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Two_projects_says_so_rather_than_claiming_it_found_none()
+    {
+        var console = new StringConsole();
+        var fs = new FakeFileSystem();
+        fs.Seed(Path.Combine(ProjectDir, "One.csproj"), "<Project />");
+        fs.Seed(Path.Combine(ProjectDir, "Two.csproj"), "<Project />");
+        var command = new GenerateCommand(console, fs, new FakeProcessRunner(), ProjectDir);
+
+        var exit = await command.ExecuteAsync(["component", "PriceTag"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Found more than one .csproj", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -893,7 +911,7 @@ public sealed class GenerateCommandTests
 
         var exit = await command.ExecuteAsync(["page", "Dashboard", "--save-defaults"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--save-defaults only applies to 'generate feature'", console.ErrorText, StringComparison.Ordinal);
     }
 

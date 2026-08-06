@@ -67,7 +67,7 @@ public sealed class NewCommandTests
 
         var exit = await command.ExecuteAsync(["Spa", "--template", "wasm", "--data"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("does not support: --data", console.ErrorText, StringComparison.Ordinal);
     }
@@ -100,7 +100,7 @@ public sealed class NewCommandTests
 
         var exit = await command.ExecuteAsync([name], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations); // never even restored
         Assert.Contains("isn't a valid project name", console.ErrorText, StringComparison.Ordinal);
         Assert.False(fs.FileExists($"/proj/{name}/{name}.csproj"));
@@ -175,9 +175,10 @@ public sealed class NewCommandTests
 
         var exit = await command.ExecuteAsync(["MobileApp", "--template", "native", "--host", "cloud"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("Invalid --host 'cloud'", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Option '--host' does not accept 'cloud'.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: local, server.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -187,7 +188,7 @@ public sealed class NewCommandTests
 
         var exit = await command.ExecuteAsync(["MyApp", "--template", "server", "--host", "local"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("does not support --host", console.ErrorText, StringComparison.Ordinal);
     }
@@ -232,7 +233,7 @@ public sealed class NewCommandTests
 
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("name is required", console.ErrorText, StringComparison.Ordinal);
     }
@@ -244,9 +245,10 @@ public sealed class NewCommandTests
 
         var exit = await command.ExecuteAsync(["MyApp", "--template", "svelte"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("Unknown template 'svelte'", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Option '--template' does not accept 'svelte'.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, wasm-hosted, native.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -256,7 +258,7 @@ public sealed class NewCommandTests
 
         var exit = await command.ExecuteAsync(["MyApp", "--template", "wasm", "--cqrs"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("does not support: --cqrs", console.ErrorText, StringComparison.Ordinal);
     }
@@ -374,7 +376,7 @@ public sealed class NewCommandTests
         // StringConsole defaults to redirected stdin (non-interactive) — the wizard must not run.
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("name is required", console.ErrorText, StringComparison.Ordinal);
         Assert.Empty(runner.Invocations);
     }
@@ -386,9 +388,9 @@ public sealed class NewCommandTests
 
         var exit = await command.ExecuteAsync(["MyApp", "--data", "--database", "mongo"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("Unknown database 'mongo'", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Option '--database' does not accept 'mongo'.", console.ErrorText, StringComparison.Ordinal);
         Assert.Contains("sqlite, postgres", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -403,7 +405,7 @@ public sealed class NewCommandTests
         var exit = await command.ExecuteAsync(
             ["MyApp", "--template", template, "--database", "postgres"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("does not support --database", console.ErrorText, StringComparison.Ordinal);
     }
@@ -418,7 +420,7 @@ public sealed class NewCommandTests
         var exit = await command.ExecuteAsync(
             ["MyApp", "--data", "--database", "postgres", "--snapshots"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("--snapshots needs a file-based database", console.ErrorText, StringComparison.Ordinal);
     }

@@ -7,6 +7,34 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **A wrong `rask` command line now tells you what's wrong, what's allowed, and what to run next.** The
+  pieces were all there — a styled console, a self-documenting argument schema, a `--help` renderer that
+  can't drift from what parses — but the *error* path had never been wired through them, so roughly forty
+  hand-written validations each printed their own phrasing, unstyled, and returned the wrong exit code.
+  They now share one path: red, followed by the usage line and `Run 'rask <command> --help' for details.`
+  A misspelling gets a nearest-match suggestion (`Unknown command 'genrate'. Did you mean 'generate'?`)
+  for commands, options, actions, and option values alike — deliberately conservative, so an
+  unrecognizable word gets no guess rather than a confident wrong one.
+  - **Options with a closed set of values are declared, not hand-checked.** `--template`, `--database`,
+    `--host`, `--id` and `--validation` now name their values in the schema, which means one phrasing for
+    a bad one, the set printed in `--help`, the values offered by tab completion, and
+    `--template SERVER` accepted and normalized rather than mysteriously rejected.
+  - **Subcommands are declared too**, so `rask db --help` lists its seven actions with descriptions, an
+    unknown one lists them back at you, and `rask db <tab>` completes them in bash, zsh and fish. This
+    also makes `rask generate`'s `ca` → `cache` alias discoverable, which it never was.
+  - **Exit code `2` now means what `docs/cli.md` always said it meant.** A wrong command line — unknown
+    command, option, action, or value, a missing value, contradictory options — exits `2`; only work that
+    was attempted and failed exits `1`. Previously only two paths in the whole CLI returned `2`, so a
+    script couldn't tell a typo from a failed deploy. **This changes the exit code of every rejected
+    invocation from `1` to `2`.**
+  - **`-h` is `--help`, everywhere.** `rask deploy -h box` used to print help and never deploy, silently:
+    the router resolves `-h` before a command parses its own arguments, and `deploy` had claimed it for
+    `--host`. `--host` keeps its long form and loses the short one, and a test now holds `-h` reserved.
+  - Fixed the "couldn't find a single .csproj" message, which said the same thing whether it found none or
+    found several. Backup, restore and the other outcomes that were printing plain text are now styled
+    like their siblings, and `rask generate`'s overwrite refusal mentions `--dry-run`.
+
 ### Added
 - **A redeploy reload no longer throws away what the user had typed.** When a replacement server can't
   carry a session over, the page reloads — and until now that restored your scroll position and focus but
@@ -133,6 +161,23 @@ them until tagged releases begin.
   reload is still not covered (see `docs/configuration.md`): the guard it was waiting on now exists, but
   the save/apply side is separate work, and `<select multiple>` first needs a change dispatch that reports
   every selected option rather than just the first.
+- **A stale handler id can no longer fire whatever now sits in its slot.** Handler ids are positional per
+  render, so the same id names a different handler after the tree changes — and dispatch keyed on the id
+  alone. The frame's `type` was read to route a few special messages (`hello`, `navigate`, `jsResult`,
+  `dotNetInvoke`) but never cross-checked against the handler the id resolved to, so
+  `{"id":"h37","type":"input","value":"…"}` arriving at a page where `h37` is now a parameterless
+  `OnClick` **ran that callback**, with nothing to say the wrong thing had fired. Not a cross-origin hole
+  — the socket is same-origin and session-bound, so the sender is already the user whose page it is — but
+  positional ids make the collision ordinary rather than exotic, and the silence is what made it bad. The
+  frame's declared type is now checked against the argument the delegate demands (a value frame needs a
+  value handler, a `submit` needs `FormData`, a click needs a parameterless one), and a mismatch is
+  answered exactly like the stale id it is: `false`, no handler, no render. Deliberately **not** a
+  whitelist — a type this build has never heard of is still dispatched, so a browser holding a cached
+  client from another deploy doesn't have its events silently swallowed. Two events of the *same* shape
+  (a `focus` frame against a `click` handler, both parameterless) still pass; separating those needs the
+  event name carried per live handler, which costs a reference per handler in every session and buys
+  nothing for two empty payloads. The check reads the frame's raw UTF-8 through `JsonElement.ValueEquals`
+  — 14 ns and **zero allocation** on the accepted path, on a path that already parses JSON.
 - **The style pass is part of the local gate again, and the "spurious CS1503" that kept it out is
   root-caused.** `dotnet format Rask.slnx` failed on `main` with `error IMPORTS: Fix imports ordering` in
   `RaskEndpointExtensions.cs` — a `using` that drifted out of order and stayed there, because nothing ran

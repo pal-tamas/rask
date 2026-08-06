@@ -53,6 +53,36 @@ public class HandlerDispatchTests
     }
 
     [Fact]
+    public async Task HandlerId_FrameTypeThatCannotFeedTheHandler_IsIgnored()
+    {
+        // Handler ids are positional per render, so a frame the client sent against an earlier tree
+        // resolves to whatever now occupies that slot. h0 here is the parameterless "bump" click; an
+        // `input` frame landing on it used to RUN it, with nothing to say the wrong thing had fired.
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
+        var initial = await host.Http.GetAsync("/start");
+        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var sessionId = MarkupAssert.SessionId(initialHtml);
+        var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
+
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
+        await ws.SendJsonAsync(new { id = handlerId, type = "input", value = "x" });
+
+        // No render: the counter was never bumped. Answered exactly like the stale id it is.
+        Assert.Null(await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400)));
+        Assert.Equal(WebSocketState.Open, ws.State);
+
+        // ...and the socket still dispatches the frame that DOES fit.
+        await ws.SendJsonAsync(new { id = handlerId, type = "click" });
+        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        Assert.NotNull(text);
+        using var doc = JsonDocument.Parse(text!);
+        Assert.Contains("count=1", doc.RootElement.GetProperty("html").GetString()!);
+    }
+
+    [Fact]
     public async Task Message_NoIdAndNoType_Ignored()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);

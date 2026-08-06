@@ -225,7 +225,7 @@ public sealed class DeployCommandTests
 
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("--host", console.ErrorText);
     }
@@ -375,7 +375,7 @@ public sealed class DeployCommandTests
 
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "app.example.com", "--port", "9000"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("--port doesn't apply with --domain", console.ErrorText);
     }
@@ -390,7 +390,7 @@ public sealed class DeployCommandTests
 
         var exit = await command.ExecuteAsync(["--port", "9000"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains(".rask/deploy.json", console.ErrorText);
     }
 
@@ -641,7 +641,7 @@ public sealed class DeployCommandTests
 
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--no-health-check", "--health-path", "/ready"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("--health-path doesn't apply", console.ErrorText);
     }
 
@@ -1089,7 +1089,7 @@ public sealed class DeployCommandTests
 
         var exit = await command.ExecuteAsync([.. new[] { "--host", "root@box", "--name", "shop" }, .. flags], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains(expected, console.ErrorText, StringComparison.Ordinal);
         Assert.Empty(runner.Invocations); // nothing reached the network
     }

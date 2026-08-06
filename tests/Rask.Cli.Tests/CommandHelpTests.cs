@@ -88,4 +88,51 @@ public sealed class CommandHelpTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("Run 'rask new --help' for details.", console.ErrorText, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task Command_help_lists_the_actions_it_dispatches()
+    {
+        var (console, app) = Build();
+
+        await app.RunAsync(["db", "--help"], CancellationToken.None);
+
+        var text = console.OutText;
+        Assert.Contains("Actions:", text, StringComparison.Ordinal);
+        foreach (var action in new[] { "add", "remove", "list", "update", "drop", "backup", "restore" })
+        {
+            Assert.Contains(action, text, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task An_actions_aliases_are_documented_beside_it()
+    {
+        var (console, app) = Build();
+
+        // 'ca' → cache was reachable but named nowhere, in help or in the unknown-action error.
+        await app.RunAsync(["generate", "--help"], CancellationToken.None);
+
+        Assert.Contains("cache (ca)", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("feature (f)", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_options_closed_set_is_listed_in_help()
+    {
+        var (console, app) = Build();
+
+        await app.RunAsync(["new", "--help"], CancellationToken.None);
+
+        Assert.Contains("[server|wasm|wasm-hosted|native]", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_command_with_no_actions_has_no_actions_section()
+    {
+        var (console, app) = Build();
+
+        await app.RunAsync(["dev", "--help"], CancellationToken.None);
+
+        Assert.DoesNotContain("Actions:", console.OutText, StringComparison.Ordinal);
+    }
 }

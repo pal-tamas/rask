@@ -93,8 +93,8 @@ public sealed class CliApplicationTests
         // `rask g` with no artifact reaches GenerateCommand, which asks what to generate.
         var exit = await app.RunAsync(["g"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
-        Assert.Contains("Specify what to generate", console.ErrorText, StringComparison.Ordinal);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("Specify a 'rask generate' action", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public sealed class CliApplicationTests
 
         var exit = await app.RunAsync(["bogus"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains("Unknown command 'bogus'", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -117,5 +117,72 @@ public sealed class CliApplicationTests
 
         Assert.Equal(0, exit);
         Assert.Contains("Rask CLI", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("genrate", "generate")]
+    [InlineData("deloy", "deploy")]
+    [InlineData("nwe", "new")]
+    public async Task A_mistyped_command_names_the_one_you_meant(string typed, string meant)
+    {
+        var (console, app) = Build();
+
+        var exit = await app.RunAsync([typed], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains($"Unknown command '{typed}'. Did you mean '{meant}'?", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_mistyped_alias_suggests_the_command_it_stands_for()
+    {
+        var (console, app) = Build();
+
+        // 'g' is generate's alias; the suggestion has to name the command, not the alias.
+        var exit = await app.RunAsync(["gg"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("Did you mean 'generate'?", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void No_command_may_claim_the_short_h()
+    {
+        // The router resolves -h to help before a command's own parser runs, so a command declaring it
+        // (deploy's --host once did) would silently print help instead of running. Keep it reserved.
+        var app = CliApplication.CreateDefault(new StringConsole(), new FakeProcessRunner(), new FakeFileSystem());
+
+        foreach (var command in app.Commands)
+        {
+            var claimed = command.OptionSchema?.Declared.FirstOrDefault(o => o.ShortName == 'h');
+            Assert.True(
+                claimed is null,
+                $"'rask {command.Name}' declares -h for --{claimed?.LongName}, which the router takes as --help.");
+        }
+    }
+
+    [Theory]
+    [InlineData("-h")]
+    [InlineData("--help")]
+    public async Task Either_help_token_shows_a_commands_help(string token)
+    {
+        var (console, app) = Build();
+
+        var exit = await app.RunAsync(["deploy", token], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("Usage: rask deploy", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Help_after_a_passthrough_separator_belongs_to_the_app()
+    {
+        var (console, app) = Build();
+
+        // `rask dev -- --help` asks the *app* for help; the CLI must not intercept it.
+        var exit = await app.RunAsync(["dev", "--", "--help"], CancellationToken.None);
+
+        Assert.NotEqual(0, exit);
+        Assert.DoesNotContain("Usage: rask dev", console.OutText, StringComparison.Ordinal);
     }
 }

@@ -33,8 +33,9 @@ public sealed class CompletionCommandTests
 
         var exit = await app.RunAsync(["completion"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
-        Assert.Contains("Specify a shell", console.ErrorText, StringComparison.Ordinal);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("Specify a 'rask completion' action: bash, zsh, fish.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Run 'rask completion --help' for details.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -44,8 +45,9 @@ public sealed class CompletionCommandTests
 
         var exit = await app.RunAsync(["completion", "powershell"], CancellationToken.None);
 
-        Assert.Equal(1, exit);
-        Assert.Contains("Specify a shell", console.ErrorText, StringComparison.Ordinal);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("Unknown 'rask completion' action 'powershell'.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: bash, zsh, fish.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -56,5 +58,54 @@ public sealed class CompletionCommandTests
         await app.RunAsync([], CancellationToken.None);
 
         Assert.Contains("completion", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("bash")]
+    [InlineData("zsh")]
+    [InlineData("fish")]
+    public async Task Subcommands_are_completable_too(string shell)
+    {
+        var (console, app) = Build();
+
+        await app.RunAsync(["completion", shell], CancellationToken.None);
+
+        var script = console.OutText;
+        foreach (var verb in new[] { "backup", "restore", "rollback", "component" })
+        {
+            Assert.Contains(verb, script, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("bash")]
+    [InlineData("zsh")]
+    [InlineData("fish")]
+    public async Task An_options_closed_set_completes_its_values(string shell)
+    {
+        var (console, app) = Build();
+
+        await app.RunAsync(["completion", shell], CancellationToken.None);
+
+        // The values of `new --template`, which only the schema knows.
+        Assert.Contains("wasm-hosted", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Bash_completes_values_per_command_not_globally()
+    {
+        var (console, app) = Build();
+
+        await app.RunAsync(["completion", "bash"], CancellationToken.None);
+
+        // `--host` names a closed set under `new` and a free-form SSH target under `deploy`; the value
+        // completion has to sit inside the command's own branch or deploy would offer local/server.
+        var script = console.OutText;
+        var newBranch = script.IndexOf("    new)", StringComparison.Ordinal);
+        var hostChoices = script.IndexOf("\"$prev\" = \"--host\"", StringComparison.Ordinal);
+        var deployBranch = script.IndexOf("    deploy)", StringComparison.Ordinal);
+
+        Assert.True(newBranch >= 0 && hostChoices > newBranch, "the --host value list belongs to `new`'s branch");
+        Assert.True(deployBranch > hostChoices, "and must not leak into `deploy`'s");
     }
 }

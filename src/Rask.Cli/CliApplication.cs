@@ -19,6 +19,9 @@ internal sealed class CliApplication
         _commands = commands;
     }
 
+    /// <summary>The commands this application routes to — the source for help, completion, and contract tests.</summary>
+    public IReadOnlyList<CliCommand> Commands => _commands;
+
     /// <summary>Wire the real command set with production collaborators.</summary>
     public static CliApplication CreateDefault(IConsole console, IProcessRunner process, IFileSystem fileSystem)
     {
@@ -70,9 +73,15 @@ internal sealed class CliApplication
 
         if (!TryGetCommand(first, out var command))
         {
-            _console.WriteErrorLine($"Unknown command '{first}'.", ConsoleStyle.Error);
+            var near = Suggest.Closest(first, _commands.SelectMany(c => c.Aliases.Prepend(c.Name)));
+            var resolved = near is not null && TryGetCommand(near, out var suggested) ? suggested.Name : near;
+            _console.WriteErrorLine(
+                resolved is null ? $"Unknown command '{first}'." : $"Unknown command '{first}'. Did you mean '{resolved}'?",
+                ConsoleStyle.Error);
             CommandHelp.RenderTopLevel(_console, _commands, toError: true);
-            return 1;
+
+            // A command that doesn't exist is a wrong command line, not a command that ran and failed.
+            return CliCommand.UsageExitCode;
         }
 
         var rest = args.Skip(1).ToArray();
@@ -88,6 +97,11 @@ internal sealed class CliApplication
     /// <summary>
     /// True if a top-level <c>--help</c>/<c>-h</c> precedes any <c>--</c> passthrough separator. Tokens
     /// after <c>--</c> belong to the user's app (e.g. <c>rask dev -- --help</c>), not to the CLI.
+    /// <para>
+    /// This scan is why <c>-h</c> is reserved CLI-wide and no command may declare it as a short name: it
+    /// runs before the command's own parser, so a command that spelled <c>--host</c> as <c>-h</c> would
+    /// silently print help instead of running (<c>CliApplicationTests</c> guards the reservation).
+    /// </para>
     /// </summary>
     private static bool RequestsHelp(IReadOnlyList<string> args)
     {

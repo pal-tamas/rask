@@ -12,18 +12,6 @@ namespace Rask.Cli.Commands;
 internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
     : CliCommand(console)
 {
-    private static readonly string[] Kinds = ["page", "component", "feature", "job", "email", "cache"];
-
-    private static readonly Dictionary<string, string> KindAliases = new(StringComparer.Ordinal)
-    {
-        ["p"] = "page",
-        ["c"] = "component",
-        ["f"] = "feature",
-        ["j"] = "job",
-        ["e"] = "email",
-        ["ca"] = "cache",
-    };
-
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
@@ -36,12 +24,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
     // The shape only — the option list lives in the schema, which --help renders directly. Spelling the
     // flags out here is what let this string go stale before.
-    public override string Usage =>
-        "rask generate <page|component|feature|job|email|cache> <Name> [<field:type> ...] [options]";
+    public override string Usage => "rask generate <artifact> <Name> [<field:type> ...] [options]";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
     [
-        ("<page|component|feature|job|email|cache>", "What to scaffold (aliases: p, c, f, j, e, ca)."),
         ("<Name>", "The type name, e.g. Product or Dashboard."),
         ("[<field:type> ...]", "Fields for a feature, e.g. Name:string Price:decimal."),
     ];
@@ -64,6 +50,12 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     /// <summary>The flag/option schema — shared by <see cref="ExecuteAsync"/> and <c>--help</c> so they can't drift.</summary>
     private static ArgumentSchema CreateSchema() =>
         new ArgumentSchema()
+            .Verb("page", "A routed page component.", "p")
+            .Verb("component", "A reusable component.", "c")
+            .Verb("feature", "A full CRUD slice: entity, DbContext, commands, and pages.", "f")
+            .Verb("job", "A background job handler.", "j")
+            .Verb("email", "An email message and its send path.", "e")
+            .Verb("cache", "A cached read accessor.", "ca")
             .Option("output", 'o', "dir", "Directory to write into (default: derived from the artifact).")
             .Option("feature", 'F', "Name", "Co-locate under Features/<Name>/ instead of Features/Shared/ (component, job, email).")
             .Flag("force", description: "Overwrite existing files instead of refusing.")
@@ -72,8 +64,8 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Option("fields", 'f', "list", "Fields as Name:type,... (or pass them positionally).", FeatureGroup)
             .Option("context", 'c', "Name", "Reuse an existing DbContext instead of generating one.", FeatureGroup)
             .Option("plural", 'p', "Name", "Plural name for the feature folder/route (default: auto-pluralized).", FeatureGroup)
-            .Option("id", valueHint: "guid|int|long", description: "Primary-key type (default: guid).", group: FeatureGroup)
-            .Option("validation", valueHint: "mode", description: "Validation style: valueobjects (default), dataannotations, or fluent.", group: FeatureGroup)
+            .Option("id", valueHint: "type", description: "Primary-key type (default: guid).", group: FeatureGroup, choices: ["guid", "int", "long"])
+            .Option("validation", valueHint: "mode", description: "Validation style (default: valueobjects).", group: FeatureGroup, choices: ["valueobjects", "dataannotations", "fluent"])
             .Flag("bs", description: "Render pages with Rask.Bootstrap (Bs*) components.", group: FeatureGroup)
             .Flag("modal", description: "Fold create/edit into a modal on the list page (implies --bs).", group: FeatureGroup)
             .Flag("soft-delete", description: "Soft-delete rows and add a Restore command.", group: FeatureGroup)
@@ -115,21 +107,11 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
-        if (args.Count == 0)
-        {
-            Console.Error.WriteLine($"Specify what to generate: {string.Join(", ", Kinds)}.");
-            Console.Error.WriteLine($"Usage: {Usage}");
-            return 1;
-        }
-
-        var kind = KindAliases.GetValueOrDefault(args[0], args[0]);
-        if (!Kinds.Contains(kind))
-        {
-            Console.Error.WriteLine($"Unknown artifact '{args[0]}'. Generate one of: {string.Join(", ", Kinds)} (aliases: p, c, f, j, e).");
-            return 1;
-        }
-
         var schema = CreateSchema();
+        if (!schema.TryResolveVerb(args.FirstOrDefault(), out var kind))
+        {
+            return FailUnknownVerb(args.FirstOrDefault(), schema);
+        }
 
         var parsed = schema.Parse(args.Skip(1).ToArray());
         if (parsed.HasErrors)
@@ -140,14 +122,12 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         var name = parsed.Positionals.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(name))
         {
-            Console.Error.WriteLine($"A name is required. Usage: {Usage}");
-            return 1;
+            return Fail($"A name is required, e.g. 'rask generate {kind} Product'.");
         }
 
         if (!Identifiers.IsValidTypeName(name))
         {
-            Console.Error.WriteLine($"'{name}' is not a valid C# type name (letters, digits, and '_'; not starting with a digit).");
-            return 1;
+            return Fail($"'{name}' is not a valid C# type name (letters, digits, and '_'; not starting with a digit).");
         }
 
         var route = parsed.Option("route");
@@ -155,14 +135,12 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         {
             if (kind != "page")
             {
-                Console.Error.WriteLine("--route only applies to 'generate page'.");
-                return 1;
+                return Fail("--route only applies to 'generate page'.");
             }
 
             if (!Identifiers.IsValidRoutePath(route))
             {
-                Console.Error.WriteLine($"'{route}' is not a valid route path (no quotes, backslashes, or control characters).");
-                return 1;
+                return Fail($"'{route}' is not a valid route path (no quotes, backslashes, or control characters).");
             }
         }
 
@@ -176,14 +154,12 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         // expect. Reject the combination rather than silently pick one.
         if (feature is not null && parsed.Option("output") is not null)
         {
-            Console.Error.WriteLine("--output and --feature can't be combined — --output already says where the file goes.");
-            return CliCommand.UsageExitCode;
+            return Fail("--output and --feature can't be combined — --output already says where the file goes.");
         }
 
         if (feature is not null && kind is "page" or "feature")
         {
-            Console.Error.WriteLine("--feature only applies to 'generate component', 'job', or 'email'.");
-            return 1;
+            return Fail("--feature only applies to 'generate component', 'job', or 'email'.");
         }
 
         // Derived from the schema's own grouping rather than a hand-kept list, so a new feature option can't
@@ -198,31 +174,30 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         if (kind != "feature" && misapplied.Count > 0)
         {
             var verb = misapplied.Count == 1 ? "applies" : "apply";
-            Console.Error.WriteLine($"{Humanize(misapplied)} only {verb} to 'generate feature'.");
-            return 1;
+            return Fail($"{Humanize(misapplied)} only {verb} to 'generate feature'.");
         }
 
         // Positional field specs (Name:type) are how 'generate feature' takes its fields; a page/component
         // has no fields, so extra positionals there are a mistake, not silently ignored.
         if (kind != "feature" && parsed.Positionals.Count > 1)
         {
-            Console.Error.WriteLine($"Unexpected argument '{parsed.Positionals[1]}'. Positional field specs (Name:type) only apply to 'generate feature'.");
-            return 1;
+            return Fail($"Unexpected argument '{parsed.Positionals[1]}'. Positional field specs (Name:type) only apply to 'generate feature'.");
         }
 
         foreach (var (option, value) in new[] { ("context", parsed.Option("context")), ("plural", parsed.Option("plural")), ("feature", feature) })
         {
             if (value is not null && !Identifiers.IsValidTypeName(value))
             {
-                Console.Error.WriteLine($"'{value}' is not a valid C# type name for --{option}.");
-                return 1;
+                return Fail($"'{value}' is not a valid C# type name for --{option}.");
             }
         }
 
         var project = ProjectLocator.Locate(_fileSystem, _workingDirectory);
         if (project is null)
         {
-            Console.Error.WriteLine($"Couldn't find a single .csproj at or above '{_workingDirectory}'. Run this inside a Rask project.");
+            Console.WriteErrorLine(
+                $"{ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory)} Run this inside a Rask project.",
+                ConsoleStyle.Error);
             return 1;
         }
 
@@ -234,16 +209,19 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             var target = Scaffold.TargetDirectory(_workingDirectory, outputOverride);
             if (!Scaffold.IsInside(project.ProjectDirectory, target))
             {
-                Console.WriteErrorLine($"--output '{outputOverride}' resolves outside the project ({target}).", ConsoleStyle.Error);
-                Console.Error.WriteLine($"Generated code is namespaced by its folder, so it has to live under '{project.ProjectDirectory}'.");
-                return CliCommand.UsageExitCode;
+                return Fail(
+                [
+                    $"--output '{outputOverride}' resolves outside the project ({target}).",
+                    $"Generated code is namespaced by its folder, so it has to live under '{project.ProjectDirectory}'.",
+                ]);
             }
         }
 
+        // Everything TryBuild rejects is something in the argument list — a field spec that doesn't parse,
+        // fields given twice, fields missing — so it exits like any other bad command line.
         if (!TryBuild(kind, name, project, parsed, out var result, out var buildError))
         {
-            Console.Error.WriteLine(buildError);
-            return 1;
+            return Fail(buildError!);
         }
 
         // Whether a --tests run needs to wire a *new* test project (vs reuse one an earlier run created) must be
@@ -865,7 +843,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
             if (existing.Length > 0)
             {
-                Console.Error.WriteLine($"Refusing to overwrite existing file(s): {string.Join(", ", existing)}. Pass --force.");
+                Console.WriteErrorLine(
+                    $"Refusing to overwrite existing file(s): {string.Join(", ", existing)}. "
+                    + "Pass --force to replace them, or --dry-run to see what would be written.",
+                    ConsoleStyle.Error);
                 return 1;
             }
         }
