@@ -568,6 +568,41 @@ every push to `main`, and prints the two `gh secret set` lines it needs (an SSH 
 fingerprint). Everything else comes from the committed `.rask/deploy.json`. It deploys with
 `--no-setup-host`: prepare the box once from your own machine, so CI never reconfigures a host.
 
+## `rask doctor` — check before you hit it
+
+```bash
+rask doctor          # what's here, what's missing, and what only some commands need
+rask doctor --json   # the same verdict, for CI
+```
+
+Every probe it runs already existed, each reachable only from the command that needed it — so the way
+to find out whether your machine could run something was to run it and see where it stopped, halfway
+through, having already done some of the work.
+
+```
+  ok    rask                0.20.1
+  ok    dotnet sdk          10.0.302
+  ok    dotnet-ef           installed
+  warn  docker              not found
+                            Only `rask deploy` needs it — https://docs.docker.com/get-docker/
+  ok    project             /src/Shop
+  ok    database            SQLite
+  fail  .rask/deploy.json   isn't valid JSON: 'o' is an invalid start of a property name…
+                            Until it parses, its remembered settings are silently ignored.
+```
+
+**Warnings aren't failures.** Docker missing is fatal to `rask deploy` and irrelevant to everyone else,
+so only a genuinely broken thing sets the exit code (`1`); a machine that can start every command exits
+`0`.
+
+**It is read-only.** It reports; it never installs or fixes. A doctor that quietly installed the tooling
+it found missing would be doing the thing you ran it to avoid.
+
+One thing it exists to catch: a corrupt `.rask/deploy.json` or `.rask/generate.json` used to be
+swallowed — the loaders fall back to defaults, so a typo'd file looked exactly like no file, and the
+remembered host or team flags vanished with nothing said. They now say so in passing, and `doctor`
+reports it as a failure.
+
 ## `rask info` — environment report
 
 ```bash

@@ -791,7 +791,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 }
 
                 // Team defaults from .rask/generate.json fill in what wasn't passed; explicit flags always win.
-                var config = GenerateConfig.Load(_fileSystem, project.ProjectDirectory);
+                var config = GenerateConfig.Load(_fileSystem, project.ProjectDirectory, Console);
 
                 var idType = (parsed.Option("id") ?? config.Id)?.ToLowerInvariant() switch
                 {
@@ -932,7 +932,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     // are never written false), keeping the file to the team's deliberate choices.
     private void SaveDefaults(string projectDirectory, ParsedArguments parsed)
     {
-        var config = GenerateConfig.Load(_fileSystem, projectDirectory);
+        var config = GenerateConfig.Load(_fileSystem, projectDirectory, Console);
         if (parsed.HasFlag("bs"))
         {
             config.Bs = true;

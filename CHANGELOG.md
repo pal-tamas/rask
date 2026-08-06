@@ -27,6 +27,19 @@ them until tagged releases begin.
     on `db` is now rejected with a suggestion rather than silently ignored.
   - A test enforces the convention: a short name must map to one long option CLI-wide, and must not be
     a flag on one command and a value on another. It fails with the offending pair named.
+- **`rask doctor` — one command that checks the environment before another command hits it.** Every
+  probe it runs already existed, each reachable only from the one command that needed it: the EF tool
+  from `rask db`, Docker and SSH from `rask deploy`, project/template/provider detection from whichever
+  command was about to use them. So the way to find out whether a machine could run something was to run
+  it and watch where it stopped — halfway through, having already done part of the work. It is read-only
+  by design: it reports, it never installs or fixes. Warnings don't fail it (Docker missing is fatal to
+  `rask deploy` and irrelevant to everything else), so the exit code means "something here will stop a
+  command from starting", and `--json` carries the same verdict for CI.
+- **A corrupt `.rask/deploy.json` or `.rask/generate.json` no longer disappears in silence.** Both
+  loaders catch `JsonException` and fall back to defaults — which is right, a hand-edited file shouldn't
+  wedge a deploy — but they did it without a word, so a typo'd config looked exactly like no config and
+  the remembered host or the team's generate flags simply stopped applying. They now say which file, why
+  it didn't parse, and that it's being ignored until fixed; `rask doctor` reports it as a failure.
 - **`--dry-run` behaves the same on every command that has it, and is on two more.** It was on three
   commands in three shapes: `new` printed indented names, `generate` printed an unindented path followed
   by the *entire file*, and `deploy` printed docker commands under its own heading. All of them now emit

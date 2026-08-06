@@ -63,6 +63,30 @@ internal sealed record MigrationEntry(string Id, string Name, bool Applied);
 /// <summary>The <c>rask db list --json</c> document.</summary>
 internal sealed record MigrationListReport(IReadOnlyList<MigrationEntry> Migrations);
 
+/// <summary>How a <c>rask doctor</c> check came out.</summary>
+/// <remarks>
+///     Serialized as its name, not its ordinal. <c>"status": 2</c> would make a consumer depend on the
+///     declaration order of an enum it cannot see, and reorder silently the day someone inserts a member.
+/// </remarks>
+[JsonConverter(typeof(JsonStringEnumConverter<DoctorStatus>))]
+internal enum DoctorStatus
+{
+    /// <summary>Fine.</summary>
+    Ok,
+
+    /// <summary>Worth knowing, but nothing is broken — a tool only some commands need, say.</summary>
+    Warn,
+
+    /// <summary>Would stop a command from starting. Only these decide the exit code.</summary>
+    Fail,
+}
+
+/// <summary>One <c>rask doctor</c> check.</summary>
+internal sealed record DoctorCheck(string Name, DoctorStatus Status, string Detail, string? Fix);
+
+/// <summary>The <c>rask doctor --json</c> document.</summary>
+internal sealed record DoctorReport(bool Ok, IReadOnlyList<DoctorCheck> Checks);
+
 /// <summary>
 ///     One entry of <c>dotnet ef migrations list --json</c>, which is what <c>rask db list --json</c> is
 ///     built from rather than from the human listing.
@@ -82,4 +106,5 @@ internal sealed record EfMigration(string Id, string Name, string? SafeName, boo
 [JsonSerializable(typeof(DeployStatusReport))]
 [JsonSerializable(typeof(MigrationListReport))]
 [JsonSerializable(typeof(EfMigration[]))]
+[JsonSerializable(typeof(DoctorReport))]
 internal sealed partial class CliJsonContext : JsonSerializerContext;

@@ -169,7 +169,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         }
 
         // Flags win over the persisted config; anything unset falls back to .rask/deploy.json.
-        var config = DeployConfig.Load(_fileSystem, _workingDirectory);
+        var config = DeployConfig.Load(_fileSystem, _workingDirectory, Console);
         var host = Normalize(parsed.Option("host") ?? config.Host);
         var domain = Normalize(parsed.Option("domain") ?? config.Domain);
         var envFile = parsed.Option("env-file") ?? config.EnvFile;

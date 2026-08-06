@@ -134,7 +134,7 @@ internal sealed partial class DbCommand
                 : await RestoreLocalAsync(projectDirectory, file!, force, cancellationToken).ConfigureAwait(false);
         }
 
-        var config = DeployConfig.Load(_fileSystem, _workingDirectory);
+        var config = DeployConfig.Load(_fileSystem, _workingDirectory, Console);
         host ??= config.Host;
         if (string.IsNullOrWhiteSpace(host))
         {
