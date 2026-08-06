@@ -139,6 +139,8 @@ jobs:
           dotnet pack src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Postgres/Rask.Postgres.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.SqlServer/Rask.SqlServer.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Data/Rask.Data.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Outbox/Rask.Outbox.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Jobs/Rask.Jobs.csproj -c Release -o ./artifacts
