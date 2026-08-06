@@ -103,6 +103,47 @@ public class HandlerFrameTypeTests
     }
 
     [Fact]
+    public async Task A_change_frame_fires_a_selection_handler()
+    {
+        // #595's shape. Only `change` carries `values` — the clients add it on the change dispatch
+        // alone — so this is the one frame type that may feed a whole-selection handler.
+        var model = new TagsModel();
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        ]);
+        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change")!;
+
+        var ok = await view.TryInvokeHandlerAsync(
+            id, Frame($$"""{"id":"{{id}}","type":"change","value":"a","values":["a","c"]}"""));
+
+        Assert.True(ok);
+        Assert.Equal(["a", "c"], model.Tags);
+    }
+
+    [Fact]
+    public async Task An_input_frame_does_not_fire_a_selection_handler()
+    {
+        // `input` never carries `values`, so feeding one would silently collapse the user's whole
+        // selection to the single `value` the frame does carry.
+        var model = new TagsModel { Tags = ["b"] };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b")]
+        ]);
+        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change")!;
+
+        var ok = await view.TryInvokeHandlerAsync(
+            id, Frame($$"""{"id":"{{id}}","type":"input","value":"a"}"""));
+
+        Assert.False(ok);
+        Assert.Equal(["b"], model.Tags);
+    }
+
+    private sealed class TagsModel
+    {
+        public string[] Tags { get; set; } = [];
+    }
+
+    [Fact]
     public async Task A_focus_frame_fires_a_parameterless_handler()
     {
         // Same shape, different event: both carry nothing, so this one still dispatches. Telling them

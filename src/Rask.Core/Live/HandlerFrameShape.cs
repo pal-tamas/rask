@@ -32,6 +32,7 @@ internal static class HandlerFrameShape
         None = 0,
         Modifiers,
         Value,
+        Values,
         Form,
         Files,
         Scroll,
@@ -67,6 +68,9 @@ internal static class HandlerFrameShape
         new[] { "click"u8.ToArray() },
         // Value — the string payload.
         new[] { "input"u8.ToArray(), "change"u8.ToArray(), "beforeinput"u8.ToArray() },
+        // Values — the whole selection of a <select multiple>. Only `change` carries it: the clients add
+        // `values` on the change dispatch alone, so an `input` frame could never feed this shape.
+        new[] { "change"u8.ToArray() },
         // Form — FormData.
         new[] { "submit"u8.ToArray() },
         // Files — the uploaded-file metadata.
@@ -178,6 +182,12 @@ internal static class HandlerFrameShape
         Callback<TouchEventArgs> or CallbackAsync<TouchEventArgs> => Shape.Touch,
         Callback<ClipboardEventArgs> or CallbackAsync<ClipboardEventArgs> => Shape.Clipboard,
         Callback<MediaEventArgs> or CallbackAsync<MediaEventArgs> => Shape.Media,
+        // Last on purpose. This switch is a linear sequence of type tests, so an arm's position is a
+        // cost paid by every arm below it — and measurably: placed next to its Shape.Value sibling, the
+        // four patterns here cost the scroll path ~1.7ns (+6%) on every frame. A multi-select change
+        // happens at human speed; scroll, pointer and mouse frames do not.
+        Action<IReadOnlyList<string>> or Func<IReadOnlyList<string>, Task>
+            or Callback<IReadOnlyList<string>> or CallbackAsync<IReadOnlyList<string>> => Shape.Values,
         _ => Shape.None
     };
 }

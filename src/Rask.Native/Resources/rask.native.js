@@ -218,17 +218,20 @@ window.addEventListener("popstate", function () {
 
 // Change — report the control's value (checkbox → checked). Flush any pending coalesced input first
 // so a change-triggered validator reads the freshly-typed value, not the pre-flush one.
-function valueOf(el) {
-    if (el.type === "checkbox") return el.checked ? "true" : "false";
-    return el.value == null ? "" : String(el.value);
-}
 document.addEventListener("change", function (e) {
     const el = e.target;
     if (!el || !el.getAttribute) return;
     const id = el.getAttribute("data-rask-on-change");
     if (!id || !inRoot(el)) return;
     if (typeof flushInputsNow === "function") flushInputsNow();
-    send({ id: id, type: "change", value: valueOf(el) });
+    // Through the shared module (rask-morph.js, spliced above at @@RASK_MORPH@@) rather than a local
+    // valueOf — this host had its own copy, which is exactly the drift that left <select> unguarded.
+    // `values` is null for everything except a <select multiple>, whose `.value` is only its FIRST
+    // selected option.
+    const frame = { id: id, type: "change", value: raskChangeFrameValue(el) };
+    const values = raskChangeFrameValues(el);
+    if (values !== null) frame.values = values;
+    send(frame);
 });
 
 // Submit — serialize the form fields into a flat { name: value } bag.

@@ -142,6 +142,51 @@ them until tagged releases begin.
   hot-reloads` and the Local-vs-Server section now all draw the same line.
 
 ### Fixed
+- **The WASM client no longer logs every event payload to the browser console.** `send()` opened with
+  `console.log("[Rask] send", payload)` — behind no flag, in production builds, on a path the comment
+  directly above it documents as firing ~60×/sec while someone types. `payload` carries the event's
+  value, so everything a user typed into a form was written to a place nobody expects data to land, and
+  the console was useless at 60 lines/sec for the debugging it was there to serve. Two quieter traces
+  (`setExports`, `navlink click`) went with it; the boot one is now an `error` raised only when the .NET
+  dispatch export is *unreachable*, which is a dead app and worth saying. The Server client had zero
+  `console.log` all along, which is the standard the others now meet — pinned by a test over all six
+  shipped `.js` files, including `Browser/rask.wasm.js`, the committed build artifact the browser
+  actually downloads and the copy most able to drift unnoticed. `console.warn` / `console.error` stay:
+  they report a fault rather than narrating the happy path.
+- **A full reply now moves a `<select>`'s live selection, not just its `selected` attributes.**
+  `morph()` synced the IDL properties that attributes can't reach for `INPUT` and `TEXTAREA` only, so a
+  reconnect, a scoped-CSS full reply, the WASM boot/navigation morph and the redeploy reload all moved a
+  select through its `selected` **attribute** alone. Per the HTML spec an option carries a *dirtiness*
+  flag, and once set the content attribute stops driving selectedness — so the server's answer was
+  silently ignored. Measured in Chromium rather than argued from the spec, and the result is narrower
+  and stranger than expected, which is why it survived: an attribute-only move is **not** broken by user
+  interaction as such. Dirtiness blocks the attribute only on the option that is dirty, so a move onto a
+  *pristine* option still lands, and a single-select is rescued again by the spec's "ask for a reset".
+  What actually failed: a single-select whose target the user had already touched (the box simply
+  ignored the server), and multi-selects, which get no reset — a user-picked option the incoming render
+  did not mark could not be cleared, so the control accumulated selections neither side ever chose. The
+  new `SELECT` arm applies the selection through the select, and consults the #588 lagging-frame guard
+  first, because making full replies start moving selects would otherwise let a reconnect clobber a
+  just-made pick — trading one bug for its mirror image. A select whose render marks nothing shows its
+  first enabled option, which is what a fresh parse of the same markup shows, rather than blanking.
+- **A `<select multiple>` reports every option the user picked, not just the first.** The change
+  dispatch sent `el.value`, and for a multiple select that is *the first selected option, or `""` when
+  none* — the DOM has no multi-value `value`. So picking three reported one and the server's model
+  converged on that one: correctly, from a report that was the wrong shape rather than merely late,
+  which is why #588's lagging-frame guard could not help. The frame now carries a `values` array
+  alongside `value`; `value` keeps its exact meaning, and `values` is omitted entirely for every other
+  control, so no existing payload grows a byte. `Select<T>(Bind: …, Multiple: true)` binds the whole
+  selection when `T` is a string collection (`string[]`, `List<string>`, `HashSet<string>`, or the
+  read-only/mutable collection interfaces), marking every picked option on render and *replacing* the
+  collection on each change rather than editing membership — the report is absolute, so a replace
+  re-syncs even when an intermediate render was coalesced, which a snapshot-based add/remove cannot.
+  `Multiple: true` over a scalar keeps the single-value binding: that model can hold one answer, and
+  widening it silently would be the more surprising change. The element type is deliberately `string` —
+  the reflective version needs `MakeGenericType`/`Array.CreateInstance`, both `RequiresDynamicCode`, and
+  the WASM sample has to publish with zero trim warnings. All three hosts now build the change frame
+  through one shared helper rather than three hand-copied copies, which is the drift that produced this
+  bug and #588 before it; a contract test holds them to it, and the frame-shape guard from #592 knows
+  `values` rides on `change` alone, so an `input` frame can't collapse a selection to one value.
 - **A `<select>` no longer snaps back to the old option when a lagging re-render lands.** `value` and
   `checked` each had a guard against a frame the server computed *before* the user's edit reached it;
   `selected` — the third property the diff codec mirrors onto its IDL twin — had none, so it was applied

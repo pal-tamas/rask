@@ -279,6 +279,118 @@ public static class BindingHelpers
             }
         };
 
+    /// <summary>
+    ///     The bound handler for a <c>&lt;select multiple&gt;</c> — the sibling of
+    ///     <see cref="TouchAndValidateHandler" /> for a control that reports a whole selection rather
+    ///     than one value.
+    /// </summary>
+    /// <remarks>
+    ///     Set, never toggle, for the same reason <see cref="BoolSetHandler" /> sets: every change frame
+    ///     carries the absolute selection, so the model re-syncs even if an intermediate render was
+    ///     coalesced or missed. A membership edit built from a render-time snapshot cannot recover from a
+    ///     one-step desync — see the note on that method.
+    /// </remarks>
+    public static CallbackAsync<IReadOnlyList<string>> MultiSelectSetHandler<T>(
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid,
+        Func<Task>? afterBind = null) =>
+        async picked =>
+        {
+            var didBind = false;
+            if (TrySetSelection<T>(acc, picked))
+            {
+                ctx?.NotifyFieldChanged(fid);
+                didBind = true;
+            }
+
+            if (didBind && afterBind is not null)
+            {
+                await afterBind().ConfigureAwait(false);
+            }
+
+            ctx?.NotifyFieldTouched(fid);
+            if (ctx is not null)
+            {
+                if (ctx.HasAsyncValidators)
+                {
+                    await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
+                }
+                else
+                {
+                    ctx.ValidateField(fid);
+                }
+            }
+        };
+
+    /// <summary>
+    ///     Whether <typeparamref name="T" /> is a shape a bound <c>&lt;select multiple&gt;</c> can write.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately a closed list of string collections rather than "any <c>IEnumerable&lt;E&gt;</c>
+    ///     reached by reflection". The reflective version needs <c>MakeGenericType</c> and
+    ///     <c>Array.CreateInstance</c>, both <c>RequiresDynamicCode</c> — they are IL3050 sites, and
+    ///     <c>samples/Rask.Example.Wasm</c> has to publish with zero trim/AOT warnings. Every instantiation
+    ///     below is written literally, so the AOT compiler can see all of them. A model that wants typed
+    ///     elements binds <c>string[]</c> and converts, which is one line and stays trimmable.
+    /// </remarks>
+    public static bool IsBindableSelectionType<T>() =>
+        typeof(T) == typeof(string[])
+        || typeof(T) == typeof(List<string>)
+        || typeof(T) == typeof(IReadOnlyList<string>)
+        || typeof(T) == typeof(IReadOnlyCollection<string>)
+        || typeof(T) == typeof(IList<string>)
+        || typeof(T) == typeof(ICollection<string>)
+        || typeof(T) == typeof(IEnumerable<string>)
+        || typeof(T) == typeof(HashSet<string>);
+
+    // Replace the bound collection wholesale rather than editing membership: every change frame carries
+    // the absolute selection, so a replace is self-correcting where an add/remove built from a render-time
+    // snapshot cannot recover from a one-step desync (the same reasoning as BoolSetHandler).
+    private static bool TrySetSelection<T>(ExpressionAccessor.Accessor acc, IReadOnlyList<string> picked)
+    {
+        if (!IsBindableSelectionType<T>())
+        {
+            return false;
+        }
+
+        // `public List<string> Tags { get; } = [];` is the ordinary way to declare one of these, and it
+        // has no setter — so refill the collection the model already owns. Checked first, not as a
+        // fallback, because assigning over a settable property is fine either way while calling a
+        // missing setter is not.
+        if (acc.Property.SetMethod is null)
+        {
+            if (acc.Getter() is not ICollection<string> existing || existing.IsReadOnly)
+            {
+                return false;
+            }
+
+            existing.Clear();
+            foreach (var v in picked)
+            {
+                existing.Add(v);
+            }
+
+            return true;
+        }
+
+        object value;
+        if (typeof(T) == typeof(List<string>))
+        {
+            value = new List<string>(picked);
+        }
+        else if (typeof(T) == typeof(HashSet<string>))
+        {
+            value = new HashSet<string>(picked, StringComparer.Ordinal);
+        }
+        else
+        {
+            // Everything else in the supported set is satisfied by an array.
+            value = picked.ToArray();
+        }
+
+        acc.Setter(value);
+        return true;
+    }
+
     // Checkbox binding sets the model to the checkbox's actual checked state reported by
     // the client (rask.js sends "true"/"false" for type=checkbox), rather than flipping a
     // state captured at render time. Setting (not toggling) makes the binding self-

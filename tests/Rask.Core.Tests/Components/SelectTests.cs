@@ -247,9 +247,149 @@ public class SelectTests
             view.RenderAsLiveRoot());
     }
 
+    // #595 — a <select multiple> reports its whole selection through the frame's `values` array.
+    // `select.value` is only the FIRST selected option (the DOM has no multi-value `value`), so the model
+    // used to converge on one option out of however many the user picked, from a report that was the
+    // wrong shape rather than merely late.
+
+    [Fact]
+    public async Task BoundMultiSelect_Change_BindsEveryReportedOption()
+    {
+        var model = new TagsModel { Tags = [] };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"a\",\"values\":[\"a\",\"c\"]}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(["a", "c"], model.Tags);
+    }
+
+    [Fact]
+    public async Task BoundMultiSelect_Change_ReplacesRatherThanMerges()
+    {
+        // Set, never merge: every change frame carries the absolute selection, so a replace re-syncs the
+        // model even when an intermediate render was coalesced. A membership edit could not.
+        var model = new TagsModel { Tags = ["a", "b"] };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"c\",\"values\":[\"c\"]}");
+        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.Equal(["c"], model.Tags);
+    }
+
+    [Fact]
+    public async Task BoundMultiSelect_EmptySelection_ClearsTheModel()
+    {
+        var model = new TagsModel { Tags = ["a"] };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"\",\"values\":[]}");
+        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.Empty(model.Tags);
+    }
+
+    [Fact]
+    public void BoundMultiSelect_PreselectsEveryBoundOption()
+    {
+        // The render half. A single-value select marks the one option matching its formatted value;
+        // a multi-select has to mark each member of the bound collection.
+        var model = new TagsModel { Tags = ["a", "c"] };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("<option value=\"a\" selected>", html);
+        Assert.Contains("<option value=\"c\" selected>", html);
+        Assert.DoesNotContain("<option value=\"b\" selected>", html);
+    }
+
+    [Fact]
+    public async Task BoundMultiSelect_WithoutTheValuesArray_FallsBackToTheSingleValue()
+    {
+        // A browser holding a client cached from a deploy that predates the array still sends `value`
+        // alone. Reporting one option is wrong, but dropping the user's pick entirely is worse.
+        var model = new TagsModel { Tags = [] };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"b\"}");
+        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.Equal(["b"], model.Tags);
+    }
+
+    [Fact]
+    public async Task BoundMultiSelect_GetOnlyCollection_IsRefilledInPlace()
+    {
+        // `public List<string> Tags { get; } = [];` is the ordinary way to declare one of these, and it
+        // has no setter — the shape the existing MultiSelect sample uses. Assigning would throw; the
+        // model's own collection is refilled instead.
+        var model = new OwnedTagsModel();
+        model.Tags.Add("a");
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"b\",\"values\":[\"b\",\"c\"]}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(["b", "c"], model.Tags);
+    }
+
+    [Fact]
+    public async Task BoundMultiSelect_OverAScalar_KeepsTheSingleValueHandler()
+    {
+        // Multiple:true on a model that can only hold one answer. Silently widening it would be the
+        // more surprising change, so this stays on the single-value path.
+        var model = new ColorPicker { Color = null };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Color, Multiple: true)[Option("red"), Option("blue")]
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = Markup.Attr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"red\",\"values\":[\"red\",\"blue\"]}");
+        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.Equal("red", model.Color);
+    }
+
     private sealed class ColorPicker
     {
         public string? Color { get; set; }
+    }
+
+    private sealed class TagsModel
+    {
+        public string[] Tags { get; set; } = [];
+    }
+
+    private sealed class OwnedTagsModel
+    {
+        public List<string> Tags { get; } = [];
     }
 
     private sealed class ChoiceModel

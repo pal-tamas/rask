@@ -1513,20 +1513,22 @@
             // a change-only control (checkbox, radio, date, number) reaches this without rask-input.js
             // having already noted it; noting twice is a no-op, since the first edit owns the base.
             raskNoteDirtyField(t);
-            // For a checkbox the meaningful state is el.checked, not el.value (which is the
-            // static "on" default). Report it as "true"/"false" so bound checkboxes set the
-            // model to the actual state (self-correcting) instead of relying on a server-side
-            // toggle. Radios and text inputs keep sending el.value (a radio's value IS the
-            // selected option).
-            const changeVal = (t.tagName === "INPUT" && t.type === "checkbox")
-                ? (t.checked ? "true" : "false")
-                : t.value;
+            // What the frame reports, from the shared module (rask-morph.js) rather than computed
+            // here — the hosts each carried their own copy and drifted, which is how <select> ended up
+            // with no lagging-frame guard. `values` is null for everything except a <select multiple>,
+            // whose `.value` is only its FIRST selected option.
+            const changeVal = raskChangeFrameValue(t);
+            const changeVals = raskChangeFrameValues(t);
             // Record what a lagging re-render would have to carry to be stale — the pre-edit value,
             // the pre-click checked (whole radio group), the pre-pick selected (whole select) — so the
             // apply paths can tell "the frame that predates the user's action" from "the server's
             // authoritative answer to it". Shared with the WASM runtime, in rask-morph.js.
             raskNotePendingFormState(t);
-            send({id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal});
+            const changeFrame = {
+                id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal
+            };
+            if (changeVals !== null) changeFrame.values = changeVals;
+            send(changeFrame);
         }
     });
 
