@@ -77,6 +77,23 @@ them until tagged releases begin.
   landed became an un-retried 502 (`lb_try_duration` defaults to 0). There was previously no gap at all.
 
 ### Fixed
+- **A stale handler id can no longer fire whatever now sits in its slot.** Handler ids are positional per
+  render, so the same id names a different handler after the tree changes — and dispatch keyed on the id
+  alone. The frame's `type` was read to route a few special messages (`hello`, `navigate`, `jsResult`,
+  `dotNetInvoke`) but never cross-checked against the handler the id resolved to, so
+  `{"id":"h37","type":"input","value":"…"}` arriving at a page where `h37` is now a parameterless
+  `OnClick` **ran that callback**, with nothing to say the wrong thing had fired. Not a cross-origin hole
+  — the socket is same-origin and session-bound, so the sender is already the user whose page it is — but
+  positional ids make the collision ordinary rather than exotic, and the silence is what made it bad. The
+  frame's declared type is now checked against the argument the delegate demands (a value frame needs a
+  value handler, a `submit` needs `FormData`, a click needs a parameterless one), and a mismatch is
+  answered exactly like the stale id it is: `false`, no handler, no render. Deliberately **not** a
+  whitelist — a type this build has never heard of is still dispatched, so a browser holding a cached
+  client from another deploy doesn't have its events silently swallowed. Two events of the *same* shape
+  (a `focus` frame against a `click` handler, both parameterless) still pass; separating those needs the
+  event name carried per live handler, which costs a reference per handler in every session and buys
+  nothing for two empty payloads. The check reads the frame's raw UTF-8 through `JsonElement.ValueEquals`
+  — 14 ns and **zero allocation** on the accepted path, on a path that already parses JSON.
 - **The style pass is part of the local gate again, and the "spurious CS1503" that kept it out is
   root-caused.** `dotnet format Rask.slnx` failed on `main` with `error IMPORTS: Fix imports ordering` in
   `RaskEndpointExtensions.cs` — a `using` that drifted out of order and stayed there, because nothing ran
