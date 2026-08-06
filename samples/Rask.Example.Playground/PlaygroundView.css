@@ -54,7 +54,9 @@
 /* Reset / Run / Docs / GitHub / theme-toggle are Bs* buttons (BsButton / BsLink) — Bootstrap styles
    them via the shared --bs-* token bridge, so there are no bespoke .pg-run / .pg-reset rules. The
    .pg-run class stays purely as a hook for the Ctrl/Cmd+Enter shortcut + the E2E. The IntelliSense
-   readiness pill is a BsBadge (.pg-ide is just a positioning hook). */
+   readiness pill is a BsBadge: .pg-ide is a positioning hook, and the .is-ready / .is-off / .is-loading
+   beside it are the state hook the browser E2E waits on — deliberately unstyled, since the colour comes
+   from the badge. Don't drop them for looking unused; that is exactly how #593 happened. */
 .pg-ide {
     font-weight: 600;
 }

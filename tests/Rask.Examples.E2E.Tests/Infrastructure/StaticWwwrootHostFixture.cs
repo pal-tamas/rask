@@ -1,12 +1,14 @@
 using System.Net;
+using System.Net.Sockets;
 
 namespace Rask.Examples.E2E.Tests.Infrastructure;
 
 /// <summary>
 ///     Serves a <em>published</em> WASM AppBundle's <c>wwwroot</c> from a tiny in-process static-file host
 ///     — the "any static host" (GitHub Pages / CDN) scenario, with no Rask runtime in front of it. Shared
-///     by every static-host fixture; a subclass only supplies its published-project path and a unique port
-///     (and may hook <see cref="OnBundleLocated" /> for extra checks). Build-free: it relies on the bundle
+///     by every static-host fixture; a subclass only supplies its published-project path (and may hook
+///     <see cref="OnBundleLocated" /> for extra checks) — the port is assigned by the OS, so nothing has to
+///     be kept unique by hand and two runs cannot collide. Build-free: it relies on the bundle
 ///     having been published to the default output path first, so publishing in-fixture (a concurrent
 ///     MSBuild under the full parallel suite) is avoided.
 ///     <para>A non-file GET falls back to <c>index.html</c> so client-side deep links resolve.</para>
@@ -51,10 +53,10 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
     protected abstract string ProjectRelativePath { get; }
 
     /// <summary>
-    ///     A port unique to this fixture — the static-host collections run in parallel, so a shared port
-    ///     would bind-clash and crash both hosts.
+    ///     The loopback port this fixture's host is listening on, assigned by the OS at
+    ///     <see cref="InitializeAsync" /> — see <see cref="BindEphemeral" /> for why it is not a constant.
     /// </summary>
-    protected abstract int Port { get; }
+    protected int Port { get; private set; }
 
     protected string Wwwroot { get; private set; } = string.Empty;
 
@@ -75,9 +77,8 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
         OnBundleLocated(Wwwroot);
 
         _cts = new CancellationTokenSource();
-        _listener = new HttpListener();
-        _listener.Prefixes.Add($"http://localhost:{Port}/");
-        _listener.Start();
+        (_listener, var port) = BindEphemeral(GetType().Name);
+        Port = port;
         _ = Task.Run(() => ServeLoopAsync(_listener, Wwwroot, _cts.Token));
 
         await WaitForReadyAsync(TimeSpan.FromSeconds(30));
@@ -97,9 +98,75 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
             /* ignore */
         }
 
-        _listener?.Close();
+        // Guarded like its siblings: xUnit reports a collection-cleanup throw as a failed *run*, so an
+        // unguarded teardown could fail a suite in which every test passed and name no test as the cause.
+        try { _listener?.Close(); }
+        catch
+        {
+            /* ignore */
+        }
+
         _cts?.Dispose();
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    ///     Starts a listener on an OS-assigned loopback port, so two runs of the suite — or two worktrees
+    ///     of this repo, which is the ordinary way to work here — cannot collide.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Each fixture used to declare a hard-coded port. Unique <em>within</em> a run, which is all the
+    ///         comment claimed, but every copy of the suite on the machine claimed the same ten, so a
+    ///         straggler host or a second checkout produced a bare <c>HttpListenerException</c> — reported
+    ///         either as a green run that "failed", or as a dozen <c>ERR_CONNECTION_REFUSED</c> tests that
+    ///         read like a broken app rather than a taken port.
+    ///     </para>
+    ///     <para>
+    ///         <c>HttpListener</c> rejects a <c>:0</c> prefix outright ("Invalid port in prefix"), and it
+    ///         cannot report an assigned port back, so the OS is asked for an ephemeral port through a
+    ///         throwaway <see cref="TcpListener" /> and <c>HttpListener.Start()</c> is then the
+    ///         authoritative test. Releasing the probe before binding leaves a window, so a clash simply
+    ///         costs another candidate rather than the run.
+    ///     </para>
+    ///     <para>
+    ///         The probe binds the family <c>localhost</c> will resolve to: a <c>localhost</c> prefix holds
+    ///         <c>[::1]</c> only where IPv6 is available (measured — which is also why a port can look free
+    ///         on <c>127.0.0.1</c> and still refuse to bind), and the explicit <c>http://[::1]:port/</c>
+    ///         form that would let us bind both is itself rejected as an invalid prefix.
+    ///     </para>
+    /// </remarks>
+    private static (HttpListener Listener, int Port) BindEphemeral(string fixture, int attempts = 20)
+    {
+        var loopback = Socket.OSSupportsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback;
+        HttpListenerException? last = null;
+
+        for (var attempt = 0; attempt < attempts; attempt++)
+        {
+            var probe = new TcpListener(loopback, 0);
+            probe.Start();
+            var port = ((IPEndPoint)probe.LocalEndpoint).Port;
+            probe.Stop();
+
+            var listener = new HttpListener();
+            listener.Prefixes.Add($"http://localhost:{port}/");
+            try
+            {
+                listener.Start();
+                return (listener, port);
+            }
+            catch (HttpListenerException ex)
+            {
+                last = ex;
+                listener.Close();
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"{fixture} could not bind a loopback port for its static host: {attempts} OS-assigned " +
+            $"candidates were all refused. Something on this machine is claiming ports as fast as they " +
+            $"are handed out — check for stragglers from an earlier run ('lsof -nP -iTCP -sTCP:LISTEN').",
+            last);
     }
 
     /// <summary>The message thrown when the published bundle is missing — subclasses tailor the fix hint.</summary>

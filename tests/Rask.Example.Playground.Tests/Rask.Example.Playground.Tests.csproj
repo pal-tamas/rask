@@ -37,6 +37,11 @@
              LinkBase="Compiler"/>
     <Compile Include="..\..\samples\Rask.Example.Playground\PlaygroundSamples.cs"
              LinkBase="Samples"/>
+    <!-- The readiness pill's state → class mapping, linked so the selector the browser E2E waits on is
+         pinned by THIS gate. It lives in its own file for exactly that reason (see IdeBadgeState): the
+         view itself can't be linked here, since it pulls in the browser host and Rask.Bootstrap. -->
+    <Compile Include="..\..\samples\Rask.Example.Playground\IdeBadgeState.cs"
+             LinkBase="Samples"/>
   </ItemGroup>
 
 </Project>
