@@ -113,8 +113,10 @@ Anything still connected when `ShutdownDrainTimeout` elapses is aborted, and
 >   one-time-code inputs, and anything with a `cc-*` / `current-password` / `new-password` `autocomplete`,
 >   are excluded unconditionally and never reach `sessionStorage` in the first place.
 >
-> `<select>` is not restored yet — it has no lagging-frame guard for the first re-render to be held off
-> with, unlike `value` and `checked`.
+> `<select>` is not restored yet. The lagging-frame guard it needs — to hold off the replacement's first
+> catch-up render — now exists alongside the ones for `value` and `checked`, but the save/apply side does
+> not cover it. A `<select multiple>` needs one more thing first: the change dispatch reports the select's
+> single `value`, which is only its first selected option.
 
 `ShutdownDrainTimeout` must fit inside `HostOptions.ShutdownTimeout`, which must fit inside whatever your
 container runtime allows between `SIGTERM` and `SIGKILL` (`rask deploy` uses 20 s). Rask logs a warning at

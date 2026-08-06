@@ -142,6 +142,25 @@ them until tagged releases begin.
   hot-reloads` and the Local-vs-Server section now all draw the same line.
 
 ### Fixed
+- **A `<select>` no longer snaps back to the old option when a lagging re-render lands.** `value` and
+  `checked` each had a guard against a frame the server computed *before* the user's edit reached it;
+  `selected` — the third property the diff codec mirrors onto its IDL twin — had none, so it was applied
+  unconditionally. Pick an option, have a re-render computed a moment earlier arrive, and the box reverted
+  to the server's older answer until the echo caught up. The focus guard doesn't help, for the same reason
+  it doesn't help a date input: a select commits on *change*, so focus has already moved on by the time
+  the stale frame lands. The change dispatch now records the pre-pick `selected` attribute of **every**
+  option in the select — the whole control, exactly as the checked guard records the whole radio group,
+  because a stale frame re-selecting the previously chosen option natively deselects the new one — and the
+  apply path suppresses a frame that still carries it, releasing as soon as an authoritative frame differs
+  so server-driven changes keep winning. Selection is also applied through the `<select>` itself rather
+  than by poking each option, so one write moves the whole group instead of leaving a single-select
+  momentarily showing its first option between the remove and the set. And the three guards are now armed
+  from **one** shared recorder rather than a copy hand-maintained in each host runtime — the drift that
+  produced this bug, since both copies covered `value` and `checked` and neither covered `selected`; a
+  source contract test now pins that both hosts go through it. Restoring a `<select>` across a redeploy
+  reload is still not covered (see `docs/configuration.md`): the guard it was waiting on now exists, but
+  the save/apply side is separate work, and `<select multiple>` first needs a change dispatch that reports
+  every selected option rather than just the first.
 - **A stale handler id can no longer fire whatever now sits in its slot.** Handler ids are positional per
   render, so the same id names a different handler after the tree changes — and dispatch keyed on the id
   alone. The frame's `type` was read to route a few special messages (`hello`, `navigate`, `jsResult`,
