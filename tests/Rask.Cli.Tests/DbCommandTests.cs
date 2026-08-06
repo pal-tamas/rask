@@ -207,15 +207,32 @@ public sealed class DbCommandTests
     }
 
     [Fact]
-    public async Task Force_on_a_non_drop_action_fails()
+    public async Task Yes_on_a_non_drop_action_fails()
     {
+        // Renamed from --force (#601): on new/generate that word means "overwrite files", here it meant
+        // "skip the confirmation" — and the one that destroys a database was reachable by muscle memory
+        // from the one that overwrites a file.
         var (command, runner, console) = CreateWithProject();
 
-        var exit = await command.ExecuteAsync(["update", "--force"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["update", "--yes"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("--force only applies", console.ErrorText);
+        Assert.Contains("--yes only applies", console.ErrorText);
+    }
+
+    [Fact]
+    public async Task The_old_force_spelling_is_rejected_rather_than_silently_ignored()
+    {
+        // A script carrying `rask db drop --force` must not quietly lose its confirmation skip and hang
+        // on a prompt — or, worse, be taken as an unknown option that some future flag reclaims.
+        var (command, runner, console) = CreateWithProject();
+
+        var exit = await command.ExecuteAsync(["drop", "--force"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("--force", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Theory]

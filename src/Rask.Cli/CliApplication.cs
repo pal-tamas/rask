@@ -33,6 +33,7 @@ internal sealed class CliApplication
             new DbCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new DeployCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new InfoCommand(console, process),
+            new DoctorCommand(console, fileSystem, process, Environment.CurrentDirectory),
         };
 
         // Completion reflects the live command set (names + option schemas), so it is added last with a

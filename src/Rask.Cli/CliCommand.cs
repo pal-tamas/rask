@@ -43,6 +43,19 @@ internal abstract class CliCommand(IConsole console)
     /// <summary>Print a bold section/action heading to stdout.</summary>
     protected void WriteHeading(string message) => Console.WriteLine(message, ConsoleStyle.Heading);
 
+    /// <summary>
+    ///     Report one thing a <c>--dry-run</c> would have done, in the one format every command uses.
+    /// </summary>
+    /// <remarks>
+    ///     <c>--dry-run</c> was on three commands in three shapes: <c>new</c> printed indented names,
+    ///     <c>generate</c> printed an unindented path followed by the entire file, and <c>deploy</c>
+    ///     printed docker commands under its own heading (#600). One line format means the output of any
+    ///     dry run is scannable the same way, and the summary reads as a plan rather than as a document
+    ///     dump. Contents are opt-in behind <c>--verbose</c> where a command has them.
+    /// </remarks>
+    protected void WriteDryRun(string action, string subject) =>
+        Console.WriteLine($"  [dry-run] would {action} {subject}", ConsoleStyle.Dim);
+
     /// <summary>Print a non-fatal caution (yellow) to stderr — the tool carries on.</summary>
     protected void WriteWarning(string message) => Console.WriteErrorLine(message, ConsoleStyle.Warning);
 

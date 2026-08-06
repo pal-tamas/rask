@@ -67,10 +67,21 @@ internal sealed partial class DeployCommand
     /// app, not just this one: they share a host and a proxy, so "what else is here" is part of the
     /// answer — and it's how you notice a second app you'd forgotten holding port 80.
     /// </summary>
-    private async Task<int> StatusAsync(string host, string slug, CancellationToken cancellationToken)
+    private async Task<int> StatusAsync(string host, string slug, bool asJson, CancellationToken cancellationToken)
     {
         var listing = await Capture(BuildStatusArguments(host), cancellationToken).ConfigureAwait(false);
         var apps = ParseStatusRows(listing.StandardOutput);
+
+        // Before the empty-list branch: "nothing is deployed" is an answer a script wants as an empty
+        // array, not as prose on stdout that it then has to recognise.
+        if (asJson)
+        {
+            JsonOutput.Write(
+                Console,
+                new DeployStatusReport(HostName(host), [.. apps.Select(a => ToJson(a, slug))]),
+                CliJsonContext.Default.DeployStatusReport);
+            return 0;
+        }
 
         if (apps.Count == 0)
         {
@@ -281,6 +292,27 @@ internal sealed partial class DeployCommand
 
     internal static IReadOnlyList<string> BuildUntagArguments(string host, string slug, string tag) =>
         [.. Prefix(host), "image", "rm", $"{slug}:{tag}"];
+
+    /// <summary>
+    ///     One status row as JSON. The human table folds several things together for width — an empty
+    ///     app name falls back to the container, a missing domain becomes the ports or "(not published)"
+    ///     — which is right for reading and wrong for parsing, so the fields stay separate here and empty
+    ///     strings become null rather than pretending to be values.
+    /// </summary>
+    private static DeployedAppStatus ToJson(StatusRow row, string slug)
+    {
+        var app = row.App.Length > 0 ? row.App : row.Container;
+        return new DeployedAppStatus(
+            app,
+            row.Container,
+            Nullify(row.Domain),
+            Nullify(row.Ports),
+            Nullify(row.Color),
+            row.Status,
+            string.Equals(app, slug, StringComparison.Ordinal));
+
+        static string? Nullify(string value) => value.Length == 0 ? null : value;
+    }
 
     /// <summary>Parse the status listing. Malformed rows are skipped, never guessed at.</summary>
     internal static IReadOnlyList<StatusRow> ParseStatusRows(string psOutput)

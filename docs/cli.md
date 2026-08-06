@@ -36,6 +36,57 @@ Help (and other output) is colorized when `rask` is writing to a terminal, and f
 text when the output is piped or when the [`NO_COLOR`](https://no-color.org) environment variable is
 set — so `rask info | cat` and CI logs stay clean.
 
+## Short names mean one thing
+
+A short flag means the same option on every command that has it, so muscle memory carries between
+them:
+
+| short | option |
+| --- | --- |
+| `-h` | `--help` (reserved CLI-wide; no command may claim it) |
+| `-p` | `--project` |
+| `-o` | `--output` |
+| `-f` | `--fields` |
+| `-c` | `--context` |
+| `-n` | `--name` |
+| `-y` | `--yes` |
+
+A few options have no short name on purpose, because the letter belongs to something else: `rask dev
+--open`, `rask deploy logs --follow`, `rask generate --plural`. `--feature` is `-F` for the same
+reason — `-f` is `--fields`, which `generate` also takes.
+
+`--force` means *overwrite files* (`new`, `generate`). Skipping a destructive confirmation is
+`--yes` (`rask db drop`, `rask db restore`) — a different word, because it is a different power.
+
+A test enforces all of this, so a new option cannot quietly reuse a letter.
+
+## `--dry-run` and `--json`
+
+**`--dry-run` lists what would happen and changes nothing**, in the same shape everywhere: one
+`[dry-run] would …` line per action. It is on `new`, `generate`, `dev`, `db` and `deploy`.
+
+```bash
+rask db drop --dry-run        # the exact `dotnet ef` command, without the database going anywhere
+rask dev --dry-run            # the `dotnet watch` command line and the environment it sets
+rask generate feature Product Name:string --dry-run            # the files it would write
+rask generate feature Product Name:string --dry-run --verbose  # ...and their contents
+```
+
+A dry run never prompts — it does nothing, so there is nothing to consent to.
+
+**`--json` prints a document and nothing else**, so it pipes into `jq` without filtering banners out:
+
+```bash
+rask info --json
+rask deploy status --json
+rask db list --json
+```
+
+Errors still go to stderr and the exit code still distinguishes `2` (you typed something wrong) from
+`1` (what you asked for failed), so a script never has to parse prose to find out what happened. Fields
+that have no value are **absent** rather than carrying a human placeholder — `rask info --json` on a
+machine with no SDK simply has no `dotnetSdk` key, where the human report prints `not found`.
+
 ## `rask new` — scaffold a project
 
 ```bash
@@ -176,10 +227,11 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 | `--tests` | `feature` only: also emit xUnit tests in a sibling `<Project>.Tests` project — a domain test (`Create`/`Update` + value-object validation) and, when the `DbContext` is generated, a SQLite round-trip persistence test. The test project is created and wired (test SDK, xUnit, a reference to the app) on first use, so `dotnet test` runs as-is. |
 | `--no-restore` | `feature` only: don't add the NuGet packages automatically (just print them). |
 | `--context`, `-c` | `feature` only: reference an existing `DbContext` by name instead of generating a feature-local one (then add a `DbSet` to it). |
-| `--plural`, `-p` | `feature` only: the plural used for the folder, DbSet, list page, and route. Give the entity a **singular** name (`Product`) and this defaults to a simple pluralization (`Products`); override it when that guess is wrong (`--plural People`). |
+| `--plural` | `feature` only: the plural used for the folder, DbSet, list page, and route. Give the entity a **singular** name (`Product`) and this defaults to a simple pluralization (`Products`); override it when that guess is wrong (`--plural People`). |
 | `--route`, `-r` | `page` only: the `[Route]` path (default: kebab-case of the name, e.g. `/products`). |
 | `--feature`, `-F` | `component`/`job`/`email` only: co-locate the file under `Features/<Name>/` instead of the default `Features/Shared/` (the namespace follows the folder). |
 | `--output`, `-o` | Write into this folder instead of the default (the namespace follows the folder). |
+| `--project`, `-p` | Project to scaffold into. Accepts a `.csproj` or a directory. Needed when a folder holds more than one project, which is otherwise a hard stop. |
 | `--force` | Overwrite existing file(s). |
 | `--dry-run` | Print the file(s) that would be written, and write nothing. |
 | `--save-defaults` | `feature` only: remember this run's feature flags in `.rask/generate.json` (see below). |
@@ -266,7 +318,7 @@ app instead of stopping at an interactive prompt. Pass `--no-restart` to be aske
 | `--project`, `-p` | Project to run. Accepts a `.csproj` or a directory. |
 | `--urls` | URLs to listen on (sets `ASPNETCORE_URLS`). |
 | `--launch-profile` | launchSettings profile to use. |
-| `--open`, `-o` | Open a browser once the app answers. Skipped if the launch profile already opens one. |
+| `--open` | Open a browser once the app answers. Skipped if the launch profile already opens one. |
 | `--no-open` | Never open a browser. |
 | `--no-hot-reload` | Keep watching, but restart on change instead of applying live. |
 | `--no-restart` | Ask before restarting on an edit hot reload can't apply. |
@@ -331,7 +383,7 @@ rask db list                         # list migrations and which are applied
 rask db update                       # apply pending migrations to the database
 rask db update 20240101_Init         # migrate up/down to a specific migration
 rask db remove                       # undo the last (unapplied) migration
-rask db drop --force                 # drop the database (a dev reset)
+rask db drop --yes                 # drop the database (a dev reset)
 rask db backup                       # a consistent copy of the local database
 rask db backup --remote -o backups/  # ...of the deployed one, pulled down
 rask db restore backups/app-20260805-081500.db --remote
@@ -348,9 +400,9 @@ current directory — override with `--project`), and if the EF Core tools aren'
 | `remove` | `dotnet ef migrations remove` | undo the last migration |
 | `list` | `dotnet ef migrations list` | show migrations and applied state |
 | `update [<target>]` | `dotnet ef database update` | apply pending, or migrate to a named point |
-| `drop` | `dotnet ef database drop` | drops the database; prompts unless `--force` |
+| `drop` | `dotnet ef database drop` | drops the database; prompts unless `--yes` |
 | `backup` | — | a consistent copy; `--output/-o` a file or directory, `--remote` for the deployed one |
-| `restore <file>` | — | replaces the database with a copy; prompts unless `--force` |
+| `restore <file>` | — | replaces the database with a copy; prompts unless `--yes` |
 
 Shared options: `--project/-p` (the project owning the `DbContext`), `--startup-project/-s` (the app
 that configures it; defaults to `--project`), and `--context/-c` (when the app has more than one
@@ -369,7 +421,7 @@ rask db backup --output backups/                # into a directory, same generat
 rask db backup --output nightly.db              # a name you choose
 rask db backup --remote                         # the deployed database, pulled down
 rask db restore nightly.db                      # replace the local database
-rask db restore nightly.db --remote --force     # ...and the deployed one, unattended
+rask db restore nightly.db --remote --yes     # ...and the deployed one, unattended
 ```
 
 **A file copy of a live SQLite database is not a backup.** With WAL on — and every Rask app has it, it is
@@ -384,7 +436,7 @@ result down over the existing `docker -H ssh://…` connection. The host does ne
 `alpine`, which it already does for every deploy. Host and app name come from `.rask/deploy.json`, so a
 repeat backup is a bare `rask db backup --remote`; override with `--host` and `--app`.
 
-**Restore replaces a database, so it behaves like `rask db drop`**: it asks first, takes `--force` to skip
+**Restore replaces a database, so it behaves like `rask db drop`**: it asks first, takes `--yes` to skip
 the prompt, and refuses outright when there's no terminal to ask on rather than guessing. A remote restore
 also **stops the app first and starts it again afterwards** — replacing the file under a live writer
 leaves the running process holding the database it thinks it has, and its next checkpoint writes that
@@ -487,7 +539,7 @@ two tags, so running it again undoes the rollback rather than repeating it.
 | Option | Applies to | Purpose |
 | --- | --- | --- |
 | `--tail <n\|all>` | `logs` | Lines to show (default `100`). |
-| `--follow`, `-f` | `logs` | Stream new lines until interrupted. |
+| `--follow` | `logs` | Stream new lines until interrupted. |
 
 Options that describe *what to deploy* (`--domain`, `--container-port`, `--dockerfile`, `--dry-run`, …)
 are rejected on these verbs rather than silently ignored — they operate on what is already deployed.
@@ -515,6 +567,41 @@ each time.
 every push to `main`, and prints the two `gh secret set` lines it needs (an SSH key and the host's
 fingerprint). Everything else comes from the committed `.rask/deploy.json`. It deploys with
 `--no-setup-host`: prepare the box once from your own machine, so CI never reconfigures a host.
+
+## `rask doctor` — check before you hit it
+
+```bash
+rask doctor          # what's here, what's missing, and what only some commands need
+rask doctor --json   # the same verdict, for CI
+```
+
+Every probe it runs already existed, each reachable only from the command that needed it — so the way
+to find out whether your machine could run something was to run it and see where it stopped, halfway
+through, having already done some of the work.
+
+```
+  ok    rask                0.20.1
+  ok    dotnet sdk          10.0.302
+  ok    dotnet-ef           installed
+  warn  docker              not found
+                            Only `rask deploy` needs it — https://docs.docker.com/get-docker/
+  ok    project             /src/Shop
+  ok    database            SQLite
+  fail  .rask/deploy.json   isn't valid JSON: 'o' is an invalid start of a property name…
+                            Until it parses, its remembered settings are silently ignored.
+```
+
+**Warnings aren't failures.** Docker missing is fatal to `rask deploy` and irrelevant to everyone else,
+so only a genuinely broken thing sets the exit code (`1`); a machine that can start every command exits
+`0`.
+
+**It is read-only.** It reports; it never installs or fixes. A doctor that quietly installed the tooling
+it found missing would be doing the thing you ran it to avoid.
+
+One thing it exists to catch: a corrupt `.rask/deploy.json` or `.rask/generate.json` used to be
+swallowed — the loaders fall back to defaults, so a typo'd file looked exactly like no file, and the
+remembered host or team flags vanished with nothing said. They now say so in passing, and `doctor`
+reports it as a failure.
 
 ## `rask info` — environment report
 

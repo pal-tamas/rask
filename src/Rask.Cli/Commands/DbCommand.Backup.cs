@@ -134,7 +134,7 @@ internal sealed partial class DbCommand
                 : await RestoreLocalAsync(projectDirectory, file!, force, cancellationToken).ConfigureAwait(false);
         }
 
-        var config = DeployConfig.Load(_fileSystem, _workingDirectory);
+        var config = DeployConfig.Load(_fileSystem, _workingDirectory, Console);
         host ??= config.Host;
         if (string.IsNullOrWhiteSpace(host))
         {
@@ -425,7 +425,7 @@ internal sealed partial class DbCommand
         if (Console.IsInputRedirected)
         {
             Console.WriteErrorLine(
-                "This replaces a database. Pass --force to confirm — there's no terminal to ask on.",
+                "This replaces a database. Pass --yes to confirm — there's no terminal to ask on.",
                 ConsoleStyle.Error);
             exitCode = 1;
             return false;

@@ -32,7 +32,7 @@ rask db add InitialCreate             # generate a migration from the current mo
 rask db update                        # apply it — creates app.db
 rask db list                          # which migrations exist, and which are applied
 rask db remove                        # undo the last migration
-rask db drop --force                  # delete the database, no prompt
+rask db drop --yes                  # delete the database, no prompt
 rask db backup                        # copy it to ./<app>-<timestamp>.db
 rask db restore backups/shop.db       # put a copy back (--remote for the deployed one)
 

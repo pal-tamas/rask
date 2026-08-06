@@ -161,6 +161,66 @@ public sealed class CliApplicationTests
         }
     }
 
+    [Fact]
+    public void A_short_name_means_the_same_option_on_every_command()
+    {
+        // #601. -o was --output on four commands and a boolean --open on dev, so `rask dev -o ./path`
+        // parsed happily and dropped the path into the positionals; -p was --project on three and
+        // --plural on generate, so the same keystrokes set a different thing depending on where you
+        // were. Both fail silently, which is what makes them worth a test rather than a doc note.
+        var app = CliApplication.CreateDefault(new StringConsole(), new FakeProcessRunner(), new FakeFileSystem());
+
+        var claims = new Dictionary<char, (string Long, bool IsFlag, string Command)>();
+        foreach (var command in app.Commands)
+        {
+            foreach (var option in command.OptionSchema?.Declared ?? [])
+            {
+                if (option.ShortName is not { } shortName)
+                {
+                    continue;
+                }
+
+                if (!claims.TryGetValue(shortName, out var existing))
+                {
+                    claims[shortName] = (option.LongName, option.IsFlag, command.Name);
+                    continue;
+                }
+
+                Assert.True(
+                    existing.Long == option.LongName,
+                    $"-{shortName} is --{existing.Long} on 'rask {existing.Command}' but --{option.LongName} "
+                    + $"on 'rask {command.Name}'. A short name has to mean one thing across the CLI; give "
+                    + "one of them a different letter, or no short name at all.");
+
+                // Belt and braces: the same long name declared as a flag on one command and a value on
+                // another is the -o failure exactly, and would slip past the check above.
+                Assert.True(
+                    existing.IsFlag == option.IsFlag,
+                    $"-{shortName} (--{option.LongName}) takes a value on one of 'rask {existing.Command}' / "
+                    + $"'rask {command.Name}' and is a boolean on the other, so the wrong one silently "
+                    + "swallows its argument as a positional.");
+            }
+        }
+    }
+
+    [Fact]
+    public void Every_project_scoped_command_offers_an_escape_hatch()
+    {
+        // generate was the only one of the four without --project, so when project resolution failed —
+        // which it does whenever a directory holds more than one .csproj — its error had nothing to
+        // suggest (#601).
+        var app = CliApplication.CreateDefault(new StringConsole(), new FakeProcessRunner(), new FakeFileSystem());
+
+        foreach (var name in new[] { "dev", "db", "deploy", "generate" })
+        {
+            var command = app.Commands.Single(c => c.Name == name);
+            var project = command.OptionSchema?.Declared.FirstOrDefault(o => o.LongName == "project");
+
+            Assert.True(project is not null, $"'rask {name}' has no --project to fall back on.");
+            Assert.Equal('p', project!.ShortName);
+        }
+    }
+
     [Theory]
     [InlineData("-h")]
     [InlineData("--help")]
