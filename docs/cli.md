@@ -405,6 +405,10 @@ show "Updating…" and reload onto the new one at their previous scroll position
 from the host's live containers on every deploy — deploying a second app (a different `--domain`)
 leaves the first untouched. Without `--domain`, the app is published on `--port` (default `8080`) and
 you put your own TLS/reverse proxy in front (there's no zero-downtime swap on a single published port).
+That downtime is inherent to publishing one port; *staying* down is not. If the new container fails to
+start or fails its health check, port mode brings `:previous` back automatically — the last image that
+passed the same gate — and still exits non-zero, so a bad image costs you a blip rather than an outage.
+Use `rask deploy rollback` to undo a deploy that *did* come up healthy.
 
 **Your database survives redeploys.** Each deploy runs a fresh container, so `rask deploy` mounts a
 per-app named volume and points the app at it (`ConnectionStrings:App` → `Data Source=/data/app.db`) — the

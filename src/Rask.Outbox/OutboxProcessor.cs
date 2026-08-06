@@ -144,7 +144,13 @@ public sealed class OutboxProcessor<TContext>(
         }
     }
 
-    private async Task RunCycleAsync(CancellationToken cancellationToken)
+    /// <summary>
+    ///     One poll: drain the queue, sweep retention, sample the depth. Internal so a test can drive
+    ///     exactly one cycle instead of starting the hosted service and sleeping — a fixed sleep is a race
+    ///     the machine wins or loses depending on what else is running, which is how these tests came to
+    ///     fail only under a full-suite load.
+    /// </summary>
+    internal async Task RunCycleAsync(CancellationToken cancellationToken)
     {
         try
         {

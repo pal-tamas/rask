@@ -432,16 +432,21 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         if (!await WaitUntilRunningAsync(host, slug, cancellationToken).ConfigureAwait(false))
         {
             await DumpLogsAsync(host, slug, env, cancellationToken).ConfigureAwait(false);
-            return 1;
+            return await RestorePreviousAsync(
+                host, slug, port, containerPort, env, healthEnabled, healthPath, provider, tag,
+                "The new container did not stay running.", cancellationToken).ConfigureAwait(false);
         }
 
-        // No blue-green here (the old container is already gone), so a failed probe can't roll back — it
-        // surfaces the broken deploy with logs rather than leaving it to fail silently under traffic.
+        // There is no blue-green swap on a single published port — the old container is stopped before the
+        // new one starts, so the downtime is real and documented. What is NOT acceptable is *staying* down:
+        // on a bad image the gate used to report the failure and leave nothing serving. It now re-enters
+        // with `:previous`, which is the last image that passed this same gate.
         if (healthEnabled && !await WaitUntilHealthyAsync(host, slug, healthPath, containerPort, cancellationToken).ConfigureAwait(false))
         {
             await DumpLogsAsync(host, slug, env, cancellationToken).ConfigureAwait(false);
-            Console.WriteErrorLine(HealthFailureMessage(healthPath, rolledBack: false), ConsoleStyle.Error);
-            return 1;
+            return await RestorePreviousAsync(
+                host, slug, port, containerPort, env, healthEnabled, healthPath, provider, tag,
+                HealthFailureMessage(healthPath, rolledBack: false), cancellationToken).ConfigureAwait(false);
         }
 
         if (persist)
@@ -450,6 +455,60 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         }
         Console.WriteLine($"Deployed. The app is live at http://{HostName(host)}:{port}", ConsoleStyle.Success);
         return 0;
+    }
+
+    /// <summary>
+    ///     Port mode's automatic rollback: bring <c>:previous</c> back after a deploy that started but did
+    ///     not come up healthy. Always returns a non-zero exit code — the deploy failed either way; the
+    ///     only question is whether the box is left serving something.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Guarded by <paramref name="tag" />: this only fires for a deploy of <c>:current</c>, so the
+    ///         re-entry (which passes <see cref="PreviousTag" />) cannot recurse. That condition is the
+    ///         whole recursion guard — there is no depth counter to get wrong.
+    ///     </para>
+    ///     <para>
+    ///         Tags are deliberately left alone, unlike <c>rask deploy rollback</c>, which swaps them.
+    ///         Nothing about the *configuration* succeeded here: the operator fixes the image and deploys
+    ///         again, which overwrites <c>:current</c>. Swapping would file the last known-good image away
+    ///         as <c>:previous</c> and let the next deploy lose it.
+    ///     </para>
+    /// </remarks>
+    private async Task<int> RestorePreviousAsync(
+        string host, string slug, int port, int containerPort, IReadOnlyList<string> env,
+        bool healthEnabled, string healthPath, DatabaseProvider provider, string tag, string reason,
+        CancellationToken cancellationToken)
+    {
+        if (tag != CurrentTag)
+        {
+            // Already the restore attempt. Report plainly rather than trying again.
+            Console.WriteErrorLine($"{reason} The previous version did not come up either.", ConsoleStyle.Error);
+            return 1;
+        }
+
+        if (await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false) is null)
+        {
+            Console.WriteErrorLine($"{reason} There is no previous image to fall back to.", ConsoleStyle.Error);
+            Console.Error.WriteLine($"{slug}:{PreviousTag} is written by the deploy that replaces it, so the first deploy of an app has no predecessor.");
+            return 1;
+        }
+
+        Console.WriteErrorLine(reason, ConsoleStyle.Error);
+        WriteHeading($"Restoring {slug}:{PreviousTag}…");
+
+        var restored = await DeployPortAsync(
+            host, slug, port, containerPort, env, project: null, envFile: null, healthEnabled, healthPath,
+            provider, cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false);
+
+        if (restored == 0)
+        {
+            Console.WriteLine(
+                $"The previous version is serving again on port {port}. The deploy itself failed — fix the image and deploy again.",
+                ConsoleStyle.Warning);
+        }
+
+        return 1;
     }
 
     // ── The domain path: blue-green swap behind a shared, multi-app Caddy proxy (zero downtime). ────────

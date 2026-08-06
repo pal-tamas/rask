@@ -63,6 +63,28 @@ them until tagged releases begin.
   landed became an un-retried 502 (`lb_try_duration` defaults to 0). There was previously no gap at all.
 
 ### Fixed
+- **The local unit gate no longer flakes on two background-processor tests.** Both passed every time in
+  isolation and failed only under a full-suite load, which is the worst shape for a gate the pre-commit
+  hook enforces: the practical workaround is `--no-verify`, which skips the format and unit checks
+  entirely. `OutboxRetentionTests` started the real hosted service and slept a fixed 500 ms per step, so
+  under load the first poll had not finished when the processor was stopped and the retention sweep never
+  ran — the assertions then read as "the sweep is broken" rather than "the sweep never happened". It now
+  drives `OutboxProcessor.RunCycleAsync` directly (one explicit poll per step; retention is throttled on
+  the injected clock, so that is exactly what the test means). `MailProcessorTests` waited for
+  `Sender.Sent.Count == 1` and then asserted on `ProcessedAt`, which the processor writes *after* the
+  sender returns — so it asserted on state it had never waited for. It now waits for the row.
+- **A failed port-mode deploy no longer leaves the box serving nothing.** Without `--domain` the app is
+  published on a single port, so the old container is stopped before the new one starts — there is no
+  blue-green swap to fall back on, and the health gate could only report the failure. A bad image (bad
+  config, a migration that won't apply) therefore took the app down and left it down, with the gate's own
+  code comment admitting it "can't roll back". It now re-enters the deploy with `:previous` — the last
+  image that passed this same gate — on either post-start failure: a container that doesn't stay running,
+  or one that never answers the health probe. The deploy still exits non-zero, because it still failed;
+  the difference is that the box is serving the previous version rather than nothing. The `tag` parameter
+  is its own recursion guard (the restore passes `:previous`, so it cannot re-enter), and tags are
+  deliberately *not* swapped the way `rask deploy rollback` swaps them — nothing about the configuration
+  succeeded, so the next deploy should overwrite `:current` rather than file the last known-good image
+  away as `:previous`. The inherent downtime of one published port is unchanged and still documented.
 - **Every web-host sample now budgets its shutdown.** Nine of the ten inherited .NET's default 30s
   `ShutdownTimeout`, which *exceeds* the 20s `rask deploy` allows between SIGTERM and SIGKILL — so a sample
   deployed as written would be killed mid-shutdown. Only `Rask.Example.Shop` was right, which meant a reader
