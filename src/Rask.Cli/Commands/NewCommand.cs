@@ -61,7 +61,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
             .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
-            .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext ready for `rask generate feature --context AppDbContext` (server only). See --database.")
+            .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext that `rask generate feature` attaches to (server only). See --database.")
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")
             .Flag("force", description: "Scaffold into a directory that already has files in it, overwriting on collision.")

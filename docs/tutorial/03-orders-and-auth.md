@@ -1,28 +1,30 @@
 # Chapter 3 — A second feature, and locking it down
 
 > **Goal:** add an **Orders** feature that shares the same database, then require a login to edit the catalog.
-> **You'll run:** `rask generate feature Order … --context AppDbContext`
+> **You'll run:** `rask generate feature Order …`
 
 ## 1. A second feature in the same database
 
-The One Person Framework idea is *one* database for the whole product. So instead of letting the generator
-create a second `DbContext`, we point the new feature at the one we already have with `--context`:
+The One Person Framework idea is *one* database for the whole product — so the generator never creates a
+second `DbContext`. It attaches this feature to the one the app already has:
 
 ```bash
 rask generate feature Order Total:decimal ProductId:guid Placed:datetime \
-  --context AppDbContext --validation dataannotations
+  --validation dataannotations
 ```
 
-This writes `Features/Orders/` (entity, request, pages, CQRS handlers) **without** a new `DbContext` —
-because we pointed it at the one we already have. The CLI reports:
+This writes `Features/Orders/` (entity, request, pages, CQRS handlers) and no new `DbContext`. The CLI
+reports:
 
 ```
-Added 1 DbSet(s) to Features/Products/AppDbContext.cs.
+Added 1 DbSet(s) to Features/Shared/AppDbContext.cs.
 ```
 
-It found `AppDbContext`, added `public DbSet<Order> Orders => Set<Order>();` next to `Products` (with the
-`using` it needs), and the generated `Orders` pages import the context's namespace — so it compiles as-is, no
-hand-edits. Your one `AppDbContext` now holds both `Products` and `Orders`: one database, one context.
+It found `AppDbContext` by scanning the project, added `public DbSet<Order> Orders => Set<Order>();` next to
+`Products` (with the `using` it needs), and the generated `Orders` pages import the context's namespace — so it
+compiles as-is, no hand-edits. Your one `AppDbContext` now holds both `Products` and `Orders`: one database,
+one context. (If an app really does have several contexts, the CLI stops and asks which one with
+`--context <Name>` rather than guessing.)
 
 > **Relating entities.** When you scaffold related entities *together* in one command, Rask generates the
 > foreign key, the navigation properties, and the EF mapping for you — e.g.

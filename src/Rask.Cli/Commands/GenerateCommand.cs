@@ -52,7 +52,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         new ArgumentSchema()
             .Verb("page", "A routed page component.", "p")
             .Verb("component", "A reusable component.", "c")
-            .Verb("feature", "A full CRUD slice: entity, DbContext, commands, and pages.", "f")
+            .Verb("feature", "A full CRUD slice: entity, commands, queries, and pages.", "f")
             .Verb("job", "A background job handler.", "j")
             .Verb("email", "An email message and its send path.", "e")
             .Verb("cache", "A cached read accessor.", "ca")
@@ -69,7 +69,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Flag("verbose", description: "With --dry-run, also print each file's contents.")
             .Option("route", 'r', "path", "URL route for the page.", group: "Page options")
             .Option("fields", 'f', "list", "Fields as Name:type,... (or pass them positionally).", FeatureGroup)
-            .Option("context", 'c', "Name", "Reuse an existing DbContext instead of generating one.", FeatureGroup)
+            .Option("context", 'c', "Name", "DbContext to map the entities with (default: the project's own).", FeatureGroup)
             // No short name: '-p' is --project CLI-wide. --plural held it only here, so `rask g f -p X`
             // meant something different from the same keystrokes on dev/db/deploy.
             .Option("plural", valueHint: "Name", description: "Plural name for the feature folder/route (default: auto-pluralized).", group: FeatureGroup)
@@ -420,7 +420,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     {
         var declaration = new Regex($@"\b(?:class|record)\s+{Regex.Escape(contextName)}\b");
         var namespaceOf = new Regex(@"\bnamespace\s+([\w.]+)");
-        foreach (var file in _fileSystem.ListFilesRecursive(project.ProjectDirectory, "*.cs"))
+        foreach (var file in SourceFiles(project))
         {
             var text = _fileSystem.ReadAllText(file);
             if (!declaration.IsMatch(text))
@@ -435,14 +435,22 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         return (null, null);
     }
 
-    // Every class that directly extends DbContext in the project (name + namespace + file). `generate email`
-    // auto-detects the one to wire the mail queue into.
+    // The project's own C# files. Build output is excluded: obj/ carries generated and (for some SDKs) copied
+    // sources, and a second copy of a context there would read as a second context — which `generate feature`
+    // now refuses to guess between.
+    private IEnumerable<string> SourceFiles(ProjectContext project) =>
+        _fileSystem.ListFilesRecursive(project.ProjectDirectory, "*.cs")
+            .Where(f => !f.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .Any(s => s is "obj" or "bin"));
+
+    // Every class that directly extends DbContext in the project (name + namespace + file). `generate feature`
+    // attaches to it, and `generate email` wires the mail queue into it.
     private IReadOnlyList<(string Name, string Namespace, string FilePath)> FindContexts(ProjectContext project)
     {
         var declaration = new Regex(@"\bclass\s+(\w+)\b[^{;]*:\s*DbContext\b");
         var namespaceOf = new Regex(@"\bnamespace\s+([\w.]+)");
         var found = new List<(string, string, string)>();
-        foreach (var file in _fileSystem.ListFilesRecursive(project.ProjectDirectory, "*.cs"))
+        foreach (var file in SourceFiles(project))
         {
             var text = _fileSystem.ReadAllText(file);
             var match = declaration.Match(text);
@@ -456,6 +464,67 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         }
 
         return found;
+    }
+
+    /// <summary>
+    /// The DbContext a <c>generate feature</c> run maps its entities with. <c>--context</c> wins; otherwise the
+    /// project's one context, so a second feature lands in the same context as the first instead of adding
+    /// another one. All three fields are <c>null</c> when the project has no context yet — the one case in
+    /// which the generator writes the shared <c>Features/Shared/AppDbContext</c>. Several contexts and no
+    /// <c>--context</c> is the only failure: which one maps the entities is the user's call, and guessing it
+    /// would silently attach the feature to the wrong database.
+    /// </summary>
+    private bool TryResolveFeatureContext(
+        ProjectContext project,
+        string? explicitName,
+        out (string? Name, string? Namespace, string? FilePath) context,
+        out string? error)
+    {
+        error = null;
+
+        if (explicitName is not null)
+        {
+            // A --context class we can't find still produces a compiling slice against that name (it may live
+            // in another project); it just can't be edited, so its DbSets are printed rather than spliced.
+            var (ns, path) = ResolveContext(project, explicitName);
+            context = (explicitName, ns, path);
+            return true;
+        }
+
+        var found = FindContexts(project);
+        if (found.Count > 1)
+        {
+            context = default;
+            var names = found.Select(c => c.Name).Order(StringComparer.Ordinal).ToArray();
+            error = $"This project has more than one DbContext ({string.Join(", ", names)}), so 'generate feature' "
+                + $"can't tell which one should map the new entities. Pass --context <Name> to choose, e.g. --context {names[0]}.";
+            return false;
+        }
+
+        context = found.Count == 1 ? found[0] : (null, null, null);
+        return true;
+    }
+
+    /// <summary>
+    /// What the slice can assume about the context it attaches to, read off its source. <c>TakesOptions</c>:
+    /// it declares the <c>Ctx(DbContextOptions&lt;Ctx&gt;)</c> constructor — primary or ordinary — a generated
+    /// persistence test builds it with, so a context we can't construct never gets a test that won't compile.
+    /// <c>AppliesRaskConventions</c>: its <c>OnModelCreating</c> already picks up the generated entity
+    /// configurations, so the next steps needn't ask the user to check. Both false when there's no file.
+    /// </summary>
+    private (bool TakesOptions, bool AppliesRaskConventions) ContextFacts(string? filePath, string contextName)
+    {
+        if (filePath is null || !_fileSystem.FileExists(filePath))
+        {
+            return (false, false);
+        }
+
+        var text = _fileSystem.ReadAllText(filePath);
+        var escaped = Regex.Escape(contextName);
+        return (
+            new Regex($@"\b{escaped}\s*\(\s*DbContextOptions<\s*{escaped}\s*>").IsMatch(text),
+            text.Contains("ApplyConfigurationsFromAssembly", StringComparison.Ordinal)
+                && text.Contains("ApplyRaskConventions", StringComparison.Ordinal));
     }
 
     // The DbContext `generate email` wires the mail queue into: an explicit --context (if found), else the one
@@ -588,6 +657,13 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
             lines.Insert(anchor + 1, set);
             addedSets++;
+
+            // A set landing straight after the class brace butts against the next member — the common shape,
+            // since a fresh `rask new --data` context has no DbSet yet. Keep the members separated.
+            if (anchor + 2 < lines.Count && lines[anchor + 2].Trim().Length > 0)
+            {
+                lines.Insert(anchor + 2, "");
+            }
         }
 
         var addedModel = 0;
@@ -821,12 +897,21 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
 
                 // --modal puts create/update in a BsModal on the list page, so it implies --bs.
                 var useModal = Flag("modal", config.Modal);
-                // Locate an --context DbContext so the slice can import its namespace and the DbSet can be added
-                // to it. Best-effort: a class we can't find leaves the generator's pre-fix behaviour intact.
-                var contextOverride = parsed.Option("context");
-                var (contextNamespace, contextFilePath) = contextOverride is null
-                    ? (null, null)
-                    : ResolveContext(project, contextOverride);
+                // Which DbContext maps the new entities. An app has one database and one context, so the
+                // feature attaches to the project's existing one — resolving its namespace (the slice imports
+                // it) and its file (the DbSets are spliced in). Only a project with no context at all gets one
+                // written, and it is the shared Features/Shared/AppDbContext, not a per-feature class.
+                if (!TryResolveFeatureContext(project, parsed.Option("context"), out var feature, out var contextError))
+                {
+                    result = null!;
+                    error = contextError;
+                    return false;
+                }
+
+                var (contextName, contextNamespace, contextFilePath) = feature;
+                var (contextTakesOptions, contextIsWired) = contextName is null
+                    ? (false, false)
+                    : ContextFacts(contextFilePath, contextName);
 
                 var options = new FeatureOptions
                 {
@@ -839,8 +924,10 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                     UseEvents = Flag("events", config.Events),
                     UseOutbox = Flag("outbox", config.Outbox),
                     UseTests = Flag("tests", config.Tests),
-                    ContextOverride = contextOverride,
+                    ExistingContext = contextName,
                     ContextNamespace = contextNamespace,
+                    ContextTakesOptions = contextTakesOptions,
+                    ContextAppliesRaskConventions = contextIsWired,
                     OutputOverride = parsed.Option("output"),
                 };
 

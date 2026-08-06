@@ -320,7 +320,7 @@ internal static partial class ProjectGenerator
                 // UseSqlite that also applies the production pragmas (WAL, busy_timeout, foreign_keys). The
                 // connection string defaults to a local app.db but honours a ConnectionStrings:App override —
                 // `rask deploy` sets that to a path on a mounted volume so the DB survives redeploys.
-                // `rask generate feature X --context AppDbContext` adds a DbSet to AppDbContext;
+                // `rask generate feature X …` adds its DbSet to AppDbContext (it attaches to the app's context);
                 // `rask db add <Name>` / `rask db update` create and apply the migration.
                 __ADDRASKDATA__
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "__CONNECTIONSTRING__";
@@ -361,7 +361,7 @@ internal static partial class ProjectGenerator
                 // retrying. Set the real connection string via ConnectionStrings:App — in production pass it as
                 // an environment variable, e.g. `rask deploy --env "ConnectionStrings__App=..."`, so it never
                 // lands in source control.
-                // `rask generate feature X --context AppDbContext` adds a DbSet to AppDbContext;
+                // `rask generate feature X …` adds its DbSet to AppDbContext (it attaches to the app's context);
                 // `rask db add <Name>` / `rask db update` create and apply the migration.
                 __ADDRASKDATA__
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "__CONNECTIONSTRING__";
@@ -722,7 +722,7 @@ internal static partial class ProjectGenerator
         steps.Append("  cd ").Append(name).Append('\n');
         if (batteries.Data)
         {
-            steps.Append("  rask generate feature Post --fields \"Title:string,Body:string\" --context AppDbContext\n");
+            steps.Append("  rask generate feature Post Title:string Body:string\n");
             steps.Append("  rask db add Init    # create the first migration\n");
             steps.Append(batteries.Database.IsFileBased
                 ? "  rask db update      # apply it to app.db\n"
@@ -757,7 +757,7 @@ internal static partial class ProjectGenerator
 
     // ---- --data template files ----
 
-    // An empty database ready for features. `rask generate feature … --context AppDbContext` inserts a DbSet;
+    // An empty database ready for features. `rask generate feature …` finds this context and inserts a DbSet;
     // ApplyRaskConventions + ApplyConfigurationsFromAssembly pick up each feature's generated entity config,
     // so the context needs no per-entity edits beyond its DbSet line.
     private static string AppDbContextCs(ServerBatteries batteries)

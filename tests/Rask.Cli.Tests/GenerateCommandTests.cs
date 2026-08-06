@@ -312,7 +312,7 @@ public sealed class GenerateCommandTests
         var exit = await command.ExecuteAsync(["feature", "Product", "--fields", "Name:string,Price:decimal"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        foreach (var file in new[] { "Product.cs", "ProductRequest.cs", "ProductsDbContext.cs", "ProductsPage.cs", "CreateProduct.cs", "UpdateProduct.cs", "DeleteProduct.cs" })
+        foreach (var file in new[] { "Product.cs", "ProductRequest.cs", "AppDbContext.cs", "ProductsPage.cs", "CreateProduct.cs", "UpdateProduct.cs", "DeleteProduct.cs" })
         {
             Assert.Contains(fs.Files, f => f.Key.EndsWith(file, StringComparison.Ordinal));
         }
@@ -340,7 +340,7 @@ public sealed class GenerateCommandTests
         // Framework services + the run's DbContext factory are inserted, not just printed.
         Assert.Contains("builder.Services.AddRaskCqrs();", program, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddRaskData();", program, StringComparison.Ordinal);
-        Assert.Contains("builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o", program, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o", program, StringComparison.Ordinal);
         // UseRaskSqlite (production pragmas), honouring a ConnectionStrings:App override so a deploy volume works.
         Assert.Contains(".UseRaskSqlite(", program, StringComparison.Ordinal);
         Assert.Contains("builder.Configuration.GetConnectionString(\"App\")", program, StringComparison.Ordinal);
@@ -349,7 +349,7 @@ public sealed class GenerateCommandTests
         Assert.Contains("using Rask.Cqrs;", program, StringComparison.Ordinal);
         Assert.Contains("using Rask.Data;", program, StringComparison.Ordinal);
         Assert.Contains("using Rask.SQLite;", program, StringComparison.Ordinal);
-        Assert.Contains("using MyApp.Features.Products;", program, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Shared;", program, StringComparison.Ordinal);
         Assert.Contains("using Microsoft.EntityFrameworkCore.Diagnostics;", program, StringComparison.Ordinal);
         Assert.Contains("Registered", console.OutText, StringComparison.Ordinal);
         Assert.Contains("Program.cs", console.OutText, StringComparison.Ordinal);
@@ -497,6 +497,163 @@ public sealed class GenerateCommandTests
         var page = fs.Files[Path.GetFullPath("/proj/Features/Orders/OrdersPage.cs")];
         Assert.Contains("using MyApp.Features.Products;", page, StringComparison.Ordinal);
         Assert.Contains("Added 1 DbSet", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Feature_attaches_to_the_projects_existing_context_without_being_told()
+    {
+        // The app has one database, so a feature maps its entities with the context that is already there —
+        // `rask new --data` wrote this one. Before, an unflagged run added a second, per-feature context.
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Features/Shared/AppDbContext.cs", AppDbContextSource.Replace("namespace MyApp;", "namespace MyApp.Features.Shared;", StringComparison.Ordinal));
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        // No second context — the DbSet went into the one that exists.
+        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("ProductsDbContext.cs", StringComparison.Ordinal));
+        var ctx = fs.Files[Path.GetFullPath("/proj/Features/Shared/AppDbContext.cs")];
+        Assert.Contains("public DbSet<Product> Products => Set<Product>();", ctx, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Products;", ctx, StringComparison.Ordinal);
+        // The slice names that context, and Program.cs keeps its one factory registration.
+        Assert.Contains("IDbContextFactory<AppDbContext>", fs.Files[Path.GetFullPath("/proj/Features/Products/ProductsPage.cs")], StringComparison.Ordinal);
+        Assert.DoesNotContain("AddDbContextFactory", fs.Files[Path.GetFullPath("/proj/Program.cs")], StringComparison.Ordinal);
+        Assert.Contains("Added 1 DbSet", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_second_feature_lands_in_the_context_the_first_one_wrote()
+    {
+        // No context anywhere: the first run writes the shared one, and the second finds it. Two runs must
+        // converge on one context and one set of migrations, not two.
+        var (_, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+
+        Assert.Equal(0, await command.ExecuteAsync(["feature", "Product", "Name:string"], CancellationToken.None));
+        Assert.Equal(0, await command.ExecuteAsync(["feature", "Order", "Total:decimal"], CancellationToken.None));
+
+        var contexts = fs.Files.Keys.Where(k => k.EndsWith("DbContext.cs", StringComparison.Ordinal)).ToArray();
+        Assert.Equal([Path.GetFullPath("/proj/Features/Shared/AppDbContext.cs")], contexts);
+        var ctx = fs.Files[contexts[0]];
+        Assert.Contains("public DbSet<Product> Products => Set<Product>();", ctx, StringComparison.Ordinal);
+        Assert.Contains("public DbSet<Order> Orders => Set<Order>();", ctx, StringComparison.Ordinal);
+        // One factory registration, for that one context — the second run adds no second database.
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        Assert.Equal(1, program.Split("AddDbContextFactory", StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public async Task Several_contexts_and_no_flag_is_refused_with_the_names()
+    {
+        // Which database the feature belongs in is the user's call — guessing would silently attach it to the
+        // wrong one (a logs or reporting context, say).
+        var (console, fs, command) = Build();
+        fs.Seed("/proj/Features/Shared/AppDbContext.cs", AppDbContextSource);
+        fs.Seed("/proj/Reporting/ReportingDbContext.cs", AppDbContextSource.Replace("AppDbContext", "ReportingDbContext", StringComparison.Ordinal));
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Contains("AppDbContext, ReportingDbContext", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("--context", console.ErrorText, StringComparison.Ordinal);
+        // Nothing was written — a rejected command line leaves the project alone.
+        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("Product.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_build_output_copy_of_the_context_is_not_a_second_context()
+    {
+        // obj/ carries generated and copied sources; counting a copy there would make every feature run in a
+        // built project ask for --context.
+        var (_, fs, command) = Build();
+        fs.Seed("/proj/Features/Shared/AppDbContext.cs", AppDbContextSource.Replace("namespace MyApp;", "namespace MyApp.Features.Shared;", StringComparison.Ordinal));
+        fs.Seed("/proj/obj/Debug/net10.0/AppDbContext.cs", AppDbContextSource);
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("public DbSet<Product> Products => Set<Product>();", fs.Files[Path.GetFullPath("/proj/Features/Shared/AppDbContext.cs")], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Attaching_with_outbox_maps_the_outbox_table_in_that_context()
+    {
+        // The generated context bakes AddRaskOutbox into its OnModelCreating; an attached one has to have it
+        // spliced in, or the OutboxMessage table is never created and delivery silently stops being durable.
+        var (_, fs, command) = Build();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Features/Shared/AppDbContext.cs", AppDbContextSource.Replace("namespace MyApp;", "namespace MyApp.Features.Shared;", StringComparison.Ordinal));
+
+        var exit = await command.ExecuteAsync(["feature", "Order", "Total:decimal", "--outbox"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var ctx = fs.Files[Path.GetFullPath("/proj/Features/Shared/AppDbContext.cs")];
+        Assert.Contains("modelBuilder.AddRaskOutbox();", ctx, StringComparison.Ordinal);
+        Assert.Contains("using Rask.Outbox;", ctx, StringComparison.Ordinal);
+        // AddRaskOutbox<T> names the context, so Program.cs needs to see it even though we registered no factory.
+        var program = fs.Files[Path.GetFullPath("/proj/Program.cs")];
+        Assert.Contains("builder.Services.AddRaskOutbox<AppDbContext>();", program, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Shared;", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Tests_flag_keeps_the_persistence_test_when_it_attaches_to_a_context()
+    {
+        // The round-trip test constructs the context, so it is emitted for any context whose source shows the
+        // options constructor — which every scaffolded one has. Gating it on "we wrote the context" would have
+        // dropped it from every `rask new --data` app the moment attaching became the default.
+        var (_, fs, _, command) = BuildWithProcess();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Features/Shared/AppDbContext.cs", AppDbContextSource.Replace("namespace MyApp;", "namespace MyApp.Features.Shared;", StringComparison.Ordinal));
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string", "--tests"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var test = Assert.Single(fs.Files, f => f.Key.EndsWith("ProductsPersistenceTests.cs", StringComparison.Ordinal)).Value;
+        Assert.Contains("new DbContextOptionsBuilder<AppDbContext>()", test, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Shared;", test, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_check_your_context_note_is_only_printed_when_it_needs_checking()
+    {
+        // Attaching is the default now, so a note asking "make sure your context applies the conventions"
+        // would print on every run against a scaffolded app that demonstrably already does.
+        var (wired, wiredFs, wiredCommand) = Build();
+        wiredFs.Seed("/proj/Features/Shared/AppDbContext.cs", AppDbContextSource);
+        Assert.Equal(0, await wiredCommand.ExecuteAsync(["feature", "Product", "Name:string"], CancellationToken.None));
+        Assert.DoesNotContain("ensure its OnModelCreating", wired.OutText, StringComparison.Ordinal);
+
+        // A context that doesn't apply them can't be fixed by splicing (there's no anchor), so it's asked for.
+        var (bare, bareFs, bareCommand) = Build();
+        bareFs.Seed("/proj/Data/LegacyDbContext.cs",
+            "using Microsoft.EntityFrameworkCore;\n\nnamespace MyApp.Data;\n\n"
+            + "public sealed class LegacyDbContext(DbContextOptions<LegacyDbContext> options) : DbContext(options)\n{\n}\n");
+        Assert.Equal(0, await bareCommand.ExecuteAsync(["feature", "Product", "Name:string"], CancellationToken.None));
+        Assert.Contains("ensure its OnModelCreating", bare.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_context_the_test_cannot_construct_gets_no_persistence_test()
+    {
+        // A hand-written context with no options constructor: skip the test rather than emit one that won't
+        // compile — "the output compiles as-is" is the generator's contract.
+        var (_, fs, _, command) = BuildWithProcess();
+        fs.Seed("/proj/Program.cs", ProgramCs);
+        fs.Seed("/proj/Data/LegacyDbContext.cs",
+            "using Microsoft.EntityFrameworkCore;\n\n"
+            + "namespace MyApp.Data;\n\n"
+            + "public sealed class LegacyDbContext : DbContext\n"
+            + "{\n"
+            + "    protected override void OnConfiguring(DbContextOptionsBuilder options) => options.UseSqlite(\"Data Source=app.db\");\n"
+            + "}\n");
+
+        var exit = await command.ExecuteAsync(["feature", "Product", "Name:string", "--tests"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("PersistenceTests.cs", StringComparison.Ordinal));
+        Assert.Contains(fs.Files, f => f.Key.EndsWith("ProductTests.cs", StringComparison.Ordinal)); // the domain test still lands
     }
 
     [Fact]

@@ -16,7 +16,7 @@ processor delivers it after commit — retrying until it succeeds.
 Chapter 3 created the Orders feature. Regenerate it with `--outbox` (or pass the flag the first time):
 
 ```bash
-rask generate feature Order Customer:string Total:decimal --context AppDbContext --outbox --force
+rask generate feature Order Customer:string Total:decimal --outbox --force
 ```
 
 That emits the pieces you'd otherwise write by hand:

@@ -90,7 +90,7 @@ builder.Services.AddRaskCqrs();
 // UseSqlite that also applies the production pragmas (WAL, busy_timeout, foreign_keys). The
 // connection string defaults to a local app.db but honours a ConnectionStrings:App override —
 // `rask deploy` sets that to a path on a mounted volume so the DB survives redeploys.
-// `rask generate feature X --context AppDbContext` adds a DbSet to AppDbContext;
+// `rask generate feature X …` adds its DbSet to AppDbContext (it attaches to the app's context);
 // `rask db add <Name>` / `rask db update` create and apply the migration.
 builder.Services.AddRaskData(o =>
 {

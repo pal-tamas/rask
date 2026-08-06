@@ -2,15 +2,16 @@
 
 > **Goal:** go from an empty app to a working, database-backed **Products** catalog — list, create, edit,
 > delete — persisted in SQLite.
-> **You'll run:** `rask generate feature Product … --context AppDbContext`, then `rask db add` / `rask db update`.
+> **You'll run:** `rask generate feature Product …`, then `rask db add` / `rask db update`.
 
 This chapter sets the pattern every later feature repeats — **generate → migrate**, with the CLI wiring the
 services in for you in between. Do it once here and the rest of the tutorial is variations on it.
 
-> **`rask new` gives you no database on purpose.** The starter app has no `DbContext` and no SQLite. The
-> database arrives the moment you generate your first feature — the generator adds the packages, writes the
-> data code, and tells you the one block to paste into `Program.cs`. So there's nothing to "set up" first;
-> just generate.
+> **You don't name a database.** Chapter 1's `--all-batteries` already wired one — `AppDbContext` in
+> `Features/Shared/`. The generator finds it and maps the new entity with it, so an app keeps **one**
+> database and one set of migrations however many features you add. (Scaffolded a project without `--data`?
+> Then there is no context yet, and this first run writes that same `Features/Shared/AppDbContext.cs` for
+> you. Either way there's nothing to set up first — just generate.)
 
 ## 1. Generate the feature
 
@@ -18,7 +19,7 @@ From inside the `Shop` folder (the CLI finds the project by walking up from wher
 
 ```bash
 rask generate feature Product Name:string Price:decimal InStock:bool \
-  --context AppDbContext --validation dataannotations
+  --validation dataannotations
 ```
 
 Read the field list as `name:type`. Rask understands `string`, `int`, `long`, `decimal`, `double`, `bool`,
