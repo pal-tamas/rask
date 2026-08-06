@@ -10,8 +10,9 @@ Run the app you're changing with `rask dev`. It wraps `dotnet watch run`, so an 
 `Render()`, a scoped `.css`/`.js`, a `[Route]` template or a CQRS handler is applied to the running
 process and every open session repaints in place — a "Hot reload applied" pill confirms it. Edits the
 runtime can't apply (adding a type, changing a signature) restart the app instead, and the page reloads
-itself. [What hot-reloads](cli.md#what-hot-reloads) has the full list, including what doesn't: native
-apps run on a device, have no watch channel, and must be restarted. WASM is covered — the host serves
+itself. [What hot-reloads](cli.md#what-hot-reloads) has the full list, including what doesn't: a native app
+running in-process on a device has no watch channel and must be restarted — though a Native + Server
+shell hot-reloads like a browser, because that is what it is. WASM is covered — the host serves
 the client's build output for the session, since a published bundle is trimmed and could never apply an
 update.
 
