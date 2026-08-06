@@ -38,14 +38,67 @@ public class FormGuardClientContractTests
         }
     }
 
+    [Fact]
+    public void Every_host_reports_the_change_value_through_the_shared_helper()
+    {
+        // #595's half of the same invariant. Each host computed the change frame's `value` itself, and
+        // all three got <select multiple> wrong in the same way — `select.value` is the FIRST selected
+        // option, so picking three reported one. The fix has to live in one place or the next control
+        // with a non-obvious "current value" repeats it.
+        var native = Read("src", "Rask.Native", "Resources", "rask.native.js");
+        foreach (var js in new[] { ServerJs, WasmJs, native })
+        {
+            var dispatch = ChangeDispatch(js);
+            Assert.Contains("raskChangeFrameValue(", dispatch, StringComparison.Ordinal);
+            Assert.Contains("raskChangeFrameValues(", dispatch, StringComparison.Ordinal);
+
+            // And no host may go back to reading the property directly, which is what it did before.
+            Assert.DoesNotContain("t.checked ? \"true\" : \"false\"", dispatch, StringComparison.Ordinal);
+            Assert.DoesNotContain("el.checked ? \"true\" : \"false\"", dispatch, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void The_shared_helper_reports_the_whole_selection_of_a_multiple_select()
+    {
+        var js = MorphJs;
+        var fn = js[js.IndexOf("function raskChangeFrameValues", StringComparison.Ordinal)..];
+        var body = fn[..fn.IndexOf("\n}", StringComparison.Ordinal)];
+
+        // The point of the function: every picked option, not el.value.
+        Assert.Contains("selectedOptions", body, StringComparison.Ordinal);
+        Assert.Contains("multiple", body, StringComparison.Ordinal);
+    }
+
     // The change listener, up to the message it sends — the window in which a guard has to be armed,
     // because after the send the server's answer is already on its way.
+    // The whole body of the `change` listener. Brace-matched rather than cut at a marker: the frame is
+    // now assembled over several statements instead of inline in the send call, and every marker that
+    // would delimit it (the send's argument shape, `type: "change"`) pins a spelling rather than the
+    // invariant — and the listener's file-upload branch has a send of its own that comes first.
     private static string ChangeDispatch(string js)
     {
-        var listener = js[js.IndexOf("addEventListener(\"change\"", StringComparison.Ordinal)..];
-        var end = listener.IndexOf("data-rask-on-change\"), type: \"change\"", StringComparison.Ordinal);
-        Assert.True(end > 0, "could not find the change dispatch's send in this client");
-        return listener[..end];
+        var at = js.IndexOf("addEventListener(\"change\"", StringComparison.Ordinal);
+        Assert.True(at > 0, "could not find the change listener in this client");
+
+        var open = js.IndexOf('{', at);
+        Assert.True(open > 0, "could not find the change listener's body");
+
+        var depth = 0;
+        for (var i = open; i < js.Length; i++)
+        {
+            if (js[i] == '{')
+            {
+                depth++;
+            }
+            else if (js[i] == '}' && --depth == 0)
+            {
+                return js[open..i];
+            }
+        }
+
+        Assert.Fail("the change listener's body is unbalanced");
+        return string.Empty;
     }
 
     [Fact]

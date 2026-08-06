@@ -93,3 +93,14 @@ public sealed class ShopExampleCollection
 {
     public const string Name = "ShopExample";
 }
+
+/// <summary>
+///     A real browser and nothing else — no app, no host, no port. For the shared client modules whose
+///     behaviour depends on DOM semantics a stub DOM cannot model (form-control dirtiness, in
+///     particular), where standing an app up would only add a dependency the assertion never uses.
+/// </summary>
+[CollectionDefinition(Name)]
+public sealed class BrowserOnlyCollection : ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "BrowserOnly";
+}

@@ -281,7 +281,13 @@ export function setExports(exports) {
     root = document.querySelector("[data-rask-root]") || document.body;
     const ok = !!(exports && exports.Rask && exports.Rask.Wasm
         && exports.Rask.Wasm.JSInterop && typeof exports.Rask.Wasm.JSInterop.Dispatch === "function");
-    console.log("[Rask] setExports — Dispatch reachable:", ok, "root:", root && root.tagName);
+    // Report the boot only when it went wrong. A success line here is one per session and told nobody
+    // anything; an unreachable Dispatch is a dead app, and without this the first symptom is a click
+    // that silently does nothing.
+    if (!ok) {
+        console.error("[Rask] setExports: the .NET Dispatch export is unreachable — no event will "
+            + "reach the app. Exports:", exports);
+    }
     // Initial sweep for Head-declared external assets emitted by the browser's
     // index.html (and any subsequent applyRender will re-sweep so morph-added
     // assets get picked up too — see applyDom in handle()).
@@ -572,7 +578,9 @@ function applyFullReply(reply) {
 const _sendEncoder = new TextEncoder();
 
 async function send(payload) {
-    console.log("[Rask] send", payload);
+    // Deliberately not traced. `payload` carries the event's value — everything the user types — and
+    // this runs ~60×/sec via the rAF coalescing path, so a log here writes form input to the console
+    // of every production build. Debug a dispatch with a breakpoint, not by shipping one.
     if (!dotnetExports) {
         console.warn("[Rask] send: dotnetExports not set");
         return;
@@ -599,7 +607,6 @@ document.addEventListener("click", (e) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const a = e.target.closest("a[data-rask-nav]");
     if (!a) return;
-    console.log("[Rask] navlink click", a.getAttribute("href"));
     if (a.getAttribute("target") === "_blank") return;
     const href = a.getAttribute("href");
     if (!href) return;
@@ -661,18 +668,22 @@ document.addEventListener("change", (e) => {
         return;
     }
     if (t.hasAttribute("data-rask-on-change")) {
-        // For a checkbox the meaningful state is el.checked, not el.value (the static "on"
-        // default). Report it as "true"/"false" so bound checkboxes set the model to the
-        // actual state (self-correcting). Radios/text keep sending el.value.
-        const changeVal = (t.tagName === "INPUT" && t.type === "checkbox")
-            ? (t.checked ? "true" : "false")
-            : t.value;
+        // What the frame reports, from the shared module (rask-morph.js) rather than computed here —
+        // the hosts each carried their own copy and drifted, which is how <select> ended up with no
+        // lagging-frame guard. `values` is null for everything except a <select multiple>, whose
+        // `.value` is only its FIRST selected option.
+        const changeVal = raskChangeFrameValue(t);
+        const changeVals = raskChangeFrameValues(t);
         // Record what a lagging re-render would have to carry to be stale — the pre-edit value, the
         // pre-click checked (whole radio group), the pre-pick selected (whole select) — so the apply
         // paths can tell "the frame that predates the user's action" from "the server's authoritative
         // answer to it". Shared with the Server runtime, in rask-morph.js.
         raskNotePendingFormState(t);
-        send({id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal});
+        const changeFrame = {
+            id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal
+        };
+        if (changeVals !== null) changeFrame.values = changeVals;
+        send(changeFrame);
     }
 });
 

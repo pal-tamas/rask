@@ -191,6 +191,7 @@ public static class DemoRegistry
             ["multi-select-controlled"] = () => CodeSample(["MultiSelectControlledDemo.cs"], Result: MultiSelectControlledDemo()),
             ["multi-select-checkbox"] = () => CodeSample(["MultiSelectCheckboxDemo.cs"], Result: MultiSelectCheckboxDemo()),
             ["multi-select-radio"] = () => CodeSample(["MultiSelectRadioDemo.cs"], Result: MultiSelectRadioDemo()),
+            ["multi-select-native"] = () => CodeSample(["NativeMultiSelectDemo.cs"], Result: NativeMultiSelectDemo()),
 
             // --- Composition guide: context, callbacks, virtualize, keyed lists, drag & drop, error
             //     boundaries (their standalone example pages folded into docs/composition.md). ---

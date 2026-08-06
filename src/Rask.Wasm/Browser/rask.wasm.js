@@ -2446,7 +2446,13 @@ export function setExports(exports) {
     root = document.querySelector("[data-rask-root]") || document.body;
     const ok = !!(exports && exports.Rask && exports.Rask.Wasm
         && exports.Rask.Wasm.JSInterop && typeof exports.Rask.Wasm.JSInterop.Dispatch === "function");
-    console.log("[Rask] setExports — Dispatch reachable:", ok, "root:", root && root.tagName);
+    // Report the boot only when it went wrong. A success line here is one per session and told nobody
+    // anything; an unreachable Dispatch is a dead app, and without this the first symptom is a click
+    // that silently does nothing.
+    if (!ok) {
+        console.error("[Rask] setExports: the .NET Dispatch export is unreachable — no event will "
+            + "reach the app. Exports:", exports);
+    }
     // Initial sweep for Head-declared external assets emitted by the browser's
     // index.html (and any subsequent applyRender will re-sweep so morph-added
     // assets get picked up too — see applyDom in handle()).
@@ -2755,6 +2761,75 @@ function raskShouldSuppressSelected(el, incoming) {
     return false;
 }
 
+// The group form of the guard above, for a full morph. The diff codec moves one option at a time and
+// can decide one at a time; a morph reconciles the whole control at once and needs a single answer,
+// because applying half a lagging frame would leave the select in a state neither side rendered.
+//
+// A lagging frame is one that carries the pre-pick state of EVERY guarded option — that is exactly what
+// raskNotePendingSelected recorded on dispatch. If even one guarded option differs, the frame knows
+// something the user's pick didn't, so it is authoritative: release the whole group and apply.
+function raskShouldSuppressSelectGroup(select, desired) {
+    const map = _raskPendingSelected();
+    const options = select.options;
+    let guarded = 0, stale = 0;
+    for (let i = 0; i < options.length; i++) {
+        if (!map.has(options[i])) continue;
+        guarded++;
+        if (map.get(options[i]) === !!desired[i]) stale++;
+    }
+    if (guarded === 0) return false;
+    if (guarded === stale) return true;
+    for (let i = 0; i < options.length; i++) map.delete(options[i]);
+    return false;
+}
+
+// Move a select's live selection to what the incoming render marked, writing through the IDL rather
+// than trusting the `selected` ATTRIBUTES morph() has just copied.
+//
+// The attributes alone are not enough, and the reason is the option "dirtiness" flag: once an option's
+// selectedness has been set by the user or by the `.selected` setter (which the diff codec's
+// applySelected uses), its content attribute stops driving it. Measured in Chromium — a single-select
+// whose morph target the user had already touched does not move, and a multi-select is worse, because
+// the "ask for a reset" behaviour that quietly rescues most single-select cases does not apply to it:
+// a user-picked option that the incoming render does NOT mark stays selected, so the control
+// accumulates selections it was never rendered with.
+function raskApplySelectSelection(select, desired) {
+    const options = select.options;
+    if (select.multiple) {
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].selected !== desired[i]) options[i].selected = desired[i];
+        }
+        return;
+    }
+    // Single select: one write by index, for the same reason applySelected takes that path — poking
+    // each option leaves the control momentarily showing its first option between the deselect and the
+    // select, and an index can't be redirected by duplicate option values.
+    let idx = -1;
+    for (let i = 0; i < desired.length; i++) {
+        if (desired[i]) { idx = i; break; }
+    }
+    if (idx < 0) {
+        // The render marked nothing. On a freshly parsed single-select that shows the first enabled
+        // option, not a blank — mirror the browser's own reset rather than inventing selectedIndex -1,
+        // which would make a re-render look different from a first load of the same markup.
+        idx = 0;
+        while (idx < options.length && options[idx].disabled) idx++;
+        if (idx >= options.length) idx = -1;
+    }
+    if (select.selectedIndex !== idx) select.selectedIndex = idx;
+}
+
+// Called once per <select> at the end of morph(), after its options have been reconciled — so the
+// `selected` attributes read here are the incoming render's, and the option list is final.
+function raskSyncSelectSelection(select) {
+    const options = select.options;
+    if (!options) return;
+    const desired = [];
+    for (let i = 0; i < options.length; i++) desired.push(options[i].hasAttribute("selected"));
+    if (raskShouldSuppressSelectGroup(select, desired)) return;
+    raskApplySelectSelection(select, desired);
+}
+
 // User-edit provenance for the redeploy restore. When a replacement server can't carry a session over,
 // the page reloads, and the Server runtime re-applies the fields the user had actually edited (see
 // saveRestoreFields / applyRestoreFields in rask.js). It re-applies one only when the REPLACEMENT
@@ -2869,6 +2944,42 @@ function raskNotePendingFormState(el) {
             }
         }
     }
+}
+
+// What a `change` frame reports for a control, in one place for all three hosts — same reasoning as the
+// recorder above, which exists because each host carried its own hand-copied copy and they drifted.
+//
+// `value` keeps exactly the meaning it had, so nothing downstream changes shape. `values` is added only
+// for a <select multiple>: the DOM has no multi-value `value`, so `select.value` is the FIRST selected
+// option (or "" when none), and reporting it alone told the server one option out of however many the
+// user had picked — the model then converged on that one, correctly, from a wrong report.
+function raskChangeFrameValue(el) {
+    const tag = el.tagName;
+    // For a checkbox the meaningful state is el.checked, not el.value (the static "on" default). Report
+    // it as "true"/"false" so a bound checkbox sets the model to the actual state (self-correcting)
+    // rather than relying on a server-side toggle. Radios keep sending el.value — a radio's value IS
+    // the selected option.
+    if (tag === "INPUT" && el.type === "checkbox") return el.checked ? "true" : "false";
+    return el.value == null ? "" : String(el.value);
+}
+
+// The whole selection of a <select multiple>, or null for every other control — null rather than an
+// empty array so the frame simply omits the field and no existing payload grows a byte.
+function raskChangeFrameValues(el) {
+    if (el.tagName !== "SELECT" || !el.multiple) return null;
+    const picked = el.selectedOptions;
+    const values = [];
+    if (picked) {
+        for (let i = 0; i < picked.length; i++) values.push(picked[i].value);
+    } else {
+        // selectedOptions is universally supported, but the fallback costs three lines and keeps the
+        // shared module honest against a stub DOM that models only `options`.
+        const opts = el.options || [];
+        for (let i = 0; i < opts.length; i++) {
+            if (opts[i].selected) values.push(opts[i].value);
+        }
+    }
+    return values;
 }
 
 // Third-party <head> preservation. Libraries routinely inject <style>/<link>/<script> into <head> at
@@ -3073,6 +3184,7 @@ function morph(from, to) {
             if (leftover.parentNode === from) _raskRemoveChild(from, leftover);
         }
         if (isDocHead) _raskDiscardFrameworkHeadMutations();
+        if (tag === "SELECT") raskSyncSelectSelection(from);
         return;
     }
 
@@ -3085,6 +3197,9 @@ function morph(from, to) {
         else morph(src, dst);
     }
     if (isDocHead) _raskDiscardFrameworkHeadMutations();
+    // After the options are reconciled, never before: the selection is read off the incoming
+    // `selected` attributes, and until the child walk above has run they are still the old render's.
+    if (tag === "SELECT") raskSyncSelectSelection(from);
 }
 
 
@@ -4003,7 +4118,9 @@ function applyFullReply(reply) {
 const _sendEncoder = new TextEncoder();
 
 async function send(payload) {
-    console.log("[Rask] send", payload);
+    // Deliberately not traced. `payload` carries the event's value — everything the user types — and
+    // this runs ~60×/sec via the rAF coalescing path, so a log here writes form input to the console
+    // of every production build. Debug a dispatch with a breakpoint, not by shipping one.
     if (!dotnetExports) {
         console.warn("[Rask] send: dotnetExports not set");
         return;
@@ -4030,7 +4147,6 @@ document.addEventListener("click", (e) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const a = e.target.closest("a[data-rask-nav]");
     if (!a) return;
-    console.log("[Rask] navlink click", a.getAttribute("href"));
     if (a.getAttribute("target") === "_blank") return;
     const href = a.getAttribute("href");
     if (!href) return;
@@ -4192,18 +4308,22 @@ document.addEventListener("change", (e) => {
         return;
     }
     if (t.hasAttribute("data-rask-on-change")) {
-        // For a checkbox the meaningful state is el.checked, not el.value (the static "on"
-        // default). Report it as "true"/"false" so bound checkboxes set the model to the
-        // actual state (self-correcting). Radios/text keep sending el.value.
-        const changeVal = (t.tagName === "INPUT" && t.type === "checkbox")
-            ? (t.checked ? "true" : "false")
-            : t.value;
+        // What the frame reports, from the shared module (rask-morph.js) rather than computed here —
+        // the hosts each carried their own copy and drifted, which is how <select> ended up with no
+        // lagging-frame guard. `values` is null for everything except a <select multiple>, whose
+        // `.value` is only its FIRST selected option.
+        const changeVal = raskChangeFrameValue(t);
+        const changeVals = raskChangeFrameValues(t);
         // Record what a lagging re-render would have to carry to be stale — the pre-edit value, the
         // pre-click checked (whole radio group), the pre-pick selected (whole select) — so the apply
         // paths can tell "the frame that predates the user's action" from "the server's authoritative
         // answer to it". Shared with the Server runtime, in rask-morph.js.
         raskNotePendingFormState(t);
-        send({id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal});
+        const changeFrame = {
+            id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal
+        };
+        if (changeVals !== null) changeFrame.values = changeVals;
+        send(changeFrame);
     }
 });
 

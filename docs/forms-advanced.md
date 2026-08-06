@@ -152,6 +152,30 @@ option renderings. The single-value twin is `BsSelect<T>`: same data-driven API 
 `OptionLabel`) and custom `.dropdown-menu` listbox (zero-JS, keyboard + ARIA `combobox`/`listbox`),
 binding one `TItem`; `Native: true` falls back to the plain OS `<select>`.
 
+**A plain `<select multiple>` bound to a collection.** `Select<T>(Bind: …, Multiple: true)` binds the
+whole selection when `T` is a string collection — `string[]`, `List<string>`, `HashSet<string>`, or the
+`IReadOnlyList<string>` / `IList<string>` / `ICollection<string>` / `IEnumerable<string>` interfaces:
+
+```csharp
+Select(() => model.Tags, Multiple: true)[
+    Option("news"), Option("sport"), Option("weather")
+]
+```
+
+Every picked option is marked on render, and each change replaces the collection rather than editing its
+membership — the browser reports the *absolute* selection every time, so a replace re-syncs the model
+even if an intermediate render was coalesced.
+
+Two limits worth knowing:
+
+- **The element type is `string`.** The reflective version that would accept any parsable element needs
+  `MakeGenericType` and `Array.CreateInstance`, both of which are AOT-hostile — and
+  `samples/Rask.Example.Wasm` has to publish with zero trim warnings. Bind `string[]` and convert.
+- **`Multiple: true` over a scalar property keeps the single-value binding.** That is a model which can
+  only hold one answer; widening it silently would be the more surprising behaviour.
+
+<!-- demo:multi-select-native -->
+
 <!-- demo:multi-select -->
 
 <!-- demo:multi-select-controlled -->
