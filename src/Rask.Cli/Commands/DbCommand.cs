@@ -38,7 +38,7 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
         "rask db add InitialCreate",
         "rask db update",
         "rask db list",
-        "rask db drop --force",
+        "rask db drop --yes",
         "rask db backup",
         "rask db backup --remote --output backups/",
         "rask db restore backups/shop-20260805-081500.db --remote",
@@ -62,7 +62,11 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
             .Flag("remote", null, "Act on the deployed database instead of the local one (backup, restore).")
             .Option("host", null, "user@host", "Deployment host for --remote (default: the one in .rask/deploy.json).")
             .Option("app", null, "name", "Deployed app name for --remote (default: the one in .rask/deploy.json).")
-            .Flag("force", 'f', "Skip the confirmation prompt (drop, restore).");
+            // Renamed from --force. On new/generate that word means "overwrite files"; here it meant
+            // "don't ask me" — one spelling for two unrelated powers, and the one that destroys a
+            // database was the one you could reach by muscle memory from the one that overwrites a file.
+            // --yes/-y is what every other tool calls this (#601).
+            .Flag("yes", 'y', "Skip the confirmation prompt (drop, restore).");
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -95,9 +99,9 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
             return Fail("--output only applies to 'rask db add' and 'rask db backup'.");
         }
 
-        if (parsed.HasFlag("force") && subcommand is not ("drop" or "restore"))
+        if (parsed.HasFlag("yes") && subcommand is not ("drop" or "restore"))
         {
-            return Fail("--force only applies to 'rask db drop' and 'rask db restore'.");
+            return Fail("--yes only applies to 'rask db drop' and 'rask db restore'.");
         }
 
         var remote = parsed.HasFlag("remote");
@@ -169,7 +173,7 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
                 remote,
                 parsed.Option("host"),
                 parsed.Option("app"),
-                parsed.HasFlag("force"),
+                parsed.HasFlag("yes"),
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -177,7 +181,7 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
         // prompt. `dotnet ef database drop` does its own, but only when it has a terminal, so a drop run
         // from a script destroyed the database with nothing asked. Ask here, where we know the answer
         // matters, and refuse rather than guess when there's nobody to ask.
-        if (subcommand == "drop" && !parsed.HasFlag("force"))
+        if (subcommand == "drop" && !parsed.HasFlag("yes"))
         {
             if (Console.IsInputRedirected)
             {
@@ -199,7 +203,7 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
 
         await EnsureDesignPackageAsync(startupProject, cancellationToken).ConfigureAwait(false);
 
-        var efArgs = BuildEfArguments(subcommand, name, project, startupProject, parsed.Option("context"), output, parsed.HasFlag("force"), parsed.Passthrough);
+        var efArgs = BuildEfArguments(subcommand, name, project, startupProject, parsed.Option("context"), output, parsed.HasFlag("yes"), parsed.Passthrough);
         return await _process.RunAsync("dotnet", efArgs, _workingDirectory, cancellationToken).ConfigureAwait(false);
     }
 
@@ -282,6 +286,9 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
         string startupProject,
         string? context,
         string? output,
+        // Named for EF's flag, not ours: this is what becomes `dotnet ef database drop --force`. It is
+        // fed from rask's --yes, which is a different question (skip MY prompt) that happens to imply
+        // the same answer downstream (skip EF's).
         bool force,
         IReadOnlyList<string> passthrough)
     {

@@ -54,7 +54,11 @@ internal sealed class DevCommand(
             .Option("project", 'p', "path", "Project to run (default: the project in the current directory).")
             .Option("urls", valueHint: "url[;url]", description: "URLs the app should listen on (sets ASPNETCORE_URLS).")
             .Option("launch-profile", valueHint: "name", description: "launchSettings profile to use.")
-            .Flag("open", 'o', "Open the app in your browser once it is listening.")
+            // No short name. '-o' is --output CLI-wide (new, generate, db), and it was a *flag* here —
+            // so `rask dev -o ./somewhere` silently took the path as a positional instead of rejecting
+            // it. A short that is a value on four commands and a boolean on a fifth is the one collision
+            // that fails quietly rather than loudly (#601).
+            .Flag("open", description: "Open the app in your browser once it is listening.")
             .Flag("no-open", description: "Never open a browser.")
             .Flag("no-hot-reload", description: "Restart on change instead of applying edits live (still watches).")
             .Flag("no-restart", description: "Ask before restarting on an edit hot reload can't apply.")

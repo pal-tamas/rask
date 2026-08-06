@@ -108,7 +108,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Assert.Equal("changed", await SqlAsync("SELECT v FROM t;"));
 
         Assert.True(
-            await db.ExecuteAsync(["restore", backup, "--remote", "--host", host.Host, "--app", "backupapp", "--force"], CancellationToken.None) == 0,
+            await db.ExecuteAsync(["restore", backup, "--remote", "--host", host.Host, "--app", "backupapp", "--yes"], CancellationToken.None) == 0,
             $"restore failed.\n{console.ErrorText}");
 
         Assert.Equal("original", await SqlAsync("SELECT v FROM t;"));

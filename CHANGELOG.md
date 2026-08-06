@@ -7,6 +7,31 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING — a short flag now means the same option on every `rask` command.** The same two
+  keystrokes used to do different things depending on where you were, and the two worst cases failed
+  *silently* rather than erroring, which is what made this worth breaking for:
+  - **`-o` is `--output` everywhere.** It was `--output` on `new`, `generate` and `db` but a boolean
+    `--open` on `dev` — so `rask dev -o ./somewhere` parsed happily and dropped the path into the
+    positionals. `rask dev --open` keeps its long form.
+  - **`-p` is `--project` everywhere.** It was `--project` on `dev`, `db` and `deploy` but `--plural`
+    on `generate`, so `rask g f -p X` set something different from the same keystrokes elsewhere.
+    `rask generate --plural` keeps its long form.
+  - **`-f` is `--fields`.** `rask deploy logs --follow` loses its short name: `generate` is the command
+    people run most and `--fields` is its primary input, where `--follow` is occasional and four more
+    characters. `--feature` stays `-F` — the only uppercase short in the CLI, and now for a stated
+    reason rather than an accident.
+  - **`rask db --force` is now `--yes` (`-y`).** On `new`/`generate` that word means "overwrite files";
+    on `db` it meant "skip the confirmation" — one spelling for two unrelated powers, and the one that
+    destroys a database was reachable by muscle memory from the one that overwrites a file. `--force`
+    on `db` is now rejected with a suggestion rather than silently ignored.
+  - A test enforces the convention: a short name must map to one long option CLI-wide, and must not be
+    a flag on one command and a value on another. It fails with the offending pair named.
+- **`rask generate` has a `--project` (`-p`), which it was the only project-scoped command to lack.**
+  Project resolution stops whenever a directory holds more than one `.csproj`, and until now the error
+  had no escape hatch to suggest. It accepts a `.csproj` or a directory, and the resolution starts from
+  there rather than the working directory.
+
 ## [0.20.0] - 2026-08-06
 
 ### Fixed

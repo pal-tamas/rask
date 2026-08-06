@@ -128,7 +128,11 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             .Flag("github-actions", description: "Write a .github/workflows/deploy.yml that runs this deploy on push, and print the secrets to add.")
             .Flag("dry-run", description: "Print the docker commands that would run without changing anything.")
             .Option("tail", valueHint: "n", description: "Log lines to show (logs only; default: 100, 'all' for everything).")
-            .Flag("follow", 'f', "Stream new log lines until interrupted (logs only).")
+            // No short name. '-f' is --fields CLI-wide: `rask generate feature` is the command people
+            // run most and --fields is its primary input, where `deploy logs --follow` is occasional and
+            // four more characters. `docker logs -f` muscle memory is the cost, and it is the smaller
+            // one — a short that means two things is what #601 is about.
+            .Flag("follow", description: "Stream new log lines until interrupted (logs only).")
             .Flag("setup-host", group: SetupGroup, description: "Prepare the host without asking (installs Docker, creates the deploy user, firewall, SSH hardening).")
             .Flag("no-setup-host", group: SetupGroup, description: "Never change the host; fail with instructions if it isn't ready.")
             .Option("deploy-user", valueHint: "name", group: SetupGroup, description: "Non-root login to create and deploy as when given a root host (default: deploy).")
