@@ -50,8 +50,11 @@ internal sealed class DeployConfig
     public static string PathFor(string workingDirectory) =>
         Path.Combine(workingDirectory, ".rask", "deploy.json");
 
-    /// <summary>Load the persisted config, or an empty one when the file is absent or unreadable.</summary>
-    public static DeployConfig Load(IFileSystem fileSystem, string workingDirectory)
+    /// <summary>
+    ///     Load the persisted config, or an empty one when the file is absent or unreadable. Pass
+    ///     <paramref name="console" /> so an unreadable file is reported rather than silently ignored.
+    /// </summary>
+    public static DeployConfig Load(IFileSystem fileSystem, string workingDirectory, IConsole? console = null)
     {
         var path = PathFor(workingDirectory);
         if (!fileSystem.FileExists(path))
@@ -64,10 +67,39 @@ internal sealed class DeployConfig
             return JsonSerializer.Deserialize(fileSystem.ReadAllText(path), DeployConfigJsonContext.Default.DeployConfig)
                 ?? new DeployConfig();
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // A hand-edited or corrupt file shouldn't wedge a deploy — fall back to flags/defaults.
+            // A hand-edited or corrupt file shouldn't wedge a deploy — fall back to flags/defaults. But
+            // it must not do so in silence: a typo'd config looked exactly like no config at all, and
+            // the remembered host quietly vanished with nothing said (#599).
+            console?.WriteErrorLine(
+                $"Ignoring {path}: it isn't valid JSON ({ex.Message.TrimEnd('.')}). Falling back to "
+                + "flags and defaults — fix or delete the file to use it again.",
+                ConsoleStyle.Warning);
             return new DeployConfig();
+        }
+    }
+
+    /// <summary>
+    ///     The reason this config can't be read, or <c>null</c> when there is nothing wrong with it.
+    ///     What <c>rask doctor</c> reports; <see cref="Load" /> uses the same check to warn in passing.
+    /// </summary>
+    public static string? DescribeProblem(IFileSystem fileSystem, string workingDirectory)
+    {
+        var path = PathFor(workingDirectory);
+        if (!fileSystem.FileExists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            JsonSerializer.Deserialize(fileSystem.ReadAllText(path), DeployConfigJsonContext.Default.DeployConfig);
+            return null;
+        }
+        catch (JsonException ex)
+        {
+            return $"{path} isn't valid JSON: {ex.Message.TrimEnd('.')}.";
         }
     }
 

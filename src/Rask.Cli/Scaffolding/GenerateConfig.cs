@@ -33,8 +33,11 @@ internal sealed class GenerateConfig
     public static string PathFor(string projectDirectory) =>
         Path.Combine(projectDirectory, ".rask", "generate.json");
 
-    /// <summary>Load the persisted defaults, or an empty set when the file is absent or unreadable.</summary>
-    public static GenerateConfig Load(IFileSystem fileSystem, string projectDirectory)
+    /// <summary>
+    ///     Load the persisted defaults, or an empty set when the file is absent or unreadable. Pass
+    ///     <paramref name="console" /> so an unreadable file is reported rather than silently ignored.
+    /// </summary>
+    public static GenerateConfig Load(IFileSystem fileSystem, string projectDirectory, IConsole? console = null)
     {
         var path = PathFor(projectDirectory);
         if (!fileSystem.FileExists(path))
@@ -47,10 +50,36 @@ internal sealed class GenerateConfig
             return JsonSerializer.Deserialize(fileSystem.ReadAllText(path), GenerateConfigJsonContext.Default.GenerateConfig)
                 ?? new GenerateConfig();
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // A hand-edited or corrupt file shouldn't wedge a scaffold — fall back to flags/built-in defaults.
+            // A hand-edited or corrupt file shouldn't wedge a scaffold — fall back to flags/built-in
+            // defaults. But not silently: a typo'd config looked exactly like no config, so a team's
+            // remembered flags disappeared with nothing said (#599).
+            console?.WriteErrorLine(
+                $"Ignoring {path}: it isn't valid JSON ({ex.Message.TrimEnd('.')}). Falling back to "
+                + "flags and built-in defaults — fix or delete the file to use it again.",
+                ConsoleStyle.Warning);
             return new GenerateConfig();
+        }
+    }
+
+    /// <inheritdoc cref="DeployConfig.DescribeProblem" />
+    public static string? DescribeProblem(IFileSystem fileSystem, string projectDirectory)
+    {
+        var path = PathFor(projectDirectory);
+        if (!fileSystem.FileExists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            JsonSerializer.Deserialize(fileSystem.ReadAllText(path), GenerateConfigJsonContext.Default.GenerateConfig);
+            return null;
+        }
+        catch (JsonException ex)
+        {
+            return $"{path} isn't valid JSON: {ex.Message.TrimEnd('.')}.";
         }
     }
 

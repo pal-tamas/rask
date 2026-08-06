@@ -54,12 +54,17 @@ internal sealed class DevCommand(
             .Option("project", 'p', "path", "Project to run (default: the project in the current directory).")
             .Option("urls", valueHint: "url[;url]", description: "URLs the app should listen on (sets ASPNETCORE_URLS).")
             .Option("launch-profile", valueHint: "name", description: "launchSettings profile to use.")
-            .Flag("open", 'o', "Open the app in your browser once it is listening.")
+            // No short name. '-o' is --output CLI-wide (new, generate, db), and it was a *flag* here —
+            // so `rask dev -o ./somewhere` silently took the path as a positional instead of rejecting
+            // it. A short that is a value on four commands and a boolean on a fifth is the one collision
+            // that fails quietly rather than loudly (#601).
+            .Flag("open", description: "Open the app in your browser once it is listening.")
             .Flag("no-open", description: "Never open a browser.")
             .Flag("no-hot-reload", description: "Restart on change instead of applying edits live (still watches).")
             .Flag("no-restart", description: "Ask before restarting on an edit hot reload can't apply.")
             .Flag("once", description: "Run once without watching (plain 'dotnet run').")
-            .Flag("no-banner", description: "Suppress the startup banner.");
+            .Flag("no-banner", description: "Suppress the startup banner.")
+            .Flag("dry-run", description: "Print the command that would run without starting anything.");
 
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
@@ -100,6 +105,21 @@ internal sealed class DevCommand(
 
         var environment = BuildEnvironment(
             target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable);
+
+        // The environment overlay is not incidental here (see the remarks on this class): the MSBuild
+        // property that stops a rude edit blocking on an interactive prompt travels through it, so a dry
+        // run that showed only the command line would hide the half people actually come asking about.
+        if (parsed.HasFlag("dry-run"))
+        {
+            WriteDryRun("run", $"dotnet {string.Join(' ', dotnetArgs)}");
+            WriteDryRun("run it in", target.ProjectDirectory);
+            foreach (var (key, value) in environment.OrderBy(e => e.Key, StringComparer.Ordinal))
+            {
+                WriteDryRun("set", $"{key}={value}");
+            }
+
+            return 0;
+        }
 
         if (!parsed.HasFlag("no-banner") && !Console.IsOutputRedirected)
         {

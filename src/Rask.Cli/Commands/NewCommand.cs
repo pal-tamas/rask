@@ -308,7 +308,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             WriteHeading($"Would create {template.DisplayName} '{name}':");
             foreach (var file in result.Files)
             {
-                Console.Out.WriteLine($"  [dry-run] would write {Path.GetRelativePath(_workingDirectory, file.Path)}");
+                WriteDryRun("write", Path.GetRelativePath(_workingDirectory, file.Path));
             }
 
             return 0;

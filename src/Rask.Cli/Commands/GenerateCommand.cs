@@ -57,13 +57,22 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             .Verb("email", "An email message and its send path.", "e")
             .Verb("cache", "A cached read accessor.", "ca")
             .Option("output", 'o', "dir", "Directory to write into (default: derived from the artifact).")
+            // generate was the only command of the four without one, so when project resolution failed —
+            // which it does whenever a directory holds more than one .csproj — the error had no escape
+            // hatch to suggest (#601).
+            .Option("project", 'p', "path", "Project to scaffold into (default: found from the current directory).")
+            // Uppercase because '-f' is --fields, which this command also declares. The only uppercase
+            // short in the CLI, and it keeps its reason after #601 rather than being an accident.
             .Option("feature", 'F', "Name", "Co-locate under Features/<Name>/ instead of Features/Shared/ (component, job, email).")
             .Flag("force", description: "Overwrite existing files instead of refusing.")
-            .Flag("dry-run", description: "Print what would be written without touching disk.")
+            .Flag("dry-run", description: "List what would be written without touching disk.")
+            .Flag("verbose", description: "With --dry-run, also print each file's contents.")
             .Option("route", 'r', "path", "URL route for the page.", group: "Page options")
             .Option("fields", 'f', "list", "Fields as Name:type,... (or pass them positionally).", FeatureGroup)
             .Option("context", 'c', "Name", "Reuse an existing DbContext instead of generating one.", FeatureGroup)
-            .Option("plural", 'p', "Name", "Plural name for the feature folder/route (default: auto-pluralized).", FeatureGroup)
+            // No short name: '-p' is --project CLI-wide. --plural held it only here, so `rask g f -p X`
+            // meant something different from the same keystrokes on dev/db/deploy.
+            .Option("plural", valueHint: "Name", description: "Plural name for the feature folder/route (default: auto-pluralized).", group: FeatureGroup)
             .Option("id", valueHint: "type", description: "Primary-key type (default: guid).", group: FeatureGroup, choices: ["guid", "int", "long"])
             .Option("validation", valueHint: "mode", description: "Validation style (default: valueobjects).", group: FeatureGroup, choices: ["valueobjects", "dataannotations", "fluent"])
             .Flag("bs", description: "Render pages with Rask.Bootstrap (Bs*) components.", group: FeatureGroup)
@@ -192,11 +201,24 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             }
         }
 
-        var project = ProjectLocator.Locate(_fileSystem, _workingDirectory);
+        // --project points at the .csproj or its directory; without it, search upward from where the
+        // command was run. Resolving from the project's own directory rather than the cwd is what makes
+        // it an escape hatch for a solution folder holding several projects.
+        var searchFrom = _workingDirectory;
+        if (parsed.Option("project") is { Length: > 0 } explicitProject)
+        {
+            var full = Path.GetFullPath(Path.Combine(_workingDirectory, explicitProject));
+            searchFrom = full.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
+                ? Path.GetDirectoryName(full) ?? _workingDirectory
+                : full;
+        }
+
+        var project = ProjectLocator.Locate(_fileSystem, searchFrom);
         if (project is null)
         {
             Console.WriteErrorLine(
-                $"{ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory)} Run this inside a Rask project.",
+                $"{ProjectLocator.DescribeMissing(_fileSystem, searchFrom)} "
+                + "Run this inside a Rask project, or point at one with --project <path>.",
                 ConsoleStyle.Error);
             return 1;
         }
@@ -229,7 +251,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         var testProjectIsNew = result.TestProject is not null && !_fileSystem.FileExists(result.TestProject.ProjectPath);
 
         var dryRun = parsed.HasFlag("dry-run");
-        var written = Write(result, parsed.HasFlag("force"), dryRun);
+        var written = Write(result, parsed.HasFlag("force"), dryRun, parsed.HasFlag("verbose"));
         if (written == 0 && !dryRun)
         {
             if (parsed.HasFlag("save-defaults"))
@@ -769,7 +791,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
                 }
 
                 // Team defaults from .rask/generate.json fill in what wasn't passed; explicit flags always win.
-                var config = GenerateConfig.Load(_fileSystem, project.ProjectDirectory);
+                var config = GenerateConfig.Load(_fileSystem, project.ProjectDirectory, Console);
 
                 var idType = (parsed.Option("id") ?? config.Id)?.ToLowerInvariant() switch
                 {
@@ -832,7 +854,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         }
     }
 
-    private int Write(ScaffoldResult result, bool force, bool dryRun)
+    private int Write(ScaffoldResult result, bool force, bool dryRun, bool verbose)
     {
         if (!force)
         {
@@ -855,9 +877,17 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
         {
             foreach (var file in result.Files.Concat(result.CreateIfAbsent.Where(f => !_fileSystem.FileExists(f.Path))))
             {
-                Console.Out.WriteLine($"[dry-run] would write {Display(file.Path)}:");
-                Console.Out.WriteLine();
-                Console.Out.WriteLine(file.Content);
+                WriteDryRun("write", Display(file.Path));
+
+                // Contents are opt-in now. A feature scaffolds a dozen files, so dumping every one of
+                // them buried the list of what was about to happen in thousands of lines of C# — which
+                // is the question --dry-run is asked.
+                if (verbose)
+                {
+                    Console.Out.WriteLine();
+                    Console.Out.WriteLine(file.Content);
+                    Console.Out.WriteLine();
+                }
             }
 
             return 0;
@@ -902,7 +932,7 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
     // are never written false), keeping the file to the team's deliberate choices.
     private void SaveDefaults(string projectDirectory, ParsedArguments parsed)
     {
-        var config = GenerateConfig.Load(_fileSystem, projectDirectory);
+        var config = GenerateConfig.Load(_fileSystem, projectDirectory, Console);
         if (parsed.HasFlag("bs"))
         {
             config.Bs = true;
