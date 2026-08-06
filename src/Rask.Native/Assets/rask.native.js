@@ -1545,8 +1545,24 @@ function syncFormProperty(el, name, value, isPresent) {
         if (raskShouldSuppressChecked(el, !!isPresent)) return;
         el.checked = !!isPresent;
     } else if (name === "selected" && tag === "OPTION") {
-        el.selected = !!isPresent;
+        if (raskShouldSuppressSelected(el, !!isPresent)) return;
+        applySelected(el, !!isPresent);
     }
+}
+
+// Selecting through the option's own IDL property leaves the group inconsistent between ops: a diff
+// that moves the selection emits a remove on one option and a set on another, and in between a
+// single-select with nothing selected falls back to displaying its first option. Where the option
+// belongs to a single-select, move the SELECT instead — one write that lands on this exact option, by
+// index rather than by value so duplicate option values can't redirect it. Multi-selects (where more
+// than one option is legitimately on) and an option with no select fall back to the property.
+function applySelected(opt, on) {
+    const sel = opt.closest ? opt.closest("select") : null;
+    if (on && sel && !sel.multiple && typeof opt.index === "number") {
+        sel.selectedIndex = opt.index;
+        return;
+    }
+    opt.selected = on;
 }
 
 function applyDiff(ops, names) {
@@ -2314,6 +2330,32 @@ function raskShouldSuppressChecked(el, incoming) {
     return false;
 }
 
+// The `selected` analogue of the two guards above, for <select>. A select commits like a radio: the
+// user picks an option, the browser flips that option's `selected` PROPERTY, and the `selected`
+// ATTRIBUTE — the last server-rendered default — stays exactly where the server put it. So a frame the
+// server computed BEFORE the pick still marks the old option, and applying it snaps the box back until
+// the echo lands. The focus guard doesn't help here for the same reason it doesn't help a date input:
+// a select commits on change, so focus has moved on by the time the lagging frame arrives.
+//
+// Recorded like the radio group, and for the same reason: the change dispatch notes the pre-pick
+// attribute state of EVERY option in the select, not just the two that moved, because a stale frame
+// that re-selects the previously chosen option natively deselects the new one.
+function _raskPendingSelected() {
+    return window.__raskPendingSelected || (window.__raskPendingSelected = new WeakMap());
+}
+
+function raskNotePendingSelected(el, supersededSelected) {
+    if (el) _raskPendingSelected().set(el, !!supersededSelected);
+}
+
+function raskShouldSuppressSelected(el, incoming) {
+    const map = _raskPendingSelected();
+    if (!el || !map.has(el)) return false;
+    if (map.get(el) === !!incoming) return true;   // lagging frame carrying the stale selection
+    map.delete(el);                                 // authoritative response — release the guard
+    return false;
+}
+
 // User-edit provenance for the redeploy restore. When a replacement server can't carry a session over,
 // the page reloads, and the Server runtime re-applies the fields the user had actually edited (see
 // saveRestoreFields / applyRestoreFields in rask.js). It re-applies one only when the REPLACEMENT
@@ -2392,6 +2434,42 @@ function raskRadioGroup(el) {
     }
 
     return out.length > 0 ? out : [el];
+}
+
+// The whole pre-dispatch recording in one call, so the two host runtimes (rask.js, rask.wasm.js) can't
+// drift on which controls get a guard — each carried a hand-copied version of this block, which is
+// exactly how <select> came to have no guard at all while value and checked had one. Called from the
+// change dispatch with the element that changed, just before the message goes out.
+function raskNotePendingFormState(el) {
+    if (!el || !el.tagName) return;
+    const tag = el.tagName;
+    const isCheckbox = tag === "INPUT" && el.type === "checkbox";
+    // The PRE-EDIT value (the last server-rendered `value` attribute) — exactly what a lagging frame
+    // carries. Checkboxes self-correct through the checked guard, so they stay out of the value guard.
+    if (!isCheckbox) {
+        const sv = el.getAttribute("value");
+        raskNotePendingValue(el, sv === null ? "" : sv);
+    }
+    // The PRE-CLICK checked (the `checked` attribute, which a native click leaves untouched). A radio
+    // needs its whole group: a stale frame re-checking the previously selected member would natively
+    // uncheck the new one. raskRadioGroup is the same same-name-AND-same-form lookup the restore uses —
+    // narrower than the hosts' old root-wide `name` selector (two forms can each own a `Plan` group),
+    // and free of CSS.escape, which the shared modules can't assume for an app-authored name.
+    if (tag === "INPUT" && (isCheckbox || el.type === "radio")) {
+        const group = el.type === "radio" ? raskRadioGroup(el) : [el];
+        for (const r of group) {
+            raskNotePendingChecked(r, r.hasAttribute("checked"));
+        }
+    }
+    // The PRE-PICK selected state of every option in the select — same reasoning as the radio group.
+    if (tag === "SELECT") {
+        const opts = el.options || (el.getElementsByTagName ? el.getElementsByTagName("option") : null);
+        if (opts) {
+            for (let i = 0; i < opts.length; i++) {
+                raskNotePendingSelected(opts[i], opts[i].hasAttribute("selected"));
+            }
+        }
+    }
 }
 
 // Third-party <head> preservation. Libraries routinely inject <style>/<link>/<script> into <head> at
