@@ -1418,6 +1418,14 @@ public abstract class Component
                     await InvokeWithRenderingAsync(() => f(s)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
+                case Action<IReadOnlyList<string>> a:
+                    a(ExtractStringList(payload));
+                    return true;
+                case Func<IReadOnlyList<string>, Task> f:
+                    var values = ExtractStringList(payload);
+                    await InvokeWithRenderingAsync(() => f(values)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
                 case Action<FormData> a:
                     a(FormData.FromJson(payload));
                     return true;
@@ -1473,6 +1481,9 @@ public abstract class Component
                 case Callback<string> c:
                     c(ExtractString(payload, "value"));
                     return true;
+                case Callback<IReadOnlyList<string>> c:
+                    c(ExtractStringList(payload));
+                    return true;
                 case Callback<FormData> c:
                     c(FormData.FromJson(payload));
                     return true;
@@ -1505,6 +1516,13 @@ public abstract class Component
                 {
                     var value = ExtractString(payload, "value");
                     await InvokeWithRenderingAsync(() => c(value)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case CallbackAsync<IReadOnlyList<string>> c:
+                {
+                    var picked = ExtractStringList(payload);
+                    await InvokeWithRenderingAsync(() => c(picked)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
@@ -2014,6 +2032,42 @@ public abstract class Component
         }
 
         return v.ValueKind == JsonValueKind.String ? v.GetString() ?? string.Empty : string.Empty;
+    }
+
+    /// <summary>
+    ///     The whole selection a <c>&lt;select multiple&gt;</c> reported, from the frame's <c>values</c>
+    ///     array. Falls back to the single <c>value</c> so the handler still sees the user's pick when
+    ///     the array is absent — a single-value control wired to a list handler, or a browser holding a
+    ///     cached client from a deploy that predates the array.
+    /// </summary>
+    private static IReadOnlyList<string> ExtractStringList(JsonElement payload)
+    {
+        if (payload.ValueKind == JsonValueKind.Object
+            && payload.TryGetProperty("values", out var v)
+            && v.ValueKind == JsonValueKind.Array)
+        {
+            var length = v.GetArrayLength();
+            if (length == 0)
+            {
+                return [];
+            }
+
+            var picked = new string[length];
+            var i = 0;
+            foreach (var item in v.EnumerateArray())
+            {
+                picked[i++] = item.ValueKind == JsonValueKind.String
+                    ? item.GetString() ?? string.Empty
+                    : string.Empty;
+            }
+
+            return picked;
+        }
+
+        var single = ExtractString(payload, "value");
+        // "" is what an empty select reports, and it is not a selection — reporting it as one option
+        // named "" would make "nothing picked" indistinguishable from "picked the blank option".
+        return single.Length == 0 ? [] : new[] { single };
     }
 
     private static MouseModifiers ExtractModifiers(JsonElement payload) =>

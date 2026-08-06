@@ -5791,6 +5791,35 @@ button .align-items-center .d-flex .dropdown-item .gap-2
 input .form-check-input .m-0 .pe-none
 p .mb-0 .small .text-secondary
 
+=== multi-select-native ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+form .gap-3 .vstack
+div
+label .form-label .fw-semibold
+select .form-select
+option
+option
+option
+option
+option
+option
+div .form-text
+div .alert .alert-secondary .mb-0 .mt-3 .small
+
 === multi-select-radio ===
 div .border-0 .card .mb-4 .sample-card .shadow-sm
 div .sample-code-col

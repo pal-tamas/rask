@@ -17,6 +17,10 @@ public sealed class Select<T> : Element, IFormControl<T>
     private bool _bound;
     private string _selectedValue = "";
 
+    // Non-null only for a multi-select bound to a collection, where the render has to mark every picked
+    // option rather than the one _selectedValue names.
+    private IReadOnlySet<string>? _selectedValues;
+
     protected override string TagName => "select";
 
     public string? Name { get; set; }
@@ -44,13 +48,13 @@ public sealed class Select<T> : Element, IFormControl<T>
     {
         if (_bound && Children is not null)
         {
-            Children = MarkSelected(Children, _selectedValue);
+            Children = MarkSelected(Children, new Selection(_selectedValue, _selectedValues));
         }
 
         return base.EnterChildrenScope();
     }
 
-    private static IEnumerable<Component?> MarkSelected(IEnumerable<Component?> children, string current)
+    private static IEnumerable<Component?> MarkSelected(IEnumerable<Component?> children, Selection current)
     {
         var list = new List<Component?>();
         foreach (var c in children)
@@ -74,9 +78,18 @@ public sealed class Select<T> : Element, IFormControl<T>
         return list.ToArray();
     }
 
-    private static Option MarkOption(Option opt, string current)
+    // Which option values the render should mark. A single-value select carries just the formatted
+    // value; a multi-select bound to a collection carries the set. A struct with a null set keeps the
+    // single-value path — by far the common one — allocation-free.
+    private readonly struct Selection(string single, IReadOnlySet<string>? many)
     {
-        if (opt.Selected is true || opt.Value != current)
+        public bool Matches(string? value) =>
+            many is null ? value == single : value is not null && many.Contains(value);
+    }
+
+    private static Option MarkOption(Option opt, Selection current)
+    {
+        if (opt.Selected is true || !current.Matches(opt.Value))
         {
             return opt;
         }
@@ -101,7 +114,7 @@ public sealed class Select<T> : Element, IFormControl<T>
         };
     }
 
-    private static Optgroup MarkOptgroup(Optgroup og, string current)
+    private static Optgroup MarkOptgroup(Optgroup og, Selection current)
     {
         if (og.Children is null)
         {
@@ -124,6 +137,27 @@ public sealed class Select<T> : Element, IFormControl<T>
         };
     }
 
+    // The picked values a multi-select bound to a collection should mark, or null for every other shape —
+    // which keeps the single-value path on its existing string compare.
+    private IReadOnlySet<string>? SelectionSet(object? bound)
+    {
+        if (Multiple is not true || !BindingHelpers.IsBindableSelectionType<T>())
+        {
+            return null;
+        }
+
+        var picked = new HashSet<string>(StringComparer.Ordinal);
+        if (bound is IEnumerable<string> values)
+        {
+            foreach (var v in values)
+            {
+                picked.Add(v);
+            }
+        }
+
+        return picked;
+    }
+
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
@@ -138,11 +172,13 @@ public sealed class Select<T> : Element, IFormControl<T>
             fid = acc.Field;
             _bound = true;
             _selectedValue = BindingHelpers.FormatValue(acc.Getter());
+            _selectedValues = SelectionSet(acc.Getter());
         }
         else if (Value is not null)
         {
             _bound = true;
             _selectedValue = BindingHelpers.FormatValue(Value);
+            _selectedValues = SelectionSet(Value);
         }
 
         var name = Name ?? acc?.PropertyName;
@@ -195,8 +231,15 @@ public sealed class Select<T> : Element, IFormControl<T>
         {
             var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
-            AppendAttr(sb, "data-rask-on-change",
-                ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind)));
+            // A multi-select bound to a collection takes the whole selection the client now reports
+            // (`values`), not the single `value` the DOM exposes — which is only the FIRST selected
+            // option, so binding it converged the model on one option out of however many were picked.
+            // A multi-select bound to a scalar keeps the single-value handler: that is a control whose
+            // model can hold one answer, and silently widening it would be the more surprising change.
+            var handler = Multiple is true && BindingHelpers.IsBindableSelectionType<T>()
+                ? BindingHelpers.MultiSelectSetHandler<T>(acc, bindCtx, fid, afterBind)
+                : (Delegate)BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind);
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(handler));
         }
         else
         {
