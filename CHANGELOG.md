@@ -97,6 +97,30 @@ them until tagged releases begin.
     rather than "did we write it", so the test doesn't vanish from the common path.
   - Docs, the tutorial (chapters 2, 3, 7), the `Rask.Example.Shop` command list and `rask new`'s printed next
     steps all drop the `--context AppDbContext` that is now the default behaviour.
+- **No E2E fixture picks its own port any more, so a straggler host can't block the push gate.** #612 fixed
+  the in-process static hosts; the eleven fixtures that launch a real `dotnet` process kept their constants,
+  maintained against a comment listing their siblings' numbers. That list was only ever unique *within* one
+  run of one checkout — and `5099` is the port `.githooks/pre-push` gates on, so a single leftover host
+  blocked pushing from every worktree on the machine. All eleven now reserve a loopback port from the OS
+  (`LoopbackPort.Reserve`, probing the family `localhost` actually resolves to), and a test fails the build
+  if a literal port comes back.
+  - **A bind clash and a broken app are no longer the same error.** An out-of-process host has to be *told*
+    where to listen, so the number is decided before anything binds and a clash stays possible in principle.
+    The fixture now reads the child's output: Kestrel's "address already in use" retries the whole launch on
+    a fresh port, anything else still fails immediately — a genuinely broken sample must not be retried into
+    a five-times-longer timeout. Previously a clash surfaced as "exited before becoming ready", sending the
+    reader after a bug in the sample; worse, a *stale host* on the fixed port answered the readiness poll
+    and every assertion silently ran against the wrong process.
+  - `WasmWatchAppFixture`'s hand-rolled `EnsurePortFree` is gone with the constant it guarded. It probed
+    IPv4 loopback only — the exact family mismatch that lets a port look free and still refuse to bind.
+  - The local-dev publish folder is keyed on the app instead of the app *and its port*, which would now
+    leave a fresh multi-hundred-megabyte publish behind on every run; concurrent publishes of the same app
+    are serialised, and it re-publishes rather than reusing whatever it finds.
+- **A failing browser journey now leaves a Playwright trace.** The existing dump explains a page that
+  *threw*; it says nothing about a page that is merely never still, which is how #625 presented — a 30s
+  "element is not stable" naming the element and nothing about what was moving. The journey records a trace
+  with DOM snapshots throughout and keeps it only on failure, printing the path and the command that opens
+  it. Always on rather than behind a flag, because the run worth tracing is the one that unexpectedly failed.
 
 ## [0.20.0] - 2026-08-06
 

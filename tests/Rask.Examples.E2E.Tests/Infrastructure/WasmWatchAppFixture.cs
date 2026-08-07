@@ -28,15 +28,18 @@ public sealed class WasmWatchAppFixture : IAsyncLifetime
     internal const string EditedMarker = "hot-reload-probe-edited";
     internal const string ProbeRoute = "hot-reload-probe";
 
-    private const int PortNumber = 5101;
-
     private readonly Lock _logLock = new();
     private readonly StringBuilder _log = new();
 
     private Process? _process;
     private string _probeFile = string.Empty;
 
-    public string BaseUrl => $"http://localhost:{PortNumber}";
+    // Assigned by the OS at InitializeAsync — see LoopbackPort. This fixture used to hold 5101, which it
+    // shared with SiteWasmAppFixture in a different (parallel) collection until #612 moved that one to an
+    // ephemeral port; the collision was removed by the other side of it, not by this one.
+    private int _port;
+
+    public string BaseUrl => $"http://localhost:{_port}";
 
     public string ServerLog
     {
@@ -55,10 +58,12 @@ public sealed class WasmWatchAppFixture : IAsyncLifetime
         var host = Path.Combine(repoRoot, "samples", "Rask.Example.Wasm.Host");
         _probeFile = Path.Combine(repoRoot, "samples", "Rask.Example.Wasm", "Features", "HotReloadProbePage.cs");
 
-        // Fail fast on a busy port instead of testing against whatever is on it. A leftover host from
-        // an earlier run answers the readiness poll perfectly happily, and every later assertion then
-        // measures a server that never saw the edit — which reads as "hot reload is broken" and is not.
-        EnsurePortFree();
+        // An OS-assigned port, rather than testing against whatever is on a fixed one. A leftover host
+        // from an earlier run answers the readiness poll perfectly happily, and every later assertion
+        // then measures a server that never saw the edit — which reads as "hot reload is broken" and is
+        // not. The old guard probed IPv4 loopback for a fixed number and told you to `pkill`;
+        // LoopbackPort.Reserve asks for one nobody holds, on the family `localhost` resolves to.
+        _port = LoopbackPort.Reserve();
 
         WriteProbe(OriginalMarker);
 
@@ -201,24 +206,6 @@ public sealed class WasmWatchAppFixture : IAsyncLifetime
         if (build.ExitCode != 0)
         {
             throw new InvalidOperationException($"Pre-build of the WASM host failed.\n{output}\n{error}");
-        }
-    }
-
-    private static void EnsurePortFree()
-    {
-        try
-        {
-            using var probe = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, PortNumber);
-            probe.Start();
-            probe.Stop();
-        }
-        catch (System.Net.Sockets.SocketException)
-        {
-            throw new InvalidOperationException(
-                $"Port {PortNumber} is already in use — most likely a `dotnet watch` or host process left "
-                + "over from an earlier run of this gate. Kill it (`pkill -f Rask.Example.Wasm.Host`, "
-                + "`pkill -f 'dotnet watch'`) and re-run; otherwise this test would silently assert "
-                + "against that process instead of the one it starts.");
         }
     }
 

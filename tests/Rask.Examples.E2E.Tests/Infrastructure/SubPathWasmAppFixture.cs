@@ -21,10 +21,6 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
     private const string Configuration = "Release";
 #endif
 
-    // 5099 is ServerExampleAppFixture, 5098 is WasmExampleAppFixture; these collections
-    // run in parallel, so this fixture needs its own port to avoid an "address already in
-    // use" bind clash that crashes both hosts.
-    private const int Port = 5097;
     private const string PathBase = "/sub";
 
     private readonly Lock _logLock = new();
@@ -33,8 +29,12 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
     private Process? _process;
     private string? _bundleDir;
 
-    public string BaseUrl => $"http://localhost:{Port}{PathBase}";
-    public string OriginUrl => $"http://localhost:{Port}";
+    // Assigned by the OS at InitializeAsync — see LoopbackPort. This fixture used to hold 5097 by hand,
+    // maintained against a written-down list of its siblings' numbers, which is only unique per run.
+    private int _port;
+
+    public string BaseUrl => $"http://localhost:{_port}{PathBase}";
+    public string OriginUrl => $"http://localhost:{_port}";
 
     public string ServerLog
     {
@@ -83,6 +83,8 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
         }
 
         await File.WriteAllTextAsync(indexHtmlPath, rewritten);
+
+        _port = LoopbackPort.Reserve();
 
         var psi = new ProcessStartInfo("dotnet")
         {

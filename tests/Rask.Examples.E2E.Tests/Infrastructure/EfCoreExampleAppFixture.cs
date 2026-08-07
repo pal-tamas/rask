@@ -13,9 +13,6 @@ public sealed class EfCoreExampleAppFixture : ExampleAppFixture
         Path.Combine(Path.GetTempPath(), $"rask-efcore-e2e-mail-{Guid.NewGuid():N}");
 
     protected override string ProjectRelativePath => "samples/Rask.Example.EfCore";
-
-    protected override int Port => 5110;
-
     protected override IReadOnlyDictionary<string, string>? ExtraEnvironment =>
         new Dictionary<string, string>
         {

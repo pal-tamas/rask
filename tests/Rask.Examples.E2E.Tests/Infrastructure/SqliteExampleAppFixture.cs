@@ -8,9 +8,6 @@ public sealed class SqliteExampleAppFixture : ExampleAppFixture
         Path.Combine(Path.GetTempPath(), $"rask-sqlite-e2e-{Guid.NewGuid():N}.db");
 
     protected override string ProjectRelativePath => "samples/Rask.Example.Sqlite";
-
-    protected override int Port => 5112;
-
     protected override IReadOnlyDictionary<string, string>? ExtraEnvironment =>
         new Dictionary<string, string> { ["RASK_DB_PATH"] = _dbPath };
 }
