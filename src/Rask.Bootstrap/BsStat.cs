@@ -8,7 +8,7 @@ namespace Rask.Bootstrap;
 // decoration, whereas one red number among grey ones reads as a signal. Callers are expected to leave
 // Tone unset for ordinary counters and set Danger only when the value genuinely demands action (a
 // dead-letter count above zero, say).
-public sealed class BsStat : BsBlock
+public sealed partial class BsStat : BsBlock
 {
     // The number (or short string) — the reason the tile exists.
     public required string Value { get; set; }

@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="INetworkInfo" /> — read the connection quality (effective type, downlink, Data Saver).</summary>
-public sealed class NetworkInfoDemo(INetworkInfo network) : Component
+public sealed partial class NetworkInfoDemo(INetworkInfo network) : Component
 {
     private string? _value;
     private string? _status;

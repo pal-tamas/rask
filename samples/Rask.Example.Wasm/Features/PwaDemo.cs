@@ -9,7 +9,7 @@ namespace Rask.Example.Wasm.Features;
 ///     readiness (<see cref="IWebPush" />), and the installed-app badge (<see cref="IBadge" />). These
 ///     APIs are WASM-only; <see cref="PwaPage" /> hosts this demo (with its source) in the showcase.
 /// </summary>
-public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge badge, HttpClient http) : Component
+public sealed partial class PwaDemo(INotifications notifications, IWebPush push, IBadge badge, HttpClient http) : Component
 {
     // Fallback VAPID public key for the standalone static showcase (no backend to ask). When a backend
     // is present the key comes from GET /_push/key instead, so the two never drift.

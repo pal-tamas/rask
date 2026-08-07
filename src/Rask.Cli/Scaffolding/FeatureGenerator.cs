@@ -1244,7 +1244,7 @@ internal static class FeatureGenerator
         __LISTQUERY__
 
         [Route("__ROUTE__")]
-        public sealed class __PLURAL__Page(IDispatcher dispatcher) : Component
+        public sealed partial class __PLURAL__Page(IDispatcher dispatcher) : Component
         {
             private IReadOnlyList<__ENTITY__> _items = [];
             private bool _loaded;__LISTSTATE__
@@ -1313,7 +1313,7 @@ internal static class FeatureGenerator
 
         // A reusable delete button: dispatches the delete command, then invokes OnDeleted so the caller
         // (the list page) can refresh.
-        public sealed class Delete__ENTITY__(IDispatcher dispatcher) : Component
+        public sealed partial class Delete__ENTITY__(IDispatcher dispatcher) : Component
         {
             public __IDTYPE__ Id { get; set; }
 
@@ -1363,7 +1363,7 @@ internal static class FeatureGenerator
 
         // A reusable restore button: dispatches the restore command, then invokes OnRestored so the caller
         // (the list page) can refresh.
-        public sealed class Restore__ENTITY__(IDispatcher dispatcher) : Component
+        public sealed partial class Restore__ENTITY__(IDispatcher dispatcher) : Component
         {
             public __IDTYPE__ Id { get; set; }
 
@@ -1409,7 +1409,7 @@ internal static class FeatureGenerator
             }
         }
 
-        public sealed class Restore__ENTITY__(IDispatcher dispatcher) : Component
+        public sealed partial class Restore__ENTITY__(IDispatcher dispatcher) : Component
         {
             public __IDTYPE__ Id { get; set; }
 
@@ -1453,7 +1453,7 @@ internal static class FeatureGenerator
         }
 
         [Route("__ROUTE__/new")]
-        public sealed class Create__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
+        public sealed partial class Create__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
         {
             private readonly __ENTITY__Request _form = new();
             private string? _error;
@@ -1530,7 +1530,7 @@ internal static class FeatureGenerator
         }
 
         [Route("__ROUTE__/{id:__IDCONSTRAINT__}/edit")]
-        public sealed class Update__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
+        public sealed partial class Update__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
         {
             private readonly __ENTITY__Request _form = new();
             private bool _loaded;
@@ -1609,7 +1609,7 @@ internal static class FeatureGenerator
         __LISTQUERY__
 
         [Route("__ROUTE__")]
-        public sealed class __PLURAL__Page(IDispatcher dispatcher, Navigator navigator) : Component
+        public sealed partial class __PLURAL__Page(IDispatcher dispatcher, Navigator navigator) : Component
         {
             private IReadOnlyList<__ENTITY__> _items = [];
             private bool _loaded;__LISTSTATE__
@@ -1680,7 +1680,7 @@ internal static class FeatureGenerator
             }
         }
 
-        public sealed class Delete__ENTITY__(IDispatcher dispatcher) : Component
+        public sealed partial class Delete__ENTITY__(IDispatcher dispatcher) : Component
         {
             public __IDTYPE__ Id { get; set; }
 
@@ -1724,7 +1724,7 @@ internal static class FeatureGenerator
         }
 
         [Route("__ROUTE__/new")]
-        public sealed class Create__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
+        public sealed partial class Create__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
         {
             private readonly __ENTITY__Request _form = new();
             private string? _error;
@@ -1801,7 +1801,7 @@ internal static class FeatureGenerator
         }
 
         [Route("__ROUTE__/{id:__IDCONSTRAINT__}/edit")]
-        public sealed class Update__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
+        public sealed partial class Update__ENTITY__(IDispatcher dispatcher, Navigator navigator) : Component
         {
             private readonly __ENTITY__Request _form = new();
             private bool _loaded;
@@ -1925,7 +1925,7 @@ internal static class FeatureGenerator
         }
 
         [Route("__ROUTE__")]
-        public sealed class __PLURAL__Page(IDispatcher dispatcher) : Component
+        public sealed partial class __PLURAL__Page(IDispatcher dispatcher) : Component
         {
             private IReadOnlyList<__ENTITY__> _items = [];
             private bool _loaded;__LISTSTATE__

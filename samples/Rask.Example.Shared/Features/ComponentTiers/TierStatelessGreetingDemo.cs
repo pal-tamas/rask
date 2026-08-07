@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // (Name is required because it is non-nullable with no initializer). Unlike a static method it
 // gains a reconciliation identity, lifecycle hooks, render caching and safe context reads — it
 // just carries no local state of its own.
-public sealed class TierGreeting : Component
+public sealed partial class TierGreeting : Component
 {
     public required string Name { get; set; }
 
@@ -13,7 +13,7 @@ public sealed class TierGreeting : Component
         P(Class: "mb-0")["Hello, ", Strong()[Name], "!"];
 }
 
-public sealed class TierStatelessGreetingDemo : Component
+public sealed partial class TierStatelessGreetingDemo : Component
 {
     protected override Component? Render() => TierGreeting(Name: "Ada");
 }

@@ -8,7 +8,7 @@ namespace Rask.Example.Auth.Features;
 
 [Route("login")]
 [AllowAnonymous]
-public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
+public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
 {
     private readonly LoginModel _model = new();
     private string? _error;

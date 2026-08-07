@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class EventsClickDemo : Component
+public sealed partial class EventsClickDemo : Component
 {
     private int _clicks;
 

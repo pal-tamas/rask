@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class LifecycleProbe : Component
+public sealed partial class LifecycleProbe : Component
 {
     private readonly List<string> _log = new();
     private int _renderCount;

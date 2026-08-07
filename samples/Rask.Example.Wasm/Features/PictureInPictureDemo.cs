@@ -9,7 +9,7 @@ namespace Rask.Example.Wasm.Features;
 ///     The video is synthesized from an animated canvas by the sibling scoped JS
 ///     (<c>PictureInPictureDemo.js</c>) so the demo needs no shipped video file.
 /// </summary>
-public sealed class PictureInPictureDemo(IPictureInPicture pip, IJSRuntime js) : Component
+public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRuntime js) : Component
 {
     private readonly ElementRef _video = ElementRef.New();
     private string _status = "(idle)";

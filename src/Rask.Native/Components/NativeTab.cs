@@ -6,7 +6,7 @@ namespace Rask.Native.Components;
 ///     A single tab in a <see cref="NativeTabBar" /> — an icon + label that navigates to a route when tapped.
 ///     Use a type-safe route from <c>Features.Routes.*</c> for <see cref="To" />.
 /// </summary>
-public sealed class NativeTab : NativeBarItem
+public sealed partial class NativeTab : NativeBarItem
 {
     /// <summary>The tab's label. Required.</summary>
     public new required string Title { get; set; }

@@ -17,7 +17,7 @@ public class RedundantStateHasChangedAnalyzerTests
                                                   using Rask.Core.Forms;
                                                   using static Rask.Core.Components.Generated;
                                                   namespace Demo;
-                                                  public sealed class App : Component
+                                                  public sealed partial class App : Component
                                                   {
                                                       {{members}}
                                                   }

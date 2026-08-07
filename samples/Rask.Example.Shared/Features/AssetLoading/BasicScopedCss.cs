@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 ///     into <c>&lt;head&gt;</c>. The browser fetches the bytes from the endpoint with
 ///     <c>Cache-Control: immutable</c>.
 /// </summary>
-public sealed class BasicScopedCss : Component
+public sealed partial class BasicScopedCss : Component
 {
     protected override Component? Render() =>
         Div(Class: "basic-card")[

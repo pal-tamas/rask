@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // BsConfirmDialog — an "are you sure?" prompt layered on BsModal for destructive actions. Controlled
 // like a modal: _open holds visibility, OnConfirm/OnCancel run your action and close it. The confirm
 // button defaults to Danger. Zero-JS; dismissible via Cancel, the ×, or a backdrop click.
-public sealed class BsConfirmDialogDemo : Component
+public sealed partial class BsConfirmDialogDemo : Component
 {
     private bool _open;
     private string _status = "No action taken yet.";

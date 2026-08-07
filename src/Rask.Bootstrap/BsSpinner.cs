@@ -3,7 +3,7 @@ namespace Rask.Bootstrap;
 // A Bootstrap spinner. Wraps the core Div() with role="status" and the .spinner-border (default) or
 // .spinner-grow classes. A visually-hidden status label is rendered for screen readers unless the
 // caller supplies their own children.
-public sealed class BsSpinner : BsBlock
+public sealed partial class BsSpinner : BsBlock
 {
     public BsColor? Color { get; set; }
     public BsSpinnerKind? Kind { get; set; }

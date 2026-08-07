@@ -12,7 +12,7 @@ namespace Rask.Wasm.Tests.Infrastructure;
 // InHandlerScope=true, sets _pendingRenderInScope, and forces
 // BuildPayloadCoalescingRerendersAsync to rebuild the payload — the rebuild
 // path the bug fix is about.
-internal sealed class NavigateWithPublishRenderApp : Component
+internal sealed partial class NavigateWithPublishRenderApp : Component
 {
     private readonly Navigator _nav;
     private readonly RouteState _routeState;

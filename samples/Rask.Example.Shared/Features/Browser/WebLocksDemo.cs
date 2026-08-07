@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 ///     waits for the first to release. "Try (no wait)" uses <c>ifAvailable</c>, so it reports
 ///     <c>false</c> immediately while the lock is held. "Query" snapshots the locks the origin holds now.
 /// </summary>
-public sealed class WebLocksDemo(IWebLocks locks) : Component
+public sealed partial class WebLocksDemo(IWebLocks locks) : Component
 {
     private const string LockName = "rask-web-locks-demo";
     private string _status = "(idle)";

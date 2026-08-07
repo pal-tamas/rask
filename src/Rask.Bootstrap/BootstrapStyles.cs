@@ -7,7 +7,7 @@ namespace Rask.Bootstrap;
 // The CSS ships as static web assets under _content/Rask.Bootstrap and is served by the host's
 // MapStaticAssets() on Server and by the static-web-assets pipeline on WASM. Drop BootstrapStyles() in
 // your App's Head. URLs are prefixed with LiveOptions.PathBase so sub-path deploys resolve.
-public sealed class BootstrapStyles : Component
+public sealed partial class BootstrapStyles : Component
 {
     private new const string Base = "/_content/Rask.Bootstrap/";
 
@@ -31,7 +31,7 @@ public sealed class BootstrapStyles : Component
 // palette plus the Bootstrap 5.3 --bs-* bridge that reskins every Bs* component to it. Link this AFTER
 // BootstrapStyles() (so the --bs-* bridge wins the cascade) and BEFORE the app's own global.css (so app
 // CSS can still override the tokens). URLs are PathBase-prefixed so sub-path deploys resolve.
-public sealed class RaskTokens : Component
+public sealed partial class RaskTokens : Component
 {
     protected override Component? Render() =>
         Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/_content/Rask.Bootstrap/tokens.css");

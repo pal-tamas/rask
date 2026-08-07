@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Bootstrap placeholders (loading skeletons) — sized with Col (the col-{n} grid width), optionally tinted
 // with Color and scaled with Size, and shimmering via Animation (Glow / Wave). The left card reads as a
 // card that is still loading; the right column shows the coloured, sized, wave-animated variants.
-public sealed class BsPlaceholderDemo : Component
+public sealed partial class BsPlaceholderDemo : Component
 {
     protected override Component? Render() =>
         BsRow(Gutter: 3)[

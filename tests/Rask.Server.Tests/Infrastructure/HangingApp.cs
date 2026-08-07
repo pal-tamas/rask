@@ -8,7 +8,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // App whose click handler blocks on a test-controlled gate, stalling the handler-dispatch
 // chain head so queued dispatches pile up — used to exercise the backpressure circuit-breaker
 // (RaskServerOptions.MaxPendingHandlers).
-public sealed class HangingApp : Component
+public sealed partial class HangingApp : Component
 {
     // Released by the test to let the hung handler complete. Static so the test can signal it
     // without a handle to the DI-constructed instance; reset per test before the host starts.

@@ -4,7 +4,7 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap textarea. Wraps the core Textarea with the .form-control class, label, help text and
 // validation display. Bound: BsTextarea(() => model.Bio, Label: "Bio", Rows: 4).
-public sealed class BsTextarea<T> : BsFormControl<T>
+public sealed partial class BsTextarea<T> : BsFormControl<T>
 {
     public string? Placeholder { get; set; }
     public int? Rows { get; set; }

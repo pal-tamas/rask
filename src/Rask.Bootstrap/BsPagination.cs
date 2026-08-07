@@ -2,7 +2,7 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap pagination control: <nav><ul class="pagination">…</ul></nav> holding BsPageItem
 // children. Size maps to pagination-sm / pagination-lg.
-public sealed class BsPagination : BsBlock
+public sealed partial class BsPagination : BsBlock
 {
     public BsSize? Size { get; set; }
 
@@ -24,7 +24,7 @@ public sealed class BsPagination : BsBlock
 // A pagination item: <li class="page-item"><a class="page-link">…</a></li>. Active marks the
 // current page; Disabled greys it. Pass Href for a link, or OnClick to drive paging from C# (zero
 // JS — the handler re-renders through the live runtime).
-public sealed class BsPageItem : BsBlock
+public sealed partial class BsPageItem : BsBlock
 {
     public bool? Active { get; set; }
     public bool? Disabled { get; set; }

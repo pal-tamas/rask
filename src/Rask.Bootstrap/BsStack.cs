@@ -19,7 +19,7 @@ namespace Rask.Bootstrap;
 //
 // Horizontal emits no flex-row token, because row is already the flex default — which keeps
 // BsStack(Gap: 2) byte-identical to the "d-flex gap-2" it replaces.
-public sealed class BsStack : BsBlock
+public sealed partial class BsStack : BsBlock
 {
     public bool? Vertical { get; set; }
     public int? Gap { get; set; }

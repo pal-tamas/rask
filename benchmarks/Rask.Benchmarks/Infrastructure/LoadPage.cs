@@ -22,7 +22,7 @@ namespace Rask.Benchmarks.Infrastructure;
 ///         event loop that does no work.
 ///     </para>
 /// </remarks>
-public sealed class LoadPage(LoadPageOptions options) : Component
+public sealed partial class LoadPage(LoadPageOptions options) : Component
 {
     private int _counter;
 

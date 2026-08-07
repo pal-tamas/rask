@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 // against the new query, so the state is shareable, bookmarkable, and replayed by browser back/forward for free.
 [Route("table")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class TablePage(Navigator nav) : Component
+public sealed partial class TablePage(Navigator nav) : Component
 {
     private static readonly Person[] _people = BuildPeople(120);
 

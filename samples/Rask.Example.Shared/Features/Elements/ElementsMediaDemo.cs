@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 
 // Media & embedded content: img, picture/source, audio, video/track, canvas, iframe (srcdoc — no
 // network), embed, object, and an image map (map/area). Self-contained assets so it works offline.
-public sealed class ElementsMediaDemo : Component
+public sealed partial class ElementsMediaDemo : Component
 {
     private static string Asset(string name) => LiveOptions.PathBase + "/img/" + name;
 

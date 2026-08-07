@@ -7,7 +7,7 @@ namespace Rask.Example.Wasm.Features;
 ///     watch for the user going idle or the screen locking. WASM-only: permission needs a live gesture and
 ///     the detector needs the live document.
 /// </summary>
-public sealed class IdleDetectorDemo(IIdleDetector idle) : Component, IAsyncDisposable
+public sealed partial class IdleDetectorDemo(IIdleDetector idle) : Component, IAsyncDisposable
 {
     private IAsyncDisposable? _watch;
     private string _user = "active";

@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Boundaries nest: the inner boundary catches first, so the outer healthy
 // region (and its sibling paragraph) stays mounted. If the inner fallback
 // itself throws, the outer boundary catches the escalation.
-public sealed class BoomNestedDemo : Component
+public sealed partial class BoomNestedDemo : Component
 {
     protected override Component? Render() =>
         ErrorBoundary((ex, _) => OuterFallback(ex))[

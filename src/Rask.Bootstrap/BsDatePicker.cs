@@ -11,7 +11,7 @@ namespace Rask.Bootstrap;
 // out unavailable days. Labels localizes the nav/clear aria-labels. Native:true falls back to <input type=date>.
 //   Bound:      BsDatePicker(() => model.StartDate, Label: "Start", Min: today)
 //   Controlled: BsDatePicker(Value: d, OnChange: v => …)
-public sealed class BsDatePicker<T> : BsPickerBase<T>
+public sealed partial class BsDatePicker<T> : BsPickerBase<T>
 {
     public DateOnly? Min { get; set; }
     public DateOnly? Max { get; set; }

@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class SkipFactoryCounter : Component
+public sealed partial class SkipFactoryCounter : Component
 {
     private int _count;
 
@@ -18,7 +18,7 @@ public sealed class SkipFactoryCounter : Component
 // The generated factory has NO Initial parameter — the call site stays clean.
 // Framework caches the instance by tree position, so _count survives
 // re-renders just like any other private state. The counter starts at 7.
-public sealed class ComponentsSkipFactoryDemo : Component
+public sealed partial class ComponentsSkipFactoryDemo : Component
 {
     protected override Component? Render() => SkipFactoryCounter();
 }

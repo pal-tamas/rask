@@ -9,7 +9,7 @@ namespace Rask.Example.EfCore.Features.Catalog.EditProduct;
 // submit loads the tracked aggregate and mutates it through Product.Update so the invariants and
 // the same value-object validation rules apply.
 [Route("products/{id:int}/edit")]
-public sealed class EditProductPage(IDbContextFactory<CatalogDbContext> dbContextFactory, Navigator navigator)
+public sealed partial class EditProductPage(IDbContextFactory<CatalogDbContext> dbContextFactory, Navigator navigator)
     : Component
 {
     private readonly EditProductForm _form = new();

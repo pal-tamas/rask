@@ -23,7 +23,7 @@ public sealed class ListProductsQueryHandler(IDbContextFactory<AppDbContext> dbC
 }
 
 [Route("/products")]
-public sealed class ProductsPage(IDispatcher dispatcher) : Component
+public sealed partial class ProductsPage(IDispatcher dispatcher) : Component
 {
     private IReadOnlyList<Product> _items = [];
     private bool _loaded;

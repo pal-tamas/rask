@@ -1,6 +1,6 @@
 namespace Rask.Example.Auth.WasmCookie;
 
-public sealed class App : Component
+public sealed partial class App : Component
 {
     // Bootstrap + Bootstrap Icons via CDN keep the showcase look without vendoring wwwroot/lib
     // per sample. wwwroot/global.css layers the Rask purple palette on top — user <head>

@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // A Bootstrap pagination control driven by Rask's live runtime — no bootstrap.js. Each BsPageItem is a
 // real <button>; its OnClick flips _page and the live diff re-renders, moving the .active marker and
 // disabling Previous/Next at the ends. The readout below tracks the current page.
-public sealed class BsPaginationDemo : Component
+public sealed partial class BsPaginationDemo : Component
 {
     private const int TotalPages = 5;
     private int _page = 1;

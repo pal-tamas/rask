@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="ISpeechSynthesis" /> — speak text aloud (text-to-speech).</summary>
-public sealed class SpeechDemo(ISpeechSynthesis speech) : Component
+public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
 {
     private string _text = "Hello from Rask — spoken straight from C#.";
     private string? _status;

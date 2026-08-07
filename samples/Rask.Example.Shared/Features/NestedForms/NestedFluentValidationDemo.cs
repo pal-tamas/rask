@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 
 // FluentValidation with SetValidator + RuleForEach — one root validator covers the whole
 // graph; Rask routes dotted property paths back to the runtime sub-instance.
-public sealed class NestedFluentValidationDemo : Component
+public sealed partial class NestedFluentValidationDemo : Component
 {
     private readonly NestedOrderModel _model = new();
     private readonly NestedOrderValidator _validator = new();

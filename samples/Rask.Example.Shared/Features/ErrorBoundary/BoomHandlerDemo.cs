@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // renders the Fallback in place of the subtree. The fallback receives a
 // recover() callback that clears the boundary's error and re-renders the
 // healthy subtree.
-public sealed class BoomHandlerDemo : Component
+public sealed partial class BoomHandlerDemo : Component
 {
     protected override Component? Render() =>
         ErrorBoundary(

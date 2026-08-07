@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // view-model), Sortable turns a header into a sort toggle, PageSize adds a pager, Footer totals a column
 // over every row (not just the visible page), and Template renders a custom cell. Sorting and paging are
 // component state, so they work with no JavaScript.
-public sealed class BsDataGridDemo : Component
+public sealed partial class BsDataGridDemo : Component
 {
     private sealed record Product(string Name, string Category, int Stock, decimal Price);
 

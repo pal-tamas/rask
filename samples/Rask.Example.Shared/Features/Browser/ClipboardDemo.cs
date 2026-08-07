@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IClipboard" /> — copy to and read back from the system clipboard.</summary>
-public sealed class ClipboardDemo(IClipboard clipboard) : Component
+public sealed partial class ClipboardDemo(IClipboard clipboard) : Component
 {
     private string _input = "Copied from Rask!";
     private string? _read;

@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class SvgGradientDemo : Component
+public sealed partial class SvgGradientDemo : Component
 {
     protected override Component? Render() =>
         RaskLogo.Mark(120, "svgPageBolt");

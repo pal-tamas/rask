@@ -3,7 +3,7 @@ using Rask.Core.DragAndDrop;
 namespace Rask.Example.Shared.Features;
 
 // Multi-column board. One drop zone per column; drag cards across columns or reorder within one.
-public sealed class DragDropKanbanDemo : Component
+public sealed partial class DragDropKanbanDemo : Component
 {
     private static readonly string[] _columns = ["todo", "doing", "done"];
 

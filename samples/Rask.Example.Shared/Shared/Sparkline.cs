@@ -12,7 +12,7 @@ namespace Rask.Example.Shared;
 // coordinate space and the surrounding <svg> stretches to fill its container
 // (Width/Height "100%", PreserveAspectRatio "none"), so the consumer controls the rendered size
 // via CSS — same approach Chart.js used with maintainAspectRatio:false.
-public sealed class Sparkline : Component
+public sealed partial class Sparkline : Component
 {
     // Fixed internal coordinate space; the <svg> scales to its container box.
     private const double W = 600;

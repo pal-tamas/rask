@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Typed Bootstrap utility classes from Rask.Bootstrap: each group is a static class of typed tokens
 // (Shadow/Border/Margin/Padding/Display/Flex/Rounded/Txt/Sizing/Position/Bg), composed into a Class
 // string with Bs.Join — responsive variants take a Bp breakpoint. No stringly-typed class names.
-public sealed class BsUtilitiesDemo : Component
+public sealed partial class BsUtilitiesDemo : Component
 {
     private static Component Tile(string label, string? extra = null) =>
         Div(Class: Bs.Join(Bg.BodyTertiary, Border.All, Rounded.Default, Padding.All(3), Txt.Center(), extra))[label];

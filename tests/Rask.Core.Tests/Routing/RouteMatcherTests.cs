@@ -78,7 +78,7 @@ public class RouteMatcherTests
         Assert.Equal(new[] { typeof(DashPage), typeof(DashHome) }, chain);
     }
 
-    private sealed class HomePage : Component
+    private sealed partial class HomePage : Component
     {
         protected override Component? Render() => Span();
     }

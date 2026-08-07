@@ -10,7 +10,7 @@ namespace Rask.Example.Wasm.Features;
 /// </summary>
 [Route("media-devices")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class MediaDevicesPage : Component
+public sealed partial class MediaDevicesPage : Component
 {
     protected override Component? Head => Title()["Camera & microphone — Rask"];
 

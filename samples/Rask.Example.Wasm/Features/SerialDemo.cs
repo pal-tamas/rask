@@ -9,7 +9,7 @@ namespace Rask.Example.Wasm.Features;
 ///     the log. WASM-only: <c>requestPort()</c> needs a live user gesture and the live port stream, and it's
 ///     Chromium-family only at the time of writing.
 /// </summary>
-public sealed class SerialDemo(ISerial serial) : Component, IAsyncDisposable
+public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDisposable
 {
     private ISerialPort? _port;
     private int _baudRate = 9600;

@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class PropsAriaDemo : Component
+public sealed partial class PropsAriaDemo : Component
 {
     // Role and TabIndex are typed; Aria is a dictionary that expands to aria-* exactly like Data
     // expands to data-* — so the whole ARIA vocabulary is reachable without a property per attribute.

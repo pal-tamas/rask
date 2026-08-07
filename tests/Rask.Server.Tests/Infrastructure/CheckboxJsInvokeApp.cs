@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // the model value, plus a per-render IJSRuntime invoke (like CodeSample) so clicks ship a
 // diff carrying jsInvokes — the exact wire shape the showcase produces. Used to verify the
 // checkbox stays in sync across repeated clicks on the diff path.
-public sealed class CheckboxJsInvokeApp(IJSRuntime js) : Component
+public sealed partial class CheckboxJsInvokeApp(IJSRuntime js) : Component
 {
     private readonly Model _m = new();
 

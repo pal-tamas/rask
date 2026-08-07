@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 // no multi-value `value`), so the client sends a `values` array alongside it and the binding replaces the
 // collection on every change. Nothing here is StateHasChanged-driven — picking re-renders the owner, so
 // the summary below updates as you select.
-public sealed class NativeMultiSelectDemo : Component
+public sealed partial class NativeMultiSelectDemo : Component
 {
     private static readonly string[] AllRegions =
         ["Europe", "North America", "South America", "Asia", "Africa", "Oceania"];

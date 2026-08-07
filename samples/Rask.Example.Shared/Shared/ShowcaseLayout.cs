@@ -5,7 +5,7 @@ using Rask.Core.Routing;
 namespace Rask.Example.Shared;
 
 [Route("/")]
-public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav, IJSRuntime js)
+public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav, IJSRuntime js)
     : Component
 {
     private static readonly IReadOnlyDictionary<string, string?> ThemeToggleAria =

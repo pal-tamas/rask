@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Holds a Timer started in OnMount and stopped in OnUnmount. Demonstrates the "use the
 // lifecycle hook for things that mirror OnMount" pattern — no IDisposable required.
-public sealed class UnmountTimerProbe : Component
+public sealed partial class UnmountTimerProbe : Component
 {
     private int _ticks;
     private Timer? _timer;

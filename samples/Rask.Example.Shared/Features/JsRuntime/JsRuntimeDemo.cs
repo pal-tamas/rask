@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 ///     the unified IJSRuntime surface keeps the component identical across hosts. IJSRuntime is
 ///     injected through the ctor (the framework's DI seam), mirroring <c>ElementRefDemo</c>.
 /// </summary>
-public sealed class JsRuntimeDemo(IJSRuntime js) : Component
+public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
 {
     private string _input = string.Empty;
     private string? _lastRead;

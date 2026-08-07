@@ -15,7 +15,7 @@ namespace Rask.Example.Shared.Features;
 // SVG sparkline of the CPU history — a second, independent subscriber. Reuses the
 // stateless Sparkline demo (zero JS, server-rendered SVG); the feed's rolling buffer is
 // the data series. ValueFormat renders the axis labels as percentages instead of money.
-public sealed class MetricsChart(IMetricsFeed feed) : Component
+public sealed partial class MetricsChart(IMetricsFeed feed) : Component
 {
     protected override void OnMount() => feed.Updated += StateHasChanged;
 

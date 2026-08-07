@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 ///     <see cref="IPageVisibility" /> — read whether the page is foreground/visible, e.g. to pause work
 ///     when the user tabs away.
 /// </summary>
-public sealed class PageVisibilityDemo(IPageVisibility visibility) : Component
+public sealed partial class PageVisibilityDemo(IPageVisibility visibility) : Component
 {
     private string? _state;
     private string? _status;

@@ -40,7 +40,7 @@ internal static class EmailGenerator
         namespace {{@namespace}};
 
         /// <summary>An email body — a Rask component rendered to HTML by <c>Email.Body(this)</c>.</summary>
-        public sealed class {{name}} : Component
+        public sealed partial class {{name}} : Component
         {
             protected override Component? Render() =>
             [

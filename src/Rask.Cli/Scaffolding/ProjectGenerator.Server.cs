@@ -829,7 +829,7 @@ internal static partial class ProjectGenerator
         // later add a fallback authorization policy, this route must stay reachable.
         [Route("/error")]
         [AllowAnonymous]
-        public sealed class ErrorPage : Component
+        public sealed partial class ErrorPage : Component
         {
             protected override Component? Head => [Title()["Something went wrong"]];
 
@@ -933,7 +933,7 @@ internal static partial class ProjectGenerator
 
         [Route("login")]
         [AllowAnonymous]
-        public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
+        public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
         {
             private readonly LoginModel _model = new();
             private string? _error;
@@ -984,7 +984,7 @@ internal static partial class ProjectGenerator
         // manual Changed subscription.
         [Route("members")]
         [Authorize]
-        public sealed class MembersPage : Component
+        public sealed partial class MembersPage : Component
         {
             protected override Component? Render() =>
                 Div(Class: "welcome-card")[
@@ -993,7 +993,7 @@ internal static partial class ProjectGenerator
                 ];
         }
 
-        public sealed class MemberContent(IAuthSignIn auth, IUserProvider userProvider) : Component
+        public sealed partial class MemberContent(IAuthSignIn auth, IUserProvider userProvider) : Component
         {
             protected override Component? Render() =>
                 [

@@ -4,7 +4,7 @@ namespace Rask.Example.Site;
 /// The "up and running in one command" install block — a stateful Rask component. Clicking a tab
 /// sets <c>_active</c> and re-renders the selected terminal; no JS, no hidden-toggling.
 /// </summary>
-public sealed class InstallTabs : Component
+public sealed partial class InstallTabs : Component
 {
     private int _active; // 0 = Server, 1 = WASM, 2 = Native
 

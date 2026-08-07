@@ -271,7 +271,7 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("public sealed record CreateProductCommand(ProductRequest Request) : ICommand<Guid>", slice, StringComparison.Ordinal);
         Assert.Contains("ICommandHandler<CreateProductCommand, Guid>", slice, StringComparison.Ordinal);
         Assert.Contains("Product.Create(command.Request.Name, command.Request.Price)", slice, StringComparison.Ordinal);
-        Assert.Contains("public sealed class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Component", slice, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Component", slice, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -280,7 +280,7 @@ public sealed class FeatureGeneratorTests
         var slice = File(Generate(), "DeleteProduct.cs");
 
         Assert.Contains("public sealed record DeleteProductCommand(Guid Id) : ICommand", slice, StringComparison.Ordinal);
-        Assert.Contains("public sealed class DeleteProduct(IDispatcher dispatcher) : Component", slice, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component", slice, StringComparison.Ordinal);
         Assert.Contains("public Func<Task>? OnDeleted { get; set; }", slice, StringComparison.Ordinal);
     }
 
@@ -289,7 +289,7 @@ public sealed class FeatureGeneratorTests
     {
         var list = File(Generate(), "ProductsPage.cs");
 
-        Assert.Contains("public sealed class ProductsPage(IDispatcher dispatcher) : Component", list, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class ProductsPage(IDispatcher dispatcher) : Component", list, StringComparison.Ordinal);
         Assert.Contains("dispatcher.DispatchAsync(new ListProductsQuery()", list, StringComparison.Ordinal);
         Assert.Contains("DeleteProduct(Id: x.Id, OnDeleted: LoadAsync)", list, StringComparison.Ordinal);
         Assert.Contains("NavLink(Routes.CreateProduct()", list, StringComparison.Ordinal);

@@ -3,7 +3,7 @@ namespace Rask.Example.EfCore;
 // App shell: the framework-managed <head> (Bootstrap + icons via CDN), a navbar, and a Router
 // that renders the matched slice page. Only this component renders the Doctype/Html/Head/Body
 // shell — the slice pages return body fragments (RASK021).
-public sealed class App : Component
+public sealed partial class App : Component
 {
     protected override Component? Head =>
     [

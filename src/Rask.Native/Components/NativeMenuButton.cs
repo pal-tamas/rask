@@ -16,7 +16,7 @@ namespace Rask.Native.Components;
 ///         ]),
 ///     ])</code>
 /// </example>
-public sealed class NativeMenuButton : NativeBarItem
+public sealed partial class NativeMenuButton : NativeBarItem
 {
     /// <summary>The button's icon. Optional — defaults to a platform "more" (ellipsis) glyph when null.</summary>
     public NativeIcon? Icon { get; set; }

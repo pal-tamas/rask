@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 ///     framework runs the <c>requestAnimationFrame</c> poll and pushes a reading only when a pad's state
 ///     changes; this demo keeps the latest reading per connected pad.
 /// </summary>
-public sealed class GamepadDemo(IGamepad gamepad) : Component, IAsyncDisposable
+public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDisposable
 {
     private readonly Dictionary<int, GamepadReading> _pads = [];
     private IAsyncDisposable? _watch;

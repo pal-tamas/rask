@@ -12,7 +12,7 @@ namespace Rask.Example.Shared.Features;
 ///     joined here by <c>ScreenOrientationTrigger</c>, <c>InstallTrigger</c>, <c>MediaCaptureTrigger</c>, and
 ///     <c>PictureInPictureTrigger</c> (the last two target a <c>&lt;video&gt;</c> via its <c>ElementRef</c>).
 /// </summary>
-public sealed class GestureBridgeDemo : Component
+public sealed partial class GestureBridgeDemo : Component
 {
     private readonly ElementRef _preview = ElementRef.New();
     private string? _color;

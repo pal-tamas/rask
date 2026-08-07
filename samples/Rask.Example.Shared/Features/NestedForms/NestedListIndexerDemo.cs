@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // Collection binding via indexer — the for-loop variant. Useful when the row index matters
 // (row numbers, reorder controls) or when items are records that get replaced rather than
 // mutated. The `var i = idx;` per-iteration capture dodges the classic C# closure trap.
-public sealed class NestedListIndexerDemo : Component
+public sealed partial class NestedListIndexerDemo : Component
 {
     private readonly InvoiceModel _model = new();
     private int _seq = 2;

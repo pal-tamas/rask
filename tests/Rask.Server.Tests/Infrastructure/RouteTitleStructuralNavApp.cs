@@ -11,7 +11,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // structural ops, which DiffOpsAreClientSupported rejects → the nav falls back to full HTML
 // (head fragment never sent). Subscribes to RouteState.Changed so the root re-renders when
 // the route flips inside the WS-handler dispatch (same shape as RouteTitleNavApp).
-public sealed class RouteTitleStructuralNavApp : Component
+public sealed partial class RouteTitleStructuralNavApp : Component
 {
     private readonly RouteState _routeState;
 

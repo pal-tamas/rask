@@ -5,7 +5,7 @@ namespace Rask.Example.Site;
 /// mutates <c>_count</c> and the framework re-renders this subtree automatically (no StateHasChanged),
 /// shipping a minimal diff. It is the landing page proving its own thesis in place.
 /// </summary>
-public sealed class LiveCounter : Component
+public sealed partial class LiveCounter : Component
 {
     private int _count;
 

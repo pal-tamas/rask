@@ -15,7 +15,7 @@ public class ImgMissingAltAnalyzerTests
                                                 using Rask.Core;
                                                 using static Rask.Core.Components.Generated;
                                                 namespace Demo;
-                                                public sealed class App : Component
+                                                public sealed partial class App : Component
                                                 {
                                                     protected override Component? Render()
                                                     {

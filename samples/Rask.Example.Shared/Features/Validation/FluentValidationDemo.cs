@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class FluentValidationDemo : Component
+public sealed partial class FluentValidationDemo : Component
 {
     private readonly OrderModel _model = new();
     private string? _submission;

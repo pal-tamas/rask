@@ -9,7 +9,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // a "bump" handler that changes visible state. Lets a test park a handler across a disconnect, then
 // prove the reconnected socket resumes processing the queued bump once the chain head clears — the
 // counter changing means the resume render can't be hidden by HTML dedup.
-public sealed class GatedCounterApp : Component
+public sealed partial class GatedCounterApp : Component
 {
     public static TaskCompletionSource Gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
 

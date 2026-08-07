@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 //
 // A clickable row is a pointer shortcut, never the only way in. The Open button is the real, keyboard-reachable
 // control, and the row click just duplicates it.
-public sealed class BsDataGridRowDemo : Component
+public sealed partial class BsDataGridRowDemo : Component
 {
     private sealed record Invoice(string Number, string Customer, decimal Amount, int DaysOverdue);
 

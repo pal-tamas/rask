@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // The live host: owns the stack of visible toasts and the demo controls (variant, placement, auto-hide).
 // Every interaction is a plain field mutation behind a Button OnClick — the live diff re-renders the
 // toast-container. Each Toast carries Key so the keyed-list diff tracks identity as toasts come and go.
-public sealed class ToastDemo : Component
+public sealed partial class ToastDemo : Component
 {
     private readonly record struct ToastModel(int Id, string Title, string Message, BsColor? Color, BsIconName? Icon);
 

@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 // The reported keys are RowKey values, not rows. The grid only ever holds the current page (under TotalCount
 // or an IQueryable it has never seen the rest), so mapping keys back to entities is the caller's job — and a
 // real app re-checks them server-side before acting, since a key can name a row that has since been deleted.
-public sealed class BsDataGridSelectionDemo : Component
+public sealed partial class BsDataGridSelectionDemo : Component
 {
     private sealed record Task_(int Id, string Title, string Assignee, string State);
 

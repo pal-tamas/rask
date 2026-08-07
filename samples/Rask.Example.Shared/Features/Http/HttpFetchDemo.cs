@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 // constructor. OnMountAsync runs once on first render; the framework's async lifecycle handler
 // triggers a re-render when the awaited task completes. Component.CancellationToken cancels on
 // unmount — navigate away mid-fetch and the in-flight request aborts.
-public sealed class HttpFetchDemo(HttpClient http) : Component
+public sealed partial class HttpFetchDemo(HttpClient http) : Component
 {
     private const int MaxTransientRetries = 3;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(150);

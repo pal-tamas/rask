@@ -7,7 +7,7 @@ namespace Rask.Example.Auth.Jwt.Features;
 
 [Route("login")]
 [AllowAnonymous]
-public sealed class LoginPage(
+public sealed partial class LoginPage(
     ICredentialStore creds,
     JwtIssuer issuer,
     JwtValidator validator,

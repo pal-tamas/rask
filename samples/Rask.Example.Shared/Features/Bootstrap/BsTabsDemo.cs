@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Tabs and accordion, both controlled and zero-JS. The active tab key and each accordion item's open
 // flag live in this component; the nav/header handlers flip them and Rask re-renders.
-public sealed class BsTabsDemo : Component
+public sealed partial class BsTabsDemo : Component
 {
     private object _tab = "home";
     private bool _panel0 = true;

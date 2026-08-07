@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class CallbackRatingDemo : Component
+public sealed partial class CallbackRatingDemo : Component
 {
     private int _rating;
 

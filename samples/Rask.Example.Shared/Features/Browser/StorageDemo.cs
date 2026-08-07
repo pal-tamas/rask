@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 ///     <see cref="IBrowserStorage" /> — a <c>localStorage</c> round-trip, injected through the ctor and
 ///     identical on Server and WASM.
 /// </summary>
-public sealed class StorageDemo(IBrowserStorage storage) : Component
+public sealed partial class StorageDemo(IBrowserStorage storage) : Component
 {
     private const string StorageKey = "rask.browser.storage";
 

@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur) and
 //     re-renders this consumer so the character-count readout updates (the controlled-OnChange fix).
 //   • Bound — Textarea(() => model.X): two-way binds and streams per keystroke through the EditContext.
-public sealed class FormControlsTextareaDemo : Component
+public sealed partial class FormControlsTextareaDemo : Component
 {
     private string _controlled = "";
     private readonly Model _model = new();

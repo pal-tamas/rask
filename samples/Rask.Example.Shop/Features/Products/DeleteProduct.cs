@@ -24,7 +24,7 @@ public sealed class DeleteProductCommandHandler(IDbContextFactory<AppDbContext> 
 
 // A reusable delete button: dispatches the delete command, then invokes OnDeleted so the caller
 // (the list page) can refresh.
-public sealed class DeleteProduct(IDispatcher dispatcher) : Component
+public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component
 {
     public Guid Id { get; set; }
 

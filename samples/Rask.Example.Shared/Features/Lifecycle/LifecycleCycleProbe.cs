@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Variant that surfaces every hook — including OnUnmount / OnUnmountAsync — to a parent-held
 // log so the unmount entries survive the probe being torn down. The parent owns the list.
-public sealed class LifecycleCycleProbe : Component
+public sealed partial class LifecycleCycleProbe : Component
 {
     public required Action<string> Log { get; set; }
     public required int InstanceId { get; set; }

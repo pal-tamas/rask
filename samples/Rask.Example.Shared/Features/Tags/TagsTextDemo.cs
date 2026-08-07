@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class TagsTextDemo : Component
+public sealed partial class TagsTextDemo : Component
 {
     protected override Component? Render() => Article()[
         H1(Class: "h4")["Tags are just methods."],

@@ -23,7 +23,7 @@ namespace Rask.Benchmarks.Infrastructure;
 ///         report a best case that few real pages hit.
 ///     </para>
 /// </summary>
-public sealed class FootprintApp : Component
+public sealed partial class FootprintApp : Component
 {
     /// <summary>Counter rendered into the header. Bumped to make a render differ from the last one.</summary>
     public int Counter;
@@ -67,7 +67,7 @@ public sealed class FootprintApp : Component
 }
 
 /// <summary>One table row: a few text cells and a select button.</summary>
-public sealed class FootprintRow : Component
+public sealed partial class FootprintRow : Component
 {
     public int Index { get; set; }
 

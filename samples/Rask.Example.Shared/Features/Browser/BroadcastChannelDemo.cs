@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 ///     delivery. The receiver updates state in its handler and calls <c>StateHasChanged()</c> — the
 ///     sanctioned pattern for an externally-pushed update (same as subscribing to a background feed).
 /// </summary>
-public sealed class BroadcastChannelDemo(IBroadcastChannel bus) : Component, IAsyncDisposable
+public sealed partial class BroadcastChannelDemo(IBroadcastChannel bus) : Component, IAsyncDisposable
 {
     private const string ChannelName = "rask-broadcast-demo";
     private IBroadcastChannelConnection? _sender;

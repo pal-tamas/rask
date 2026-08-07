@@ -5,7 +5,7 @@ using Rask.Core.Components;
 
 namespace Rask.Server.Tests.Infrastructure;
 
-public sealed class ThrowingApp : Component
+public sealed partial class ThrowingApp : Component
 {
     public int Counter;
 

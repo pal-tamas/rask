@@ -8,7 +8,7 @@ namespace Rask.Example.Wasm.Features;
 ///     needs a live user gesture and the live device handle, and it's Chromium-family only at the time of
 ///     writing. Reads the <c>battery_level</c> characteristic (0–100%).
 /// </summary>
-public sealed class BluetoothDemo(IBluetooth bluetooth) : Component, IAsyncDisposable
+public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAsyncDisposable
 {
     private IBluetoothDevice? _device;
     private IAsyncDisposable? _disconnectWatch;

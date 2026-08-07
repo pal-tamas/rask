@@ -41,7 +41,7 @@ namespace Rask.Example.Shared.Features;
 // preserves the lifecycle/async story end-to-end (the loop still yields on
 // every Task.Delay, the CancellationToken still cancels it on unmount) but
 // is deterministic and offline-safe.
-public sealed class LiveTicker : Component
+public sealed partial class LiveTicker : Component
 {
     // ~1 min of points at the default 1 s poll. Bounded so a long-running tab
     // doesn't grow the rolling buffer indefinitely.

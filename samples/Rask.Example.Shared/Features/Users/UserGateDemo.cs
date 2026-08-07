@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Auth-gating by injecting IUserProvider and reading .Current — no AuthorizeView component. The demo
 // injects the toggleable provider to sign in/out; Render() branches on _auth.Current. It subscribes
 // to the provider's Changed event so a sign-in originating anywhere re-renders this component.
-public sealed class UserGateDemo : Component
+public sealed partial class UserGateDemo : Component
 {
     private readonly DemoUserProvider _auth;
 

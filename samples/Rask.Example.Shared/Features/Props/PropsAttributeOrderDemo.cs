@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class PropsAttributeOrderDemo : Component
+public sealed partial class PropsAttributeOrderDemo : Component
 {
     protected override Component? Render() =>
         A(

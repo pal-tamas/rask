@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 //   • Controlled — Options + Value + OnChange: the parent owns the selection; OnChange (auto-wrapped) hands
 //     back a fresh collection and re-renders this consumer so the "Selected:" readout updates.
 //   • Bound — BsMultiSelect(() => model.X, options): two-way binds the model collection through the EditContext.
-public sealed class FormControlsMultiSelectDemo : Component
+public sealed partial class FormControlsMultiSelectDemo : Component
 {
     private static readonly string[] AllTopics = ["News", "Sports", "Tech", "Music", "Travel"];
 

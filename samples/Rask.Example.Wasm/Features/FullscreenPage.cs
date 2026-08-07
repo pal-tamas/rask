@@ -10,7 +10,7 @@ namespace Rask.Example.Wasm.Features;
 /// </summary>
 [Route("fullscreen")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class FullscreenPage : Component
+public sealed partial class FullscreenPage : Component
 {
     protected override Component? Head => Title()["Fullscreen — Rask"];
 

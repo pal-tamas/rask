@@ -464,7 +464,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 // custom .form-select combobox by default (Options + OptionLabel; opt-in dropdown search via Filter; nullable
 // × clear; floating label); Native: true degrades to the plain OS <select>.
 //   BsSelect(() => model.Plan, plans, OptionLabel: p => Text(p), Filter: (p, t) => p.Contains(t, …))
-public sealed class BsSelect<TItem> : BsSelectBase<TItem, TItem>
+public sealed partial class BsSelect<TItem> : BsSelectBase<TItem, TItem>
 {
     private protected override TItem ValueOf(TItem item) => item;
 }
@@ -472,7 +472,7 @@ public sealed class BsSelect<TItem> : BsSelectBase<TItem, TItem>
 // A Bootstrap single-select whose Options are objects but whose bound value is a projected field, chosen by
 // OptionValue — so you can bind an id while rendering/searching the whole object.
 //   BsSelect(() => model.PersonId, people, OptionValue: p => p.Id, OptionLabel: p => Text(p.Name))
-public sealed class BsSelect<TValue, TItem> : BsSelectBase<TValue, TItem>
+public sealed partial class BsSelect<TValue, TItem> : BsSelectBase<TValue, TItem>
 {
     // Projects an option to the value bound to the model (e.g. p => p.Id).
     public required Func<TItem, TValue> OptionValue { get; set; }

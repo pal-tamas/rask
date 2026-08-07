@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class EventsInputDemo : Component
+public sealed partial class EventsInputDemo : Component
 {
     private string _typed = string.Empty;
 

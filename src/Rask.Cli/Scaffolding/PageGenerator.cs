@@ -54,7 +54,7 @@ internal static class PageGenerator
         namespace {{@namespace}};
 
         [Route("{{route}}")]
-        public sealed class {{className}} : Component
+        public sealed partial class {{className}} : Component
         {
             protected override Component? Head => Title()["{{title}}"];
 

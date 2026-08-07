@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // BsRadioGroup (single value) + BsCheckboxGroup (collection) in controlled mode (Value + OnChange), with a live
 // readout. The controls are Components; their OnChange callbacks are auto-wrapped (AutoCallback), so
 // selecting an option re-renders this demo and the summary line updates immediately — no StateHasChanged.
-public sealed class FormGroupsDemo : Component
+public sealed partial class FormGroupsDemo : Component
 {
     private static readonly Plan[] AllPlans = [Plan.Free, Plan.Pro, Plan.Team];
     private static readonly string[] AllInterests = ["Web", "Mobile", "AI", "Games"];

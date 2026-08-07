@@ -13,7 +13,7 @@ internal static class TierStaticHelper
 }
 
 // Call site: invoke it like any method — no generated factory, no reconciliation identity.
-public sealed class TierStaticHelperDemo : Component
+public sealed partial class TierStaticHelperDemo : Component
 {
     protected override Component? Render() =>
         BsStack(Gap: 2)[

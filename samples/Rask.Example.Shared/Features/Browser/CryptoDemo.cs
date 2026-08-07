@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="ICrypto" /> — native randomness (UUID, bytes) and hashing (SHA-256) from C#.</summary>
-public sealed class CryptoDemo(ICrypto crypto) : Component
+public sealed partial class CryptoDemo(ICrypto crypto) : Component
 {
     private string _text = "hello";
     private string? _uuid;

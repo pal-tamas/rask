@@ -12,7 +12,7 @@ namespace Rask.Bootstrap;
 // Native:true falls back to <input type=datetime-local>. Reuses PickerParts.CalendarGrid + TimeColumns.
 //   Bound:      BsDateTimePicker(() => model.When, Label: "When")
 //   Controlled: BsDateTimePicker(Value: dt, OnChange: v => …)
-public sealed class BsDateTimePicker<T> : BsPickerBase<T>
+public sealed partial class BsDateTimePicker<T> : BsPickerBase<T>
 {
     public DateTime? Min { get; set; }
     public DateTime? Max { get; set; }

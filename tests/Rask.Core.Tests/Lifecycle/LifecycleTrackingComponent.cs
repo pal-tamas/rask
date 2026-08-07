@@ -1,6 +1,6 @@
 namespace Rask.Core.Tests.Lifecycle;
 
-internal sealed class LifecycleTrackingComponent : Component
+internal sealed partial class LifecycleTrackingComponent : Component
 {
     public int MountAsyncCount;
     public int MountCount;

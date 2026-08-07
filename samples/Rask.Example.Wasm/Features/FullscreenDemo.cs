@@ -8,7 +8,7 @@ namespace Rask.Example.Wasm.Features;
 ///     <see cref="ElementRef" /> to fullscreen just that box (or nothing to fullscreen the whole page).
 ///     Pairs with <see cref="IScreenOrientation" />: orientation locking needs fullscreen first.
 /// </summary>
-public sealed class FullscreenDemo(IFullscreen fullscreen) : Component
+public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
 {
     private readonly ElementRef _stage = ElementRef.New();
     private string? _status;

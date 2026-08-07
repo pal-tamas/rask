@@ -5,7 +5,7 @@ namespace Rask.Example.Auth.WasmCookie.Features;
 
 [Route("login")]
 [AllowAnonymous]
-public sealed class LoginPage(WasmLoginService login) : Component
+public sealed partial class LoginPage(WasmLoginService login) : Component
 {
     private readonly LoginModel _model = new();
     private string? _error;

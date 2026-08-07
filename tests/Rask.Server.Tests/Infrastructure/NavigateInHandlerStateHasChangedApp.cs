@@ -16,7 +16,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // per nav and the sidebar's scoped-CSS link was momentarily orphaned. Post-fix the
 // in-scope StateHasChanged just sets _pendingRenderInScope, and the dispatch's tail
 // RenderAndSendCoalescingAsync emits exactly one payload.
-public sealed class NavigateInHandlerStateHasChangedApp : Component
+public sealed partial class NavigateInHandlerStateHasChangedApp : Component
 {
     private readonly RouteState _routeState;
 

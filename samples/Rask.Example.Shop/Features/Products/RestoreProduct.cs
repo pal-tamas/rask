@@ -24,7 +24,7 @@ public sealed class RestoreProductCommandHandler(IDbContextFactory<AppDbContext>
 
 // A reusable restore button: dispatches the restore command, then invokes OnRestored so the caller
 // (the list page) can refresh.
-public sealed class RestoreProduct(IDispatcher dispatcher) : Component
+public sealed partial class RestoreProduct(IDispatcher dispatcher) : Component
 {
     public Guid Id { get; set; }
 

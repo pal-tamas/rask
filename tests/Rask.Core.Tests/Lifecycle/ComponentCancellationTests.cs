@@ -122,7 +122,7 @@ public class ComponentCancellationTests
         Assert.True(c.SawCancellation);
     }
 
-    internal sealed class CancellationProbe : Component
+    internal sealed partial class CancellationProbe : Component
     {
         public Func<CancellationToken, Task>? OnMountAsyncImpl;
 

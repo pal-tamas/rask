@@ -11,7 +11,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // classes in parallel, so a second class reassigning the same static races the first: one test replaces the
 // TaskCompletionSource the other is parked on, and both fail intermittently. Cheaper to have our own app
 // than to serialize two unrelated classes against each other.
-public sealed class DrainGateApp : Component
+public sealed partial class DrainGateApp : Component
 {
     public static TaskCompletionSource Gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
 

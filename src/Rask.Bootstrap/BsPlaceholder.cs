@@ -2,7 +2,7 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap placeholder (loading skeleton): <span class="placeholder col-{n}">. When Animation is
 // set, the placeholder is wrapped in a .placeholder-glow / .placeholder-wave span so it shimmers.
-public sealed class BsPlaceholder : BsBlock
+public sealed partial class BsPlaceholder : BsBlock
 {
     public BsColor? Color { get; set; }
     public BsSize? Size { get; set; }

@@ -14,7 +14,7 @@ namespace Rask.Example.Shared;
 // inferred from the lambda at the call site. The label comes from the bound property's
 // [Display(Name)] attribute (falling back to the property name), so a field is just:
 //   FloatingInput(() => model.Name)
-public sealed class FloatingInput<TProp> : Component
+public sealed partial class FloatingInput<TProp> : Component
 {
     public required Expression<Func<TProp>> Bind { get; set; }
 

@@ -3,7 +3,7 @@ using Rask.Example.Shared;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class FloatingLabelsDemo : Component
+public sealed partial class FloatingLabelsDemo : Component
 {
     private readonly AccountModel _model = new();
     private string? _submission;

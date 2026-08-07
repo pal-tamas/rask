@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 // the calendar/clock popover (pure live-diff view state, zero bootstrap.js). Floating wraps the label like a
 // form-floating; Native drops to the OS <input>; Min/Max/Disable constrain the calendar; a nullable T gets an
 // × clear button.
-public sealed class BsPickersDemo : Component
+public sealed partial class BsPickersDemo : Component
 {
     private readonly Booking _model = new()
     {

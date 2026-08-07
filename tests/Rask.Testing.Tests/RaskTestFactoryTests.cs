@@ -39,7 +39,7 @@ public class RaskTestFactoryTests
         Assert.DoesNotContain("Name: Grace", page.Html);
     }
 
-    private sealed class Greeting : Component
+    private sealed partial class Greeting : Component
     {
         public string Name { get; set; } = "";
 

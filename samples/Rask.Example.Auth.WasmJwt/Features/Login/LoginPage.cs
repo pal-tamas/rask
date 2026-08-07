@@ -5,7 +5,7 @@ namespace Rask.Example.Auth.WasmJwt.Features;
 
 [Route("login")]
 [AllowAnonymous]
-public sealed class LoginPage(JwtLoginService login) : Component
+public sealed partial class LoginPage(JwtLoginService login) : Component
 {
     private readonly LoginModel _model = new();
     private string? _error;

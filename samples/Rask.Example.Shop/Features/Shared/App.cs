@@ -2,7 +2,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Example.Shop.Features.Shared;
 
-public sealed class App : Component
+public sealed partial class App : Component
 {
     // App-level head contributions splice into the framework-managed <head>
     // via the Component? Head override. Title is singleton — any page that

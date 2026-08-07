@@ -11,7 +11,7 @@ namespace Rask.Example.Shop.Features.Auth;
 // manual Changed subscription.
 [Route("members")]
 [Authorize]
-public sealed class MembersPage : Component
+public sealed partial class MembersPage : Component
 {
     protected override Component? Render() =>
         Div(Class: "welcome-card")[
@@ -20,7 +20,7 @@ public sealed class MembersPage : Component
         ];
 }
 
-public sealed class MemberContent(IAuthSignIn auth, IUserProvider userProvider) : Component
+public sealed partial class MemberContent(IAuthSignIn auth, IUserProvider userProvider) : Component
 {
     protected override Component? Render() =>
         [

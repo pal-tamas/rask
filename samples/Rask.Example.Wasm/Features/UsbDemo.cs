@@ -8,7 +8,7 @@ namespace Rask.Example.Wasm.Features;
 ///     and the live device handle, and it's Chromium-family only at the time of writing. Actual data transfer
 ///     (claim an interface, transferIn/Out) is device-specific, so this demo shows discovery + lifecycle.
 /// </summary>
-public sealed class UsbDemo(IUsb usb) : Component, IAsyncDisposable
+public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
 {
     private IUsbDevice? _device;
     private UsbDeviceInfo? _info;

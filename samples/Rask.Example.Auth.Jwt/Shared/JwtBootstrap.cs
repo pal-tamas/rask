@@ -7,7 +7,7 @@ namespace Rask.Example.Auth.Jwt;
 // validates it, and seeds the live principal — so a refresh stays signed in without the token ever being in
 // the URL or readable in JS. JS interop runs once the WebSocket is up; the read completes then and fires a
 // re-render via IUserProvider.Changed.
-public sealed class JwtBootstrap(ProtectedSessionStorage store, JwtValidator validator, SessionUserProvider users)
+public sealed partial class JwtBootstrap(ProtectedSessionStorage store, JwtValidator validator, SessionUserProvider users)
     : Component
 {
     protected override async Task OnMountAsync()

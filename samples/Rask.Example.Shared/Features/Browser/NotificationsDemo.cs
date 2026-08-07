@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 ///     badge from the page. Both work on every host; in the native shell they resolve to real OS backends
 ///     (UNUserNotificationCenter / NotificationManager and the native app-icon badge), which a WebView can't do.
 /// </summary>
-public sealed class NotificationsDemo(INotifications notifications, IBadge badge) : Component
+public sealed partial class NotificationsDemo(INotifications notifications, IBadge badge) : Component
 {
     private string? _status;
 

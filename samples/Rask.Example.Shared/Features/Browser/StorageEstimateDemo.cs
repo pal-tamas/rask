@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IStorageEstimator" /> — read the origin's storage quota and usage.</summary>
-public sealed class StorageEstimateDemo(IStorageEstimator storage) : Component
+public sealed partial class StorageEstimateDemo(IStorageEstimator storage) : Component
 {
     private string? _value;
     private string? _status;

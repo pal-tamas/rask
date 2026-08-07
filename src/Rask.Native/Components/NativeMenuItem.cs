@@ -5,7 +5,7 @@ namespace Rask.Native.Components;
 ///     Projected to a <c>UIAction</c> in an iOS <c>UIMenu</c> / an Android <c>PopupMenu</c> item; selecting it
 ///     runs <see cref="OnClick" /> on the render thread and re-renders, like any Rask callback.
 /// </summary>
-public sealed class NativeMenuItem : NativeBarItem
+public sealed partial class NativeMenuItem : NativeBarItem
 {
     /// <summary>The menu entry's label. Required.</summary>
     public new required string Title { get; set; }

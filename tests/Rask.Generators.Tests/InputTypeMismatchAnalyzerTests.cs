@@ -15,7 +15,7 @@ public class InputTypeMismatchAnalyzerTests
                                                 using Rask.Core;
                                                 using static Rask.Core.Components.Generated;
                                                 namespace Demo;
-                                                public sealed class App : Component
+                                                public sealed partial class App : Component
                                                 {
                                                     private sealed class M
                                                     {

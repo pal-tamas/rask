@@ -2,7 +2,7 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap breadcrumb: <nav aria-label="breadcrumb"><ol class="breadcrumb">…</ol></nav> holding
 // BsBreadcrumbItem children.
-public sealed class BsBreadcrumb : BsBlock
+public sealed partial class BsBreadcrumb : BsBlock
 {
     // Accessible label for the surrounding <nav>; defaults to "breadcrumb".
     public new string? Label { get; set; }
@@ -16,7 +16,7 @@ public sealed class BsBreadcrumb : BsBlock
 
 // A breadcrumb item: <li class="breadcrumb-item">. Pass Href for a link; mark the current page with
 // Active (renders plain text + aria-current="page").
-public sealed class BsBreadcrumbItem : BsBlock
+public sealed partial class BsBreadcrumbItem : BsBlock
 {
     public bool? Active { get; set; }
     public string? Href { get; set; }

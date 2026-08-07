@@ -9,7 +9,7 @@ namespace Rask.Example.Shared;
 // selected:
 //
 //   FloatingSelect(() => model.Plan)[Option("")["— choose —"], Option("pro")["Pro"]]
-public sealed class FloatingSelect<TProp> : Component
+public sealed partial class FloatingSelect<TProp> : Component
 {
     public required Expression<Func<TProp>> Bind { get; set; }
 

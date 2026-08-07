@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 // this page is just the routed shell that supplies the slug and the document title.
 [Route("guides/{slug}")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class GuidePage : Component
+public sealed partial class GuidePage : Component
 {
     [RouteParam] public string Slug { get; set; } = string.Empty;
 

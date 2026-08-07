@@ -9,7 +9,7 @@ namespace Rask.Bootstrap;
 // chips, bound to an ICollection<TItem>. Implements IFormControl<ICollection<TItem>> (bound +
 // controlled). Open/close, the click-outside backdrop and Esc-to-close are pure live-diff state — no
 // bootstrap.js. The chips reuse BsBadge + BsCloseButton.
-public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TItem>>
+public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TItem>>
 {
     public required IEnumerable<TItem> Options { get; set; }
 

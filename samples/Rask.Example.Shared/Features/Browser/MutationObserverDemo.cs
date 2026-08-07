@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 ///     updates the tally (the handler calls <c>StateHasChanged()</c>, the sanctioned pattern for an
 ///     externally-pushed update).
 /// </summary>
-public sealed class MutationObserverDemo(IMutationObserver observer) : Component, IAsyncDisposable
+public sealed partial class MutationObserverDemo(IMutationObserver observer) : Component, IAsyncDisposable
 {
     private readonly ElementRef _target = ElementRef.New();
     private IAsyncDisposable? _observation;

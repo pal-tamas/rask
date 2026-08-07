@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // visible HTML. Before the diff gate stopped treating pending jsInvokes as a full-HTML
 // trigger, each keystroke shipped the whole document; now it ships a kind:"diff" frame
 // that carries the queued invoke alongside the edit ops.
-public sealed class JsInvokeBindingApp(IJSRuntime js) : Component
+public sealed partial class JsInvokeBindingApp(IJSRuntime js) : Component
 {
     private string _typed = "";
 

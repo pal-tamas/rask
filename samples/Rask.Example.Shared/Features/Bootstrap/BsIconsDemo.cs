@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Bootstrap Icons via the typed BsIconName enum — every glyph is compile-checked (no string typos),
 // and Color tints it. Icons are decorative (aria-hidden) unless you pass AriaLabel.
-public sealed class BsIconsDemo : Component
+public sealed partial class BsIconsDemo : Component
 {
     protected override Component? Render() =>
     [

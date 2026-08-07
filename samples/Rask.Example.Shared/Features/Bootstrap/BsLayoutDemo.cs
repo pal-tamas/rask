@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // The layout primitives from Rask.Bootstrap: BsContainer (page wrapper), BsRow + BsCol (the 12-unit
 // responsive grid), and BsStack (a flex row/column with a gap). Resize the window to watch the grid and
 // the responsive stack reflow at the md breakpoint.
-public sealed class BsLayoutDemo : Component
+public sealed partial class BsLayoutDemo : Component
 {
     private static Component Tile(string label) =>
         Div(Class: Bs.Join(Bg.BodyTertiary, Border.All, Rounded.Default, Padding.All(2), Txt.Center(),

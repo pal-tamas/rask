@@ -3,7 +3,7 @@ namespace Rask.Bootstrap;
 // A Bootstrap progress bar: <div class="progress" role="progressbar"><div class="progress-bar"
 // style="width:N%"></div></div>. Value is required; Min/Max default to 0/100. Bootstrap 5.3 moves
 // role/aria onto the outer .progress, which is what is emitted here.
-public sealed class BsProgress : BsBlock
+public sealed partial class BsProgress : BsBlock
 {
     public double Value { get; set; }
     public double? Min { get; set; }

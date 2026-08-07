@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // Href renders a core NavLink, so the link is SPA-routed and lights up its .active class by matching
 // the current route — no client JS, no manual active tracking. This is the same toolkit the showcase's
 // own top bar and sidebar are built from.
-public sealed class BsNavDemo : Component
+public sealed partial class BsNavDemo : Component
 {
     protected override Component? Render() =>
     [

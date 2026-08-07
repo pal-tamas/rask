@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 ///     <c>StateHasChanged()</c>, the sanctioned pattern for an externally-pushed update). Honored fully only
 ///     while media is actually playing.
 /// </summary>
-public sealed class MediaSessionDemo(IMediaSession media) : Component, IAsyncDisposable
+public sealed partial class MediaSessionDemo(IMediaSession media) : Component, IAsyncDisposable
 {
     private readonly List<IAsyncDisposable> _handlers = [];
     private string _status = "(idle)";

@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // A Bootstrap offcanvas drawer driven entirely by Rask's live runtime — no bootstrap.js. _open is a
 // plain field; the trigger sets it true, and OnClose (the ×, the backdrop click, or the footer button)
 // sets it false. The panel stays in the DOM and slides in via the .show class the live diff toggles.
-public sealed class BsOffcanvasDemo : Component
+public sealed partial class BsOffcanvasDemo : Component
 {
     private bool _open;
 

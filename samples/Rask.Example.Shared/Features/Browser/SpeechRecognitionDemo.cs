@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 ///     and in the native shell it resolves to a real OS backend. The handler updates state and calls
 ///     <c>StateHasChanged()</c> — the sanctioned pattern for an externally-pushed update.
 /// </summary>
-public sealed class SpeechRecognitionDemo(ISpeechRecognition recognition) : Component, IAsyncDisposable
+public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition) : Component, IAsyncDisposable
 {
     private IAsyncDisposable? _session;
     private string _transcript = "";

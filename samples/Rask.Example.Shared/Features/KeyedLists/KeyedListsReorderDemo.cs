@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // each row's DOM node — and any uncommitted input value living only in the DOM — follows its logical row
 // instead of being rewritten by position. Toggle Keys OFF to see positional reconciliation instead: the
 // labels reorder but the inputs stay put, so typed text ends up next to the wrong fruit.
-public sealed class KeyedListsReorderDemo : Component
+public sealed partial class KeyedListsReorderDemo : Component
 {
     private readonly List<Fruit> _items =
     [

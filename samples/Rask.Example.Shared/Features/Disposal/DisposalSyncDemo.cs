@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // IDisposable (sync) demo promoted out of the former DisposalPage. Mount, then unmount: the probe's
 // Dispose() runs synchronously as the parent's diff removes it from the tree.
-public sealed class DisposalSyncDemo : Component
+public sealed partial class DisposalSyncDemo : Component
 {
     private readonly List<string> _syncLog = new();
     private int _nextSyncId;

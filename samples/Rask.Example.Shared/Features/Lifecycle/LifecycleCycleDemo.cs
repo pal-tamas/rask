@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // The mount/unmount-cycle widget promoted out of the former LifecyclePage so the Lifecycle guide can
 // host it as a live demo. Toggling the probe in and out of the tree fires OnUnmount / OnUnmountAsync;
 // the log is held here (the parent) so it survives the probe's unmount.
-public sealed class LifecycleCycleDemo : Component
+public sealed partial class LifecycleCycleDemo : Component
 {
     private readonly List<string> _cycleLog = new();
     private bool _cycleMounted;

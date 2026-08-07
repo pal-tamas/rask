@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // registration). Without this wrapper the owner falls back to CodeSample, which
 // re-renders only itself and never re-evaluates the page's state.
 
-public sealed class BindingManualDemo : Component
+public sealed partial class BindingManualDemo : Component
 {
     private string _typed = "";
 

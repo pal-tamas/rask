@@ -209,7 +209,7 @@ public class RaskJSRuntimeTests
 }
 
 #pragma warning disable RASK014 // private test-helper Component subclasses
-internal sealed class JsRoundTripApp : Component
+internal sealed partial class JsRoundTripApp : Component
 {
     private readonly IJSRuntime _js;
 
@@ -243,7 +243,7 @@ internal sealed class JsRoundTripApp : Component
     }
 }
 
-internal sealed class JsClickApp : Component
+internal sealed partial class JsClickApp : Component
 {
     public static string? LastStatus;
 
@@ -269,7 +269,7 @@ internal sealed class JsClickApp : Component
     }
 }
 
-internal sealed class JsRenderStormApp : Component
+internal sealed partial class JsRenderStormApp : Component
 {
     private readonly IJSRuntime _js;
 
@@ -288,7 +288,7 @@ internal sealed class JsRenderStormApp : Component
         await _js.InvokeVoidAsync("noop");
 }
 
-internal sealed class JsErrorApp : Component
+internal sealed partial class JsErrorApp : Component
 {
     private readonly IJSRuntime _js;
 

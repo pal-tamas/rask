@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 ///     the activation isn't lost), and upgrades to a native backend in the native shell. For a code-driven
 ///     share on the in-process hosts, inject <c>IShare</c> from <c>Rask.Client.Browser</c>.
 /// </summary>
-public sealed class ShareDemo : Component
+public sealed partial class ShareDemo : Component
 {
     protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[

@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class PrimitivesChildrenDemo : Component
+public sealed partial class PrimitivesChildrenDemo : Component
 {
     protected override Component? Render() => Div(Class: "mb-0")[
         "plain text, ",

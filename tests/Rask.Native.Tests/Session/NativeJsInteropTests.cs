@@ -64,7 +64,7 @@ public class NativeJsInteropTests() : ResettingTestBase(LiveDiffMode.DisabledFul
     }
 }
 
-internal sealed class NativeJsInteropApp : Component
+internal sealed partial class NativeJsInteropApp : Component
 {
     private readonly IJSRuntime _js;
     public string? Result;

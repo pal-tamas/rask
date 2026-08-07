@@ -4,7 +4,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IPerformance" /> — high-resolution clock and page-load (navigation) timing.</summary>
-public sealed class PerformanceDemo(IPerformance performance) : Component
+public sealed partial class PerformanceDemo(IPerformance performance) : Component
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     private string? _value;

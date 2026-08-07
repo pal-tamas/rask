@@ -6,7 +6,7 @@ using static Rask.Core.Components.Generated;
 
 namespace Rask.Wasm.Tests.Infrastructure;
 
-internal sealed class StubApp : Component
+internal sealed partial class StubApp : Component
 {
     private readonly RouteState _routeState;
     public int Counter;

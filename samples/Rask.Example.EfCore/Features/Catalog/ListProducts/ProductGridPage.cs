@@ -8,7 +8,7 @@ namespace Rask.Example.EfCore.Features.Catalog.ListProducts;
 // pass Data — the difference is what they pass: the query itself, or one already-fetched page. They suit
 // different situations; see the notes on each.
 [Route("products/grid")]
-public sealed class ProductGridPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component, IDisposable
+public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component, IDisposable
 {
     // --- The IQueryable way --------------------------------------------------------------------------------
     // Handing the grid an IQueryable re-runs the query during render, on every sort/page click, so the

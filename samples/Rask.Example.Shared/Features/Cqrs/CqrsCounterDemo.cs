@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // Injects the umbrella IDispatcher and drives the counter slice: load state with a query on mount,
 // send a command on click, then re-read. The awaited handlers re-render automatically — no
 // StateHasChanged() by hand.
-public sealed class CqrsCounterDemo(IDispatcher dispatcher) : Component
+public sealed partial class CqrsCounterDemo(IDispatcher dispatcher) : Component
 {
     private CounterState _view = new(0, []);
 

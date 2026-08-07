@@ -20,7 +20,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 // _stateDirty=true and re-runs Render(), producing a fresh outer wrapper around the
 // cached rows with the new counter text spliced in.
 #pragma warning disable RASK014
-public sealed class StatefulLargePageWithCounter : Component
+public sealed partial class StatefulLargePageWithCounter : Component
 #pragma warning restore RASK014
 {
     public const int LargePageRowCount = 200;
@@ -64,7 +64,7 @@ public sealed class StatefulLargePageWithCounter : Component
 // LargePageWithCounter.BuildRaskWithDeepTextCell() factory but reuses 199 of
 // 200 row instances across iterations.
 #pragma warning disable RASK014
-public sealed class StatefulLargePageWithDeepTextCell : Component
+public sealed partial class StatefulLargePageWithDeepTextCell : Component
 #pragma warning restore RASK014
 {
     public const int LargePageRowCount = 200;

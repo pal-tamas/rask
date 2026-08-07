@@ -12,7 +12,7 @@ public sealed record BsTabItem(
 
 // A Bootstrap tabs control driven by Rask's live runtime (no JS). Active is the key of the selected
 // tab; only the active pane is rendered. Set Pills for the .nav-pills look.
-public sealed class BsTabs : BsBlock
+public sealed partial class BsTabs : BsBlock
 {
     public IReadOnlyList<BsTabItem>? Tabs { get; set; }
     public object? Active { get; set; }

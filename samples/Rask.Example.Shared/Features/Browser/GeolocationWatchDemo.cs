@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 ///     pushes each fix to C#, which re-renders the readout (the handler calls <c>StateHasChanged()</c>,
 ///     the sanctioned pushed-update pattern). Stop disposes the watch (<c>clearWatch</c>).
 /// </summary>
-public sealed class GeolocationWatchDemo(IGeolocation geolocation) : Component, IAsyncDisposable
+public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Component, IAsyncDisposable
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     private IAsyncDisposable? _watch;

@@ -19,7 +19,7 @@ internal static class ComponentGenerator
         $$"""
         namespace {{@namespace}};
 
-        public sealed class {{name}} : Component
+        public sealed partial class {{name}} : Component
         {
             protected override Component? Render() =>
             [

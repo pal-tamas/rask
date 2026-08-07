@@ -11,7 +11,7 @@ namespace Rask.Example.Auth.Features;
 // IUserProvider and no manual Changed subscription on the page.
 [Route("members")]
 [Authorize]
-public sealed class MembersPage : Component
+public sealed partial class MembersPage : Component
 {
     protected override Component? Render() =>
         Div(Id: "members", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
@@ -29,7 +29,7 @@ public sealed class MembersPage : Component
 
 // The member actions, rendered only once the gate opens. The greeting now comes from the Authorized
 // delegate above, so this no longer needs IUserProvider — it injects IAuthSignIn purely for sign-out.
-public sealed class MemberContent(IAuthSignIn auth) : Component
+public sealed partial class MemberContent(IAuthSignIn auth) : Component
 {
     protected override Component? Render() =>
         [

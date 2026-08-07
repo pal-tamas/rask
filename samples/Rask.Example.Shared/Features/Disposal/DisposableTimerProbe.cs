@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class DisposableTimerProbe : Component, IDisposable
+public sealed partial class DisposableTimerProbe : Component, IDisposable
 {
     private DateTimeOffset _mountedAt;
 

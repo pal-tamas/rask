@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // host it live. Every button mutates the CURRENT URL's query through the scoped Navigator service and the
 // component re-renders to reflect it — watch the address bar. Scoped to query mutation (SetQuery /
 // RemoveQuery / ClearQuery) so it stays on the guide page rather than navigating away.
-public sealed class NavigatorQueryDemo(Navigator nav, RouteState route) : Component
+public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) : Component
 {
     protected override Component? Render() =>
         Div()[

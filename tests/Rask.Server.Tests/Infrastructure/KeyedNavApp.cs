@@ -17,7 +17,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // Each scenario exercises the same HTML-slice path; the regression is that the inserted row's
 // fragment is sliced from post-head-splice HTML via frame offsets, which must be correct at any
 // position. (#7's NOTE claimed this was broken; #14/#37's AdjustOffsetsFrom fixed it.)
-public sealed class KeyedNavApp : Component
+public sealed partial class KeyedNavApp : Component
 {
     private readonly List<int> _items = [10, 20, 30];
     private readonly RouteState _route;

@@ -3,7 +3,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class AsyncValidationDemo : Component
+public sealed partial class AsyncValidationDemo : Component
 {
     private readonly EditContext _ctx;
     private readonly SignupModel _model = new();

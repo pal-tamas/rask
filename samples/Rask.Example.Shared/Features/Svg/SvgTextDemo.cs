@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class SvgTextDemo : Component
+public sealed partial class SvgTextDemo : Component
 {
     protected override Component? Render() =>
         Svg("220", "60", "0 0 220 60")[

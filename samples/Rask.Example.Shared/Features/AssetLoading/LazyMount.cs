@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 ///     (browser fetches the CSS for the first time). When unmounted, the morph removes
 ///     the tag — but the browser keeps the bytes cached, so re-mounting is a cache hit.
 /// </summary>
-public sealed class LazyMount : Component
+public sealed partial class LazyMount : Component
 {
     private static readonly Component Empty = Div();
     private bool _shown;

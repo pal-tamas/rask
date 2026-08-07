@@ -578,7 +578,7 @@ internal static partial class ProjectGenerator
 
         [Route("login")]
         [AllowAnonymous]
-        public sealed class LoginPage(WasmLoginService login) : Component
+        public sealed partial class LoginPage(WasmLoginService login) : Component
         {
             private readonly LoginModel _model = new();
             private string? _error;
@@ -622,7 +622,7 @@ internal static partial class ProjectGenerator
         // the gate opens after sign-in.
         [Route("members")]
         [AllowAnonymous]
-        public sealed class MembersPage : Component
+        public sealed partial class MembersPage : Component
         {
             protected override Component? Render() =>
                 Div(Style: "max-width:32rem;margin:3rem auto;font-family:system-ui")[
@@ -631,7 +631,7 @@ internal static partial class ProjectGenerator
                 ];
         }
 
-        public sealed class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
+        public sealed partial class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
         {
             protected override Component? Render() =>
                 [

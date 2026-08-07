@@ -12,7 +12,7 @@ namespace Rask.Core.Tests;
 //
 // The cost is that entries are per-class rather than shared, so the generator emits one forwarder
 // per user component per consuming component.
-internal sealed class Chip : Component
+internal sealed partial class Chip : Component
 {
     public string? Text { get; set; }
 
@@ -25,11 +25,9 @@ internal sealed partial class ChipHost : Component
     protected override Component? Render() => Div[Chip.Text("new")];
 }
 
-// ---- what the generator would emit into the user's own partial ------------------------------
+// The generator injects `private static Chip Chip => Entry<Chip>();` into this partial.
 internal sealed partial class ChipHost
 {
-    private static Chip Chip => Entry<Chip>();
-
     internal static Type Probe() => typeof(Chip);
 }
 

@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 //     re-renders this consumer, so the "Picked:" readout updates live (the controlled-OnChange fix).
 //   • Bound — Select(() => model.X): two-way binds the model property through the ambient EditContext.
 // Both readouts refresh on every change with no StateHasChanged.
-public sealed class FormControlsSelectDemo : Component
+public sealed partial class FormControlsSelectDemo : Component
 {
     private string _controlled = "Rask";
     private readonly Model _model = new();

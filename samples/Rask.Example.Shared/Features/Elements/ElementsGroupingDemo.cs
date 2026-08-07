@@ -1,7 +1,7 @@
 namespace Rask.Example.Shared.Features;
 
 // Grouping content + lists: p, hr, pre, blockquote, div, ol/ul/li, dl/dt/dd, figure/figcaption.
-public sealed class ElementsGroupingDemo : Component
+public sealed partial class ElementsGroupingDemo : Component
 {
     protected override Component? Render() => Div(Class: "vstack gap-3")[
         P()["A paragraph of flow content, grouped in a ", Code()["Div"], "."],

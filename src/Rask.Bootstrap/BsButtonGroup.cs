@@ -2,7 +2,7 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap button group: <div class="btn-group" role="group">. Holds BsButton children. Set
 // Vertical for a stacked group, and Size for btn-group-sm / btn-group-lg.
-public sealed class BsButtonGroup : BsBlock
+public sealed partial class BsButtonGroup : BsBlock
 {
     public bool? Vertical { get; set; }
     public BsSize? Size { get; set; }

@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 [Route("todos/new")]
 [Route("todos/{id:guid}/edit")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class TodosPage : Component
+public sealed partial class TodosPage : Component
 {
     private readonly Navigator _nav;
     private readonly RouteState _route;
@@ -135,7 +135,7 @@ public sealed class TodosPage : Component
         ];
 }
 
-public sealed class TodoFormDialog : Component
+public sealed partial class TodoFormDialog : Component
 {
     // Non-nullable props with no initializer → the generator emits them as required positional factory
     // parameters (RASK001); Rask's post-render assignment satisfies them, so CS8618 here is intentional.

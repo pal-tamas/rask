@@ -576,7 +576,7 @@ internal static partial class ProjectGenerator
 
         [Route("login")]
         [AllowAnonymous]
-        public sealed class LoginPage(JwtLoginService login) : Component
+        public sealed partial class LoginPage(JwtLoginService login) : Component
         {
             private readonly LoginModel _model = new();
             private string? _error;
@@ -616,7 +616,7 @@ internal static partial class ProjectGenerator
 
         [Route("members")]
         [AllowAnonymous]
-        public sealed class MembersPage : Component
+        public sealed partial class MembersPage : Component
         {
             protected override Component? Render() =>
                 Div(Style: "max-width:32rem;margin:3rem auto;font-family:system-ui")[
@@ -625,7 +625,7 @@ internal static partial class ProjectGenerator
                 ];
         }
 
-        public sealed class MemberContent(JwtLoginService login, IUserProvider userProvider) : Component
+        public sealed partial class MemberContent(JwtLoginService login, IUserProvider userProvider) : Component
         {
             protected override Component? Render() =>
                 [

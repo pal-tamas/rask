@@ -13,7 +13,7 @@ namespace Rask.Server.Tests.Infrastructure;
 ///     With ordered dispatch the rendered HTML's `Sequence=N0N1N2…` content
 ///     always matches the order the buttons were clicked.
 /// </summary>
-public sealed class OrderedDispatchApp : Component
+public sealed partial class OrderedDispatchApp : Component
 {
     private const int HandlerCount = 10;
 

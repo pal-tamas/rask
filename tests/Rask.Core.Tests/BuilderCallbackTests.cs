@@ -8,7 +8,7 @@ namespace Rask.Core.Tests;
 // Note `Handler?`, not `Handler`. A non-nullable struct with no initializer is a *required*
 // factory parameter (RASK001), so declaring the carrier non-nullable would silently turn every
 // optional callback into a required argument.
-internal sealed class BuilderCard : Component
+internal sealed partial class BuilderCard : Component
 {
     public new string? Label { get; set; }
     public Handler? OnSelect { get; set; }
@@ -16,7 +16,7 @@ internal sealed class BuilderCard : Component
     protected override Component? Render() => Button.Click(OnSelect?.Fn)[Label ?? ""];
 }
 
-internal sealed class CardHost : Component
+internal sealed partial class CardHost : Component
 {
     internal int Selected;
 

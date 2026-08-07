@@ -2,7 +2,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class InlineAsyncValidateDemo : Component
+public sealed partial class InlineAsyncValidateDemo : Component
 {
     // Showcases the typed async Validate overload: a bare `async (v, ct) => …` lambda binds
     // directly to Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> on the Input,

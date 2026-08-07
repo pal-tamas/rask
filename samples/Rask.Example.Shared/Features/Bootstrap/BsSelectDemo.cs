@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // StateHasChanged). BsSelect renders a custom .dropdown-menu combobox by default; Filter adds an in-dropdown
 // search field; a nullable value type gets an × that clears it; OptionValue binds a projected field while the
 // options stay whole objects; Native drops to the OS <select>; Floating wraps the label like a form-floating.
-public sealed class BsSelectDemo : Component
+public sealed partial class BsSelectDemo : Component
 {
     private static readonly string[] Plans = ["free", "pro", "team"];
     private static readonly int?[] Seats = [1, 2, 5, 10];

@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Bootstrap buttons, button groups and badges — Color/Size/Outline are typed enums (BsColor/BsSize),
 // not class strings. Each BsButton wraps the core Button and emits the right .btn classes.
-public sealed class BsButtonsDemo : Component
+public sealed partial class BsButtonsDemo : Component
 {
     protected override Component? Render() =>
     [

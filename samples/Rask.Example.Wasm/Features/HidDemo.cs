@@ -7,7 +7,7 @@ namespace Rask.Example.Wasm.Features;
 ///     live. WASM-only: requestDevice() needs a live user gesture and the live device handle, and it's
 ///     Chromium-family only at the time of writing. Move/press the device after "Watch" to see reports arrive.
 /// </summary>
-public sealed class HidDemo(IHid hid) : Component, IAsyncDisposable
+public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
 {
     private IHidDevice? _device;
     private HidDeviceInfo? _info;

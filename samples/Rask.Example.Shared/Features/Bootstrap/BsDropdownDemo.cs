@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // OnClick sets it back to false on selection. The menu is a Popper-less .dropdown-menu — Rask re-anchors
 // it with position:fixed while open, so it escapes this overflow:hidden sample card instead of being
 // clipped. The right-aligned variant shows AlignEnd working without Popper.
-public sealed class BsDropdownDemo : Component
+public sealed partial class BsDropdownDemo : Component
 {
     private bool _open;
     private bool _alignOpen;

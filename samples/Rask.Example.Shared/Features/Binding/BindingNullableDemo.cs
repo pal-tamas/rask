@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class BindingNullableDemo : Component
+public sealed partial class BindingNullableDemo : Component
 {
     public enum Color { Red, Green, Blue }
 

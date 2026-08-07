@@ -251,7 +251,7 @@ public sealed class GenerateCommandTests
         Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("ProductsPage.cs", StringComparison.Ordinal));
         Assert.Contains("[dry-run] would write", console.OutText, StringComparison.Ordinal);
         Assert.Contains("ProductsPage.cs", console.OutText, StringComparison.Ordinal);
-        Assert.DoesNotContain("public sealed class ProductsPage", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed partial class ProductsPage", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -264,7 +264,7 @@ public sealed class GenerateCommandTests
         Assert.Equal(0, exit);
         Assert.DoesNotContain(fs.Files, f => f.Key.EndsWith("ProductsPage.cs", StringComparison.Ordinal));
         Assert.Contains("[dry-run] would write", console.OutText, StringComparison.Ordinal);
-        Assert.Contains("public sealed class ProductsPage", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class ProductsPage", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]

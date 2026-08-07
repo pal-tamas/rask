@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Every text-level / inline element, live. Each is a generator-emitted factory in
 // Rask.Core.Components.Generated; children go through the [...] indexer.
-public sealed class ElementsTextDemo : Component
+public sealed partial class ElementsTextDemo : Component
 {
     protected override Component? Render() => Div(Class: "vstack gap-2")[
         P()[

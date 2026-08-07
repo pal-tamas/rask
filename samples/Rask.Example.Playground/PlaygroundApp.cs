@@ -6,7 +6,7 @@ namespace Rask.Example.Playground;
 // Root of the playground WASM app. Renders the full document shell (RASK021); the single-page UI,
 // editor, compile orchestration and live preview all live in PlaygroundView. Public + non-sealed to match
 // the host's ActivatorUtilities.CreateInstance + DAM contract.
-public class PlaygroundApp : Component
+public partial class PlaygroundApp : Component
 {
     // Dark-first theme init — mirrors the showcase App.cs / index.html snippet: stamp data-theme +
     // data-bs-theme on <html> from the saved choice (shared across the site/docs/playground on this

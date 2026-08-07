@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 ///     and verified by your <em>backend</em>; this demo generates it client-side and just displays the
 ///     returned attestation/assertion (no server verification), to show the browser round-trip.
 /// </summary>
-public sealed class WebAuthnDemo(IWebAuthn webAuthn) : Component
+public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
 {
     // A stable user handle for this demo session (a real app uses the account's server-side id).
     private readonly string _userId = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16));

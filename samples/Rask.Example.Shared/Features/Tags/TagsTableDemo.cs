@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class TagsTableDemo : Component
+public sealed partial class TagsTableDemo : Component
 {
     protected override Component? Render() => Table(Class: "table table-sm mb-0")[
         Thead()[Tr()[Th()["#"], Th()["Tag"]]],

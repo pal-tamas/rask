@@ -12,7 +12,7 @@ namespace Rask.Example.Server.Features;
 /// </summary>
 [Route("server-pwa")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class ServerPwaPage : Component
+public sealed partial class ServerPwaPage : Component
 {
     protected override Component? Head => Title()["Server PWA — Rask"];
 

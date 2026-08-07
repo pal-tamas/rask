@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Form-associated elements: form, fieldset/legend, label, input, select/optgroup/option, textarea,
 // datalist, output, progress, meter, button. (See the Forms page for binding/validation.)
-public sealed class ElementsFormsDemo : Component
+public sealed partial class ElementsFormsDemo : Component
 {
     protected override Component? Render() => Form(Class: "vstack gap-3")[
         Fieldset(Class: "border rounded p-3")[

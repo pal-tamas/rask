@@ -6,7 +6,7 @@ namespace Rask.Example.Wasm.Features;
 ///     <see cref="IEyeDropper" /> — pick a color from anywhere on screen with the system loupe, then show
 ///     the picked swatch + hex. WASM-only: <c>open()</c> needs a live user gesture.
 /// </summary>
-public sealed class EyeDropperDemo(IEyeDropper eyeDropper) : Component
+public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
 {
     private string? _hex;
     private string _status = "(idle)";

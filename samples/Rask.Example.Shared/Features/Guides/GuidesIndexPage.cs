@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 // GuidePage renders the markdown with Markdig.
 [Route("")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class GuidesIndexPage : Component
+public sealed partial class GuidesIndexPage : Component
 {
     protected override Component? Head => Title()["Guides — Rask"];
 

@@ -9,7 +9,7 @@ namespace Rask.Bootstrap;
 // the panel inline and static — the canonical pattern for a sidebar that collapses to a hamburger on
 // mobile but sits in the layout on desktop. The header and backdrop are hidden at/above the breakpoint
 // so the static panel carries no drawer chrome.
-public sealed class BsOffcanvas : BsBlock
+public sealed partial class BsOffcanvas : BsBlock
 {
     public bool? Open { get; set; }
     public BsPlacement? Placement { get; set; }

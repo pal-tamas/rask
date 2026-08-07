@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur/Enter) and
 //     re-renders this consumer so the "Echo:" readout updates (the controlled-OnChange fix).
 //   • Bound — Input(() => model.X): two-way binds and streams per keystroke through the EditContext.
-public sealed class FormControlsInputDemo : Component
+public sealed partial class FormControlsInputDemo : Component
 {
     private string _controlled = "";
     private readonly Model _model = new();

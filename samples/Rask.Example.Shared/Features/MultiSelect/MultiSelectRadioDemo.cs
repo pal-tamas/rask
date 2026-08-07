@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // BsRadioGroup<TValue> — the single-value sibling of BsCheckboxGroup, here in controlled mode (Value + OnChange).
 // Selecting an option calls OnChange (auto-wrapped), which re-renders this demo so the readout stays live.
-public sealed class MultiSelectRadioDemo : Component
+public sealed partial class MultiSelectRadioDemo : Component
 {
     private static readonly Tier[] AllTiers = [Tier.Free, Tier.Pro, Tier.Team];
 

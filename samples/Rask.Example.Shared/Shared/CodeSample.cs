@@ -3,7 +3,7 @@ using Microsoft.JSInterop;
 
 namespace Rask.Example.Shared;
 
-public sealed class CodeSample : Component
+public sealed partial class CodeSample : Component
 {
     // Clipboard interop is injected via the ctor (the framework's DI seam) so Source stays
     // a plain factory parameter — a settable non-nullable service prop would become a

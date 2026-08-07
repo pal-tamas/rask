@@ -3,7 +3,7 @@ namespace Rask.Bootstrap;
 // A Bootstrap table: <table class="table …">. Wraps the core Table() with the typed style toggles;
 // set Responsive to wrap it in a .table-responsive scroll container. Children are the usual thead/
 // tbody/tr/td markup (core Thead/Tbody/Tr/Td or plain elements).
-public sealed class BsTable : BsBlock
+public sealed partial class BsTable : BsBlock
 {
     public BsColor? Color { get; set; }
     public bool? Striped { get; set; }

@@ -9,7 +9,7 @@ namespace Rask.Native.Components;
 ///                         Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: OnAdd)]),
 ///                     NativeWebView()[/* shell */]];</code>
 /// </example>
-public sealed class NativeHeaderBar : NativeComponent
+public sealed partial class NativeHeaderBar : NativeComponent
 {
     /// <summary>The bar's title, shown centred (iOS) / leading (Android) per platform convention.</summary>
     public new string? Title { get; set; }

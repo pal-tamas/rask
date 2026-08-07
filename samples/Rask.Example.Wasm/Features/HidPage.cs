@@ -10,7 +10,7 @@ namespace Rask.Example.Wasm.Features;
 /// </summary>
 [Route("hid")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class HidPage : Component
+public sealed partial class HidPage : Component
 {
     protected override Component? Head => Title()["WebHID — Rask"];
 

@@ -3,7 +3,7 @@ namespace Rask.Example.Auth.Jwt;
 // App shell. JwtBootstrap (headless) re-establishes the principal from ProtectedSessionStorage on a
 // fresh session/refresh; the navbar + Router render the matched page. Bootstrap rides a CDN link and
 // wwwroot/global.css layers the Rask purple palette on top.
-public sealed class App : Component
+public sealed partial class App : Component
 {
     protected override Component? Head =>
     [

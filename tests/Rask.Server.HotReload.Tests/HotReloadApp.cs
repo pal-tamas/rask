@@ -12,7 +12,7 @@ namespace Rask.Server.HotReload.Tests;
 ///     the delta — the coordinator's phases, the repaint, the announcement, the wire — is the real
 ///     shipping code, driven here by invoking the metadata-update handler directly.
 /// </remarks>
-public sealed class HotReloadApp : Component
+public sealed partial class HotReloadApp : Component
 {
     internal const string Original = "before-the-edit";
 

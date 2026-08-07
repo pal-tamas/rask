@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IScreenInfo" /> — read the display size, color depth, and device pixel ratio.</summary>
-public sealed class ScreenInfoDemo(IScreenInfo screen) : Component
+public sealed partial class ScreenInfoDemo(IScreenInfo screen) : Component
 {
     private string? _value;
     private string? _status;

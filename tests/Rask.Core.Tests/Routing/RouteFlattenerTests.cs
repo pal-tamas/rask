@@ -81,7 +81,7 @@ public class RouteFlattenerTests
     public void Combine_NormalisesSlashes(string parent, string child, string expected) =>
         Assert.Equal(expected, RouteFlattener.Combine(parent, child));
 
-    private sealed class HomePage : Component
+    private sealed partial class HomePage : Component
     {
         protected override Component? Render() => Span();
     }

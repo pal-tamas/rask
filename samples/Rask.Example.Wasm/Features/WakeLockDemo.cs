@@ -7,7 +7,7 @@ namespace Rask.Example.Wasm.Features;
 ///     auto-released when the page is hidden and re-acquired when it returns; disposing the sentinel
 ///     (here, toggling off — and on unmount via <see cref="IAsyncDisposable" />) releases it for good.
 /// </summary>
-public sealed class WakeLockDemo(IWakeLock wakeLock) : Component, IAsyncDisposable
+public sealed partial class WakeLockDemo(IWakeLock wakeLock) : Component, IAsyncDisposable
 {
     private IWakeLockSentinel? _sentinel;
     private string? _status;

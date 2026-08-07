@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // FluentValidationValidator wraps the whole IValidator into an IAsyncFieldValidator, so
 // MustAsync awaits the network-shaped check and the ValidatingIndicator surfaces while
 // the await is in flight.
-public sealed class FluentValidationAsyncDemo : Component
+public sealed partial class FluentValidationAsyncDemo : Component
 {
     private readonly TicketModel _model = new();
     private string? _submission;

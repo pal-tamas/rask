@@ -10,7 +10,7 @@ namespace Rask.Bootstrap;
 // Implements IFormControl<bool> directly (not via the generic BsFormControl<T> base): an
 // unconstrained `T?` collapses to `T` for value types, so closing the generic base at bool would emit
 // an invalid `bool Value = null` factory parameter. Declaring the members as explicit bool? avoids it.
-public sealed class BsCheck : BsBlock, IFormControl<bool>
+public sealed partial class BsCheck : BsBlock, IFormControl<bool>
 {
     // IFormControl<bool> — bound mode.
     public Expression<Func<bool>>? Bind { get; set; }

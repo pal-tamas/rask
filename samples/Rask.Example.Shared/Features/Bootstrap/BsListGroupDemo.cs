@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // A Bootstrap list group — items carrying Active/Disabled/Color state, a linked (Href) action item that
 // gets .list-group-item-action, plus the Numbered (ordered, auto-numbered <ol>) and Flush (borderless)
 // list variants.
-public sealed class BsListGroupDemo : Component
+public sealed partial class BsListGroupDemo : Component
 {
     protected override Component? Render() =>
         BsRow(Gutter: 3)[

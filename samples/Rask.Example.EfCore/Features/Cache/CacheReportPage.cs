@@ -9,7 +9,7 @@ namespace Rask.Example.EfCore.Features.Cache;
 // sliding window is served straight from the DB — no recompute, no Redis. "Clear" removes the entry so the
 // next load recomputes, proving the cache is what's serving the repeated reads.
 [Route("cache")]
-public sealed class CacheReportPage(ICache cache) : Component
+public sealed partial class CacheReportPage(ICache cache) : Component
 {
     private const string CacheKey = "cache:demo:report";
 

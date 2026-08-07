@@ -18,7 +18,7 @@ namespace Rask.Example.Shared.Features;
 // A grouped column folds away by default: its value is the same for every row in its band and already names
 // the band header, so the column would be a run of duplicates. "Show grouped column" flips ShowGroupedColumns
 // to keep it — the value then appears in the band header AND repeated down every row.
-public sealed class BsDataGridGroupDemo : Component
+public sealed partial class BsDataGridGroupDemo : Component
 {
     private sealed record Deal(string Account, string Region, string Rep, decimal Amount);
 

@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class CancellationProbe : Component
+public sealed partial class CancellationProbe : Component
 {
     private readonly Stopwatch _watch = new();
     private int _logged;

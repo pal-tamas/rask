@@ -12,7 +12,7 @@ namespace Rask.Example.Sqlite.Features;
 // WAL + busy_timeout that a stock `UseSqlite` would turn into "database is locked". The second demo fires
 // the same burst through the raw factory's BEGIN IMMEDIATE + non-blocking fair-interval retry.
 [Route("/")]
-public sealed class PragmaDemoPage(
+public sealed partial class PragmaDemoPage(
     IDbContextFactory<DemoDbContext> dbContextFactory,
     IRaskSqliteConnectionFactory connectionFactory) : Component
 {

@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // component automatically — no StateHasChanged() call needed. (You only reach for
 // StateHasChanged() when the mutation happens off the event-dispatch path, e.g. a background
 // poll loop — see docs/lifecycle.md.)
-public sealed class TierStatefulCounterDemo : Component
+public sealed partial class TierStatefulCounterDemo : Component
 {
     private int _count;
 

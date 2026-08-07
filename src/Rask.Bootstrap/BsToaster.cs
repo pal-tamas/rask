@@ -15,7 +15,7 @@ namespace Rask.Bootstrap;
 // The dismiss callback handed to the template removes the message from the outlet by Id; wiring it to
 // BsToast.OnClose covers both the × button and the auto-hide timer. ToastOutlet.Dismiss re-renders the
 // outlet itself, so no manual StateHasChanged is needed here.
-public sealed class BsToaster : Component
+public sealed partial class BsToaster : Component
 {
     // Bootstrap position utilities placing the fixed toast-container. Default: top-right, the
     // conventional toast corner. Override for e.g. "bottom-0 start-0".

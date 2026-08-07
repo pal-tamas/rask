@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 ///     <see cref="ICookies" /> — read/write non-<c>HttpOnly</c> cookies via <c>document.cookie</c>,
 ///     identical on Server and WASM.
 /// </summary>
-public sealed class CookiesDemo(ICookies cookies) : Component
+public sealed partial class CookiesDemo(ICookies cookies) : Component
 {
     private const string Name = "rask_browser_cookie";
 

@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Bootstrap progress bars. Value sets the fill (Min/Max default to 0/100); Color themes the bar and
 // Striped/Animated add the moving-stripe treatment. Bootstrap 5.3 puts role/aria on the outer
 // .progress, which BsProgress emits for you.
-public sealed class BsProgressDemo : Component
+public sealed partial class BsProgressDemo : Component
 {
     protected override Component? Render() =>
         Div(Class: "vstack gap-3")[

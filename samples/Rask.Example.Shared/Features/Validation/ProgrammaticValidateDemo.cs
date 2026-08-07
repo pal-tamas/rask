@@ -3,7 +3,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class ProgrammaticValidateDemo : Component
+public sealed partial class ProgrammaticValidateDemo : Component
 {
     private readonly EditContext _ctx;
     private readonly TaskModel _model = new();

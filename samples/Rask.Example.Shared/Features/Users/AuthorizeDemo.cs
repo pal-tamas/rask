@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // IUserProvider.Changed itself, and its Authorized slot is a delegate handed the current principal, so
 // the greeting reads the name with zero plumbing. Nesting an inner Authorize() in the outer's
 // NotAuthorized slot yields three distinct states (admin / signed-in / anonymous).
-public sealed class AuthorizeDemo : Component
+public sealed partial class AuthorizeDemo : Component
 {
     private readonly DemoUserProvider _auth;
 

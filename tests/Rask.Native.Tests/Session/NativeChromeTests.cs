@@ -405,7 +405,7 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
     }
 }
 
-internal sealed class HeaderApp : Component
+internal sealed partial class HeaderApp : Component
 {
     private int _added;
 
@@ -419,7 +419,7 @@ internal sealed class HeaderApp : Component
     ];
 }
 
-internal sealed class DynamicHeaderApp : Component
+internal sealed partial class DynamicHeaderApp : Component
 {
     private int _n;
 
@@ -433,7 +433,7 @@ internal sealed class DynamicHeaderApp : Component
     ];
 }
 
-internal sealed class TabApp : Component
+internal sealed partial class TabApp : Component
 {
     private readonly RouteState _route;
 
@@ -454,7 +454,7 @@ internal sealed class TabApp : Component
     ];
 }
 
-internal sealed class NavButtonApp : Component
+internal sealed partial class NavButtonApp : Component
 {
     private readonly Navigator _nav;
     private readonly RouteState _route;
@@ -476,7 +476,7 @@ internal sealed class NavButtonApp : Component
     ];
 }
 
-internal sealed class TwoHeaderApp : Component
+internal sealed partial class TwoHeaderApp : Component
 {
     protected override Component? Render() =>
     [
@@ -489,7 +489,7 @@ internal sealed class TwoHeaderApp : Component
     ];
 }
 
-internal sealed class StyledHeaderApp : Component
+internal sealed partial class StyledHeaderApp : Component
 {
     protected override Component? Render() =>
     [
@@ -504,7 +504,7 @@ internal sealed class StyledHeaderApp : Component
     ];
 }
 
-internal sealed class StyledTabApp : Component
+internal sealed partial class StyledTabApp : Component
 {
     protected override Component? Render() =>
     [
@@ -524,7 +524,7 @@ internal sealed class StyledTabApp : Component
     ];
 }
 
-internal sealed class BadgeTabApp : Component
+internal sealed partial class BadgeTabApp : Component
 {
     private int _count = 2;
 
@@ -544,7 +544,7 @@ internal sealed class BadgeTabApp : Component
     ];
 }
 
-internal sealed class BackApp : Component
+internal sealed partial class BackApp : Component
 {
     protected override Component? Render() =>
     [
@@ -556,7 +556,7 @@ internal sealed class BackApp : Component
     ];
 }
 
-internal sealed class ChromeOnlyApp : Component
+internal sealed partial class ChromeOnlyApp : Component
 {
     private bool _flag;
 
@@ -572,7 +572,7 @@ internal sealed class ChromeOnlyApp : Component
     ];
 }
 
-internal sealed class MenuApp : Component
+internal sealed partial class MenuApp : Component
 {
     private string _last = "none";
 
@@ -595,7 +595,7 @@ internal sealed class MenuApp : Component
     ];
 }
 
-internal sealed class SegmentedApp : Component
+internal sealed partial class SegmentedApp : Component
 {
     private int _seg;
 
@@ -613,7 +613,7 @@ internal sealed class SegmentedApp : Component
     ];
 }
 
-internal sealed class SystemHeaderApp : Component
+internal sealed partial class SystemHeaderApp : Component
 {
     protected override Component? Render() =>
     [

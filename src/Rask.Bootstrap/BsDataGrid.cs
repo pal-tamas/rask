@@ -214,7 +214,7 @@ public sealed class BsColumn<T>
 //   * an IQueryable — in the store, so the set can be arbitrarily large (server hosts only; see Data).
 //   * a list + TotalCount — Data is one already-sorted, already-paged slice you fetched and TotalCount is how
 //     many rows are really behind it, so the pager is right. This is the mode with the await in your hands.
-public sealed class BsDataGrid<T> : BsBlock
+public sealed partial class BsDataGrid<T> : BsBlock
 {
     private readonly HashSet<object> _expanded = [];
     private readonly int _instanceId = BsInstanceId.Next();

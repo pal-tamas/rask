@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 // this Template, rendered here as a dismissible BsAlert stack. In a real app you mount ONE BsToaster in the
 // layout and raise toasts just before Navigator.NavigateTo(...): scoped per session, the message survives
 // the client-side navigation and shows once on the destination. Shown inline here so the demo is contained.
-public sealed class ToasterDemo(IToaster toast) : Component
+public sealed partial class ToasterDemo(IToaster toast) : Component
 {
     protected override Component? Render() =>
         Div()[

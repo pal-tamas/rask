@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Document & metadata elements — html, head, body, title, base, link, meta, style, script, noscript —
 // build the page shell, so they can't render live *inside* this page. Instead the demo composes a real
 // shell and shows its serialized output via ToHtml(). template/slot (inert/shadow-DOM) render below.
-public sealed class ElementsMetadataDemo : Component
+public sealed partial class ElementsMetadataDemo : Component
 {
     // Illustrative only: a real app declares head content by overriding the `Head` property (which is
     // why RASK019 normally flags Head()[…] children) — this composes the elements directly just to show

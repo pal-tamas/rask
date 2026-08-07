@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class SvgClickableDemo : Component
+public sealed partial class SvgClickableDemo : Component
 {
     private static readonly (string Name, string Hex)[] Swatches =
     [

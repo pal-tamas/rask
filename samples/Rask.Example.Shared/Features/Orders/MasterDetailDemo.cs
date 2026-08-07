@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 // collapse as a keyed Remove — sibling expanded rows keep their own inner sort across the reconcile. Each
 // detail panel hosts its own plain <table> of line items with an independent sort, so the demo owns three
 // pieces of state: the expanded set, the outer sort, and a per-order inner sort.
-public sealed class MasterDetailDemo : Component
+public sealed partial class MasterDetailDemo : Component
 {
     private static readonly Order[] _orders = BuildOrders();
 

@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 ///     <see cref="IPermissions" /> — query a feature's permission state (granted/denied/prompt) before
 ///     triggering it. Pairs with <see cref="IGeolocation" /> / <see cref="IClipboard" />.
 /// </summary>
-public sealed class PermissionsDemo(IPermissions permissions) : Component
+public sealed partial class PermissionsDemo(IPermissions permissions) : Component
 {
     private string? _geo;
     private string? _clip;

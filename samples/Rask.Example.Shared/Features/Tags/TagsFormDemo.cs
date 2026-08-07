@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class TagsFormDemo : Component
+public sealed partial class TagsFormDemo : Component
 {
     protected override Component? Render() => Form()[
         Div(Class: "mb-2")[

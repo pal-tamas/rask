@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // shown in the code panes above are TierStaticHelperDemo / TierStatelessGreetingDemo /
 // TierStatefulCounterDemo; this composer is intentionally kept out of the panes so the teaching
 // artifact stays the three tiers themselves.
-public sealed class ComponentTiersDemo : Component
+public sealed partial class ComponentTiersDemo : Component
 {
     protected override Component? Render() =>
         BsRow(Id: "component-tiers", Gutter: 3)[

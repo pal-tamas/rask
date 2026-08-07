@@ -6,7 +6,7 @@ namespace Rask.Bootstrap;
 // defaults to Danger (the destructive-confirm common case); wire OnConfirm to your action. Zero-JS,
 // dismissible via Cancel / the × / a backdrop click (unless StaticBackdrop). Button labels default to
 // neutral English so apps localise by passing ConfirmText / CancelText.
-public sealed class BsConfirmDialog : BsBlock
+public sealed partial class BsConfirmDialog : BsBlock
 {
     public bool? Open { get; set; }
     public new string? Title { get; set; }

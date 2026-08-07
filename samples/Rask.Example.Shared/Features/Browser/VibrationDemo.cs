@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IVibration" /> — pulse the device's vibration motor (effective on mobile).</summary>
-public sealed class VibrationDemo(IVibration vibration) : Component
+public sealed partial class VibrationDemo(IVibration vibration) : Component
 {
     private string? _status;
 

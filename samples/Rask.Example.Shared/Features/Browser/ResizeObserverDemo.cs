@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 ///     toggle its width (or resize the window) and the browser pushes the new size to C#, which re-renders
 ///     the readout (the handler calls <c>StateHasChanged()</c>, the sanctioned pushed-update pattern).
 /// </summary>
-public sealed class ResizeObserverDemo(IResizeObserver observer) : Component, IAsyncDisposable
+public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Component, IAsyncDisposable
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     private readonly ElementRef _box = ElementRef.New();

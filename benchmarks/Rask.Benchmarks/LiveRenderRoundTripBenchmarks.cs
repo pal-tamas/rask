@@ -139,7 +139,7 @@ public class LiveRenderRoundTripBenchmarks
 // (the only path that swaps _children) and registers a handler (the only path that
 // touches _handlers + _nextHandlerId). 20 rows × 1 handler each = 20 RegisterHandler
 // calls per render — enough to see the handler-id intern cut and the dictionary reuse.
-public sealed class RowItem : Component
+public sealed partial class RowItem : Component
 {
     public int Index { get; set; }
 
@@ -155,7 +155,7 @@ public sealed class RowItem : Component
 // inside a wrapper div with an id — gives HtmlSerializer per-level user-component
 // work plus a real attribute write. Renders nothing further at level 0 so the chain
 // terminates.
-public sealed class DeepNode : Component
+public sealed partial class DeepNode : Component
 {
     public int Depth { get; set; }
 

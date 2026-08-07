@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 ///     component appears in the rendered tree. DevTools shows the network request happen
 ///     only when the parent toggles "Show".
 /// </summary>
-public sealed class LazyChild : Component
+public sealed partial class LazyChild : Component
 {
     protected override Component? Render() =>
         Div(Class: "lazy-child")[

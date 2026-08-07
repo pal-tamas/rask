@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Empty replaces the whole grid — headers, pager and all — when there are no rows, so a filtered-to-nothing
 // list reads as a deliberate message rather than an empty table. Filter the list away and back: the grid keeps
 // the sort you chose, because sorting is the grid's own state and it survives the round-trip.
-public sealed class BsDataGridEmptyDemo : Component
+public sealed partial class BsDataGridEmptyDemo : Component
 {
     private sealed record Task(string Title, string Owner);
 

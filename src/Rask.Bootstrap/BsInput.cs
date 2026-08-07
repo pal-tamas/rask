@@ -6,7 +6,7 @@ namespace Rask.Bootstrap;
 // help text, and the .is-invalid + .invalid-feedback validation display. Bound:
 // BsInput(() => model.Email, Label: "Email"); controlled: BsInput(Value: x, OnChange: …). The HTML
 // input type is derived from T (or set explicitly via Type).
-public sealed class BsInput<T> : BsFormControl<T>
+public sealed partial class BsInput<T> : BsFormControl<T>
 {
     public InputType? Type { get; set; }
     public string? Placeholder { get; set; }

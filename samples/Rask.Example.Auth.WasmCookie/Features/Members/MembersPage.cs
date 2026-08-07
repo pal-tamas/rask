@@ -9,7 +9,7 @@ namespace Rask.Example.Auth.WasmCookie.Features;
 // when the gate opens after sign-in.
 [Route("members")]
 [AllowAnonymous]
-public sealed class MembersPage : Component
+public sealed partial class MembersPage : Component
 {
     protected override Component? Render() =>
         Div(Id: "members", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
@@ -22,7 +22,7 @@ public sealed class MembersPage : Component
         ];
 }
 
-public sealed class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
+public sealed partial class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
 {
     protected override Component? Render() =>
         [

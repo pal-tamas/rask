@@ -80,7 +80,7 @@ public class FactoryAttributeTests
                   using Rask.Core.Routing;
                   namespace Demo;
                   [Route("/")]
-                  public sealed class HomePage : Component
+                  public sealed partial class HomePage : Component
                   {
                       public override Component? Render() => this;
                   }

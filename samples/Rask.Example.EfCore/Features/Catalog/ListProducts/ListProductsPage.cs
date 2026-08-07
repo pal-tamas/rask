@@ -10,7 +10,7 @@ namespace Rask.Example.EfCore.Features.Catalog.ListProducts;
 // stance: each slice owns its own data access.
 [Route("/")]
 [Route("products")]
-public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
+public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
 {
     private IReadOnlyList<Product> _products = [];
     private bool _loaded;

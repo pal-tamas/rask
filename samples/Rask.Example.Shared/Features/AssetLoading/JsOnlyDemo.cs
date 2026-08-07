@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 ///     mounted-set was populated from a CSS-presence gate. Now they emit a
 ///     <c>&lt;script src="/_rask/a/{hash}.js" defer&gt;</c> tag like any other.
 /// </summary>
-public sealed class JsOnlyDemo(IJSRuntime js) : Component
+public sealed partial class JsOnlyDemo(IJSRuntime js) : Component
 {
     private string _clicks = "0";
 

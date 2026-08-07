@@ -8,7 +8,7 @@ namespace Rask.Example.Wasm.Features;
 ///     once the browser deems the app installable (valid manifest + service worker over HTTPS) and it
 ///     isn't already installed.
 /// </summary>
-public sealed class InstallPromptDemo(IInstallPrompt install) : Component
+public sealed partial class InstallPromptDemo(IInstallPrompt install) : Component
 {
     private bool _canInstall;
     private bool _installed;

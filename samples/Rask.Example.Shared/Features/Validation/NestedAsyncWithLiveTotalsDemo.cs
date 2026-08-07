@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class NestedAsyncWithLiveTotalsDemo : Component
+public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
 {
     // Layers two things on top of the basic nested-binding showcase:
     //   * Async inline Validate: on a nested field (Address.PostalCode) with ValidatingIndicator —

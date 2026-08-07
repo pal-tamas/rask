@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // without the showcase layout. Used by the WS dispatcher tests to verify that the
 // post-handler render emitted after a per-field IAsyncFieldValidator completes shows
 // the validator's terminal message and removes the in-flight indicator.
-public sealed class AsyncValidationApp : Component
+public sealed partial class AsyncValidationApp : Component
 {
     private readonly EditContext _ctx;
     private readonly SignupModel _model = new();

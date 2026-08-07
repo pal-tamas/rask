@@ -5,7 +5,7 @@ namespace Rask.Bootstrap;
 // re-implement the <button> element. Type defaults to "button" so a BsButton never implicitly submits
 // an enclosing form; pass Type:"submit" for a submit button. For a link styled as a button, use
 // A(Class:"btn btn-primary").
-public sealed class BsButton : BsBlock
+public sealed partial class BsButton : BsBlock
 {
     public BsColor? Color { get; set; }
 

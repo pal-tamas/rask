@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // "OnUnmount vs IDisposable" demo promoted out of the former DisposalPage. The probe owns a timer started
 // in a render hook, so its cleanup belongs in OnUnmount (symmetric with OnMount) rather than IDisposable.
-public sealed class DisposalUnmountDemo : Component
+public sealed partial class DisposalUnmountDemo : Component
 {
     private readonly List<string> _hookLog = new();
     private bool _hookMounted;

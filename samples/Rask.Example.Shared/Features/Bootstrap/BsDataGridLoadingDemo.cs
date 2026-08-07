@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 //
 // Loading is bool?, and all three states are used: null would mean "not using the feature at all", so this
 // demo starts at false (in use, idle) and flips to true around the await.
-public sealed class BsDataGridLoadingDemo : Component
+public sealed partial class BsDataGridLoadingDemo : Component
 {
     private const int PageSize = 4;
 

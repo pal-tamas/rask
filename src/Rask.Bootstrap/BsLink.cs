@@ -6,7 +6,7 @@ namespace Rask.Bootstrap;
 // A(Class:"btn btn-primary") shape BsButton's docs used to point at. It renders a plain <a> (not an
 // SPA NavLink) — for an in-app nav link that also styles as a button, wrap a NavLink yourself; this is
 // the CTA/external-link case (Playground, GitHub, docs cross-links).
-public sealed class BsLink : BsBlock
+public sealed partial class BsLink : BsBlock
 {
     public string? Href { get; set; }
     public string? Target { get; set; }

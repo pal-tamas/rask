@@ -8,7 +8,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // Renders identically every render. The click handler mutates a field that the render tree
 // does NOT observe, so repeated invocations produce byte-identical HTML payloads — used by
 // the payload-dedup tests to verify that LiveSession suppresses redundant WS frames.
-public sealed class NoOpApp : Component
+public sealed partial class NoOpApp : Component
 {
     public int Hidden;
 

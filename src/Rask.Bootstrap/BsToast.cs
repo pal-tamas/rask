@@ -13,7 +13,7 @@ namespace Rask.Bootstrap;
 //
 // Two layouts mirror the Bootstrap docs: Color set → the "Color schemes" headerless variant (body + white
 // ×); otherwise a header (icon + title + timestamp + ×) over the body.
-public sealed class BsToast : Component
+public sealed partial class BsToast : Component
 {
     // Identity passed back through OnClose so the host knows which toast to remove. Also used as the
     // element id. (BsToast extends Component, not BsBlock, because its Id is an int, not BsBlock's string.)

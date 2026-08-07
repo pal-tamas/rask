@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class BindingTextareaDemo : Component
+public sealed partial class BindingTextareaDemo : Component
 {
     private readonly Holder _model = new();
 

@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // OnChange instead of Bind is the React-style controlled shape — useful when the selection is not a form
 // model property. The control still re-renders its host automatically, so the "Selected:" summary updates
 // without any StateHasChanged.
-public sealed class MultiSelectControlledDemo : Component
+public sealed partial class MultiSelectControlledDemo : Component
 {
     private static readonly string[] AllTopics =
         ["News", "Sports", "Tech", "Music", "Travel"];

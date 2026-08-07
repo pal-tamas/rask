@@ -13,7 +13,7 @@ public sealed class ComponentGeneratorTests
 
         Assert.Equal(Path.GetFullPath("/proj/Features/Shared/PriceTag.cs"), Path.GetFullPath(file.Path));
         Assert.Contains("namespace MyApp.Features.Shared;", file.Content, StringComparison.Ordinal);
-        Assert.Contains("public sealed class PriceTag : Component", file.Content, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class PriceTag : Component", file.Content, StringComparison.Ordinal);
         Assert.EndsWith("\n", file.Content, StringComparison.Ordinal);
     }
 
@@ -68,7 +68,7 @@ public sealed class PageGeneratorTests
         Assert.Contains("namespace MyApp.Features.Products;", file.Content, StringComparison.Ordinal);
         Assert.Contains("using Rask.Core.Routing;", file.Content, StringComparison.Ordinal);
         Assert.Contains("[Route(\"/products\")]", file.Content, StringComparison.Ordinal);
-        Assert.Contains("public sealed class ProductsPage : Component", file.Content, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class ProductsPage : Component", file.Content, StringComparison.Ordinal);
         Assert.Contains("Head => Title()[\"Products\"]", file.Content, StringComparison.Ordinal);
     }
 
@@ -80,7 +80,7 @@ public sealed class PageGeneratorTests
         var file = PageGenerator.Generate(project, "/proj", "Page", route: null, outputOverride: null);
 
         Assert.Equal(Path.GetFullPath("/proj/Features/Page/Page.cs"), Path.GetFullPath(file.Path));
-        Assert.Contains("public sealed class Page : Component", file.Content, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class Page : Component", file.Content, StringComparison.Ordinal);
         Assert.DoesNotContain("PagePage", file.Content, StringComparison.Ordinal);
     }
 

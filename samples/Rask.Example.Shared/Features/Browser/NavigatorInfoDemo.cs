@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="INavigatorInfo" /> — read-only navigator facts (online, language, user agent).</summary>
-public sealed class NavigatorInfoDemo(INavigatorInfo navigator) : Component
+public sealed partial class NavigatorInfoDemo(INavigatorInfo navigator) : Component
 {
     private string? _value;
     private string? _status;

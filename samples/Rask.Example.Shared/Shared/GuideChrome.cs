@@ -12,7 +12,7 @@ namespace Rask.Example.Shared;
 // a sticky "On this page" rail that scroll-spies the current section, and prev/next book-navigation
 // following the GuideCatalog order. The scroll-spy runs entirely on the client (GuideChrome.js) — no
 // server round-trips — so it costs nothing on either transport.
-public sealed class GuideChrome : Component
+public sealed partial class GuideChrome : Component
 {
     private readonly IJSRuntime _js;
 

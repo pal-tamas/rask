@@ -9,7 +9,7 @@ namespace Rask.Bootstrap;
 // controlled factory (Value:/OnChange:). Each item is a <div class="form-check"> with a .form-check-input
 // radio + .form-check-label; the embedded ValidationMessage surfaces the per-field rule. Mode is chosen
 // by whether Bind is set.
-public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
+public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValue>
 {
     public required IEnumerable<TValue> Options { get; set; }
 

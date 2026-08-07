@@ -11,7 +11,7 @@ namespace Rask.Example.Shared.Features;
 //     ValidationContext.ObjectInstance to do cross-field comparison.
 //   • NotBanned overrides GetValidationResult and resolves IBannedWordService via
 //     ValidationContext.GetService<T>() — proves the render-scoped IServiceProvider flows through.
-public sealed class CustomAttributeDemo : Component
+public sealed partial class CustomAttributeDemo : Component
 {
     private readonly CustomAttributeModel _model = new();
     private string? _submission;

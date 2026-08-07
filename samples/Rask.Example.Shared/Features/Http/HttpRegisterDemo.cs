@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 // on WASM it is WasmHostBuilder.BaseAddress (the page origin, carrying any sub-path), read
 // lazily inside the factory so it fires after the JS module imports; on the Server host it is
 // the server's own origin. This component builds the same configured client and shows it.
-public sealed class HttpRegisterDemo : Component
+public sealed partial class HttpRegisterDemo : Component
 {
     // The factory the host registers: configure HttpClient to resolve relative URLs against the
     // app's own origin. Pass the origin in lazily (on WASM: () => WasmHostBuilder.BaseAddress).

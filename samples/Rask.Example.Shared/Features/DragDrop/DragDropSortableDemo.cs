@@ -3,7 +3,7 @@ using Rask.Core.DragAndDrop;
 namespace Rask.Example.Shared.Features;
 
 // Single-list reorder. One drop zone ("list"); drop a fruit onto another to reorder.
-public sealed class DragDropSortableDemo : Component
+public sealed partial class DragDropSortableDemo : Component
 {
     private readonly List<string> _fruits =
     [

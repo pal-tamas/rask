@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IVisualViewport" /> — read the actually-visible viewport (size, offset, zoom).</summary>
-public sealed class VisualViewportDemo(IVisualViewport viewport) : Component
+public sealed partial class VisualViewportDemo(IVisualViewport viewport) : Component
 {
     private string? _value;
     private string? _status;

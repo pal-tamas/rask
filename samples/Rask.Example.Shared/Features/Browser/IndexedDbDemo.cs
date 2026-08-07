@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 ///     <see cref="IIndexedDb" /> — a persistent, async key/value store backed by IndexedDB (larger than
 ///     localStorage). Set a value, read it back, and list keys; the data survives a reload.
 /// </summary>
-public sealed class IndexedDbDemo(IIndexedDb indexedDb) : Component
+public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
 {
     private IKeyValueStore? _store;
     private string _key = "greeting";

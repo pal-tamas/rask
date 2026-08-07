@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Bootstrap cards composed from typed section components (BsCard / BsCardHeader / BsCardBody /
 // BsCardTitle / BsCardText). Color tints the whole card via the contrast-aware text-bg-* helper.
-public sealed class BsCardsDemo : Component
+public sealed partial class BsCardsDemo : Component
 {
     protected override Component? Render() =>
         BsRow(Gutter: 3)[

@@ -11,7 +11,7 @@ namespace Rask.Example.Server.Features;
 ///     transport-agnostic, so the same code runs here over the WebSocket as it does on WASM.
 ///     <see cref="ServerPwaPage" /> hosts this demo (with its source) in the showcase.
 /// </summary>
-public sealed class ServerPwaDemo(INotifications notifications, IWebPush push, IBadge badge, HttpClient http) : Component
+public sealed partial class ServerPwaDemo(INotifications notifications, IWebPush push, IBadge badge, HttpClient http) : Component
 {
     // Fallback VAPID public key matching the demo backend (PushBackend.DemoPublicKey). The live key comes
     // from GET /_push/key, so the client and server never drift.

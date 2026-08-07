@@ -13,7 +13,7 @@ public sealed record Theme(string Name, bool IsDark)
     public static readonly Theme Dark = new("Dark", true);
 }
 
-public sealed class ContextThemeDemo : Component
+public sealed partial class ContextThemeDemo : Component
 {
     private Theme _theme = Theme.Light;
 

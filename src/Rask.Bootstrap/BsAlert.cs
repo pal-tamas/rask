@@ -3,7 +3,7 @@ namespace Rask.Bootstrap;
 // A Bootstrap alert: <div class="alert alert-{color}" role="alert">. When Dismissible, a .btn-close
 // button is appended; with zero JavaScript the close is wired to OnClose, which the parent uses to
 // stop rendering the alert (state-driven, the Rask way) — Bootstrap's own dismiss JS is not used.
-public sealed class BsAlert : BsBlock
+public sealed partial class BsAlert : BsBlock
 {
     public BsColor? Color { get; set; }
 

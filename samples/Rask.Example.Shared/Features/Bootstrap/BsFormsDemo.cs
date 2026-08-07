@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // implement IFormControl<T>, so two-way binding, the .is-invalid styling and the .invalid-feedback
 // message all come for free — no StateHasChanged on this surface. BsSelect renders a custom .dropdown-menu
 // listbox by default (like BsMultiSelect / the pickers); Native: true drops to the plain OS <select>.
-public sealed class BsFormsDemo : Component
+public sealed partial class BsFormsDemo : Component
 {
     private static readonly string[] Plans = ["free", "pro", "team"];
     private static readonly int?[] Seats = [1, 2, 5, 10];

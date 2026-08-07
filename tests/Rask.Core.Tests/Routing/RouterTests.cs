@@ -277,7 +277,7 @@ public class RouterTests
     }
 
     [SkipFactory]
-    public sealed class HomePage : Component
+    public sealed partial class HomePage : Component
     {
         protected override Component? Render() => Span()["home"];
     }

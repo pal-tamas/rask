@@ -3,7 +3,7 @@ namespace Rask.Bootstrap;
 // A Bootstrap close button: <button class="btn-close" aria-label="Close">. Reused by BsAlert,
 // BsModal, BsOffcanvas and BsToast for their dismiss control. Wire OnClick/OnClickAsync to drive
 // the dismissal from C# (zero JS).
-public sealed class BsCloseButton : BsBlock
+public sealed partial class BsCloseButton : BsBlock
 {
     // The btn-close-white variant for dark backgrounds.
     public bool? White { get; set; }

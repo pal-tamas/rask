@@ -8,7 +8,7 @@ namespace Rask.Bootstrap;
 // IFormControl<ICollection<TItem>> for both the bound (BsCheckboxGroup(() => model.Tags, options)) and
 // controlled (Value:/OnChange:) shapes. Each item is a <div class="form-check"> with a .form-check-input
 // + .form-check-label; the embedded ValidationMessage surfaces the per-field rule.
-public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection<TItem>>
+public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection<TItem>>
 {
     public required IEnumerable<TItem> Options { get; set; }
 

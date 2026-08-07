@@ -4,7 +4,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IGeolocation" /> — one-shot current position via the Promise-wrapped helper.</summary>
-public sealed class GeolocationDemo(IGeolocation geolocation) : Component
+public sealed partial class GeolocationDemo(IGeolocation geolocation) : Component
 {
     private string? _location;
     private string? _status;

@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Bootstrap alerts, including a dismissible one — dismissal is driven by Rask's live runtime (the
 // OnClose handler flips a field), with no bootstrap.js.
-public sealed class BsAlertsDemo : Component
+public sealed partial class BsAlertsDemo : Component
 {
     private bool _show = true;
 

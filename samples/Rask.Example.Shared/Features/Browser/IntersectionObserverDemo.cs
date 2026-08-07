@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 ///     the box below into view: the browser pushes the change to C#, which updates the badge (the handler
 ///     calls <c>StateHasChanged()</c>, the sanctioned pattern for an externally-pushed update).
 /// </summary>
-public sealed class IntersectionObserverDemo(IIntersectionObserver observer) : Component, IAsyncDisposable
+public sealed partial class IntersectionObserverDemo(IIntersectionObserver observer) : Component, IAsyncDisposable
 {
     private readonly ElementRef _target = ElementRef.New();
     private IAsyncDisposable? _observation;

@@ -139,25 +139,25 @@ public class HtmlSerializerBenchmarks
 // distinct ScopedCssRegistry entries. The cycle in BuildScopedCssTree avoids the
 // degenerate "all-same-type" cache-hit case that would mask the lookup cost.
 #pragma warning disable RASK014
-public sealed class ScopedRowA : Component
+public sealed partial class ScopedRowA : Component
 {
     public int Index { get; set; }
     protected override Component? Render() => C.Div(Class: "row", Id: $"a{Index}")[C.Span()[$"a {Index}"]];
 }
 
-public sealed class ScopedRowB : Component
+public sealed partial class ScopedRowB : Component
 {
     public int Index { get; set; }
     protected override Component? Render() => C.Div(Class: "row", Id: $"b{Index}")[C.Span()[$"b {Index}"]];
 }
 
-public sealed class ScopedRowC : Component
+public sealed partial class ScopedRowC : Component
 {
     public int Index { get; set; }
     protected override Component? Render() => C.Div(Class: "row", Id: $"c{Index}")[C.Span()[$"c {Index}"]];
 }
 
-public sealed class ScopedRowD : Component
+public sealed partial class ScopedRowD : Component
 {
     public int Index { get; set; }
     protected override Component? Render() => C.Div(Class: "row", Id: $"d{Index}")[C.Span()[$"d {Index}"]];

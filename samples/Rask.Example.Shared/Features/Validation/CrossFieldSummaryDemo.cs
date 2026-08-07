@@ -2,7 +2,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class CrossFieldSummaryDemo : Component
+public sealed partial class CrossFieldSummaryDemo : Component
 {
     private readonly TripModel _model = new();
     private string? _submission;

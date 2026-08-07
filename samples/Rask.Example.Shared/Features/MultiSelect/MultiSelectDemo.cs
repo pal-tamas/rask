@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // the control's own ValidationMessage. Live feedback (the chips and the validation message) lives inside the
 // control, so it refreshes as you select without any StateHasChanged. (An inline Validate is used rather
 // than a [MinLength] DataAnnotation so the WASM sample stays trim-clean.)
-public sealed class MultiSelectDemo : Component
+public sealed partial class MultiSelectDemo : Component
 {
     private static readonly string[] AllInterests =
         ["Web", "Mobile", "AI", "Games", "DevOps", "Data"];

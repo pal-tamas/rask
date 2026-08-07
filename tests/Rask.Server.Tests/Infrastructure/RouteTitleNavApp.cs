@@ -11,7 +11,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // diff gate: a body-only diff would freeze the title, so navigation must fall back to
 // full HTML. Subscribes to RouteState.Changed (same shape as the sibling fixture) so the
 // root re-renders when the route flips inside the WS-handler dispatch.
-public sealed class RouteTitleNavApp : Component
+public sealed partial class RouteTitleNavApp : Component
 {
     private readonly RouteState _routeState;
 

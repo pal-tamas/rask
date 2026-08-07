@@ -10,7 +10,7 @@ namespace Rask.Example.EfCore.Features.Catalog.CreateProduct;
 // Inline field validators reuse the value objects' Validate methods, so the form and the domain
 // enforce the same rules from a single source.
 [Route("products/new")]
-public sealed class CreateProductPage(IDbContextFactory<CatalogDbContext> dbContextFactory, Navigator navigator)
+public sealed partial class CreateProductPage(IDbContextFactory<CatalogDbContext> dbContextFactory, Navigator navigator)
     : Component
 {
     private readonly CreateProductForm _form = new();

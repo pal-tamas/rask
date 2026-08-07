@@ -7,7 +7,7 @@ namespace Rask.Example.Shared;
 // state of its own, no extra CSS, label from the bound property's [Display(Name)]. Floating-label
 // textareas need a placeholder and a fixed height for the label to sit correctly, so a default
 // height is applied.
-public sealed class FloatingTextarea<TProp> : Component
+public sealed partial class FloatingTextarea<TProp> : Component
 {
     public required Expression<Func<TProp>> Bind { get; set; }
 

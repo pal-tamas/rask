@@ -6,7 +6,7 @@ namespace Rask.Example.Auth.WasmJwt.Features;
 
 [Route("members")]
 [AllowAnonymous]
-public sealed class MembersPage : Component
+public sealed partial class MembersPage : Component
 {
     protected override Component? Render() =>
         Div(Id: "members", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
@@ -19,7 +19,7 @@ public sealed class MembersPage : Component
         ];
 }
 
-public sealed class MemberContent(JwtLoginService login, IUserProvider userProvider) : Component
+public sealed partial class MemberContent(JwtLoginService login, IUserProvider userProvider) : Component
 {
     protected override Component? Render() =>
         [

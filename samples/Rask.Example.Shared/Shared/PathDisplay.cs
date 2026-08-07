@@ -5,7 +5,7 @@ namespace Rask.Example.Shared;
 // Tiny route-aware component that shows the current path. Subscribes to
 // RouteState.Changed so it re-renders on every nav (including browser back/forward),
 // without forcing the surrounding layout to also be route-aware.
-public sealed class PathDisplay(RouteState route) : Component
+public sealed partial class PathDisplay(RouteState route) : Component
 {
     protected override void OnMount() => route.Changed += StateHasChanged;
 

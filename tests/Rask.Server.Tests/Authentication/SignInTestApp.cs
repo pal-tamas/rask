@@ -8,7 +8,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Server.Tests.Authentication;
 
-public sealed class SignInTestApp(AuthSignIn auth, RouteState routeState, IUserProvider userProvider) : Component
+public sealed partial class SignInTestApp(AuthSignIn auth, RouteState routeState, IUserProvider userProvider) : Component
 {
     protected override Component? Render() =>
     [

@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.Authentication;
 // the cookie with returnUrl pointing at a DIFFERENT page, and a destination page that records the
 // principal it observes in OnMount (standing in for a scoped data load). Exercises that the deferred
 // auth navigation mounts the destination under the NEW identity, not the pre-SignIn snapshot.
-public sealed class DeferredAuthNavTestApp : Component
+public sealed partial class DeferredAuthNavTestApp : Component
 {
     protected override Component? Render() =>
     [
@@ -26,7 +26,7 @@ public sealed class DeferredAuthNavTestApp : Component
 
 [Route("/start")]
 [AllowAnonymous]
-public sealed class DeferredNavStartPage(AuthSignIn auth) : Component
+public sealed partial class DeferredNavStartPage(AuthSignIn auth) : Component
 {
     protected override Component? Render() =>
         Div(Id: "start")[Button(OnClickAsync: SignInAsync)["sign-in"]];
@@ -45,7 +45,7 @@ public sealed class DeferredNavStartPage(AuthSignIn auth) : Component
 
 [Route("/dashboard")]
 [AllowAnonymous]
-public sealed class DeferredNavDashboardPage(IUserProvider userProvider) : Component
+public sealed partial class DeferredNavDashboardPage(IUserProvider userProvider) : Component
 {
     // Captured once, at mount — the moment a real page would kick off its identity/tenant-scoped load.
     // If the page mounts under the pre-SignIn principal this reads "anon"; under the redeemed identity

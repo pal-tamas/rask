@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // IAsyncDisposable demo promoted out of the former DisposalPage. The framework awaits DisposeAsync() on
 // its own dispatch path; the log entry appears after the next render cycle resolves the continuation.
-public sealed class DisposalAsyncDemo : Component
+public sealed partial class DisposalAsyncDemo : Component
 {
     private readonly List<string> _asyncLog = new();
     private bool _asyncMounted;

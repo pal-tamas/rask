@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 
 // Navigator is a scoped service injected through the ctor. It mutates the route only from
 // event-handler code — a button click here changes the path, a select changes just the query.
-public sealed class NavigatorDemo(Navigator nav) : Component
+public sealed partial class NavigatorDemo(Navigator nav) : Component
 {
     protected override Component? Render() =>
         BsStack(Vertical: true, Gap: 2)[

@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 
 // The consumer. Reads the nearest provided Theme; calling Context.Required marks it as a context
 // consumer, so it re-renders whenever the provided value changes.
-public sealed class ThemeBadge : Component
+public sealed partial class ThemeBadge : Component
 {
     protected override Component? Render()
     {

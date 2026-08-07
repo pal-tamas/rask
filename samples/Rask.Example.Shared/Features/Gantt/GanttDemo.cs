@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 // on the way.
 //
 // The wrapper is Gantt.cs + Gantt.js; this file is just a caller.
-public sealed class GanttDemo : Component
+public sealed partial class GanttDemo : Component
 {
     private static readonly DateOnly Start = new(2026, 3, 2);
 

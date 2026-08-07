@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Interactive elements: details/summary (a native disclosure), dialog (shown inline via Open), and
 // menu (a semantic command list).
-public sealed class ElementsInteractiveDemo : Component
+public sealed partial class ElementsInteractiveDemo : Component
 {
     protected override Component? Render() => Div(Class: "vstack gap-3")[
         Details(Open: true, Class: "border rounded p-2")[

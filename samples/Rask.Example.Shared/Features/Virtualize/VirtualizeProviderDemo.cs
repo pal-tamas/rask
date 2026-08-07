@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 // Navigating away mid-fetch cancels the in-flight call: VirtualizeModel cancels its
 // CancellationTokenSource in OnUnmount (and supersedes it whenever a new viewport arrives),
 // so honour req.CancellationToken in your own providers to let the cancellation propagate.
-public sealed class VirtualizeProviderDemo : Component
+public sealed partial class VirtualizeProviderDemo : Component
 {
     // Sticky header on the <th> cells, kept rock-steady by the constant-height single table —
     // see VirtualizeItemsDemo for the full why (spacer rows inside tbody, not divs outside it).

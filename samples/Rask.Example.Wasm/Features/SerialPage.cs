@@ -10,7 +10,7 @@ namespace Rask.Example.Wasm.Features;
 /// </summary>
 [Route("serial")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class SerialPage : Component
+public sealed partial class SerialPage : Component
 {
     protected override Component? Head => Title()["Web Serial — Rask"];
 

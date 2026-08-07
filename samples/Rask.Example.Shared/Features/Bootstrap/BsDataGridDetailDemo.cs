@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Master-detail: ExpandedContent gives every row an expander toggle and, when open, a full-width detail row
 // underneath it. RowKey is what makes expansion stick to the row rather than to its position, so an open row
 // stays open across a sort — try sorting with a row expanded.
-public sealed class BsDataGridDetailDemo : Component
+public sealed partial class BsDataGridDetailDemo : Component
 {
     private sealed new record Line(string Sku, int Qty, decimal Each);
 

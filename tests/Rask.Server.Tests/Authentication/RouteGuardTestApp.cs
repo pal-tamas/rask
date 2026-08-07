@@ -9,7 +9,7 @@ namespace Rask.Server.Tests.Authentication;
 
 // A minimal app whose Router exposes pages with every route-gating shape, so the route-guard
 // pipeline (Allow / Challenge / Forbid) can be exercised end-to-end over real HTTP.
-public sealed class RouteGuardTestApp : Component
+public sealed partial class RouteGuardTestApp : Component
 {
     protected override Component? Render() =>
     [
@@ -23,14 +23,14 @@ public sealed class RouteGuardTestApp : Component
 
 [Route("/e2e/public")]
 [AllowAnonymous]
-public sealed class E2EPublicPage : Component
+public sealed partial class E2EPublicPage : Component
 {
     protected override Component? Render() => Div(Id: "public")["public-content"];
 }
 
 [Route("/e2e/members")]
 [Authorize]
-public sealed class E2EMembersPage(IUserProvider userProvider) : Component
+public sealed partial class E2EMembersPage(IUserProvider userProvider) : Component
 {
     protected override Component? Render() =>
         Div(Id: "members")["members-content for ", Span()[userProvider.Current.Identity?.Name ?? "?"]];
@@ -38,7 +38,7 @@ public sealed class E2EMembersPage(IUserProvider userProvider) : Component
 
 [Route("/e2e/admin")]
 [Authorize(Roles = "admin")]
-public sealed class E2EAdminPage : Component
+public sealed partial class E2EAdminPage : Component
 {
     protected override Component? Render() => Div(Id: "admin")["admin-content"];
 }

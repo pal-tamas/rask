@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // Demonstrates element refs end to end: a built-in (FocusAsync) and a hand-off to user scoped
 // JS (ElementRefDemo.js receives the resolved DOM element to measure it). The refs are fields so
 // their ids stay stable across renders.
-public sealed class ElementRefDemo : Component
+public sealed partial class ElementRefDemo : Component
 {
     private readonly ElementRef _box = ElementRef.New();
     private readonly ElementRef _input = ElementRef.New();

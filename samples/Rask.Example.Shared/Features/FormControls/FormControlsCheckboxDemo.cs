@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 //   • Controlled — Options + Value + OnChange: the parent owns the selection; OnChange (auto-wrapped)
 //     hands back a fresh collection and re-renders this consumer so the readout updates.
 //   • Bound — BsCheckboxGroup(() => model.X, options): two-way binds the model collection.
-public sealed class FormControlsCheckboxDemo : Component
+public sealed partial class FormControlsCheckboxDemo : Component
 {
     private static readonly string[] AllInterests = ["Web", "Mobile", "AI", "Games"];
 

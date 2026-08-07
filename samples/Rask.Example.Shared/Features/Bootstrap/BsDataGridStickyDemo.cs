@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 //
 // No PageSize here on purpose: scrolling is the alternative to paging for a set this size. Sorting still works
 // — click a header and the rows reorder under it.
-public sealed class BsDataGridStickyDemo : Component
+public sealed partial class BsDataGridStickyDemo : Component
 {
     private sealed record Reading(string Sensor, string Zone, double Celsius);
 

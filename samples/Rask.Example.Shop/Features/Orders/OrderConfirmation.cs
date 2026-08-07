@@ -8,7 +8,7 @@ namespace Rask.Example.Shop.Features.Orders;
 /// refactorable, and HTML-encoded by the same renderer. Inline styles rather than a stylesheet, because
 /// mail clients strip <c>&lt;style&gt;</c> blocks.
 /// </remarks>
-public sealed class OrderConfirmation : Component
+public sealed partial class OrderConfirmation : Component
 {
     /// <summary>Who placed the order.</summary>
     public string? Customer { get; set; }

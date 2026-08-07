@@ -20,7 +20,7 @@ public sealed class CreateProductCommandHandler(IDbContextFactory<AppDbContext> 
 }
 
 [Route("/products/new")]
-public sealed class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Component
+public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Component
 {
     private readonly ProductRequest _form = new();
     private string? _error;

@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 //   • Controlled — Options + Value + OnChange: the parent owns the value; OnChange (auto-wrapped) re-renders
 //     this consumer so the "Plan:" readout updates immediately.
 //   • Bound — BsRadioGroup(() => model.X, options): two-way binds the scalar through the EditContext.
-public sealed class FormControlsRadioDemo : Component
+public sealed partial class FormControlsRadioDemo : Component
 {
     private static readonly Plan[] AllPlans = [Plan.Free, Plan.Pro, Plan.Team];
 

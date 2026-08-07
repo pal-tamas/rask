@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class BindingAfterBindDemo : Component
+public sealed partial class BindingAfterBindDemo : Component
 {
     private static readonly Dictionary<string, string[]> Cities = new()
     {

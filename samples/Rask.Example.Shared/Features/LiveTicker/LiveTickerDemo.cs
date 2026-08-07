@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // by URL navigation; a co-mounted guide demo can't own a live route param, so the switcher flips Symbol via
 // internal state — re-rendering reconciles the same LiveTicker instance at its stable tree position with the
 // new Symbol, firing OnPropsChanged ("Symbol BTC → ETH") exactly as the route-param switch did.
-public sealed class LiveTickerDemo : Component
+public sealed partial class LiveTickerDemo : Component
 {
     private readonly List<string> _log = new();
     private string _symbol = "BTC";

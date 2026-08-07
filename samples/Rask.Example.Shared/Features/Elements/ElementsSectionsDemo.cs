@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Sectioning + headings: the six headings, hgroup, and the semantic landmarks article/section/nav/
 // aside/header/footer/main/address/search.
-public sealed class ElementsSectionsDemo : Component
+public sealed partial class ElementsSectionsDemo : Component
 {
     protected override Component? Render() => Article(Class: "border rounded p-3")[
         Header()[

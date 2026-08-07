@@ -56,7 +56,7 @@ public class HandlerRegistrationBenchmarks
 // RegHost exists because Component.RegisterHandler is internal; this subclass re-exposes
 // it as a public method so the bench can call it directly without going through the
 // full RenderAsLiveRoot path.
-internal sealed class RegHost : Component
+internal sealed partial class RegHost : Component
 {
     public new string RegisterHandler(Delegate handler) => base.RegisterHandler(handler);
 }

@@ -11,7 +11,7 @@ namespace Rask.Native.Components;
 ///     <c>IsNative</c> and return the plain shell instead — the same markup serializes identically. Only native
 ///     chrome (bars) may sit outside it; putting a bar inside its HTML content is a <c>RASK032</c> error.
 /// </summary>
-public sealed class NativeWebView : NativeComponent
+public sealed partial class NativeWebView : NativeComponent
 {
     // Transparent HTML host: emit the children (the page shell) inline. A native component with children can't
     // reuse the render cache (see Component.RenderForLive), so this re-projects on each render.

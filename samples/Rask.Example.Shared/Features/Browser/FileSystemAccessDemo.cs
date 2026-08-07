@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 ///     <em>back to the same file</em> (or "Save as…" to a new one). Falls back to a notice where the API is
 ///     unsupported (Firefox/Safari).
 /// </summary>
-public sealed class FileSystemAccessDemo(IFileSystemAccess files) : Component, IAsyncDisposable
+public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Component, IAsyncDisposable
 {
     private IFileHandle? _handle;
     private string _text = string.Empty;

@@ -17,7 +17,7 @@ namespace Rask.Example.Playground;
 //
 // Scoped assets: PlaygroundView.js (editor mount + value, language-feature registration, framework-assembly
 // discovery) and PlaygroundView.css (layout + editor-style IDE chrome).
-public sealed class PlaygroundView : Component
+public sealed partial class PlaygroundView : Component
 {
     private readonly IJSRuntime _js;
     private readonly WasmReferenceLoader _loader;

@@ -13,7 +13,7 @@ namespace Rask.Bootstrap;
 // falls back to <input type=time>.
 //   Bound:      BsTimePicker(() => model.Alarm, Label: "Alarm", MinuteStep: 15)
 //   Controlled: BsTimePicker(Value: t, OnChange: v => …)
-public sealed class BsTimePicker<T> : BsPickerBase<T>
+public sealed partial class BsTimePicker<T> : BsPickerBase<T>
 {
     public int? MinuteStep { get; set; }
     public TimeOnly? Min { get; set; }

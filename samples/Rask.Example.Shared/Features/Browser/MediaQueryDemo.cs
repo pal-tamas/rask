@@ -3,7 +3,7 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IMediaQuery" /> — evaluate CSS media queries and user preferences from C#.</summary>
-public sealed class MediaQueryDemo(IMediaQuery media) : Component
+public sealed partial class MediaQueryDemo(IMediaQuery media) : Component
 {
     private string? _value;
     private string? _status;

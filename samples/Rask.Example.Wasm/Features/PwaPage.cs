@@ -11,7 +11,7 @@ namespace Rask.Example.Wasm.Features;
 /// </summary>
 [Route("pwa")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class PwaPage : Component
+public sealed partial class PwaPage : Component
 {
     protected override Component? Head => Title()["PWA — Rask"];
 

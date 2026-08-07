@@ -2,7 +2,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class InlineValidateDemo : Component
+public sealed partial class InlineValidateDemo : Component
 {
     private readonly LoginModel _model = new();
     private string? _submission;

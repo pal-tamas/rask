@@ -2,7 +2,7 @@ using Rask.Core.Live;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class EventsFormDemo : Component
+public sealed partial class EventsFormDemo : Component
 {
     private string _submitted = "(none yet)";
 

@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // callback in its own click handler (so the DOM event only dirties the child) and invokes it off
 // that path — yet the parent still re-renders, because the framework auto-wraps the delegate to
 // re-render its owner. No Callback type, no StateHasChanged threaded through by hand.
-public sealed class RatingStars : Component
+public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }
     public Action<int>? OnRate { get; set; }

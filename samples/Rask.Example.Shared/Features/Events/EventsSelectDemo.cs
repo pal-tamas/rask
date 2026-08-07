@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class EventsSelectDemo : Component
+public sealed partial class EventsSelectDemo : Component
 {
     private string _pick = "rask";
 

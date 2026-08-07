@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // A Bootstrap modal driven entirely by Rask's live runtime — no bootstrap.js. _open is a plain field;
 // the trigger sets it true, OnClose (× button, backdrop click, or the footer button) sets it false.
-public sealed class BsModalDemo : Component
+public sealed partial class BsModalDemo : Component
 {
     private bool _open;
     private bool _fullscreenOpen;

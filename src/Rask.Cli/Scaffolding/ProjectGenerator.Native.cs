@@ -202,7 +202,7 @@ internal static partial class ProjectGenerator
 
         namespace Company.RaskServer.Features.Shared;
 
-        public sealed class App : Component
+        public sealed partial class App : Component
         {
             protected override Component? Head =>
             [
@@ -248,7 +248,7 @@ internal static partial class ProjectGenerator
         namespace Company.RaskServer.Features.Home;
 
         [Route("/")]
-        public sealed class HomePage : Component
+        public sealed partial class HomePage : Component
         {
             protected override Component? Render() =>
                 Div(Style: "padding:1.25rem;font-family:system-ui,-apple-system,sans-serif")[

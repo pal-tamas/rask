@@ -91,7 +91,7 @@ public enum GanttViewMode
 ///         skips. Keep the host a leaf and keep that tag; drop either and the chart disappears.
 ///     </para>
 /// </remarks>
-public sealed class Gantt : Component
+public sealed partial class Gantt : Component
 {
     private readonly ElementRef _host = ElementRef.New();
     private readonly IJSRuntime _js;

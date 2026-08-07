@@ -7,7 +7,7 @@ namespace Rask.Example.Wasm.Features;
 ///     fullscreen app, lock/unlock it. Locking is usually rejected outside fullscreen and is often
 ///     unsupported on desktop, so each call is wrapped in try/catch.
 /// </summary>
-public sealed class OrientationDemo(IScreenOrientation orientation) : Component
+public sealed partial class OrientationDemo(IScreenOrientation orientation) : Component
 {
     private string? _current;
     private string? _status;

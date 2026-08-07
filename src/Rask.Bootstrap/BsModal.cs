@@ -5,7 +5,7 @@ namespace Rask.Bootstrap;
 // state. Click-outside-to-close works without JS: the outer .modal carries OnClose while a no-op
 // "shield" handler on .modal-dialog stops inner clicks from bubbling to it (Rask invokes only the
 // nearest data-rask-on-click handler). Set StaticBackdrop to disable outside-click dismissal.
-public sealed class BsModal : BsBlock
+public sealed partial class BsModal : BsBlock
 {
     public bool? Open { get; set; }
     public new string? Title { get; set; }

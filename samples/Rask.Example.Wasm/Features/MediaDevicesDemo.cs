@@ -8,7 +8,7 @@ namespace Rask.Example.Wasm.Features;
 ///     <c>&lt;video&gt;</c>. The live stream lives JS-side; dispose the handle to stop every track and
 ///     release the hardware (the camera indicator turns off).
 /// </summary>
-public sealed class MediaDevicesDemo(IMediaDevices media) : Component, IAsyncDisposable
+public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, IAsyncDisposable
 {
     private readonly ElementRef _video = ElementRef.New();
     private IMediaStreamHandle? _stream;

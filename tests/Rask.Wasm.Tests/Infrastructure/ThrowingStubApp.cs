@@ -5,7 +5,7 @@ using static Rask.Core.Components.Generated;
 
 namespace Rask.Wasm.Tests.Infrastructure;
 
-internal sealed class ThrowingStubApp : Component
+internal sealed partial class ThrowingStubApp : Component
 {
     protected override Component? Render() =>
     [

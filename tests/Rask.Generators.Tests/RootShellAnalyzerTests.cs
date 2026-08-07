@@ -23,7 +23,7 @@ public class RootShellAnalyzerTests
     private static string App(string renderBody) => $$"""
                                                       using Rask.Core;
                                                       namespace Demo;
-                                                      public sealed class App : Component
+                                                      public sealed partial class App : Component
                                                       {
                                                           private static object Doctype() => null!;
                                                           private static object Html(string lang) => null!;

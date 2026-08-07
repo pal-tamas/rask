@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // In-memory virtualization: 10,000 rows in VirtualizeData.Rows, but only the visible window
 // (plus a small overscan) ever reaches the DOM. The off-screen rows above and below are reserved
 // by two spacer *rows* inside the tbody, so the single table is the scroller's only child.
-public sealed class VirtualizeItemsDemo : Component
+public sealed partial class VirtualizeItemsDemo : Component
 {
     // The header stays put while scrolling because (a) the table is the scroller's only child and
     // its total height is constant — the spacer rows just redistribute height inside tbody as the

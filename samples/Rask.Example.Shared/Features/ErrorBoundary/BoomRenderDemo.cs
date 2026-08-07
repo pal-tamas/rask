@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // The same ErrorBoundary catches synchronous exceptions thrown inside a
 // descendant's Render(). Clicking the button flips a flag; the next render of
 // the child throws and the fallback replaces it.
-public sealed class BoomRenderDemo : Component
+public sealed partial class BoomRenderDemo : Component
 {
     private bool _throwOnRender;
 

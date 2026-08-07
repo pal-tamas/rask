@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 // (MemberNames=[nameof(Departure)]) and a form-level result (no MemberNames). The BCL's own
 // Validator.TryValidateObject would silence Validate() once the attribute fails — Rask's
 // DataAnnotationsValidator calls IValidatableObject directly so all errors accumulate.
-public sealed class ValidatableObjectDemo : Component
+public sealed partial class ValidatableObjectDemo : Component
 {
     private readonly BookingModel _model = new();
     private string? _submission;

@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // same field. EditContext gates later stages once any earlier stage has flagged the field,
 // so the inline "Required." message appears while the input is empty, and ONLY after that
 // rule passes does the [RegularExpression] format error surface.
-public sealed class FirstErrorWinsDemo : Component
+public sealed partial class FirstErrorWinsDemo : Component
 {
     private readonly LicenseModel _model = new();
     private string? _submission;

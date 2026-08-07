@@ -13,7 +13,7 @@ namespace Rask.Example.Shared.Features;
 // A grouped column already folds away on its own; hiding is the other reason a column leaves the table. The
 // two compose: the grid funnels reorder, hide and grouped-away through one visible-column list, so sort,
 // footers and the band colspans all follow without extra wiring.
-public sealed class BsDataGridColumnsDemo : Component
+public sealed partial class BsDataGridColumnsDemo : Component
 {
     private sealed record Deal(string Account, string Region, string Rep, decimal Amount);
 

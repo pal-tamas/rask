@@ -16,7 +16,7 @@ namespace Rask.Example.Shared.Features;
 
 // Numeric readout of the latest tick. Ids are stable so the E2E journey can assert the
 // tick count advances without any user interaction.
-public sealed class MetricsGauge(IMetricsFeed feed) : Component
+public sealed partial class MetricsGauge(IMetricsFeed feed) : Component
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 

@@ -2,7 +2,7 @@ namespace Rask.Example.Auth;
 
 // App shell: the framework-managed <head> (Bootstrap via CDN + the Rask purple palette in
 // wwwroot/global.css), a sticky navbar, and a Router that renders the matched page.
-public sealed class App : Component
+public sealed partial class App : Component
 {
     protected override Component? Head =>
     [

@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // BsCheckboxGroup<TItem> — selecting many values into a collection, here in controlled mode (Value + OnChange).
 // The parent owns the selection; OnChange (auto-wrapped) re-renders this demo so the summary stays live.
-public sealed class MultiSelectCheckboxDemo : Component
+public sealed partial class MultiSelectCheckboxDemo : Component
 {
     private static readonly string[] AllInterests = ["Web", "Mobile", "AI", "Games"];
 

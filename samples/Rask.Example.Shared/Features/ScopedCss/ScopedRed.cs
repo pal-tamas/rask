@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class ScopedRed : Component
+public sealed partial class ScopedRed : Component
 {
     protected override Component? Render() =>
         Div(Class: "box")[

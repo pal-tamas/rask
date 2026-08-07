@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class DisposableAsyncProbe : Component, IAsyncDisposable
+public sealed partial class DisposableAsyncProbe : Component, IAsyncDisposable
 {
     private DateTimeOffset _mountedAt;
 

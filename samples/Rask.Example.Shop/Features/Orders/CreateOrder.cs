@@ -20,7 +20,7 @@ public sealed class CreateOrderCommandHandler(IDbContextFactory<AppDbContext> db
 }
 
 [Route("/orders/new")]
-public sealed class CreateOrder(IDispatcher dispatcher, Navigator navigator) : Component
+public sealed partial class CreateOrder(IDispatcher dispatcher, Navigator navigator) : Component
 {
     private readonly OrderRequest _form = new();
     private string? _error;

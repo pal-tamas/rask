@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // chips, bound to a model collection. Filter adds an in-dropdown search field; Floating wraps the label like
 // a form-floating; Disabled makes it read-only. A live readout OUTSIDE the Form echoes each selection with no
 // StateHasChanged (a bound write re-renders the expression's owner).
-public sealed class BsMultiSelectDemo : Component
+public sealed partial class BsMultiSelectDemo : Component
 {
     private static readonly string[] Interests = ["Web", "Mobile", "AI", "Games", "DevOps", "Data"];
 

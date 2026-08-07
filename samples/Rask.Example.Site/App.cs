@@ -11,7 +11,7 @@ namespace Rask.Example.Site;
 /// toggle are driven by the sibling scoped module <c>App.js</c>, wired up in <see cref="OnRenderedAsync"/>.
 /// Public + non-sealed to match the host's ActivatorUtilities + DAM contract.
 /// </summary>
-public class App : Component
+public partial class App : Component
 {
     private readonly IJSRuntime _js;
     private readonly ElementRef _canvas = ElementRef.New();

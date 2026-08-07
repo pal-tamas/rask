@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class BindingTypedDemo : Component
+public sealed partial class BindingTypedDemo : Component
 {
     private readonly Holder _model = new();
 

@@ -17,7 +17,7 @@ namespace Rask.Validation.DataAnnotations;
 // On render it pulls EditContextScope.Current and registers an IFieldValidator that defers
 // to System.ComponentModel.DataAnnotations.Validator. EditContext.AddValidator dedups by
 // runtime type, so re-renders are idempotent. TagName is null — the component emits no DOM.
-public sealed class DataAnnotationsValidator : Component
+public sealed partial class DataAnnotationsValidator : Component
 {
     // The validator reads mutable EditContext state via AddValidator, but its OWN output
     // (the empty Fragment) doesn't change between renders. Cache opt-out is unnecessary here

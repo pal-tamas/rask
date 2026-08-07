@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 ///     readout (the handler calls <c>StateHasChanged()</c>, the sanctioned pattern for an externally-pushed
 ///     update). Sensors only emit on a real device with motion hardware.
 /// </summary>
-public sealed class DeviceSensorsDemo(IDeviceOrientation orientation, IDeviceMotion motion)
+public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, IDeviceMotion motion)
     : Component, IAsyncDisposable
 {
     private IAsyncDisposable? _orientationWatch;

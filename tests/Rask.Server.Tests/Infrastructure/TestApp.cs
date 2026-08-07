@@ -6,7 +6,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Server.Tests.Infrastructure;
 
-public sealed class TestApp : Component
+public sealed partial class TestApp : Component
 {
     private readonly RouteState _routeState;
     public int Counter;

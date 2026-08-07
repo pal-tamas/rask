@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 // property would become a *required* factory parameter the caller has to pass,
 // and the `required` keyword on a property + a DI-only constructor (no
 // parameterless ctor) is the RASK002 warning.
-public sealed class WeatherCard(HttpClient http) : Component
+public sealed partial class WeatherCard(HttpClient http) : Component
 {
     private Forecast? _forecast;
 
@@ -45,7 +45,7 @@ public sealed class WeatherCard(HttpClient http) : Component
 }
 
 // Call site is unchanged — ActivatorUtilities resolves `http`:
-public sealed class ComponentsDiDemo : Component
+public sealed partial class ComponentsDiDemo : Component
 {
     protected override Component? Render() => WeatherCard(City: "Helsinki");
 }

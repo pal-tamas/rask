@@ -12,7 +12,7 @@ namespace Rask.Example.Shop.Features.Shared;
 // later add a fallback authorization policy, this route must stay reachable.
 [Route("/error")]
 [AllowAnonymous]
-public sealed class ErrorPage : Component
+public sealed partial class ErrorPage : Component
 {
     protected override Component? Head => [Title()["Something went wrong"]];
 

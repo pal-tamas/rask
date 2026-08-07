@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 
 // Sub-object binding — sub-class instance owns its own validation state under a single
 // top-of-form DataAnnotationsValidator.
-public sealed class NestedSubObjectDemo : Component
+public sealed partial class NestedSubObjectDemo : Component
 {
     private readonly CheckoutModel _model = new();
     private string? _submission;

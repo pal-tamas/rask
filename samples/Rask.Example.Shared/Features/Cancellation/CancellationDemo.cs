@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Cancellation demo promoted out of the former CancellationPage. Mount the probe to start a 2.5s
 // Task.Delay inside OnMountAsync; unmount before it settles to cancel via the lifetime token. The probe
 // records the outcome into this parent-held log.
-public sealed class CancellationDemo : Component
+public sealed partial class CancellationDemo : Component
 {
     private readonly List<string> _log = new();
     private bool _mounted;

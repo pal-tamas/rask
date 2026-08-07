@@ -3,7 +3,7 @@ namespace Rask.Bootstrap;
 // A Bootstrap dropdown driven by Rask's live runtime (no JS). The toggle reuses BsButton; the menu
 // shows when Open. Wire OnToggle to flip your Open state, and let each BsDropdownItem's handler set
 // Open back to false on selection.
-public sealed class BsDropdown : BsBlock
+public sealed partial class BsDropdown : BsBlock
 {
     public bool? Open { get; set; }
     public new string? Label { get; set; }
@@ -33,7 +33,7 @@ public sealed class BsDropdown : BsBlock
 
 // A dropdown menu entry. Plain item by default; pass Href for a link, OnClick for a button, Header
 // for a non-interactive label, or Divider for a separator rule.
-public sealed class BsDropdownItem : BsBlock
+public sealed partial class BsDropdownItem : BsBlock
 {
     public string? Href { get; set; }
     public bool? Active { get; set; }

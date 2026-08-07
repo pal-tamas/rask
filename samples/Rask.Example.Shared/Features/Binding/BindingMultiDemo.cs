@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class BindingMultiDemo : Component
+public sealed partial class BindingMultiDemo : Component
 {
     public enum Color { Red, Green, Blue }
 

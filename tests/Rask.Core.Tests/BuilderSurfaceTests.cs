@@ -9,7 +9,7 @@ namespace Rask.Core.Tests;
 // Note the probes are components: the entry properties are `protected static` members of Component,
 // so they are only in scope inside a component body. That is deliberate — it is what lets them be
 // inherited rather than imported, which is what removes the global usings.
-internal sealed class BuilderProbe : Component
+internal sealed partial class BuilderProbe : Component
 {
     protected override Component? Render() =>
         Div.Id("root").Class("card")[
@@ -27,7 +27,7 @@ internal sealed class BuilderProbe : Component
         ];
 }
 
-internal sealed class FactoryProbe : Component
+internal sealed partial class FactoryProbe : Component
 {
     protected override Component? Render() =>
         Div(Id: "root", Class: "card")[
@@ -46,7 +46,7 @@ internal sealed class FactoryProbe : Component
 }
 
 // Both surfaces are valid in the same expression — this is what makes migration incremental.
-internal sealed class MixedProbe : Component
+internal sealed partial class MixedProbe : Component
 {
     protected override Component? Render() => Div()[Span()["a"], P["b"]];
 }

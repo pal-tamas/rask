@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Rask.Example.Shared.Features;
 
 // Collection binding via foreach-capture — the canonical pattern.
-public sealed class NestedListForeachDemo : Component
+public sealed partial class NestedListForeachDemo : Component
 {
     private readonly CartModel _model = new();
     private int _seq = 2;

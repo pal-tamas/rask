@@ -57,7 +57,7 @@ internal static partial class ProjectGenerator
 
         namespace Company.RaskServer.Features.Shared;
 
-        public sealed class App : Component
+        public sealed partial class App : Component
         {
             // App-level head contributions splice into the framework-managed <head>
             // via the Component? Head override. Title is singleton — any page that
@@ -91,7 +91,7 @@ internal static partial class ProjectGenerator
         namespace Company.RaskServer.Features.Home;
 
         [Route("/")]
-        public sealed class HomePage : Component
+        public sealed partial class HomePage : Component
         {
             // BsBlock exposes only Id/Class (not Element's full HTML surface), so the width lives on a
             // plain Div wrapper rather than a Style: on the card.

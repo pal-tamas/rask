@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // Live demo for the full GlobalEventHandlers surface. Every handler below mutates a field and the
 // framework re-renders THIS component automatically (the handler's closure captures `this`), so there
 // is not a single StateHasChanged in here — derived readouts just update. One element, many events.
-public sealed class EventsDemo : Component
+public sealed partial class EventsDemo : Component
 {
     private double _x, _y;
     private bool _hovering;
