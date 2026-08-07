@@ -6,12 +6,19 @@ internal static class TestArtifacts
 {
     private static readonly string Root = Path.Combine(LocateRepoRoot(), "TestResults", "E2E");
 
-    public static async Task DumpAsync(IPage page, string fixtureName, string testName, string serverLog,
-        string[]? console = null)
+    /// <summary>Where a failing test's artifacts for <paramref name="testName" /> are written.</summary>
+    public static string DirectoryFor(string fixtureName, string testName)
     {
         var safeName = string.Concat(testName.Select(c => char.IsLetterOrDigit(c) || c is '_' or '-' ? c : '_'));
         var dir = Path.Combine(Root, fixtureName, safeName);
         Directory.CreateDirectory(dir);
+        return dir;
+    }
+
+    public static async Task DumpAsync(IPage page, string fixtureName, string testName, string serverLog,
+        string[]? console = null)
+    {
+        var dir = DirectoryFor(fixtureName, testName);
 
         if (console is { Length: > 0 })
         {

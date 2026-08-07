@@ -4,6 +4,5 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 public sealed class WasmCookieAuthAppFixture : ExampleAppFixture
 {
     protected override string ProjectRelativePath => "samples/Rask.Example.Auth.WasmCookie.Host";
-    protected override int Port => 5104;
     protected override TimeSpan ReadyTimeout => TimeSpan.FromSeconds(180);
 }

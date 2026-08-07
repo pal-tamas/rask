@@ -37,6 +37,22 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
             Permissions = ["clipboard-read", "clipboard-write", "geolocation"],
             Geolocation = new Geolocation { Latitude = 51.5074f, Longitude = -0.1278f, Accuracy = 50 }
         });
+        // Record a Playwright trace for the whole journey and keep it only if the journey fails (see
+        // RunAsync). The console dump below explains a page that *threw*; it says nothing about a page
+        // that is merely never still, which is how #625 presented — a 30s "element is not stable" naming
+        // the element and nothing about what was moving. A trace's DOM snapshots do name it.
+        //
+        // Always-on rather than behind a flag, deliberately: the failure this is for did not reproduce on
+        // demand, so the only trace worth having is the one from the run that happened to fail. Screenshots
+        // are included because a moving box is a thing you can see; Sources are not, since the C# stack is
+        // already in the test output.
+        await _ctx.Tracing.StartAsync(new TracingStartOptions
+        {
+            Screenshots = true,
+            Snapshots = true,
+            Sources = false
+        });
+
         Page = await _ctx.NewPageAsync();
         // Capture the browser console + uncaught page errors so a failing test can surface
         // the real client-side cause (e.g. a scoped-JS "Could not find … on target" force-fault
@@ -108,17 +124,30 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
 
     protected async Task RunAsync(Func<Task> body, [CallerMemberName] string testName = "")
     {
+        var traced = false;
         try
         {
             await body();
         }
         catch
         {
+            traced = true;
+            await SaveTraceAsync(testName);
             await DumpDiagnosticsAsync(testName);
             throw;
         }
         finally
         {
+            if (!traced)
+            {
+                // Stop with no path: the trace is discarded, so a green run leaves nothing behind.
+                try { await _ctx.Tracing.StopAsync(); }
+                catch
+                {
+                    /* context may already be gone */
+                }
+            }
+
             string[] console;
             lock (_console)
             {
@@ -126,6 +155,23 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
             }
 
             await TestArtifacts.DumpAsync(Page, FixtureName, testName, ServerLog, console);
+        }
+    }
+
+    // Writes the journey's trace next to the rest of its artifacts and prints the command that opens it —
+    // a trace nobody knows how to look at is not evidence.
+    private async Task SaveTraceAsync(string testName)
+    {
+        try
+        {
+            var path = Path.Combine(TestArtifacts.DirectoryFor(FixtureName, testName), "trace.zip");
+            await _ctx.Tracing.StopAsync(new TracingStopOptions { Path = path });
+            Console.WriteLine($"  trace: {path}");
+            Console.WriteLine($"    open with: pwsh <playwright.ps1> show-trace {path}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  trace: could not be saved ({ex.GetType().Name}: {ex.Message})");
         }
     }
 

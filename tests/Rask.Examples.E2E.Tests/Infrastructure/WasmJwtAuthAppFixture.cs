@@ -4,7 +4,6 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 public sealed class WasmJwtAuthAppFixture : ExampleAppFixture
 {
     protected override string ProjectRelativePath => "samples/Rask.Example.Auth.WasmJwt.Host";
-    protected override int Port => 5105;
     protected override TimeSpan ReadyTimeout => TimeSpan.FromSeconds(180);
 
     // The host fails fast without Jwt:Key outside Development (the public DevKey would let anyone

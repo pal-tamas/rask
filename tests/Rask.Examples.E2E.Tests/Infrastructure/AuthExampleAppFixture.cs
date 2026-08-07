@@ -4,5 +4,4 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 public sealed class AuthExampleAppFixture : ExampleAppFixture
 {
     protected override string ProjectRelativePath => "samples/Rask.Example.Auth";
-    protected override int Port => 5102;
 }

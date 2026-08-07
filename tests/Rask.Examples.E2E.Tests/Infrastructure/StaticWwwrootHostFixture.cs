@@ -116,37 +116,25 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Each fixture used to declare a hard-coded port. Unique <em>within</em> a run, which is all the
-    ///         comment claimed, but every copy of the suite on the machine claimed the same ten, so a
-    ///         straggler host or a second checkout produced a bare <c>HttpListenerException</c> — reported
-    ///         either as a green run that "failed", or as a dozen <c>ERR_CONNECTION_REFUSED</c> tests that
-    ///         read like a broken app rather than a taken port.
+    ///         <see cref="LoopbackPort.Reserve" /> explains why the number comes from the OS rather than a
+    ///         constant, and which loopback family the probe has to bind.
     ///     </para>
     ///     <para>
-    ///         <c>HttpListener</c> rejects a <c>:0</c> prefix outright ("Invalid port in prefix"), and it
-    ///         cannot report an assigned port back, so the OS is asked for an ephemeral port through a
-    ///         throwaway <see cref="TcpListener" /> and <c>HttpListener.Start()</c> is then the
-    ///         authoritative test. Releasing the probe before binding leaves a window, so a clash simply
-    ///         costs another candidate rather than the run.
-    ///     </para>
-    ///     <para>
-    ///         The probe binds the family <c>localhost</c> will resolve to: a <c>localhost</c> prefix holds
-    ///         <c>[::1]</c> only where IPv6 is available (measured — which is also why a port can look free
-    ///         on <c>127.0.0.1</c> and still refuse to bind), and the explicit <c>http://[::1]:port/</c>
-    ///         form that would let us bind both is itself rejected as an invalid prefix.
+    ///         <c>HttpListener</c> rejects a <c>:0</c> prefix outright ("Invalid port in prefix") and cannot
+    ///         report an assigned port back, so the reserved number is passed to it and
+    ///         <c>HttpListener.Start()</c> is then the authoritative test. This host is in-process, so it can
+    ///         afford that: the probe-release window costs another candidate rather than the run. (The
+    ///         explicit <c>http://[::1]:port/</c> form that would let us bind both families is itself
+    ///         rejected as an invalid prefix.)
     ///     </para>
     /// </remarks>
     private static (HttpListener Listener, int Port) BindEphemeral(string fixture, int attempts = 20)
     {
-        var loopback = Socket.OSSupportsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback;
         HttpListenerException? last = null;
 
         for (var attempt = 0; attempt < attempts; attempt++)
         {
-            var probe = new TcpListener(loopback, 0);
-            probe.Start();
-            var port = ((IPEndPoint)probe.LocalEndpoint).Port;
-            probe.Stop();
+            var port = LoopbackPort.Reserve();
 
             var listener = new HttpListener();
             listener.Prefixes.Add($"http://localhost:{port}/");
