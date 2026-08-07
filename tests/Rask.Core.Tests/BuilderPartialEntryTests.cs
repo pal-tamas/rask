@@ -19,15 +19,6 @@ internal sealed class Chip : Component
     protected override Component? Render() => Strong[Text ?? ""];
 }
 
-internal static class ChipSetters
-{
-    public static Chip Text(this Chip b, string? v)
-    {
-        b.Text = v;
-        return b;
-    }
-}
-
 // The page derives from Component — nothing else.
 internal sealed partial class ChipHost : Component
 {

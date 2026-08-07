@@ -16,23 +16,6 @@ internal sealed class BuilderCard : Component
     protected override Component? Render() => Button.Click(OnSelect?.Fn)[Label ?? ""];
 }
 
-internal static class BuilderCardSetters
-{
-    public static BuilderCard Label(this BuilderCard c, string? v)
-    {
-        c.Label = v;
-        return c;
-    }
-
-    // Same name as the prop. Wraps, because BuilderCard is not an Element — mirroring the rule the
-    // factory generator already applies (Element handlers go to the DOM unwrapped).
-    public static BuilderCard OnSelect(this BuilderCard c, Callback? h)
-    {
-        c.OnSelect = new Handler(AutoCallback.Wrap(h));
-        return c;
-    }
-}
-
 internal sealed class CardHost : Component
 {
     internal int Selected;
