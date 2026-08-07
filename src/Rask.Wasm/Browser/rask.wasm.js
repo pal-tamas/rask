@@ -2132,6 +2132,7 @@ window.__raskBluetooth = window.__raskBluetooth || (() => {
 
 var devErrorPanel = null;
 var devErrorCount = 0;
+var devErrorLastLogged = "";
 
 // The dev gate, read from the document rather than from a host-local variable, so this one source works
 // in all three runtimes. The Server stamps `data-rask-dev` onto <body> per request (LivePayload
@@ -2251,10 +2252,18 @@ function showDevError(info) {
     if (!devErrorEnabled() || !info || typeof info !== "object") return;
     if (!devErrorPanel) devErrorPanel = installDevErrorPanel();
 
-    devErrorCount++;
+    // A build failure is one condition being re-reported while it persists (the poll below repeats every
+    // 700ms), not a second thing going wrong — so it replaces in place. App faults are genuinely separate
+    // events and do count, which is how you notice a handler throwing on every click.
     var countEl = devErrorPanel.querySelector(".rask-deverr__count");
-    countEl.textContent = String(devErrorCount);
-    countEl.hidden = devErrorCount < 2;
+    if (info.kind === "build") {
+        devErrorCount = 0;
+        countEl.hidden = true;
+    } else {
+        devErrorCount++;
+        countEl.textContent = String(devErrorCount);
+        countEl.hidden = devErrorCount < 2;
+    }
 
     devErrorPanel.querySelector(".rask-deverr__kind").textContent = devErrorHeading(info.kind);
     devErrorPanel.querySelector(".rask-deverr__title").textContent = info.title || "";
@@ -2270,8 +2279,11 @@ function showDevError(info) {
     devErrorPanel.hidden = false;
 
     // Also to the console, where a developer's own breakpoints and filters already live — and where it
-    // survives dismissing the panel.
-    if (typeof console !== "undefined" && console.error) {
+    // survives dismissing the panel. Deduped on content, because the build poll re-reports the same
+    // failure every 700ms and a console filling with one repeated error is a console nobody reads.
+    var signature = info.kind + " " + (info.title || "") + " " + (info.message || "");
+    if (signature !== devErrorLastLogged && typeof console !== "undefined" && console.error) {
+        devErrorLastLogged = signature;
         console.error("[Rask] " + devErrorHeading(info.kind) + ": " + (info.title || "") +
             (info.message ? ": " + info.message : ""), info.detail || "");
     }
@@ -2282,6 +2294,80 @@ function hideDevError() {
     devErrorPanel.hidden = true;
     devErrorCount = 0;
     devErrorPanel.querySelector(".rask-deverr__count").hidden = true;
+    devErrorLastLogged = "";
+}
+
+// ---- build status (#603) ----
+//
+// When the socket drops, the client cannot tell "the server is restarting" from "the server is gone"
+// from "the code no longer compiles" — so it assumed the middle one and said "Reconnecting…", then
+// escalated to a "Retry now" button that could never succeed. A compile problem reported as a network
+// problem, with an action that cannot help.
+//
+// Nothing inside the app can correct that, because the app is what died. `rask dev` stamps the URL of a
+// status endpoint IT owns onto the page (data-rask-dev-status); the client kept that from the last page
+// it loaded, so it can still ask after the server is gone. See DevStatusServer.
+
+var devStatusUrl = null;
+var devStatusPolling = false;
+var devStatusShowing = false;
+
+function devStatusEndpoint() {
+    if (devStatusUrl !== null) return devStatusUrl;
+    var b = document.body;
+    devStatusUrl = (b && b.getAttribute("data-rask-dev-status")) || "";
+    return devStatusUrl;
+}
+
+// Asks once. Resolves to the parsed status, or null when there is nobody to ask (production, or a
+// `rask dev` too old to serve it) or the endpoint itself is unreachable.
+function fetchDevStatus() {
+    var url = devStatusEndpoint();
+    if (!url || typeof fetch !== "function") return Promise.resolve(null);
+    return fetch(url, { cache: "no-store", mode: "cors" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+}
+
+// Polls while the build is broken. Shows the compiler errors instead of the reconnect overlay, and
+// stops as soon as the code compiles again — at which point the ordinary reconnect takes over and the
+// app comes back on its own.
+//
+// `onResolved` is called when the build is no longer failing, so the caller can put the reconnect
+// overlay back if it had been suppressed.
+function pollDevStatus(onFailed, onResolved) {
+    if (devStatusPolling) return;
+    devStatusPolling = true;
+
+    var tick = function () {
+        fetchDevStatus().then(function (status) {
+            if (!status || status.state !== "failed") {
+                devStatusPolling = false;
+                if (devStatusShowing) {
+                    devStatusShowing = false;
+                    hideDevError();
+                }
+                if (onResolved) onResolved(status);
+                return;
+            }
+
+            if (!devStatusShowing) {
+                devStatusShowing = true;
+                if (onFailed) onFailed();
+            }
+
+            showDevError({
+                kind: "build",
+                title: status.count > 1 ? status.count + " build errors" : "1 build error",
+                message: status.message || "",
+                detail: status.detail || ""
+            });
+
+            setTimeout(tick, 700);
+        });
+    };
+
+    tick();
 }
 
 

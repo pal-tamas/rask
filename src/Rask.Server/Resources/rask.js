@@ -383,6 +383,27 @@
         } else if (overlayTimer === null && !overlay.hasAttribute("data-show")) {
             overlayTimer = setTimeout(showOverlay, OVERLAY_GRACE_MS);
         }
+
+        // Before claiming this is a network problem, ask whether it is a COMPILE problem (#603). Under
+        // `rask dev` a failed rebuild leaves no server to tell us, which is exactly why this looked like a
+        // dropped connection — and why the answer has to come from `rask dev` itself, over an endpoint
+        // that outlives the app. A no-op in production, where the page carries no status URL.
+        //
+        // While the build is broken the reconnect overlay is taken down: "Reconnecting…" over a "Retry
+        // now" that cannot work is the misleading half of this issue. The backoff below keeps running
+        // underneath, so the moment the code compiles the app comes back on its own.
+        pollDevStatus(
+            function () {
+                hideOverlay();
+                setInert(false);
+            },
+            function () {
+                // Compiles again. Put the overlay back if we are still not connected, so the last few
+                // hundred milliseconds of reconnecting look the way they always did.
+                if (!open && !sessionExpired) {
+                    showOverlay();
+                }
+            });
         const delays = [500, 1000, 2000, 4000, 5000];
         const delay = delays[Math.min(attempt, delays.length - 1)];
         attempt++;

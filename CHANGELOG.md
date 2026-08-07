@@ -121,6 +121,29 @@ them until tagged releases begin.
   "element is not stable" naming the element and nothing about what was moving. The journey records a trace
   with DOM snapshots throughout and keeps it only on failure, printing the path and the command that opens
   it. Always on rather than behind a flag, because the run worth tracing is the one that unexpectedly failed.
+- **A build that fails under `rask dev` is reported as a build failure, not as a lost connection.** Saving
+  a file that didn't compile took the app down, and the browser — which only knows that its socket closed —
+  said "Reconnecting…", then "Still trying to reconnect…" with a **Retry now** button that could not
+  possibly succeed. A compile problem reported as a network problem, with an action that cannot help. The
+  page now shows the compiler errors, and clears itself the moment the code builds: the reconnect ladder
+  keeps running underneath the panel, so a fixed typo brings the app back with no reload and nothing to
+  click.
+  - **It could not be a live-protocol frame, which is the whole point.** The existing out-of-band frames
+    (`hotReload`, `shutdown`) are broadcast *by the app*; when a rebuild fails the app process is **down**,
+    so there is nothing left to send. The signal has to come from something that outlives the app, and the
+    only such thing is `rask dev` itself — which now reads `dotnet watch`'s output as it passes it through
+    to the terminal, and serves what it learned from a read-only loopback endpoint it owns for the life of
+    the session.
+  - Its URL is stamped onto each page the app serves (`data-rask-dev-status` on `<body>`), so the browser
+    still has somewhere to ask **after** the server that sent it is gone. Development only, gated twice:
+    production HTML never carries the attribute, and the client will not poll without it.
+  - The watcher keys on **MSBuild's diagnostic format**, not on watch's prose — watch decorates its lines
+    with emoji, localises them, and has reworded them between SDK releases, where
+    `path(line,col): error CS0103: …` is stable and locale-independent. Repeats of one diagnostic across
+    referencing projects are counted once, so a single typo in a shared library reads as one error rather
+    than three.
+  - Failure to bind the endpoint is never fatal: `rask dev` runs exactly as before and the browser falls
+    back to the reconnect overlay.
 
 ### Fixed
 - **A component that calls `ToHtml()` on a tree containing a `<head>` no longer corrupts the page around
