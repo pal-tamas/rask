@@ -116,6 +116,51 @@ public class HotReloadPhaseTests
         GC.KeepAlive(session);
     }
 
+    /// <summary>
+    ///     A session whose repaint faults must not be announced as applied.
+    /// </summary>
+    /// <remarks>
+    ///     <c>Applied</c> drives the browser's green "Hot reload applied" pill, and the repaint is the
+    ///     whole of what the developer can see — so announcing it for an edit that never reached the page
+    ///     told them the opposite of the truth, with the only evidence on the server's stderr (#603). The
+    ///     per-session catch is still there and still right (one faulting tree must not stop the others),
+    ///     but it now reports rather than swallows, and the coordinator withholds the announcement.
+    /// </remarks>
+    [Fact]
+    public async Task ASessionThatFailsToRepaint_IsNotAnnouncedAsApplied()
+    {
+        // The fault is switched off in the finally, and that is load-bearing rather than tidiness:
+        // RegisterForHotReload puts the session in a process-global weak list that prunes only on
+        // collection, so a session left throwing would fault every LATER test's repaint too — and those
+        // tests would then time out waiting for an announcement this fix correctly withholds.
+        var fail = true;
+        var session = new RecordingSession(
+            new Widget(), RenderHarness.EmptyServices(),
+            onRender: () => { if (fail) throw new InvalidOperationException("boom"); });
+        session.RegisterForHotReload();
+
+        var applied = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnApplied() => applied.TrySetResult();
+
+        RaskHotReload.Applied += OnApplied;
+        try
+        {
+            RaskHotReload.RunPhases(_thisAssembly, null);
+
+            // Asserting an absence needs a wait; the alternative is asserting on a race.
+            var announced = await Task.WhenAny(applied.Task, Task.Delay(TimeSpan.FromSeconds(2)));
+            Assert.NotSame(applied.Task, announced);
+        }
+        finally
+        {
+            fail = false;
+            RaskHotReload.Applied -= OnApplied;
+        }
+
+        Assert.Equal(1, session.RenderRequests);
+        GC.KeepAlive(session);
+    }
+
     [Fact]
     public async Task AThrowingRefreshTarget_StillClosesTheStagingWindow()
     {
