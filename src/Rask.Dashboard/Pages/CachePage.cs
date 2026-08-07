@@ -9,7 +9,7 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("cache")]
 [ParentRoute(typeof(DashboardLayout))]
-public sealed class CachePage(
+public sealed partial class CachePage(
     ICachePanelReader cache,
     RaskDashboardOptions options,
     TimeProvider timeProvider) : PollingPanel

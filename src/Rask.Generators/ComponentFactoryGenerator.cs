@@ -351,7 +351,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             // Generic components cannot have an entry: a property may not be generic. They keep the
             // factory method, whose type argument is inferred from its arguments.
-            if (c.TypeParameters.Length != 0 || !c.HasParameterlessCtor || c.HasDIConstructor)
+            if (c.TypeParameters.Length != 0)
+            {
+                continue;
+            }
+
+            // A DI-constructed component still gets an entry, built the way its factory is —
+            // ActivatorUtilities inside GetOrCreate. Only a component with no usable constructor
+            // at all is skipped.
+            var di = NeedsDiEntry(c);
+            if (di && !c.HasDIConstructor)
             {
                 continue;
             }
@@ -368,9 +377,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            sb.Append("    protected static ").Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(" => Entry<").Append(c.FullyQualifiedName)
-                .AppendLine(">();");
+            // An internal component cannot surface through a `protected` member of the public
+            // Component (CS0053); `private protected` keeps it to derived types in this assembly.
+            sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
+                .Append(c.FullyQualifiedName).Append(' ')
+                .Append(EscapeIdentifier(c.TypeName)).Append(di ? " => EntryDi<" : " => Entry<")
+                .Append(c.FullyQualifiedName).AppendLine(">();");
         }
 
         sb.AppendLine("}");
@@ -393,7 +405,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         var entries = candidates
-            .Where(static c => c.TypeParameters.Length == 0 && c.HasParameterlessCtor && !c.HasDIConstructor
+            .Where(static c => c.TypeParameters.Length == 0
+                               && (c.HasParameterlessCtor || c.HasDIConstructor)
                                && !c.Properties.Any(static p => p.UserMarkedRequired))
             .GroupBy(static c => c.TypeName, StringComparer.Ordinal)
             .Select(static g => g.First())
@@ -443,8 +456,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 }
 
                 sb.Append("    private static ").Append(e.FullyQualifiedName).Append(' ')
-                    .Append(EscapeIdentifier(e.TypeName)).Append(" => Entry<").Append(e.FullyQualifiedName)
-                    .AppendLine(">();");
+                    .Append(EscapeIdentifier(e.TypeName))
+                    .Append(NeedsDiEntry(e) ? " => EntryDi<" : " => Entry<")
+                    .Append(e.FullyQualifiedName).AppendLine(">();");
             }
 
             sb.AppendLine("}");
@@ -456,6 +470,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         spc.AddSource("RaskBuilderConsumerEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
+
+    // `new T()` needs a public parameterless ctor; anything else goes through ActivatorUtilities —
+    // the same split the factory emission makes via canUseObjectInit.
+    private static bool NeedsDiEntry(Candidate c) => !c.HasParameterlessCtor;
 
     private static Location MakeDeclLocation(Candidate c) =>
         string.IsNullOrEmpty(c.DeclFilePath)

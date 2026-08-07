@@ -10,7 +10,7 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("system")]
 [ParentRoute(typeof(DashboardLayout))]
-public sealed class SystemPage(
+public sealed partial class SystemPage(
     ISystemPanelReader system,
     RaskDashboardOptions options,
     TimeProvider timeProvider) : PollingPanel

@@ -35,4 +35,28 @@ public abstract partial class Component
     /// </remarks>
     protected static T Entry<T>() where T : Component, new() =>
         LiveRenderContext.Current is { } ctx ? ctx.GetOrCreate<T>(static _ => new T()) : new T();
+
+    /// <summary>
+    ///     The entry for a component whose only constructor takes injected services.
+    /// </summary>
+    /// <remarks>
+    ///     Mirrors the generated factory's DI branch: construction goes through
+    ///     <c>ActivatorUtilities</c> inside <see cref="LiveRenderContext.GetOrCreate{T}" />. Outside a
+    ///     render context there is no service provider to construct from, so this throws with the same
+    ///     message the factory uses rather than returning a half-built component.
+    /// </remarks>
+    protected static T EntryDi<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+        where T : Component
+    {
+        if (LiveRenderContext.Current is { } ctx)
+        {
+            return ctx.GetOrCreate<T>(static sp =>
+                Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(sp));
+        }
+
+        throw new InvalidOperationException(
+            $"Component '{typeof(T)}' has no parameterless constructor; it can only be instantiated "
+            + "inside a LiveRenderContext (e.g. via MapRask<TApp>).");
+    }
 }

@@ -33,7 +33,7 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     // The text the user is currently typing into the box (null when not editing → the box shows the value's
     // canonical formatted string). Holds partial/invalid input so a live-committed model can't revert it
     // mid-keystroke; cleared on blur and on every popover pick so the display re-syncs to the value.
-    private protected string? Text;
+    private protected new string? Text;
 
     // A nullable T (DateOnly?/TimeOnly?/DateTime?) gets a clear affordance; a non-nullable one never does.
     // Computed fresh from typeof(T) on each read rather than cached in a `static readonly` field: under the

@@ -9,7 +9,7 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("")]
 [ParentRoute(typeof(DashboardLayout))]
-public sealed class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDashboardOptions options) : PollingPanel
+public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDashboardOptions options) : PollingPanel
 {
     private readonly List<(IQueuePanel Panel, QueueCounts Counts)> _queues = [];
 

@@ -10,7 +10,7 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("queues/{queue}")]
 [ParentRoute(typeof(DashboardLayout))]
-public sealed class QueuePage(
+public sealed partial class QueuePage(
     IEnumerable<IQueuePanel> queues,
     RaskDashboardOptions options,
     TimeProvider timeProvider) : PollingPanel

@@ -21,7 +21,7 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("_ops")]
 [Authorize(Policy = RaskDashboardPolicies.Access)]
-public sealed class DashboardLayout(
+public sealed partial class DashboardLayout(
     IEnumerable<IQueuePanel> queues,
     RouteState route,
     DashboardSecurityState security) : Component

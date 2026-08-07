@@ -144,7 +144,7 @@ public class AutoCallbackTests
         public Func<int, Task>? OnAddAsync;
         public Action<string>? OnText;
         public int RenderCount;
-        public string? Text;
+        public new string? Text;
 
         public Receiver(Mode mode) => _mode = mode;
 

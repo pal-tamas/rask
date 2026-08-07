@@ -26,7 +26,7 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("logs")]
 [ParentRoute(typeof(DashboardLayout))]
-public sealed class LogsPage(
+public sealed partial class LogsPage(
     DashboardLogBuffer buffer,
     RaskDashboardOptions options,
     TimeProvider timeProvider,

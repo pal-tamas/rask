@@ -14,7 +14,7 @@ namespace Rask.Core.Tests;
 // per user component per consuming component.
 internal sealed partial class Chip : Component
 {
-    public string? Text { get; set; }
+    public new string? Text { get; set; }
 
     protected override Component? Render() => Strong[Text ?? ""];
 }
