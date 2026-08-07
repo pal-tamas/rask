@@ -29,6 +29,54 @@ public class LivePayloadTests
     }
 
     [Fact]
+    public void InjectRootAttr_StampsTheDevStatusUrl_SoTheClientKeepsItAfterTheServerIsGone()
+    {
+        const string html = "<html><body></body></html>";
+
+        var injected = LivePayload.InjectRootAttr(html, "abc", dev: true, "http://127.0.0.1:5123/status");
+
+        Assert.Contains("data-rask-dev-status=\"http://127.0.0.1:5123/status\"", injected, StringComparison.Ordinal);
+        Assert.Contains("data-rask-root=\"abc\"", injected, StringComparison.Ordinal);
+        Assert.Contains("data-rask-dev", injected, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InjectRootAttr_NeverStampsTheDevStatusUrlOutsideDevelopment()
+    {
+        // A production page carrying a localhost URL is a page that polls localhost in every visitor's
+        // browser. Two gates, because this one is not recoverable once it has shipped.
+        const string html = "<html><body></body></html>";
+
+        Assert.DoesNotContain(
+            "data-rask-dev-status",
+            LivePayload.InjectRootAttr(html, "abc", dev: false, "http://127.0.0.1:5123/status"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "data-rask-dev-status",
+            LivePayload.InjectRootAttr(html, "abc", dev: true, null),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InjectRootAttr_HtmlEncodesTheDevStatusUrl()
+    {
+        var injected = LivePayload.InjectRootAttr(
+            "<html><body></body></html>", "abc", dev: true, "http://x/\"><script>alert(1)</script>");
+
+        Assert.DoesNotContain("<script>", injected, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InjectRootAttr_WithoutADevStatusUrl_MatchesTheThreeArgumentOverload()
+    {
+        const string html = "<html><body class=\"a\"></body></html>";
+
+        Assert.Equal(
+            LivePayload.InjectRootAttr(html, "abc", dev: true),
+            LivePayload.InjectRootAttr(html, "abc", dev: true, devStatusUrl: null));
+    }
+
+    [Fact]
     public void ExtractBody_ReturnsBodyElement_WhenPresent()
     {
         const string html = "<html><head></head><body class=\"a\"><p>hi</p></body></html>";

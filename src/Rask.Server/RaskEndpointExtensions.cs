@@ -435,8 +435,13 @@ public static class RaskEndpointExtensions
             // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
             // from the same predicate that decides whether to subscribe at all, so the two can't
             // disagree; in production it is never emitted and those branches stay unreachable.
+            var dev = IsDevHotReloadEnabled(httpContext.RequestServices);
+            // Where to ask about build status when the socket drops (#603). Read from the environment
+            // because the only thing that can answer is `rask dev`, which is the process that launched
+            // this one — and it is stamped onto the page rather than pushed over the socket because the
+            // question only arises once that socket is gone.
             var content = LivePayload.InjectRootAttr(
-                html, session.Id, IsDevHotReloadEnabled(httpContext.RequestServices));
+                html, session.Id, dev, dev ? Environment.GetEnvironmentVariable("RASK_DEV_STATUS") : null);
             httpContext.Response.ContentType = "text/html; charset=utf-8";
             // A page that crashed is not a 200. The root boundary catches the exception and renders the
             // error document, so without this the response looked entirely healthy to every cache,
