@@ -30,7 +30,7 @@ public sealed class Textarea<T> : Element, IFormControl<T>
     public string? Wrap { get; set; }
     public bool? Autofocus { get; set; }
     public string? Autocomplete { get; set; }
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
     public string? Dirname { get; set; }
 
     // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl.

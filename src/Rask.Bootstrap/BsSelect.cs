@@ -22,7 +22,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (p, text) => p.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
-    public Func<TItem, string, bool>? Filter { get; set; }
+    public new Func<TItem, string, bool>? Filter { get; set; }
 
     // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
     // click, and the keyboard cursor skips over it; e.g. OptionDisabled: p => p.SoldOut.

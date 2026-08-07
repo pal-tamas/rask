@@ -19,7 +19,7 @@ public sealed class DragDrop : Component
     // The render fragment. Called with a fresh DragDropContext every render; returns the user's
     // chosen root Component for the drag region. Named "Body" (not "Render") to avoid colliding
     // with Component.Render().
-    public Func<DragDropContext, Component>? Body { get; set; }
+    public new Func<DragDropContext, Component>? Body { get; set; }
 
     // Fired once when an item is dropped onto a zone. Set exactly one of OnDrop / OnDropAsync.
     public Callback<DragDropMove>? OnDrop { get; set; }

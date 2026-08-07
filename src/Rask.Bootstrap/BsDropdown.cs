@@ -6,7 +6,7 @@ namespace Rask.Bootstrap;
 public sealed class BsDropdown : BsBlock
 {
     public bool? Open { get; set; }
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public BsColor? Color { get; set; }
     public bool? Outline { get; set; }
     public BsSize? Size { get; set; }

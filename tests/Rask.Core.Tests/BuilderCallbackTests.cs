@@ -10,7 +10,7 @@ namespace Rask.Core.Tests;
 // optional callback into a required argument.
 internal sealed class BuilderCard : Component
 {
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public Handler? OnSelect { get; set; }
 
     protected override Component? Render() => Button.Click(OnSelect?.Fn)[Label ?? ""];

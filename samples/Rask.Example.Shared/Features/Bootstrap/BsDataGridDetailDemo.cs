@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // stays open across a sort — try sorting with a row expanded.
 public sealed class BsDataGridDetailDemo : Component
 {
-    private sealed record Line(string Sku, int Qty, decimal Each);
+    private sealed new record Line(string Sku, int Qty, decimal Each);
 
     private sealed record Order(string Number, string Customer, DateOnly Placed, IReadOnlyList<Line> Lines)
     {

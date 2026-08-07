@@ -23,7 +23,7 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
     public CallbackAsync<T>? OnChangeAsync { get; set; }
 
     // Shared Bootstrap field props.
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public bool? Disabled { get; set; }
     public bool? Required { get; set; }
     public BsSize? Size { get; set; }

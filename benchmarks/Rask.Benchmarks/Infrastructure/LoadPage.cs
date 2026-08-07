@@ -1,5 +1,5 @@
 using Rask.Core;
-using B = Rask.Benchmarks.Infrastructure.Generated;
+using Bench = Rask.Benchmarks.Infrastructure.Generated;
 using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.Infrastructure;
@@ -33,7 +33,7 @@ public sealed class LoadPage(LoadPageOptions options) : Component
         var rows = new List<Component>(options.RowCount);
         for (var i = 0; i < options.RowCount; i++)
         {
-            rows.Add(B.FootprintRow(Index: i, Key: i));
+            rows.Add(Bench.FootprintRow(Index: i, Key: i));
         }
 
         return

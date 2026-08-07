@@ -9,7 +9,7 @@ public sealed class BsBadge : BsBlock
     // Fully rounded "pill" shape (.rounded-pill).
     public bool? Pill { get; set; }
 
-    public string? Style { get; set; }
+    public new string? Style { get; set; }
 
     protected override Component? Render() => Span(
         Id: Id,

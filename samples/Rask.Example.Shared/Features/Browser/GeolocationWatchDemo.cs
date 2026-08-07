@@ -53,7 +53,7 @@ public sealed class GeolocationWatchDemo(IGeolocation geolocation) : Component, 
         }
     }
 
-    private async Task Stop()
+    private new async Task Stop()
     {
         if (_watch is not null)
         {

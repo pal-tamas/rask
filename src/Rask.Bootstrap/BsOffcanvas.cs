@@ -14,7 +14,7 @@ public sealed class BsOffcanvas : BsBlock
     public bool? Open { get; set; }
     public BsPlacement? Placement { get; set; }
     public Bp? Responsive { get; set; }
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
     public bool? HideClose { get; set; }
 
     // Renders the dimming backdrop while open (default true).

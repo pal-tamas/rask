@@ -73,7 +73,7 @@ public sealed class SpeechRecognitionDemo(ISpeechRecognition recognition) : Comp
         }
     }
 
-    private async Task Stop()
+    private new async Task Stop()
     {
         if (_session is not null)
         {

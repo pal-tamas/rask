@@ -12,7 +12,7 @@ public sealed class BsProgress : BsBlock
     public BsColor? Color { get; set; }
 
     // Optional label rendered inside the bar (e.g. "60%").
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     public bool? Striped { get; set; }
 

@@ -8,7 +8,7 @@ namespace Rask.Bootstrap;
 public sealed class BsModal : BsBlock
 {
     public bool? Open { get; set; }
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
     public BsSize? Size { get; set; }
     public bool? Centered { get; set; }
     public bool? Scrollable { get; set; }

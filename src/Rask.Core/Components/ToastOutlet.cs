@@ -43,7 +43,7 @@ public sealed class ToastOutlet : Component
     ///     Renders the currently-showing messages. Receives a <c>dismiss</c> callback that removes a
     ///     message by <see cref="ToastMessage.Id" />. Invoked only when at least one message is showing.
     /// </summary>
-    public required Func<IReadOnlyList<ToastMessage>, Action<int>, Component> Template { get; set; }
+    public new required Func<IReadOnlyList<ToastMessage>, Action<int>, Component> Template { get; set; }
 
     /// <summary>
     ///     When set, each shown message is auto-removed after this delay by a one-shot timer that calls

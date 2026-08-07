@@ -18,7 +18,7 @@ public sealed class InstallTabs : Component
             Aria: new Dictionary<string, string?> { ["selected"] = i == _active ? "true" : "false" },
             OnClick: () => _active = i)[Labels[i]];
 
-    private static Component Line(string prompt, string rest) =>
+    private static new Component Line(string prompt, string rest) =>
         [Span(Class: "prompt")[prompt], rest + "\n"];
 
     private Component Terminal() => _active switch

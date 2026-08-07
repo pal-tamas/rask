@@ -16,7 +16,7 @@ public sealed class BsAccordion : BsBlock
 // native Button, so flipping your Open state in the handler re-renders through the live runtime).
 public sealed class BsAccordionItem : BsBlock
 {
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
     public bool? Open { get; set; }
     public Callback? OnToggle { get; set; }
     public CallbackAsync? OnToggleAsync { get; set; }

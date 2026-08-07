@@ -44,6 +44,9 @@
     <CompilerVisibleProperty Include="RaskGlobalUsings"/>
     <CompilerVisibleProperty Include="RaskScopedJsAutoInclude"/>
     <CompilerVisibleProperty Include="RaskFactoryNavigation"/>
+    <!-- RaskBuilderSurface (default false, EXPERIMENTAL) — emits the entry-property surface
+         (`Div[...]`) alongside the generated factories. Additive: both compile in the same file. -->
+    <CompilerVisibleProperty Include="RaskBuilderSurface"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">

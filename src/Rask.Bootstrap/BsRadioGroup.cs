@@ -31,7 +31,7 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
     // The group's accessible name. When set, the radios are wrapped in a <fieldset> named by a <legend>
     // (the correct grouping semantics + accessible name for a set of related radios); when null, the bare
     // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     // Extra wrapper classes per item, e.g. "form-check-inline".
     public string? ItemClass { get; set; }

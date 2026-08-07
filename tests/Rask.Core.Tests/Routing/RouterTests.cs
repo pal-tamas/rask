@@ -293,7 +293,7 @@ public class RouterTests
     public sealed class CounterPage : Component
     {
         public int Bumps { get; set; }
-        [RouteParam][QueryParam] public string? Label { get; set; }
+        [RouteParam][QueryParam] public new string? Label { get; set; }
 
         protected override Component? Render()
         {

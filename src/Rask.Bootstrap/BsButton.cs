@@ -21,7 +21,7 @@ public sealed class BsButton : BsBlock
     public bool? Disabled { get; set; }
     public string? Name { get; set; }
     public string? Value { get; set; }
-    public string? Style { get; set; }
+    public new string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
     public Callback? OnClick { get; set; }

@@ -1,5 +1,5 @@
 using Rask.Core;
-using B = Rask.Benchmarks.Infrastructure.Generated;
+using Bench = Rask.Benchmarks.Infrastructure.Generated;
 using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.Infrastructure;
@@ -29,7 +29,7 @@ public sealed class FootprintApp : Component
     public int Counter;
 
     // Non-nullable, no initializer → a required factory parameter (RASK001). Public so the generator
-    // emits it; the reports build the page via B.FootprintApp(RowCount: n).
+    // emits it; the reports build the page via Bench.FootprintApp(RowCount: n).
     public int RowCount { get; set; }
 
     protected override Component? Head => C.Title()["rask session footprint"];
@@ -47,7 +47,7 @@ public sealed class FootprintApp : Component
         var rows = new List<Component>(RowCount);
         for (var i = 0; i < RowCount; i++)
         {
-            rows.Add(B.FootprintRow(Index: i, Key: i));
+            rows.Add(Bench.FootprintRow(Index: i, Key: i));
         }
 
         return

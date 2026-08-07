@@ -9,7 +9,7 @@ namespace Rask.Bootstrap;
 public sealed class BsConfirmDialog : BsBlock
 {
     public bool? Open { get; set; }
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
 
     // Body text. Ignored when children are supplied (pass custom body content via the indexer instead).
     public string? Message { get; set; }
@@ -40,6 +40,6 @@ public sealed class BsConfirmDialog : BsBlock
         BsButton(Color: ConfirmColor, OnClick: OnConfirm, OnClickAsync: OnConfirmAsync)[ConfirmText]
     ];
 
-    private IEnumerable<Component?> Body() =>
+    private new IEnumerable<Component?> Body() =>
         Message is not null ? [P(Class: Margin.Bottom(0))[Message]] : Items;
 }

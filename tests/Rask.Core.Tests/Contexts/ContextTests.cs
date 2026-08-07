@@ -295,10 +295,8 @@ public class ContextTests
 
     private sealed class NamedProbe : Component
     {
-        // `new`: shadows the `A` tag entry on Component. This is the migration cost the
-        // builder surface imposes wherever a component member shares a tag's name.
         public new string? A;
-        public string? B;
+        public new string? B;
         public string? Unnamed;
 
         protected override Component? Render()

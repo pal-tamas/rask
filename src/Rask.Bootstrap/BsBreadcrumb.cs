@@ -5,7 +5,7 @@ namespace Rask.Bootstrap;
 public sealed class BsBreadcrumb : BsBlock
 {
     // Accessible label for the surrounding <nav>; defaults to "breadcrumb".
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     protected override Component? Render()
     {

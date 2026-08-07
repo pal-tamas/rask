@@ -12,7 +12,7 @@ public sealed class BsSpinner : BsBlock
     public new bool? Small { get; set; }
 
     // The visually-hidden status text for assistive tech; defaults to "Loading…".
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     private bool Grow => Kind == BsSpinnerKind.Grow;
 

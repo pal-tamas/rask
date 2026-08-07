@@ -1,7 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
 using Rask.Core.ScopedAssets;
-using B = Rask.Benchmarks.Generated;
+using Bench = Rask.Benchmarks.Generated;
 using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks;
@@ -98,10 +98,10 @@ public class HtmlSerializerBenchmarks
         {
             rows.Add((i & 3) switch
             {
-                0 => B.ScopedRowA(i),
-                1 => B.ScopedRowB(i),
-                2 => B.ScopedRowC(i),
-                _ => B.ScopedRowD(i)
+                0 => Bench.ScopedRowA(i),
+                1 => Bench.ScopedRowB(i),
+                2 => Bench.ScopedRowC(i),
+                _ => Bench.ScopedRowD(i)
             });
         }
 

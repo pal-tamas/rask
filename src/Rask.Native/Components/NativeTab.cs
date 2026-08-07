@@ -9,7 +9,7 @@ namespace Rask.Native.Components;
 public sealed class NativeTab : NativeBarItem
 {
     /// <summary>The tab's label. Required.</summary>
-    public required string Title { get; set; }
+    public new required string Title { get; set; }
 
     /// <summary>The tab's icon. Required.</summary>
     public required NativeIcon Icon { get; set; }

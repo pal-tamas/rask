@@ -20,7 +20,7 @@ public sealed class BsToast : Component
     public required int Id { get; set; }
 
     public string? Class { get; set; }
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
     public required string Message { get; set; }
 
     // A theme color renders the headerless colored layout (text-bg-{color}); null uses the header layout.

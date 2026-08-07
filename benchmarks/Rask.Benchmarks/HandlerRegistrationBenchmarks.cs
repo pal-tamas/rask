@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
-using B = Rask.Benchmarks.Generated;
+using Bench = Rask.Benchmarks.Generated;
 
 namespace Rask.Benchmarks;
 
@@ -22,7 +22,7 @@ public class HandlerRegistrationBenchmarks
     // outside the measured region. Construction goes through the generated factory so
     // RASK014 is satisfied.
     [IterationSetup]
-    public void IterationSetup() => _host = (RegHost)B.RegHost();
+    public void IterationSetup() => _host = (RegHost)Bench.RegHost();
 
     [Benchmark]
     public string Register200()

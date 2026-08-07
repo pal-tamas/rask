@@ -12,7 +12,7 @@ namespace Rask.Native.Components;
 public sealed class NativeHeaderBar : NativeComponent
 {
     /// <summary>The bar's title, shown centred (iOS) / leading (Android) per platform convention.</summary>
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
 
     /// <summary>An optional leading item (e.g. a <see cref="NativeBackButton" />), shown at the start of the bar.</summary>
     public NativeBarItem? Leading { get; set; }

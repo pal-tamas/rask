@@ -127,6 +127,12 @@
   -->
   <PropertyGroup>
     <RaskGlobalUsings Condition=" '$(RaskGlobalUsings)' == '' AND $(MSBuildProjectName.StartsWith('Rask.')) AND !$(MSBuildProjectName.StartsWith('Rask.Example.')) ">false</RaskGlobalUsings>
+    <!--
+      EXPERIMENTAL builder surface (`Div[...]`). Off by default for consumers; on in-repo so the
+      spike's tests exercise it. Only the assembly declaring Rask.Core.Component emits the entries,
+      so this is effectively a Rask.Core switch.
+    -->
+    <RaskBuilderSurface Condition=" '$(RaskBuilderSurface)' == '' ">true</RaskBuilderSurface>
   </PropertyGroup>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props"
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props') "/>

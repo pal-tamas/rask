@@ -25,5 +25,5 @@ public sealed class NativeMenuButton : NativeBarItem
     public IReadOnlyList<NativeMenuItem>? Items { get; set; }
 
     /// <summary>An optional accessibility label for the button (defaults to "More").</summary>
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
 }

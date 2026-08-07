@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
-using B = Rask.Benchmarks.Generated;
+using Bench = Rask.Benchmarks.Generated;
 using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks;
@@ -71,7 +71,7 @@ public class LiveRenderRoundTripBenchmarks
         var rows = new List<Component>(20);
         for (var i = 0; i < 20; i++)
         {
-            rows.Add(B.RowItem(i, Key: i));
+            rows.Add(Bench.RowItem(i, Key: i));
         }
 
         return [
@@ -93,7 +93,7 @@ public class LiveRenderRoundTripBenchmarks
         // the bottom-most renders a small leaf so the framework-tag path still emits
         // something to HTML. Wrap in Fragment+Doctype+Html+Body so RenderAsLiveRoot
         // produces a valid document with a <body> for the live root marker.
-        Component current = B.DeepNode(50);
+        Component current = Bench.DeepNode(50);
         return [
             C.Doctype(),
             C.Html()[C.Body()[C.Div(Class: "deep")[current]]]
@@ -162,5 +162,5 @@ public sealed class DeepNode : Component
     protected override Component? Render() =>
         Depth <= 0
             ? C.Div(Class: "leaf", Id: "leaf")[C.Span()["leaf"]]
-            : C.Div(Class: "node", Id: $"n{Depth}")[B.DeepNode(Depth - 1)];
+            : C.Div(Class: "node", Id: $"n{Depth}")[Bench.DeepNode(Depth - 1)];
 }

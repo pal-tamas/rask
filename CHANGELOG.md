@@ -20,8 +20,12 @@ them until tagged releases begin.
   route through `GetOrCreate` or they silently defeat the render cache; a callback prop needs the
   non-delegate `Handler?` carrier for the setter to share its name (a delegate property is invocable
   and wins), and the carrier must be nullable or it becomes a *required* factory parameter; element
-  handlers must NOT be `AutoCallback`-wrapped, matching the generator's existing rule. Nothing is
-  generated yet — the entries and setters are hand-written for a 34-tag subset.
+  handlers must NOT be `AutoCallback`-wrapped, matching the generator's existing rule. The entries are
+  emitted by `ComponentFactoryGenerator` (opt-in via `RaskBuilderSurface`, and only in the assembly
+  declaring `Component`, since a generator cannot add members to a referenced type); setters are still
+  hand-written. Generic, DI-constructed and `required`-member components are skipped — none has a valid
+  no-argument entry. Emitting the full tag set surfaced the collision cost: 86 files need `new` where a
+  component member, a private helper, a nested type or a `using` alias shares a tag's name.
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

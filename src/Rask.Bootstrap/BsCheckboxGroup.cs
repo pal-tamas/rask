@@ -30,7 +30,7 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
     // The group's accessible name. When set, the checkboxes are wrapped in a <fieldset> named by a <legend>
     // (the correct grouping semantics + accessible name for a set of related checkboxes); when null, the bare
     // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
 

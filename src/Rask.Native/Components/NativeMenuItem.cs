@@ -8,7 +8,7 @@ namespace Rask.Native.Components;
 public sealed class NativeMenuItem : NativeBarItem
 {
     /// <summary>The menu entry's label. Required.</summary>
-    public required string Title { get; set; }
+    public new required string Title { get; set; }
 
     /// <summary>An optional leading icon for the entry.</summary>
     public NativeIcon? Icon { get; set; }

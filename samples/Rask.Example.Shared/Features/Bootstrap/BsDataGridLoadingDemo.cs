@@ -16,7 +16,7 @@ public sealed class BsDataGridLoadingDemo : Component
 
     private sealed record City(string Name, string Country, int Population);
 
-    private static readonly List<City> Source =
+    private static new readonly List<City> Source =
     [
         new("Tokyo", "Japan", 37_400_068),
         new("Delhi", "India", 32_226_000),

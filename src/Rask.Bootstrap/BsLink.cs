@@ -22,7 +22,7 @@ public sealed class BsLink : BsBlock
     // Toggle/pressed state: adds .active and aria-pressed="true" (parity with BsButton).
     public bool? Active { get; set; }
 
-    public string? Style { get; set; }
+    public new string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
     protected override Component? Render()

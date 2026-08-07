@@ -25,13 +25,13 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
     public Callback<bool>? OnChange { get; set; }
     public CallbackAsync<bool>? OnChangeAsync { get; set; }
 
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public bool? Disabled { get; set; }
     public bool? Required { get; set; }
     public string? Name { get; set; }
 
     // Renders the switch toggle (.form-switch + role="switch").
-    public bool? Switch { get; set; }
+    public new bool? Switch { get; set; }
 
     // Lays the check inline (.form-check-inline) / right-aligned (.form-check-reverse).
     public bool? Inline { get; set; }

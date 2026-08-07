@@ -9,7 +9,7 @@ public sealed class Option : Element
     public string? Value { get; set; }
     public bool? Selected { get; set; }
     public bool? Disabled { get; set; }
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

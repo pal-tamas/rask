@@ -34,7 +34,7 @@ public sealed class QueuePage(
 
     protected override RaskDashboardOptions Options => options;
 
-    private QueueFilter Filter =>
+    private new QueueFilter Filter =>
         Enum.TryParse<QueueFilter>(Show, ignoreCase: true, out var parsed) ? parsed : QueueFilter.Outstanding;
 
     protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
@@ -172,7 +172,7 @@ public sealed class QueuePage(
         _ => BsBadge(Color: BsColor.Info)["due"],
     };
 
-    private static Component Details(QueueRow row) =>
+    private static new Component Details(QueueRow row) =>
         Div(Class: "small")[
             row.Error is { } error
                 ? Div(Class: "mb-2")[

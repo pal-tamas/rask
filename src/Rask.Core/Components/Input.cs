@@ -38,7 +38,7 @@ public sealed class Input<T> : Element, IFormControl<T>
     public string? Min { get; set; }
     public string? Max { get; set; }
     public string? Step { get; set; }
-    public string? Pattern { get; set; }
+    public new string? Pattern { get; set; }
     public int? Size { get; set; }
     public int? MaxLength { get; set; }
     public int? MinLength { get; set; }
@@ -47,7 +47,7 @@ public sealed class Input<T> : Element, IFormControl<T>
     public string? Alt { get; set; }
     public string? Autocomplete { get; set; }
     public bool? Autofocus { get; set; }
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
     public string? FormAction { get; set; }
     public string? FormEnctype { get; set; }
     public string? FormMethod { get; set; }

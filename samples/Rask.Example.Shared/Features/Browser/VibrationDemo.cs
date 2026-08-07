@@ -26,7 +26,7 @@ public sealed class VibrationDemo(IVibration vibration) : Component
         _status = ok ? "Vibrated" : "Not supported on this device";
     }
 
-    private async Task Pattern()
+    private new async Task Pattern()
     {
         var ok = await vibration.VibrateAsync(100, 50, 100, 50, 300);
         _status = ok ? "Pattern played" : "Not supported on this device";

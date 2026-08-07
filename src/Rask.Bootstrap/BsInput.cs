@@ -20,7 +20,7 @@ public sealed class BsInput<T> : BsFormControl<T>
     public string? Min { get; set; }
     public string? Max { get; set; }
     public string? Step { get; set; }
-    public string? Pattern { get; set; }
+    public new string? Pattern { get; set; }
     public int? MaxLength { get; set; }
     public int? MinLength { get; set; }
     public bool? Autofocus { get; set; }

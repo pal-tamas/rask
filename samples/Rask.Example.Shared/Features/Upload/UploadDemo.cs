@@ -51,6 +51,6 @@ public sealed class UploadDemo : Component
                 ]
         ];
 
-    private static IReadOnlyDictionary<string, string?> Meta(string field) =>
+    private static new IReadOnlyDictionary<string, string?> Meta(string field) =>
         new Dictionary<string, string?> { ["rask-meta"] = field };
 }

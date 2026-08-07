@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 public sealed class Greeting : Component
 {
     public required string Name { get; set; }
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
 
     protected override Component? Render() =>
         P(Class: "mb-0")[

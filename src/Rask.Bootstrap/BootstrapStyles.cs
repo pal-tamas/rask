@@ -9,7 +9,7 @@ namespace Rask.Bootstrap;
 // your App's Head. URLs are prefixed with LiveOptions.PathBase so sub-path deploys resolve.
 public sealed class BootstrapStyles : Component
 {
-    private const string Base = "/_content/Rask.Bootstrap/";
+    private new const string Base = "/_content/Rask.Bootstrap/";
 
     // Include the Bootstrap Icons stylesheet (default true). Set false if you don't use BsIcon.
     public bool? Icons { get; set; }

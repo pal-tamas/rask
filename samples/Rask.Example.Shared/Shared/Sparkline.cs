@@ -143,5 +143,5 @@ public sealed class Sparkline : Component
 
     private static string Num(double v) => v.ToString("0.##", Inv);
 
-    private string Label(double v) => v.ToString(LabelFormat, Inv);
+    private new string Label(double v) => v.ToString(LabelFormat, Inv);
 }

@@ -248,14 +248,14 @@ public class FormControlChangeRerenderTests
     // — is this wrapper and never the component whose state the handler mutates.
     private sealed class Wrapper : Component
     {
-        public IReadOnlyList<Component> Body { get; set; } = [];
+        public new IReadOnlyList<Component> Body { get; set; } = [];
 
         protected override Component? Render() => Div()[Body];
     }
 
     private sealed class BoundHost : Component
     {
-        public readonly BoundForm Form = new();
+        public new readonly BoundForm Form = new();
 
         protected override Component? Render()
         {

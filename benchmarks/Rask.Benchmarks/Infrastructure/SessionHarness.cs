@@ -3,7 +3,7 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 using Rask.Server;
-using B = Rask.Benchmarks.Infrastructure.Generated;
+using Bench = Rask.Benchmarks.Infrastructure.Generated;
 
 namespace Rask.Benchmarks.Infrastructure;
 
@@ -42,7 +42,7 @@ internal static class SessionHarness
         FootprintApp? app = null;
         var session = store.Create(_ =>
         {
-            app = B.FootprintApp(RowCount: rows);
+            app = Bench.FootprintApp(RowCount: rows);
             // Mirrors the GET endpoint, which wraps the user's App in this same implicit boundary
             // (RaskEndpointExtensions). RootErrorBoundary is framework-internal and has no public
             // factory, so this is the only way to reproduce production's real tree shape — and the

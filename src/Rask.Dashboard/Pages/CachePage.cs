@@ -23,7 +23,7 @@ public sealed class CachePage(
 
     /// <summary>Substring filter on the key, from the query string so a search is a shareable link.</summary>
     [QueryParam("q")]
-    public string? Search { get; set; }
+    public new string? Search { get; set; }
 
     protected override RaskDashboardOptions Options => options;
 

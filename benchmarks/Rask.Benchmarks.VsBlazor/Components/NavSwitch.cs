@@ -52,7 +52,7 @@ internal static class NavSwitch
 
         public int ActiveTab { get; private set; }
 
-        public void Switch(int tab)
+        public new void Switch(int tab)
         {
             ActiveTab = tab;
             StateHasChanged();

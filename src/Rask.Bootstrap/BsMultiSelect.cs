@@ -36,7 +36,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (t, text) => t.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
-    public Func<TItem, string, bool>? Filter { get; set; }
+    public new Func<TItem, string, bool>? Filter { get; set; }
 
     // Opt in to a "Select all / Clear all" header row at the top of the dropdown. It toggles the currently
     // shown (filtered), enabled options in one click — adds them all, or clears them when they are already
@@ -49,7 +49,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
 
     // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public bool? Floating { get; set; }
 
     // View state only — the selection lives in the bound model / parent Value. Toggling re-renders. _filter

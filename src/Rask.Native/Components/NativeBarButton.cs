@@ -14,5 +14,5 @@ public sealed class NativeBarButton : NativeBarItem
     public Action? OnClick { get; set; }
 
     /// <summary>An optional accessibility label / title for the button.</summary>
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
 }
