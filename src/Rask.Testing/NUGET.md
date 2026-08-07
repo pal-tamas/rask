@@ -44,13 +44,66 @@ public async Task Clicking_increments()
 - **`.HandlerIds(domEvent)`** / **`.Attrs(name)`** — every match, in document order. Index these to target
   one of several same-event elements: `await page.InvokeAsync(page.HandlerIds("click")[1])`.
 - **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string.
+
+### Finding elements
+
+`.Find(selector)` returns the element, so an assertion can say *which one* rather than substring-matching
+the whole page — which is brittle against exactly the attribute-order invariant the framework pins.
+
+```csharp
+var badge = page.Find("#items li.selected .badge");
+Assert.Equal("7", badge.TextContent);
+
+Assert.Equal(["3", "7"], page.FindAll(".badge").Select(b => b.TextContent));
+Assert.Equal("7 shipped", page.TextOf("#items li.selected"));   // whitespace collapsed
+page.TestId("refresh");                                          // [data-testid="refresh"]
+```
+
+`.Find` throws when there is **no** match *and* when there is **more than one** — a test that silently
+took the first of several keeps passing after somebody adds a second. Use `.FindAll` when several are the
+point, and `.Exists(selector)` for presence.
+
+**The selector is a documented subset**, and anything outside it throws rather than quietly matching
+nothing: `tag`, `*`, `#id`, `.class`, `[attr]`, `[attr="v"]`, `[attr^="v"]`, `[attr$="v"]`, `[attr*="v"]`,
+`:has-text("…")`, and the descendant and `>` combinators. For anything else, give the element an id or a
+`data-*` attribute — the test reads better for it too.
+
+### Driving one element
+
+```csharp
+await page.On("#save").ClickAsync();
+await page.On("#name").InputAsync("Ada");
+await page.On("form#signup").SubmitAsync();
+```
+
+`.HandlerId(domEvent)` returns the **first** match in the document and `.HandlerIds` is indexed by
+position — so adding an unrelated button above the one under test silently re-points the assertion and the
+test keeps passing. `.On(selector)` names the element instead. (It's a handle rather than a
+`ClickAsync(selector)` overload because `ClickAsync` already takes a `string`, the JSON payload.)
+
+### Fakes for the things a component needs
+
+- **`TestDownloadSink`** — an `IDownloadSink` that records what a component staged. `Navigator.Download`
+  refuses to run without one and tells you to "register a fake"; this is that fake. Assert on
+  `.Staged` (`FileName`, `ContentType`, `Bytes`, `.Text`).
+- **`TestRoute.At("/search?q=hello%20world")`** — a `RouteState` at a URL, query string parsed and
+  decoded, repeated keys kept. `TestRoute.NavigatorFor(state, downloads)` wires the `Navigator`.
+  Register the `Navigator` in the provider and event dispatch enters its handler scope, so a component
+  that navigates or downloads on click can be unit-tested at all.
+- **`CapturingDiagnostics.Install()`** — captures the framework diagnostics raised while it is installed,
+  so you can assert that a swallowed fault happened (or that none did). Swallow-and-log is the framework's
+  designed behaviour for navigate faults, JS dispatch faults and faulted async lifecycle hooks, and
+  without this there is no supported way to see them.
 - **`.TryInvokeAsync(handlerId, json?)`** — dispatch only if the id is still live; returns `false` rather
   than throwing, so you can assert a handler is gone.
 - **`.Instance`** — the component object you passed in, for asserting its state directly.
 - **`.Render()`** — re-render after mutating external state the component reads.
 - **`TestJSRuntime`** — an `IJSRuntime` that records calls and returns canned values, for components that
   inject `IJSRuntime`. Register it in the provider, then assert with `.ArgsFor(id)` / `.Calls` /
-  `.CallCount(id)`; configure with `.SetResponse(id, value)` / `.SetException(id, ex)`.
+  `.CallCount(id)`; configure with `.SetResponse(id, value)` / `.SetException(id, ex)`. An unconfigured
+  call returns `default`; a call configured with the **wrong type** now throws and names both types,
+  rather than also returning `default` — `SetResponse("getCount", 1)` against `InvokeAsync<long>` used to
+  hand back `0`, indistinguishable from "not configured".
 - **`RaskTest.EditContextProbe(capture)`** — placed inside a `Form`'s children, hands you the form's
   `EditContext` so you can assert validation state (`GetValidationMessages`, `IsModified`, `IsValidating`)
   that never appears in the markup.

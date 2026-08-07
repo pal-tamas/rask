@@ -57,10 +57,32 @@ public sealed class TestJSRuntime : IJSRuntime
             return ValueTask.FromException<TValue>(failure);
         }
 
-        return hasCanned && canned is TValue typed
-            ? ValueTask.FromResult(typed)
-            : ValueTask.FromResult<TValue>(default!);
+        if (!hasCanned)
+        {
+            // Unconfigured returns default. Deliberate and documented: most calls in a component are
+            // fire-and-forget, and making every one of them require a canned response would be noise.
+            return ValueTask.FromResult<TValue>(default!);
+        }
+
+        if (canned is TValue typed)
+        {
+            return ValueTask.FromResult(typed);
+        }
+
+        // Configured, but not with a TValue. This used to fall into the same `default!` path as
+        // unconfigured, which made the two indistinguishable — SetResponse("getCount", 1) against a
+        // component calling InvokeAsync<long> returned 0, and the test read as "the component ignored
+        // the value" rather than "the harness dropped it". A boxed int is not a long, and nothing in the
+        // signature says so, so say it here.
+        return ValueTask.FromException<TValue>(new InvalidOperationException(
+            $"The response configured for '{identifier}' is a {Describe(canned)}, but the component asked "
+            + $"for {typeof(TValue).Name}. SetResponse stores the value as-is and hands it back only when "
+            + "the types match exactly — a boxed int is not a long, and 1 is not 1.0. Configure it as the "
+            + $"type the component reads: SetResponse(\"{identifier}\", ({typeof(TValue).Name})…)."));
     }
+
+    private static string Describe(object? value) =>
+        value is null ? "null" : value.GetType().Name;
 
     /// <inheritdoc />
     public ValueTask<TValue> InvokeAsync<TValue>(
