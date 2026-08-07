@@ -7,7 +7,9 @@
 > over WebSockets, client-side on WebAssembly, or native iOS/Android (Rask.Native); markup uses generated
 > factory methods + a children indexer (`Div()[Span(), "hi"]`). Batteries: the `rask` CLI, a
 > `generate feature` CQRS+EF CRUD scaffolder, Rask.Cqrs, Rask.Data, production SQLite (pragmas + backup),
-> auth, and `--docker` deploy.
+> auth, background jobs, transactional email, cache, outbox, a durable log store and an operator
+> dashboard — and `rask deploy`, which builds and runs the app on one box over SSH with zero-downtime
+> blue-green releases, a health-gated cutover, auto-HTTPS via Caddy, and bare-VPS provisioning.
 
 This file helps AI coding assistants build apps with Rask. Start with the repo-root AGENTS.md
 (the AI guidance shipped alongside this file) for app-authoring conventions, then the docs below.
