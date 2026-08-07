@@ -16,6 +16,11 @@ shell hot-reloads like a browser, because that is what it is. WASM is covered �
 the client's build output for the session, since a published bundle is trimmed and could never apply an
 update.
 
+When something breaks, it says what broke. A save that doesn't compile shows the compiler errors in the
+page — not "Reconnecting…" — and clears itself once the code builds; an exception from a handler or an
+async lifecycle hook shows over the running app, which stays mounted with its state intact. See
+[when the build fails](cli.md#when-the-build-fails).
+
 The framework side of that loop has its own gate, `scripts/run-watch-e2e.sh` — it scaffolds an app, runs
 it under a real `dotnet watch`, edits a file, and asserts the change reached the open live session
 without it being torn down. It's opt-in (`RASK_WATCH_E2E=1`); run it when you touch the hot-reload

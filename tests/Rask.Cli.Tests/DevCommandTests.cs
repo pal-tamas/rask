@@ -223,6 +223,86 @@ public sealed class DevCommandTests
         Assert.Contains("rask dev", console.ErrorText, StringComparison.Ordinal);
     }
 
+    // ---- build status (#603) ----
+
+    [Fact]
+    public async Task A_watch_session_tells_the_app_where_to_point_the_browser_for_build_status()
+    {
+        // The app stamps this URL onto every page it serves, so the browser still has it after the app
+        // that served it is gone — which is exactly when a build failure needs reporting.
+        var (command, runner, _) = Build();
+
+        await command.ExecuteAsync([], CancellationToken.None);
+
+        var url = runner.LastRun!.Environment![DevCommand.DevStatusEnvironmentVariable];
+        Assert.StartsWith("http://127.0.0.1:", url, StringComparison.Ordinal);
+        Assert.EndsWith("/status", url, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_one_shot_run_gets_no_status_server_because_nothing_will_rebuild()
+    {
+        var (command, runner, _) = Build();
+
+        await command.ExecuteAsync(["--once"], CancellationToken.None);
+
+        Assert.DoesNotContain(DevCommand.DevStatusEnvironmentVariable, runner.LastRun!.Environment!.Keys);
+    }
+
+    [Fact]
+    public async Task Watch_output_is_read_and_reaches_the_status_endpoint()
+    {
+        var (command, runner, _) = Build();
+        var error = "/app/A.cs(1,1): error CS0103: nope [/app/App.csproj]";
+        runner.TeeLines = ["  Determining projects to restore...", error];
+
+        // Asked while the run is still in flight: `rask dev` owns the status server for exactly as long
+        // as it owns the child process, which is the correct lifetime and an untestable one from outside.
+        var status = string.Empty;
+        runner.DuringRunAsync = async env =>
+        {
+            using var client = new System.Net.Http.HttpClient();
+            status = await client.GetStringAsync(env![DevCommand.DevStatusEnvironmentVariable]);
+        };
+
+        await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Contains("\"state\":\"failed\"", status, StringComparison.Ordinal);
+        Assert.Contains("CS0103", status, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Teed_output_still_reaches_the_terminal()
+    {
+        // Reading watch's output is what makes the status endpoint know anything — but redirecting a
+        // stream to read it is exactly how a tool accidentally swallows the console the developer is
+        // watching. Asserted against a real child process, because that is where it could break.
+        var lines = new List<string>();
+        var terminal = new StringWriter();
+        var runner = new ProcessRunner(terminal, terminal);
+
+        var exit = await runner.RunTeeAsync(
+            "dotnet", ["--version"], null, lines.Add, CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.NotEmpty(lines);
+        Assert.Contains(lines[0], terminal.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_observer_that_throws_does_not_truncate_the_terminal()
+    {
+        // The observer is a convenience over somebody else's output; it does not get to kill the pump.
+        var terminal = new StringWriter();
+        var runner = new ProcessRunner(terminal, terminal);
+
+        var exit = await runner.RunTeeAsync(
+            "dotnet", ["--version"], null, _ => throw new InvalidOperationException("boom"), CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.NotEmpty(terminal.ToString().Trim());
+    }
+
     // ---- browser ----
 
     [Fact]

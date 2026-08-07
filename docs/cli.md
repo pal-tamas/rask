@@ -370,6 +370,44 @@ In Development you get a small "Hot reload applied" pill in the corner when an e
 changed nothing visible is distinguishable from one that didn't apply. It is never present in production,
 and it looks and behaves the same on every transport — Server, WASM and native share one implementation.
 
+### When the build fails
+
+A save that doesn't compile takes the app down — and until now the browser reported that as a *network*
+problem: "Reconnecting…", then "Still trying to reconnect…" and a **Retry now** button that could never
+succeed. It is a compile problem, and it now says so:
+
+```
+┌───────────────────────────────────────────────────────────┐
+│ Build failed                              Stack   Dismiss │
+├───────────────────────────────────────────────────────────┤
+│ 2 build errors                                            │
+│ Features/Products/ProductPage.cs(31,13): error CS0103:    │
+│ The name 'titel' does not exist in the current context    │
+└───────────────────────────────────────────────────────────┘
+```
+
+Fix the file and it disappears on its own — the reconnect keeps running underneath the panel, so the app
+comes back the moment it compiles. No reload, no clicking anything.
+
+**How it reaches the browser.** Nothing in the app can report this, because the app is what died. So
+`rask dev` reads `dotnet watch`'s output as it passes it through to your terminal, and serves what it
+learned from a small read-only endpoint on `127.0.0.1` that it owns for as long as the session lasts. Its
+URL is stamped onto every page the app serves (`data-rask-dev-status` on `<body>`), which is what lets the
+browser still ask after the server that sent it has gone. Development only: production HTML never carries
+the attribute, so there is nothing to poll and nothing to leak. If the endpoint can't be bound, `rask dev`
+runs exactly as before — the browser just falls back to the reconnect overlay.
+
+### When your code throws
+
+An unhandled exception from an event handler or an async lifecycle hook shows the same style of panel —
+**over** the running app, which stays mounted, scrolled where it was, with your form input intact. That is
+the state that produced the bug, so it is the state worth keeping. Dismiss the panel and keep clicking; it
+counts repeats, so a handler throwing on every click is visible as such.
+
+A fault during *render* still replaces the page, in development as in production: re-rendering the subtree
+that just threw would only throw again. In production every fault gets the styled error page and a `500`,
+and no stack ever reaches the browser.
+
 > **If nothing ever applies, suspect the path.** `dotnet watch` produces an empty hot-reload delta —
 > silently, reporting success at every step — when the project path traverses a symlink. `rask dev`
 > resolves the path for you, so this only bites if you drive `dotnet watch` yourself; run it against the

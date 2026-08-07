@@ -86,6 +86,39 @@ internal sealed class FakeProcessRunner : IProcessRunner
         return Task.FromResult(RunHandler?.Invoke(args) ?? RunExitCode);
     }
 
+    /// <summary>Lines the fake feeds to the tee's observer, so a test can drive the build watcher.</summary>
+    public IReadOnlyList<string> TeeLines { get; set; } = [];
+
+    /// <summary>
+    /// Runs while the command still believes the child process is alive, after <see cref="TeeLines"/> have
+    /// been fed. The only way to observe anything a command owns for the lifetime of the run — `rask dev`
+    /// disposes its status server the moment the run returns.
+    /// </summary>
+    public Func<IReadOnlyDictionary<string, string>?, Task>? DuringRunAsync { get; set; }
+
+    public async Task<int> RunTeeAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string? workingDirectory,
+        Action<string> onLine,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? environment = null)
+    {
+        var args = arguments.ToArray();
+        _invocations.Enqueue(new ProcessInvocation(fileName, args, Captured: false, environment, workingDirectory));
+        foreach (var line in TeeLines)
+        {
+            onLine(line);
+        }
+
+        if (DuringRunAsync is not null)
+        {
+            await DuringRunAsync(environment).ConfigureAwait(false);
+        }
+
+        return RunHandler?.Invoke(args) ?? RunExitCode;
+    }
+
     public Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
     {
         var args = arguments.ToArray();
