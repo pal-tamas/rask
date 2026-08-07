@@ -243,6 +243,43 @@ them until tagged releases begin.
   description explains the consequence and the surprising part rather than restating the message, which is
   already on screen.
 
+- **`Rask.Testing` can read structure, not just attributes.** Its scan had no notion of elements or
+  nesting — it said so in its own remarks — so every structural assertion in a consumer's test degraded to
+  `Assert.Contains("<span class=\"badge\">3</span>", page.Html)`, brittle against exactly the
+  attribute-order invariant this framework's own suite goes to lengths to pin.
+  - **`Find` / `FindAll` / `Exists` / `TextOf` / `TestId`** over a parsed tree. `Find` throws both when
+    nothing matches *and* when several do — a test that silently took the first of several keeps passing
+    after somebody adds a second — and a failure names the near miss (`'#items' matches 1, so the rest of
+    the selector is what fails`) and the path of each candidate.
+  - The **selector is a documented subset** (`tag`, `*`, `#id`, `.class`, `[attr]`, `[attr="v"]` and the
+    `^= $= *=` variants, `:has-text("…")`, descendant and `>`), and **anything outside it throws**. A
+    selector that quietly matched nothing because `:nth-child` was ignored would turn a green test into a
+    lie. The parser is ~200 lines rather than a dependency: `Rask.Testing` is a shipped package, so a
+    parser dependency lands in every consumer's test project, and Rask's own serializer emits the markup —
+    always double-quoted, always encoded — which is what makes a small reader correct here.
+  - **`page.On("#save").ClickAsync()`** targets an element by name. `HandlerId` returns the *first* match
+    in the document and `HandlerIds` is indexed by position, so adding an unrelated button above the one
+    under test silently re-points every such assertion and the test keeps passing. A handle rather than a
+    `ClickAsync(selector)` overload, because `ClickAsync` already takes a `string` — the JSON payload.
+  - **`TestDownloadSink`.** `Navigator.Download` refuses to run without an `IDownloadSink` and its message
+    says *"If you're in a unit test, register a fake"* — while the testing package shipped none, so
+    everyone wrote the same twenty lines.
+  - **Event dispatch now enters the `Navigator`'s handler scope**, as a live session does. Without it
+    `NavigateTo` / `Download` / `SetQuery` all refused with "can only be used from event handlers" —
+    true of the harness, not of the component — so a page that navigates or exports on click could not be
+    unit-tested at all, only through Playwright.
+  - **`TestRoute.At("/search?q=hello%20world")`** seeds a `RouteState` with its query string parsed,
+    decoded and repeated keys kept. Seeding a path was already a one-liner; seeding a query meant building
+    an `IQueryCollection` by hand, so most tests simply didn't.
+  - **`CapturingDiagnostics`** captures framework diagnostics, so an app author can finally assert that a
+    swallowed fault happened — or that none did. A public wrapper rather than a public `RaskDiagnostics`:
+    `Rask.Testing` is already on Core's `InternalsVisibleTo` list, and a public seam is irreversible where
+    a wrapper is not.
+  - **`TestJSRuntime` stops failing silently on a type mismatch.** `SetResponse("getCount", 1)` against a
+    component calling `InvokeAsync<long>` returned `0` — indistinguishable from "not configured", so the
+    test read as though the component had ignored the value. Unconfigured still returns `default` (that is
+    deliberate and documented); configured-with-the-wrong-type now throws and names both types.
+
 ## [0.20.0] - 2026-08-06
 
 ### Fixed
