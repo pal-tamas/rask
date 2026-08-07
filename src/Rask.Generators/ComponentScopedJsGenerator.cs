@@ -26,7 +26,9 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask017 = new(
         "RASK017",
         "Orphan scoped-JS file",
-        "Scoped-JS file '{0}' has no matching component class. Expected a Component subclass named '{1}' in the same folder.",
+        "Scoped-JS file '{0}' has no matching component class — add a Component subclass named '{1}' in the "
+        + "same folder, rename the file to match one, or set "
+        + "<RaskScopedJsAutoInclude>false</RaskScopedJsAutoInclude> if it is a plain wwwroot script",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,

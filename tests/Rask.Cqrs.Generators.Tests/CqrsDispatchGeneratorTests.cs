@@ -101,6 +101,50 @@ public sealed class CqrsDispatchGeneratorTests
         Assert.Contains(run.Diagnostics, d => d.Id == "RASK029");
     }
 
+    /// <summary>
+    ///     RASK029 is a <em>Warning</em> that says production will throw: the handler is skipped, so
+    ///     dispatching its request fails at runtime. A warning you can miss, announcing a crash and not how
+    ///     to avoid it, is the worst shape a diagnostic has — so the remedy is part of the contract (#608).
+    /// </summary>
+    [Theory]
+    // reason under test                              // the remedy it must carry
+    [InlineData("private PrivateHandler() { }", "public constructor")]
+    public void RASK029_says_how_to_fix_it(string body, string remedy)
+    {
+        var run = CqrsGeneratorFixture.Run(Preamble + $$"""
+            public sealed record GetValue : IQuery<int>;
+            public sealed class PrivateHandler : IQueryHandler<GetValue, int>
+            {
+                {{body}}
+                public Task<int> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult(1);
+            }
+            """);
+
+        var message = run.Diagnostics.First(d => d.Id == "RASK029").GetMessage();
+        Assert.Contains(" — ", message, StringComparison.Ordinal);
+        Assert.Contains(remedy, message, StringComparison.Ordinal);
+    }
+
+    /// <inheritdoc cref="RASK029_says_how_to_fix_it" />
+    [Fact]
+    public void RASK029_on_an_inaccessible_handler_says_how_to_fix_it()
+    {
+        var run = CqrsGeneratorFixture.Run(Preamble + """
+            public sealed record GetValue : IQuery<string>;
+            public class Outer
+            {
+                private sealed class Handler : IQueryHandler<GetValue, string>
+                {
+                    public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
+                }
+            }
+            """);
+
+        var message = run.Diagnostics.First(d => d.Id == "RASK029").GetMessage();
+        Assert.Contains(" — ", message, StringComparison.Ordinal);
+        Assert.Contains("public or internal", message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Discovers_a_record_handler()
     {

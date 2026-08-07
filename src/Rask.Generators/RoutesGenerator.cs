@@ -108,7 +108,9 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask011 = new(
         "RASK011",
         "Route/query param type must implement IParsable<T>",
-        "Property '{0}.{1}' of type '{2}' must be 'string' or implement 'System.IParsable<{2}>' to be bound by [RouteParam]/[QueryParam]",
+        "Property '{0}.{1}' of type '{2}' must be 'string' or implement 'System.IParsable<{2}>' to be bound "
+        + "by [RouteParam]/[QueryParam] — use a parsable type (int, Guid, DateOnly, an enum, your own "
+        + "IParsable<T>), or accept it as 'string' and convert inside the page",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,
@@ -1261,7 +1263,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         {
             if (seg.Length == 0)
             {
-                error = "empty segment";
+                error = "empty segment — remove the doubled '/', e.g. \"/users/{id:int}\"";
                 return false;
             }
 
@@ -1270,7 +1272,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                 var inner = seg.Substring(1, seg.Length - 2);
                 if (inner.StartsWith("**", StringComparison.Ordinal))
                 {
-                    error = "catch-all '{**...}' segments are not supported in typed routes";
+                    error = "catch-all '{**...}' segments are not supported in typed routes — name the segments you need, e.g. \"/files/{folder}/{name}\", or match the rest inside the page";
                     return false;
                 }
 
@@ -1296,7 +1298,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
                 if (name.Length == 0)
                 {
-                    error = "param has no name";
+                    error = "param has no name — name it, e.g. \"/users/{id}\" or \"/users/{id:guid?}\"";
                     return false;
                 }
 
@@ -1304,7 +1306,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             }
             else if (seg.IndexOf('{') >= 0 || seg.IndexOf('}') >= 0)
             {
-                error = "mixed literal/param segments are not supported";
+                error = "mixed literal/param segments are not supported — give the parameter its own segment, e.g. \"/order/{id}\" rather than \"/order-{id}\"";
                 return false;
             }
             else

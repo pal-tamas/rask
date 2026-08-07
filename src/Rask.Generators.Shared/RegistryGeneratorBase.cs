@@ -26,7 +26,7 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask035 = new(
         "RASK035",
         "Job or outbox event type cannot be registered",
-        "{0} type '{1}' {2}; it is skipped, so it will fail to deserialize and dead-letter at runtime",
+        "{0} type '{1}' {2}; it is skipped, so it will fail to deserialize and dead-letter at runtime — {3}",
         "Rask.Generators",
         DiagnosticSeverity.Warning,
         true,
@@ -98,13 +98,13 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
             return null;
         }
 
-        var problem = SymbolRegistration.DescribeUnregisterable(symbol);
-        if (problem is not null)
+        if (SymbolRegistration.DescribeUnregisterableWithRemedy(symbol) is { } unregisterable)
         {
             return new Candidate(
                 Key: null,
                 TypeExpression: null,
-                Problem: problem,
+                Problem: unregisterable.Problem,
+                Remedy: unregisterable.Remedy,
                 DisplayName: SymbolRegistration.RuntimeName(symbol),
                 Noun: noun,
                 Location: SymbolLocation.From(symbol));
@@ -114,6 +114,7 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
             Key: SymbolRegistration.RuntimeName(symbol),
             TypeExpression: SymbolRegistration.TypeExpression(symbol),
             Problem: null,
+            Remedy: null,
             DisplayName: SymbolRegistration.RuntimeName(symbol),
             Noun: noun,
             Location: null);
@@ -139,7 +140,8 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
                     candidate.Location?.ToLocation(),
                     candidate.Noun,
                     candidate.DisplayName,
-                    candidate.Problem));
+                    candidate.Problem,
+                    candidate.Remedy));
             }
         }
 
@@ -202,6 +204,7 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
         string? Key,
         string? TypeExpression,
         string? Problem,
+        string? Remedy,
         string DisplayName,
         string Noun,
         SymbolLocation? Location);

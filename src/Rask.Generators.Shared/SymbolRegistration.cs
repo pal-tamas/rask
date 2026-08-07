@@ -65,22 +65,31 @@ internal static class SymbolRegistration
     /// <c>Outer&lt;T&gt;.Inner</c> leaks <c>T</c> into the generated file), a file-local type, or anything
     /// private or protected at any level of its containing chain.
     /// </remarks>
-    public static string? DescribeUnnameable(ITypeSymbol symbol)
+    public static string? DescribeUnnameable(ITypeSymbol symbol) =>
+        DescribeUnnameableWithRemedy(symbol)?.Problem;
+
+    /// <inheritdoc cref="DescribeUnnameable" />
+    /// <remarks>
+    /// Paired with its remedy for the same reason as
+    /// <see cref="DescribeUnregisterableWithRemedy" /> — see there.
+    /// </remarks>
+    public static (string Problem, string Remedy)? DescribeUnnameableWithRemedy(ITypeSymbol symbol)
     {
         switch (symbol)
         {
             case ITypeParameterSymbol:
-                return "refers to an unsubstituted type parameter";
+                return ("refers to an unsubstituted type parameter",
+                    "use a closed type — generated code cannot name a type parameter it has no value for");
 
             case IArrayTypeSymbol array:
-                return DescribeUnnameable(array.ElementType);
+                return DescribeUnnameableWithRemedy(array.ElementType);
 
             case INamedTypeSymbol named:
                 // A file-local type is invisible outside its own file, so the generated registry can't
                 // name it — and its FullName carries a synthesized "<file>F0__" segment anyway.
                 if (named.IsFileLocal)
                 {
-                    return "is a file-local type";
+                    return ("is a file-local type", "remove the 'file' modifier");
                 }
 
                 for (INamedTypeSymbol? type = named; type is not null; type = type.ContainingType)
@@ -92,17 +101,19 @@ internal static class SymbolRegistration
                         or Accessibility.ProtectedOrInternal))
                     {
                         return ReferenceEquals(type, named)
-                            ? "is not accessible from generated code"
-                            : $"is nested inside the inaccessible type '{RuntimeName(type)}'";
+                            ? ("is not accessible from generated code", "make it public or internal")
+                            : ($"is nested inside the inaccessible type '{RuntimeName(type)}'",
+                                $"make '{RuntimeName(type)}' public or internal, or move it out of it");
                     }
 
                     foreach (var argument in type.TypeArguments)
                     {
-                        if (DescribeUnnameable(argument) is { } reason)
+                        if (DescribeUnnameableWithRemedy(argument) is { } reason)
                         {
                             return ReferenceEquals(type, named)
                                 ? reason
-                                : $"is nested inside the generic type '{RuntimeName(type)}'";
+                                : ($"is nested inside the generic type '{RuntimeName(type)}'",
+                                    $"move it out of '{RuntimeName(type)}' to a non-generic scope");
                         }
                     }
                 }
@@ -126,21 +137,39 @@ internal static class SymbolRegistration
     /// <see cref="INamedTypeSymbol.IsGenericType"/> only so the reported reason is accurate:
     /// <c>IsGenericType</c> conflates "has type parameters" with "is nested in something that does".
     /// </remarks>
-    public static string? DescribeUnregisterable(INamedTypeSymbol symbol)
+    public static string? DescribeUnregisterable(INamedTypeSymbol symbol) =>
+        DescribeUnregisterableWithRemedy(symbol)?.Problem;
+
+    /// <summary>
+    /// The reason <paramref name="symbol"/> cannot be put in a name-keyed generated registry paired with
+    /// what to do about it, or <see langword="null"/> when it can.
+    /// </summary>
+    /// <remarks>
+    /// Both halves come from one <c>switch</c> so they cannot drift: every diagnostic that reports one of
+    /// these phrases (RASK029, RASK035) is a <i>Warning</i> announcing a guaranteed production failure —
+    /// the type is skipped, so dispatching or deserializing it throws — and a warning you can miss, telling
+    /// you a crash is coming and not how to avoid it, is the worst shape a diagnostic has. The generator
+    /// already knows the remedy in every case; it just wasn't saying it (#608).
+    /// <para>
+    /// <see cref="DescribeUnregisterable"/> stays as the problem-only accessor because existing tests and
+    /// message formats are written against those exact phrases.
+    /// </para>
+    /// </remarks>
+    public static (string Problem, string Remedy)? DescribeUnregisterableWithRemedy(INamedTypeSymbol symbol)
     {
         if (symbol.IsAbstract)
         {
-            return "is abstract";
+            return ("is abstract", "make it a concrete type, or register the concrete subtype instead");
         }
 
         if (symbol.IsStatic)
         {
-            return "is a static type";
+            return ("is a static type", "make it a non-static class");
         }
 
         if (symbol.TypeKind is not (TypeKind.Class or TypeKind.Struct))
         {
-            return "is not a class or struct";
+            return ("is not a class or struct", "declare it as a class or a struct");
         }
 
         for (INamedTypeSymbol? type = symbol; type is not null; type = type.ContainingType)
@@ -148,12 +177,15 @@ internal static class SymbolRegistration
             if (type.Arity > 0)
             {
                 return ReferenceEquals(type, symbol)
-                    ? "is a generic type"
-                    : $"is nested inside the generic type '{RuntimeName(type)}'";
+                    ? ("is a generic type",
+                        "make it non-generic — a registry is keyed by name, and a closed generic's runtime "
+                        + "name carries assembly-qualified type arguments no key can match")
+                    : ($"is nested inside the generic type '{RuntimeName(type)}'",
+                        $"move it out of '{RuntimeName(type)}' to a non-generic scope");
             }
         }
 
-        return DescribeUnnameable(symbol);
+        return DescribeUnnameableWithRemedy(symbol);
     }
 
     /// <summary>True when <paramref name="symbol"/> can be put in a name-keyed generated registry.</summary>
