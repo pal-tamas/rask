@@ -35,6 +35,9 @@ let root = null;
 // build, where hot reload is unsupported and nothing ever calls it — see #565.
 // @@RASK_HOTRELOAD@@
 
+// The development error panel (showDevError / hideDevError), shared with the Server runtime.
+// @@RASK_DEVERROR@@
+
 // ----- The diff codec: applyDiff(ops, names) + applyFrameInvokes(reply, dispatchOne) — rask-dom.js -----
 // @@RASK_DOM@@
 

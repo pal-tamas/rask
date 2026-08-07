@@ -67,9 +67,39 @@ internal sealed class RootErrorBoundary : Component
         // because the common fault is a handler that threw rather than a render that cannot succeed, so
         // the tree is intact and recovering keeps the session, the state and the scroll position that a
         // reload throws away.
+        // The boundary is resolved explicitly rather than through the generated factory because the
+        // fallback needs to ask it HOW it was tripped (see below), and the factory's delegate only
+        // receives the exception and Recover. Same positional identity either way: GetOrCreate keys on
+        // (type, position) and this is the second and last GetOrCreate in this method, every render.
+        var boundary = (ErrorBoundary)ctx.GetOrCreate(typeof(ErrorBoundary), static _ => new ErrorBoundary());
+
         RenderedFallback = false;
-        return F.ErrorBoundary((ex, recover) =>
+        boundary.SetProps([inner], (ex, recover) =>
         {
+            // In development, a fault the tree survived is shown OVER the app instead of replacing it.
+            //
+            // The full-document swap is right in production and wrong in development, where a handler
+            // that throws is the common case rather than the exceptional one: it takes the scroll
+            // position, the form input, the expanded panels and the route with it, so the developer
+            // loses the state that produced the bug at the moment they most want to look at it. React's
+            // and Next's dev overlays leave the app mounted for exactly this reason.
+            //
+            // Only for a fault the tree SURVIVED. After a render fault, re-rendering the subtree that
+            // just threw would only throw again — so a render fault still replaces the page, in
+            // development as in production, which is the honest outcome.
+            if (boundary is { Source: not ErrorSource.Render }
+                && DevErrorInfo.From(ex, boundary.Source == ErrorSource.Handler ? "handler" : "lifecycle")
+                    is { } devError)
+            {
+                ctx.ReportDevError(devError);
+
+                // Clear without asking for a render: this render is already in flight and is about to
+                // show the app. Recover() would signal one, and the signal would land while the walk
+                // that set it is still running.
+                boundary.ClearErrorInRender();
+                return inner;
+            }
+
             RenderedFallback = true;
             return F.Fragment()[
                 F.Doctype(),
@@ -82,6 +112,8 @@ internal sealed class RootErrorBoundary : Component
                     F.Body()[new DefaultErrorPage(ex, recover)]
                 ]
             ];
-        })[inner];
+        });
+
+        return boundary;
     }
 }

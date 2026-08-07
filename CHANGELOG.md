@@ -291,6 +291,28 @@ them until tagged releases begin.
   coordinator announces only when they did. A missing pill is the honest signal — nothing visibly changed,
   because nothing did. Partially addresses #603.
 
+### Added
+- **In development, a fault the tree survived is shown *over* the app instead of replacing it (#607).** The
+  full-document swap is right in production and wrong in development, where a handler that throws is the
+  common case rather than the exceptional one: it takes the scroll position, the form input, the expanded
+  panels and the route with it, at the moment you most want to look at the state that produced the bug.
+  The app now stays mounted and live behind a dismissible panel carrying the exception type, the message
+  and a collapsible stack — the shape React's and Next's dev overlays settled on, and for the same reason.
+  - **Only for a fault the tree survived.** A *render* fault still replaces the page, in development as in
+    production: re-rendering the subtree that just threw would only throw again. `ErrorBoundary` now
+    records whether it was tripped by a render, a handler or an async lifecycle hook, which is what makes
+    that distinction possible at all.
+  - **It rides inside the render payload**, not a new frame — the same reasoning as `resume`, `history`
+    and `auth`. The frame stream is a documented contract, and an extra frame is observable in ways an
+    extra field is not. Its bytes are discounted from the diff-vs-full comparison for the same reason the
+    resume record's are: it sits on both sides, so counting it only against the diff would ship the whole
+    body precisely when a minimal frame is most readable.
+  - **Both dedup gates now let it through.** A click whose only effect was the exception renders
+    byte-identical HTML, so without this the overlay would never arrive in the simplest case of all.
+  - Production is unchanged and cannot leak: `DevErrorInfo.From` returns `null` outside development, so no
+    stack trace can reach a browser even if a call site forgot to check, and the client requires the
+    `data-rask-dev` flag as a second, independent gate.
+
 ## [0.20.0] - 2026-08-06
 
 ### Fixed

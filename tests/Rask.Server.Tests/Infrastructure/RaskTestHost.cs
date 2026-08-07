@@ -43,6 +43,12 @@ internal sealed class RaskTestHost : IDisposable
         // into subsequent tests in the same AppDomain. Cheap; matches the
         // existing Diff-mode reset convention.
         LiveOptions.PathBase = string.Empty;
+
+        // Same reason, and sharper: UseRask sets IsDevelopment with `??=`, so it is claimed by the FIRST
+        // host in the process and never revised. Left set, one host built with environment "Development"
+        // would decide what every later host in the run reports — and the dev-only behaviour gated on it
+        // (the error overlay, the dev error page) would then be tested against somebody else's answer.
+        LiveOptions.IsDevelopment = null;
     }
 
     public static RaskTestHost Create<TApp>(

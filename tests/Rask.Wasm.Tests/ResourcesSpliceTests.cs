@@ -16,6 +16,7 @@ public sealed class ResourcesSpliceTests
         var inputPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-input.js");
         var scopedPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-scoped.js");
         var hotReloadPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-hotreload.js");
+        var devErrorPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-deverror.js");
         var browserPath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "rask.wasm.js");
 
         var template = File.ReadAllText(templatePath);
@@ -28,6 +29,7 @@ public sealed class ResourcesSpliceTests
         var input = File.ReadAllText(inputPath);
         var scoped = File.ReadAllText(scopedPath);
         var hotReload = File.ReadAllText(hotReloadPath);
+        var devError = File.ReadAllText(devErrorPath);
         var committed = File.ReadAllText(browserPath);
 
         // Mirror the marker splice order in _RaskSpliceClientJs (Rask.Wasm.csproj): the diff codec
@@ -46,7 +48,8 @@ public sealed class ResourcesSpliceTests
             .Replace("// @@RASK_WASM_API@@", wasmApi)
             .Replace("// @@RASK_INPUT@@", input)
             .Replace("// @@RASK_SCOPED@@", scoped)
-            .Replace("// @@RASK_HOTRELOAD@@", hotReload);
+            .Replace("// @@RASK_HOTRELOAD@@", hotReload)
+            .Replace("// @@RASK_DEVERROR@@", devError);
 
         Assert.True(
             spliced == committed,
