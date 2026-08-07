@@ -162,6 +162,20 @@ them until tagged releases begin.
   how `LiveTicker` walked past it. The new check holds one instance and reads it again after its timers have
   fired, and names the line that moved. It found two offenders on its first run: the ticker, and the
   `ToHtml()` corruption above.
+- **The browser gate no longer depends on Google's font CDN, which is what #625 turned out to be.** The
+  showcase shell links three font families with `display=swap`. Swap means paint with the fallback now and
+  **reflow** when each webfont lands — several files, over the public internet, on a page the journey
+  throttles to Slow-3G. Every arrival moves the text and therefore the bounding box of everything below it,
+  and Playwright's actionability check requires a box that is identical across two consecutive animation
+  frames. Hence a 30s `element is not stable` on whichever guide page the walk had reached, on all three
+  hosts (they share the shell), with the text assertions on the very same subtree passing — `innerText`
+  does not care what font it is in. The journey now aborts requests to `fonts.googleapis.com` /
+  `fonts.gstatic.com`, so the page renders in the fallback immediately and settles once. No assertion is
+  about typography, and "the browser gate is green" no longer includes "a third-party CDN was fast today".
+  - **The gate had also been green for the wrong reason.** Capturing a Playwright screenshot on every
+    action was settling the page: with screenshots on the suite ran 3/3 green and with them off 4/4 red,
+    same machine and commit, back to back. Traces now record snapshots only — `TestArtifacts` already
+    writes a full-page PNG per test, and what a stuck journey needs is the DOM.
 
 ## [0.20.0] - 2026-08-06
 
