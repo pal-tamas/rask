@@ -26,15 +26,21 @@ public abstract partial class Component
     ///     Builds an entry's instance the same way the generated factory does.
     /// </summary>
     /// <remarks>
-    ///     Routing through <see cref="LiveRenderContext.GetOrCreate{T}" /> is not optional: identity is
+    ///     Routing through <c>LiveRenderContext.GetOrCreateEntry</c> is not optional: identity is
     ///     positional per (parent, type), and it is what makes the render cache and reconciliation reuse
     ///     an instance across renders. A bare <c>new()</c> here compiles and renders identical HTML in a
     ///     detached <c>ToHtml()</c> tree (which has no context), then silently defeats the cache in a
     ///     live session. <c>protected</c> rather than private because the generator injects entries for
     ///     a consumer's own components into that consumer's partial class, in another assembly.
+    ///     <para>
+    ///         It also arms the parent's deferred commit. An entry cannot call <c>NotifyParameters</c>
+    ///         the way a factory does — the props arrive afterwards, one setter at a time, and the chain
+    ///         has no natural end — so lifecycle and <c>PropsDirty</c> are fired for it when the parent's
+    ///         <c>Render()</c> returns and the chain is provably finished.
+    ///     </para>
     /// </remarks>
     protected static T Entry<T>() where T : Component, new() =>
-        LiveRenderContext.Current is { } ctx ? ctx.GetOrCreate<T>(static _ => new T()) : new T();
+        LiveRenderContext.Current is { } ctx ? ctx.GetOrCreateEntry<T>(static _ => new T()) : new T();
 
     /// <summary>
     ///     The entry for a component whose only constructor takes injected services.
@@ -51,7 +57,7 @@ public abstract partial class Component
     {
         if (LiveRenderContext.Current is { } ctx)
         {
-            return ctx.GetOrCreate<T>(static sp =>
+            return ctx.GetOrCreateEntry<T>(static sp =>
                 Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(sp));
         }
 

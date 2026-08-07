@@ -239,6 +239,18 @@ public sealed class LiveRenderContext : IDisposable
         return parent.GetOrCreateChild(type, factory, Services, _handle);
     }
 
+    // The builder surface's GetOrCreate. Identical identity rules — same positional GetOrCreateChild —
+    // but it also arms the parent's deferred commit, because an entry cannot call NotifyParameters the
+    // way a factory does: its props arrive afterwards, through the setter chain. The parent fires it
+    // for every entry-built child the moment its Render() returns (Component.RenderForLive).
+    internal T GetOrCreateEntry<T>(Func<IServiceProvider, T> factory) where T : Component
+    {
+        var parent = CurrentParent;
+        var child = parent.GetOrCreateChild(factory, Services, _handle);
+        parent.ArmEntryCommitInternal();
+        return child;
+    }
+
     public void NotifyParameters(Component component, bool propsChanged) =>
         component.RaiseLifecycleBeforeRender(propsChanged);
 

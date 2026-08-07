@@ -53,6 +53,23 @@ them until tagged releases begin.
   plain/controlled calls that have no chain equivalent yet are qualified as
   `Rask.Core.Components.Generated.Input<…>(…)`. RASK025 and RASK026 now recognise the builder chain
   (`.Type(…)`, `.AfterBind(…)`) as well as the factory arguments.
+  **Entries now fire the lifecycle the factory fires, and dirty the render cache the way it does.**
+  A generated factory does three things — `GetOrCreate`, assign the props, `NotifyParameters` — because
+  it knows where the assignments end. An entry could only do the first: `Div.Class("a").Id("b")` might
+  take another setter or the `[…]` indexer, so a setter chain has no natural end and there was nowhere
+  to notify from. The consequence was invisible while every migrated call site was a tag (an element is
+  never reached through the render cache at all) and would have bitten the moment a *stateful* component
+  was built through an entry: no `OnMount`, no `OnPropsChanged`, and — because `Live.PropsDirty` was
+  never set — a child served from last frame's cached render after its props changed. Entries now defer
+  that half to the first point at which the chain is provably finished: the moment the parent's
+  `Render()` returns, which is also still before the child is walked, so this is the factory's ordering
+  rather than an approximation. Each folding setter accumulates its own `EqualityComparer` delta in
+  place of the factory's one-shot fold, with the same exclusions — `Key` is a reconciliation identity,
+  and auto-wrapped callbacks, raw delegates and carrier props are a fresh closure every render, so
+  folding them would report a change every frame and defeat the cache outright. Costs nothing measurable:
+  the two flags land in `LiveState`'s existing padding (retained bytes per live session unchanged to the
+  byte across the 0/5/200/1,000-row sweep), and the factory path only gains one bool test per component
+  render (`LiveRenderRoundTripBenchmarks` allocation identical on all four shapes).
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

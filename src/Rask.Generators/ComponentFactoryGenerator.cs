@@ -192,7 +192,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         foreach (var s in host.Shared)
         {
-            EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true);
+            EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
+                fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false));
         }
 
         foreach (var c in candidates.OrderBy(c => c.TypeName, StringComparer.Ordinal))
@@ -222,6 +223,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 }
 
                 EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate, p.IsAutoRerenderDelegate, generic: false,
+                    FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
                     c.TypeParameters, c.TypeParameterConstraints, visibility);
             }
 
@@ -263,10 +265,25 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             // typeFqn is the delegate itself, so CarrierDelegate finds nothing and the setter assigns it
             // straight to the carrier prop through the carrier's implicit conversion.
+            // fold: false — the bound members are a fresh expression tree / delegate every render, so
+            // folding them would report propsChanged on every frame. Exactly what EmitBoundOverload's
+            // foldProps does (only the shared display props participate there too).
             EmitSetter(sb, name, typeFqn, c.FullyQualifiedName, isDelegate: false, wrap: false, generic: false,
-                c.TypeParameters, c.TypeParameterConstraints, visibility);
+                fold: false, c.TypeParameters, c.TypeParameterConstraints, visibility);
         }
     }
+
+    // Which props participate in the propsChanged diff, asked of a builder setter. Mirrors the
+    // factory's foldProps exactly (EmitFactory / EmitBoundOverload) so both surfaces report the same
+    // flag to NotifyParameters: Key is a reconciliation identity rather than a reactive prop;
+    // auto-wrapped callbacks and raw delegates are a fresh closure every render, so folding them would
+    // force propsChanged: true on every frame and defeat the render cache for any callback-taking
+    // component; a carrier prop wraps one of those.
+    private static bool FoldsIntoPropsChanged(string name, string typeFqn, bool isDelegate, bool autoRerender) =>
+        !string.Equals(name, "Key", StringComparison.Ordinal)
+        && !isDelegate
+        && !autoRerender
+        && CarrierDelegate(typeFqn) is null;
 
     // A delegate-typed property is invocable, so an extension of the same name loses to it (CS1593).
     // Until those props move to a non-delegate carrier, their setters drop the `On` prefix.
@@ -278,6 +295,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool isDelegate,
         bool wrap,
         bool generic,
+        bool fold,
         string typeParameters = "",
         string constraints = "",
         string visibility = "public")
@@ -305,6 +323,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             : "value";
         var assigned = carrier is null ? value : "new " + StripNullable(typeFqn) + "(" + value + ")";
 
+        // The propsChanged fold, one prop at a time. The factory can snapshot every prop, assign them
+        // all and diff once, because it knows where the assignments end; a setter chain does not, so
+        // each folding setter accumulates its own delta and the parent fires the single notification
+        // when its Render() returns (Component.RenderForLive). Same EqualityComparer semantics, and the
+        // non-folding props (Key, delegates, carriers) emit no call at all — see FoldsIntoPropsChanged.
+        var track = fold
+            ? "global::Rask.Core.BuilderRuntime.Track(__c, __c." + EscapeIdentifier(name) + ", value); "
+            : string.Empty;
+
         // An `internal` component cannot appear in a `public` signature (CS0050/CS0051), so the
         // setter's accessibility tracks its component's — the same rule the factory emission uses.
         sb.Append("    ").Append(visibility).Append(" static ");
@@ -312,16 +339,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             sb.Append("T ").Append(EscapeIdentifier(setterName)).Append("<T>(this T __c, ").Append(paramType)
                 .Append(" value) where T : ").Append(receiver);
-            sb.Append(" { __c.").Append(EscapeIdentifier(name)).Append(" = ").Append(assigned)
-                .AppendLine("; return __c; }");
+            sb.Append(" { ").Append(track).Append("__c.").Append(EscapeIdentifier(name)).Append(" = ")
+                .Append(assigned).AppendLine("; return __c; }");
             return;
         }
 
         sb.Append(receiver).Append(' ').Append(EscapeIdentifier(setterName)).Append(typeParameters)
             .Append("(this ").Append(receiver).Append(" __c, ").Append(paramType).Append(" value)")
             .Append(constraints);
-        sb.Append(" { __c.").Append(EscapeIdentifier(name)).Append(" = ").Append(assigned)
-            .AppendLine("; return __c; }");
+        sb.Append(" { ").Append(track).Append("__c.").Append(EscapeIdentifier(name)).Append(" = ")
+            .Append(assigned).AppendLine("; return __c; }");
     }
 
     // Maps a carrier prop (Handler / HandlerAsync / Carrier<TDelegate>) to the delegate it carries.

@@ -837,10 +837,79 @@ public abstract partial class Component
         // attribute back to this component.
         Live.CachedRenderResult = Render();
 
+        // Builder-surface commit point. A generated FACTORY assigns every prop and then calls
+        // NotifyParameters itself, because it knows when the props are done. A setter chain has no
+        // natural end — `Div.Class("a").Id("b")` could take another setter or the `[...]` indexer — so
+        // the entries defer that half to here: the moment Render() returns, every chain it built is
+        // complete and nothing can touch those props again before the walk reaches them.
+        //
+        // This is the exact factory ordering, not an approximation: the factory notifies during the
+        // parent's Render(), i.e. with the same ambient state (no Context provider pushed yet, since
+        // providers are pushed by the serializer) and always before the child is walked. Which is what
+        // makes Live.PropsDirty land in time for RenderForLive's cache check and TryReplayCleanSubtree
+        // on the child, and why a child that was built but then dropped from the tree still mounts.
+        //
+        // Gated on a flag armed by the entries themselves (LiveRenderContext.GetOrCreateEntry), so a
+        // tree built entirely from factories never walks the child map here.
+        if (Live.HasEntryChildren)
+        {
+            CommitEntryChildren();
+        }
+
         Live.PropsDirty = false;
         Live.StateDirty = false;
         return Live.CachedRenderResult;
     }
+
+    // Fires the deferred NotifyParameters for every child a builder entry produced during the Render()
+    // that just finished. Kept out of RenderForLive so the hot path is a single bool test.
+    private void CommitEntryChildren()
+    {
+        Live.HasEntryChildren = false;
+        if (_live?.Children is not { Count: > 0 } children)
+        {
+            return;
+        }
+
+        foreach (var child in children.Values)
+        {
+            child.CommitEntry();
+        }
+    }
+
+    // The child half of the commit. `!HasInitialized` is the mount signal and needs no flag of its own:
+    // a factory-built child was already notified inside Render(), so it is initialized and this is a
+    // no-op — RaiseLifecycleBeforeRender(false) on an initialized component does nothing at all.
+    private void CommitEntry()
+    {
+        // No LiveState means the child never reached GetOrCreate (nothing to notify) — the same
+        // no-context case in which the factory skips NotifyParameters too.
+        if (_live is not { } state || (state.HasInitialized && !state.EntryPropsChanged))
+        {
+            return;
+        }
+
+        var propsChanged = state.EntryPropsChanged;
+        state.EntryPropsChanged = false;
+        RaiseLifecycleBeforeRender(propsChanged);
+    }
+
+    // Armed by LiveRenderContext.GetOrCreateEntry on the component whose Render() is building the tree.
+    internal void ArmEntryCommitInternal() => Live.HasEntryChildren = true;
+
+    /// <summary>
+    ///     Records that a builder setter wrote a value different from the one already on this component,
+    ///     so the deferred commit reports <c>propsChanged: true</c>.
+    /// </summary>
+    /// <remarks>
+    ///     The generated setters call this through <see cref="BuilderRuntime" /> (they are emitted into
+    ///     the global namespace of every consuming assembly, so the entry point has to be public). It is
+    ///     the setter-chain equivalent of the factory's <c>__propsChanged</c> fold: same
+    ///     <see cref="EqualityComparer{T}" /> semantics, same exclusions — <c>Key</c>, auto-wrapped
+    ///     callbacks, raw delegates and carrier props never fold, so the generator simply does not emit
+    ///     the call for them.
+    /// </remarks>
+    internal void MarkEntryPropsChangedInternal() => Live.EntryPropsChanged = true;
 
     // Phase B clean-subtree frame replay. A user component whose last render was cached as a frame
     // span (pure elements, no handlers, no nested user components — see TryCacheCleanSubtree) re-emits
@@ -2185,6 +2254,17 @@ public abstract partial class Component
         public Dictionary<(Type, int), Component>? PreviousChildren;
         public bool PropsDirty;
         public bool StateDirty;
+
+        // Builder surface. Two more bools rather than a wider record: LiveState is allocated per node
+        // on a mounted page, and these two land in the padding the six above already leave behind — so
+        // the deferred-commit machinery costs nothing per node (see the note on Cached).
+        //
+        // EntryPropsChanged: a folding setter wrote a different value since the last commit (the
+        // setter-chain equivalent of the factory's __propsChanged). HasEntryChildren: at least one
+        // child of THIS component came from a builder entry during the Render() now in flight, so the
+        // post-Render commit loop has work to do.
+        public bool EntryPropsChanged;
+        public bool HasEntryChildren;
     }
 }
 
