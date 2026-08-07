@@ -24,7 +24,7 @@ public sealed partial class BsTextarea<T> : BsFormControl<T>
         var controlId = ControlId(b);
         var cls = BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null, Class);
 
-        var control = Textarea<string>(
+        var control = Rask.Core.Components.Generated.Textarea<string>(
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
             Placeholder: Placeholder, Rows: Rows, Cols: Cols, Disabled: Disabled, ReadOnly: ReadOnly,

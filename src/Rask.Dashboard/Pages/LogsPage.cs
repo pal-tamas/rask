@@ -235,7 +235,7 @@ public sealed partial class LogsPage(
     }
 
     private Component SearchBox() =>
-        Input<string>(
+        Rask.Core.Components.Generated.Input<string>(
             Type: InputType.Search,
             Class: "form-control form-control-sm",
             Style: "max-width:18rem",

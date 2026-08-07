@@ -46,7 +46,7 @@ public sealed partial class BsInput<T> : BsFormControl<T>
         // value, so `typeof(T)` in there is `string` and its own default step would never see the decimal.
         var derivedType = DeriveType();
 
-        var control = Input<string>(
+        var control = Rask.Core.Components.Generated.Input<string>(
             Type: derivedType,
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),

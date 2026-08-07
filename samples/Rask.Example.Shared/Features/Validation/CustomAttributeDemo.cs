@@ -28,17 +28,17 @@ public sealed partial class CustomAttributeDemo : Component
             DataAnnotationsValidator(),
             Div()[
                 Label("v12-username", Class: "form-label small mb-1")["Username"],
-                Input(() => _model.Username, Id: "v12-username", Class: "form-control"),
+                Input(() => _model.Username).Id("v12-username").Class("form-control"),
                 ValidationMessage(() => _model.Username, FieldError)
             ],
             Div()[
                 Label("v12-password", Class: "form-label small mb-1")["Password"],
-                Input(() => _model.Password, Id: "v12-password", Type: InputType.Password, Class: "form-control"),
+                Input(() => _model.Password).Id("v12-password").Type(InputType.Password).Class("form-control"),
                 ValidationMessage(() => _model.Password, FieldError)
             ],
             Div()[
                 Label("v12-confirm", Class: "form-label small mb-1")["Confirm password"],
-                Input(() => _model.ConfirmPassword, Id: "v12-confirm", Type: InputType.Password, Class: "form-control"),
+                Input(() => _model.ConfirmPassword).Id("v12-confirm").Type(InputType.Password).Class("form-control"),
                 ValidationMessage(() => _model.ConfirmPassword, FieldError)
             ],
             Div()[

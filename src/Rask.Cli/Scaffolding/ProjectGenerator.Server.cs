@@ -946,8 +946,8 @@ internal static partial class ProjectGenerator
                     _error is null ? null : Div(Style: "color:#b00020")[_error],
                     // Async submit uses the generated OnValidSubmitAsync sibling (like Button's OnClickAsync).
                     Form(_model, OnValidSubmitAsync: SubmitAsync)[
-                        Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],
-                        Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: InputType.Password)],
+                        Div()[Label("username")["Username"], Input(() => _model.Username).Id("username")],
+                        Div()[Label("password")["Password"], Input(() => _model.Password).Id("password").Type(InputType.Password)],
                         Button("submit")["Sign in"]
                     ],
                     P()["Try alice / password (user) or root / password (admin)."]

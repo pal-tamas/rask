@@ -63,8 +63,10 @@ public sealed partial class InlineAsyncValidateDemo : Component
             })[
             Div()[
                 Label("v10-code", Class: "form-label small mb-1")["Promo code"],
-                Input(() => _model.Code, Id: "v10-code", Class: "form-control",
-                    Validate: CheckCodeAsync),
+                Input(() => _model.Code)
+                    .Id("v10-code")
+                    .Class("form-control")
+                    .ValidateAsync(CheckCodeAsync),
                 ValidatingIndicator(() => _model.Code, Checking),
                 ValidationMessage(() => _model.Code, FieldError)
             ],

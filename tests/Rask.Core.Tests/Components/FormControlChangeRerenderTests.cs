@@ -170,7 +170,7 @@ public class FormControlChangeRerenderTests
         {
             RenderCount++;
             return Div()[
-                Select<string>(OnChange: v => _pick = v)[
+                Rask.Core.Components.Generated.Select<string>(OnChange: v => _pick = v)[
                     Option("rask"), Option("blazor")
                 ],
                 Span()["Picked: ", _pick]
@@ -200,7 +200,7 @@ public class FormControlChangeRerenderTests
         {
             RenderCount++;
             return Div()[
-                Input<string>(OnChange: v => _text = v),
+                Rask.Core.Components.Generated.Input<string>(OnChange: v => _text = v),
                 Span()["Echo: ", _text]
             ];
         }
@@ -238,7 +238,7 @@ public class FormControlChangeRerenderTests
         {
             RenderCount++;
             return Div()[
-                new Wrapper { Body = [.. _names.Select((n, i) => Input<string>(Value: n, OnChange: v => _names[i] = v, Key: i))] },
+                new Wrapper { Body = [.. _names.Select((n, i) => Rask.Core.Components.Generated.Input<string>(Value: n, OnChange: v => _names[i] = v, Key: i))] },
                 Span()["Names: ", string.Join(",", _names)]
             ];
         }

@@ -96,7 +96,7 @@ same rule from one source:
 public static IEnumerable<string> Validate(decimal amount) { /* the one rule */ }
 
 // In the form (reused as a method group — see forms.md §3 for inline validation):
-Input(() => _form.Price, Validate: Money.Validate, Id: "p-price", Class: "form-control")
+Input(() => _form.Price).Validate(Money.Validate).Id("p-price").Class("form-control")
 ```
 
 The EF Core mapping lives in an `IEntityTypeConfiguration<Product>` (applied with

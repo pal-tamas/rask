@@ -19,10 +19,10 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
 
     // Bound mode (IFormControl members).
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
-    public Validate<ICollection<TItem>>? Validate { get; set; }
-    public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
-    public Action<ICollection<TItem>>? AfterBind { get; set; }
-    public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
+    public Carrier<Validate<ICollection<TItem>>>? Validate { get; set; }
+    public Carrier<ValidateAsync<ICollection<TItem>>>? ValidateAsync { get; set; }
+    public Carrier<Action<ICollection<TItem>>>? AfterBind { get; set; }
+    public Carrier<Func<ICollection<TItem>, Task>>? AfterBindAsync { get; set; }
 
     public Func<TItem, Component>? OptionLabel { get; set; }
     public string? Name { get; set; }
@@ -90,7 +90,7 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
             Component label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div(Class: wrapperClass, Key: index)[
-                Input<string>(
+                Rask.Core.Components.Generated.Input<string>(
                     InputType.Checkbox, groupName, BindingHelpers.FormatValue(option),
                     Checked: isChecked, Disabled: Disabled, Class: "form-check-input", Id: optionId,
                     Aria: optionAria,

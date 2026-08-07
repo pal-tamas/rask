@@ -8,18 +8,16 @@ public sealed partial class BindingClearDefaultDemo : Component
     [
         Div(Class: "mb-3")[
             Label("bind-clear-age", Class: "form-label small")["Age (non-nullable int) — clear → 0"],
-            Input(
-                () => _model.Age,
-                Id: "bind-clear-age",
-                Class: "form-control")
+            Input(() => _model.Age)
+                .Id("bind-clear-age")
+                .Class("form-control")
         ],
         Div(Class: "mb-3")[
             Label("bind-clear-optage", Class: "form-label small")["Optional age (int?) — clear → null"],
-            Input(
-                () => _model.OptionalAge,
-                Id: "bind-clear-optage",
-                Class: "form-control",
-                Placeholder: "leave empty for null")
+            Input(() => _model.OptionalAge)
+                .Id("bind-clear-optage")
+                .Class("form-control")
+                .Placeholder("leave empty for null")
         ],
         Pre(Class: "small mb-0 p-3 bg-light border rounded")[
             Code("bind-clear-echo")[

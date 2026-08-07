@@ -83,7 +83,7 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
         var cls = BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null, Class);
         var placeholder = Floating is true ? Placeholder ?? Label ?? " " : Placeholder;
 
-        var control = Input<string>(
+        var control = Rask.Core.Components.Generated.Input<string>(
             Type: type,
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
@@ -159,7 +159,7 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
         var showClear = CanClear && hasValue && !disabled;
         var floating = Floating is true && Label is not null;
 
-        var box = Input<string>(
+        var box = Rask.Core.Components.Generated.Input<string>(
             Type: InputType.Text,
             Class: BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null),
             Id: controlId,

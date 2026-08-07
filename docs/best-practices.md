@@ -116,7 +116,7 @@ mistake, the rule notes the ID.
 
 ## Forms & validation
 
-- **Bind two-way with a `Bind` expression.** `Input(Bind: () => _model.Name)` replaces `Value` +
+- **Bind two-way with a `Bind` expression.** `Input(() => _model.Name)` replaces `Value` +
   `OnInput`/`OnChange` + parsing, and infers the input type from the property's CLR type. `string`
   fields update per keystroke; other types update on blur. See [forms §1](forms.md#1-two-way-binding).
 - **Wrap inputs in `Form<TModel>` and add exactly one validator.** The form owns the `EditContext`
@@ -129,14 +129,14 @@ mistake, the rule notes the ID.
   trap:
   ```csharp
   foreach (var item in _model.Items)
-      rows.Add(Tr()[Td()[Input(Bind: () => item.Description)]]);
+      rows.Add(Tr()[Td()[Input(() => item.Description)]]);
   ```
   Only reach for the indexer style (`() => _model.Items[i].Name`) when you need the row number or
   replace records rather than mutate them — and then copy the loop index into a per-iteration local.
   See [forms §7](forms-advanced.md#nested--complex-models).
 - **Reuse one validation rule across the form and the domain.** A value object that exposes its rule
   as a `static IEnumerable<string> Validate(T value)` (the shape of an inline validator) can be
-  passed as a method group to `Input(Validate: Money.Validate)` *and* enforced inside the aggregate —
+  passed as a method group to `Input(() => _form.Price).Validate(Money.Validate)` *and* enforced inside the aggregate —
   one source of truth. See [data access](data-access.md#how-the-sample-is-organised).
 
 ## Routing & lifecycle

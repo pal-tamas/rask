@@ -309,11 +309,11 @@ A generic `Input<T>` derives its HTML input `type` from `T` (`bool`→checkbox, 
 
 ```csharp
 // ✗ Age is int — a number input can't be an email field:
-Input(() => model.Age, Type: InputType.Email)
+Input(() => model.Age).Type(InputType.Email)
 // ✓ let the type derive from T (int → number):
 Input(() => model.Age)
 // ✓ or use a string-only type on a string field:
-Input(() => model.Email, Type: InputType.Email)
+Input(() => model.Email).Type(InputType.Email)
 ```
 
 **Fix:** drop the explicit `Type` (it's inferred from `T`), or bind a `string`. The warning fires only
@@ -332,9 +332,9 @@ or the `AfterBind`/`AfterBindAsync` hooks is dead weight. The tell-tale anti-pat
 
 ```csharp
 // ✗ redundant — the framework re-renders this component after OnChange runs:
-Select<string>(Value: _pick, OnChange: v => { _pick = v; StateHasChanged(); })
+Select<string>().Value(_pick).Change(v => { _pick = v; StateHasChanged(); })
 // ✓ just update state; the render is automatic:
-Select<string>(Value: _pick, OnChange: v => _pick = v)
+Select<string>().Value(_pick).Change(v => _pick = v)
 
 // ✗ AfterBind only to force a re-render of a sibling readout:
 RadioGroup(() => model.Plan, options, AfterBind: _ => StateHasChanged())

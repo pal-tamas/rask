@@ -36,20 +36,27 @@ public sealed partial class CreateProductPage(IDbContextFactory<CatalogDbContext
                 Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
                     Div()[
                         Label("p-name", Class: "form-label small mb-1")["Name"],
-                        Input(() => _form.Name, Validate: ProductName.Validate,
-                            Id: "p-name", Class: "form-control"),
+                        Input(() => _form.Name)
+                            .Validate(ProductName.Validate)
+                            .Id("p-name")
+                            .Class("form-control"),
                         ValidationMessage(() => _form.Name, FieldErrors.Template)
                     ],
                     Div()[
                         Label("p-price", Class: "form-label small mb-1")["Price"],
-                        Input(() => _form.Price, Validate: Money.Validate,
-                            Id: "p-price", Class: "form-control", Step: "0.01"),
+                        Input(() => _form.Price)
+                            .Validate(Money.Validate)
+                            .Id("p-price")
+                            .Class("form-control")
+                            .Step("0.01"),
                         ValidationMessage(() => _form.Price, FieldErrors.Template)
                     ],
                     Div()[
                         Label("p-stock", Class: "form-label small mb-1")["Stock"],
-                        Input(() => _form.Stock, Validate: StockLevel.Validate,
-                            Id: "p-stock", Class: "form-control"),
+                        Input(() => _form.Stock)
+                            .Validate(StockLevel.Validate)
+                            .Id("p-stock")
+                            .Class("form-control"),
                         ValidationMessage(() => _form.Stock, FieldErrors.Template)
                     ],
                     Div(Class: "d-flex justify-content-end gap-2 pt-2")[

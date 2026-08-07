@@ -19,12 +19,12 @@ public sealed partial class FluentValidationDemo : Component
             FluentValidationValidator(new OrderValidator()),
             Div()[
                 Label("v7-product", Class: "form-label small mb-1")["Product"],
-                Input(() => _model.Product, Id: "v7-product", Class: "form-control"),
+                Input(() => _model.Product).Id("v7-product").Class("form-control"),
                 ValidationMessage(() => _model.Product, FieldError)
             ],
             Div()[
                 Label("v7-quantity", Class: "form-label small mb-1")["Quantity"],
-                Input(() => _model.Quantity, Id: "v7-quantity", Class: "form-control"),
+                Input(() => _model.Quantity).Id("v7-quantity").Class("form-control"),
                 ValidationMessage(() => _model.Quantity, FieldError)
             ],
             Div()[

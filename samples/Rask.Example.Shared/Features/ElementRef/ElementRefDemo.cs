@@ -16,7 +16,7 @@ public sealed partial class ElementRefDemo : Component
 
     protected override Component? Render() =>
         Div()[
-            Input<string>(
+            Rask.Core.Components.Generated.Input<string>(
                 InputType.Text,
                 Class: "form-control mb-2",
                 Placeholder: "Focus me from C#",

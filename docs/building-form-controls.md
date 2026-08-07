@@ -21,10 +21,10 @@ public interface IFormControl<T>
 {
     // Bound mode — two-way binds an lvalue and drives the ambient EditContext.
     Expression<Func<T>>? Bind { get; set; }
-    Validate<T>? Validate { get; set; }
-    ValidateAsync<T>? ValidateAsync { get; set; }
-    Action<T>? AfterBind { get; set; }
-    Func<T, Task>? AfterBindAsync { get; set; }
+    Carrier<Validate<T>>? Validate { get; set; }
+    Carrier<ValidateAsync<T>>? ValidateAsync { get; set; }
+    Carrier<Action<T>>? AfterBind { get; set; }
+    Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
 
     // Controlled mode — the parent owns Value and is notified of changes.
     T? Value { get; set; }
@@ -32,6 +32,12 @@ public interface IFormControl<T>
     CallbackAsync<T>? OnChangeAsync { get; set; }
 }
 ```
+
+The four bound delegates ride in a **`Carrier<>`** (`Rask.Core`). A delegate-typed property *is* invocable,
+so `control.Validate(rule)` would bind to the property instead of the same-named builder setter; the carrier
+makes the member non-invocable. Its implicit conversion keeps ordinary assignment (`Validate = rule`) and
+every generated `Validate:` / `AfterBind:` factory parameter working unchanged — read the delegate back
+through `.Fn` (`Validate?.Fn`).
 
 You declare those nine properties (plus your own display props), implement `Render`, and the generator
 emits **two factories**:
@@ -68,10 +74,10 @@ public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
 
     // IFormControl<TValue> — bound mode.
     public Expression<Func<TValue>>? Bind { get; set; }
-    public Validate<TValue>? Validate { get; set; }
-    public ValidateAsync<TValue>? ValidateAsync { get; set; }
-    public Action<TValue>? AfterBind { get; set; }
-    public Func<TValue, Task>? AfterBindAsync { get; set; }
+    public Carrier<Validate<TValue>>? Validate { get; set; }
+    public Carrier<ValidateAsync<TValue>>? ValidateAsync { get; set; }
+    public Carrier<Action<TValue>>? AfterBind { get; set; }
+    public Carrier<Func<TValue, Task>>? AfterBindAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -155,9 +161,9 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 
 | Member | Replaces |
 |---|---|
-| `Validator` | `(Delegate?)Validate ?? ValidateAsync` — the single delegate the `EditContext` dispatches |
+| `Validator` | `(Delegate?)Validate?.Fn ?? ValidateAsync?.Fn` — the single delegate the `EditContext` dispatches |
 | `RegisterValidator(accessor, ctx)` | `ctx?.RegisterFieldValidator(acc.Field, Validator, () => acc.Getter())` |
-| `InvokeAfterBindAsync(value)` | `AfterBind?.Invoke(v); if (AfterBindAsync is not null) await AfterBindAsync(v);` |
+| `InvokeAfterBindAsync(value)` | `AfterBind?.Fn?.Invoke(v); if (AfterBindAsync?.Fn is { } h) await h(v);` |
 | `InvokeOnChangeAsync(value)` | `OnChange?.Invoke(v); if (OnChangeAsync is not null) await OnChangeAsync(v);` |
 | `ControlledChangeHandler()` | a `Callback<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChangeAsync` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
 

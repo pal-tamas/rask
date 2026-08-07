@@ -120,7 +120,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
             }
         }
 
-        var control = Select<string>(
+        var control = Rask.Core.Components.Generated.Select<string>(
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
             Disabled: Disabled, Required: Required, Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
@@ -227,7 +227,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         if (searchable && _open)
         {
             rows.Add(Div(Class: BsClass.Join("px-2", "pt-1", "pb-2"))[
-                Input<string>(
+                Rask.Core.Components.Generated.Input<string>(
                     Type: InputType.Text,
                     Class: "form-control form-control-sm",
                     Id: prefix + "-search",

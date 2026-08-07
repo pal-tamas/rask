@@ -23,8 +23,10 @@ public sealed partial class FirstErrorWinsDemo : Component
             DataAnnotationsValidator(),
             Div()[
                 Label("v8-code", Class: "form-label small mb-1")["License code"],
-                Input(() => _model.Code, Id: "v8-code", Class: "form-control",
-                    Validate: v =>
+                Input(() => _model.Code)
+                    .Id("v8-code")
+                    .Class("form-control")
+                    .Validate(v =>
                         string.IsNullOrWhiteSpace(v)
                             ? new[] { "Code is required." }
                             : Array.Empty<string>()),

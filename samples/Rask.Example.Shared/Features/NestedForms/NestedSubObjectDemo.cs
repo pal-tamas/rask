@@ -22,13 +22,15 @@ public sealed partial class NestedSubObjectDemo : Component
             DataAnnotationsValidator(),
             Div()[
                 Label("nf-name", Class: "form-label small mb-1")["Name"],
-                Input(() => _model.Name, Id: "nf-name", Class: "form-control"),
+                Input(() => _model.Name).Id("nf-name").Class("form-control"),
                 ValidationMessage(() => _model.Name, FieldError)
             ],
             Div()[
                 Label("nf-email", Class: "form-label small mb-1")["Email"],
-                Input(() => _model.Email, Id: "nf-email", Type: InputType.Email,
-                    Class: "form-control"),
+                Input(() => _model.Email)
+                    .Id("nf-email")
+                    .Type(InputType.Email)
+                    .Class("form-control"),
                 ValidationMessage(() => _model.Email, FieldError)
             ],
             Fieldset(Class: "border rounded p-3 mt-2")[
@@ -36,20 +38,24 @@ public sealed partial class NestedSubObjectDemo : Component
                 Div(Class: "vstack gap-3")[
                     Div()[
                         Label("nf-street", Class: "form-label small mb-1")["Street"],
-                        Input(() => _model.Address.Street, Id: "nf-street",
-                            Class: "form-control"),
+                        Input(() => _model.Address.Street)
+                            .Id("nf-street")
+                            .Class("form-control"),
                         ValidationMessage(() => _model.Address.Street, FieldError)
                     ],
                     Div()[
                         Label("nf-city", Class: "form-label small mb-1")["City"],
-                        Input(() => _model.Address.City, Id: "nf-city",
-                            Class: "form-control"),
+                        Input(() => _model.Address.City)
+                            .Id("nf-city")
+                            .Class("form-control"),
                         ValidationMessage(() => _model.Address.City, FieldError)
                     ],
                     Div()[
                         Label("nf-country", Class: "form-label small mb-1")["Country (ISO)"],
-                        Input(() => _model.Address.Country, Id: "nf-country",
-                            Class: "form-control", MaxLength: 2),
+                        Input(() => _model.Address.Country)
+                            .Id("nf-country")
+                            .Class("form-control")
+                            .MaxLength(2),
                         ValidationMessage(() => _model.Address.Country, FieldError)
                     ]
                 ]

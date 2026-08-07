@@ -16,15 +16,14 @@ public sealed partial class BindingAfterBindDemo : Component
     [
         Div(Class: "mb-3")[
             Label("bind-after-country", Class: "form-label small")["Country"],
-            Select(
-                () => _model.Country,
-                c =>
+            Select(() => _model.Country)
+                .AfterBind(c =>
                 {
                     _cities = Cities[c];
                     _model.City = _cities[0];
-                },
-                Id: "bind-after-country",
-                Class: "form-select")[
+                })
+                .Id("bind-after-country")
+                .Class("form-select")[
                 Option("US")["United States"],
                 Option("DE")["Germany"],
                 Option("JP")["Japan"]
@@ -32,10 +31,9 @@ public sealed partial class BindingAfterBindDemo : Component
         ],
         Div(Class: "mb-3")[
             Label("bind-after-city", Class: "form-label small")["City"],
-            Select(
-                () => _model.City,
-                Id: "bind-after-city",
-                Class: "form-select")[
+            Select(() => _model.City)
+                .Id("bind-after-city")
+                .Class("form-select")[
                 _cities.Select(c => Option(c, Key: c)[c])
             ]
         ],

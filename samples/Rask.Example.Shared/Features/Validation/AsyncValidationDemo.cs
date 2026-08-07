@@ -30,7 +30,7 @@ public sealed partial class AsyncValidationDemo : Component
             DataAnnotationsValidator(),
             Div()[
                 Label("v3-username", Class: "form-label small mb-1")["Username"],
-                Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
+                Input(() => _model.Username).Id("v3-username").Class("form-control"),
                 ValidatingIndicator(() => _model.Username, Checking),
                 ValidationMessage(() => _model.Username,
                     msgs => [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])])

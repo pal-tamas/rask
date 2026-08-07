@@ -37,7 +37,7 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
             BsCardBody()[
                 Div(Class: "mb-3")[
                     Label(Class: "form-label", For: "demo-input")["sessionStorage value"],
-                    Input(
+                    Rask.Core.Components.Generated.Input(
                         Id: "demo-input",
                         Class: "form-control",
                         Value: _input,

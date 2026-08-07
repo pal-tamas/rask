@@ -31,10 +31,14 @@ public class InputTypeMismatchAnalyzerTests
                                                 }
                                                 """;
 
+    // The factory's `Type:` argument. Qualified because the builder entry (Component.Input<T>) shadows the
+    // unqualified name — a method entry, unlike a property entry, hides the same-named factory.
+    private const string Factory = "Rask.Core.Components.Generated.";
+
     [Fact]
     public async Task StringFamilyType_OnIntInput_ReportsRask025()
     {
-        var d = Assert.Single(await Diagnostics(App("return Input(() => _m.Age, Type: InputType.Email);")));
+        var d = Assert.Single(await Diagnostics(App($"return {Factory}Input(() => _m.Age, Type: InputType.Email);")));
         Assert.Equal("RASK025", d.Id);
         Assert.Contains("Email", d.GetMessage());
     }
@@ -42,11 +46,28 @@ public class InputTypeMismatchAnalyzerTests
     [Fact]
     public async Task StringFamilyType_OnBoolInput_ReportsRask025() =>
         Assert.Equal("RASK025",
-            Assert.Single(await Diagnostics(App("return Input(() => _m.Flag, Type: InputType.Text);"))).Id);
+            Assert.Single(await Diagnostics(App($"return {Factory}Input(() => _m.Flag, Type: InputType.Text);"))).Id);
+
+    // The same mistake written on the builder surface: `.Type(…)` chained onto a non-string Input<T>.
+    [Fact]
+    public async Task BuilderSetter_StringFamilyType_OnIntInput_ReportsRask025()
+    {
+        var d = Assert.Single(await Diagnostics(App("return Input(() => _m.Age).Type(InputType.Email);")));
+        Assert.Equal("RASK025", d.Id);
+        Assert.Contains("Email", d.GetMessage());
+    }
+
+    [Fact]
+    public async Task BuilderSetter_StringFamilyType_OnStringInput_NoDiagnostic() =>
+        Assert.Empty(await Diagnostics(App("return Input(() => _m.Name).Type(InputType.Email);")));
+
+    [Fact]
+    public async Task BuilderSetter_NumberType_OnIntInput_NoDiagnostic() =>
+        Assert.Empty(await Diagnostics(App("return Input(() => _m.Age).Type(InputType.Number);")));
 
     [Fact]
     public async Task StringFamilyType_OnStringInput_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App("return Input(() => _m.Name, Type: InputType.Email);")));
+        Assert.Empty(await Diagnostics(App($"return {Factory}Input(() => _m.Name, Type: InputType.Email);")));
 
     [Fact]
     public async Task NoExplicitType_OnIntInput_NoDiagnostic() =>
@@ -55,7 +76,7 @@ public class InputTypeMismatchAnalyzerTests
     [Fact]
     public async Task NumberType_OnIntInput_NoDiagnostic() =>
         // Number is not a string-family type — pairing it with Input<int> is fine.
-        Assert.Empty(await Diagnostics(App("return Input(() => _m.Age, Type: InputType.Number);")));
+        Assert.Empty(await Diagnostics(App($"return {Factory}Input(() => _m.Age, Type: InputType.Number);")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
     {

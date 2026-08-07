@@ -93,11 +93,11 @@ public sealed partial class UpdateOrder(IDispatcher dispatcher, Navigator naviga
                 Form(_form, OnValidSubmitAsync: SubmitAsync)[
                     Div()[
                         Label("customer")["Customer"],
-                        Input(() => _form.Customer, Validate: OrderCustomer.Validate, Id: "customer")
+                        Input(() => _form.Customer).Validate(OrderCustomer.Validate).Id("customer")
                     ],
                     Div()[
                         Label("total")["Total"],
-                        Input(() => _form.Total, Id: "total")
+                        Input(() => _form.Total).Id("total")
                     ],
                     Div()[
                         NavLink(Routes.OrdersPage())["Cancel"],

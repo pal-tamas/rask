@@ -9,20 +9,20 @@ public sealed partial class ElementsFormsDemo : Component
             Legend(Class: "fs-6 float-none w-auto px-2")["Profile"],
             Div(Class: "mb-2")[
                 Label("nm", Class: "form-label small mb-1")["Name"],
-                Input<string>(InputType.Text, Id: "nm", Class: "form-control form-control-sm",
+                Rask.Core.Components.Generated.Input<string>(InputType.Text, Id: "nm", Class: "form-control form-control-sm",
                     Placeholder: "Jane Doe", List: "suggestions"),
                 Datalist(Id: "suggestions")[Option(Value: "Jane Doe"), Option(Value: "Ada Lovelace")]
             ],
             Div(Class: "mb-2")[
                 Label("fruit", Class: "form-label small mb-1")["Favourite"],
-                Select<string>(Id: "fruit", Name: "fruit", Class: "form-select form-select-sm")[
+                Rask.Core.Components.Generated.Select<string>(Id: "fruit", Name: "fruit", Class: "form-select form-select-sm")[
                     Optgroup(Label: "Fruit")[Option(Value: "apple")["Apple"], Option(Value: "pear", Selected: true)["Pear"]],
                     Optgroup(Label: "Veg")[Option(Value: "kale")["Kale"]]
                 ]
             ],
             Div(Class: "mb-0")[
                 Label("bio", Class: "form-label small mb-1")["Bio"],
-                Textarea<string>(Id: "bio", Class: "form-control form-control-sm", Placeholder: "About you…")
+                Rask.Core.Components.Generated.Textarea<string>(Id: "bio", Class: "form-control form-control-sm", Placeholder: "About you…")
             ]
         ],
         BsRow(Gutter: 3, Class: Flex.Align(BsAlign.Center))[

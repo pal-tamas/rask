@@ -14,10 +14,10 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
 {
     // IFormControl<bool> — bound mode.
     public Expression<Func<bool>>? Bind { get; set; }
-    public Validate<bool>? Validate { get; set; }
-    public ValidateAsync<bool>? ValidateAsync { get; set; }
-    public Action<bool>? AfterBind { get; set; }
-    public Func<bool, Task>? AfterBindAsync { get; set; }
+    public Carrier<Validate<bool>>? Validate { get; set; }
+    public Carrier<ValidateAsync<bool>>? ValidateAsync { get; set; }
+    public Carrier<Action<bool>>? AfterBind { get; set; }
+    public Carrier<Func<bool, Task>>? AfterBindAsync { get; set; }
 
     // IFormControl<bool> — controlled mode. Value is plain bool (the interface's `T?` resolves to
     // `bool` for the value type T=bool); the generator gives it a `= default` (false) factory default.
@@ -69,7 +69,7 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
         var errorId = controlId is not null && invalid ? controlId + "-error" : null;
 
         CallbackAsync<string>? change = acc is not null
-            ? BindingHelpers.BoolSetHandler(acc, ctx, fid, BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync))
+            ? BindingHelpers.BoolSetHandler(acc, ctx, fid, BindingHelpers.BuildAfterBind(acc, AfterBind?.Fn, AfterBindAsync?.Fn))
             : (CallbackAsync<string>?)((IFormControl<bool>)this).ControlledChangeHandler();
 
         // aria-invalid marks the failed state programmatically; aria-describedby ties the input to its
@@ -81,7 +81,7 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
         // valid — while everything else (aria-label on a label-less check) passes through untouched.
         var aria = Merge(Aria, BsClass.FieldAria(invalid, errorId));
 
-        var input = Input<string>(
+        var input = Rask.Core.Components.Generated.Input<string>(
             Type: InputType.Checkbox,
             Name: Name ?? acc?.PropertyName,
             Checked: current,

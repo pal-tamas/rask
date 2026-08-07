@@ -1922,7 +1922,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
     // has no such machinery — see the remarks on IFormControl.ControlledChangeHandler.)
     private static Component SelectBox(bool selected, IReadOnlyDictionary<string, string?> aria, bool disabled,
         CallbackAsync<string> onChange) =>
-        Input<string>(
+        Rask.Core.Components.Generated.Input<string>(
             Type: InputType.Checkbox,
             Class: "form-check-input",
             Checked: selected,

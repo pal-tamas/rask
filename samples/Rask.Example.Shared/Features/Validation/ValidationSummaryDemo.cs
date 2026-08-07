@@ -32,20 +32,22 @@ public sealed partial class ValidationSummaryDemo : Component
             ValidationSummary(SummaryAlert),
             Div()[
                 Label("v2-name", Class: "form-label small mb-1")["Name"],
-                Input(() => _model.Name, Id: "v2-name", Class: "form-control")
+                Input(() => _model.Name).Id("v2-name").Class("form-control")
             ],
             Div()[
                 Label("v2-email", Class: "form-label small mb-1")["Email"],
-                Input(() => _model.Email, Id: "v2-email", Type: InputType.Email,
-                    Class: "form-control")
+                Input(() => _model.Email)
+                    .Id("v2-email")
+                    .Type(InputType.Email)
+                    .Class("form-control")
             ],
             Div()[
                 Label("v2-age", Class: "form-label small mb-1")["Age"],
-                Input(() => _model.Age, Id: "v2-age", Class: "form-control")
+                Input(() => _model.Age).Id("v2-age").Class("form-control")
             ],
             Div()[
                 Label("v2-plan", Class: "form-label small mb-1")["Plan"],
-                Select(() => _model.Plan, Id: "v2-plan", Class: "form-select")[
+                Select(() => _model.Plan).Id("v2-plan").Class("form-select")[
                     Option("")["— choose —"],
                     Option("free")["Free"],
                     Option("pro")["Pro"],

@@ -26,6 +26,33 @@ them until tagged releases begin.
   hand-written. Generic, DI-constructed and `required`-member components are skipped — none has a valid
   no-argument entry. Emitting the full tag set surfaced the collision cost: 86 files need `new` where a
   component member, a private helper, a nested type or a `using` alias shares a tag's name.
+  Since then the generator also emits the setters (shared `Element`/`Component` props once as constrained
+  generic extensions rather than per tag) and injects entries for a project's own components into each
+  consuming component's `partial` — a generator cannot add members to `Rask.Core.Component` from a
+  consumer's compilation, and `using static` loses to a same-named type. A component that is not
+  `partial` gets RASK036. DI-constructed components build through `ActivatorUtilities` inside
+  `GetOrCreate`, and an `internal` component's entry is `private protected` (CS0053).
+  **Bound form controls now collapse to one entry plus setters.** A property cannot be generic, so
+  `Input<T>` / `Select<T>` / `Textarea<T>` get a static generic *method* entry whose single argument —
+  the bind expression — infers `T`, plus a no-argument overload for plain/controlled use
+  (`Input<string>()`). The generated factory needed three overloads per `IFormControl<T>` control for
+  one reason only: `Validate` had to be a required, correctly-typed parameter, and a sync `Validate<T>`
+  cannot share an optional parameter with an async `ValidateAsync<T>` without losing inference. On the
+  builder surface the validator and the post-bind hooks are ordinary setters, so the fan-out disappears:
+  `Input(() => _form.Name).Validate(ProductName.Validate).Id("name")`.
+  To make that read naturally, `IFormControl<T>`'s four bound delegates now ride in the new
+  `Carrier<TDelegate>` (`Rask.Core`) — a delegate-typed property *is* invocable, so `.Validate(rule)`
+  would otherwise bind to the property instead of the setter (CS1593). The carrier's implicit conversion
+  keeps plain assignment and every generated `Validate:` / `AfterBind:` factory parameter unchanged;
+  read the delegate back through `.Fn`. Custom controls implementing `IFormControl<T>` must update their
+  four bound property declarations (see `docs/building-form-controls.md`). Validators and post-bind hooks
+  are never `AutoCallback`-wrapped; other setters now wrap on exactly the same rule as the factory.
+  Unlike a property entry, a **method** entry hides the same-named factory inside a component body
+  (C# stops at the first declaration space containing the name), so the `Input`/`Select`/`Textarea` call
+  sites in `samples`, `tests` and `src/Rask.Cli`'s scaffolding moved to the builder chain; the
+  plain/controlled calls that have no chain equivalent yet are qualified as
+  `Rask.Core.Components.Generated.Input<…>(…)`. RASK025 and RASK026 now recognise the builder chain
+  (`.Type(…)`, `.AfterBind(…)`) as well as the factory arguments.
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

@@ -63,7 +63,7 @@ public class RaskTestTests
 
         protected override Component? Render() =>
             Div()[
-                Input<string>(Value: _name, OnInput: v => _name = v),
+                Rask.Core.Components.Generated.Input<string>(Value: _name, OnInput: v => _name = v),
                 Span()[$"Hi {_name}"]
             ];
     }

@@ -39,10 +39,10 @@ public sealed class Select<T> : Element, IFormControl<T>
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).
     public Expression<Func<T>>? Bind { get; set; }
-    public Validate<T>? Validate { get; set; }
-    public ValidateAsync<T>? ValidateAsync { get; set; }
-    public Action<T>? AfterBind { get; set; }
-    public Func<T, Task>? AfterBindAsync { get; set; }
+    public Carrier<Validate<T>>? Validate { get; set; }
+    public Carrier<ValidateAsync<T>>? ValidateAsync { get; set; }
+    public Carrier<Action<T>>? AfterBind { get; set; }
+    public Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
 
     protected override IDisposable? EnterChildrenScope()
     {
@@ -229,7 +229,7 @@ public sealed class Select<T> : Element, IFormControl<T>
 
         if (acc is not null)
         {
-            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
+            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind?.Fn, AfterBindAsync?.Fn);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
             // A multi-select bound to a collection takes the whole selection the client now reports
             // (`values`), not the single `value` the DOM exposes — which is only the FIRST selected

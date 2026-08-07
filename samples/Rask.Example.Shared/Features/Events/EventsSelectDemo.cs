@@ -6,7 +6,7 @@ public sealed partial class EventsSelectDemo : Component
 
     protected override Component? Render() =>
     [
-        Select<string>(
+        Rask.Core.Components.Generated.Select<string>(
             Class: "form-select mb-2",
             OnChange: v => _pick = v)[
             Option("rask", _pick == "rask")["Rask"],

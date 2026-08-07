@@ -26,11 +26,17 @@ public interface IFormControl;
 public interface IFormControl<T> : IFormControl
 {
     // Bound mode — two-way binds an lvalue of type T and drives the ambient EditContext.
+    //
+    // The four delegate members ride in a Carrier<> rather than being declared as raw delegates: a
+    // delegate-typed property IS invocable, so `control.Validate(rule)` would bind to the property and
+    // fail (CS1593) instead of reaching the same-named builder setter. The carrier makes the member
+    // non-invocable, and its implicit conversion keeps `Validate = rule` (and every generated
+    // `Validate:` / `AfterBind:` factory parameter) working unchanged.
     Expression<Func<T>>? Bind { get; set; }
-    Validate<T>? Validate { get; set; }
-    ValidateAsync<T>? ValidateAsync { get; set; }
-    Action<T>? AfterBind { get; set; }
-    Func<T, Task>? AfterBindAsync { get; set; }
+    Carrier<Validate<T>>? Validate { get; set; }
+    Carrier<ValidateAsync<T>>? ValidateAsync { get; set; }
+    Carrier<Action<T>>? AfterBind { get; set; }
+    Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
 
     // Controlled mode — the parent owns Value and is notified of changes.
     T? Value { get; set; }
@@ -38,7 +44,7 @@ public interface IFormControl<T> : IFormControl
     CallbackAsync<T>? OnChangeAsync { get; set; }
 
     // The single delegate the EditContext dispatches — sync or async, whichever the consumer set.
-    Delegate? Validator => (Delegate?)Validate ?? ValidateAsync;
+    Delegate? Validator => (Delegate?)Validate?.Fn ?? ValidateAsync?.Fn;
 
     // Registers the per-field validator for the bound field (no-op when context is null). Passing the
     // collapsed Validator each render also clears a stale rule when the consumer drops it, so call it every
@@ -65,10 +71,10 @@ public interface IFormControl<T> : IFormControl
     // Runs the post-bind hooks with the freshly-bound value.
     async Task InvokeAfterBindAsync(T value)
     {
-        AfterBind?.Invoke(value);
-        if (AfterBindAsync is not null)
+        AfterBind?.Fn?.Invoke(value);
+        if (AfterBindAsync?.Fn is { } hook)
         {
-            await AfterBindAsync(value).ConfigureAwait(false);
+            await hook(value).ConfigureAwait(false);
         }
     }
 

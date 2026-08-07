@@ -19,23 +19,25 @@ public sealed partial class ValidationFieldsDemo : Component
             DataAnnotationsValidator(),
             Div()[
                 Label("v1-name", Class: "form-label small mb-1")["Name"],
-                Input(() => _model.Name, Id: "v1-name", Class: "form-control"),
+                Input(() => _model.Name).Id("v1-name").Class("form-control"),
                 ValidationMessage(() => _model.Name, FieldError)
             ],
             Div()[
                 Label("v1-email", Class: "form-label small mb-1")["Email"],
-                Input(() => _model.Email, Id: "v1-email", Type: InputType.Email,
-                    Class: "form-control"),
+                Input(() => _model.Email)
+                    .Id("v1-email")
+                    .Type(InputType.Email)
+                    .Class("form-control"),
                 ValidationMessage(() => _model.Email, FieldError)
             ],
             Div()[
                 Label("v1-age", Class: "form-label small mb-1")["Age"],
-                Input(() => _model.Age, Id: "v1-age", Class: "form-control"),
+                Input(() => _model.Age).Id("v1-age").Class("form-control"),
                 ValidationMessage(() => _model.Age, FieldError)
             ],
             Div()[
                 Label("v1-plan", Class: "form-label small mb-1")["Plan"],
-                Select(() => _model.Plan, Id: "v1-plan", Class: "form-select")[
+                Select(() => _model.Plan).Id("v1-plan").Class("form-select")[
                     Option("")["— choose —"],
                     Option("free")["Free"],
                     Option("pro")["Pro"],

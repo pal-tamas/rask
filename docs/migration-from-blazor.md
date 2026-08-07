@@ -25,7 +25,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `NavigationManager` | `Navigator` (event-handler-only) + `RouteState` (current path/params) |
 | `@page "/path"` | `[Route("/path")]` on the class |
 | route/query binding | `[RouteParam]` / `[QueryParam]` on a property |
-| `<EditForm>` + `InputText`/`InputNumber` | `Form<TModel>(model, OnValidSubmit:)` + `Input(Bind: () => model.X)` |
+| `<EditForm>` + `InputText`/`InputNumber` | `Form<TModel>(model, OnValidSubmit:)` + `Input(() => model.X)` |
 | `<DataAnnotationsValidator>` | drop `DataAnnotationsValidator()` inside the `Form<T>` |
 | `<AuthorizeView>` (+ `Context="user"` / `@context.User`) | headless `Authorize(...)` — its `Authorized: user => …` slot receives the `ClaimsPrincipal`, like `@context.User` |
 | `AuthenticationStateProvider` | inject `IUserProvider` and read `.Current` |
@@ -150,7 +150,7 @@ NavLink(UserPage(id: 42))["View user"]
 // Rask
 Form<SignupModel>(_model, OnValidSubmit: m => Save(m))[
     DataAnnotationsValidator(),                  // from Rask.Validation.DataAnnotations
-    Input(Bind: () => _model.Name),              // input type inferred from the CLR type
+    Input(() => _model.Name),              // input type inferred from the CLR type
     ValidationMessage(For: () => _model.Name,
         Template: errs => Div(Class: "field-error")[errs[0]]),
     Button(Type: "submit")["Sign up"]

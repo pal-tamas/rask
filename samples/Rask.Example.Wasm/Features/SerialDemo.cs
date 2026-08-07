@@ -22,7 +22,7 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
             Div(Class: "card-body")[
                 Div(Class: "d-flex gap-2 flex-wrap align-items-center mb-2")[
                     Label(Class: "small text-secondary mb-0", For: "serial-baud")["Baud"],
-                    Input(
+                    Rask.Core.Components.Generated.Input(
                         Id: "serial-baud",
                         Type: InputType.Number,
                         Class: "form-control form-control-sm",
@@ -36,7 +36,7 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         OnClickAsync: Disconnect)["Disconnect"]
                 ],
                 Div(Class: "input-group input-group-sm mb-2")[
-                    Input(
+                    Rask.Core.Components.Generated.Input(
                         Id: "serial-outgoing",
                         Class: "form-control",
                         Value: _outgoing,

@@ -23,11 +23,11 @@ public sealed partial class NestedListForeachDemo : Component
             var captured = item; // foreach already captures per-iteration but make it loud.
             rows.Add(Tr(Key: captured.Id)[
                 Td()[
-                    Input(() => captured.Description, Class: "form-control form-control-sm"),
+                    Input(() => captured.Description).Class("form-control form-control-sm"),
                     ValidationMessage(() => captured.Description, FieldError)
                 ],
                 Td(Style: "width: 6rem;")[
-                    Input(() => captured.Quantity, Class: "form-control form-control-sm"),
+                    Input(() => captured.Quantity).Class("form-control form-control-sm"),
                     ValidationMessage(() => captured.Quantity, FieldError)
                 ],
                 Td(Style: "width: 3rem;")[

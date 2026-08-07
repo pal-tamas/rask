@@ -33,11 +33,11 @@ public sealed partial class CrossFieldSummaryDemo : Component
             ValidationSummary(SummaryAlert),
             Div()[
                 Label("v5-depart", Class: "form-label small mb-1")["Departure"],
-                Input(() => _model.Depart, Id: "v5-depart", Class: "form-control")
+                Input(() => _model.Depart).Id("v5-depart").Class("form-control")
             ],
             Div()[
                 Label("v5-return", Class: "form-label small mb-1")["Return"],
-                Input(() => _model.Return, Id: "v5-return", Class: "form-control")
+                Input(() => _model.Return).Id("v5-return").Class("form-control")
             ],
             Div()[
                 BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Airplane, Class: "me-1"), "Book"]

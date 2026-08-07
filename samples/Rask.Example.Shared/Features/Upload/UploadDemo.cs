@@ -30,7 +30,7 @@ public sealed partial class UploadDemo : Component
 
     protected override Component? Render() =>
         Div()[
-            Input<string>(
+            Rask.Core.Components.Generated.Input<string>(
                 Id: "upload-input",
                 Type: InputType.File,
                 Class: "form-control mb-3",

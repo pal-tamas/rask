@@ -11,7 +11,7 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
     protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Input(
+                Rask.Core.Components.Generated.Input(
                     Id: "speech-text",
                     Class: "form-control form-control-sm mb-2",
                     Value: _text,

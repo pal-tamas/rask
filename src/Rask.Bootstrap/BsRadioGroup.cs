@@ -20,10 +20,10 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
 
     // Bound mode (IFormControl members).
     public Expression<Func<TValue>>? Bind { get; set; }
-    public Validate<TValue>? Validate { get; set; }
-    public ValidateAsync<TValue>? ValidateAsync { get; set; }
-    public Action<TValue>? AfterBind { get; set; }
-    public Func<TValue, Task>? AfterBindAsync { get; set; }
+    public Carrier<Validate<TValue>>? Validate { get; set; }
+    public Carrier<ValidateAsync<TValue>>? ValidateAsync { get; set; }
+    public Carrier<Action<TValue>>? AfterBind { get; set; }
+    public Carrier<Func<TValue, Task>>? AfterBindAsync { get; set; }
 
     public Func<TValue, Component>? OptionLabel { get; set; }
     public string? Name { get; set; }
@@ -94,7 +94,7 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
             Component label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div(Class: wrapperClass, Key: index)[
-                Input<string>(
+                Rask.Core.Components.Generated.Input<string>(
                     InputType.Radio, groupName, BindingHelpers.FormatValue(option),
                     Checked: isChecked, Disabled: Disabled, Class: "form-check-input", Id: optionId,
                     Aria: optionAria,

@@ -12,10 +12,10 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
 {
     // IFormControl<T> — bound mode.
     public Expression<Func<T>>? Bind { get; set; }
-    public Validate<T>? Validate { get; set; }
-    public ValidateAsync<T>? ValidateAsync { get; set; }
-    public Action<T>? AfterBind { get; set; }
-    public Func<T, Task>? AfterBindAsync { get; set; }
+    public Carrier<Validate<T>>? Validate { get; set; }
+    public Carrier<ValidateAsync<T>>? ValidateAsync { get; set; }
+    public Carrier<Action<T>>? AfterBind { get; set; }
+    public Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
 
     // IFormControl<T> — controlled mode.
     public T? Value { get; set; }
@@ -77,7 +77,7 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
     private protected CallbackAsync<string>? StringChangeHandler(in Bound b) =>
         b is { IsBound: true, Accessor: { } acc }
             ? BindingHelpers.StringSetHandler(acc, b.Context, b.Field, validateOnSet: false,
-                afterBind: BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync))
+                afterBind: BindingHelpers.BuildAfterBind(acc, AfterBind?.Fn, AfterBindAsync?.Fn))
             : (CallbackAsync<string>?)((IFormControl<T>)this).ControlledChangeHandler();
 
     // The id used to tie the <label for> to the control.

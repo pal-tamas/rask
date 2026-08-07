@@ -14,7 +14,7 @@ public sealed partial class FormControlsSelectDemo : Component
         BsRow(Gutter: 4)[
             BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold")["Controlled (Value + OnChange)"],
-                Select<string>(
+                Rask.Core.Components.Generated.Select<string>(
                     Value: _controlled,
                     OnChange: v => _controlled = v,
                     Class: "form-select mb-2",
@@ -28,7 +28,7 @@ public sealed partial class FormControlsSelectDemo : Component
             BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold")["Bound (two-way)"],
                 Form(_model)[
-                    Select(() => _model.Framework, Class: "form-select mb-2", Id: "fc-select-bound")[
+                    Select(() => _model.Framework).Class("form-select mb-2").Id("fc-select-bound")[
                         Option("Rask"), Option("Blazor"), Option("htmx")
                     ]
                 ],

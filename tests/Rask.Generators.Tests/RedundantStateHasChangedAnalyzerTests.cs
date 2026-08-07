@@ -35,8 +35,10 @@ public class RedundantStateHasChangedAnalyzerTests
     [Fact]
     public async Task OnChange_StateHasChanged_ReportsRask026()
     {
+        // Qualified: the generic builder entry (Component.Input<T>) shadows the unqualified factory.
         var d = Assert.Single(await Diagnostics(App(
-            "protected override Component? Render() => Input<string>(OnChange: _ => StateHasChanged());")));
+            "protected override Component? Render() => "
+            + "Rask.Core.Components.Generated.Input<string>(OnChange: _ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("OnChange", d.GetMessage());
     }
@@ -46,9 +48,31 @@ public class RedundantStateHasChangedAnalyzerTests
     {
         var d = Assert.Single(await Diagnostics(App(
             "private string _name = \"\";"
-            + "protected override Component? Render() => Input(() => _name, AfterBind: _ => StateHasChanged());")));
+            + "protected override Component? Render() => "
+            + "Rask.Core.Components.Generated.Input(() => _name, AfterBind: _ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("AfterBind", d.GetMessage());
+    }
+
+    // The same anti-pattern on the builder surface: the callback's name is the setter's, since every
+    // generated setter's parameter is called `value`.
+    [Fact]
+    public async Task BuilderSetter_AfterBind_StateHasChanged_ReportsRask026()
+    {
+        var d = Assert.Single(await Diagnostics(App(
+            "private string _name = \"\";"
+            + "protected override Component? Render() => Input(() => _name).AfterBind(_ => StateHasChanged());")));
+        Assert.Equal("RASK026", d.Id);
+        Assert.Contains("AfterBind", d.GetMessage());
+    }
+
+    [Fact]
+    public async Task BuilderSetter_Click_StateHasChanged_ReportsRask026()
+    {
+        var d = Assert.Single(await Diagnostics(App(
+            "protected override Component? Render() => Button.Click(() => StateHasChanged())[\"x\"];")));
+        Assert.Equal("RASK026", d.Id);
+        Assert.Contains("Click", d.GetMessage());
     }
 
     [Fact]

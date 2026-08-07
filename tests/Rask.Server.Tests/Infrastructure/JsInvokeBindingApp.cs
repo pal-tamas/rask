@@ -27,7 +27,7 @@ public sealed partial class JsInvokeBindingApp(IJSRuntime js) : Component
         new Html()[
             new Head()[new Title()["js-invoke-binding"]],
             new Body()[
-                Input(Value: _typed, OnInput: v => _typed = v),
+                Rask.Core.Components.Generated.Input(Value: _typed, OnInput: v => _typed = v),
                 new P()[$"Echo: {_typed}"]
             ]
         ]

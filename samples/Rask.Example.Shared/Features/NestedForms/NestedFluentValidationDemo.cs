@@ -24,11 +24,11 @@ public sealed partial class NestedFluentValidationDemo : Component
             var captured = line;
             rows.Add(Tr(Key: captured.Id)[
                 Td()[
-                    Input(() => captured.Sku, Class: "form-control form-control-sm"),
+                    Input(() => captured.Sku).Class("form-control form-control-sm"),
                     ValidationMessage(() => captured.Sku, FieldError)
                 ],
                 Td(Style: "width: 6rem;")[
-                    Input(() => captured.Quantity, Class: "form-control form-control-sm"),
+                    Input(() => captured.Quantity).Class("form-control form-control-sm"),
                     ValidationMessage(() => captured.Quantity, FieldError)
                 ],
                 Td(Style: "width: 3rem;")[
@@ -46,18 +46,18 @@ public sealed partial class NestedFluentValidationDemo : Component
                 FluentValidationValidator(_validator),
                 Div()[
                     Label("nf-fv-name", Class: "form-label small mb-1")["Customer"],
-                    Input(() => _model.CustomerName, Id: "nf-fv-name", Class: "form-control"),
+                    Input(() => _model.CustomerName).Id("nf-fv-name").Class("form-control"),
                     ValidationMessage(() => _model.CustomerName, FieldError)
                 ],
                 Fieldset(Class: "border rounded p-3")[
                     Legend(Class: "h6 fw-semibold")["Address"],
                     Div(Class: "vstack gap-2")[
                         Div()[
-                            Input(() => _model.Address.Street, Class: "form-control"),
+                            Input(() => _model.Address.Street).Class("form-control"),
                             ValidationMessage(() => _model.Address.Street, FieldError)
                         ],
                         Div()[
-                            Input(() => _model.Address.City, Class: "form-control"),
+                            Input(() => _model.Address.City).Class("form-control"),
                             ValidationMessage(() => _model.Address.City, FieldError)
                         ]
                     ]

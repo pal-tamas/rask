@@ -39,17 +39,17 @@ public sealed partial class ValidatableObjectDemo : Component
             ValidationSummary(SummaryAlert),
             Div()[
                 Label("v11-name", Class: "form-label small mb-1")["Name"],
-                Input(() => _model.Name, Id: "v11-name", Class: "form-control"),
+                Input(() => _model.Name).Id("v11-name").Class("form-control"),
                 ValidationMessage(() => _model.Name, FieldError)
             ],
             Div()[
                 Label("v11-departure", Class: "form-label small mb-1")["Departure"],
-                Input(() => _model.Departure, Id: "v11-departure", Class: "form-control"),
+                Input(() => _model.Departure).Id("v11-departure").Class("form-control"),
                 ValidationMessage(() => _model.Departure, FieldError)
             ],
             Div()[
                 Label("v11-arrival", Class: "form-label small mb-1")["Arrival"],
-                Input(() => _model.Arrival, Id: "v11-arrival", Class: "form-control"),
+                Input(() => _model.Arrival).Id("v11-arrival").Class("form-control"),
                 ValidationMessage(() => _model.Arrival, FieldError)
             ],
             Div()[

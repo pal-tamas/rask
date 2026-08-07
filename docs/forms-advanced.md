@@ -29,7 +29,7 @@ public sealed class AddressModel
 **Sub-object binding** uses the same `Bind: () => …` shape:
 
 ```csharp
-Input(Bind: () => _model.Address.Street),
+Input(() => _model.Address.Street),
 ValidationMessage(For: () => _model.Address.Street, Template: errs => Div(Class: "err")[errs[0]]),
 ```
 
@@ -40,8 +40,8 @@ over a distinct `item`, so each row's lambda targets its own instance:
 foreach (var item in _model.Items)
 {
     rows.Add(Tr()[
-        Td()[Input(Bind: () => item.Description)],
-        Td()[Input(Bind: () => item.Quantity)],
+        Td()[Input(() => item.Description)],
+        Td()[Input(() => item.Quantity)],
         Td()[Button(Type: "button", OnClick: () => _model.Items.Remove(item))["×"]]
     ]);
 }
@@ -57,8 +57,8 @@ for (var idx = 0; idx < _model.Items.Count; idx++)
     var i = idx;                                  // per-iteration capture, NOT idx
     rows.Add(Tr()[
         Td()[$"#{i + 1}"],
-        Td()[Input(Bind: () => _model.Items[i].Description)],
-        Td()[Input(Bind: () => _model.Items[i].Quantity)]
+        Td()[Input(() => _model.Items[i].Description)],
+        Td()[Input(() => _model.Items[i].Quantity)]
     ]);
 }
 ```
@@ -152,12 +152,12 @@ option renderings. The single-value twin is `BsSelect<T>`: same data-driven API 
 `OptionLabel`) and custom `.dropdown-menu` listbox (zero-JS, keyboard + ARIA `combobox`/`listbox`),
 binding one `TItem`; `Native: true` falls back to the plain OS `<select>`.
 
-**A plain `<select multiple>` bound to a collection.** `Select<T>(Bind: …, Multiple: true)` binds the
+**A plain `<select multiple>` bound to a collection.** `Select(() => …).Multiple(true)` binds the
 whole selection when `T` is a string collection — `string[]`, `List<string>`, `HashSet<string>`, or the
 `IReadOnlyList<string>` / `IList<string>` / `ICollection<string>` / `IEnumerable<string>` interfaces:
 
 ```csharp
-Select(() => model.Tags, Multiple: true)[
+Select(() => model.Tags).Multiple(true)[
     Option("news"), Option("sport"), Option("weather")
 ]
 ```
@@ -202,7 +202,7 @@ Two things to know when building a form:
 
 ```csharp
 Div(Data: new Dictionary<string, string?> { ["rask-no-restore"] = "" })[
-    Input(() => _model.CouponCode, Class: "form-control")   // never carried across a reload
+    Input(() => _model.CouponCode).Class("form-control")   // never carried across a reload
 ]
 ```
 

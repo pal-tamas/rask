@@ -192,7 +192,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         foreach (var s in host.Shared)
         {
-            EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, generic: true);
+            EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true);
         }
 
         foreach (var c in candidates.OrderBy(c => c.TypeName, StringComparer.Ordinal))
@@ -200,34 +200,83 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // FullyQualifiedName already carries the type arguments (`Input<T>`); appending
             // TypeParameters again would emit `Input<T><T>`.
             var self = c.FullyQualifiedName;
+            var visibility = c.IsPublic ? "public" : "internal";
             foreach (var p in c.Properties)
             {
                 // Depth 0 == declared on the component itself; anything deeper is part of the shared
                 // surface above and must not be duplicated per tag.
                 // An init-only prop can only be assigned in an object initializer (CS8852), so it has
                 // no setter — the factory reaches it through the initializer instead.
-                if (p.InheritanceDepth != 0 || p.IsTypeParameter || p.IsInitOnly || p.Name == "Children")
+                // A type-parameter prop (`T? Value`) is fine here even though it needs `default` rather
+                // than `null` as a factory default — a setter has no default to write.
+                if (p.InheritanceDepth != 0 || p.IsInitOnly || p.Name == "Children")
                 {
                     continue;
                 }
 
-                EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate, generic: false, c.TypeParameters,
-                    c.TypeParameterConstraints, c.IsPublic ? "public" : "internal");
+                // The bound IFormControl<T> members are emitted below from the interface's own types,
+                // not from wherever the control happens to declare them — emitting both would be CS0111.
+                if (p.IsBoundInterfaceProp)
+                {
+                    continue;
+                }
+
+                EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate, p.IsAutoRerenderDelegate, generic: false,
+                    c.TypeParameters, c.TypeParameterConstraints, visibility);
             }
+
+            EmitBoundSetters(sb, c, visibility);
         }
 
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderSetters.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
+    // The bound half of an IFormControl<T> control: one setter per interface member, typed from the
+    // interface's T rather than from the declaring class. That matters twice — the members may be
+    // inherited from a non-Element base (BsInput<T> gets them from BsFormControl<T>, which the
+    // depth-0 rule above would skip), and it is what lets the generic entry take only `Bind`:
+    //
+    //     Input(() => _form.Name).Validate(ProductName.Validate).Id("name")
+    //
+    // replaces the factory's none/sync/async overload fan-out, whose only purpose was to make
+    // Validate a required, correctly-typed parameter. Never auto-wrapped: a validator is not an event
+    // callback, and AfterBind is a post-bind hook (the bound factory has always assigned them raw).
+    private static void EmitBoundSetters(StringBuilder sb, Candidate c, string visibility)
+    {
+        if (c.FormControl is not { } fc)
+        {
+            return;
+        }
+
+        var t = fc.ValueTypeFqn;
+        var members = new (string Name, string TypeFqn)[]
+        {
+            ("Bind", "global::System.Linq.Expressions.Expression<global::System.Func<" + t + ">>?"),
+            ("Validate", "global::Rask.Core.Forms.Validate<" + t + ">?"),
+            ("ValidateAsync", "global::Rask.Core.Forms.ValidateAsync<" + t + ">?"),
+            ("AfterBind", "global::System.Action<" + t + ">?"),
+            ("AfterBindAsync", "global::System.Func<" + t + ", global::System.Threading.Tasks.Task>?"),
+        };
+
+        foreach (var (name, typeFqn) in members)
+        {
+            // typeFqn is the delegate itself, so CarrierDelegate finds nothing and the setter assigns it
+            // straight to the carrier prop through the carrier's implicit conversion.
+            EmitSetter(sb, name, typeFqn, c.FullyQualifiedName, isDelegate: false, wrap: false, generic: false,
+                c.TypeParameters, c.TypeParameterConstraints, visibility);
+        }
+    }
+
     // A delegate-typed property is invocable, so an extension of the same name loses to it (CS1593).
-    // Until those props move to the non-delegate Handler carrier, their setters drop the `On` prefix.
+    // Until those props move to a non-delegate carrier, their setters drop the `On` prefix.
     private static void EmitSetter(
         StringBuilder sb,
         string name,
         string typeFqn,
         string receiver,
         bool isDelegate,
+        bool wrap,
         bool generic,
         string typeParameters = "",
         string constraints = "",
@@ -237,19 +286,24 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             ? name.Substring(2)
             : name;
 
-        // A Handler/HandlerAsync-typed prop takes the underlying DELEGATE as its parameter, not the
-        // carrier: a method group or lambda cannot reach `Handler?` (that needs delegate conversion
+        // A carrier-typed prop takes the underlying DELEGATE as its parameter, not the carrier: a method
+        // group or lambda cannot reach `Handler?` / `Carrier<…>?` (that needs a delegate conversion
         // followed by a user-defined one, which C# will not chain). The carrier exists so the prop and
-        // setter can share a name; the wrap is applied here.
+        // setter can share a name; the conversion back happens at the assignment.
         //
-        // Wrapping is unconditional because carriers only appear on non-Element components today.
-        // When Element's events move to carriers (A5), this must become conditional — element handlers
-        // go to the DOM unwrapped, where owner resolution already re-renders.
+        // `wrap` is the AutoCallback decision, and it is per property, not per carrier: an Element's
+        // handlers go to the DOM unwrapped (owner resolution already re-renders, and wrapping would
+        // allocate per render), a non-Element component's event callbacks are wrapped, and a form
+        // control's bound members (validators, post-bind hooks) are never wrapped at all.
         var carrier = CarrierDelegate(typeFqn);
         var paramType = carrier ?? typeFqn;
-        var assigned = carrier is null
-            ? "value"
-            : "new " + StripNullable(typeFqn) + "(global::Rask.Core.AutoCallback.Wrap(value))";
+        // Wrap returns a nullable delegate (null in → null out); assigning it to a non-nullable prop
+        // needs the null-forgiving `!` (CS8601), the same way the factory's assignment pass does it.
+        var value = wrap
+            ? "global::Rask.Core.AutoCallback.Wrap(value)"
+              + (carrier is null && !typeFqn.EndsWith("?", StringComparison.Ordinal) ? "!" : string.Empty)
+            : "value";
+        var assigned = carrier is null ? value : "new " + StripNullable(typeFqn) + "(" + value + ")";
 
         // An `internal` component cannot appear in a `public` signature (CS0050/CS0051), so the
         // setter's accessibility tracks its component's — the same rule the factory emission uses.
@@ -270,13 +324,33 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .AppendLine("; return __c; }");
     }
 
-    // Maps a Handler/HandlerAsync carrier prop to the delegate its setter should accept.
-    private static string? CarrierDelegate(string typeFqn) => StripNullable(typeFqn) switch
+    // Maps a carrier prop (Handler / HandlerAsync / Carrier<TDelegate>) to the delegate it carries.
+    // Every generated *parameter* for such a prop is typed as the delegate, not the carrier: a lambda or
+    // method group cannot reach the carrier (that would need a delegate conversion followed by a
+    // user-defined one, which C# will not chain), and the implicit conversion turns it back at the
+    // assignment. Null for a prop that is not a carrier.
+    private static string? CarrierDelegate(string typeFqn)
     {
-        "global::Rask.Core.Handler" => "global::Rask.Core.Callback?",
-        "global::Rask.Core.HandlerAsync" => "global::Rask.Core.CallbackAsync?",
-        _ => null
-    };
+        var t = StripNullable(typeFqn);
+        switch (t)
+        {
+            case "global::Rask.Core.Handler":
+                return "global::Rask.Core.Callback?";
+            case "global::Rask.Core.HandlerAsync":
+                return "global::Rask.Core.CallbackAsync?";
+        }
+
+        const string open = "global::Rask.Core.Carrier<";
+        return t.StartsWith(open, StringComparison.Ordinal) && t.EndsWith(">", StringComparison.Ordinal)
+            ? t.Substring(open.Length, t.Length - open.Length - 1) + "?"
+            : null;
+    }
+
+    // The type a generated factory parameter uses for a property: the carried delegate for a carrier
+    // prop, the property's own type otherwise.
+    private static string ParamType(PropInfo p) => CarrierDelegate(p.TypeFqn) ?? p.TypeFqn;
+
+    private static bool IsCarrierProp(PropInfo p) => CarrierDelegate(p.TypeFqn) is not null;
 
     private static string SanitizeIdentifier(string value)
     {
@@ -347,12 +421,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("public abstract partial class Component");
         sb.AppendLine("{");
 
-        foreach (var c in candidates.OrderBy(c => c.TypeName, StringComparer.Ordinal))
+        foreach (var c in candidates.OrderBy(c => c.TypeName + c.TypeParameters, StringComparer.Ordinal))
         {
-            // Generic components cannot have an entry: a property may not be generic. They keep the
-            // factory method, whose type argument is inferred from its arguments.
+            // A property may not be generic, so a generic component's entry has to be a static METHOD —
+            // legal alongside its own type name by the invocable-member rule. Only a generic FORM CONTROL
+            // gets one: its `Bind` argument is what infers the value type. A generic component with no
+            // such argument has nothing to infer from and keeps the factory.
             if (c.TypeParameters.Length != 0)
             {
+                if (!emitted.Add(c.TypeName + c.TypeParameters))
+                {
+                    continue;
+                }
+
+                EmitBoundEntry(sb, c, taken, c.IsPublic ? "protected" : "private protected", indent: "    ");
                 continue;
             }
 
@@ -372,7 +454,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (taken.Contains(c.TypeName) || !emitted.Add(c.TypeName))
+            if (taken.Contains(c.TypeName) || !emitted.Add(c.TypeName + c.TypeParameters))
             {
                 continue;
             }
@@ -388,6 +470,122 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
+
+    // The generic form control's method entry. It takes ONE parameter — the bind expression — because
+    // that is what infers the value type (`Input(() => model.Age)` → `Input<int>`); the validator and the
+    // post-bind hooks that force the factory's none/sync/async overload fan-out are setters instead.
+    // When the control has more type parameters than the value type mentions (BsSelect<TValue, TItem>),
+    // inference falls back to the caller writing them out — the entry still compiles and still works.
+    private static void EmitBoundEntry(
+        StringBuilder sb, Candidate c, HashSet<string> taken, string visibility, string indent,
+        string hostTypeParameters = "")
+    {
+        // No bind expression to infer from, no `new T()` to build, or a member that must be set at
+        // construction (CS9040): no entry — the factory stays the way in.
+        if (c.FormControl is not { } fc || !c.HasParameterlessCtor || taken.Contains(c.TypeName)
+            || c.Properties.Any(static p => p.UserMarkedRequired))
+        {
+            return;
+        }
+
+        // A method's type parameter may not reuse an enclosing type's name (CS0693), and the consumer
+        // entries are injected INTO components — including generic ones (`BsDataGrid<T>` hosting the
+        // entry for `Input<T>`). Rename only the colliding ones, so the common case reads unchanged.
+        var typeParameters = c.TypeParameters;
+        var constraints = c.TypeParameterConstraints;
+        var self = c.FullyQualifiedName;
+        var valueType = fc.ValueTypeFqn;
+        var reserved = ParseTypeParameters(hostTypeParameters);
+        if (reserved.Count != 0)
+        {
+            foreach (var name in ParseTypeParameters(c.TypeParameters))
+            {
+                if (!reserved.Contains(name))
+                {
+                    continue;
+                }
+
+                var renamed = name;
+                do
+                {
+                    renamed += "_";
+                }
+                while (reserved.Contains(renamed));
+
+                typeParameters = RenameTypeParameter(typeParameters, name, renamed);
+                constraints = RenameTypeParameter(constraints, name, renamed);
+                self = RenameTypeParameter(self, name, renamed);
+                valueType = RenameTypeParameter(valueType, name, renamed);
+            }
+        }
+
+        // Bound mode: Bind is the only parameter, and it is what infers the value type.
+        sb.Append(indent).Append(visibility).Append(" static ").Append(self).Append(' ')
+            .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters)
+            .Append("(global::System.Linq.Expressions.Expression<global::System.Func<").Append(valueType)
+            .Append(">> Bind)").Append(constraints).AppendLine();
+        sb.Append(indent).Append("    => EntryBound<").Append(self).Append(", ")
+            .Append(valueType).AppendLine(">(Bind);");
+
+        // Plain / controlled mode: nothing to infer from, so the caller writes the type argument
+        // (`Input<string>().Value(v).Change(h)`). This is the method form of the property entry every
+        // non-generic component gets.
+        sb.Append(indent).Append(visibility).Append(" static ").Append(self).Append(' ')
+            .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters).Append("()").Append(constraints)
+            .AppendLine();
+        sb.Append(indent).Append("    => Entry<").Append(self).AppendLine(">();");
+    }
+
+    // "<TValue, TItem>" → { "TValue", "TItem" }; empty for a non-generic type.
+    private static HashSet<string> ParseTypeParameters(string list)
+    {
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        if (list.Length < 3)
+        {
+            return result;
+        }
+
+        foreach (var name in list.Substring(1, list.Length - 2).Split(','))
+        {
+            var trimmed = name.Trim();
+            if (trimmed.Length != 0)
+            {
+                result.Add(trimmed);
+            }
+        }
+
+        return result;
+    }
+
+    // Whole-identifier replace. Safe on the strings it is used with: every type name in them is
+    // `global::`-qualified, so a bare identifier token can only be a type parameter.
+    private static string RenameTypeParameter(string text, string from, string to)
+    {
+        if (text.Length == 0)
+        {
+            return text;
+        }
+
+        var sb = new StringBuilder(text.Length);
+        for (var i = 0; i < text.Length;)
+        {
+            if (string.CompareOrdinal(text, i, from, 0, from.Length) == 0
+                && !IsIdentifierChar(i > 0 ? text[i - 1] : ' ')
+                && !IsIdentifierChar(i + from.Length < text.Length ? text[i + from.Length] : ' '))
+            {
+                sb.Append(to);
+                i += from.Length;
+                continue;
+            }
+
+            sb.Append(text[i]);
+            i++;
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
 
     // A consumer's own components cannot ride on Component: a generator may not add members to a type
     // in a referenced assembly, and delivering entries via `using static` does not work either — a
@@ -405,12 +603,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         var entries = candidates
-            .Where(static c => c.TypeParameters.Length == 0
+            .Where(static c => (c.TypeParameters.Length == 0 || c.FormControl is not null)
                                && (c.HasParameterlessCtor || c.HasDIConstructor)
                                && !c.Properties.Any(static p => p.UserMarkedRequired))
-            .GroupBy(static c => c.TypeName, StringComparer.Ordinal)
+            .GroupBy(static c => c.TypeName + c.TypeParameters, StringComparer.Ordinal)
             .Select(static g => g.First())
-            .OrderBy(static c => c.TypeName, StringComparer.Ordinal)
+            .OrderBy(static c => c.TypeName + c.TypeParameters, StringComparer.Ordinal)
             .ToList();
 
         if (entries.Count == 0)
@@ -450,8 +648,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.AppendLine("{");
             foreach (var e in entries)
             {
+                // A member may not share its enclosing type's name (CS0542) — and a component never
+                // needs an entry for itself anyway.
                 if (string.Equals(e.TypeName, host2.TypeName, StringComparison.Ordinal))
                 {
+                    continue;
+                }
+
+                if (e.TypeParameters.Length != 0)
+                {
+                    EmitBoundEntry(sb, e, EmptyNames, "private", indent: "    ", host2.TypeParameters);
                     continue;
                 }
 
@@ -470,6 +676,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         spc.AddSource("RaskBuilderConsumerEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
+
+    // Nothing is "taken" inside a consumer's own partial: the CS0542 self-name case is filtered before
+    // the entry is emitted, and a user member that collides is the RASK0xx `new` story, not this one.
+    private static readonly HashSet<string> EmptyNames = new(StringComparer.Ordinal);
 
     // `new T()` needs a public parameterless ctor; anything else goes through ActivatorUtilities —
     // the same split the factory emission makes via canUseObjectInit.
@@ -951,6 +1161,30 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                == "global::System.Threading.Tasks.Task";
     }
 
+    // Same question as IsAutoRerenderDelegate, asked of a property whose delegate may sit inside a
+    // carrier struct (Handler / HandlerAsync / Carrier<TDelegate>). Without the unwrap every carrier
+    // prop would look like a plain struct and silently lose its auto-rerender wrapping.
+    private static bool IsAutoRerenderProp(ITypeSymbol type)
+    {
+        var t = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } lifted
+            ? lifted.TypeArguments[0]
+            : type;
+
+        if (t is INamedTypeSymbol named)
+        {
+            switch (named.OriginalDefinition.ToDisplayString())
+            {
+                case "Rask.Core.Handler":
+                case "Rask.Core.HandlerAsync":
+                    return true;
+                case "Rask.Core.Carrier<TDelegate>":
+                    return IsAutoRerenderDelegate(named.TypeArguments[0]);
+            }
+        }
+
+        return IsAutoRerenderDelegate(t);
+    }
+
     private static bool IsInRaskCoreNamespace(INamedTypeSymbol symbol)
     {
         var ns = symbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
@@ -1130,7 +1364,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
                                               | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
 
-                var isAutoRerenderDelegate = !isElement && IsAutoRerenderDelegate(prop.Type);
+                // A bound-mode IFormControl<T> member (Bind/Validate/ValidateAsync/AfterBind/AfterBindAsync):
+                // excluded from the controlled factory and instead emitted on the synthesized bound factory.
+                var isBoundInterfaceProp = isFormControl &&
+                                           Array.IndexOf(BoundInterfaceMembers, prop.Name) >= 0;
+
+                // AfterBind/AfterBindAsync are Action<T>/Func<T,Task>-shaped, so they would qualify for
+                // auto-wrapping on a non-Element control (BsInput, BsSelect, …) — but they are post-bind
+                // hooks, not event callbacks, and the bound factory has always assigned them raw. Excluding
+                // every bound member here keeps the builder setters on the same rule.
+                var isAutoRerenderDelegate =
+                    !isElement && !isBoundInterfaceProp && IsAutoRerenderProp(prop.Type);
 
                 // Any delegate-typed prop (event callbacks: Callback/CallbackAsync/Action/Func) is
                 // excluded from the propsChanged fold below — two delegates/closures are practically never
@@ -1147,11 +1391,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // `default`. (A `class`/`notnull`-constrained T would accept null, but `default` is always
                 // valid, so key off the type-parameter kind rather than the constraint set.)
                 var isTypeParameter = prop.Type is ITypeParameterSymbol;
-
-                // A bound-mode IFormControl<T> member (Bind/Validate/ValidateAsync/AfterBind/AfterBindAsync):
-                // excluded from the controlled factory and instead emitted on the synthesized bound factory.
-                var isBoundInterfaceProp = isFormControl &&
-                    Array.IndexOf(BoundInterfaceMembers, prop.Name) >= 0;
 
                 result.Add(new PropInfo(
                     prop.Name,
@@ -1420,7 +1659,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // `propsChanged: false` fast path for any callback-receiving component). They are still
         // assigned each render, just not folded.
         var nonKeyProps = paramProps.Where(p => !IsKeyProp(p)).ToList();
-        var foldProps = nonKeyProps.Where(p => !p.IsAutoRerenderDelegate && !p.IsDelegate).ToList();
+        var foldProps = nonKeyProps
+            .Where(p => !p.IsAutoRerenderDelegate && !p.IsDelegate && !IsCarrierProp(p)).ToList();
 
         // Prefer the parameterless ctor + object-initializer path whenever it's available.
         // Even if the component declares additional ctors that take services (DI) or
@@ -1441,7 +1681,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            sb.Append(p.TypeFqn).Append(' ').Append(p.Escaped);
+            sb.Append(ParamType(p)).Append(' ').Append(p.Escaped);
         }
 
         foreach (var p in optionalProps)
@@ -1452,7 +1692,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            sb.Append(p.TypeFqn).Append(' ').Append(p.Escaped).Append(" = ")
+            sb.Append(ParamType(p)).Append(' ').Append(p.Escaped).Append(" = ")
                 .Append(DefaultLiteralFor(p));
         }
 
@@ -1618,7 +1858,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(StripNullable(bind.TypeFqn)).Append(" Bind");
         foreach (var p in sharedRequired)
         {
-            sb.Append(", ").Append(p.TypeFqn).Append(' ').Append(p.Escaped);
+            sb.Append(", ").Append(ParamType(p)).Append(' ').Append(p.Escaped);
         }
 
         if (shape != ValidatorShape.None)
@@ -1626,11 +1866,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(", ").Append(validatorType).Append(" Validate");
         }
 
-        sb.Append(", ").Append(afterBind.TypeFqn).Append(' ').Append(afterBind.Escaped).Append(" = null");
-        sb.Append(", ").Append(afterBindAsync.TypeFqn).Append(' ').Append(afterBindAsync.Escaped).Append(" = null");
+        sb.Append(", ").Append(ParamType(afterBind)).Append(' ').Append(afterBind.Escaped).Append(" = null");
+        sb.Append(", ").Append(ParamType(afterBindAsync)).Append(' ').Append(afterBindAsync.Escaped)
+            .Append(" = null");
         foreach (var p in sharedOptional)
         {
-            sb.Append(", ").Append(p.TypeFqn).Append(' ').Append(p.Escaped).Append(" = ").Append(DefaultLiteralFor(p));
+            sb.Append(", ").Append(ParamType(p)).Append(' ').Append(p.Escaped).Append(" = ")
+                .Append(DefaultLiteralFor(p));
         }
 
         sb.Append(')').AppendLine(c.TypeParameterConstraints);
@@ -1656,7 +1898,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         // Fold (propsChanged): only the shared value props participate — the bound members are fresh
         // expressions/delegates each render (folding them would force propsChanged: true every frame).
-        var foldProps = shared.Where(p => !IsKeyProp(p) && !p.IsAutoRerenderDelegate && !p.IsDelegate).ToList();
+        var foldProps = shared
+            .Where(p => !IsKeyProp(p) && !p.IsAutoRerenderDelegate && !p.IsDelegate && !IsCarrierProp(p))
+            .ToList();
 
         void EmitInit(string indent)
         {

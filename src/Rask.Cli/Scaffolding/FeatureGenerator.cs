@@ -974,7 +974,7 @@ internal static class FeatureGenerator
         {
             // A hidden input round-trips the optimistic-concurrency token through the form (create submits 0,
             // which the create handler ignores; edit submits the loaded value).
-            sb.Append("                    Input(() => _form.Version, Type: InputType.Hidden),\n");
+            sb.Append("                    Input(() => _form.Version).Type(InputType.Hidden),\n");
         }
 
         foreach (var field in fields)
@@ -985,17 +985,23 @@ internal static class FeatureGenerator
             var validate = IsValueObject(field, useValueObjects) ? $", Validate: {ValueObjectName(entity, field)}.Validate" : "";
             if (useBs)
             {
-                // Bs form controls render their own label + input + validation feedback.
+                // Bs form controls render their own label + input + validation feedback. Still the factory:
+                // a referenced assembly's components get no builder entry in the consumer's compilation.
                 var control = field.CsType == "bool" ? "BsCheck" : "BsInput";
                 sb.Append("                    ").Append(control).Append("(() => _form.").Append(field.Name).Append(validate)
                     .Append(", Id: \"").Append(id).Append("\", Label: \"").Append(field.Name).Append("\"),\n");
             }
             else
             {
-                // Plain, unstyled HTML: a label + the bound input (a bool renders as a checkbox).
+                // Plain, unstyled HTML: a label + the bound input (a bool renders as a checkbox). The bound
+                // control is the builder entry — it takes only the bind expression; everything else chains.
+                var chainedValidate = IsValueObject(field, useValueObjects)
+                    ? $".Validate({ValueObjectName(entity, field)}.Validate)"
+                    : "";
                 sb.Append("                    Div()[\n")
                     .Append("                        Label(\"").Append(id).Append("\")[\"").Append(field.Name).Append("\"],\n")
-                    .Append("                        Input(() => _form.").Append(field.Name).Append(validate).Append(", Id: \"").Append(id).Append("\")\n")
+                    .Append("                        Input(() => _form.").Append(field.Name).Append(')').Append(chainedValidate)
+                    .Append(".Id(\"").Append(id).Append("\")\n")
                     .Append("                    ],\n");
             }
         }
@@ -1141,7 +1147,7 @@ internal static class FeatureGenerator
         namespace __NS__;
 
         // Value object for __FIELD__ — the validation rule lives here and is reused by the form
-        // (Input(..., Validate: __VO__.Validate)) and by Create.
+        // (Input(...).Validate(__VO__.Validate)) and by Create.
         public readonly record struct __VO__
         {
             public const int MaxLength = __MAX__;

@@ -10,7 +10,7 @@ public sealed partial class EventsFormDemo : Component
     [
         Form(OnSubmit: OnSubmit, Class: "mb-2")[
             Div(Class: "input-group")[
-                Input<string>(
+                Rask.Core.Components.Generated.Input<string>(
                     InputType.Text,
                     "name",
                     Class: "form-control",

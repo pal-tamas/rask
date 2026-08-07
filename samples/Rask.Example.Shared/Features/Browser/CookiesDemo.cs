@@ -18,7 +18,7 @@ public sealed partial class CookiesDemo(ICookies cookies) : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 Div(Class: "input-group input-group-sm mb-2")[
-                    Input(
+                    Rask.Core.Components.Generated.Input(
                         Id: "cookie-input",
                         Class: "form-control",
                         Value: _input,

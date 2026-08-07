@@ -85,7 +85,7 @@ public sealed partial class TablePage(Navigator nav) : Component
                 BsCardHeader(Class: "bg-white d-flex flex-wrap gap-2 align-items-center justify-content-between")[
                     Div(Class: "input-group input-group-sm", Style: "max-width:320px;")[
                         Span(Class: "input-group-text bg-white")[BsIcon(Name: BsIconName.Search)],
-                        Input(
+                        Rask.Core.Components.Generated.Input(
                             InputType.Search,
                             Class: "form-control",
                             Placeholder: "Filter name, city, department…",
@@ -96,7 +96,7 @@ public sealed partial class TablePage(Navigator nav) : Component
                     ],
                     BsStack(Gap: 2, Align: BsAlign.Center)[
                         Label(Class: "small text-secondary mb-0")["Rows per page"],
-                        Select<string>(
+                        Rask.Core.Components.Generated.Select<string>(
                             Class: "form-select form-select-sm",
                             Style: "max-width:90px;",
                             OnChange: v => nav.SetQuery(

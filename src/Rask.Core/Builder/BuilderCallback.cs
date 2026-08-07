@@ -38,3 +38,30 @@ public readonly record struct HandlerAsync(CallbackAsync? Fn)
 
     public static implicit operator HandlerAsync(CallbackAsync? fn) => new(fn);
 }
+
+/// <summary>
+///     The open-ended carrier: <see cref="Handler" /> for an arbitrary delegate type.
+/// </summary>
+/// <remarks>
+///     <para>
+///         Same job as <see cref="Handler" /> — make a delegate-typed prop non-invocable so its
+///         builder setter can share its name — but parameterised by the delegate, so one type covers
+///         every shape. <c>IFormControl&lt;T&gt;</c>'s bound members use it
+///         (<c>Carrier&lt;Validate&lt;T&gt;&gt;? Validate</c>), which is what makes
+///         <c>Input(() =&gt; m.Name).Validate(rule)</c> bind to the setter instead of trying to invoke
+///         the validator with a validator.
+///     </para>
+///     <para>
+///         The implicit conversion keeps plain assignment (<c>Validate = rule</c>) and the generated
+///         factories' <c>Validate:</c> parameter working unchanged — the generator maps a carrier prop
+///         back to its delegate for every parameter it emits, so no call site sees the carrier.
+///     </para>
+///     <para>
+///         Nullable at the use site (<c>Carrier&lt;…&gt;?</c>), never bare: a non-nullable struct with
+///         no initializer is a <em>required</em> factory parameter (RASK001 / CS9040).
+///     </para>
+/// </remarks>
+public readonly record struct Carrier<TDelegate>(TDelegate? Fn) where TDelegate : Delegate
+{
+    public static implicit operator Carrier<TDelegate>(TDelegate? fn) => new(fn);
+}

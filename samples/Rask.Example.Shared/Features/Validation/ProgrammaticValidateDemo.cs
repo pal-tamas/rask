@@ -34,7 +34,7 @@ public sealed partial class ProgrammaticValidateDemo : Component
             Class: "vstack gap-3")[
             Div()[
                 Label("v6-title", Class: "form-label small mb-1")["Title"],
-                Input(() => _model.Title, Id: "v6-title", Class: "form-control"),
+                Input(() => _model.Title).Id("v6-title").Class("form-control"),
                 ValidatingIndicator(() => _model.Title, Checking),
                 ValidationMessage(() => _model.Title, FieldError)
             ],

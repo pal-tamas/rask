@@ -17,9 +17,8 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
     [
         Div(Class: "mb-3")[
             Label("bind-async-track", Class: "form-label small")["Track"],
-            Select(
-                () => _model.Track,
-                AfterBindAsync: async track =>
+            Select(() => _model.Track)
+                .AfterBindAsync(async track =>
                 {
                     // Re-selecting the placeholder (or any unknown track) clears the
                     // dependent list instead of throwing on _catalog[track].
@@ -51,9 +50,9 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                     _languages = _catalog[track];
                     _model.Language = _languages[0];
                     _loading = false;
-                },
-                Id: "bind-async-track",
-                Class: "form-select")[
+                })
+                .Id("bind-async-track")
+                .Class("form-select")[
                 // Placeholder matching the empty initial Track. Without it the <select>
                 // visually defaults to "Frontend" while the model is still "" — and
                 // re-picking the already-shown first option fires no change event, so the
@@ -69,11 +68,10 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
             Label("bind-async-lang", Class: "form-label small")[
                 _loading ? "Language (loading…)" : "Language"
             ],
-            Select(
-                () => _model.Language,
-                Id: "bind-async-lang",
-                Class: "form-select",
-                Disabled: _loading || _languages.Length == 0)[
+            Select(() => _model.Language)
+                .Id("bind-async-lang")
+                .Class("form-select")
+                .Disabled(_loading || _languages.Length == 0)[
                 _languages.Length == 0
                     ? [Option("")["— pick a track —"]]
                     : _languages.Select(l => Option(l, Key: l)[l])

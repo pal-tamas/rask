@@ -12,7 +12,7 @@ public sealed partial class NavigatorDemo(Navigator nav) : Component
                 OnClick: () => nav.NavigateTo("/dashboard"))["Open dashboard"],
 
             // Or update just the query, keeping the same path:
-            Select<string>(
+            Rask.Core.Components.Generated.Select<string>(
                 OnChange: v => nav.SetQuery("sort", v))[
                 Option("asc")["Sort ascending"],
                 Option("desc")["Sort descending"]

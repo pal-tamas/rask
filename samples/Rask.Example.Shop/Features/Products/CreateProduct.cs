@@ -46,18 +46,18 @@ public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navi
                 H1()["New Product"],
                 _error is null ? null : Div(Role: "alert")[_error],
                 Form(_form, OnValidSubmitAsync: SubmitAsync)[
-                    Input(() => _form.Version, Type: InputType.Hidden),
+                    Input(() => _form.Version).Type(InputType.Hidden),
                     Div()[
                         Label("name")["Name"],
-                        Input(() => _form.Name, Validate: ProductName.Validate, Id: "name")
+                        Input(() => _form.Name).Validate(ProductName.Validate).Id("name")
                     ],
                     Div()[
                         Label("price")["Price"],
-                        Input(() => _form.Price, Id: "price")
+                        Input(() => _form.Price).Id("price")
                     ],
                     Div()[
                         Label("instock")["InStock"],
-                        Input(() => _form.InStock, Id: "instock")
+                        Input(() => _form.InStock).Id("instock")
                     ],
                     Div()[
                         NavLink(Routes.ProductsPage())["Cancel"],

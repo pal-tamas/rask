@@ -13,7 +13,7 @@ public sealed partial class FormControlsInputDemo : Component
         BsRow(Gutter: 4)[
             BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold")["Controlled (Value + OnChange)"],
-                Input<string>(
+                Rask.Core.Components.Generated.Input<string>(
                     Value: _controlled,
                     OnChange: v => _controlled = v,
                     Class: "form-control mb-2",
@@ -26,8 +26,10 @@ public sealed partial class FormControlsInputDemo : Component
             BsCol(Md: 6)[
                 Label(Class: "form-label fw-semibold")["Bound (two-way)"],
                 Form(_model)[
-                    Input(() => _model.Text, Class: "form-control mb-2", Placeholder: "Type…",
-                        Id: "fc-input-bound")
+                    Input(() => _model.Text)
+                        .Class("form-control mb-2")
+                        .Placeholder("Type…")
+                        .Id("fc-input-bound")
                 ],
                 P(Class: "small text-secondary mb-0", Id: "fc-input-bound-out")[
                     "Echo: ", Strong()[_model.Text.Length == 0 ? "(empty)" : _model.Text]

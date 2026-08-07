@@ -21,7 +21,7 @@ public sealed partial class CryptoDemo(ICrypto crypto) : Component
                 ],
                 Div(Class: "small text-secondary")["UUID: ", Code(Id: "crypto-uuid-value")[_uuid ?? "(none)"]],
                 Div(Class: "small text-secondary mb-2")["Bytes: ", Code(Id: "crypto-bytes-value")[_bytes ?? "(none)"]],
-                Input(Id: "crypto-text", Class: "form-control form-control-sm mb-2", Value: _text,
+                Rask.Core.Components.Generated.Input(Id: "crypto-text", Class: "form-control form-control-sm mb-2", Value: _text,
                     OnInput: v => _text = v),
                 Button(Class: "btn btn-primary btn-sm mb-2", Id: "crypto-hash", OnClickAsync: Hash)["SHA-256"],
                 Div(Class: "small text-secondary text-break")["Hash: ", Code(Id: "crypto-hash-value")[_hash ?? "(none)"]],

@@ -25,11 +25,11 @@ public sealed partial class NestedListIndexerDemo : Component
             rows.Add(Tr(Key: _model.Skus[i].Id)[
                 Td(Class: "text-secondary small")[$"#{i + 1}"],
                 Td()[
-                    Input(() => _model.Skus[i].Code, Class: "form-control form-control-sm"),
+                    Input(() => _model.Skus[i].Code).Class("form-control form-control-sm"),
                     ValidationMessage(() => _model.Skus[i].Code, FieldError)
                 ],
                 Td(Style: "width: 7rem;")[
-                    Input(() => _model.Skus[i].Price, Class: "form-control form-control-sm"),
+                    Input(() => _model.Skus[i].Price).Class("form-control form-control-sm"),
                     ValidationMessage(() => _model.Skus[i].Price, FieldError)
                 ],
                 Td(Style: "width: 5rem;")[

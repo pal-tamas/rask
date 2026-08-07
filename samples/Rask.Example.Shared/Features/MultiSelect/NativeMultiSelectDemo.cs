@@ -19,8 +19,11 @@ public sealed partial class NativeMultiSelectDemo : Component
         Form(_shipping, Class: "vstack gap-3")[
             Div()[
                 Label(Class: "form-label fw-semibold", For: "native-regions")["Ship to"],
-                Select(() => _shipping.Regions, Multiple: true, Id: "native-regions",
-                    Class: "form-select", Size: 6)[
+                Select(() => _shipping.Regions)
+                    .Multiple(true)
+                    .Id("native-regions")
+                    .Class("form-select")
+                    .Size(6)[
                     AllRegions.Select(r => Option(r, Key: r)[r])
                 ],
                 Div(Class: "form-text")["Hold ⌘ (or Ctrl) to pick more than one."]

@@ -45,15 +45,15 @@ public sealed partial class SendMailPage(IMailQueue mail) : Component
                 Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
                     Div()[
                         Label("mail-to", Class: "form-label small mb-1")["To"],
-                        Input(() => _form.To, Id: "mail-to", Class: "form-control", Placeholder: "jane@example.com")
+                        Input(() => _form.To).Id("mail-to").Class("form-control").Placeholder("jane@example.com")
                     ],
                     Div()[
                         Label("mail-subject", Class: "form-label small mb-1")["Subject"],
-                        Input(() => _form.Subject, Id: "mail-subject", Class: "form-control")
+                        Input(() => _form.Subject).Id("mail-subject").Class("form-control")
                     ],
                     Div()[
                         Label("mail-body", Class: "form-label small mb-1")["Body"],
-                        Input(() => _form.Body, Id: "mail-body", Class: "form-control")
+                        Input(() => _form.Body).Id("mail-body").Class("form-control")
                     ],
                     Div(Class: "d-flex justify-content-end pt-2")[
                         Button("submit", Class: "btn btn-primary", Id: "mail-send")[

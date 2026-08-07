@@ -212,7 +212,7 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("public static IEnumerable<string> Validate(string value)", vo, StringComparison.Ordinal);
         Assert.Contains("public static ProductName Create(string value)", vo, StringComparison.Ordinal);
         // The form wires the value object's Validate into the bound input.
-        Assert.Contains("Input(() => _form.Name, Validate: ProductName.Validate", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.Contains("Input(() => _form.Name).Validate(ProductName.Validate).Id(\"name\")", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -400,7 +400,7 @@ public sealed class FeatureGeneratorTests
         // The request + edit form round-trip the original Version through a hidden field.
         Assert.Contains("public int Version { get; set; }", File(result, "ProductRequest.cs"), StringComparison.Ordinal);
         var update = File(result, "UpdateProduct.cs");
-        Assert.Contains("Input(() => _form.Version, Type: InputType.Hidden)", update, StringComparison.Ordinal);
+        Assert.Contains("Input(() => _form.Version).Type(InputType.Hidden)", update, StringComparison.Ordinal);
         Assert.Contains("_form.Version = entity.Version;", update, StringComparison.Ordinal);
 
         // The Update handler sets the original value; a conflict is caught + shown inline (not a raw error page).
@@ -592,7 +592,7 @@ public sealed class FeatureGeneratorTests
         }
 
         // A field is just a label + bound Input, no framework classes.
-        Assert.Contains("Input(() => _form.Price, Id: \"price\")", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.Contains("Input(() => _form.Price).Id(\"price\")", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
     }
 
     [Fact]

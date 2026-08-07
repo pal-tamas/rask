@@ -28,11 +28,11 @@ public sealed partial class LoginPage(
                 Form(_model, OnValidSubmitAsync: SubmitAsync)[
                     Div(Class: "mb-3")[
                         Label("username", Class: "form-label")["Username"],
-                        Input(() => _model.Username, Id: "username", Class: "form-control")
+                        Input(() => _model.Username).Id("username").Class("form-control")
                     ],
                     Div(Class: "mb-3")[
                         Label("password", Class: "form-label")["Password"],
-                        Input(() => _model.Password, Id: "password", Type: InputType.Password, Class: "form-control")
+                        Input(() => _model.Password).Id("password").Type(InputType.Password).Class("form-control")
                     ],
                     Button("submit", Id: "login-submit", Class: "btn btn-primary w-100")["Sign in"]
                 ],

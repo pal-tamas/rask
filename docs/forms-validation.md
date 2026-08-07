@@ -15,8 +15,8 @@ cast. An empty sequence means valid.
 Form<LoginModel>(_model,
     OnValidSubmit: m => _submission = "Welcome",
     Validate: m => m.Password == m.Confirm ? [] : ["Passwords do not match."])[   // cross-field, at submit
-    Input(Bind: () => _model.Email,
-          Validate: v => v.Contains('@') ? [] : ["Email looks wrong."]),          // per-field, per-keystroke
+    Input(() => _model.Email)
+        .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."]),             // per-field, per-keystroke
     ValidationMessage(For: () => _model.Email, Template: errs => Div(Class: "err")[errs[0]]),
     ValidationSummary(Template: SummaryAlert),
     Button(Type: "submit")["Sign in"]
@@ -52,9 +52,9 @@ public sealed class SignupModel
 
 Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
     DataAnnotationsValidator(),
-    Input(Bind: () => _model.Username),
+    Input(() => _model.Username),
     ValidationMessage(For: () => _model.Username, Template: errs => Div(Class: "err")[errs[0]]),
-    Input(Bind: () => _model.Email),
+    Input(() => _model.Email),
     ValidationMessage(For: () => _model.Email, Template: errs => Div(Class: "err")[errs[0]]),
     Button(Type: "submit")["Register"]
 ]
@@ -100,9 +100,9 @@ public sealed class OrderValidator : AbstractValidator<OrderModel>
 
 Form<OrderModel>(_model, m => _submission = "Ordered")[
     FluentValidationValidator(new OrderValidator()),
-    Input(Bind: () => _model.Product),
+    Input(() => _model.Product),
     ValidationMessage(For: () => _model.Product, Template: errs => Div(Class: "err")[errs[0]]),
-    Input(Bind: () => _model.Quantity),
+    Input(() => _model.Quantity),
     ValidationMessage(For: () => _model.Quantity, Template: errs => Div(Class: "err")[errs[0]]),
     Button(Type: "submit")["Order"]
 ]

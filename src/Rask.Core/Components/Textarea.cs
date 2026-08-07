@@ -39,10 +39,10 @@ public sealed class Textarea<T> : Element, IFormControl<T>
 
     // IFormControl<T> — bound mode.
     public Expression<Func<T>>? Bind { get; set; }
-    public Validate<T>? Validate { get; set; }
-    public ValidateAsync<T>? ValidateAsync { get; set; }
-    public Action<T>? AfterBind { get; set; }
-    public Func<T, Task>? AfterBindAsync { get; set; }
+    public Carrier<Validate<T>>? Validate { get; set; }
+    public Carrier<ValidateAsync<T>>? ValidateAsync { get; set; }
+    public Carrier<Action<T>>? AfterBind { get; set; }
+    public Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
 
     // IFormControl<T> — controlled mode.
     public T? Value { get; set; }
@@ -152,7 +152,7 @@ public sealed class Textarea<T> : Element, IFormControl<T>
         if (acc is not null)
         {
             // Bound: write the model on input, touch + revalidate on change.
-            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
+            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind?.Fn, AfterBindAsync?.Fn);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
             AppendAttr(sb, "data-rask-on-input",
                 ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, fid, false, afterBind)));

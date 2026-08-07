@@ -21,7 +21,7 @@ For the analyzer IDs referenced here (`RASK001`, `RASK022`, …) see [diagnostic
 The low-level path wires `Value` and an event handler yourself:
 
 ```csharp
-Input<string>(InputType.Text, Value: _typed, OnInput: v => _typed = v)
+Input<string>().Type(InputType.Text).Value(_typed).Input(v => _typed = v)
 P()[$"Echo: {_typed}"]
 ```
 
@@ -30,7 +30,7 @@ P()[$"Echo: {_typed}"]
 The ergonomic path is a `Bind` expression — one call replaces `Value` + `OnInput` + parsing:
 
 ```csharp
-Input(Bind: () => _model.Name, Placeholder: "Your name")
+Input(() => _model.Name).Placeholder("Your name")
 P()[$"Hello, {_model.Name}!"]
 ```
 
@@ -50,7 +50,7 @@ derives everything from the bound property:
   `Password`) only makes sense on an `Input<string>`; setting one on a non-string bound input is
   [RASK025](diagnostics.md#rask025).
 - **Update timing** — `string` fields update on every keystroke (`OnInput`); every other type
-  updates on `OnChange` (blur). `Textarea(Bind: …)` always streams on `OnInput`.
+  updates on `OnChange` (blur). `Textarea(() => …)` always streams on `OnInput`.
 
 Beyond the constraint/affordance attributes shared with plain HTML (`Min`/`Max`/`Step`/`Pattern`/
 `MaxLength`/`MinLength`/`Multiple`/`Accept`/`List`/`Autocomplete`/`Autofocus`), the core `Input` also
@@ -73,19 +73,19 @@ input), and `Dirname`. The Bootstrap `BsInput`/`BsTextarea` forward all of these
 `ContentType`/`OpenReadStream()`), and constrain the picker with `Accept`, `Multiple`, and `Capture`:
 
 ```csharp
-Input(Type: InputType.File, Accept: "image/*", Multiple: true,
-      OnFilesAsync: async files => { foreach (var f in files) await Save(f); })
+Input<string>().Type(InputType.File).Accept("image/*").Multiple(true)
+     .FilesAsync(async files => { foreach (var f in files) await Save(f); })
 ```
 
 Uploading the bytes (streaming to a server endpoint, size limits, progress) is covered end-to-end in
 [http-and-files.md](http-and-files.md).
 
 ```csharp
-Input(Bind: () => _model.Subscribe)   // bool     → checkbox
-Input(Bind: () => _model.Age)         // int      → number
-Input(Bind: () => _model.StartDate)   // DateOnly → date
-Select(Bind: () => _model.Favorite)[Option("Red")["Red"], Option("Blue")["Blue"]]
-Textarea(Bind: () => _model.Notes, Rows: 3)
+Input(() => _model.Subscribe)   // bool     → checkbox
+Input(() => _model.Age)         // int      → number
+Input(() => _model.StartDate)   // DateOnly → date
+Select(() => _model.Favorite)[Option("Red")["Red"], Option("Blue")["Blue"]]
+Textarea(() => _model.Notes).Rows(3)
 ```
 
 <!-- demo:binding-multi -->
@@ -126,9 +126,9 @@ then re-validate on every keystroke so a correction clears the message without a
 handy for dependent fields (pick a country, repopulate the city dropdown in the same render):
 
 ```csharp
-Select(Bind: () => _model.Country,
-       AfterBind: c => { _cities = Cities[c]; _model.City = _cities[0]; })[ /* options */ ]
-Select(Bind: () => _model.City)[_cities.Select(c => Option(Value: c)[c])]
+Select(() => _model.Country)
+    .AfterBind(c => { _cities = Cities[c]; _model.City = _cities[0]; })[ /* options */ ]
+Select(() => _model.City)[_cities.Select(c => Option(Value: c)[c])]
 ```
 
 <!-- demo:binding-afterbind -->
@@ -147,7 +147,7 @@ plus the validator pipeline. Bound inputs inside the form discover that context 
 
 ```csharp
 Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
-    Input(Bind: () => _model.Username),
+    Input(() => _model.Username),
     Button(Type: "submit")["Sign up"]
 ]
 ```
@@ -173,7 +173,7 @@ _ctx = new EditContext(_model);
 _ctx.AddValidator(new SlowTitleValidator());
 
 Form<TaskModel>(_model, m => _submission = "Saved", Context: _ctx)[
-    Input(Bind: () => _model.Title),
+    Input(() => _model.Title),
     Button(Type: "button", OnClickAsync: () => _ctx.ValidateAsync().AsTask())["Validate now"],
     Button(Type: "submit", Disabled: _ctx.IsValidatingAny)["Save"]
 ]

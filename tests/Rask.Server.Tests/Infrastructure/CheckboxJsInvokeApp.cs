@@ -23,7 +23,7 @@ public sealed partial class CheckboxJsInvokeApp(IJSRuntime js) : Component
         new Html()[
             new Head()[new Title()["checkbox"]],
             new Body()[
-                Form(_m)[Input(() => _m.Subscribe, Id: "sub")],
+                Form(_m)[Input(() => _m.Subscribe).Id("sub")],
                 new P()[$"S={_m.Subscribe}"]
             ]
         ]

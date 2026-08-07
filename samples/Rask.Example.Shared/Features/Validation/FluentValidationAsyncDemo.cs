@@ -28,7 +28,7 @@ public sealed partial class FluentValidationAsyncDemo : Component
             FluentValidationValidator(new TicketValidator()),
             Div()[
                 Label("v9-code", Class: "form-label small mb-1")["Ticket code"],
-                Input(() => _model.Code, Id: "v9-code", Class: "form-control"),
+                Input(() => _model.Code).Id("v9-code").Class("form-control"),
                 ValidatingIndicator(() => _model.Code, Checking),
                 ValidationMessage(() => _model.Code, FieldError)
             ],

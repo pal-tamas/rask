@@ -25,7 +25,7 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
                         "Save as…"]
                 ],
                 Div(Class: "mb-2 small text-secondary")["File: ", Code(Id: "fs-name")[_handle?.Name ?? "(none)"]],
-                Textarea<string>(Id: "fs-text", Class: "form-control mb-2", Rows: 8, Value: _text,
+                Rask.Core.Components.Generated.Textarea<string>(Id: "fs-text", Class: "form-control mb-2", Rows: 8, Value: _text,
                     Placeholder: "Open a text file, or type here and Save as…",
                     OnInput: v => _text = v),
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "fs-status")[_status]]

@@ -20,10 +20,10 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
     // Bound mode (IFormControl members).
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
-    public Validate<ICollection<TItem>>? Validate { get; set; }
-    public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
-    public Action<ICollection<TItem>>? AfterBind { get; set; }
-    public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
+    public Carrier<Validate<ICollection<TItem>>>? Validate { get; set; }
+    public Carrier<ValidateAsync<ICollection<TItem>>>? ValidateAsync { get; set; }
+    public Carrier<Action<ICollection<TItem>>>? AfterBind { get; set; }
+    public Carrier<Func<ICollection<TItem>, Task>>? AfterBindAsync { get; set; }
 
     public Func<TItem, Component>? OptionLabel { get; set; }
     public string? Placeholder { get; set; }
@@ -176,7 +176,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
         if (searchable && _open)
         {
             rows.Add(Div(Class: BsClass.Join("px-2", "pt-1", "pb-2"))[
-                Input<string>(
+                Rask.Core.Components.Generated.Input<string>(
                     Type: InputType.Text,
                     Class: "form-control form-control-sm",
                     Value: _filter ?? string.Empty,
@@ -256,7 +256,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
                             ? null
                             : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked),
                         Key: idx)[
-                        Input<string>(InputType.Checkbox, Class: "form-check-input m-0 pe-none", Checked: isChecked),
+                        Rask.Core.Components.Generated.Input<string>(InputType.Checkbox, Class: "form-check-input m-0 pe-none", Checked: isChecked),
                         LabelOf(captured)
                     ]);
                 }

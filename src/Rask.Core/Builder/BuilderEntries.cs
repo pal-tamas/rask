@@ -59,4 +59,23 @@ public abstract partial class Component
             $"Component '{typeof(T)}' has no parameterless constructor; it can only be instantiated "
             + "inside a LiveRenderContext (e.g. via MapRask<TApp>).");
     }
+
+    /// <summary>
+    ///     The entry for a generic <see cref="Forms.IFormControl{T}" /> in bound mode.
+    /// </summary>
+    /// <remarks>
+    ///     A property cannot be generic, so a generic control's entry is a static method — and its one
+    ///     argument is what infers the value type: <c>Input(() =&gt; model.Age)</c> yields
+    ///     <c>Input&lt;int&gt;</c>. Bind is the only parameter; the validator and the post-bind hooks are
+    ///     setters (<c>.Validate(…)</c> / <c>.AfterBind(…)</c>), which is what collapses the generated
+    ///     factory's none/sync/async overload fan-out into one entry.
+    /// </remarks>
+    protected static TControl EntryBound<TControl, TValue>(
+        System.Linq.Expressions.Expression<Func<TValue>> bind)
+        where TControl : Component, Forms.IFormControl<TValue>, new()
+    {
+        var control = Entry<TControl>();
+        control.Bind = bind;
+        return control;
+    }
 }
