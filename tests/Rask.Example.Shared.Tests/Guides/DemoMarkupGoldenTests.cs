@@ -51,6 +51,18 @@ public sealed class DemoMarkupGoldenTests
         "(<code[^>]*class=\"[^\"]*language-[^\"]*\"[^>]*>).*?</code>",
         RegexOptions.Compiled | RegexOptions.Singleline);
 
+    // The second legitimate exception, and the counterpart to the one below: a chart's *contents* are its
+    // data. LiveTicker polls on a 50 ms simulated latency, so the Sparkline it draws holds no points on the
+    // first render and one shortly after — and an empty series renders a labelled <text>No data</text>
+    // frame where a populated one renders <line>/<polyline>/<circle>. That is a tag-name change on a timer,
+    // which no snapshot can hold; it made this golden a race against machine load and failed unrelated PRs
+    // (#618). The <svg> element itself is kept — LiveTicker always emits it, so "is the chart there, in the
+    // right place, with the right classes" is still asserted — and only its body is dropped. What the chart
+    // draws is Sparkline's contract and has its own tests in Rask.Example.Shared.Tests.
+    private static readonly Regex LiveChartBody = new(
+        "(<svg[^>]*class=\"[^\"]*ticker-chart-svg[^\"]*\"[^>]*>).*?</svg>",
+        RegexOptions.Compiled | RegexOptions.Singleline);
+
     // The one legitimate exception to "moving parts never live in a class attribute": a calendar day cell
     // (BsDatePicker/BsDateTimePicker) tags itself with which day is *today* (bs-cal-today), which days spill
     // in from an adjacent month (bs-cal-muted), which is selected/cursored (active / bs-cal-focus), and which
@@ -99,6 +111,43 @@ public sealed class DemoMarkupGoldenTests
             + string.Join("\n  ", offenders));
     }
 
+    // The half the pair above cannot see, and the half #618 actually needed. Two back-to-back renders each
+    // mount a FRESH instance and capture it immediately, so both land on the same side of any mount-time
+    // timer and agree — which is exactly why LiveTicker's 50 ms simulated poll latency walked straight
+    // through that check and failed the golden instead, on whichever unrelated PR happened to run on a busy
+    // machine.
+    //
+    // So hold one instance and read it again after its timers have had time to fire. A demo may of course
+    // CHANGE when it ticks — that is the point of a live demo — but the change has to live in text, an id
+    // or a data-* attribute, which is the contract this file has always stated. A tag name or a class that
+    // moves on a timer cannot be snapshotted by anyone.
+    [Fact]
+    public async Task NoDemoSkeleton_ChangesOnATimer()
+    {
+        var offenders = new List<string>();
+
+        foreach (var key in DemoRegistry.Keys)
+        {
+            var page = RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default());
+            var before = SkeletonOf(page.Html);
+
+            // Comfortably past LiveTicker's 50 ms poll and LiveTickerDemo's 50 ms deferred re-render — the
+            // two mount-time timers in the set — without waiting on the 1 s inter-tick interval.
+            await Task.Delay(250);
+
+            var after = SkeletonOf(page.Render());
+            if (!string.Equals(before, after, StringComparison.Ordinal))
+            {
+                offenders.Add($"{key}: {FirstDifference(before, after)}");
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "These demos' markup skeletons changed on their own after mount, so their golden entry is a "
+            + "race against the wall clock. Move the moving part into text, an id or a data-* attribute — "
+            + "never a tag name or a class:\n  " + string.Join("\n  ", offenders));
+    }
+
     private static string RenderAll()
     {
         var sb = new StringBuilder();
@@ -113,11 +162,32 @@ public sealed class DemoMarkupGoldenTests
         return sb.ToString();
     }
 
-    private static string Skeleton(string key)
+    // "lifecycle-ticker" on its own sends you reading a 300-line component; naming the line that moved
+    // sends you to the element.
+    private static string FirstDifference(string before, string after)
     {
-        var html = HighlightedSource.Replace(
-            RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default()).Html,
-            "$1</code>");
+        var a = before.Split('\n');
+        var b = after.Split('\n');
+
+        for (var i = 0; i < Math.Max(a.Length, b.Length); i++)
+        {
+            var left = i < a.Length ? a[i] : "(end)";
+            var right = i < b.Length ? b[i] : "(end)";
+            if (!string.Equals(left, right, StringComparison.Ordinal))
+            {
+                return $"line {i + 1}: `{left}` became `{right}`";
+            }
+        }
+
+        return "(no line differs — trailing whitespace?)";
+    }
+
+    private static string Skeleton(string key) =>
+        SkeletonOf(RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default()).Html);
+
+    private static string SkeletonOf(string rendered)
+    {
+        var html = LiveChartBody.Replace(HighlightedSource.Replace(rendered, "$1</code>"), "$1</svg>");
 
         var sb = new StringBuilder();
 

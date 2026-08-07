@@ -122,6 +122,47 @@ them until tagged releases begin.
   with DOM snapshots throughout and keeps it only on failure, printing the path and the command that opens
   it. Always on rather than behind a flag, because the run worth tracing is the one that unexpectedly failed.
 
+### Fixed
+- **A component that calls `ToHtml()` on a tree containing a `<head>` no longer corrupts the page around
+  it.** `HeadSentinelIndex` is a byte offset into whichever builder is being serialized, and `ToHtml()`
+  serializes into a private one whose string is handed straight back — so a nested call published an offset
+  that meant nothing to the render owning the context, and the live root then spliced the scoped-CSS/JS
+  block *there*: into the middle of an unrelated opening tag, cutting it in half and losing its attributes.
+  Recording is first-wins, so a page with its own `<head>` was safe by accident (the shell's head goes
+  first) while a render without one — every `RaskTest.Render`, so every unit test, in a shipped package —
+  was not. `ToHtml()` now saves and restores the offset; its output never goes through the splice, so it
+  had no use for it. Found by the new demo-markup timer guard below, which caught it corrupting a demo that
+  had been snapshotting the damage as normal.
+
+### Changed
+- **Three tests that went red under load rather than on merit.** Each one taught `--no-verify`.
+  - **The persisted-state budget diagnostic** asserted `Assert.Single` over everything the process-global
+    `RaskDiagnostics.Sink` saw while it was swapped in — which is really "no other test in the assembly
+    reported anything in this millisecond", true almost always and so failing rarely and confusingly. It
+    now asserts on the events its own call site produces, and moved into the serialised collection that
+    already owns that global: two tests swapping the sink concurrently lose it entirely, since both save
+    `previous`, the second saves the first's capturing delegate, and restoring in that order leaves the
+    sink pointing at a list nobody reads.
+  - **The log-writer shutdown-drain test** started the writer's loop, on the belief that a five-minute
+    `FlushInterval` meant nothing could reach disk on the timer. `ExecuteAsync` is a `do/while` over a
+    `PeriodicTimer`, so its first cycle runs *before* the first tick — and under load that cycle can pull
+    the entry out of the channel and still be inside `AppendAsync` when shutdown cancels the token, at
+    which point the entry is gone for good and the drain finds nothing. The loop is no longer started, so
+    the drain is the only code that can append and the test's premise is true by construction.
+  - **The demo-markup golden** captured `LiveTicker` mid-race. Fixed at the source rather than by
+    regenerating, which would only have moved the flake to the other state — see below.
+- **`LiveTicker` renders one layout, not two.** The headline price switched class list (`fs-3 text-secondary`
+  → `fs-2 fw-bold`) and the chart swapped a `<p>` placeholder for its `<svg>` when the first tick landed
+  50 ms after mount — so the number resized and the chart appeared, shoving the page around, and the demo's
+  golden markup became a race against machine load. The price span now keeps one class list and changes only
+  its text, and the `<svg>` is always emitted (`Sparkline` already draws a labelled empty frame for an empty
+  series, so the placeholder was a second, worse answer to the same question).
+- **A new guard catches the next demo that does this.** `EveryDemoSkeleton_IsReproducible` renders twice
+  back-to-back, so both renders land on the same side of any mount-time timer and agree — which is exactly
+  how `LiveTicker` walked past it. The new check holds one instance and reads it again after its timers have
+  fired, and names the line that moved. It found two offenders on its first run: the ticker, and the
+  `ToHtml()` corruption above.
+
 ## [0.20.0] - 2026-08-06
 
 ### Fixed

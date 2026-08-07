@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
@@ -212,29 +211,9 @@ public sealed partial class PersistentStateTests
         Assert.True(state.Overflowed);
     }
 
-    /// <summary>The overflow is reported to the developer, not swallowed — it explains a reload they'd otherwise chase.</summary>
-    [Fact]
-    public void Exceeding_the_budget_reports_a_diagnostic()
-    {
-        var captured = new List<RaskDiagnosticEvent>();
-        var previous = RaskDiagnostics.Sink;
-        RaskDiagnostics.ResetReportOnceForTests();
-        RaskDiagnostics.Sink = captured.Add;
-        try
-        {
-            var state = new PersistentState { MaxBytes = 32 };
-            state.Persist("big", new string('x', 256));
-        }
-        finally
-        {
-            RaskDiagnostics.Sink = previous;
-            RaskDiagnostics.ResetReportOnceForTests();
-        }
-
-        var warning = Assert.Single(captured);
-        Assert.Equal(RaskLogLevel.Warning, warning.Level);
-        Assert.Contains("resumable", warning.Message, StringComparison.OrdinalIgnoreCase);
-    }
+    // The matching "…reports a diagnostic" test lives in PersistentStateDiagnosticTests: it swaps the
+    // process-global RaskDiagnostics.Sink, so it belongs in the serialised collection, and xUnit binds
+    // collections per class rather than per test.
 
     [Fact]
     public void Overwriting_a_key_replaces_rather_than_accumulates()
