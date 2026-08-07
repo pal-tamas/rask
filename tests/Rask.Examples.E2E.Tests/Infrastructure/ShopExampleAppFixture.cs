@@ -22,9 +22,6 @@ public sealed class ShopExampleAppFixture : ExampleAppFixture
     private string DbPath => Path.Combine(Path.GetTempPath(), $"rask-shop-e2e-{_id}.db");
 
     protected override string ProjectRelativePath => "samples/Rask.Example.Shop";
-
-    protected override int Port => 5113;
-
     // Run the published app, like the Server showcase does. A plain `dotnet run` over in-repo project
     // references never materialises the `_content/Rask.Bootstrap/*` static assets the shell links, so the
     // page loads with failing stylesheet requests — which is not how anyone deploys it, and not what these

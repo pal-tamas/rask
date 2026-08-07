@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 
@@ -11,13 +12,29 @@ public abstract class ExampleAppFixture : IAsyncLifetime
     private const string Configuration = "Release";
 #endif
 
+    // How many times a launch is retried when the child reports the port was taken between reserving it
+    // and binding it. A clash is already unlikely (the OS hands out ephemeral ports it believes free) and
+    // independent per attempt, so a handful is plenty; the cap exists so a machine that is genuinely out
+    // of ports fails with a sentence rather than spinning.
+    private const int LaunchAttempts = 5;
+
+    // One lock per published app, so two fixtures booting the same app can't run `dotnet publish` into the
+    // same output directory at once.
+    private static readonly ConcurrentDictionary<string, Lock> PublishLocks = new();
+
     private readonly Lock _logLock = new();
     private readonly StringBuilder _stderr = new();
     private readonly StringBuilder _stdout = new();
     private Process? _process;
 
     protected abstract string ProjectRelativePath { get; }
-    protected abstract int Port { get; }
+
+    /// <summary>
+    ///     The loopback port the host was launched on, reserved from the OS in <see cref="InitializeAsync" />
+    ///     — see <see cref="LoopbackPort" /> for why it is not a constant.
+    /// </summary>
+    protected int Port { get; private set; }
+
     protected virtual TimeSpan ReadyTimeout => TimeSpan.FromSeconds(120);
 
     // When true the host is `dotnet publish`-ed and the published DLL is run from its own folder,
@@ -52,27 +69,51 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         var repoRoot = LocateRepoRoot();
         var projectPath = Path.Combine(repoRoot, ProjectRelativePath);
 
-        var psi = RunPublished
-            ? PublishAndBuildStartInfo(repoRoot, projectPath)
-            : DotnetRunStartInfo(repoRoot, projectPath);
-        psi.Environment["ASPNETCORE_URLS"] = BaseUrl;
-        psi.Environment["DOTNET_ENVIRONMENT"] = "Production";
-
-        if (ExtraEnvironment is { } extra)
+        // Reserve → launch → wait, retrying the *whole* launch if the child reports the port was taken in
+        // between. The window is inherent: an out-of-process host must be told where to listen, so the
+        // number is decided before anything binds (see LoopbackPort). Retrying is what closes it.
+        for (var attempt = 1; ; attempt++)
         {
-            foreach (var (key, value) in extra)
+            Port = LoopbackPort.Reserve();
+
+            var psi = RunPublished
+                ? PublishAndBuildStartInfo(repoRoot, projectPath)
+                : DotnetRunStartInfo(repoRoot, projectPath);
+            psi.Environment["ASPNETCORE_URLS"] = BaseUrl;
+            psi.Environment["DOTNET_ENVIRONMENT"] = "Production";
+
+            if (ExtraEnvironment is { } extra)
             {
-                psi.Environment[key] = value;
+                foreach (var (key, value) in extra)
+                {
+                    psi.Environment[key] = value;
+                }
+            }
+
+            ClearLog();
+            _process = Process.Start(psi)
+                       ?? throw new InvalidOperationException($"Failed to start `dotnet run` for {ProjectRelativePath}");
+
+            _ = Task.Run(() => DrainAsync(_process.StandardOutput, _stdout));
+            _ = Task.Run(() => DrainAsync(_process.StandardError, _stderr));
+
+            if (await WaitForReadyAsync() is not { } portClash)
+            {
+                return;
+            }
+
+            await DisposeAsync();
+            _process = null;
+
+            if (attempt == LaunchAttempts)
+            {
+                throw new InvalidOperationException(
+                    $"{ProjectRelativePath} could not bind a loopback port: {LaunchAttempts} OS-assigned " +
+                    "candidates were all taken before the host could claim them. Something on this machine " +
+                    "is claiming ports as fast as they are handed out — check for stragglers from an " +
+                    "earlier run ('lsof -nP -iTCP -sTCP:LISTEN').", portClash);
             }
         }
-
-        _process = Process.Start(psi)
-                   ?? throw new InvalidOperationException($"Failed to start `dotnet run` for {ProjectRelativePath}");
-
-        _ = Task.Run(() => DrainAsync(_process.StandardOutput, _stdout));
-        _ = Task.Run(() => DrainAsync(_process.StandardError, _stderr));
-
-        await WaitForReadyAsync();
     }
 
     public async Task DisposeAsync()
@@ -104,7 +145,12 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         _process.Dispose();
     }
 
-    private async Task WaitForReadyAsync()
+    /// <summary>
+    ///     Polls until the host answers. Returns <c>null</c> once it does, or the bind failure when the host
+    ///     died because the port was taken — which the caller retries on a fresh port. Anything else throws:
+    ///     a sample that is genuinely broken must not be retried into a five-times-longer timeout.
+    /// </summary>
+    private async Task<Exception?> WaitForReadyAsync()
     {
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
         var deadline = DateTime.UtcNow + ReadyTimeout;
@@ -113,8 +159,20 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         {
             if (_process!.HasExited)
             {
+                // The drain tasks are still reading a pipe that has just closed; give them the moment they
+                // need, or the log that decides "port clash" vs "broken app" can be read half-written.
+                await _process.WaitForExitAsync();
+                var log = ServerLog;
+
+                if (LoopbackPort.LooksLikeAddressInUse(log))
+                {
+                    return new InvalidOperationException(
+                        $"{ProjectRelativePath} could not bind {BaseUrl} — the port was taken between " +
+                        $"reserving it and launching the host.\n{log}");
+                }
+
                 throw new InvalidOperationException(
-                    $"{ProjectRelativePath} exited before becoming ready (code {_process.ExitCode}).\n{ServerLog}");
+                    $"{ProjectRelativePath} exited before becoming ready (code {_process.ExitCode}).\n{log}");
             }
 
             try
@@ -122,7 +180,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
                 using var resp = await http.GetAsync(BaseUrl);
                 if ((int)resp.StatusCode < 500)
                 {
-                    return;
+                    return null;
                 }
             }
             catch (HttpRequestException)
@@ -139,6 +197,15 @@ public abstract class ExampleAppFixture : IAsyncLifetime
 
         throw new TimeoutException(
             $"{ProjectRelativePath} did not respond on {BaseUrl} within {ReadyTimeout}.\n{ServerLog}");
+    }
+
+    private void ClearLog()
+    {
+        lock (_logLock)
+        {
+            _stdout.Clear();
+            _stderr.Clear();
+        }
     }
 
     private async Task DrainAsync(StreamReader reader, StringBuilder buffer)
@@ -170,7 +237,25 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         }
 
         // Local-dev fallback: no CI prebuild present, so publish the host on demand into a temp folder.
-        var publishDir = Path.Combine(Path.GetTempPath(), "rask-e2e-publish", $"{appName}-{Port}");
+        // Keyed on the app alone — it used to carry the port too, which was harmless while ports were
+        // constants and would now leave a fresh multi-hundred-megabyte publish behind on every run. Two
+        // fixtures booting the same app therefore share one folder, so the publish is serialised: MSBuild
+        // writing the same output directory from two processes corrupts it.
+        var publishDir = Path.Combine(Path.GetTempPath(), "rask-e2e-publish", appName);
+        lock (PublishLocks.GetOrAdd(appName, static _ => new Lock()))
+        {
+            PublishInto(repoRoot, publishDir);
+        }
+
+        return RunPublishedDllStartInfo(publishDir, appName);
+    }
+
+    // Always re-publishes rather than reusing whatever is in the folder: `dotnet publish` is incremental,
+    // so the cost of being right is small, and a reused publish directory silently serving last week's
+    // bytes is the failure mode that costs an afternoon.
+    private void PublishInto(string repoRoot, string publishDir)
+    {
+        var projectPath = Path.Combine(repoRoot, ProjectRelativePath);
         Directory.CreateDirectory(publishDir);
 
         var publish = new ProcessStartInfo("dotnet")
@@ -194,8 +279,6 @@ public abstract class ExampleAppFixture : IAsyncLifetime
                     $"`dotnet publish` failed for {ProjectRelativePath} (exit {p.ExitCode}).\n{stdout}\n{stderr}");
             }
         }
-
-        return RunPublishedDllStartInfo(publishDir, appName);
     }
 
     // Runs the published host DLL *from its own folder* — the working directory becomes the content root,

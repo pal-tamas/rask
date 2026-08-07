@@ -4,5 +4,4 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 public sealed class JwtServerAuthAppFixture : ExampleAppFixture
 {
     protected override string ProjectRelativePath => "samples/Rask.Example.Auth.Jwt";
-    protected override int Port => 5103;
 }
