@@ -35,9 +35,14 @@ public sealed class Outlet : Component
 
     protected override Component? Render()
     {
+        // Same condition as RouteChainRenderer.RenderChainEntry, and deliberately the same words: which
+        // of the two you hit depends only on whether there is a live render context or merely no route
+        // in it, which is not a distinction the reader can act on. Two spellings for one problem meant
+        // searching for the message found half the story.
         var ctx = LiveRenderContext.Current
                   ?? throw new InvalidOperationException(
-                      "Outlet() must be called inside a Router render tree.");
+                      "Outlet() and Router rendering require an active route context. " +
+                      "Place Outlet() inside a Router(...) render tree.");
         return RouteChainRenderer.RenderChainEntry(ctx);
     }
 }

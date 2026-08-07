@@ -120,7 +120,16 @@ public sealed class Form : Element
         {
             if (Model is null)
             {
-                throw new InvalidOperationException("Form requires Model or Context.");
+                // Defensive, and worth saying so: both of today's callers already gate on
+                // `Model is not null || Context is not null`, so this cannot fire from a render — a Form
+                // with neither is a plain <form>, deliberately. It is kept for the next caller, and
+                // reworded because the old text ("Form requires Model or Context.") named neither the
+                // form nor the API shape, and "Context" is ambiguous between the Context<T> component
+                // and the EditContext this actually wants.
+                throw new InvalidOperationException(
+                    $"Form{Describe()} has neither a model nor an EditContext, so there is nothing for "
+                    + "its fields to bind to. Pass the model as the first argument — Form(model)[ … ] — "
+                    + "or hand it an existing EditContext with Form(Context: editContext)[ … ].");
             }
 
             ctx = LiveRenderContext.CurrentSync is { } live
@@ -133,6 +142,15 @@ public sealed class Form : Element
         ctx.RegisterFormValidator(Validate);
         return ctx;
     }
+
+    // Which form, when a page has several. Nothing identifies a Form intrinsically, so this leans on
+    // whatever the author already wrote — an id, a name, a class — and says nothing when there is none,
+    // rather than inventing a label that would not help anyone find it.
+    private string Describe() =>
+        Id is { Length: > 0 } id ? $" '#{id}'"
+        : Name is { Length: > 0 } name ? $" '{name}'"
+        : Class is { Length: > 0 } cls ? $" '.{cls}'"
+        : string.Empty;
 
     private Func<FormData, Task> BuildSubmitBridge(EditContext ctx) =>
         async formData =>

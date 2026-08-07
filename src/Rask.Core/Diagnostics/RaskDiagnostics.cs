@@ -127,8 +127,24 @@ internal static class RaskDiagnostics
 
     // The single-line stderr rendering used by the default sink. Extracted so it can be unit-tested
     // without redirecting the process-global Console.Error stream.
-    internal static string FormatDefault(RaskDiagnosticEvent e) =>
-        e.Exception is null ? e.Message : $"{e.Message}: {e.Exception}";
+    //
+    // Carries the level and the category, which the event has always had and this always dropped. A host
+    // with a bridge installed never sees this — but the hosts WITHOUT one (WASM until now, Native, and
+    // any app that hasn't wired logging) got a bare sentence with no severity and no subsystem, so
+    // "framework said something" and "framework reported an error in the diff codec" read identically.
+    // Fixing it here fixes it for every unbridged host at once, which a per-host bridge cannot.
+    internal static string FormatDefault(RaskDiagnosticEvent e)
+    {
+        var head = $"[Rask:{e.Category}] {Label(e.Level)}: {e.Message}";
+        return e.Exception is null ? head : $"{head}: {e.Exception}";
+    }
+
+    private static string Label(RaskLogLevel level) => level switch
+    {
+        RaskLogLevel.Error => "error",
+        RaskLogLevel.Warning => "warning",
+        _ => "info"
+    };
 
     // Test hook: clears the ReportOnce dedup set so a test can exercise the once-per-key behaviour
     // deterministically regardless of what earlier tests reported.

@@ -296,6 +296,61 @@ them until tagged releases begin.
   through one shared helper rather than three hand-copied copies, which is the drift that produced this
   bug and #588 before it; a contract test holds them to it, and the frame-shape guard from #592 knows
   `values` rides on `change` alone, so an `input` frame can't collapse a selection to one value.
+- **You get the development error page whenever you are actually in Development, not only when an
+  environment variable said so.** `DefaultErrorPage` decided by reading `ASPNETCORE_ENVIRONMENT` /
+  `DOTNET_ENVIRONMENT` and nothing else. The reason was sound — `Rask.Core` takes no
+  `Microsoft.Extensions.Hosting` dependency — but the consequence was not: `dotnet run --environment
+  Development`, `appsettings.json`, assigning `builder.Environment.EnvironmentName`, and IDE profiles
+  that set configuration rather than the process environment all select Development *without* setting a
+  variable, and every one of them silently produced the production page — no stack trace, no source
+  excerpt, and no hint why. It only looked fine because `rask dev` exports the variable itself, so the
+  failure appeared the moment you stepped off it, which is exactly when the stack trace matters. The
+  host now answers: `UseRask` resolves `LiveOptions.IsDevelopment` from `IWebHostEnvironment`, and the
+  variables remain as the fallback for a standalone host or a component rendered outside one. A host
+  reporting Production is not overridden by a stale variable left in a shell.
+- **A page that crashed no longer answers `200 OK`.** The root boundary catches the exception and
+  renders the error document, so the response was ordinary HTML and nothing downstream could tell it
+  from a healthy page — caches stored it, crawlers indexed it, uptime checks reported green. The initial
+  GET for a render that faulted now answers **500**, with the same body, so the error page is still
+  served and the live session still attaches.
+- **The framework's error page offers `Try again`, not just `Reload this page`.** `ErrorBoundary`'s
+  fallback has always received the boundary's `Recover` as its second argument, and the root boundary
+  discarded it — `(ex, _) =>` — leaving a full round trip as the only way out of a fault that had
+  damaged nothing. The common case is a handler that threw, where the tree is intact, so clearing the
+  error puts the app straight back with its state and scroll position. A render that faults
+  deterministically lands back on the error page, which is the honest outcome and what React's boundary
+  does too; the reload button is still there for it.
+- **Framework exception messages name the fix, not just the fault.** Most of `Rask.Core` already did —
+  `Navigator`, `Context`, `RouteAuthorizationGuard`, `ExpressionAccessor`, `RaskJSRuntime` are the
+  models. These did not, and all of them are page-fatal now that a render throw becomes a whole-document
+  swap:
+  - `RoutePattern`'s three parameter errors were the runtime siblings of RASK003 and worse off than it:
+    they echoed the offending segment, showed no correct one, and carried nothing to say *which* route
+    it came from — so `Empty parameter in route segment '{}'` was the whole story. They now name the
+    template and show a valid segment (`{id}`, `{**path}`, `{id:guid?}`).
+  - `EditContext`'s sync-validate refusal named the remedy but not the cause, so on a form carrying
+    several validators you found the culprit by bisecting them. It now names what made the context
+    async — the validator types, an async form-level `Validate`, or the field whose `Validate` is async.
+  - `Outlet` and `RouteChainRenderer` threw two different sentences for one condition, and which you got
+    depended only on whether there was a live context or merely no route in it. Converged on the better
+    one, which names `Router(...)`.
+  - `DragDrop`, `VirtualizeModel`, `ServerFileBackend`, `RaskEndpointExtensions` and `RootErrorBoundary`
+    now show the API shape, the packaging remedy, or what the reader actually did. `VirtualizeModel`'s
+    `ItemSize` check is an `ArgumentOutOfRangeException` carrying the offending value rather than an
+    `InvalidOperationException` describing it — **note this is not a widening**, so a `catch
+    (InvalidOperationException)` around it needs updating.
+  - `Form`'s `Form requires Model or Context.` is fixed too, and turned out to be **unreachable**: both
+    callers of `ResolveContext` already gate on exactly the condition it checks, and a `Form` with
+    neither renders as a plain `<form>` by design. Kept and reworded for the next caller; nobody has
+    seen the old text.
+- **Framework diagnostics carry their level and category on every host.** The default sink rendered
+  `message` (plus the exception), dropping the severity and subsystem the event has always carried — so
+  on any host without a logging bridge, "framework said something" and "framework reported an error in
+  the diff codec" printed identically. It now reads `[Rask:Rask.Diff] error: …`, which fixes every
+  unbridged host at once. **WASM additionally gains an `ILogger` bridge**: the host already called
+  `AddLogging()`, but nothing consumed it, so a browser app was the one host where a swallowed framework
+  fault — a navigate fault, a JS dispatch fault, a malformed frame — never reached the app's configured
+  providers at all.
 - **A `<select>` no longer snaps back to the old option when a lagging re-render lands.** `value` and
   `checked` each had a guard against a frame the server computed *before* the user's edit reached it;
   `selected` — the third property the diff codec mirrors onto its IDL twin — had none, so it was applied

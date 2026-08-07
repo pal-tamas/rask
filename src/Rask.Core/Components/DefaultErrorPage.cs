@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
@@ -38,16 +39,35 @@ public sealed class DefaultErrorPage : Component
     private readonly Exception _error;
     private readonly bool _isDevelopment;
 
+    private readonly Callback? _recover;
+
     public DefaultErrorPage(Exception error) : this(error, IsDevelopmentEnvironment())
+    {
+    }
+
+    /// <summary>
+    ///     The page with an in-session recovery action. <paramref name="recover" /> is the boundary's
+    ///     <c>Recover</c>, which clears the error and re-renders the subtree.
+    /// </summary>
+    /// <remarks>
+    ///     Worth having because the common fault is a handler that threw, not a render that cannot
+    ///     succeed: the tree is intact, so clearing the error puts the app straight back with its state
+    ///     and scroll position, where the reload button costs a full round trip and all of it. A render
+    ///     that faults deterministically simply throws again and lands back here, which is the honest
+    ///     outcome and is what React's boundary does too.
+    /// </remarks>
+    public DefaultErrorPage(Exception error, Callback recover)
+        : this(error, IsDevelopmentEnvironment(), recover)
     {
     }
 
     // Test seam: construct with an explicit environment so unit tests need no process-global env var
     // (setting ASPNETCORE_ENVIRONMENT would race other tests that render this page).
-    internal DefaultErrorPage(Exception error, bool isDevelopment)
+    internal DefaultErrorPage(Exception error, bool isDevelopment, Callback? recover = null)
     {
         _error = error;
         _isDevelopment = isDevelopment;
+        _recover = recover;
     }
 
     protected override bool BypassRenderCache => true;
@@ -56,15 +76,28 @@ public sealed class DefaultErrorPage : Component
     {
         var children = new List<Component>
         {
-            Generated.H1(Style: "margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"],
-            // In-app recovery so the user isn't stranded on the fault: the runtime wires data-rask-reload
-            // to location.reload() (CSP-clean, both hosts). If the runtime never loaded, the browser's own
-            // reload is the fallback.
-            Generated.Button(
+            Generated.H1(Style: "margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"]
+        };
+
+        // Try again first, when the boundary handed us a way to: it keeps the session, the state and the
+        // scroll position, where the reload below throws all three away. Offered as the cheaper action
+        // rather than the only one — a render that faults deterministically will come straight back here,
+        // and then a reload is what you want.
+        if (_recover is { } recover)
+        {
+            children.Add(Generated.Button(
                 Type: "button",
                 Style: ReloadButtonStyle,
-                Data: new Dictionary<string, string?> { ["rask-reload"] = "" })["Reload this page"]
-        };
+                OnClick: recover)["Try again"]);
+        }
+
+        // In-app recovery so the user isn't stranded on the fault: the runtime wires data-rask-reload
+        // to location.reload() (CSP-clean, both hosts). If the runtime never loaded, the browser's own
+        // reload is the fallback.
+        children.Add(Generated.Button(
+            Type: "button",
+            Style: ReloadButtonStyle,
+            Data: new Dictionary<string, string?> { ["rask-reload"] = "" })["Reload this page"]);
 
         var chain = Unwind(_error);
 
@@ -242,12 +275,37 @@ public sealed class DefaultErrorPage : Component
         return info.DeclaringTypeName is { } type ? $"{type}.{info.Name}" : info.Name;
     }
 
-    private static bool IsDevelopmentEnvironment()
+    private static bool IsDevelopmentEnvironment() =>
+        ResolveIsDevelopment(
+            LiveOptions.IsDevelopment,
+            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+            Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+
+    /// <summary>
+    ///     The decision itself, as a pure function of its three inputs.
+    /// </summary>
+    /// <remarks>
+    ///     Split out so it can be tested without mutating <see cref="LiveOptions.IsDevelopment" />, which
+    ///     is process-global and read by every render that reaches <c>RootErrorBoundary</c> — a test that
+    ///     flipped it would be able to change what a concurrently-running test's error page contains.
+    ///     <para>
+    ///         <paramref name="hostAnswer" /> wins outright. It comes from <c>UseRask</c> via
+    ///         <c>IWebHostEnvironment</c>, and is the only input that sees Development selected by
+    ///         configuration rather than by a process environment variable — <c>dotnet run
+    ///         --environment</c>, <c>appsettings.json</c>, an assigned <c>EnvironmentName</c>, an IDE
+    ///         profile. All of those used to yield the production error page while developing (#605).
+    ///         The variables remain as the fallback for a standalone host, or a component rendered
+    ///         outside one; a host that reports Production is not overridden by a stale shell variable.
+    ///     </para>
+    /// </remarks>
+    internal static bool ResolveIsDevelopment(bool? hostAnswer, string? aspnetEnv, string? dotnetEnv)
     {
-        // Read the standard ASP.NET environment variables so we can gate stack traces without
-        // taking a Microsoft.Extensions.Hosting dependency on the framework core.
-        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
-                  ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+        if (hostAnswer is { } resolved)
+        {
+            return resolved;
+        }
+
+        var env = aspnetEnv ?? dotnetEnv;
         return string.Equals(env, "Development", StringComparison.OrdinalIgnoreCase);
     }
 }

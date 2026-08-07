@@ -121,6 +121,25 @@ public static class LiveOptions
     public static bool? MinifyScopedAssets { get; set; }
 
     /// <summary>
+    ///     Whether the app is running in Development, as decided by the <em>host</em>. <c>null</c>
+    ///     (default) = unresolved, in which case <see cref="Components.DefaultErrorPage" /> falls back to
+    ///     reading the standard ASP.NET environment variables itself.
+    /// </summary>
+    /// <remarks>
+    ///     This decides whether an error page shows a stack trace and a source excerpt or just a type and
+    ///     a message, so getting it wrong is expensive in exactly the moment it matters. Core cannot ask
+    ///     the host directly — it takes no dependency on <c>Microsoft.Extensions.Hosting</c>, deliberately
+    ///     — and the environment-variable fallback it used instead is only correct when the environment
+    ///     arrived that way. <c>dotnet run --environment Development</c>, <c>appsettings.json</c>,
+    ///     assigning <c>builder.Environment.EnvironmentName</c>, and IDE profiles that set configuration
+    ///     rather than the process environment all select Development without setting a variable, and all
+    ///     of them silently produced the production error page while developing (#605). <c>UseRask</c>
+    ///     now resolves this from <c>IWebHostEnvironment</c>; a standalone host or a test can set it
+    ///     directly. Host-wide rather than per-session, like <see cref="MinifyScopedAssets" />.
+    /// </remarks>
+    public static bool? IsDevelopment { get; set; }
+
+    /// <summary>
     ///     Active URL prefix (see <see cref="RaskLiveOptions.PathBase" />).
     ///     Always normalized: <c>""</c> or <c>"/segment"</c> (no trailing slash).
     /// </summary>

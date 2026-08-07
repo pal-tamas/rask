@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Rask.Client.Browser;
 using Rask.Core;
@@ -13,6 +14,7 @@ using Rask.Core.Messaging;
 using Rask.Core.Routing;
 using Rask.Wasm.Authentication;
 using Rask.Wasm.Browser;
+using Rask.Wasm.Diagnostics;
 using Rask.Wasm.Files;
 
 namespace Rask.Wasm;
@@ -159,6 +161,11 @@ public sealed class WasmHostBuilder
         }
 
         var provider = Services.BuildServiceProvider();
+
+        // Route framework diagnostics into the app's own logging before anything can report one. Until
+        // this existed, WASM was the one host where a swallowed framework fault never reached the app's
+        // configured providers at all — it went to the seam's stderr default and nowhere else.
+        RaskWasmDiagnostics.Install(provider.GetService<ILoggerFactory>());
 
         // Bind the singleton JSRuntime into the static [JSImport]/[JSExport] bridge
         // BEFORE any user code can resolve IJSRuntime and start dispatching.

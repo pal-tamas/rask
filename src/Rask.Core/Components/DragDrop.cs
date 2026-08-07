@@ -99,7 +99,9 @@ public sealed class DragDrop : Component
     {
         if (Body is null)
         {
-            throw new InvalidOperationException("DragDrop: Body (render) delegate is required.");
+            throw new InvalidOperationException(
+                "DragDrop has no Body, so there is nothing for it to render. Body is a delegate "
+                + "receiving the drag context: DragDrop(Body: ctx => Div()[ … ]).");
         }
 
         return Body(new DragDropContext(this));
