@@ -389,6 +389,16 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         return html;
     }
 
+    /// <summary>
+    ///     Whether the last render fell back to the framework's error page rather than the app.
+    /// </summary>
+    /// <remarks>
+    ///     The root boundary catches the exception, so a crashed page returns perfectly ordinary HTML
+    ///     and the GET used to answer <c>200 OK</c> — telling every cache, crawler and uptime check that
+    ///     the page was fine (#607).
+    /// </remarks>
+    internal bool LastRenderFaulted => View is RootErrorBoundary { RenderedFallback: true };
+
     public void AttachSocket(WebSocket socket, CancellationToken ct)
     {
         _socketCt = ct;

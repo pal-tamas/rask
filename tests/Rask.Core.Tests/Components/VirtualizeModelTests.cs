@@ -161,7 +161,13 @@ public class VirtualizeModelTests
             new List<int> { 1 },
             ItemSize: 0));
 
-        Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
+        // ArgumentOutOfRangeException, not InvalidOperationException: an out-of-range argument carries
+        // the offending value as a field rather than only in the prose (#611). Note this is NOT a
+        // widening — ArgumentOutOfRangeException does not derive from InvalidOperationException — so
+        // anything that caught the old type has to be updated.
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => view.RenderAsLiveRoot());
+        Assert.Equal("ItemSize", ex.ParamName);
+        Assert.Equal(0, ex.ActualValue);
     }
 
     [Fact]

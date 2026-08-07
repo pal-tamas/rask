@@ -21,7 +21,13 @@ internal sealed class ServerFileBackend : IBrowserFileBackend
             : string.Empty;
         if (string.IsNullOrEmpty(token))
         {
-            throw new InvalidOperationException("File metadata is missing 'token'.");
+            // Two lines below, the sibling throw explains itself in app-facing terms; this one spoke
+            // wire protocol at someone who never sees the wire.
+            throw new InvalidOperationException(
+                "A file arrived without an upload token, so the server cannot tell which uploaded file "
+                + "it refers to. The token is added by the client's upload step — this usually means "
+                + "the file was constructed by hand rather than coming from a file input's change "
+                + "event, or the client script is from a different Rask version than the server.");
         }
 
         var entry = _store.Get(_session.Id, token)

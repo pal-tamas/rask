@@ -1,4 +1,5 @@
 using Rask.Core.Components;
+using Rask.Core.Live;
 
 #pragma warning disable RASK014 // DefaultErrorPage is [SkipFactory]; tests construct it directly
 
@@ -25,6 +26,49 @@ public class DefaultErrorPageTests
 
     private static string Render(Exception ex, bool isDevelopment) =>
         new DefaultErrorPage(ex, isDevelopment).ToHtml();
+
+    // #605: the parameterless ctor — the one RootErrorBoundary actually uses in production — decided
+    // Development by reading ASPNETCORE_ENVIRONMENT / DOTNET_ENVIRONMENT and nothing else. Every other
+    // way of selecting it (dotnet run --environment, appsettings.json, assigning EnvironmentName, an IDE
+    // profile that sets configuration rather than the process environment) therefore produced the
+    // production page while developing: no stack trace, no source excerpt, and no hint why.
+    //
+    // Driven as a pure function rather than through LiveOptions.IsDevelopment. That flag is
+    // process-global and read by every render reaching RootErrorBoundary, so a test that flipped it
+    // could change what a concurrently-running test's error page contains — which is the class of
+    // flake this branch is otherwise busy removing.
+
+    [Fact]
+    public void The_host_answer_selects_development_with_no_environment_variable_set()
+    {
+        Assert.True(DefaultErrorPage.ResolveIsDevelopment(true, aspnetEnv: null, dotnetEnv: null));
+    }
+
+    [Fact]
+    public void The_host_answer_wins_over_the_environment_variables()
+    {
+        // The variables are a fallback, not a vote. A host reporting Production is not overridden by a
+        // stale variable left in someone's shell, and a host reporting Development does not need one.
+        Assert.False(DefaultErrorPage.ResolveIsDevelopment(false, "Development", "Development"));
+        Assert.True(DefaultErrorPage.ResolveIsDevelopment(true, "Production", "Production"));
+    }
+
+    [Fact]
+    public void With_no_host_answer_the_environment_variables_still_decide()
+    {
+        // Unchanged behaviour for a standalone host, or a component rendered outside one.
+        Assert.True(DefaultErrorPage.ResolveIsDevelopment(null, "Development", null));
+        Assert.True(DefaultErrorPage.ResolveIsDevelopment(null, null, "Development"));
+        Assert.True(DefaultErrorPage.ResolveIsDevelopment(null, "development", null));  // case-insensitive
+        Assert.False(DefaultErrorPage.ResolveIsDevelopment(null, "Production", null));
+        Assert.False(DefaultErrorPage.ResolveIsDevelopment(null, null, null));
+    }
+
+    [Fact]
+    public void ASPNETCORE_ENVIRONMENT_takes_precedence_over_DOTNET_ENVIRONMENT()
+    {
+        Assert.False(DefaultErrorPage.ResolveIsDevelopment(null, "Production", "Development"));
+    }
 
     [Fact]
     public void Always_ShowsHeadingTypeAndMessage()
