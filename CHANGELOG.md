@@ -280,6 +280,17 @@ them until tagged releases begin.
     test read as though the component had ignored the value. Unconfigured still returns `default` (that is
     deliberate and documented); configured-with-the-wrong-type now throws and names both types.
 
+### Fixed
+- **Hot reload stops claiming success for an edit that never reached the page.** The green
+  "Hot reload applied" pill is driven by the coordinator's `Applied` signal, and the repaint is the whole
+  of what a developer can see — so announcing it after a failed repaint told them the opposite of the
+  truth, with the only evidence on the server's stderr. `RerenderAllForHotReloadAsync` catches per session
+  (one faulting tree must not stop the others repainting) but it was also *swallowing*: it reported
+  success upward whatever happened. It now reports the fault as a diagnostic naming the consequence
+  ("its page still shows the previous render"), returns whether every session repainted, and the
+  coordinator announces only when they did. A missing pill is the honest signal — nothing visibly changed,
+  because nothing did. Partially addresses #603.
+
 ## [0.20.0] - 2026-08-06
 
 ### Fixed

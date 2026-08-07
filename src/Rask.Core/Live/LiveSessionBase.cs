@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Reflection.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
+using Rask.Core.Diagnostics;
 using Rask.Core.Routing;
 
 namespace Rask.Core.Live;
@@ -128,7 +129,18 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     ///         <c>dotnet watch</c>.
     ///     </para>
     /// </summary>
-    internal static async Task RerenderAllForHotReloadAsync()
+    /// <summary>
+    ///     Repaints every live session after a hot-reload edit. Returns <c>false</c> when at least one
+    ///     session failed to repaint.
+    /// </summary>
+    /// <remarks>
+    ///     Hot reload must never throw — a faulting session cannot be allowed to take down the reload for
+    ///     every other one — so a fault is caught per session. But swallowing it and reporting success up
+    ///     the stack is what made the coordinator announce "Hot reload applied" for an edit that never
+    ///     reached the page: the developer got the green pill while the browser still showed the previous
+    ///     render, with the only evidence on the server's stderr (#603). Caught, and reported.
+    /// </remarks>
+    internal static async Task<bool> RerenderAllForHotReloadAsync()
     {
         List<LiveSessionBase> alive = new();
         lock (_hotReloadLock)
@@ -146,6 +158,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
             }
         }
 
+        var allRepainted = true;
         foreach (var session in alive)
         {
             try
@@ -153,11 +166,21 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
                 Component.MarkSubtreeDirtyForHotReload(session.View);
                 await session.RequestRenderAsync().ConfigureAwait(false);
             }
-            catch
+            catch (Exception ex)
             {
-                // Hot reload must never throw; skip a session whose tree walk / render faults.
+                // Skip the session — one faulting tree must not stop the others repainting — but say so,
+                // and remember it, so the caller does not announce a success that did not happen.
+                allRepainted = false;
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Error,
+                    "Rask.HotReload",
+                    "A live session failed to repaint after a hot-reload edit; its page still shows the "
+                    + "previous render. Reload it to pick the edit up.",
+                    ex);
             }
         }
+
+        return allRepainted;
     }
 
     public Component View { get; }
