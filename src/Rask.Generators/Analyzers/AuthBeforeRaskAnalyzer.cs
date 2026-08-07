@@ -28,7 +28,7 @@ public sealed class AuthBeforeRaskAnalyzer : DiagnosticAnalyzer
         "UseAuthentication must precede UseRask",
         "UseAuthentication() is called after UseRask<{0}>() — move it before UseRask so HttpContext.User is "
         + "populated on the GET render and the WebSocket upgrade; otherwise every [Authorize] page challenges",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         "Rask seeds the live session from HttpContext.User during the initial GET and the WS upgrade. If the "

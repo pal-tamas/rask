@@ -7,9 +7,31 @@ These come from the Rask source generator and analyzers (`Rask.Generators`). The
 factories don't exist until a build runs, so if an ID below isn't recognised by your IDE yet,
 build once.
 
-Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`): **RASK001** adds the
-`required` modifier, **RASK023** inserts `Alt: ""`. These are delivered by `Rask.Generators.CodeFixes`,
-packed alongside the analyzers in the `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
+Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
+
+| ID | What the lightbulb does |
+|----|-------------------------|
+| **RASK001** | adds the `required` modifier |
+| **RASK014** | rewrites `new Widget()` into the generated `Widget()` factory call |
+| **RASK023** | inserts `Alt: ""` |
+| **RASK026** | deletes the redundant `StateHasChanged()` statement |
+| **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
+
+These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
+`Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
+
+A fix is offered only when the rewrite means exactly what you wrote. **RASK014's is withheld when the
+construction has arguments or an object initializer**: the factory's parameters are generated from the
+component's public properties in an order that is not the constructor's, so moving positional arguments
+across would compile and mean something else — and an object initializer is only legal after `new`. In
+those cases the error stands with its message, which already names the factory to call.
+
+Every RASK diagnostic reports under the single category **`Rask`**, so one `.editorconfig` line covers
+the family:
+
+```ini
+dotnet_analyzer_diagnostic.category-Rask.severity = warning
+```
 
 | ID | Severity | Summary |
 |----|----------|---------|

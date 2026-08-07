@@ -29,9 +29,13 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "RASK003",
         "Malformed route template",
         "Route template '{0}' on '{1}' is malformed: {2}",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "The template is parsed at build time so a broken route fails here rather than at the first "
+                     + "request. Typed routes support literal segments and single-parameter segments with an optional "
+                     + "':constraint' and trailing '?'; they do not support catch-alls or a segment that mixes literal "
+                     + "text with a parameter.",
         helpLinkUri: DiagnosticHelp.Link("RASK003"));
 
     private static readonly DiagnosticDescriptor Rask004 = new(
@@ -39,9 +43,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Route segment has no matching property",
         "Route segment '{{{0}}}' on '{1}' has no matching public settable property — add a public "
         + "settable property named '{0}' to '{1}', or remove '{{{0}}}' from the route template",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "Route parameters bind by name onto public settable properties. A segment with nothing to bind to "
+                     + "would silently discard part of the URL, so it is a build error rather than a value that quietly "
+                     + "never arrives.",
         helpLinkUri: DiagnosticHelp.Link("RASK004"));
 
     private static readonly DiagnosticDescriptor Rask005 = new(
@@ -49,9 +56,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Property type does not match route constraint",
         "Property '{0}.{1}' has type '{2}', incompatible with route constraint '{3}' — change the property "
         + "type to one the '{3}' constraint accepts, or adjust the constraint in the route template",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "The constraint in the template and the property's CLR type are two statements of the same thing, "
+                     + "and the router trusts the constraint. If they disagree, a URL the router accepted would fail to "
+                     + "bind at request time.",
         helpLinkUri: DiagnosticHelp.Link("RASK005"));
 
     private static readonly DiagnosticDescriptor Rask006 = new(
@@ -60,9 +70,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Property '{0}.{1}' has [QueryParam] but is also bound by path segment '{{{2}}}' — a value can't "
         + "come from both; remove [QueryParam] to bind it from the path, or rename the property or segment "
         + "so they don't collide",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "A value comes from the path or from the query string, never both. Marking a path-bound property "
+                     + "[QueryParam] describes a binding that cannot happen.",
         helpLinkUri: DiagnosticHelp.Link("RASK006"));
 
     private static readonly DiagnosticDescriptor Rask007 = new(
@@ -70,9 +82,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "[ParentRoute] cycle",
         "[ParentRoute] forms a cycle starting at '{0}' — break the cycle so the [ParentRoute] chain ends "
         + "at a page with no parent",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "[ParentRoute] composes a page's template onto its parent's, so the chain has to terminate at a "
+                     + "page with no parent. A cycle has no root to compose from and would not terminate.",
         helpLinkUri: DiagnosticHelp.Link("RASK007"));
 
     private static readonly DiagnosticDescriptor Rask008 = new(
@@ -80,9 +94,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "[RouteParam] without matching path segment",
         "Property '{0}.{1}' has [RouteParam] but no path segment matches '{2}' — add a '{{{2}}}' segment "
         + "to the route template, or remove [RouteParam] from the property",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "[RouteParam] says 'bind me from the path', so a property carrying it with no matching segment — "
+                     + "in this template or an ancestor's, via [ParentRoute] — would never be set. Names are matched "
+                     + "exactly.",
         helpLinkUri: DiagnosticHelp.Link("RASK008"));
 
     private static readonly DiagnosticDescriptor Rask009 = new(
@@ -90,9 +107,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "[RouteParam] on a non-routed class",
         "Property '{0}.{1}' has [RouteParam] but '{0}' is not a valid route target ({2}) — mark '{0}' with "
         + "[Route] (a concrete Component subclass), or remove [RouteParam]",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "Route binding only runs for pages the router can reach. On a class with no [Route] and no "
+                     + "[ParentRoute] chain to one, the attribute describes binding that never happens, so the property "
+                     + "silently keeps its default.",
         helpLinkUri: DiagnosticHelp.Link("RASK009"));
 
     private static readonly DiagnosticDescriptor Rask010 = new(
@@ -100,9 +120,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "[QueryParam] on a non-routed class",
         "Property '{0}.{1}' has [QueryParam] but '{0}' is not a valid route target ({2}) — mark '{0}' with "
         + "[Route] (a concrete Component subclass), or remove [QueryParam]",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "As RASK009, for [QueryParam]: query binding is part of routing a page, so it does nothing on a "
+                     + "class the router never instantiates.",
         helpLinkUri: DiagnosticHelp.Link("RASK010"));
 
     private static readonly DiagnosticDescriptor Rask011 = new(
@@ -111,9 +133,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Property '{0}.{1}' of type '{2}' must be 'string' or implement 'System.IParsable<{2}>' to be bound "
         + "by [RouteParam]/[QueryParam] — use a parsable type (int, Guid, DateOnly, an enum, your own "
         + "IParsable<T>), or accept it as 'string' and convert inside the page",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "A URL segment is text, so binding it needs a way to parse it. 'string' is taken verbatim; "
+                     + "anything else must implement System.IParsable<T> — which every built-in numeric, Guid, "
+                     + "DateOnly/DateTime, bool and enum already does.",
         helpLinkUri: DiagnosticHelp.Link("RASK011"));
 
     private static readonly DiagnosticDescriptor Rask012 = new(
@@ -121,9 +146,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Multiple [NotFound] components",
         "Multiple [NotFound] components found in this assembly; only one is allowed ('{0}' is a duplicate) "
         + "— remove [NotFound] from all but one component",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "[NotFound] marks the single catch-all page for an assembly. With two, which one answers an "
+                     + "unmatched URL would depend on registration order.",
         helpLinkUri: DiagnosticHelp.Link("RASK012"));
 
     private static readonly DiagnosticDescriptor Rask031 = new(
@@ -131,20 +158,27 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Duplicate route template",
         "Route template '{0}' matches the same URL as another page ('{1}') — which one renders is "
         + "arbitrary; give this page a distinct route",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         // Warning, not Error: a route collision is a real bug, but promoting it to Error would hard-break
         // apps that compile today the moment they upgrade (and the app still runs, just picks arbitrarily).
         DiagnosticSeverity.Warning,
         true,
+        description: "Templates are compared the way the runtime router matches them, not as strings: literals match "
+                     + "case-insensitively, surrounding slashes are trimmed, and parameter names and ':constraints' are "
+                     + "ignored. So '/Products' collides with '/products', and '/item/{id:int}' with '/item/{slug}'. "
+                     + "Only pages without a [ParentRoute] are compared — the check under-reports rather than risk a "
+                     + "false positive on a composed path.",
         helpLinkUri: DiagnosticHelp.Link("RASK031"));
 
     private static readonly DiagnosticDescriptor Rask013 = new(
         "RASK013",
         "[NotFound] cannot be combined with [Route]",
         "Class '{0}' has both [NotFound] and [Route]; remove [Route] (NotFound is the catch-all)",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "[NotFound] IS the fallback — it answers whatever no other route matched. Giving it a [Route] as "
+                     + "well asks it to be both a specific path and the catch-all for every other one.",
         helpLinkUri: DiagnosticHelp.Link("RASK013"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)

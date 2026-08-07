@@ -34,7 +34,7 @@ public sealed class PreferNamedArgsAnalyzer : DiagnosticAnalyzer
         "'{0}' is called with {1} positional arguments — name them ('Prop: value') so the call is readable "
         + "and doesn't rebind silently if the generated parameter order shifts (a base-class property "
         + "added, a partial file renamed)",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Hidden,
         true,
         "Rask orders factory parameters by inheritance depth then file ordinal + span, so a call with "

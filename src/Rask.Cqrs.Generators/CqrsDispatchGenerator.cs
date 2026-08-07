@@ -26,18 +26,24 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         "RASK028",
         "Ambiguous request handler",
         "Request type '{0}' is handled by more than one handler; a query or command must have exactly one handler",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "The dispatcher maps each request type to exactly one handler, so two handlers for the same query "
+                     + "or command would make dispatch non-deterministic. Reported on each competing handler. "
+                     + "Notifications are exempt: an INotification may have any number of handlers.",
         helpLinkUri: DiagnosticHelp.Link("RASK028"));
 
     private static readonly DiagnosticDescriptor Rask029 = new(
         "RASK029",
         "Handler cannot be registered",
         "Handler '{0}' {1}; it is skipped, so dispatching its request will throw at runtime — {2}",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "A Warning rather than an Error because the rest of the assembly still builds — but the handler "
+                     + "is left out of the generated dispatch table, so the first dispatch of its request throws at "
+                     + "runtime. It is worth not ignoring.",
         helpLinkUri: DiagnosticHelp.Link("RASK029"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
