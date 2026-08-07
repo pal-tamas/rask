@@ -122,14 +122,26 @@ public sealed class LogCaptureTests
     /// The lines written in the seconds before a shutdown are the ones most worth keeping, so the writer
     /// drains what is buffered instead of exiting with it in memory.
     /// </summary>
+    /// <remarks>
+    /// The writer's loop is deliberately never started, which is the fix for #617's sibling #619 and the
+    /// same lesson #594 landed. A long <c>FlushInterval</c> does <em>not</em> mean "nothing reaches disk on
+    /// the timer" — <c>ExecuteAsync</c> is a <c>do/while</c> over <c>PeriodicTimer</c>, so its first cycle
+    /// runs immediately, before the first tick. Under load that cycle can pull the entry out of the channel
+    /// and still be inside <c>store.AppendAsync</c> when <c>StopAsync</c> cancels the stopping token — at
+    /// which point the entry is gone for good (already out of the buffer, counted dropped, never re-queued)
+    /// and the drain finds nothing. The test then failed on an empty collection, for a reason that had
+    /// nothing to do with the behaviour it names.
+    /// <para>
+    /// With no loop, the shutdown drain is the only code that can append, so "anything stored can only have
+    /// come from the drain" is true by construction rather than by scheduling. The pipeline under test is
+    /// unchanged: the entry still goes through the real <c>ILogger</c> → channel → store path.
+    /// </para>
+    /// </remarks>
     [Fact]
     public async Task FlushesBufferedEntriesOnShutdown()
     {
         await using var harness = new LoggingHarness(o => o.FlushInterval = TimeSpan.FromMinutes(5));
 
-        // A flush interval far longer than the test: nothing reaches disk on the timer, so anything stored
-        // afterwards can only have come from the shutdown drain.
-        await harness.Writer.StartAsync(CancellationToken.None);
         harness.Logger().LogWarning("the last thing that happened");
         await harness.Writer.StopAsync(CancellationToken.None);
 

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -77,14 +78,23 @@ public sealed class LoggingHarness : IAsyncDisposable
     public Task RunUntilStoredAsync(int count, TimeSpan? timeout = null) =>
         RunUntilAsync(async () => await Store.CountAsync() >= count, timeout);
 
-    public async Task WaitUntilAsync(Func<Task<bool>> condition, TimeSpan? timeout = null)
+    /// <summary>
+    ///     Polls <paramref name="condition"/> until it holds. The timeout names the predicate it gave up on
+    ///     (the principle #589 landed in <c>JobsHarness</c>): "Condition not met in time" tells you a wait
+    ///     expired and nothing about which one, on a harness whose callers all wait for different things.
+    /// </summary>
+    public async Task WaitUntilAsync(
+        Func<Task<bool>> condition,
+        TimeSpan? timeout = null,
+        [CallerArgumentExpression(nameof(condition))] string? description = null)
     {
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
+        var budget = timeout ?? TimeSpan.FromSeconds(10);
+        var deadline = DateTime.UtcNow + budget;
         while (!await condition())
         {
             if (DateTime.UtcNow > deadline)
             {
-                throw new TimeoutException("Condition not met in time.");
+                throw new TimeoutException($"`{description}` was still false after {budget}.");
             }
 
             await Task.Delay(20);

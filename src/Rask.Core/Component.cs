@@ -493,6 +493,22 @@ public abstract class Component
         // pool returns it on dispose; oversized buffers (>64 KiB) are discarded so a single
         // huge render doesn't retain an outlier capacity indefinitely.
         var sb = RaskStringBuilderPool.Shared.Get();
+
+        // HeadSentinelIndex is a byte offset into whichever builder is being serialized, and this one is
+        // not the page — it is a private buffer whose string is handed back to the caller, never spliced.
+        // Left unguarded, a component that calls ToHtml() on a tree containing a <head> (the documented
+        // way to demo the document elements, which cannot render live inside a page) publishes an offset
+        // into THIS buffer, and RenderAsLiveRoot then splices the head-asset block there — into the middle
+        // of whatever the real page had at that position. A page with its own <head> is safe by accident,
+        // since recording is first-wins and the shell's head goes first; a render without one — every
+        // RaskTest.Render, so every unit test — is not. See #627.
+        // CurrentSync, not Current: it is the accessor HtmlSerializer writes HeadSentinelIndex through
+        // (HtmlSerializer.cs, the <head> branch), so it names exactly the context at risk — and it is the
+        // cheap ThreadStatic rather than an AsyncLocal read, which matters because HeadAssetRegistry.Add
+        // routes every head contribution through ToHtml() during the render walk.
+        var live = LiveRenderContext.CurrentSync;
+        var savedSentinel = live?.HeadSentinelIndex ?? -1;
+
         try
         {
             HtmlSerializer.Serialize(this, sb);
@@ -500,6 +516,11 @@ public abstract class Component
         }
         finally
         {
+            if (live is not null)
+            {
+                live.HeadSentinelIndex = savedSentinel;
+            }
+
             RaskStringBuilderPool.Shared.Return(sb);
         }
     }
