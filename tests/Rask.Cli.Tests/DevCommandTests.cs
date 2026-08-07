@@ -278,7 +278,10 @@ public sealed class DevCommandTests
         // stream to read it is exactly how a tool accidentally swallows the console the developer is
         // watching. Asserted against a real child process, because that is where it could break.
         var lines = new List<string>();
-        var terminal = new StringWriter();
+        // Synchronized: the two pumps run concurrently, and the real sinks (Console.Out/Error) already
+        // are. A bare StringWriter shared by both would be the test's own race, not the subject's.
+        var buffer = new StringWriter();
+        var terminal = TextWriter.Synchronized(buffer);
         var runner = new ProcessRunner(terminal, terminal);
 
         var exit = await runner.RunTeeAsync(
@@ -286,21 +289,22 @@ public sealed class DevCommandTests
 
         Assert.Equal(0, exit);
         Assert.NotEmpty(lines);
-        Assert.Contains(lines[0], terminal.ToString(), StringComparison.Ordinal);
+        Assert.Contains(lines[0], buffer.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task An_observer_that_throws_does_not_truncate_the_terminal()
     {
         // The observer is a convenience over somebody else's output; it does not get to kill the pump.
-        var terminal = new StringWriter();
+        var buffer = new StringWriter();
+        var terminal = TextWriter.Synchronized(buffer);
         var runner = new ProcessRunner(terminal, terminal);
 
         var exit = await runner.RunTeeAsync(
             "dotnet", ["--version"], null, _ => throw new InvalidOperationException("boom"), CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.NotEmpty(terminal.ToString().Trim());
+        Assert.NotEmpty(buffer.ToString().Trim());
     }
 
     // ---- browser ----
