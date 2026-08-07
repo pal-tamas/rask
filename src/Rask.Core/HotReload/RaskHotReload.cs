@@ -96,17 +96,28 @@ internal static class RaskHotReload
         // on the hot-reload agent's thread and a render can await application code.
         _ = Task.Run(async () =>
         {
+            bool repainted;
             try
             {
-                await LiveSessionBase.RerenderAllForHotReloadAsync().ConfigureAwait(false);
+                repainted = await LiveSessionBase.RerenderAllForHotReloadAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
+                // Defence in depth: RerenderAllForHotReloadAsync catches per session and does not throw,
+                // so this is the "it started to" case rather than a session fault.
                 RaskDiagnostics.Report(
                     RaskLogLevel.Warning, "Rask.HotReload", "Rask: hot-reload rerender failed", ex);
+                repainted = false;
             }
 
-            RaiseApplied();
+            // Applied drives the browser's green "Hot reload applied" pill, and the repaint is the whole
+            // of what the developer can see. Announcing it for an edit that never reached the page told
+            // them the opposite of the truth, with the only evidence on the server's stderr (#603). A
+            // missing pill is the honest signal: nothing visibly changed, because nothing did.
+            if (repainted)
+            {
+                RaiseApplied();
+            }
         });
     }
 
