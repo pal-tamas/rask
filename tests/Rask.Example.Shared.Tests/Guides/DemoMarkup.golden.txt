@@ -4566,8 +4566,7 @@ div .sample-code-header
 span .dot-r .sample-dot
 span .dot-y .sample-dot
 span .dot-g .sample-dot
-span
-script
+span .ms-2 .sample-code-label
 button .sample-copy
 i .bi .bi-clipboard .me-1
 span .sample-copy-text
@@ -5481,9 +5480,9 @@ div .align-items-baseline .d-flex .justify-content-between .mb-3
 h3 .fw-semibold .h4 .mb-0
 span .small .text-secondary
 div .align-items-baseline .d-flex .gap-3 .mb-3
-span .fs-3 .text-secondary
+span .fs-2 .fw-bold
 div .ticker-chart-container
-p .mb-0 .small .text-secondary
+svg .ticker-chart-svg
 div .col-lg-5
 div .bg-light .border-0 .card .h-100
 div .card-body

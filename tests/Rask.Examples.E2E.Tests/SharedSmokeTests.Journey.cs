@@ -1462,6 +1462,12 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // The <svg> is now emitted from the first render (Sparkline draws its own empty frame, so the
+        // chart no longer swaps a <p> placeholder for an <svg> when data arrives — #618), which means the
+        // assertion above no longer proves a tick landed. The price does: it reads "Waiting for first
+        // tick…" until one has, and "$…" after.
+        await Expect(Page.Locator("#ticker-price")).ToContainTextAsync("$",
+            new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
         await Page.Locator("#ticker-switch-ETH").ClickAsync();
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("ETH",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });

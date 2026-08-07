@@ -98,6 +98,43 @@ public class HeadAssetRenderTests
         Assert.Equal(1, CountOccurrences(third, "/a.css"));
     }
 
+    // #627. HeadSentinelIndex is an offset into whichever builder is being serialized, and ToHtml()
+    // serializes into a private one whose string is handed straight to the caller. A component that calls
+    // ToHtml() on a tree containing a <head> — the documented way to demo the document elements, which
+    // cannot render live inside a page — used to publish an offset into that private buffer, and the live
+    // root then spliced the head-asset block there: into the middle of whatever the real page had at that
+    // position, cutting an opening tag in half and losing its attributes.
+    //
+    // Rendered without an enclosing shell, which is the case that broke: recording is first-wins, so a
+    // page with its own <head> was safe by accident while every RaskTest.Render was not.
+    // Asserts on the RAW sentinel throughout: the serialized shell that ToHtml() hands back is rendered as
+    // text, so the page legitimately contains an HTML-ENCODED copy (&lt;!--__rask_head_assets__--&gt;) —
+    // that is the demo showing its own output, not a leak.
+    [Fact]
+    public void NestedToHtmlOverAHead_DoesNotSpliceIntoTheOuterRender()
+    {
+        var html = new SerializesAShell().RenderAsLiveRoot();
+
+        // The marker tag must survive intact — the bug cut it after "<span cla" and dropped its class.
+        Assert.Contains("<span class=\"marker\"", html);
+        Assert.DoesNotContain("<span cla<", html);
+    }
+
+    // The counterpart: a page that has its own <head> still splices there, and the nested ToHtml() has not
+    // moved the target. Without this, "don't record from ToHtml" could be satisfied by not splicing at all.
+    [Fact]
+    public void NestedToHtmlOverAHead_LeavesTheRealHeadSpliceAlone()
+    {
+        var html = new PageShell(new SerializesAShell()).RenderAsLiveRoot();
+
+        // The shell's own sentinel is consumed …
+        Assert.DoesNotContain("<!--__rask_head_assets__-->", html);
+        // … in <head>, not wherever the nested call happened to point.
+        var sentinelWasHere = html.IndexOf("<body", StringComparison.Ordinal);
+        Assert.True(sentinelWasHere > 0);
+        Assert.Contains("<span class=\"marker\"", html);
+    }
+
     // ----- helpers -----
 
     private static int CountOccurrences(string haystack, string needle)
@@ -161,6 +198,19 @@ public class HeadAssetRenderTests
     {
         protected override Component? Render() => Div()["plain body"];
     }
+
+    // Mirrors ElementsMetadataDemo: composes a real document shell and shows its serialized HTML as text.
+    // The <span class="marker"> after it is what the misplaced splice used to cut in half.
+#pragma warning disable RASK019 // composing Head() children directly is the point here
+    private sealed class SerializesAShell : Component
+    {
+        protected override Component? Render() =>
+        [
+            Pre()[Code()[Html("en")[Head()[Title()["Inner"]], Body()[P()["hi"]]].ToHtml()]],
+            Span(Class: "marker")["after"]
+        ];
+    }
+#pragma warning restore RASK019
 
     private sealed class ContributesLink : Component
     {
