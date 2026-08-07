@@ -121,6 +121,23 @@ them until tagged releases begin.
   "element is not stable" naming the element and nothing about what was moving. The journey records a trace
   with DOM snapshots throughout and keeps it only on failure, printing the path and the command that opens
   it. Always on rather than behind a flag, because the run worth tracing is the one that unexpectedly failed.
+- **Hot reload can apply an edit in this repo again.** Every save under `rask dev` on any sample failed
+  with `error CS7038: … Changing the version of an assembly reference is not allowed during debugging:
+  'Rask.Bootstrap, Version=0.0.0.0' changed version to '1.0.0.0'`, so the edit never reached the running
+  app — for a one-character change to a `Render()` body, the most hot-reloadable thing there is.
+  - MinVer sets `AssemblyVersion` from a **target**; hot reload never runs targets, because Roslyn's EnC
+    service compiles in-process from the project's **evaluated** properties, where MinVer has not run and
+    the SDK falls back to `Version 1.0.0` → `AssemblyVersion 1.0.0.0`. Every emit therefore disagreed with
+    the assembly already loaded. `Directory.Build.props` now pins `<AssemblyVersion>0.0.0.0</AssemblyVersion>`
+    at evaluation time — the same value MinVer's target produces on the `0.x` line, so nothing about the
+    shipped binaries changes and the real version keeps riding on `FileVersion`/`InformationalVersion`.
+  - **It only affected the packable projects**, which is why it went unnoticed: MinVer is referenced under
+    `Condition=" '$(IsPackable)' != 'false' "`, so `Rask.Core` read `1.0.0.0` on both sides and agreed by
+    accident. That is also why `AssemblyVersionStabilityTests` asserts against a packable assembly — a
+    guard reading `Rask.Core` would pass with the pin removed.
+  - It would equally have hit **any app that project-references a Rask project**, and it quietly devalued
+    the hot-reload work in #534/#569: all of it behaves correctly, and none of it could be demonstrated on
+    this repo's own samples.
 - **A build that fails under `rask dev` is reported as a build failure, not as a lost connection.** Saving
   a file that didn't compile took the app down, and the browser — which only knows that its socket closed —
   said "Reconnecting…", then "Still trying to reconnect…" with a **Retry now** button that could not

@@ -22,6 +22,33 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition=" '$(GITHUB_ACTIONS)' == 'true' ">true</ContinuousIntegrationBuild>
     <MinVerTagPrefix>v</MinVerTagPrefix>
+    <!--
+      Pinned at evaluation time, deliberately, and NOT left to MinVer.
+
+      MinVer sets AssemblyVersion from a TARGET (to $(MinVerMajor).0.0.0 — 0.0.0.0 for our 0.x line).
+      Hot reload does not run targets: Roslyn's EnC service compiles in-process from the project's
+      EVALUATED properties, where MinVer has not run and the SDK falls back to Version 1.0.0 →
+      AssemblyVersion 1.0.0.0. So every hot-reload emit disagreed with the assembly already loaded and
+      Roslyn refused it outright:
+
+        error CS7038: Failed to emit module 'X': Changing the version of an assembly reference is not
+        allowed during debugging: 'Rask.Bootstrap, Version=0.0.0.0' changed version to '1.0.0.0'
+
+      That made the FIRST save of every `rask dev` session on this repo's own samples fail for a reason
+      that had nothing to do with the edit — and it would hit any app that project-references Rask.
+      Pinning it here makes evaluation and target agree. AssemblyVersion is the binary-compat identity
+      and is meant to be stable anyway; the real version still rides on FileVersion/InformationalVersion,
+      which MinVer keeps stamping.
+
+      It only ever bit the PACKABLE projects, which is why it survived so long: MinVer is referenced
+      under `Condition=" '$(IsPackable)' != 'false' "` below, so an unpackable project reads 1.0.0.0
+      both on disk and under EnC and never mismatches. The error named Rask.Bootstrap, never Rask.Core —
+      and anyone investigating via Rask.Core sees nothing wrong.
+
+      0.0.0.0 is right only while the major is 0. AssemblyVersionStabilityTests fails when the shipped
+      major leaves 0.x, so this gets moved rather than silently understating compatibility at v1.0.0.
+    -->
+    <AssemblyVersion>0.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <!--

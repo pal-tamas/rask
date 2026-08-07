@@ -53,6 +53,17 @@ internal sealed class DevBuildWatcher
     // colour) — and equally deliberately stripped here, because the panel renders text, not a terminal.
     private static readonly Regex AnsiEscape = new(@"\x1B\[[0-9;]*[A-Za-z]", RegexOptions.Compiled);
 
+    // Watch's own byline — `dotnet watch ❌ `, `dotnet watch ⌚ ` — which it puts in front of everything,
+    // including a diagnostic that already has a file location:
+    //
+    //   dotnet watch ❌ /app/Pages/Home.cs(12,9): error CS0103: The name 'x' does not exist…
+    //
+    // The location-ends-in-a-colon rule below cannot drop it there, because the byline is *part* of the
+    // prefix that ends in a colon. Stripped up front instead. The character class stops at the first
+    // letter, digit or path character, so it eats the emoji and the spaces and nothing else — and it
+    // leaves the line alone when DOTNET_WATCH_SUPPRESS_EMOJIS removed the symbol already.
+    private static readonly Regex WatchByline = new(@"^dotnet watch[^\p{L}\p{N}/\\._]*", RegexOptions.Compiled);
+
     // Watch announces a rebuild before it starts one. Matched loosely (contains, case-insensitive) because
     // the surrounding decoration varies; a miss only costs a slightly late transition to Building, which
     // no one sees, where a false positive would clear a real failure. "file updated" is what .NET 10's
@@ -63,13 +74,14 @@ internal sealed class DevBuildWatcher
     ];
 
     // …and what it prints when one has finished cleanly. Taken from what .NET 10's watch actually emits —
-    // MSBuild's "Build succeeded.", watch's "Hot reload of changes succeeded." and its "No managed code
-    // changes to apply." (which is what a save that only reverts a broken edit produces). Without these
+    // MSBuild's "Build succeeded.", watch's "C# and Razor changes applied in 456ms." / "Hot reload of
+    // changes succeeded." and its "No managed code changes to apply." (what a save reverting a broken edit
+    // produces). All observed, not guessed — the applied-form is the one a working edit emits. Without these
     // the machine would sit on Building forever after a recovery: harmless for the client, which only
     // acts on "failed", but a state nobody could explain.
     private static readonly string[] SuccessMarkers =
     [
-        "build succeeded", "changes succeeded", "no managed code changes", "started",
+        "build succeeded", "changes succeeded", "changes applied", "no managed code changes", "started",
     ];
 
     // What watch prints when it has given up and is idling — "Waiting for a file to change before
@@ -119,7 +131,7 @@ internal sealed class DevBuildWatcher
             return;
         }
 
-        var clean = AnsiEscape.Replace(line, string.Empty).Trim();
+        var clean = WatchByline.Replace(AnsiEscape.Replace(line, string.Empty).Trim(), string.Empty).Trim();
         if (clean.Length == 0)
         {
             return;
