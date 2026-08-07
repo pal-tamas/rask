@@ -135,7 +135,7 @@ public sealed class FeatureGeneratorTests
                 UseEvents = useEvents,
                 UseOutbox = useOutbox,
                 UseTests = useTests,
-                ContextOverride = context,
+                ExistingContext = context,
                 ContextNamespace = contextNamespace,
                 OutputOverride = null,
             });
@@ -150,8 +150,8 @@ public sealed class FeatureGeneratorTests
 
         Assert.Equal(
             [
-                "CreateProduct.cs", "DeleteProduct.cs", "Product.cs", "ProductConfiguration.cs",
-                "ProductName.cs", "ProductRequest.cs", "ProductsDbContext.cs", "ProductsPage.cs", "UpdateProduct.cs",
+                "AppDbContext.cs", "CreateProduct.cs", "DeleteProduct.cs", "Product.cs", "ProductConfiguration.cs",
+                "ProductName.cs", "ProductRequest.cs", "ProductsPage.cs", "UpdateProduct.cs",
             ],
             names);
     }
@@ -161,8 +161,28 @@ public sealed class FeatureGeneratorTests
     {
         var result = Generate();
 
-        Assert.All(result.Files, f => Assert.Equal(Path.GetFullPath("/proj/Features/Products"), Path.GetFullPath(Path.GetDirectoryName(f.Path)!)));
+        // The DbContext is the app's, not the feature's, so it lives in the cross-cutting Features/Shared bucket.
+        Assert.All(
+            result.Files.Where(f => Path.GetFileName(f.Path) != "AppDbContext.cs"),
+            f => Assert.Equal(Path.GetFullPath("/proj/Features/Products"), Path.GetFullPath(Path.GetDirectoryName(f.Path)!)));
         Assert.Contains("namespace MyApp.Features.Products;", File(result, "Product.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_context_a_run_writes_is_the_shared_one_rask_new_data_scaffolds()
+    {
+        var result = Generate();
+
+        var context = result.Files.Single(f => Path.GetFileName(f.Path) == "AppDbContext.cs");
+        Assert.Equal(Path.GetFullPath("/proj/Features/Shared"), Path.GetFullPath(Path.GetDirectoryName(context.Path)!));
+        Assert.Contains("namespace MyApp.Features.Shared;", context.Content, StringComparison.Ordinal);
+        Assert.Contains("public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)", context.Content, StringComparison.Ordinal);
+        // It sees the entities, which live in the feature's namespace, not its own.
+        Assert.Contains("using MyApp.Features.Products;", context.Content, StringComparison.Ordinal);
+        Assert.Contains("public DbSet<Product> Products => Set<Product>();", context.Content, StringComparison.Ordinal);
+        // …and so do the handlers, which are in the feature and name the context.
+        Assert.Contains("using MyApp.Features.Shared;", File(result, "ProductsPage.cs"), StringComparison.Ordinal);
+        Assert.Contains("IDbContextFactory<AppDbContext>", File(result, "ProductsPage.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -204,7 +224,7 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("entity.HasKey(x => x.Id);", config, StringComparison.Ordinal);
         // The value object maps through its converter.
         Assert.Contains("entity.Property(x => x.Name).HasConversion(v => v.Value, s => ProductName.Create(s)).HasMaxLength(ProductName.MaxLength);", config, StringComparison.Ordinal);
-        Assert.Contains("ApplyConfigurationsFromAssembly", File(Generate(), "ProductsDbContext.cs"), StringComparison.Ordinal);
+        Assert.Contains("ApplyConfigurationsFromAssembly", File(Generate(), "AppDbContext.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -364,7 +384,7 @@ public sealed class FeatureGeneratorTests
     [Fact]
     public void The_generated_dbcontext_applies_rask_conventions()
     {
-        Assert.Contains("modelBuilder.ApplyRaskConventions();", File(Generate(), "ProductsDbContext.cs"), StringComparison.Ordinal);
+        Assert.Contains("modelBuilder.ApplyRaskConventions();", File(Generate(), "AppDbContext.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -436,9 +456,9 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("entity.Raise(new ProductCreated(entity.Id));", File(result, "Product.cs"), StringComparison.Ordinal);
 
         // The DbContext maps the outbox table; the package + DI wiring are applied to Program.cs.
-        Assert.Contains("modelBuilder.AddRaskOutbox();", File(result, "ProductsDbContext.cs"), StringComparison.Ordinal);
+        Assert.Contains("modelBuilder.AddRaskOutbox();", File(result, "AppDbContext.cs"), StringComparison.Ordinal);
         Assert.Contains("Rask.Outbox", result.Packages);
-        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddRaskOutbox<ProductsDbContext>();", StringComparison.Ordinal));
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddRaskOutbox<AppDbContext>();", StringComparison.Ordinal));
         Assert.Contains(result.ProgramRegistrations, r => r.Contains("DispatchDomainEventsInProcess = false", StringComparison.Ordinal));
     }
 
@@ -447,7 +467,7 @@ public sealed class FeatureGeneratorTests
     {
         var result = Generate(useEvents: true);
         Assert.DoesNotContain("IOutboxEvent", File(result, "ProductEvents.cs"), StringComparison.Ordinal);
-        Assert.DoesNotContain("AddRaskOutbox", File(result, "ProductsDbContext.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("AddRaskOutbox", File(result, "AppDbContext.cs"), StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Outbox", result.Packages);
     }
 
@@ -608,7 +628,7 @@ public sealed class FeatureGeneratorTests
         var notes = result.Notes!;
 
         Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddRaskCqrs();", StringComparison.Ordinal));
-        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddDbContextFactory<ProductsDbContext>", StringComparison.Ordinal));
+        Assert.Contains(result.ProgramRegistrations, r => r.Contains("AddDbContextFactory<AppDbContext>", StringComparison.Ordinal));
         Assert.Contains("rask db add AddProduct", notes, StringComparison.Ordinal);
         Assert.Contains("rask db update", notes, StringComparison.Ordinal);
         // The packages are added to the project automatically (not just printed). SQLitePCLRaw is a security
@@ -714,7 +734,7 @@ public sealed class FeatureGeneratorMultiEntityTests
             {
                 IdType = "Guid",
                 Validation = "valueobjects",
-                ContextOverride = context,
+                ExistingContext = context,
                 OutputOverride = output,
             });
 
@@ -731,9 +751,10 @@ public sealed class FeatureGeneratorMultiEntityTests
 
         Assert.Equal(
             [
+                "AppDbContext.cs",
                 "Comment.cs", "CommentBody.cs", "CommentConfiguration.cs", "CommentRequest.cs", "CommentsPage.cs",
                 "CreateComment.cs", "CreatePost.cs", "DeleteComment.cs", "DeletePost.cs",
-                "Post.cs", "PostConfiguration.cs", "PostRequest.cs", "PostTitle.cs", "PostsDbContext.cs",
+                "Post.cs", "PostConfiguration.cs", "PostRequest.cs", "PostTitle.cs",
                 "PostsPage.cs", "UpdateComment.cs", "UpdatePost.cs",
             ],
             names);
@@ -766,29 +787,29 @@ public sealed class FeatureGeneratorMultiEntityTests
     [Fact]
     public void One_dbcontext_holds_a_dbset_for_every_entity()
     {
-        var context = File(Generate(), "PostsDbContext.cs");
+        var context = File(Generate(), "AppDbContext.cs");
 
         Assert.Contains("public DbSet<Post> Posts => Set<Post>();", context, StringComparison.Ordinal);
         Assert.Contains("public DbSet<Comment> Comments => Set<Comment>();", context, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_dbcontext_lives_with_the_root_and_is_generated_once()
+    public void The_dbcontext_lives_in_features_shared_and_is_generated_once()
     {
         var result = Generate();
 
         Assert.Single(result.Files, f => Path.GetFileName(f.Path).EndsWith("DbContext.cs", StringComparison.Ordinal));
-        Assert.Equal(Path.GetFullPath("/proj/Features/Posts"), Directory(result, "PostsDbContext.cs"));
+        Assert.Equal(Path.GetFullPath("/proj/Features/Shared"), Directory(result, "AppDbContext.cs"));
     }
 
     [Fact]
     public void The_dbcontext_usings_reach_every_entitys_namespace()
     {
-        var context = File(Generate(), "PostsDbContext.cs");
+        var context = File(Generate(), "AppDbContext.cs");
 
-        // Its own namespace needs no using; the target's does.
+        // It sits beside neither entity, so it imports both.
         Assert.Contains("using MyApp.Features.Comments;", context, StringComparison.Ordinal);
-        Assert.DoesNotContain("using MyApp.Features.Posts;", context, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Posts;", context, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -796,18 +817,20 @@ public sealed class FeatureGeneratorMultiEntityTests
     {
         var deleteComment = File(Generate(), "DeleteComment.cs");
 
-        // The context lives with the root, so a target's slice needs a using to name it.
-        Assert.Contains("using MyApp.Features.Posts;", deleteComment, StringComparison.Ordinal);
-        Assert.Contains("IDbContextFactory<PostsDbContext>", deleteComment, StringComparison.Ordinal);
+        // The context lives in Features/Shared, so every slice needs a using to name it.
+        Assert.Contains("using MyApp.Features.Shared;", deleteComment, StringComparison.Ordinal);
+        Assert.Contains("IDbContextFactory<AppDbContext>", deleteComment, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_roots_own_slice_needs_no_using_for_a_context_beside_it()
+    public void The_roots_slice_imports_the_shared_context_too()
     {
         var deletePost = File(Generate(), "DeletePost.cs");
 
+        // Not its own namespace — the root's slice never imports Features.Posts …
         Assert.DoesNotContain("using MyApp.Features.Posts;", deletePost, StringComparison.Ordinal);
-        Assert.Contains("IDbContextFactory<PostsDbContext>", deletePost, StringComparison.Ordinal);
+        Assert.Contains("using MyApp.Features.Shared;", deletePost, StringComparison.Ordinal);
+        Assert.Contains("IDbContextFactory<AppDbContext>", deletePost, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -828,6 +851,6 @@ public sealed class FeatureGeneratorMultiEntityTests
 
         Assert.All(result.Files, f => Assert.Equal(Path.GetFullPath("/proj/Slice"), Path.GetFullPath(Path.GetDirectoryName(f.Path)!)));
         Assert.DoesNotContain("using MyApp.Slice;", File(result, "DeleteComment.cs"), StringComparison.Ordinal);
-        Assert.DoesNotContain("using MyApp.Slice;", File(result, "PostsDbContext.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("using MyApp.Slice;", File(result, "AppDbContext.cs"), StringComparison.Ordinal);
     }
 }

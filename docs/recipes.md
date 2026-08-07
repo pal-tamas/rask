@@ -23,11 +23,12 @@ open alongside.
 
 ## Add a feature to an existing database
 
-Point a new feature at a `DbContext` you already have instead of generating a fresh one — the CLI
-resolves the class, adds the `DbSet`, and wires the cross-namespace `using` so it compiles.
+Nothing to pass: a feature attaches to the `DbContext` the project already has — the CLI finds the class,
+adds the `DbSet`, and wires the cross-namespace `using` so it compiles. Name one with `--context` only when
+the project has several and the CLI asks which.
 
 ```bash
-rask g f Order Total:decimal ProductId:guid Placed:datetime --context ProductsDbContext
+rask g f Order Total:decimal ProductId:guid Placed:datetime
 rask db add AddOrder && rask db update
 ```
 
