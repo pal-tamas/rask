@@ -176,6 +176,27 @@ them until tagged releases begin.
     action was settling the page: with screenshots on the suite ran 3/3 green and with them off 4/4 red,
     same machine and commit, back to back. Traces now record snapshots only — `TestArtifacts` already
     writes a full-page PNG per test, and what a stuck journey needs is the DOM.
+- **The docs that ship inside every package now describe what actually ships.** `NUGET.md` is packed into
+  all 24 packages via `Directory.Build.props`, which makes it the most-read page the project publishes and
+  the one nobody edits — it listed **7**. Missing: every battery (Jobs, Mail, Cache, Outbox, Data, Logging,
+  Dashboard), both SQLite satellites, both alternative database providers, and `Rask.Testing`. It also
+  showed only `rask new`, though `generate`, `db`, `dev` and `deploy` have shipped since, and still led
+  with the pre-OPF tagline the README and `llms.txt` had moved on from. Rewritten by role — pick a host,
+  add the batteries you want, pick a database — and **a test now fails the build if a packable project is
+  not named there**, next to the existing guard that catches one missing from the pack workflow.
+- **`CONTRIBUTING.md` no longer contradicts itself about CI.** It said tests don't run in CI and then, 20
+  lines later, that CI runs them; it credited a CodeQL workflow this repo doesn't have; it gave the
+  diagnostic range as RASK001–029 twice when it is 001–035; and it opened with bare `dotnet test`, which
+  pulls in the Playwright suite the rest of the page tells you to avoid. It now says what `ci.yml`
+  contains, and points at the two gate scripts the hooks actually run.
+- **`llms.txt`** framed deployment as "opt-in `--docker`" when `rask deploy` — SSH, blue-green, health-gated
+  cutover, Caddy auto-HTTPS, bare-VPS provisioning — has shipped, and its battery list stopped at four.
+- **`AGENTS.md`** listed 8 of the 12 committed skills, omitting `add-codefix` and all three
+  "drive the real app" playbooks — the ones an agent needs precisely when a passing test isn't proof.
+- **`docs/getting-started.md`** said three templates and listed three; there are four (`native` was
+  missing). It called `--docker` a template when it is a flag, and its "see the README's *Sub-path hosting*
+  section" pointed at a section that does not exist — the README's only mention pointed back at
+  getting-started, so the reader went in a circle. It now points at the pages that cover it.
 
 ## [0.20.0] - 2026-08-06
 
