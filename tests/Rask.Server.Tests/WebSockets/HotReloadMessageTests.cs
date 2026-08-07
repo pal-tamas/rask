@@ -9,6 +9,7 @@ namespace Rask.Server.Tests.WebSockets;
 ///     The dev-only "hot reload applied" channel: its exact wire text, and the two independent gates
 ///     that keep it out of production.
 /// </summary>
+[Collection("HostEnvironment")]
 public class HotReloadMessageTests
 {
     [Fact]

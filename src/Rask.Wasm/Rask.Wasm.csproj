@@ -115,7 +115,8 @@
       <_RaskInputBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-input.js'))</_RaskInputBody>
       <_RaskScopedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-scoped.js'))</_RaskScopedBody>
       <_RaskHotReloadBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-hotreload.js'))</_RaskHotReloadBody>
-      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)').Replace('// @@RASK_WASM_API@@', '$(_RaskWasmApiBody)').Replace('// @@RASK_INPUT@@', '$(_RaskInputBody)').Replace('// @@RASK_SCOPED@@', '$(_RaskScopedBody)').Replace('// @@RASK_HOTRELOAD@@', '$(_RaskHotReloadBody)'))</_RaskWasmJs>
+      <_RaskDevErrorBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-deverror.js'))</_RaskDevErrorBody>
+      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)').Replace('// @@RASK_WASM_API@@', '$(_RaskWasmApiBody)').Replace('// @@RASK_INPUT@@', '$(_RaskInputBody)').Replace('// @@RASK_SCOPED@@', '$(_RaskScopedBody)').Replace('// @@RASK_HOTRELOAD@@', '$(_RaskHotReloadBody)').Replace('// @@RASK_DEVERROR@@', '$(_RaskDevErrorBody)'))</_RaskWasmJs>
     </PropertyGroup>
     <WriteLinesToFile File="Browser\rask.wasm.js" Lines="$(_RaskWasmJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
   </Target>

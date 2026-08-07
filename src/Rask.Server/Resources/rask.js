@@ -319,6 +319,13 @@
             // pure bookkeeping, changes nothing on screen, and must not wait on the render queue —
             // a drop between now and the paint should still leave us holding the newer record.
             if (typeof data.resume === "string") rememberResumeToken(data.resume);
+            // A development fault the app survived. Like `resume` it rides the render payload rather
+            // than arriving as its own frame, and like it, it is applied here rather than inside either
+            // render path: the panel is a sibling of the app, so it must not wait on the render queue —
+            // and showing it before the repaint is right, since the repaint is what puts the app back on
+            // screen underneath it. Dev-gated twice: the server only sends it in development, and
+            // devMode is read off the document (#607).
+            if (data.devError) showDevError(data.devError);
             // Diff-mode payload (kind:"diff"): apply ops directly against the live DOM.
             // Both render paths chain through _renderQueue so a diff that defers its body
             // for a scoped-CSS load (see applyDiffReply) can't be overtaken by the next
@@ -754,6 +761,10 @@
     // window.__raskHotReloadPill; only the way the notification *arrives* differs per transport (here,
     // the hotReload frame branch above).
     // @@RASK_HOTRELOAD@@
+
+    // The development error panel (showDevError / hideDevError). Shared with the WASM runtime so both
+    // hosts render the same thing from one source.
+    // @@RASK_DEVERROR@@
 
     // Toggle the overlay's manual action button. Pass a label to show it, or null to hide it. A single
     // click handler routes to retryNow(), which reloads when the session has expired and otherwise

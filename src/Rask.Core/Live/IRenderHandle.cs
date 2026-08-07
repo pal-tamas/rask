@@ -19,6 +19,23 @@ public interface IRenderHandle
 
     internal Task RenderInScopeAsync() => Task.CompletedTask;
 
+    /// <summary>
+    ///     Records a development fault to paint <em>over</em> the app, reported by
+    ///     <c>RootErrorBoundary</c> during the render walk that follows it.
+    /// </summary>
+    /// <remarks>
+    ///     It goes to the handle rather than staying on the <see cref="LiveRenderContext" /> because the
+    ///     context is disposed when the walk ends, and the frame is built afterwards — a session reading
+    ///     it from the context would find nothing. The session holds it until it writes the payload.
+    ///     <para>
+    ///         Defaulted to a no-op so the interface stays non-breaking, and so the non-session
+    ///         implementations (the unit-test render handle) simply don't have an overlay.
+    ///     </para>
+    /// </remarks>
+    internal void ReportDevError(DevErrorInfo error)
+    {
+    }
+
     // Host-awareness axes surfaced to components during render (via LiveRenderContext → Component.HostShell/…).
     // Defaulted here so the interface stays non-breaking; concrete sessions override with their own facts.
     internal RenderShell Shell => RenderShell.Web;
