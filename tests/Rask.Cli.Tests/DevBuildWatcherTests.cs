@@ -113,6 +113,7 @@ public sealed class DevBuildWatcherTests
     [InlineData("Build succeeded.")]
     [InlineData("dotnet watch 🔥 Hot reload of changes succeeded.")]
     [InlineData("dotnet watch ⌚ No managed code changes to apply.")]
+    [InlineData("dotnet watch 🔥 C# and Razor changes applied in 456ms.")]
     public void A_build_that_finished_cleanly_settles_to_ok(string line)
     {
         // Every one of these is something .NET 10's watch (or MSBuild under it) actually prints on the
@@ -151,6 +152,21 @@ public sealed class DevBuildWatcherTests
         Assert.Equal(DevBuildState.Failed, watcher.State);
         // Watch's decoration is dropped; a real file location is not.
         Assert.Equal("error CS7038: Failed to emit module 'App'.", Assert.Single(watcher.Errors));
+    }
+
+    [Fact]
+    public void Watchs_byline_is_dropped_even_when_it_precedes_a_real_file_location()
+    {
+        // The shape a genuine compile error actually arrives in under watch: its byline sits in FRONT of
+        // the path, so the "keep the prefix when it ends in a colon" rule would otherwise keep the emoji
+        // too and put `dotnet watch ❌ /Users/…` in the panel.
+        var watcher = new DevBuildWatcher();
+
+        watcher.Observe("dotnet watch ❌ /app/A.cs(12,26): error CS0103: The name 'x' does not exist");
+
+        Assert.Equal(
+            "/app/A.cs(12,26): error CS0103: The name 'x' does not exist",
+            Assert.Single(watcher.Errors));
     }
 
     [Fact]
