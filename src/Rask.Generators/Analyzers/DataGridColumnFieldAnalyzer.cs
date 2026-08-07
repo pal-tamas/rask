@@ -34,7 +34,7 @@ public sealed class DataGridColumnFieldAnalyzer : DiagnosticAnalyzer
         "Column has no Field for the chooser",
         "This column sets no Field, so the BsDataGrid column chooser can't show/hide or reorder it — "
         + "add Field = r => r.X to name it, or opt it out with Hideable = false and Reorderable = false",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         "The column chooser and ColumnOrder address a column by the token read off its Field expression. A "

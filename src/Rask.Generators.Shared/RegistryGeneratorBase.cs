@@ -27,9 +27,13 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
         "RASK035",
         "Job or outbox event type cannot be registered",
         "{0} type '{1}' {2}; it is skipped, so it will fail to deserialize and dead-letter at runtime — {3}",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "A Warning rather than an Error because the rest of the assembly still builds — but the type is "
+                     + "left out of the generated registry, so enqueuing it writes a row the processor cannot rehydrate: "
+                     + "it retries until MaxAttempts and then dead-letters. Before this existed the type was skipped "
+                     + "silently, which is what made the failure hard to place.",
         helpLinkUri: DiagnosticHelp.Link("RASK035"));
 
     /// <summary>Fully-qualified marker interface a type must implement, e.g. <c>Rask.Jobs.IJob</c>.</summary>

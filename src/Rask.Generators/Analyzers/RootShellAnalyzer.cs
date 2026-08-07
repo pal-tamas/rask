@@ -45,9 +45,13 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         "RASK021",
         "Root component must render a complete page shell",
         "The Rask root component '{0}' does not render a complete page shell; missing: {1}. A root Render() should produce Doctype(), Html(...)[Head(), Body()[...]].",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "The root component renders the whole document, so it must produce the shell itself: Doctype(), "
+                     + "then Html(…)[ Head(), Body()[ … ] ]. A runtime backstop enforces the same thing, so a shell that "
+                     + "slips past this analyzer fails at render instead. Do not add the runtime <script> — it is "
+                     + "appended to <body> automatically.",
         helpLinkUri: DiagnosticHelp.Link("RASK021"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =

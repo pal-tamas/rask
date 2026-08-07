@@ -27,9 +27,13 @@ public sealed class NativeChromeInHtmlAnalyzer : DiagnosticAnalyzer
         "RASK032",
         "Native components cannot appear in the HTML tree",
         "'{0}' is a native chrome component and cannot appear inside the HTML tree; compose it at the native layout level (a sibling of NativeWebView), not as an element child",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "Native chrome components describe real platform bars for the Rask.Native host, not HTML. They "
+                     + "are composed at the native page's layout level, as siblings of a NativeWebView — nested inside "
+                     + "the HTML tree one would serialize to nothing, so it is caught at build time rather than as an "
+                     + "invisible bar on a device.",
         helpLinkUri: DiagnosticHelp.Link("RASK032"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =

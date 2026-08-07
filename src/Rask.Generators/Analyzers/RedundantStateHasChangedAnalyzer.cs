@@ -27,7 +27,7 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
         "Redundant StateHasChanged in a Rask callback",
         "StateHasChanged is redundant here — Rask re-renders this component automatically after its '{0}' "
         + "callback runs; remove the call",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         "Rask wraps event callbacks (OnChange/OnClick/OnInput/OnSubmit/…) and binding hooks "

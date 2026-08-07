@@ -216,6 +216,32 @@ them until tagged releases begin.
   - **RASK015 / RASK017** were purely descriptive, so the `RaskScopedCssAutoInclude` /
     `RaskScopedJsAutoInclude` opt-out — the right answer whenever the orphan file is a deliberate global
     one — was undiscoverable from the error that fired.
+- **BREAKING — every RASK diagnostic reports under one category, `Rask`.** There used to be two, split by
+  what produced the diagnostic: generators used `Rask.Generators`, analyzers used `Usage`. That is an
+  implementation detail of this repo, and it leaked to the consumer — a category is what an
+  `.editorconfig` rule or an IDE's group-by keys on, so
+  `dotnet_analyzer_diagnostic.category-Rask.severity = …` silently covered 22 of the 35 and quietly
+  ignored the other 13. **If you have a rule keyed on `Usage` or `Rask.Generators`, point it at `Rask`**;
+  one line now covers the family. A test fails the build if a descriptor drifts out of it.
+- **Quick fixes for the three most-hit mechanical diagnostics.** `Rask.Generators.CodeFixes` shipped two
+  providers; the highest-value candidate wasn't among them.
+  - **RASK014** — `new Widget()` → the generated `Widget()` factory. It is an **Error**, so it stops the
+    build, and it is the first thing a Blazor or plain-C# migrant hits, because `new` is simply what you
+    reach for. **Deliberately withheld when the construction has arguments or an object initializer**: the
+    factory's parameters are generated from the component's public properties in an order that is not the
+    constructor's, so carrying positional arguments across would compile and mean something *else*, and an
+    object initializer is only legal after `new`. A quick fix that silently changes meaning is worse than
+    none — in those cases the error stands with its message, which already names the factory.
+  - **RASK026** — deletes the redundant `StateHasChanged()` statement, which is what its message says to
+    do. Offered only when the call is the whole statement, so it can't change what an expression-bodied
+    lambda returns.
+  - **RASK027** — removes the `OnXAsync` argument and keeps the sync one. The diagnostic is already
+    anchored on the exact argument, so there is nothing to infer.
+- **All 35 diagnostics now carry a `description`, so the IDE's expanded tooltip says something.** Only 9
+  did; the other 26 included *every* build-breaking Error (003, 014, 019, 021, 032), where the reader's
+  only route to more detail was clicking through to the docs — not something you do mid-keystroke. Each
+  description explains the consequence and the surprising part rather than restating the message, which is
+  already on screen.
 
 ## [0.20.0] - 2026-08-06
 

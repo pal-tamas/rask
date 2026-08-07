@@ -28,18 +28,23 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
         "Scoped-CSS file '{0}' has no matching component class — add a Component subclass named '{1}' in the "
         + "same folder, rename the file to match one, or set "
         + "<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude> if it is a global stylesheet",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "Scoped CSS is matched to its component by file name and folder, so a stylesheet with no "
+                     + "component of that name beside it is scoped to nothing and would never be served. A global "
+                     + "stylesheet belongs under wwwroot/ (already excluded) or opts out via RaskScopedCssAutoInclude.",
         helpLinkUri: DiagnosticHelp.Link("RASK015"));
 
     private static readonly DiagnosticDescriptor Rask016 = new(
         "RASK016",
         "Ambiguous scoped-CSS match",
         "Scoped-CSS file '{0}' matches multiple component classes named '{1}': {2}. Move one to disambiguate.",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "The scope is keyed on the component the file matches, so two candidates make the pairing "
+                     + "arbitrary — and the wrong one would silently take the styles.",
         helpLinkUri: DiagnosticHelp.Link("RASK016"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)

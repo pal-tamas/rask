@@ -27,7 +27,7 @@ public sealed class SyncAsyncHandlerAnalyzer : DiagnosticAnalyzer
         "'{0}' and '{1}' are both set on this component — wire only one handler per event. When both "
         + "are supplied the async '{1}' is ignored at runtime (the sync '{0}' wins); pass just one, or "
         + "`null` for the sibling you don't use.",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
         "Each DOM event has a single handler slot. Supplying both the sync `OnX` and the async "
