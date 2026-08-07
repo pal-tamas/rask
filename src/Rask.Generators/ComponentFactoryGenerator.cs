@@ -133,9 +133,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var element = compilation.Assembly.GetTypeByMetadataName(ElementFullName);
         if (element is null)
         {
-            return new SetterHost(assembly, new EquatableArray<SharedSetter>(Array.Empty<SharedSetter>()));
+            return new SetterHost(assembly, string.Empty,
+                new EquatableArray<SharedSetter>(Array.Empty<SharedSetter>()));
         }
 
+        var elementFqn = element.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var shared = new List<SharedSetter>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var t = element; t is not null && t.SpecialType != SpecialType.System_Object; t = t.BaseType)
@@ -159,16 +161,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 }
 
                 var isDelegate = p.Type.TypeKind == TypeKind.Delegate;
+                var (defaultLiteral, isRequired) = DefaultLiteralFor(p, compilation);
                 shared.Add(new SharedSetter(
                     p.Name,
                     p.Type.ToDisplayString(FullyQualifiedNullable),
                     owner,
-                    isDelegate));
+                    isDelegate,
+                    defaultLiteral,
+                    string.Equals(owner, elementFqn, StringComparison.Ordinal),
+                    isRequired));
             }
         }
 
         shared.Sort(static (a, b) => string.CompareOrdinal(a.Name, b.Name));
-        return new SetterHost(assembly, new EquatableArray<SharedSetter>(shared.ToArray()));
+        return new SetterHost(assembly, elementFqn, new EquatableArray<SharedSetter>(shared.ToArray()));
     }
 
     private static void EmitBuilderSetters(
@@ -190,10 +196,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append("public static class RaskBuilderSetters").AppendLine(host.AssemblyName);
         sb.AppendLine("{");
 
+        var sharedBits = SharedPendingBits(host);
         foreach (var s in host.Shared)
         {
             EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
-                fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false));
+                fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
+                pendingBit: Bit(sharedBits, s.Name));
         }
 
         foreach (var c in candidates.OrderBy(c => c.TypeName, StringComparer.Ordinal))
@@ -202,6 +210,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // TypeParameters again would emit `Input<T><T>`.
             var self = c.FullyQualifiedName;
             var visibility = c.IsPublic ? "public" : "internal";
+            var ownBits = OwnPendingBits(c);
             foreach (var p in c.Properties)
             {
                 // Depth 0 == declared on the component itself; anything deeper is part of the shared
@@ -224,15 +233,282 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
                 EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate, p.IsAutoRerenderDelegate, generic: false,
                     FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
-                    c.TypeParameters, c.TypeParameterConstraints, visibility);
+                    c.TypeParameters, c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name));
             }
 
             EmitBoundSetters(sb, c, visibility);
         }
 
+        EmitCandidateResets(sb, candidates);
+
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderSetters.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+
+        if (host.Shared.Count != 0)
+        {
+            EmitSharedResets(spc, host, sharedBits);
+        }
     }
+
+    // ---- Reset emission ------------------------------------------------------------------------
+    //
+    // A generated factory assigns EVERY parameter each render, so a prop the caller omitted is put back
+    // to its default. A setter chain writes only what it names and the entry hands back the SAME
+    // instance, so without a reset `Div.Id("x")` on one render and `Div` on the next still renders
+    // id="x". These emissions are what give an entry-built component the factory's end-of-render state.
+    //
+    // Two halves, because the propsChanged fold has to keep meaning what it meant:
+    //
+    //  * EAGER — the non-folding props (raw delegates, carriers, Key). Assigned unconditionally when the
+    //    entry is created, exactly as the factory assigns them. They never call Track, so defaulting
+    //    them early cannot disturb anything.
+    //  * PENDING — the folding props. Defaulting one before its setter runs would make Track compare the
+    //    new value against the DEFAULT instead of against last render's value, so every constant prop
+    //    would report a change every frame. Instead the entry marks them pending, each setter clears its
+    //    own bit, and whatever is still pending when the parent's Render() returns is reset then — with
+    //    the previous value still in place, so the fold is exactly the factory's.
+    //
+    // Bit numbering is split so a component compiled against one Rask.Core cannot collide with a shared
+    // prop added in a later one: the shared Element/Component surface owns bits below OwnPendingBit
+    // (emitted by the assembly that declares Element), each component's own props the bits above it. A
+    // prop that does not fit falls back to the eager half — correct, just conservative in the fold.
+    private const int OwnPendingBit = 16; // mirrors Rask.Core.BuilderRuntime.OwnPendingBit
+
+    private static int Bit(Dictionary<string, int> bits, string name) =>
+        bits.TryGetValue(name, out var bit) ? bit : -1;
+
+    private static Dictionary<string, int> SharedPendingBits(SetterHost host)
+    {
+        var bits = new Dictionary<string, int>(StringComparer.Ordinal);
+        var next = 0;
+        foreach (var s in host.Shared)
+        {
+            if (next < OwnPendingBit && !s.IsRequired
+                                     && FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false))
+            {
+                bits[s.Name] = next++;
+            }
+        }
+
+        return bits;
+    }
+
+    // The props a builder setter can write on the component ITSELF — the same filter the setter loop
+    // uses, so the bit a setter clears is the bit the reset tests.
+    private static IEnumerable<PropInfo> OwnSetterProps(Candidate c) =>
+        c.Properties.Where(static p =>
+            p.InheritanceDepth == 0 && !p.IsInitOnly && p.Name != "Children" && !p.IsBoundInterfaceProp);
+
+    // What the reset may put back: a prop the factory would re-apply from a parameter DEFAULT. A prop
+    // with a non-constant initializer (`= new List<>()`) is not a factory parameter at all, and a
+    // required one has no default — the caller has to name it every render either way.
+    private static bool IsResettableProp(PropInfo p) => IsParamProperty(p) && !IsRequiredFactoryParam(p);
+
+    private static Dictionary<string, int> OwnPendingBits(Candidate c)
+    {
+        var bits = new Dictionary<string, int>(StringComparer.Ordinal);
+        var next = OwnPendingBit;
+        foreach (var p in OwnSetterProps(c))
+        {
+            if (next >= 64 || !IsResettableProp(p)
+                           || !FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate))
+            {
+                continue;
+            }
+
+            bits[p.Name] = next++;
+        }
+
+        return bits;
+    }
+
+    // The shared Element/Component surface, emitted once by the assembly that declares Element and
+    // called by every component's reset — including a consumer's, which reaches it through the fixed
+    // Rask.Core.BuilderRuntime name rather than the per-assembly setter class it cannot know.
+    private static void EmitSharedResets(SourceProductionContext spc, SetterHost host, Dictionary<string, int> bits)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("// <auto-generated />");
+        sb.AppendLine("#nullable enable");
+        sb.AppendLine();
+        sb.AppendLine("namespace Rask.Core;");
+        sb.AppendLine();
+        sb.AppendLine("public static partial class BuilderRuntime");
+        sb.AppendLine("{");
+
+        foreach (var elementOwned in new[] { false, true })
+        {
+            var kind = elementOwned ? "Element" : "Component";
+            var receiver = elementOwned ? host.ElementFqn : "global::Rask.Core.Component";
+            // A required factory parameter has no default at all — the caller must name it every
+            // render, and the factory has nothing to put back either — so it is never reset.
+            var props = host.Shared.Where(s => s.IsElementOwned == elementOwned && !s.IsRequired).ToList();
+            var pending = props.Where(s => bits.ContainsKey(s.Name)).ToList();
+
+            sb.Append("    /// <summary>Puts <c>").Append(kind)
+                .AppendLine("</c>'s non-folding props back where the factory would leave them.</summary>");
+            sb.Append("    public static void Reset").Append(kind)
+                .AppendLine("Eager(global::Rask.Core.Component __c0)");
+            sb.AppendLine("    {");
+            if (elementOwned)
+            {
+                sb.AppendLine("        ResetComponentEager(__c0);");
+            }
+
+            EmitReceiverCast(sb, receiver, "        ");
+            foreach (var s in props.Where(s => !bits.ContainsKey(s.Name)))
+            {
+                sb.Append("        __c.").Append(EscapeIdentifier(s.Name)).Append(" = ")
+                    .Append(s.DefaultLiteral).AppendLine(";");
+            }
+
+            sb.AppendLine("    }");
+            sb.AppendLine();
+
+            sb.Append("    /// <summary>Resets whichever of <c>").Append(kind)
+                .AppendLine("</c>'s folding props the chain never named.</summary>");
+            sb.Append("    public static void Reset").Append(kind)
+                .AppendLine("Pending(global::Rask.Core.Component __c0, ulong __p)");
+            sb.AppendLine("    {");
+            if (elementOwned)
+            {
+                sb.AppendLine("        ResetComponentPending(__c0, __p);");
+            }
+
+            if (pending.Count != 0)
+            {
+                EmitReceiverCast(sb, receiver, "        ");
+                foreach (var s in pending)
+                {
+                    EmitPendingReset(sb, s.Name, s.TypeFqn, s.DefaultLiteral, bits[s.Name], "        ");
+                }
+            }
+
+            sb.AppendLine("    }");
+            sb.AppendLine();
+
+            sb.Append("    /// <summary>Every folding bit <c>").Append(kind).AppendLine("</c> owns.</summary>");
+            sb.Append("    public const ulong Shared").Append(kind).Append("Pending = ")
+                .Append(MaskLiteral(pending.Select(s => bits[s.Name]))).AppendLine(";");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("}");
+        spc.AddSource("RaskBuilderReset.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static void EmitReceiverCast(StringBuilder sb, string receiver, string indent)
+    {
+        if (string.Equals(receiver, "global::Rask.Core.Component", StringComparison.Ordinal))
+        {
+            sb.Append(indent).AppendLine("var __c = __c0;");
+            return;
+        }
+
+        sb.Append(indent).Append("var __c = (").Append(receiver).AppendLine(")__c0;");
+    }
+
+    // One folding prop's deferred reset. The equality test comes first so an untouched prop costs a bit
+    // test and a comparison rather than a write — Element's Ref/Role/TabIndex/Aria setters would
+    // otherwise force a LiveState allocation onto every element that never used them.
+    private static void EmitPendingReset(
+        StringBuilder sb, string name, string typeFqn, string defaultLiteral, int bit, string indent)
+    {
+        sb.Append(indent).Append("if ((__p & ").Append(MaskLiteral(new[] { bit }))
+            .Append(") != 0UL && !global::System.Collections.Generic.EqualityComparer<").Append(typeFqn)
+            .Append(">.Default.Equals(__c.").Append(EscapeIdentifier(name)).Append(", ").Append(defaultLiteral)
+            .AppendLine("))");
+        sb.Append(indent).AppendLine("{");
+        sb.Append(indent).AppendLine("    global::Rask.Core.BuilderRuntime.MarkChanged(__c);");
+        sb.Append(indent).Append("    __c.").Append(EscapeIdentifier(name)).Append(" = ")
+            .Append(defaultLiteral).AppendLine(";");
+        sb.Append(indent).AppendLine("}");
+    }
+
+    private static string MaskLiteral(IEnumerable<int> bits)
+    {
+        var mask = 0UL;
+        foreach (var bit in bits)
+        {
+            mask |= 1UL << bit;
+        }
+
+        return "0x" + mask.ToString("X", System.Globalization.CultureInfo.InvariantCulture) + "UL";
+    }
+
+    // Per-component resets, emitted next to that component's setters. Skipped entirely when the
+    // component adds nothing to the shared surface — 140 of the HTML tags are in that case, and their
+    // entries hand BuilderRuntime's shared routines to Entry<T> directly.
+    private static void EmitCandidateResets(StringBuilder sb, ImmutableArray<Candidate> candidates)
+    {
+        var emitted = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var c in candidates.OrderBy(c => c.TypeName + c.TypeParameters, StringComparer.Ordinal))
+        {
+            if (!NeedsOwnReset(c) || !emitted.Add(c.TypeName + c.TypeParameters))
+            {
+                continue;
+            }
+
+            var visibility = c.IsPublic ? "public" : "internal";
+            var bits = OwnPendingBits(c);
+            var eager = OwnEagerResetProps(c).ToList();
+            var pending = OwnSetterProps(c).Where(p => bits.ContainsKey(p.Name)).ToList();
+
+            sb.Append("    ").Append(visibility).Append(" static void ").Append(EagerResetName(c))
+                .Append(c.TypeParameters).Append("(global::Rask.Core.Component __c0)")
+                .AppendLine(c.TypeParameterConstraints);
+            sb.AppendLine("    {");
+            sb.Append("        global::Rask.Core.BuilderRuntime.Reset").Append(c.IsElement ? "Element" : "Component")
+                .AppendLine("Eager(__c0);");
+            if (eager.Count != 0)
+            {
+                EmitReceiverCast(sb, c.FullyQualifiedName, "        ");
+                foreach (var p in eager)
+                {
+                    sb.Append("        __c.").Append(p.Escaped).Append(" = ").Append(DefaultLiteralFor(p))
+                        .AppendLine(";");
+                }
+            }
+
+            sb.AppendLine("    }");
+
+            sb.Append("    ").Append(visibility).Append(" static void ").Append(PendingResetName(c))
+                .Append(c.TypeParameters).Append("(global::Rask.Core.Component __c0, ulong __p)")
+                .AppendLine(c.TypeParameterConstraints);
+            sb.AppendLine("    {");
+            sb.Append("        global::Rask.Core.BuilderRuntime.Reset").Append(c.IsElement ? "Element" : "Component")
+                .AppendLine("Pending(__c0, __p);");
+            if (pending.Count != 0)
+            {
+                EmitReceiverCast(sb, c.FullyQualifiedName, "        ");
+                foreach (var p in pending)
+                {
+                    EmitPendingReset(sb, p.Name, p.TypeFqn, DefaultLiteralFor(p), bits[p.Name], "        ");
+                }
+            }
+
+            sb.AppendLine("    }");
+        }
+    }
+
+    // The props the entry defaults on the spot: everything a setter can write that does NOT fold, plus
+    // any folding prop that ran out of pending bits (reset early rather than not at all — the fold then
+    // over-reports for that prop, which costs a cache miss instead of stale HTML). The bound
+    // IFormControl<T> members are here at any depth: they never fold, and EntryBound re-assigns Bind
+    // straight afterwards.
+    private static IEnumerable<PropInfo> OwnEagerResetProps(Candidate c)
+    {
+        var bits = OwnPendingBits(c);
+        return OwnSetterProps(c).Where(p => IsResettableProp(p) && !bits.ContainsKey(p.Name))
+            .Concat(c.Properties.Where(static p => p.IsBoundInterfaceProp && !p.IsInitOnly)
+                .Where(IsResettableProp));
+    }
+
+    private static bool NeedsOwnReset(Candidate c) => OwnEagerResetProps(c).Any() || OwnPendingBits(c).Count != 0;
+
+    private static string EagerResetName(Candidate c) => "__RaskResetEager_" + c.TypeName;
+
+    private static string PendingResetName(Candidate c) => "__RaskResetPending_" + c.TypeName;
 
     // The bound half of an IFormControl<T> control: one setter per interface member, typed from the
     // interface's T rather than from the declaring class. That matters twice — the members may be
@@ -298,7 +574,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool fold,
         string typeParameters = "",
         string constraints = "",
-        string visibility = "public")
+        string visibility = "public",
+        int pendingBit = -1)
     {
         var setterName = isDelegate && name.StartsWith("On", StringComparison.Ordinal) && name.Length > 2
             ? name.Substring(2)
@@ -331,6 +608,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var track = fold
             ? "global::Rask.Core.BuilderRuntime.Track(__c, __c." + EscapeIdentifier(name) + ", value); "
             : string.Empty;
+
+        // …and the other half: the chain NAMED this prop, so the deferred reset must leave it alone.
+        // A no-op when the receiver came from a factory instead of an entry (both surfaces compile side
+        // by side during the migration) — that component is fully re-assigned by its factory already.
+        if (pendingBit >= 0)
+        {
+            track += "global::Rask.Core.BuilderRuntime.Written(__c, " + MaskLiteral(new[] { pendingBit }) + "); ";
+        }
 
         // An `internal` component cannot appear in a `public` signature (CS0050/CS0051), so the
         // setter's accessibility tracks its component's — the same rule the factory emission uses.
@@ -395,9 +680,19 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
             | SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
 
-    private readonly record struct SetterHost(string AssemblyName, EquatableArray<SharedSetter> Shared);
+    private readonly record struct SetterHost(
+        string AssemblyName,
+        string ElementFqn,
+        EquatableArray<SharedSetter> Shared);
 
-    private readonly record struct SharedSetter(string Name, string TypeFqn, string Owner, bool IsDelegate);
+    private readonly record struct SharedSetter(
+        string Name,
+        string TypeFqn,
+        string Owner,
+        bool IsDelegate,
+        string DefaultLiteral,
+        bool IsElementOwned,
+        bool IsRequired);
 
     // The names already declared on Rask.Core.Component, when THIS compilation is the one declaring it.
     // An entry whose name matches an existing member would be CS0102 ("already contains a definition"),
@@ -405,10 +700,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // Empty (and NotHost) for every other compilation.
     private static ComponentHost GetComponentHost(Compilation compilation)
     {
+        var assembly = SanitizeIdentifier(compilation.AssemblyName ?? "Rask");
         var component = compilation.Assembly.GetTypeByMetadataName(ComponentFullName);
         if (component is null)
         {
-            return new ComponentHost(false, new EquatableArray<string>(Array.Empty<string>()));
+            return new ComponentHost(false, assembly, new EquatableArray<string>(Array.Empty<string>()));
         }
 
         var names = new SortedSet<string>(StringComparer.Ordinal);
@@ -423,7 +719,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        return new ComponentHost(true, new EquatableArray<string>(names.ToArray()));
+        return new ComponentHost(true, assembly, new EquatableArray<string>(names.ToArray()));
     }
 
     private static void EmitBuilderEntries(
@@ -461,7 +757,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                EmitBoundEntry(sb, c, taken, c.IsPublic ? "protected" : "private protected", indent: "    ");
+                EmitBoundEntry(sb, c, taken, c.IsPublic ? "protected" : "private protected", indent: "    ",
+                    host.AssemblyName);
                 continue;
             }
 
@@ -491,7 +788,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
                 .Append(c.FullyQualifiedName).Append(' ')
                 .Append(EscapeIdentifier(c.TypeName)).Append(di ? " => EntryDi<" : " => Entry<")
-                .Append(c.FullyQualifiedName).AppendLine(">();");
+                .Append(c.FullyQualifiedName).Append(">(");
+            EmitResetArguments(sb, c, host.AssemblyName);
+            sb.AppendLine(");");
         }
 
         sb.AppendLine("}");
@@ -503,9 +802,38 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // post-bind hooks that force the factory's none/sync/async overload fan-out are setters instead.
     // When the control has more type parameters than the value type mentions (BsSelect<TValue, TItem>),
     // inference falls back to the caller writing them out — the entry still compiles and still works.
+    // The three arguments every entry hands to Entry/EntryDi/EntryBound: how to put the non-folding
+    // props back now, how to put the folding ones back at the end of the parent's Render(), and which
+    // of the latter to consider. A component that adds nothing to the shared surface points straight at
+    // BuilderRuntime's shared routines, so the 140 plain HTML tags need no per-tag reset at all.
+    private static void EmitResetArguments(StringBuilder sb, Candidate c, string assemblyName,
+        string typeArguments = "")
+    {
+        var shared = c.IsElement ? "Element" : "Component";
+        if (NeedsOwnReset(c))
+        {
+            var setters = "global::RaskBuilderSetters" + assemblyName + ".";
+            var args = typeArguments.Length != 0 ? typeArguments : c.TypeParameters;
+            sb.Append(setters).Append(EagerResetName(c)).Append(args).Append(", ")
+                .Append(setters).Append(PendingResetName(c)).Append(args).Append(", ");
+        }
+        else
+        {
+            sb.Append("global::Rask.Core.BuilderRuntime.Reset").Append(shared).Append("Eager, ")
+                .Append("global::Rask.Core.BuilderRuntime.Reset").Append(shared).Append("Pending, ");
+        }
+
+        sb.Append("global::Rask.Core.BuilderRuntime.Shared").Append(shared).Append("Pending");
+        var own = OwnPendingBits(c);
+        if (own.Count != 0)
+        {
+            sb.Append(" | ").Append(MaskLiteral(own.Values));
+        }
+    }
+
     private static void EmitBoundEntry(
         StringBuilder sb, Candidate c, HashSet<string> taken, string visibility, string indent,
-        string hostTypeParameters = "")
+        string assemblyName, string hostTypeParameters = "")
     {
         // No bind expression to infer from, no `new T()` to build, or a member that must be set at
         // construction (CS9040): no entry — the factory stays the way in.
@@ -552,7 +880,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Append("(global::System.Linq.Expressions.Expression<global::System.Func<").Append(valueType)
             .Append(">> Bind)").Append(constraints).AppendLine();
         sb.Append(indent).Append("    => EntryBound<").Append(self).Append(", ")
-            .Append(valueType).AppendLine(">(Bind);");
+            .Append(valueType).Append(">(Bind, ");
+        EmitResetArguments(sb, c, assemblyName, typeParameters);
+        sb.AppendLine(");");
 
         // Plain / controlled mode: nothing to infer from, so the caller writes the type argument
         // (`Input<string>().Value(v).Change(h)`). This is the method form of the property entry every
@@ -560,7 +890,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(indent).Append(visibility).Append(" static ").Append(self).Append(' ')
             .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters).Append("()").Append(constraints)
             .AppendLine();
-        sb.Append(indent).Append("    => Entry<").Append(self).AppendLine(">();");
+        sb.Append(indent).Append("    => Entry<").Append(self).Append(">(");
+        EmitResetArguments(sb, c, assemblyName, typeParameters);
+        sb.AppendLine(");");
     }
 
     // "<TValue, TItem>" → { "TValue", "TItem" }; empty for a non-generic type.
@@ -684,14 +1016,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
                 if (e.TypeParameters.Length != 0)
                 {
-                    EmitBoundEntry(sb, e, EmptyNames, "private", indent: "    ", host2.TypeParameters);
+                    EmitBoundEntry(sb, e, EmptyNames, "private", indent: "    ", host.AssemblyName,
+                        host2.TypeParameters);
                     continue;
                 }
 
                 sb.Append("    private static ").Append(e.FullyQualifiedName).Append(' ')
                     .Append(EscapeIdentifier(e.TypeName))
                     .Append(NeedsDiEntry(e) ? " => EntryDi<" : " => Entry<")
-                    .Append(e.FullyQualifiedName).AppendLine(">();");
+                    .Append(e.FullyQualifiedName).Append(">(");
+                EmitResetArguments(sb, e, host.AssemblyName);
+                sb.AppendLine(");");
             }
 
             sb.AppendLine("}");
@@ -720,7 +1055,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 new TextSpan(c.DeclSpanStart, c.DeclSpanLength),
                 new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)));
 
-    private readonly record struct ComponentHost(bool DeclaresComponent, EquatableArray<string> MemberNames);
+    private readonly record struct ComponentHost(
+        bool DeclaresComponent,
+        string AssemblyName,
+        EquatableArray<string> MemberNames);
 
     // Collect the distinct, ordered factory namespaces declared by [assembly: RaskFactoryNamespace(ns)] on
     // this compilation's own assembly and every referenced assembly. Ordered for deterministic output.
@@ -834,6 +1172,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             new EquatableArray<ForwarderInfo>(forwarders),
             classDecl.Modifiers.Any(SyntaxKind.PartialKeyword),
             symbol.ContainingType is not null,
+            InheritsFromElement(symbol),
             classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
             classDecl.Identifier.Span.Start,
             classDecl.Identifier.Span.Length);
@@ -1487,6 +1826,33 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // initializer is a required factory param with no default). A type-parameter prop must use
         // `default` — `null` has no conversion to an unconstrained T.
         return p.IsNullable && !p.IsTypeParameter ? "null" : "default";
+    }
+
+    // The same rule straight off the symbol, for the shared Element/Component surface — which is
+    // collected from symbols (GetSetterHost) rather than as PropInfo. A constant member initializer is
+    // the value an omitted factory parameter carries, so it is what a reset has to restore.
+    private static (string Literal, bool IsRequired) DefaultLiteralFor(IPropertySymbol p, Compilation compilation)
+    {
+        var hasInitializer = false;
+        if (p.DeclaringSyntaxReferences.Length > 0
+            && p.DeclaringSyntaxReferences[0].GetSyntax() is PropertyDeclarationSyntax { Initializer: { } init })
+        {
+            hasInitializer = true;
+            if (p.SetMethod?.IsInitOnly == false)
+            {
+                var constant = compilation.GetSemanticModel(init.SyntaxTree).GetConstantValue(init.Value);
+                if (constant.HasValue && FormatConstantDefault(constant.Value, p.Type) is { } literal)
+                {
+                    return (literal, false);
+                }
+            }
+        }
+
+        var isNullable = p.Type.NullableAnnotation == NullableAnnotation.Annotated
+                         || (p.Type.IsValueType
+                             && p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T);
+        return (isNullable && p.Type is not ITypeParameterSymbol ? "null" : "default",
+            !isNullable && !hasInitializer);
     }
 
     // Formats a constant initializer value as a C# default-parameter literal usable in the generated
@@ -2511,6 +2877,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         EquatableArray<ForwarderInfo> Forwarders,
         bool IsPartial,
         bool IsNested,
+        // Drives which shared reset the builder entry hands to Entry<T>: an Element gets the whole
+        // universal HTML/event surface put back, a plain Component only Component's own props.
+        bool IsElement,
         // File path + span rather than a Location: Location is not value-equatable, so caching it on
         // the candidate would defeat the incremental generator's comparison (same reason PropInfo
         // stores DeclaringFilePath/Span and rebuilds via MakeLocation).

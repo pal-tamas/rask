@@ -866,6 +866,12 @@ public abstract partial class Component
     private void CommitEntryChildren()
     {
         Live.HasEntryChildren = false;
+
+        // Ordering is load-bearing: the pending resets put every prop the chain did NOT name back to
+        // the value the factory would have passed, folding each one into EntryPropsChanged as it goes,
+        // so they have to run before the commit below reads that flag.
+        BuilderRuntime.DrainSlots(this);
+
         if (_live?.Children is not { Count: > 0 } children)
         {
             return;

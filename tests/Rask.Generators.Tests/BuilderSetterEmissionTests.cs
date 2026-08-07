@@ -33,11 +33,85 @@ public class BuilderSetterEmissionTests
 
         Assert.Contains(
             "Title(this global::Demo.Widget __c, string? value) "
-            + "{ global::Rask.Core.BuilderRuntime.Track(__c, __c.Title, value); __c.Title = value; return __c; }",
+            + "{ global::Rask.Core.BuilderRuntime.Track(__c, __c.Title, value); "
+            + "global::Rask.Core.BuilderRuntime.Written(__c, 0x10000UL); __c.Title = value; return __c; }",
             output,
             StringComparison.Ordinal);
         Assert.Contains("global::Rask.Core.BuilderRuntime.Track(__c, __c.Count, value);", output,
             StringComparison.Ordinal);
+    }
+
+    // The reset half. A folding setter also clears its pending bit, because the entry marks every
+    // folding prop pending and whatever is still pending when the parent's Render() returns is put
+    // back to the factory's default — that is what stops `Widget.Title("x")` on one render and
+    // `Widget` on the next from keeping the title. Own props are numbered from OwnPendingBit (16) up,
+    // above the range the shared Element/Component surface reserves for itself.
+    [Fact]
+    public void Own_props_claim_pending_bits_above_the_shared_surface()
+    {
+        var output = Run(Src);
+
+        Assert.Contains("global::Rask.Core.BuilderRuntime.Written(__c, 0x10000UL);", output,
+            StringComparison.Ordinal);
+        Assert.Contains("public static void __RaskResetPending_Widget(", output, StringComparison.Ordinal);
+        Assert.Contains("__c.Title, null))", output, StringComparison.Ordinal);
+
+        // `int Count` is non-nullable with no initializer — a REQUIRED factory parameter, which has no
+        // default for the factory to re-apply either. It claims no bit and is never reset.
+        var count = output.Split('\n').Single(l => l.Contains(" Count(this ", StringComparison.Ordinal));
+        Assert.DoesNotContain("BuilderRuntime.Written", count, StringComparison.Ordinal);
+        Assert.DoesNotContain("__c.Count, default", output, StringComparison.Ordinal);
+    }
+
+    // A non-folding prop is defaulted the moment the entry is created instead: it never calls Track, so
+    // blanking it early cannot make an unchanged component look dirty.
+    [Fact]
+    public void A_callback_prop_is_reset_eagerly_rather_than_claiming_a_bit()
+    {
+        var output = Run(Src);
+
+        var pick = output.Split('\n').Single(l => l.Contains(" Pick(this ", StringComparison.Ordinal));
+        Assert.DoesNotContain("BuilderRuntime.Written", pick, StringComparison.Ordinal);
+        Assert.Contains("__c.OnPick = null;", EagerReset(output, "Widget"), StringComparison.Ordinal);
+    }
+
+    // A prop with a constant member initializer is an OPTIONAL factory param whose default is that
+    // value, so the reset restores the initializer — resetting it to null would be a different bug.
+    [Fact]
+    public void A_prop_with_a_member_initializer_resets_to_the_initializer()
+    {
+        var output = Run("""
+                         using Rask.Core;
+                         namespace Demo;
+                         public partial class Widget : Component
+                         {
+                             public string Note { get; set; } = "n/a";
+                             public System.Collections.Generic.List<string> Rows { get; set; } = new();
+                         }
+                         """);
+
+        // Note folds, so it is reset at the END of the render, and against the initializer — never null.
+        var pending = PendingReset(output, "Widget");
+        Assert.Contains("Equals(__c.Note, \"n/a\")", pending, StringComparison.Ordinal);
+        Assert.Contains("__c.Note = \"n/a\";", pending, StringComparison.Ordinal);
+
+        // A NON-constant initializer excludes the prop from the factory parameters entirely, so the
+        // factory never re-applies it — and neither may the reset (it still gets a setter).
+        Assert.DoesNotContain("__c.Rows", pending, StringComparison.Ordinal);
+        Assert.DoesNotContain("__c.Rows", EagerReset(output, "Widget"), StringComparison.Ordinal);
+    }
+
+    private static string EagerReset(string output, string type) => Method(output, "__RaskResetEager_" + type);
+
+    private static string PendingReset(string output, string type) => Method(output, "__RaskResetPending_" + type);
+
+    // The generated methods are brace-per-line at a fixed indent, so the body runs to the first "    }".
+    private static string Method(string output, string name)
+    {
+        var start = output.IndexOf(" " + name + "(", StringComparison.Ordinal);
+        Assert.True(start >= 0, name + " was not emitted");
+        var end = output.IndexOf("\n    }", start, StringComparison.Ordinal);
+        return output.Substring(start, end - start);
     }
 
     // A callback prop is a fresh delegate (and, once wrapped, a fresh closure) on every render, so it
@@ -90,7 +164,8 @@ public class BuilderSetterEmissionTests
 
         Assert.Contains(
             "public static T Class<T>(this T __c, string? value) where T : global::Rask.Core.Element "
-            + "{ global::Rask.Core.BuilderRuntime.Track(__c, __c.Class, value); __c.Class = value; return __c; }",
+            + "{ global::Rask.Core.BuilderRuntime.Track(__c, __c.Class, value); "
+            + "global::Rask.Core.BuilderRuntime.Written(__c, 0x1UL); __c.Class = value; return __c; }",
             output,
             StringComparison.Ordinal);
 
@@ -98,7 +173,33 @@ public class BuilderSetterEmissionTests
         Assert.DoesNotContain("BuilderRuntime.Track", click, StringComparison.Ordinal);
     }
 
-    private static string Run(string source)
+    // The shared Element/Component surface gets its reset emitted ONCE, into Rask.Core.BuilderRuntime —
+    // a fixed name, because a consumer assembly cannot know the per-assembly setter class Rask.Core
+    // emitted its own setters into. Only the assembly declaring Element contributes it.
+    [Fact]
+    public void The_shared_surface_reset_is_emitted_once_onto_BuilderRuntime()
+    {
+        var output = Run("""
+                         namespace Rask.Core;
+                         public abstract partial class Element : Component
+                         {
+                             public string? Class { get; set; }
+                             public global::Rask.Core.Callback? OnClick { get; set; }
+                         }
+                         """, "RaskBuilderReset.g.cs");
+
+        Assert.Contains("public static partial class BuilderRuntime", output, StringComparison.Ordinal);
+        Assert.Contains("public static void ResetElementEager(global::Rask.Core.Component __c0)", output,
+            StringComparison.Ordinal);
+        Assert.Contains("__c.OnClick = null;", output, StringComparison.Ordinal);
+        Assert.Contains("public const ulong SharedElementPending = 0x1UL;", output, StringComparison.Ordinal);
+
+        // Key is Component's, not Element's, and never folds — so it is reset eagerly one level up.
+        Assert.Contains("__c.Key = null;", output, StringComparison.Ordinal);
+        Assert.Contains("public const ulong SharedComponentPending = 0x0UL;", output, StringComparison.Ordinal);
+    }
+
+    private static string Run(string source, string hintName = "RaskBuilderSetters.g.cs")
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
         var compilation = CSharpCompilation.Create(
@@ -116,12 +217,11 @@ public class BuilderSetterEmissionTests
         var generated = driver.RunGenerators(compilation).GetRunResult()
             .Results.SelectMany(r => r.GeneratedSources).ToImmutableArray();
 
-        var match = generated.FirstOrDefault(s =>
-            s.HintName.Contains("RaskBuilderSetters.g.cs", StringComparison.Ordinal));
+        var match = generated.FirstOrDefault(s => s.HintName.Contains(hintName, StringComparison.Ordinal));
         if (match.SourceText is null)
         {
             throw new InvalidOperationException(
-                "No RaskBuilderSetters.g.cs generated. Available: ["
+                $"No {hintName} generated. Available: ["
                 + string.Join(", ", generated.Select(s => s.HintName)) + "]");
         }
 

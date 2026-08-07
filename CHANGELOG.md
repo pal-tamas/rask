@@ -70,6 +70,29 @@ them until tagged releases begin.
   the two flags land in `LiveState`'s existing padding (retained bytes per live session unchanged to the
   byte across the 0/5/200/1,000-row sweep), and the factory path only gains one bool test per component
   render (`LiveRenderRoundTripBenchmarks` allocation identical on all four shapes).
+  **And a prop the chain stops naming now leaves the output, the way it does with a factory.** A
+  generated factory assigns *every* parameter each render, so `Div(Id: "x")` on one render and `Div()`
+  on the next puts `Id` back to null; a setter chain writes only what it names and the entry hands back
+  the same instance, so `Div.Id("x")` → `Div` still rendered `id="x"`. That is silently wrong HTML at
+  every conditional call site, not a missed callback, and it was reachable from any `cond ? A : B`.
+  Entries now restore the state the factory would have left — but in two halves, because the reset and
+  the `propsChanged` fold want opposite moments. Non-folding props (raw delegates, carriers, `Key`)
+  are defaulted when the entry is created; they never call `Track`, so nothing can be disturbed. Folding
+  props cannot be: blanking `Class` before `.Class("card")` runs would make the fold compare against the
+  *default* instead of last render's value, so every constant prop would report a change every frame and
+  no entry-built component would ever hit the render cache. Those are instead marked *pending*, each
+  setter clears its own bit as it writes, and whatever is still pending when the parent's `Render()`
+  returns is reset then — with the previous value still in place, so the fold stays exactly the
+  factory's. What is *not* reset matches the factory too: a prop with a non-constant initializer
+  (`= new List<>()`) is not a factory parameter at all, a constant initializer is restored to that value
+  rather than to null, and a required parameter has no default for either surface to put back. The
+  pending bits are split — the shared `Element`/`Component` surface owns the low 16, each component's
+  own props the rest — so a component compiled against one Rask.Core cannot collide with a shared prop
+  added in a later one. Free at rest: the pending slots live on a per-thread stack reused across renders
+  rather than on the component, so retained bytes per live session are unchanged across the
+  0/5/200/1,000-row sweep, `LiveRenderRoundTripBenchmarks` allocation is identical on all four shapes,
+  and a pinned test holds an entry-built render at or below the equivalent factory-built one (a bound
+  control is ~1.1 KB/render *cheaper* — one entry where the factory has a three-overload fan-out).
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

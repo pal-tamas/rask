@@ -243,11 +243,22 @@ public sealed class LiveRenderContext : IDisposable
     // but it also arms the parent's deferred commit, because an entry cannot call NotifyParameters the
     // way a factory does: its props arrive afterwards, through the setter chain. The parent fires it
     // for every entry-built child the moment its Render() returns (Component.RenderForLive).
-    internal T GetOrCreateEntry<T>(Func<IServiceProvider, T> factory) where T : Component
+    internal T GetOrCreateEntry<T>(
+        Func<IServiceProvider, T> factory,
+        Action<Component, ulong> pendingReset,
+        ulong pending)
+        where T : Component
     {
         var parent = CurrentParent;
         var child = parent.GetOrCreateChild(factory, Services, _handle);
         parent.ArmEntryCommitInternal();
+        if (pending != 0UL)
+        {
+            // The folding props this entry may leave behind. Recorded against the PARENT so the drain
+            // at the end of its Render() knows which slots are its own — see BuilderRuntime.
+            BuilderRuntime.PushSlot(parent, child, pendingReset, pending);
+        }
+
         return child;
     }
 

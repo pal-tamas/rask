@@ -39,8 +39,31 @@ public abstract partial class Component
     ///         <c>Render()</c> returns and the chain is provably finished.
     ///     </para>
     /// </remarks>
-    protected static T Entry<T>() where T : Component, new() =>
-        LiveRenderContext.Current is { } ctx ? ctx.GetOrCreateEntry<T>(static _ => new T()) : new T();
+    /// <remarks>
+    ///     <para>
+    ///         <paramref name="reset" /> puts the component's non-folding props (raw delegates, carriers,
+    ///         <c>Key</c>) back to the value the factory would pass for an omitted parameter, and
+    ///         <paramref name="pendingReset" /> is deferred to the end of the parent's <c>Render()</c>
+    ///         for the folding ones — see <see cref="BuilderRuntime" /> for why the two halves cannot
+    ///         share a moment. Outside a render context every entry is a fresh instance, so there is
+    ///         nothing stale to reset.
+    ///     </para>
+    /// </remarks>
+    protected static T Entry<T>(
+        Action<Component> reset,
+        Action<Component, ulong> pendingReset,
+        ulong pending)
+        where T : Component, new()
+    {
+        if (LiveRenderContext.Current is not { } ctx)
+        {
+            return new T();
+        }
+
+        var component = ctx.GetOrCreateEntry<T>(static _ => new T(), pendingReset, pending);
+        reset(component);
+        return component;
+    }
 
     /// <summary>
     ///     The entry for a component whose only constructor takes injected services.
@@ -52,13 +75,20 @@ public abstract partial class Component
     ///     message the factory uses rather than returning a half-built component.
     /// </remarks>
     protected static T EntryDi<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] T>()
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
+        Action<Component> reset,
+        Action<Component, ulong> pendingReset,
+        ulong pending)
         where T : Component
     {
         if (LiveRenderContext.Current is { } ctx)
         {
-            return ctx.GetOrCreateEntry<T>(static sp =>
-                Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(sp));
+            var component = ctx.GetOrCreateEntry<T>(
+                static sp => Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(sp),
+                pendingReset,
+                pending);
+            reset(component);
+            return component;
         }
 
         throw new InvalidOperationException(
@@ -77,10 +107,15 @@ public abstract partial class Component
     ///     factory's none/sync/async overload fan-out into one entry.
     /// </remarks>
     protected static TControl EntryBound<TControl, TValue>(
-        System.Linq.Expressions.Expression<Func<TValue>> bind)
+        System.Linq.Expressions.Expression<Func<TValue>> bind,
+        Action<Component> reset,
+        Action<Component, ulong> pendingReset,
+        ulong pending)
         where TControl : Component, Forms.IFormControl<TValue>, new()
     {
-        var control = Entry<TControl>();
+        // Bind is assigned AFTER the reset, which has just cleared it along with the rest of the bound
+        // members — the entry is the chain's first link, so this is the same ordering a setter gets.
+        var control = Entry<TControl>(reset, pendingReset, pending);
         control.Bind = bind;
         return control;
     }
