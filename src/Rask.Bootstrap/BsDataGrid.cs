@@ -294,7 +294,7 @@ public sealed class BsDataGrid<T> : BsBlock
 
     public bool Striped { get; set; } = true;
     public bool Hover { get; set; } = true;
-    public bool Small { get; set; } = false;
+    public new bool Small { get; set; } = false;
     public bool Responsive { get; set; } = true;
 
     // Stable per-row key (defaults to the row index) and an optional empty-state placeholder.

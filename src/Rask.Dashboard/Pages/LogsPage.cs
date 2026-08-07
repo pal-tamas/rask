@@ -328,7 +328,7 @@ public sealed class LogsPage(
         record.Id, record.Timestamp, record.Level, record.Category, record.Message, record.Exception,
         record.Scopes);
 
-    private static Component Table(IEnumerable<LogRow> rows, DateTime now) =>
+    private static new Component Table(IEnumerable<LogRow> rows, DateTime now) =>
         BsTable(Small: true, Hover: true, Responsive: true)[
             Thead()[Tr()[Th()["When"], Th()["Level"], Th()["Category"], Th()["Message"]]],
             Tbody()[rows.Select(r => Tr(Key: r.Key)[

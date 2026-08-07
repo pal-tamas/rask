@@ -38,7 +38,7 @@ public sealed class BsDropdownItem : BsBlock
     public string? Href { get; set; }
     public bool? Active { get; set; }
     public bool? Disabled { get; set; }
-    public bool? Header { get; set; }
+    public new bool? Header { get; set; }
     public bool? Divider { get; set; }
     public Callback? OnClick { get; set; }
     public CallbackAsync? OnClickAsync { get; set; }

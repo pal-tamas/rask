@@ -66,7 +66,7 @@ public sealed class BsUtilitiesDemo : Component
         ]
     ];
 
-    private static Component Section(string title, Component body) =>
+    private static new Component Section(string title, Component body) =>
         Div()[
             H6(Class: Bs.Join(Txt.Uppercase, Txt.Muted, Font.Bold, Margin.Bottom(2)))[title],
             body

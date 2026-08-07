@@ -85,7 +85,7 @@ public sealed class CachePage(
         ];
     }
 
-    private Component Table(DateTime now) =>
+    private new Component Table(DateTime now) =>
         BsTable(Small: true, Hover: true, Responsive: true)[
             Thead()[Tr()[Th()["Key"], Th()["Size"], Th()["Written"], Th()["Expires"], Th()["Sliding"], Th()]],
             Tbody()[_rows.Select(r => Tr(Key: r.Key, Class: r.ExpiresAt <= now ? "text-body-secondary" : null)[

@@ -11,7 +11,7 @@ public sealed class BsTable : BsBlock
     public bool? Bordered { get; set; }
     public bool? Borderless { get; set; }
     public bool? Hover { get; set; }
-    public bool? Small { get; set; }
+    public new bool? Small { get; set; }
     public bool? Responsive { get; set; }
 
     // ARIA passthrough onto the <table> itself (not the responsive wrapper), the same shape BsButton

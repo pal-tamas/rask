@@ -9,7 +9,7 @@ public sealed class BsSpinner : BsBlock
     public BsSpinnerKind? Kind { get; set; }
 
     // The small variant (.spinner-border-sm / .spinner-grow-sm).
-    public bool? Small { get; set; }
+    public new bool? Small { get; set; }
 
     // The visually-hidden status text for assistive tech; defaults to "Loading…".
     public string? Label { get; set; }

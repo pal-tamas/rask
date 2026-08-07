@@ -34,7 +34,7 @@ public sealed class BsConfirmDialog : BsBlock
             : BsModal(Id: Id, Class: Class, Open: true, Title: Title, Centered: true,
                 StaticBackdrop: StaticBackdrop, OnClose: OnCancel, OnCloseAsync: OnCancelAsync, Footer: Footer())[Body()];
 
-    private Component Footer() =>
+    private new Component Footer() =>
     [
         BsButton(Color: BsColor.Secondary, OnClick: OnCancel, OnClickAsync: OnCancelAsync)[CancelText],
         BsButton(Color: ConfirmColor, OnClick: OnConfirm, OnClickAsync: OnConfirmAsync)[ConfirmText]

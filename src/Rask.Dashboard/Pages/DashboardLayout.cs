@@ -68,7 +68,7 @@ public sealed class DashboardLayout(
         yield return NavLink(Routes.SystemPage(), "System", BsIconName.HddStack, exact: false);
     }
 
-    private Component NavLink(RouteUrl url, string label, BsIconName icon, bool exact) =>
+    private new Component NavLink(RouteUrl url, string label, BsIconName icon, bool exact) =>
         BsNavItem(Key: label)[
             BsLink(url, Class: Bs.Join(
                 "nav-link d-flex align-items-center gap-1",

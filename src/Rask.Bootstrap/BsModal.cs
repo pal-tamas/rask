@@ -24,7 +24,7 @@ public sealed class BsModal : BsBlock
     public bool? HideClose { get; set; }
 
     // Optional footer content (e.g. action buttons) placed in .modal-footer.
-    public Component? Footer { get; set; }
+    public new Component? Footer { get; set; }
 
     public Callback? OnClose { get; set; }
     public CallbackAsync? OnCloseAsync { get; set; }

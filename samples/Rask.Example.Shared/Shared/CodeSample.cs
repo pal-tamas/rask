@@ -65,7 +65,7 @@ public sealed class CodeSample : Component
         await _js.InvokeVoidAsync("Rask.CodeSample.copy", source, _copyButton);
     }
 
-    private Component Header()
+    private new Component Header()
     {
         Component files = Files.Count == 1
             ? Span(Class: "sample-code-label ms-2")[Files[0]]

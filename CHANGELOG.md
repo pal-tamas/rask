@@ -7,6 +7,22 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Experimental — a builder surface that needs no `using` at all (spike).** `Div[...]` /
+  `H1.Class("t")["x"]` alongside today's `Div()` factories, as a compiling proof of the design
+  rather than a shipped feature. Entry points are `protected static` members whose name *is* their
+  component type, so the type stays usable (C#'s "Color Color" rule) — and they are *inherited*
+  rather than imported, because a static-imported property loses to a same-named type in scope
+  (CS0119) while a member of the enclosing type wins. That is what removes the global usings.
+  Setters are extension methods, which may share a property's name where a method declared in the
+  type could not (CS0102). Both surfaces render byte-identical HTML and compose in one tree, so any
+  migration can be incremental. Three constraints the spike pinned down and encoded: entries must
+  route through `GetOrCreate` or they silently defeat the render cache; a callback prop needs the
+  non-delegate `Handler?` carrier for the setter to share its name (a delegate property is invocable
+  and wins), and the carrier must be nullable or it becomes a *required* factory parameter; element
+  handlers must NOT be `AutoCallback`-wrapped, matching the generator's existing rule. Nothing is
+  generated yet — the entries and setters are hand-written for a 34-tag subset.
+
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two
   keystrokes used to do different things depending on where you were, and the two worst cases failed

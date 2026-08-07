@@ -19,7 +19,7 @@ namespace Rask.Core;
 // children indexer applicable to a bare component and silently rebind `Div()[Span()[...]]` from
 // "one child" to "the span's own children", collapsing nesting.
 [CollectionBuilder(typeof(Component), "__Fragment")]
-public abstract class Component
+public abstract partial class Component
 {
     // Pre-built "h0".."h255" so handler registration in the common case (small forms,
     // typical pages) doesn't pay a string-concat allocation per call. Overflow above
