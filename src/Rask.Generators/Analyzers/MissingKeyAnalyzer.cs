@@ -29,7 +29,7 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         "List item is missing a Key",
         "'{0}' is rendered in a list without a Key — set Key: so the diff codec reconciles it by "
         + "identity (trusted keyed structural ops) instead of by position",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         "Elements/components produced in a .Select(...) projection or added to a component collection "

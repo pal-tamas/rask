@@ -33,18 +33,27 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         "RASK001",
         "Property is treated as a required factory parameter",
         "Property '{0}.{1}' is treated as a required factory parameter; consider also marking it 'required' for language-level enforcement",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Hidden,
         true,
+        description: "The generated factory emits a non-nullable property with no initializer as a REQUIRED parameter, "
+                     + "so callers must pass it. Marking the property 'required' gets you the same guarantee from the "
+                     + "language, at the declaration, instead of only from the generated signature. Declare it nullable "
+                     + "instead if the value really is optional.",
         helpLinkUri: DiagnosticHelp.Link("RASK001"));
 
     private static readonly DiagnosticDescriptor Rask002 = new(
         "RASK002",
         "'required' property cannot be honored by the generated factory",
         "Property '{0}.{1}' is marked 'required', but the generated factory for '{0}' cannot set it: '{0}' has a dependency-injected constructor and the property is either excluded from the factory parameters (it has a member initializer) or only reachable via ActivatorUtilities.CreateInstance (no parameterless constructor). Adding a parameterless constructor does not help while the DI constructor remains — the factory then builds '{0}' with 'new {0}()' and the DI constructor never runs, leaving injected services null. Remove 'required', move the value to a constructor parameter (with no initializer), or drop the DI constructor.",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "Fires in exactly one shape: the component has both a DI constructor AND a parameterless one, and "
+                     + "the required property carries a member initializer. The factory then builds it with 'new C() { … "
+                     + "}', but an initializer-carrying property is excluded from the factory parameters — so nothing "
+                     + "assigns it and the consumer's build fails with CS9035. A DI constructor with no parameterless "
+                     + "sibling is fine and does not trip this.",
         helpLinkUri: DiagnosticHelp.Link("RASK002"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)

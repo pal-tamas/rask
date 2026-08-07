@@ -33,6 +33,12 @@
          components (NativeHeaderBar, NativeTabBar, …); the spine's internal ctors preclude defining a
          NativeComponent subclass in the test source. -->
     <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
+    <!-- The other two analyzer assemblies, referenced as plain libraries (not as analyzers) so
+         DiagnosticDescriptorTests can enumerate the WHOLE RASK family by reflection. RASK028/029 live in
+         Rask.Cqrs.Generators and RASK035 in Rask.Generators.Shared via Rask.Jobs.Generators; a
+         family-wide invariant that skipped them would be checking two thirds of a rule. -->
+    <ProjectReference Include="..\..\src\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Jobs.Generators\Rask.Jobs.Generators.csproj"/>
   </ItemGroup>
 
 </Project>
