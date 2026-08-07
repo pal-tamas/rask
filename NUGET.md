@@ -2,7 +2,7 @@
 
 <img alt="Rask" src="https://raw.githubusercontent.com/pal-tamas/rask/main/assets/rask-logo.svg" width="280">
 
-### Live apps in C#. One codebase — server-rendered over WebSockets, client-side in the browser via WebAssembly, or a native iOS/Android app.
+### The .NET One Person Framework — build, run, and ship a whole product solo, in C#, on one server.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/pal-tamas/rask/blob/main/LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
@@ -35,20 +35,55 @@ public sealed class Counter : Component
 > (`dotnet workload install ios android`) for the native template.
 
 ```bash
-dotnet tool install -g Rask.Cli          # the rask CLI (scaffolding)
+dotnet tool install -g Rask.Cli          # the rask CLI — scaffold, migrate, run, deploy
 rask new MyApp                            # or: --template wasm | wasm-hosted | native
+rask generate feature Product Name:string Price:decimal   # CQRS + EF CRUD, pages included
+rask db add Initial && rask db update     # migrations, via dotnet-ef
+rask dev                                  # run with hot reload
+rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
 ```
 
-Or add to an existing project:
+Or add to an existing project. **Pick a host:**
 
 ```bash
 dotnet add package Rask.Server            # server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
 dotnet add package Rask.Native            # native iOS/Android app head (WebView hybrid, preview)
-dotnet add package Rask.Bootstrap          # optional: typed Bootstrap 5.3 components
-dotnet add package Rask.WebPush           # send Web Push notifications from the backend
+```
+
+**Then the batteries you want** — each is opt-in, and every one is a `AddRaskX<AppDbContext>()` call plus
+a `modelBuilder.AddRaskX()` schema line:
+
+```bash
+dotnet add package Rask.Data              # base entity + EF interceptors (soft delete, concurrency, events)
 dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, notifications)
+dotnet add package Rask.Jobs              # durable background jobs
+dotnet add package Rask.Mail              # transactional email queue
+dotnet add package Rask.Cache             # read-through cache
+dotnet add package Rask.Outbox            # transactional outbox for domain events
+dotnet add package Rask.Logging           # durable log store (its own SQLite file)
+dotnet add package Rask.Dashboard         # the /_ops operator dashboard over every pillar
+dotnet add package Rask.WebPush           # send Web Push notifications from the backend
+```
+
+**Database** — SQLite is the production default; Postgres and SQL Server are drop-in alternatives:
+
+```bash
+dotnet add package Rask.SQLite                        # production pragmas (WAL, busy_timeout) via UseRaskSqlite
+dotnet add package Rask.SQLite.EntityFrameworkCore    # the EF Core provider glue
+dotnet add package Rask.SQLite.Litestream             # managed continuous replication
+dotnet add package Rask.SQLite.Snapshots              # scheduled Online-Backup-API copies
+dotnet add package Rask.Postgres                      # or Postgres
+dotnet add package Rask.SqlServer                     # or SQL Server
+```
+
+**UI and testing:**
+
+```bash
+dotnet add package Rask.Bootstrap                     # typed Bootstrap 5.3 components
+dotnet add package Rask.Validation.DataAnnotations    # or Rask.Validation.FluentValidation
+dotnet add package Rask.Testing                       # render + drive components in unit tests
 ```
 
 ## Why Rask
