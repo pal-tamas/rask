@@ -113,6 +113,28 @@ public class JobRegistryGeneratorTests
 
         var diagnostic = Assert.Single(run.Diagnostics, d => d.Id == "RASK035");
         Assert.Contains("nested inside the generic type 'Demo.Outer'", diagnostic.GetMessage(), StringComparison.Ordinal);
+
+        // RASK035 is a Warning that says production will break — the type is skipped, so a queued job of
+        // it fails to deserialize and dead-letters. Announcing that and not how to avoid it is the worst
+        // shape a diagnostic has, so the remedy is part of the contract (#608).
+        Assert.Contains(" — ", diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("move it out of 'Demo.Outer'", diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    /// <inheritdoc cref="A_job_nested_in_a_generic_type_is_skipped_with_RASK035" />
+    [Fact]
+    public void RASK035_on_a_file_local_job_says_how_to_fix_it()
+    {
+        var run = Run("""
+            using Rask.Jobs;
+            namespace Demo;
+            file sealed record RequestReview(int OrderId) : IJob;
+            """);
+
+        var message = Assert.Single(run.Diagnostics, d => d.Id == "RASK035").GetMessage();
+        Assert.Contains("file-local", message, StringComparison.Ordinal);
+        Assert.Contains(" — ", message, StringComparison.Ordinal);
+        Assert.Contains("remove the 'file' modifier", message, StringComparison.Ordinal);
     }
 
     [Fact]

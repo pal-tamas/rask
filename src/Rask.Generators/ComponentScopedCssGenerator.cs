@@ -25,7 +25,9 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask015 = new(
         "RASK015",
         "Orphan scoped-CSS file",
-        "Scoped-CSS file '{0}' has no matching component class. Expected a Component subclass named '{1}' in the same folder.",
+        "Scoped-CSS file '{0}' has no matching component class — add a Component subclass named '{1}' in the "
+        + "same folder, rename the file to match one, or set "
+        + "<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude> if it is a global stylesheet",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,

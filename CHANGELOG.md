@@ -177,6 +177,25 @@ them until tagged releases begin.
     same machine and commit, back to back. Traces now record snapshots only — `TestArtifacts` already
     writes a full-page PNG per test, and what a stuck journey needs is the DOM.
 
+- **The six diagnostics that told you production would break, without telling you how to stop it, now
+  say.** #275 gave the route family an actionable fix clause but only reached the descriptors in
+  `RoutesGenerator`; the two that deserved it most were in other files and were missed.
+  - **RASK029** (a CQRS handler) and **RASK035** (a job or outbox event) are *Warnings* announcing a
+    guaranteed runtime failure — the type is skipped, so dispatching it throws or a queued message
+    dead-letters — and they stopped at the bare phrase (`is abstract`, `is a file-local type`, `is not
+    accessible from generated code`). A warning you can miss, telling you a crash is coming and not how to
+    avoid it, is the worst shape a diagnostic has. Each reason now arrives with its remedy from a single
+    switch in `SymbolRegistration`, so the two halves cannot drift.
+  - **RASK003** was the one route diagnostic #275 skipped, in the file it edited: it named the offending
+    segment and never showed a correct one. Each of the four parse failures now shows the template you
+    meant (`/users/{id:int}`, `/files/{folder}/{name}`, a parameter in its own segment).
+  - **RASK011** stated the constraint and stopped. The remedy was only in `docs/diagnostics.md`, which is
+    not where you are at 2am; it now names both escapes — a parsable type, or take it as `string` and
+    convert inside the page.
+  - **RASK015 / RASK017** were purely descriptive, so the `RaskScopedCssAutoInclude` /
+    `RaskScopedJsAutoInclude` opt-out — the right answer whenever the orphan file is a deliberate global
+    one — was undiscoverable from the error that fired.
+
 ## [0.20.0] - 2026-08-06
 
 ### Fixed
