@@ -102,7 +102,7 @@ public sealed class TutorialWalkthroughE2ETests
                 projectDir, Name, NewCommand.ToBatteries(["all-batteries", "auth", "docker"]), version);
             WriteFiles(host);
 
-            // ===== Chapter 2 — rask generate feature Product ... --context AppDbContext =====
+            // ===== Chapter 2 — rask generate feature Product ... =====
             var product = new EntitySpec("Product", "Products",
             [
                 new FieldSpec("Name", "string", IsNullable: false, MaxLength: 200),
@@ -114,7 +114,7 @@ public sealed class TutorialWalkthroughE2ETests
                 {
                     IdType = "Guid",
                     Validation = "dataannotations",
-                    ContextOverride = "AppDbContext",
+                    ExistingContext = "AppDbContext",
                     ContextNamespace = sharedNs,
                 }) with
             { ContextFilePath = appCtx };
@@ -122,21 +122,21 @@ public sealed class TutorialWalkthroughE2ETests
             Program(f2.ProgramUsings, f2.ProgramRegistrations);
             Context(f2.ContextUsings, f2.ContextDbSets, f2.ContextModelLines);
 
-            // ===== Chapter 3 — rask generate feature Order ... --context AppDbContext =====
+            // ===== Chapter 3 — rask generate feature Order ... =====
             var order = new EntitySpec("Order", "Orders",
             [
                 new FieldSpec("Total", "decimal", IsNullable: false, MaxLength: null),
                 new FieldSpec("ProductId", "Guid", IsNullable: false, MaxLength: null),
                 new FieldSpec("Placed", "DateTime", IsNullable: false, MaxLength: null),
             ]);
-            // GenerateCommand resolves ContextNamespace/ContextFilePath by scanning the project; here we know them
-            // (the context we just wrote), so supply them the way TryBuild does — ContextFilePath lands on the result.
+            // GenerateCommand finds the app's one DbContext by scanning the project and attaches the slice to
+            // it; here we know it already (Chapter 1 wrote it), so supply it the way TryBuild does.
             var f3 = FeatureGenerator.Generate(project, projectDir, new FeatureSpec(order, []),
                 new FeatureOptions
                 {
                     IdType = "Guid",
                     Validation = "dataannotations",
-                    ContextOverride = "AppDbContext",
+                    ExistingContext = "AppDbContext",
                     ContextNamespace = sharedNs,
                 }) with
             { ContextFilePath = appCtx };
@@ -181,7 +181,7 @@ public sealed class TutorialWalkthroughE2ETests
                 {
                     IdType = "Guid",
                     Validation = "dataannotations",
-                    ContextOverride = "AppDbContext",
+                    ExistingContext = "AppDbContext",
                     ContextNamespace = sharedNs,
                     UseOutbox = true,
                 }) with

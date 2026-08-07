@@ -8,8 +8,8 @@ It is **the CLI's output, not a hand-written lookalike.** Every file here was pr
 
 ```bash
 rask new Rask.Example.Shop --all-batteries --auth --docker
-rask generate feature Product Name:string Price:decimal InStock:bool --context AppDbContext --soft-delete --concurrency
-rask generate feature Order Customer:string Total:decimal --context AppDbContext --outbox
+rask generate feature Product Name:string Price:decimal InStock:bool --soft-delete --concurrency
+rask generate feature Order Customer:string Total:decimal --outbox
 rask generate job PurgeStaleCarts --feature Orders
 rask generate email OrderConfirmation --feature Orders
 rask generate cache PopularProducts --feature Products

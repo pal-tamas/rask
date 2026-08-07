@@ -72,7 +72,7 @@ feature / component / page / job / email / cache. Every command's own list is in
 **Feature flags:** `--bs` (Bootstrap `Bs*` pages) · `--modal` (create/edit in a `BsModal`, implies
 `--bs`) · `--soft-delete` · `--concurrency` (row version) · `--events` · `--outbox` (implies
 `--events`) · `--tests` (sibling `<Project>.Tests`) · `--validation valueobjects|dataannotations|fluent`
-· `--id guid|int|long` · `--plural People` · `--context <Name>` · `--no-restore` · `--force` ·
+· `--id guid|int|long` · `--plural People` · `--context <Name>` (only with several DbContexts) · `--no-restore` · `--force` ·
 `--dry-run` · `--save-defaults` (remember these flags in `.rask/generate.json`).
 
 ## Wiring one-liners

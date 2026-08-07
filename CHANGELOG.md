@@ -74,6 +74,29 @@ them until tagged releases begin.
   Project resolution stops whenever a directory holds more than one `.csproj`, and until now the error
   had no escape hatch to suggest. It accepts a `.csproj` or a directory, and the resolution starts from
   there rather than the working directory.
+- **`rask generate feature` now maps its entities with the app's own `DbContext` instead of writing one per
+  feature.** An unflagged run used to emit `<Plural>DbContext` — so a `rask new --data` app that already had
+  `Features/Shared/AppDbContext.cs` ended up with a second context after its first feature, and a third after
+  its second. That was never just duplication: every context in an assembly calls
+  `ApplyConfigurationsFromAssembly`, so each one mapped *every* entity, and the app carried two
+  `AddDbContextFactory` registrations and two migration histories over the same tables. `--context` existed to
+  avoid it, which made the correct command the one you had to know to type.
+  - The run now scans the project first. **One context** (the usual case) → it attaches: the `DbSet` and its
+    `using` are spliced into that context, the slice imports its namespace, and no factory is registered
+    because the app already registers one. **No context** → it writes one, and the one it writes is the same
+    app-wide `Features/Shared/AppDbContext` that `rask new --data` scaffolds, so the next feature attaches to
+    it. **Several contexts** → it stops and names them, because which database a feature belongs in is your
+    call and guessing it would silently attach the feature to the wrong one; `--context <Name>` picks, and
+    still wins whenever you pass it. Copies under `obj/`/`bin/` are ignored, so a built project doesn't read
+    as having two.
+  - `--outbox` on an attached context now splices `modelBuilder.AddRaskOutbox();` (and its `using`) into that
+    context's `OnModelCreating`. Only the generated context baked it in before, so `--context` + `--outbox`
+    left the `OutboxMessage` table unmapped — delivery stopped being durable while every handler still ran.
+  - `--tests` keeps emitting the round-trip persistence test when it attaches: the gate is now "can this
+    context be constructed from `DbContextOptions<T>`" (read off its source — every scaffolded context can)
+    rather than "did we write it", so the test doesn't vanish from the common path.
+  - Docs, the tutorial (chapters 2, 3, 7), the `Rask.Example.Shop` command list and `rask new`'s printed next
+    steps all drop the `--context AppDbContext` that is now the default behaviour.
 
 ## [0.20.0] - 2026-08-06
 

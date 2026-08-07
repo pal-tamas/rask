@@ -6,21 +6,34 @@ namespace Rask.Cli.Scaffolding;
 /// <summary>
 /// Scaffolds a full CQRS + EF Core CRUD vertical slice under <c>Features/&lt;Plural&gt;/</c>. Each slice
 /// is one file: an encapsulated entity (<c>Create</c>/<c>Update</c>, Guid id by default), a shared
-/// request the forms bind to, a DbContext (unless <c>--context</c>), and <c>&lt;Plural&gt;Page</c> /
+/// request the forms bind to, and <c>&lt;Plural&gt;Page</c> /
 /// <c>Create&lt;Entity&gt;</c> / <c>Update&lt;Entity&gt;</c> / <c>Delete&lt;Entity&gt;</c> components that
-/// each carry the CQRS message + handler they dispatch through <c>IDispatcher</c>. The output compiles
-/// as-is; a printed next-steps note covers the DI registration and the migration.
+/// each carry the CQRS message + handler they dispatch through <c>IDispatcher</c>. The entities are mapped
+/// by the app's one shared DbContext — the project's existing one, or a <c>Features/Shared/AppDbContext</c>
+/// written on the first run. The output compiles as-is; a printed next-steps note covers the migration.
 /// </summary>
 internal static class FeatureGenerator
 {
+    /// <summary>
+    /// The app-wide DbContext a run writes when the project has none — the same name and location
+    /// <c>rask new --data</c> uses, so the two commands converge on one context however you got there.
+    /// </summary>
+    internal const string SharedContextName = "AppDbContext";
+
     public static ScaffoldResult Generate(
         ProjectContext project,
         string baseDirectory,
         FeatureSpec spec,
         FeatureOptions options)
     {
-        var generateContext = options.ContextOverride is null;
-        var context = options.ContextOverride ?? spec.Root.Plural + "DbContext";
+        // The app has one database, so it has one DbContext. A run only writes a context when the project has
+        // none at all (the command scans for it and attaches to the one it finds) — and the one it writes is
+        // the same app-wide AppDbContext in Features/Shared that `rask new --data` scaffolds, so the next
+        // feature attaches to it too. A per-feature context would be worse than duplication: every context in
+        // the assembly applies ApplyConfigurationsFromAssembly, so each one would map *every* entity, and the
+        // app would carry two connection factories and two migration histories over the same tables.
+        var generateContext = options.ExistingContext is null;
+        var context = options.ExistingContext ?? SharedContextName;
         var entities = spec.Entities.ToArray();
 
         // Every entity gets its own Features/<Plural>/ folder and namespace — each one has its own route and
@@ -38,10 +51,15 @@ internal static class FeatureGenerator
 
         var rootNs = namespaces[spec.Root.Name];
 
-        // Namespace of the DbContext the handlers import. A generated context lives with the root; an --context
-        // class lives elsewhere and its namespace was resolved by scanning the project — null when it couldn't
-        // be found, in which case the slice emits no using (the pre-fix best-effort behaviour: assume nothing).
-        string? contextNs = generateContext ? rootNs : options.ContextNamespace;
+        // A generated context belongs to no single feature, so it lives in the cross-cutting Features/Shared
+        // bucket (with --output, alongside everything else the run writes).
+        var contextDirectory = Scaffold.TargetDirectory(baseDirectory, options.OutputOverride, "Features", "Shared");
+        var sharedNs = project.NamespaceFor(contextDirectory);
+
+        // Namespace of the DbContext the handlers import. A generated context lives in Features/Shared; an
+        // existing one lives wherever the project put it and its namespace was resolved by scanning — null when
+        // it couldn't be found, in which case the slice emits no using (best-effort: assume nothing).
+        string? contextNs = generateContext ? sharedNs : options.ContextNamespace;
 
         var contributions = RelationshipContributions(spec, options.IdType, namespaces);
 
@@ -53,38 +71,38 @@ internal static class FeatureGenerator
                 directories[entity.Name], namespaces[entity.Name], contextNs, contributions[entity.Name]));
         }
 
-        // One DbContext for the whole run, holding a DbSet per entity. Its ApplyConfigurationsFromAssembly is
-        // assembly-wide, so every entity's generated configuration is picked up with no further wiring —
-        // which is why a multi-entity run needs no --context.
+        // The app's DbContext holds a DbSet per entity. Its ApplyConfigurationsFromAssembly is assembly-wide,
+        // so every entity's generated configuration is picked up with no further wiring — which is why a
+        // multi-entity run needs to name no context at all.
+        var dbSets = entities.Select(e => $"    public DbSet<{e.Name}> {e.Plural} => Set<{e.Name}>();").ToArray();
         if (generateContext)
         {
-            var dbSets = string.Join(
-                "\n",
-                entities.Select(e => $"    public DbSet<{e.Name}> {e.Plural} => Set<{e.Name}>();"));
-
             files.Add(new ScaffoldFile(
-                Path.Combine(directories[spec.Root.Name], context + ".cs"),
+                Path.Combine(contextDirectory, context + ".cs"),
                 Apply(DbContextTemplate,
                 [
-                    ("__NS__", rootNs),
+                    ("__NS__", sharedNs),
                     ("__CONTEXT__", context),
-                    ("__USINGS__", Usings(rootNs, entities.Select(e => namespaces[e.Name]))),
-                    ("__DBSETS__", dbSets),
+                    ("__USINGS__", Usings(sharedNs, entities.Select(e => namespaces[e.Name]))),
+                    ("__DBSETS__", string.Join("\n", dbSets)),
                     ("__OUTBOXMODEL__", options.UseOutbox ? "\n                modelBuilder.AddRaskOutbox();" : ""),
                 ])));
         }
 
         var root = spec.Root;
-        var (programUsings, programRegistrations) = ProgramWiring(context, rootNs, generateContext, options.UseOutbox, project.Database);
+        var (programUsings, programRegistrations) = ProgramWiring(context, contextNs, generateContext, options.UseOutbox, project.Database);
 
-        // With --context, the sets the user must add to their own DbContext so EF maps the new entities, plus
-        // the usings those sets reference (the entity types live in the feature's namespace, not the context's).
-        var contextDbSets = generateContext
+        // Attaching to an existing context: the sets to splice into it so EF maps the new entities, plus the
+        // usings they reference (the entity types live in the feature's namespace, not the context's). With
+        // --outbox the context also has to map the outbox table, which the generated template bakes in.
+        var contextDbSets = generateContext ? [] : dbSets;
+        var contextModelLines = generateContext || !options.UseOutbox
             ? []
-            : entities.Select(e => $"    public DbSet<{e.Name}> {e.Plural} => Set<{e.Name}>();").ToArray();
+            : new[] { "        modelBuilder.AddRaskOutbox();" };
         var contextUsings = generateContext
             ? []
             : entities.Select(e => namespaces[e.Name])
+                .Concat(options.UseOutbox ? ["Rask.Outbox"] : Array.Empty<string>())
                 .Where(n => !string.Equals(n, contextNs, StringComparison.Ordinal))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
@@ -97,13 +115,14 @@ internal static class FeatureGenerator
 
         return new ScaffoldResult(
             files,
-            RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext, options.Validation, options.UseBs, options.UseTests, project.Database))
+            RenderNextSteps(context, root.Name, root.Plural, Identifiers.ToRoutePath(root.Plural), generateContext || options.ContextAppliesRaskConventions, options.Validation, options.UseBs, options.UseTests, project.Database))
         {
             Packages = FeaturePackages(options.Validation, options.UseBs, options.UseOutbox, generateContext, project.Database),
             ProgramUsings = programUsings,
             ProgramRegistrations = programRegistrations,
             ContextDbSets = contextDbSets,
             ContextUsings = contextUsings,
+            ContextModelLines = contextModelLines,
             CreateIfAbsent = createIfAbsent,
             TestProject = testProject,
         };
@@ -142,14 +161,23 @@ internal static class FeatureGenerator
 
     /// <summary>
     /// The <c>Program.cs</c> service registrations (and the <c>using</c>s they need) for a feature run. When
-    /// the run owns the DbContext, that includes the <c>AddDbContextFactory</c>; with <c>--context</c> the
-    /// user already registers their own context, so only the framework services are added.
+    /// the run writes the DbContext, that includes the <c>AddDbContextFactory</c>; when it attaches to one the
+    /// app already registers it, so only the framework services are added.
     /// </summary>
     private static (IReadOnlyList<string> Usings, IReadOnlyList<string> Registrations) ProgramWiring(
-        string context, string contextNs, bool generateContext, bool useOutbox, DatabaseInfo database)
+        string context, string? contextNs, bool generateContext, bool useOutbox, DatabaseInfo database)
     {
         var usings = new List<string> { "Rask.Cqrs", "Rask.Data" };
         var registrations = new List<string> { "builder.Services.AddRaskCqrs();" };
+
+        // Only the registrations that name the context type need Program.cs to see it: the factory below when
+        // we write the context, and AddRaskOutbox<T>, which is emitted either way — so attaching to a context
+        // in another namespace used to leave Program.cs unable to compile. Added no wider than that, since an
+        // unused using is a warning in a project built with -warnaserror.
+        if (contextNs is not null && (generateContext || useOutbox))
+        {
+            usings.Add(contextNs);
+        }
 
         if (useOutbox)
         {
@@ -168,7 +196,6 @@ internal static class FeatureGenerator
             usings.Add("Microsoft.EntityFrameworkCore");
             usings.Add("Microsoft.EntityFrameworkCore.Diagnostics");
             usings.Add(database.Namespace);
-            usings.Add(contextNs);
             // The Use… call is the provider's Rask drop-in, which also applies its production settings — for
             // SQLite the pragma set (WAL, busy_timeout, foreign_keys) so the app survives concurrent writers
             // (jobs/mail/outbox) instead of hitting "database is locked"; for a client-server database the
@@ -383,7 +410,7 @@ internal static class FeatureGenerator
         }
 
         // --tests: a sibling <Project>.Tests project gets a domain test (Create/Update + value-object
-        // validation) and, when we own the DbContext, a SQLite round-trip persistence test.
+        // validation) and, when the DbContext can be constructed, a database round-trip persistence test.
         if (useTests)
         {
             var trimmed = project.ProjectDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -395,12 +422,13 @@ internal static class FeatureGenerator
                 Path.Combine(testDirectory, entityName + "Tests.cs"),
                 RenderDomainTests(testNamespace, ns, entityName, fields, useValueObjects)));
 
-            if (generateContext)
+            // The round-trip test builds the context itself, so it needs one it can locate and construct:
+            // either the one this run writes, or an existing one whose source shows the options constructor.
+            if (contextNs is not null && (generateContext || options.ContextTakesOptions))
             {
-                // generateContext ⇒ contextNs is the root namespace (never null; only --context leaves it null).
                 files.Add(new ScaffoldFile(
                     Path.Combine(testDirectory, plural + "PersistenceTests.cs"),
-                    RenderPersistenceTests(testNamespace, ns, contextNs!, entityName, plural, context, idType, fields, useValueObjects, project.Database)));
+                    RenderPersistenceTests(testNamespace, ns, contextNs, entityName, plural, context, idType, fields, useValueObjects, project.Database)));
             }
         }
 
@@ -1024,7 +1052,7 @@ internal static class FeatureGenerator
         return packages;
     }
 
-    private static string RenderNextSteps(string context, string entity, string plural, string route, bool generatedContext, string validation, bool useBs, bool generatedTests, DatabaseInfo database)
+    private static string RenderNextSteps(string context, string entity, string plural, string route, bool contextIsWired, string validation, bool useBs, bool generatedTests, DatabaseInfo database)
     {
         var steps = new StringBuilder();
         var step = 0;
@@ -1052,9 +1080,10 @@ internal static class FeatureGenerator
             steps.Append("     Link BootstrapStyles() in your Head.\n");
         }
 
-        // The framework services and the DbSet are wired in automatically. With --context on a hand-written
-        // DbContext, its OnModelCreating still needs the Rask conventions to pick up the generated config.
-        if (!generatedContext)
+        // The framework services and the DbSet are wired in automatically. A hand-written DbContext whose
+        // OnModelCreating doesn't already apply the conventions won't pick up the generated config, though —
+        // and that we can only ask for, not do (there's no anchor to splice against).
+        if (!contextIsWired)
         {
             steps.Append("  ").Append(++step).Append(". If ").Append(context).Append(" is your own, ensure its OnModelCreating calls\n");
             steps.Append("     modelBuilder.ApplyConfigurationsFromAssembly(...) + modelBuilder.ApplyRaskConventions().\n");
