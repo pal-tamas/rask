@@ -295,6 +295,37 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     /// <summary>Bytes the <c>"resume":"…"</c> field name, quotes and separator add around the record itself.</summary>
     private const int ResumeFieldOverhead = 12;
 
+    /// <summary>Bytes the <c>devError</c> object's own field names, braces, quotes and separators add.</summary>
+    private const int DevErrorFieldOverhead = 64;
+
+    private DevErrorInfo? _pendingDevError;
+
+    /// <inheritdoc cref="IRenderHandle.ReportDevError" />
+    void IRenderHandle.ReportDevError(DevErrorInfo error) => _pendingDevError = error;
+
+    /// <summary>
+    ///     True when the walk just finished recorded a development fault. Read by the host's HTML-level
+    ///     dedup, which would otherwise drop the whole frame: a handler that threw and changed nothing
+    ///     renders byte-identical HTML, so the overlay would never reach the browser precisely in the
+    ///     simplest case — a click whose only effect was the exception.
+    /// </summary>
+    protected bool HasPendingDevError => _pendingDevError is not null;
+
+    /// <summary>
+    ///     Takes the development error the render walk recorded, if any, clearing it so the overlay is
+    ///     shown once rather than on every subsequent frame.
+    /// </summary>
+    private DevErrorInfo? TakeDevError()
+    {
+        var error = _pendingDevError;
+        _pendingDevError = null;
+        return error;
+    }
+
+    private static int DevErrorCost(DevErrorInfo error) =>
+        error.Kind.Length + error.Title.Length + error.Message.Length + error.Detail.Length
+        + DevErrorFieldOverhead;
+
     /// <summary>
     ///     Decide diff-vs-full for the just-rendered <paramref name="html" /> and write the frame
     ///     into <see cref="_writeBuffer" />. Identical on both hosts; the seams are parameters:
@@ -314,6 +345,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
         // record and a frame that ends up discarded on size doesn't consume it twice. Null on every host
         // but the ASP.NET one, which is the only place a session can outlive the process holding it.
         var resume = TakeResumeToken();
+
+        // A development error to paint over the app, recorded by RootErrorBoundary during the walk that
+        // produced `html`. Taken once, for the same reason the resume record is: both paths must carry
+        // the same one, and a frame discarded on size must not consume it.
+        var devError = TakeDevError();
 
         // Out-of-band side effects (auth, download) and structural ops route to the full-HTML morph
         // path; in-place state changes ship a diff. Head changes (per-route <title>, a scoped-asset
@@ -337,7 +373,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
             {
                 var headHtml = headChanged ? LiveDiffGate.ExtractHead(html.Span) : null;
                 LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
-                    headHtml, html.Span, resume);
+                    headHtml, html.Span, resume, devError);
 
                 // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally
                 // under Forced. Only the pathological case (nearly every node changed on a tiny page,
@@ -348,8 +384,15 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
                 // letting it count only against the diff would flip small pages to full HTML purely
                 // because a record happened to be due — a page whose diff is a few hundred bytes would
                 // start shipping its whole body every time the declared state moved.
+                // The dev-error record is discounted for exactly the reason the resume record is: the
+                // full-HTML payload carries the identical record, so it sits on both sides of this
+                // comparison. Letting it count only against the diff would flip a page to full HTML
+                // purely because a handler threw — shipping the whole body at the moment the developer
+                // most wants a minimal, legible frame.
                 var resumeCost = resume is null ? 0 : resume.Length + ResumeFieldOverhead;
-                if (DiffMode == LiveDiffMode.Forced || _writeBuffer.WrittenCount - resumeCost < html.Length)
+                var devErrorCost = devError is null ? 0 : DevErrorCost(devError);
+                if (DiffMode == LiveDiffMode.Forced
+                    || _writeBuffer.WrittenCount - resumeCost - devErrorCost < html.Length)
                 {
                     usedDiff = true;
                 }
@@ -365,7 +408,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
             // Full-HTML path (first render, structural change, out-of-band side effect, size fallback):
             // this ships the whole body anyway, so materialising it as a string here is not wasted.
             LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, new string(html.Span), sessionId, historyUrl,
-                replace, auth, download, jsInvokes, resume);
+                replace, auth, download, jsInvokes, resume, devError);
             // Keep the cache in lockstep with the client even when shipping full HTML: promote
             // current → previous so the NEXT diff's baseline matches what the client received. Skip
             // when TryComputeDiff already rotated (diffPathEntered), or when the caller defers the

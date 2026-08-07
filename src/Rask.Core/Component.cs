@@ -796,7 +796,7 @@ public abstract class Component
         var boundary = comp.Boundary;
         if (boundary is not null)
         {
-            boundary.Trip(actual);
+            boundary.Trip(actual, ErrorSource.Lifecycle);
             return;
         }
 
@@ -1678,7 +1678,7 @@ public abstract class Component
             // higher. For non-boundary owners (regular components), fall back to their
             // ancestor boundary. Without a boundary the exception bubbles so the dispatcher's
             // catch-and-log still fires.
-            ResolveHandlerBoundary(owner)!.Trip(ex);
+            ResolveHandlerBoundary(owner)!.Trip(ex, ErrorSource.Handler);
             return true;
         }
     }

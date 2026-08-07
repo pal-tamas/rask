@@ -25,6 +25,9 @@ let basePath = null;
 // a WASM app has no Rask server to push it a frame.
 // @@RASK_HOTRELOAD@@
 
+// The development error panel (showDevError / hideDevError), shared with the Server runtime.
+// @@RASK_DEVERROR@@
+
 // Serializes render application across payloads. A navigation diff/full reply may defer
 // its body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss /
 // preloadNewHeadStylesheets), opening a microtask/timer gap during which .NET could
@@ -474,6 +477,10 @@ function applyNavScroll(history) {
 
 function handle(reply) {
     if (!reply || typeof reply !== "object") return;
+    // A development fault the app survived, riding the render payload (see the Server runtime for why
+    // it is a field rather than a frame). Applied before either render path: the panel is a sibling of
+    // the app, so it must not wait on the render queue.
+    if (reply.devError) showDevError(reply.devError);
     // Diff-mode payload: apply ops directly against the live DOM. Both paths chain
     // through _renderQueue so a diff that defers its body for a CSS load can't be
     // overtaken by the next payload (see _renderQueue).
