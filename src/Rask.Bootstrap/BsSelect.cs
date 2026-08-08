@@ -14,7 +14,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     public required IEnumerable<TItem> Options { get; set; }
 
     // Renders each option's content; defaults to item?.ToString() (same shape as BsMultiSelect).
-    public Func<TItem, Component>? OptionLabel { get; set; }
+    public Carrier<Func<TItem, Component>>? OptionLabel { get; set; }
 
     // Shown in the trigger box (custom) / as a leading disabled option (native) when nothing is selected.
     public string? Placeholder { get; set; }
@@ -22,15 +22,15 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (p, text) => p.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
-    public new Func<TItem, string, bool>? Filter { get; set; }
+    public new Carrier<Func<TItem, string, bool>>? Filter { get; set; }
 
     // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
     // click, and the keyboard cursor skips over it; e.g. OptionDisabled: p => p.SoldOut.
-    public Func<TItem, bool>? OptionDisabled { get; set; }
+    public Carrier<Func<TItem, bool>>? OptionDisabled { get; set; }
 
     // Groups the options, keyed by the returned string in first-seen order — <optgroup label> in Native mode,
     // non-interactive .dropdown-header rows in the custom dropdown; e.g. OptionGroup: p => p.Category.
-    public Func<TItem, string>? OptionGroup { get; set; }
+    public Carrier<Func<TItem, string>>? OptionGroup { get; set; }
 
     // Opt out of the custom popover and render the native <select> instead. Guarantees a working control
     // (and the OS picker on mobile) where the custom UI is unwanted.
@@ -69,7 +69,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     }
 
     private Component LabelOf(TItem item) =>
-        OptionLabel is not null ? OptionLabel(item) : item?.ToString() ?? string.Empty;
+        OptionLabel?.Fn is { } label ? label(item) : item?.ToString() ?? string.Empty;
 
     // The native <select>: a plain control fed from Options (each option's value string is the projected
     // value, so binding rides the same StringChangeHandler as every Bs control), with a leading placeholder.
@@ -91,10 +91,10 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         // Group (optional) into <optgroup>s. Each option keeps its GLOBAL flat index as the reconciliation key
         // so keys stay unique across the whole <select> once options nest under groups; each group gets its own
         // ordinal key. With no OptionGroup this is one headerless group → options emitted flat, exactly as before.
-        var layout = BsSelectNav.Build(opts, OptionGroup);
+        var layout = BsSelectNav.Build(opts, OptionGroup?.Fn);
         Component OptionFor(BsSelectNav.FlatRow<TItem> fr) => Option(
             Value: BindingHelpers.FormatValue(ValueOf(fr.Item)),
-            Disabled: OptionDisabled?.Invoke(fr.Item) == true ? true : null,
+            Disabled: OptionDisabled?.Fn?.Invoke(fr.Item) == true ? true : null,
             Key: fr.FlatIndex)[LabelOf(fr.Item)];
 
         for (var g = 0; g < layout.Groups.Count; g++)
@@ -149,18 +149,19 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         var labelId = Label is not null ? (controlId ?? prefix) + "-label" : null;
 
         // Filtering is opt-in: only a supplied Filter predicate shows the search field and narrows the list.
-        var searchable = Filter is not null;
+        var filter = Filter?.Fn;
+        var searchable = filter is not null;
         var filtered = searchable && !string.IsNullOrEmpty(_filter)
-            ? opts.Where(o => Filter!(o, _filter)).ToList()
+            ? opts.Where(o => filter!(o, _filter)).ToList()
             : opts;
 
         // Group (optional) and flatten: `flat` is the option order the roving cursor indexes — grouping only
         // reorders it into first-seen group order, so the flat index still equals the rendered option position.
-        var layout = BsSelectNav.Build(filtered, OptionGroup);
+        var layout = BsSelectNav.Build(filtered, OptionGroup?.Fn);
         var flat = layout.Flat;
 
         // Per-option disable predicate over the flat list; the keyboard cursor skips these indices.
-        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(flat[i]) == true;
+        Func<int, bool> optDisabled = i => OptionDisabled?.Fn?.Invoke(flat[i]) == true;
 
         // Snap the roving cursor into the current flat list and off any disabled option (a filter change
         // sets _cursor loosely, and a selected-but-disabled seed must move to the nearest enabled option).
@@ -366,7 +367,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
             return;
         }
 
-        _cursor = BsSelectNav.Seed(SelectedIndex(b, flat), flat.Count, i => OptionDisabled?.Invoke(flat[i]) == true);
+        _cursor = BsSelectNav.Seed(SelectedIndex(b, flat), flat.Count, i => OptionDisabled?.Fn?.Invoke(flat[i]) == true);
         _open = true;
     }
 
@@ -402,7 +403,7 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
     private async Task OnKeyAsync(Bound b, IReadOnlyList<TItem> flat, KeyboardEventArgs e)
     {
         var count = flat.Count;
-        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(flat[i]) == true;
+        Func<int, bool> optDisabled = i => OptionDisabled?.Fn?.Invoke(flat[i]) == true;
         if (!_open)
         {
             if (e.Key is "ArrowDown" or "ArrowUp" or "Enter" or " ")

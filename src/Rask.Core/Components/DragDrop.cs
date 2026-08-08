@@ -19,7 +19,7 @@ public sealed class DragDrop : Component
     // The render fragment. Called with a fresh DragDropContext every render; returns the user's
     // chosen root Component for the drag region. Named "Body" (not "Render") to avoid colliding
     // with Component.Render().
-    public new Func<DragDropContext, Component>? Body { get; set; }
+    public new Carrier<Func<DragDropContext, Component>>? Body { get; set; }
 
     // Fired once when an item is dropped onto a zone. Set exactly one of OnDrop / OnDropAsync.
     // Carrier-typed (Handler<>, not Callback<>) so the builder setter can keep the property's own name —
@@ -100,13 +100,13 @@ public sealed class DragDrop : Component
 
     protected override Component? Render()
     {
-        if (Body is null)
+        if (Body?.Fn is not { } body)
         {
             throw new InvalidOperationException(
                 "DragDrop has no Body, so there is nothing for it to render. Body is a delegate "
                 + "receiving the drag context: DragDrop(Body: ctx => Div()[ … ]).");
         }
 
-        return Body(new DragDropContext(this));
+        return body(new DragDropContext(this));
     }
 }

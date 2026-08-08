@@ -1,8 +1,3 @@
-using System.Collections.Immutable;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
-
 namespace Rask.Generators.Tests;
 
 // PROTOTYPE — the builder setters carry the propsChanged fold the generated factory computes in one
@@ -53,7 +48,7 @@ public class BuilderSetterEmissionTests
 
         Assert.Contains("global::Rask.Core.BuilderRuntime.Written(__c, 0x10000UL);", output,
             StringComparison.Ordinal);
-        Assert.Contains("public static void __RaskResetPending_Widget(", output, StringComparison.Ordinal);
+        Assert.Contains("public static void __RaskResetPending_Demo_Widget(", output, StringComparison.Ordinal);
         Assert.Contains("__c.Title, null))", output, StringComparison.Ordinal);
 
         // `int Count` is non-nullable with no initializer — a REQUIRED factory parameter, which has no
@@ -96,23 +91,22 @@ public class BuilderSetterEmissionTests
         Assert.Contains("__c.Note = \"n/a\";", pending, StringComparison.Ordinal);
 
         // A NON-constant initializer excludes the prop from the factory parameters entirely, so the
-        // factory never re-applies it — and neither may the reset (it still gets a setter).
+        // factory can neither set it nor put it back — and neither may the builder. It used to get a
+        // setter and no reset, which is the staleness bug the deferred reset exists to prevent, just
+        // pointed the other way: written once through a chain, the value survived every later render
+        // with nothing able to clear it. One predicate answers both questions now, so a prop with no
+        // reset has no setter either.
         Assert.DoesNotContain("__c.Rows", pending, StringComparison.Ordinal);
         Assert.DoesNotContain("__c.Rows", EagerReset(output, "Widget"), StringComparison.Ordinal);
+        Assert.DoesNotContain(" Rows(this ", output, StringComparison.Ordinal);
     }
 
-    private static string EagerReset(string output, string type) => Method(output, "__RaskResetEager_" + type);
+    // A reset is named after the component's FULL name — the simple one is not unique across namespaces.
+    private static string EagerReset(string output, string type) =>
+        BuilderGeneratorHarness.Method(output, "__RaskResetEager_Demo_" + type);
 
-    private static string PendingReset(string output, string type) => Method(output, "__RaskResetPending_" + type);
-
-    // The generated methods are brace-per-line at a fixed indent, so the body runs to the first "    }".
-    private static string Method(string output, string name)
-    {
-        var start = output.IndexOf(" " + name + "(", StringComparison.Ordinal);
-        Assert.True(start >= 0, name + " was not emitted");
-        var end = output.IndexOf("\n    }", start, StringComparison.Ordinal);
-        return output.Substring(start, end - start);
-    }
+    private static string PendingReset(string output, string type) =>
+        BuilderGeneratorHarness.Method(output, "__RaskResetPending_Demo_" + type);
 
     // A callback prop is a fresh delegate (and, once wrapped, a fresh closure) on every render, so it
     // is never meaningfully equal to the previous one. The factory leaves it out of the fold; so does
@@ -335,57 +329,148 @@ public class BuilderSetterEmissionTests
         Assert.Contains("public const ulong SharedComponentPending = 0x0UL;", output, StringComparison.Ordinal);
     }
 
-    private static string Run(string source, string hintName = "RaskBuilderSetters.g.cs")
+    // A raw delegate property IS invocable, so C#'s invocable-member rule binds `grid.RowClass(fn)` to
+    // the property and never looks at the same-named extension. The setter was emitted anyway: dead
+    // code that reads like a working surface, and the prop simply cannot be set from a chain. It has to
+    // move to a carrier (which is not invocable) — that is what a65abd3e/8587f44a did for every prop
+    // named `On…`, and the props the `On` rule never touched were left behind.
+    [Fact]
+    public void A_delegate_prop_whose_setter_would_share_its_name_is_reported_not_emitted()
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
-        var compilation = CSharpCompilation.Create(
-            "TestAssembly",
-            new[] { syntaxTree },
-            GeneratorDriverFixture.BuildReferences(),
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Widget : Component
+                                              {
+                                                  public System.Func<int, string>? Format { get; set; }
+                                                  public Carrier<System.Func<int, string>>? Shape { get; set; }
+                                              }
+                                              """);
 
-        var driver = (CSharpGeneratorDriver)CSharpGeneratorDriver
-            .Create(new ComponentFactoryGenerator())
-            .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest))
-            .WithUpdatedAnalyzerConfigOptions(new BuilderSurfaceOptionsProvider());
+        var reported = Assert.Single(run.WithId("RASK039"));
+        Assert.Contains("Demo.Widget.Format", reported.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("global::Rask.Core.Carrier<global::System.Func<int, string>>?", reported.GetMessage(),
+            StringComparison.Ordinal);
 
-        var generated = driver.RunGenerators(compilation).GetRunResult()
-            .Results.SelectMany(r => r.GeneratedSources).ToImmutableArray();
+        var output = run.Source("RaskBuilderSetters.g.cs");
+        Assert.DoesNotContain(" Format(this ", output, StringComparison.Ordinal);
 
-        var match = generated.FirstOrDefault(s => s.HintName.Contains(hintName, StringComparison.Ordinal));
-        if (match.SourceText is null)
-        {
-            throw new InvalidOperationException(
-                $"No {hintName} generated. Available: ["
-                + string.Join(", ", generated.Select(s => s.HintName)) + "]");
-        }
-
-        return match.SourceText.ToString();
+        // The carrier-typed sibling is the fix, so it keeps its name AND takes the raw delegate.
+        Assert.Contains(
+            "Shape(this global::Demo.Widget __c, global::System.Func<int, string>? value) "
+            + "{ __c.Shape = global::Rask.Core.Carrier<global::System.Func<int, string>>.From(value); "
+            + "return __c; }",
+            output,
+            StringComparison.Ordinal);
     }
 
-    // The builder surface is opt-in (RaskBuilderSurface), so the driver has to say so.
-    private sealed class BuilderSurfaceOptionsProvider : AnalyzerConfigOptionsProvider
+    // …but not for a REQUIRED delegate prop (`required Func<…> Template`). Its component is excluded
+    // from the entries entirely, so there is no chain for a setter to sit in, and its factory assigns
+    // the prop on every render. Moving it to a carrier would only cost its non-nullness.
+    [Fact]
+    public void A_required_delegate_prop_is_not_reported()
     {
-        public override AnalyzerConfigOptions GlobalOptions { get; } = new Options();
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Widget : Component
+                                              {
+                                                  public required System.Func<int, string> Format { get; set; }
+                                              }
+                                              """);
 
-        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
-
-        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
-
-        private sealed class Options : AnalyzerConfigOptions
-        {
-            public override bool TryGetValue(string key, out string value)
-            {
-                if (key == "build_property.RaskBuilderSurface")
-                {
-                    value = "true";
-                    return true;
-                }
-
-                value = string.Empty;
-                return false;
-            }
-        }
+        Assert.Empty(run.WithId("RASK039"));
+        Assert.DoesNotContain(" Format(this ", run.Source("RaskBuilderSetters.g.cs"), StringComparison.Ordinal);
     }
+
+    // The bound IFormControl<T> members are emitted from the INTERFACE's types rather than from the
+    // control's own declarations, and those types are carriers. Spelling them as the bare delegate here
+    // made the assignment run the carrier's implicit conversion instead of `From`, so a null validator
+    // or post-bind hook landed as a non-null carrier wrapping null — the trap `From` exists to close,
+    // reopened one layer up, where `Validator`'s `Validate?.Fn ?? ValidateAsync?.Fn` reads it back.
+    [Fact]
+    public void The_bound_setters_assign_through_the_carriers_From()
+    {
+        var output = Run("""
+                         using System;
+                         using System.Linq.Expressions;
+                         using System.Threading.Tasks;
+                         using Rask.Core;
+                         using Rask.Core.Forms;
+                         namespace Demo;
+                         public partial class Widget : Component, IFormControl<int>
+                         {
+                             public int? Value { get; set; }
+                             public Handler<int>? OnChange { get; set; }
+                             public HandlerAsync<int>? OnChangeAsync { get; set; }
+                             public Expression<Func<int>>? Bind { get; set; }
+                             public Carrier<Validate<int>>? Validate { get; set; }
+                             public Carrier<ValidateAsync<int>>? ValidateAsync { get; set; }
+                             public Carrier<Action<int>>? AfterBind { get; set; }
+                             public Carrier<Func<int, Task>>? AfterBindAsync { get; set; }
+                         }
+                         """);
+
+        // The parameter is still the plain delegate — a lambda or method group cannot reach a carrier.
+        Assert.Contains(
+            "Validate(this global::Demo.Widget __c, global::Rask.Core.Forms.Validate<int>? value) "
+            + "{ __c.Validate = global::Rask.Core.Carrier<global::Rask.Core.Forms.Validate<int>>.From(value); "
+            + "return __c; }",
+            output,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "__c.AfterBind = global::Rask.Core.Carrier<global::System.Action<int>>.From(value);",
+            output,
+            StringComparison.Ordinal);
+    }
+
+    // The pending-bit budget is fixed at 16 and handed out in ORDINAL NAME ORDER, so adding one folding
+    // prop to Element does not push itself off the end — it pushes whichever alphabetically-later prop
+    // was last. That one falls back to the eager reset, which reports it changed on every render and
+    // defeats the render cache for it: no compile error, no failing test, just a slower framework.
+    [Fact]
+    public void Overflowing_the_shared_pending_bits_is_reported()
+    {
+        var props = string.Join("\n    ",
+            Enumerable.Range(0, 17).Select(i => $"public string? P{i:00} {{ get; set; }}"));
+
+        var run = BuilderGeneratorHarness.Run($$"""
+                                               namespace Rask.Core;
+                                               public abstract partial class Element : Component
+                                               {
+                                                   {{props}}
+                                               }
+                                               """);
+
+        var reported = Assert.Single(run.WithId("RASK038"));
+        Assert.Contains("17 folding properties but only 16 pending bits", reported.GetMessage(),
+            StringComparison.Ordinal);
+        Assert.Contains("'P16'", reported.GetMessage(), StringComparison.Ordinal);
+
+        // …and the prop that fell off is reset eagerly rather than not at all.
+        Assert.Contains("__c.P16 = null;", run.Source("RaskBuilderReset.g.cs"), StringComparison.Ordinal);
+    }
+
+    // Sixteen fits exactly, so the guard reports the overflow rather than the last legal prop.
+    [Fact]
+    public void A_full_but_not_overflowing_shared_surface_is_silent()
+    {
+        var props = string.Join("\n    ",
+            Enumerable.Range(0, 16).Select(i => $"public string? P{i:00} {{ get; set; }}"));
+
+        var run = BuilderGeneratorHarness.Run($$"""
+                                               namespace Rask.Core;
+                                               public abstract partial class Element : Component
+                                               {
+                                                   {{props}}
+                                               }
+                                               """);
+
+        Assert.Empty(run.WithId("RASK038"));
+        Assert.Contains("public const ulong SharedElementPending = 0xFFFFUL;", run.Source("RaskBuilderReset.g.cs"),
+            StringComparison.Ordinal);
+    }
+
+    private static string Run(string source, string hintName = "RaskBuilderSetters.g.cs") =>
+        BuilderGeneratorHarness.Run(source).Source(hintName);
 }

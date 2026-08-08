@@ -74,13 +74,13 @@ public sealed partial class LiveTicker : Component
 
     // Parent-owned log sink so OnUnmount* entries survive disposal — same pattern
     // LifecycleCycleProbe uses (LifecycleProbe.cs:49).
-    public Action<string>? Log { get; set; }
+    public Carrier<Action<string>>? Log { get; set; }
 
     // Pluggable price feed. Null ⇒ the synthetic random-walk below. A real deploy
     // swaps in an HTTP-backed Func here — the "one-line change in PollOnceAsync"
     // the page narrative describes. A source that throws is caught in PollOnceAsync
     // and surfaced via _error (the #ticker-error alert).
-    public Func<string, decimal>? PriceSource { get; set; }
+    public Carrier<Func<string, decimal>>? PriceSource { get; set; }
 
     protected override void OnMount()
     {
@@ -251,7 +251,7 @@ public sealed partial class LiveTicker : Component
                 return;
             }
 
-            var price = (PriceSource ?? SimulateNextPrice)(symbolForRequest);
+            var price = (PriceSource?.Fn ?? SimulateNextPrice)(symbolForRequest);
             _history.Add(new PricePoint(DateTimeOffset.UtcNow, price));
             if (_history.Count > HistoryCapacity)
             {
@@ -289,5 +289,5 @@ public sealed partial class LiveTicker : Component
         _ => 100m
     };
 
-    private void Emit(string entry) => Log?.Invoke(entry);
+    private void Emit(string entry) => Log?.Fn?.Invoke(entry);
 }

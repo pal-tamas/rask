@@ -15,7 +15,7 @@ public sealed partial class BsDatePicker<T> : BsPickerBase<T>
 {
     public DateOnly? Min { get; set; }
     public DateOnly? Max { get; set; }
-    public Func<DateOnly, bool>? Disable { get; set; }
+    public Carrier<Func<DateOnly, bool>>? Disable { get; set; }
 
     private DateOnly _cursor;
     private bool _seeded;
@@ -60,7 +60,7 @@ public sealed partial class BsDatePicker<T> : BsPickerBase<T>
                 () => _cursor = Clamp(_cursor.AddMonths(-1)),
                 () => _cursor = Clamp(_cursor.AddMonths(1)),
                 PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor), PickerLabels),
-            PickerParts.CalendarGrid(_cursor, _cursor, selected, Min, Max, Disable, Culture, prefix, gridId,
+            PickerParts.CalendarGrid(_cursor, _cursor, selected, Min, Max, Disable?.Fn, Culture, prefix, gridId,
                 day => PickAsync(acc, ctx, fid, day))
         ];
 
@@ -188,7 +188,7 @@ public sealed partial class BsDatePicker<T> : BsPickerBase<T>
     }
 
     private bool Selectable(DateOnly d) =>
-        !((Min is { } mn && d < mn) || (Max is { } mx && d > mx) || Disable?.Invoke(d) == true);
+        !((Min is { } mn && d < mn) || (Max is { } mx && d > mx) || Disable?.Fn?.Invoke(d) == true);
 
     private bool PrevMonthDisabled(DateOnly view) =>
         Min is { } mn && new DateOnly(view.Year, view.Month, 1).AddDays(-1) < mn;

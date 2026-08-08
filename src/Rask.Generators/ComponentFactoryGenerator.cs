@@ -56,6 +56,33 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         true,
         helpLinkUri: DiagnosticHelp.Link("RASK036"));
 
+    private static readonly DiagnosticDescriptor Rask037 = new(
+        "RASK037",
+        "Two components share a simple name, so neither can have a builder entry",
+        "Components '{1}' share the simple name '{0}', so neither receives a builder entry: an entry is a single member of 'Rask.Core.Component' (or of each consuming component) named after its type, and one name can only stand for one type. The generated factories are unaffected — they live in a per-namespace 'Generated' class — so both components stay reachable through 'Generated.{0}(...)'. Rename one of them to give both an entry.",
+        "Rask.Generators",
+        DiagnosticSeverity.Warning,
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK037"));
+
+    private static readonly DiagnosticDescriptor Rask038 = new(
+        "RASK038",
+        "The builder surface's shared pending-bit budget is exhausted",
+        "The shared Element/Component surface has {0} folding properties but only {1} pending bits; '{2}' and every later one (ordinal name order) fall back to the eager reset, which reports the property changed on every render and defeats the render cache for it. Raise 'BuilderRuntime.OwnPendingBit' (and the generator's copy of it) together, or make the property non-folding.",
+        "Rask.Generators",
+        DiagnosticSeverity.Warning,
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK038"));
+
+    private static readonly DiagnosticDescriptor Rask039 = new(
+        "RASK039",
+        "Delegate-typed property cannot receive a builder setter",
+        "Property '{0}.{1}' is a raw delegate, so it is invocable and C#'s invocable-member rule binds '{1}(...)' to the property instead of to the same-named builder setter — the setter can never be reached. Declare it as a carrier ('{2}') instead: the carrier is not invocable, its implicit conversion keeps assignment and every generated '{1}:' factory argument working, and reading the delegate back becomes '.Fn'.",
+        "Rask.Generators",
+        DiagnosticSeverity.Warning,
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK039"));
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var candidates = context.SyntaxProvider
@@ -197,43 +224,65 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("{");
 
         var sharedBits = SharedPendingBits(host);
+        ReportSharedBitOverflow(spc, host, sharedBits);
         foreach (var s in host.Shared)
         {
+            if (s.IsDelegate && SetterName(s.Name, s.IsDelegate) == s.Name)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(Rask039, Location.None, s.Owner, s.Name,
+                    SuggestedCarrier(s.TypeFqn)));
+                continue;
+            }
+
             EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
                 fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
                 pendingBit: Bit(sharedBits, s.Name));
         }
 
-        foreach (var c in candidates.OrderBy(c => c.TypeName, StringComparer.Ordinal))
+        // One Candidate per component TYPE. A partial class whose declarations each carry a base list
+        // (`partial class Foo : Component` in one file, `partial class Foo : IMarker` in another) reaches
+        // the syntax provider twice, and emitting its setters twice is CS0111.
+        foreach (var c in DistinctByType(candidates))
         {
             // FullyQualifiedName already carries the type arguments (`Input<T>`); appending
             // TypeParameters again would emit `Input<T><T>`.
             var self = c.FullyQualifiedName;
             var visibility = c.IsPublic ? "public" : "internal";
             var ownBits = OwnPendingBits(c);
-            foreach (var p in c.Properties)
+            // OwnSetterProps is everything the component does not inherit from Rask.Core's
+            // Element/Component chain — its own props AND those it inherits from an intermediate base
+            // (HtmlMediaElement, BsBlock, BsFormControl<T>, a consumer's own base). The shared chain is
+            // emitted once as constrained generic extensions above and must not be duplicated per tag;
+            // an intermediate base has no such emission, so skipping it left those props with no setter
+            // at all (every Bs control's Id/Class/Label/Size, every media element's Src). The receiver
+            // stays the CONCRETE component so the chain keeps its type — a `BsFormControl<T>`-typed
+            // extension would return the base and break the next setter. An init-only prop can only be
+            // assigned in an object initializer (CS8852), so it has no setter — the factory reaches it
+            // through the initializer instead. The bound IFormControl<T> members are emitted below from
+            // the interface's own types, not from wherever the control happens to declare them —
+            // emitting both would be CS0111. A type-parameter prop (`T? Value`) is fine here even
+            // though it needs `default` rather than `null` as a factory default — a setter has no
+            // default to write.
+            foreach (var p in OwnSetterProps(c))
             {
-                // Everything the component does not inherit from Rask.Core's Element/Component chain —
-                // its own props AND those it inherits from an intermediate base (HtmlMediaElement,
-                // BsBlock, BsFormControl<T>, a consumer's own base). The shared chain is emitted once
-                // as constrained generic extensions above and must not be duplicated per tag; an
-                // intermediate base has no such emission, so skipping it left those props with no
-                // setter at all (every Bs control's Id/Class/Label/Size, every media element's Src).
-                // The receiver stays the CONCRETE component so the chain keeps its type — a
-                // `BsFormControl<T>`-typed extension would return the base and break the next setter.
-                // An init-only prop can only be assigned in an object initializer (CS8852), so it has
-                // no setter — the factory reaches it through the initializer instead.
-                // A type-parameter prop (`T? Value`) is fine here even though it needs `default` rather
-                // than `null` as a factory default — a setter has no default to write.
-                if (p.IsSharedSurfaceProp || p.IsInitOnly || p.Name == "Children")
+                // A raw delegate prop is INVOCABLE, so `__c.RowClass(fn)` binds to the property and the
+                // same-named setter can never be reached (CS1593 at best, a wrong-arity invocation at
+                // worst). Emitting it anyway would be dead code that reads like a working surface.
+                //
+                // Reported only when the prop is otherwise settable through a chain. A REQUIRED delegate
+                // prop (`required Func<…> Template`) has no chain to be set from at all — its component
+                // is excluded from entries by BlocksEntry, and its factory assigns the prop on every
+                // render — so moving it to a carrier would buy nothing and would cost its non-nullness
+                // (a carrier converted from a null delegate is a non-null carrier wrapping null, where
+                // the raw `required` delegate simply cannot be null).
+                if (p.IsDelegate && SetterName(p.Name, p.IsDelegate) == p.Name)
                 {
-                    continue;
-                }
+                    if (!IsRequiredFactoryParam(p))
+                    {
+                        spc.ReportDiagnostic(Diagnostic.Create(Rask039, MakeLocation(p), c.FullyQualifiedName,
+                            p.Name, SuggestedCarrier(p.TypeFqn)));
+                    }
 
-                // The bound IFormControl<T> members are emitted below from the interface's own types,
-                // not from wherever the control happens to declare them — emitting both would be CS0111.
-                if (p.IsBoundInterfaceProp)
-                {
                     continue;
                 }
 
@@ -299,11 +348,42 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         return bits;
     }
 
+    // The budget is fixed (16) and handed out in ORDINAL NAME ORDER, so adding one folding prop to
+    // Element does not push ITSELF off the end — it pushes whichever alphabetically-later prop was
+    // last (Title, TabIndex). That one silently moves to the eager reset, which reports the prop
+    // changed on every render and defeats the render cache for it: no compile error, no test failure,
+    // just a slower framework. This is the signal.
+    private static void ReportSharedBitOverflow(
+        SourceProductionContext spc, SetterHost host, Dictionary<string, int> bits)
+    {
+        var folding = host.Shared
+            .Where(s => !s.IsRequired && FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false))
+            .ToList();
+        if (folding.Count <= OwnPendingBit)
+        {
+            return;
+        }
+
+        var first = folding.First(s => !bits.ContainsKey(s.Name));
+        spc.ReportDiagnostic(Diagnostic.Create(Rask038, Location.None,
+            folding.Count.ToString(CultureInfo.InvariantCulture),
+            OwnPendingBit.ToString(CultureInfo.InvariantCulture),
+            first.Name));
+    }
+
     // The props a builder setter can write on the component ITSELF — the same filter the setter loop
     // uses, so the bit a setter clears is the bit the reset tests.
+    //
+    // IsParamProperty is part of that filter, and it is the half that is easy to lose: a prop with a
+    // NON-constant initializer (`= new()`) is excluded from the factory's parameters entirely, so the
+    // factory can neither set it nor put it back. Giving it a setter anyway would let the builder write
+    // a prop the factory cannot — and, because the reset is keyed off the same rule, write it once and
+    // have it survive every later render. The mirror of the staleness bug the deferred reset exists to
+    // prevent, and the reason the two questions must be asked with one predicate.
     private static IEnumerable<PropInfo> OwnSetterProps(Candidate c) =>
         c.Properties.Where(static p =>
-            !p.IsSharedSurfaceProp && !p.IsInitOnly && p.Name != "Children" && !p.IsBoundInterfaceProp);
+            !p.IsSharedSurfaceProp && !p.IsInitOnly && p.Name != "Children" && !p.IsBoundInterfaceProp
+            && IsParamProperty(p));
 
     // What the reset may put back: a prop the factory would re-apply from a parameter DEFAULT. A prop
     // with a non-constant initializer (`= new List<>()`) is not a factory parameter at all, and a
@@ -447,10 +527,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // entries hand BuilderRuntime's shared routines to Entry<T> directly.
     private static void EmitCandidateResets(StringBuilder sb, ImmutableArray<Candidate> candidates)
     {
-        var emitted = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var c in candidates.OrderBy(c => c.TypeName + c.TypeParameters, StringComparer.Ordinal))
+        foreach (var c in DistinctByType(candidates))
         {
-            if (!NeedsOwnReset(c) || !emitted.Add(c.TypeName + c.TypeParameters))
+            if (!NeedsOwnReset(c))
             {
                 continue;
             }
@@ -512,9 +591,80 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static bool NeedsOwnReset(Candidate c) => OwnEagerResetProps(c).Any() || OwnPendingBits(c).Count != 0;
 
-    private static string EagerResetName(Candidate c) => "__RaskResetEager_" + c.TypeName;
+    private static string EagerResetName(Candidate c) => "__RaskResetEager_" + ResetSuffix(c);
 
-    private static string PendingResetName(Candidate c) => "__RaskResetPending_" + c.TypeName;
+    private static string PendingResetName(Candidate c) => "__RaskResetPending_" + ResetSuffix(c);
+
+    // Namespace-qualified, because a component's SIMPLE name is not unique. Factories live in a
+    // per-namespace `Generated` class, so `Features.Products.Card` and `Features.Orders.Card` coexist
+    // happily; the resets share one static class per assembly. Keyed by simple name, the second `Card`
+    // is dropped and the survivor's `var __c = (Features.Products.Card)__c0;` is then handed the OTHER
+    // type's instance — an InvalidCastException at render time, out of source that compiles clean.
+    private static string ResetSuffix(Candidate c)
+    {
+        var name = c.FullyQualifiedName;
+        var open = name.IndexOf('<');
+        if (open >= 0)
+        {
+            name = name.Substring(0, open);
+        }
+
+        if (name.StartsWith("global::", StringComparison.Ordinal))
+        {
+            name = name.Substring("global::".Length);
+        }
+
+        // Arity, not the type-parameter NAMES: EmitBoundEntry renames a parameter that collides with an
+        // enclosing type's (CS0693), and the reset it points at must keep the same name either way.
+        var arity = c.TypeParameters.Length == 0
+            ? string.Empty
+            : "_" + (c.TypeParameters.Count(ch => ch == ',') + 1).ToString(CultureInfo.InvariantCulture);
+        return SanitizeIdentifier(name) + arity;
+    }
+
+    // One Candidate per component type, ordered for a deterministic emission. The syntax provider
+    // yields one candidate per class DECLARATION, so a partial class with a base list in two files
+    // appears twice.
+    private static List<Candidate> DistinctByType(ImmutableArray<Candidate> candidates)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<Candidate>(candidates.Length);
+        foreach (var c in candidates.OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal))
+        {
+            if (seen.Add(c.FullyQualifiedName))
+            {
+                result.Add(c);
+            }
+        }
+
+        return result;
+    }
+
+    // The name a builder setter takes for a property. A raw delegate prop is invocable and would beat a
+    // same-named extension (CS1593), so historically those setters dropped the `On` prefix; the props
+    // that matter have since moved to carriers, which are not invocable and so keep their own name. A
+    // delegate prop whose name the rule leaves unchanged has no reachable setter at all — RASK039.
+    private static string SetterName(string name, bool isDelegate) =>
+        isDelegate && name.StartsWith("On", StringComparison.Ordinal) && name.Length > 2
+            ? name.Substring(2)
+            : name;
+
+    // The carrier RASK039 tells the author to declare instead: the named pair for a Callback-shaped
+    // delegate, the open Carrier<TDelegate> for anything else.
+    private static string SuggestedCarrier(string typeFqn)
+    {
+        var t = StripNullable(typeFqn);
+        return t switch
+        {
+            "global::Rask.Core.Callback" => "global::Rask.Core.Handler?",
+            "global::Rask.Core.CallbackAsync" => "global::Rask.Core.HandlerAsync?",
+            _ when t.StartsWith("global::Rask.Core.Callback<", StringComparison.Ordinal) =>
+                "global::Rask.Core.Handler<" + t.Substring("global::Rask.Core.Callback<".Length) + "?",
+            _ when t.StartsWith("global::Rask.Core.CallbackAsync<", StringComparison.Ordinal) =>
+                "global::Rask.Core.HandlerAsync<" + t.Substring("global::Rask.Core.CallbackAsync<".Length) + "?",
+            _ => "global::Rask.Core.Carrier<" + t + ">?",
+        };
+    }
 
     // The bound half of an IFormControl<T> control: one setter per interface member, typed from the
     // interface's T rather than from the declaring class. That matters twice — the members may be
@@ -534,19 +684,25 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         var t = fc.ValueTypeFqn;
+
+        // The four delegate members are typed as they are DECLARED — `Carrier<…>?`, not the bare
+        // delegate. That is what makes EmitSetter take the delegate as its parameter and assign it
+        // through the carrier's `From`: written as the raw delegate the assignment would run the
+        // carrier's implicit conversion instead, and a null validator or hook would land as a non-null
+        // carrier wrapping null — exactly the trap `From` exists to close, reopened one layer up.
         var members = new (string Name, string TypeFqn)[]
         {
             ("Bind", "global::System.Linq.Expressions.Expression<global::System.Func<" + t + ">>?"),
-            ("Validate", "global::Rask.Core.Forms.Validate<" + t + ">?"),
-            ("ValidateAsync", "global::Rask.Core.Forms.ValidateAsync<" + t + ">?"),
-            ("AfterBind", "global::System.Action<" + t + ">?"),
-            ("AfterBindAsync", "global::System.Func<" + t + ", global::System.Threading.Tasks.Task>?"),
+            ("Validate", "global::Rask.Core.Carrier<global::Rask.Core.Forms.Validate<" + t + ">>?"),
+            ("ValidateAsync", "global::Rask.Core.Carrier<global::Rask.Core.Forms.ValidateAsync<" + t + ">>?"),
+            ("AfterBind", "global::Rask.Core.Carrier<global::System.Action<" + t + ">>?"),
+            ("AfterBindAsync",
+                "global::Rask.Core.Carrier<global::System.Func<" + t
+                + ", global::System.Threading.Tasks.Task>>?"),
         };
 
         foreach (var (name, typeFqn) in members)
         {
-            // typeFqn is the delegate itself, so CarrierDelegate finds nothing and the setter assigns it
-            // straight to the carrier prop through the carrier's implicit conversion.
             // fold: false — the bound members are a fresh expression tree / delegate every render, so
             // folding them would report propsChanged on every frame. Exactly what EmitBoundOverload's
             // foldProps does (only the shared display props participate there too).
@@ -583,9 +739,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string visibility = "public",
         int pendingBit = -1)
     {
-        var setterName = isDelegate && name.StartsWith("On", StringComparison.Ordinal) && name.Length > 2
-            ? name.Substring(2)
-            : name;
+        var setterName = SetterName(name, isDelegate);
 
         // A carrier-typed prop takes the underlying DELEGATE as its parameter, not the carrier: a method
         // group or lambda cannot reach `Handler?` / `Carrier<…>?` (that needs a delegate conversion
@@ -788,7 +942,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         var taken = new HashSet<string>(host.MemberNames, StringComparer.Ordinal);
-        var emitted = new HashSet<string>(StringComparer.Ordinal);
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
         sb.AppendLine("#nullable enable");
@@ -798,7 +951,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("public abstract partial class Component");
         sb.AppendLine("{");
 
-        foreach (var c in candidates.OrderBy(c => c.TypeName + c.TypeParameters, StringComparer.Ordinal))
+        foreach (var c in EntryCandidates(spc, candidates, taken))
         {
             // A property may not be generic, so a generic component's entry has to be a static METHOD —
             // legal alongside its own type name by the invocable-member rule. Only a generic FORM CONTROL
@@ -806,34 +959,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // such argument has nothing to infer from and keeps the factory.
             if (c.TypeParameters.Length != 0)
             {
-                if (!emitted.Add(c.TypeName + c.TypeParameters))
-                {
-                    continue;
-                }
-
                 EmitBoundEntry(sb, c, taken, c.IsPublic ? "protected" : "private protected", indent: "    ",
                     host.AssemblyName);
-                continue;
-            }
-
-            // A DI-constructed component still gets an entry, built the way its factory is —
-            // ActivatorUtilities inside GetOrCreate. Only a component with no usable constructor
-            // at all is skipped.
-            var di = NeedsDiEntry(c);
-            if (di && !c.HasDIConstructor)
-            {
-                continue;
-            }
-
-            // `required` members must be set at construction, so there is no valid no-argument entry
-            // (CS9040). Those components are configured through the chain from a factory call instead.
-            if (c.Properties.Any(p => p.UserMarkedRequired))
-            {
-                continue;
-            }
-
-            if (taken.Contains(c.TypeName) || !emitted.Add(c.TypeName + c.TypeParameters))
-            {
                 continue;
             }
 
@@ -841,7 +968,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // Component (CS0053); `private protected` keeps it to derived types in this assembly.
             sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
                 .Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(di ? " => EntryDi<" : " => Entry<")
+                .Append(EscapeIdentifier(c.TypeName)).Append(NeedsDiEntry(c) ? " => EntryDi<" : " => Entry<")
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, host.AssemblyName);
             sb.AppendLine(");");
@@ -849,6 +976,96 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    // Which components get a builder entry, and the single place that decides it. Both emissions
+    // (Component's own, and the per-consumer partials) ask this, and the RESET emission is keyed off
+    // the same candidate identity — when the two disagreed, a component could be handed the reset
+    // generated for a DIFFERENT type of the same name.
+    //
+    // An entry is a no-argument member whose name IS the component's type, so anything the caller must
+    // supply at construction rules it out:
+    //
+    //  * no usable constructor at all;
+    //  * a `required` member — the entry's `new T()` cannot even compile (CS9040);
+    //  * a RASK001-required prop (non-nullable, no member initializer). The factory makes it a required
+    //    PARAMETER, so every render names it and every render re-assigns it. An entry hands back the
+    //    same instance and there is nothing to reset it to, so the prop keeps LAST render's value —
+    //    `Widget.Title("x")` on one render and a bare `Widget` on the next still has the title — and on
+    //    the very first render it is `null!`. Both silently. Those components stay on their factory
+    //    until the chain-walking required-props analyzer can enforce them at the call site.
+    //
+    // …and so does a name Component already declares (`Head`), which would be CS0102.
+    private static bool CanHaveEntry(Candidate c, HashSet<string> taken) =>
+        (c.TypeParameters.Length == 0
+            ? c.HasParameterlessCtor || c.HasDIConstructor
+            : c.FormControl is not null && c.HasParameterlessCtor)
+        && !c.Properties.Any(BlocksEntry)
+        && !taken.Contains(c.TypeName);
+
+    // A prop the caller must name on every render. `required` has to be set at construction; the rest
+    // are the factory's required parameters, which have no default for anything to put back.
+    private static bool BlocksEntry(PropInfo p) =>
+        p.UserMarkedRequired
+        || (IsParamProperty(p) && !p.IsBoundInterfaceProp && IsRequiredFactoryParam(p));
+
+    // The entries to emit, with same-name collisions removed and reported.
+    //
+    // Entries are all flattened onto ONE type — Rask.Core.Component, or each consumer component — and
+    // keyed by SIMPLE NAME, while factories live in a per-namespace `Generated` class. So
+    // `Features.Products.Card` and `Features.Orders.Card` both have a factory and cannot both have an
+    // entry. Dropping the loser silently is the worst of the options: it compiles, and whichever one
+    // the sort happened to put second simply has no entry (and, once the factory is deleted, no way to
+    // be built at all). A collision between two types is not resolvable here — it is the author's to
+    // resolve — so neither gets an entry and RASK037 says why.
+    private static List<Candidate> EntryCandidates(
+        SourceProductionContext spc, ImmutableArray<Candidate> candidates, HashSet<string> taken)
+    {
+        var result = new List<Candidate>();
+        foreach (var group in DistinctByType(candidates).Where(c => CanHaveEntry(c, taken))
+                     .GroupBy(static c => c.TypeName, StringComparer.Ordinal))
+        {
+            var members = group.ToList();
+            if (members.Count == 1)
+            {
+                result.Add(members[0]);
+                continue;
+            }
+
+            // A generic component's entry is a METHOD, so same-named generic components of different
+            // arity coexist as overloads (BsSelect<TItem> and BsSelect<TValue, TItem>). A non-generic
+            // one's entry is a PROPERTY, which shares its name with nothing at all — not even a
+            // generic method (CS0102) — so one of those in the group makes the whole group collide.
+            if (members.Any(static c => c.TypeParameters.Length == 0))
+            {
+                ReportEntryCollision(spc, members);
+                continue;
+            }
+
+            foreach (var byArity in members.GroupBy(static c => c.TypeParameters.Count(ch => ch == ',')))
+            {
+                var overloads = byArity.ToList();
+                if (overloads.Count == 1)
+                {
+                    result.Add(overloads[0]);
+                }
+                else
+                {
+                    ReportEntryCollision(spc, overloads);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static void ReportEntryCollision(SourceProductionContext spc, List<Candidate> members)
+    {
+        var names = string.Join("', '", members.Select(static c => c.FullyQualifiedName));
+        foreach (var c in members)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(Rask037, MakeDeclLocation(c), c.TypeName, names));
+        }
     }
 
     // The generic form control's method entry. It takes ONE parameter — the bind expression — because
@@ -1015,15 +1232,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             return;
         }
 
-        var entries = candidates
-            .Where(static c => (c.TypeParameters.Length == 0 || c.FormControl is not null)
-                               && (c.HasParameterlessCtor || c.HasDIConstructor)
-                               && !c.Properties.Any(static p => p.UserMarkedRequired))
-            .GroupBy(static c => c.TypeName + c.TypeParameters, StringComparer.Ordinal)
-            .Select(static g => g.First())
-            .OrderBy(static c => c.TypeName + c.TypeParameters, StringComparer.Ordinal)
-            .ToList();
-
+        var entries = EntryCandidates(spc, candidates, EmptyNames);
         if (entries.Count == 0)
         {
             return;
@@ -1033,7 +1242,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("// <auto-generated />");
         sb.AppendLine("#nullable enable");
 
-        foreach (var host2 in candidates.OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal))
+        foreach (var host2 in DistinctByType(candidates))
         {
             if (host2.IsNested)
             {

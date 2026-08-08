@@ -118,6 +118,32 @@ internal sealed partial class AllocCallbackFactoryProbe : Component
     private void Name(string value) => Picks++;
 }
 
+// The delegate props the `On` rule never reached — a render fragment (`Func<T, Component>`), not an
+// event callback. They ride a `Carrier<TDelegate>?` now so their setter can share their name, and the
+// carrier has to stay what it claims to be: a struct wrapping the same delegate the raw prop held, with
+// `From` mapping an unset one to a null carrier without touching the heap. A boxed carrier, or a
+// wrapper closure applied where the raw prop had none, would show up here as a per-render delta.
+internal sealed partial class AllocFragmentLeaf : Component
+{
+    public Carrier<Func<int, Component>>? Renderer { get; set; }
+
+    protected override Component? Render() => Renderer?.Fn is { } render ? render(1) : null;
+}
+
+internal sealed partial class AllocFragmentEntryProbe : Component
+{
+    protected override Component? Render() => Div[AllocFragmentLeaf.Renderer(Row)];
+
+    private Component Row(int i) => Span[i.ToString(System.Globalization.CultureInfo.InvariantCulture)];
+}
+
+internal sealed partial class AllocFragmentFactoryProbe : Component
+{
+    protected override Component? Render() => Div()[Generated.AllocFragmentLeaf(Renderer: Row)];
+
+    private Component Row(int i) => Span()[i.ToString(System.Globalization.CultureInfo.InvariantCulture)];
+}
+
 // A Head override, which the component's own render now produces (Component.RenderForLive) so that an
 // entry built there is owned by the component whose Head it is. That puts a second chain — and a second
 // set of pending resets — on the per-render path of every component that contributes to the head, so it
@@ -163,6 +189,17 @@ public class BuilderEntryAllocationPinTests
     {
         var entry = Measure(static () => new AllocCallbackEntryProbe());
         var factory = Measure(static () => new AllocCallbackFactoryProbe());
+
+        AssertNoWorseThan(entry, factory);
+    }
+
+    // A non-event delegate prop through its carrier: the setter is only reachable at all because the
+    // prop stopped being a raw delegate, and this is what says the carrier cost nothing to get there.
+    [Fact]
+    public void An_entry_built_fragment_delegate_does_not_allocate_more_per_render_than_the_factory()
+    {
+        var entry = Measure(static () => new AllocFragmentEntryProbe());
+        var factory = Measure(static () => new AllocFragmentFactoryProbe());
 
         AssertNoWorseThan(entry, factory);
     }

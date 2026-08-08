@@ -156,6 +156,39 @@ them until tagged releases begin.
   All three ride the existing per-thread buffers, so allocation per render is unchanged (entry vs
   factory: 1528/1576/2072/1464 B on the plain, head-bearing, handler-bearing and component-callback
   trees; 3555 vs 4709 on a bound control).
+  **And four ways the surface could disagree with itself are now closed.** *An entry is keyed by simple
+  name* — factories are not, they live in a per-namespace `Generated` class — so
+  `Features.Products.Card` and `Features.Orders.Card` cannot both be `Card`. The loser used to be
+  dropped in silence; both are now reported (**RASK037**) and neither gets an entry, because which one
+  the name should mean is the author's call, not the generator's. Worse than the silence was the
+  disagreement it hid: the entry pass and the per-component *reset* pass applied different eligibility
+  rules to the same simple name, so an entry could be handed the reset generated for the OTHER type —
+  whose first statement is `var __c = (Features.Products.Card)__c0;`. An `InvalidCastException` at
+  render time, out of source that compiled clean. Resets are named and deduplicated by fully qualified
+  name now, and one predicate decides eligibility for both passes (which also stops a `partial`
+  component whose declarations each carry a base list from emitting its setters twice — CS0111).
+  *A prop the reset cannot restore no longer gets a setter*: a non-constant initializer (`= new()`)
+  excludes a prop from the factory's parameters entirely, so the factory can neither set it nor put it
+  back, while the builder could set it once and have it survive every later render — the same staleness
+  bug the deferred reset exists to prevent, pointed the other way. *A component with a required factory
+  parameter* (non-nullable, no initializer — RASK001) now keeps its factory instead of getting an entry,
+  exactly as a `required` member already did: an entry has no argument to carry the value and no default
+  to reset it to, so `Widget.Title("x")` followed by a bare `Widget` silently kept the title and the
+  first render left it `null!`. *And the `On`-prefix rule left a gap*: a delegate property whose name
+  does not start with `On` got a setter of its own name, which C#'s invocable-member rule can never
+  bind to — the property wins and the setter is unreachable dead code. `BsDataGrid`'s
+  `RowKey`/`RowClass`/`ExpandedContent`, the `OptionLabel`/`OptionDisabled`/`OptionGroup`/`Filter` of
+  the four option controls, `BsDatePicker`/`BsDateTimePicker.Disable`, `Authorize.Authorized`,
+  `ErrorBoundary.Fallback` and `DragDrop`/`VirtualizeModel.Body` ride `Carrier<TDelegate>` now (reading
+  them back is `.Fn`; assignment and every generated argument are unchanged), and anything left is
+  reported as **RASK039**. The bound `Validate`/`AfterBind` setters were spelling those members as bare
+  delegates, which ran the carrier's implicit conversion instead of `From` and reopened the null trap
+  one layer up; they go through the carrier now. Finally the shared pending-bit budget has a guard
+  (**RASK038**): 16 bits handed out in ordinal name order means adding one folding prop to `Element`
+  silently pushes an alphabetically-later one (`Title`, `TabIndex`) onto the always-dirty eager path,
+  with no compile error and no failing test. Allocation per render is unchanged on every pinned shape,
+  and a carrier-borne render fragment costs the same through a chain as through the factory
+  (1208 B/render either way).
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

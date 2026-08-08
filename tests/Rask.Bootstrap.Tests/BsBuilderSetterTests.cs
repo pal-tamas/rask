@@ -68,6 +68,60 @@ public class BsBuilderSetterTests
         Assert.Null(BsButton().OnClick(maybe).OnClick);
     }
 
+    // The carrier rule the `On` prefix never reached. A raw delegate prop is INVOCABLE, so
+    // `grid.RowClass(fn)` bound to the property — the same-named setter could not be reached at all,
+    // and the prop had no way to be set from a chain. These props ride a carrier now, which is exactly
+    // what makes this call compile: it is the setter, not an attempt to invoke `Func<Supplier, string?>`
+    // with a `Func<Supplier, string?>`.
+    [Fact]
+    public void A_non_On_delegate_prop_can_be_set_from_the_chain()
+    {
+        List<BsColumn<Supplier>> columns =
+        [
+            new BsColumn<Supplier> { Title = "Name", Value = s => s.Name },
+        ];
+
+        var html = BsDataGrid(Data: Suppliers, Columns: columns)
+            .RowKey(s => s.Id)
+            .RowClass(s => s.Name == "Acme" ? "table-warning" : null)
+            .ExpandedContent(s => Div()[s.Name])
+            .ToHtml();
+
+        Assert.Contains("table-warning", html, StringComparison.Ordinal);
+    }
+
+    // …and the half of the carrier that fails silently: an OMITTED delegate must read back as unset.
+    // The carrier's implicit conversion accepts a null delegate and hands back a NON-null carrier
+    // wrapping null, so a factory call with no ExpandedContent would answer `Expandable` true and grow
+    // an expander column on every row. `From` is what keeps null null; every generated assignment goes
+    // through it.
+    [Fact]
+    public void An_omitted_non_On_delegate_prop_reads_back_as_unset()
+    {
+        List<BsColumn<Supplier>> columns =
+        [
+            new BsColumn<Supplier> { Title = "Name", Value = s => s.Name },
+        ];
+        Func<Supplier, Rask.Core.Component?>? none = null;
+
+        Assert.Null(BsDataGrid(Data: Suppliers, Columns: columns).ExpandedContent);
+        Assert.Null(BsDataGrid(Data: Suppliers, Columns: columns, ExpandedContent: none).ExpandedContent);
+        Assert.Null(BsDataGrid(Data: Suppliers, Columns: columns).ExpandedContent(none).ExpandedContent);
+
+        // The expander column is gated on that answer, so a non-null carrier wrapping null would grow
+        // a leading header cell nobody asked for — visible in the markup, invisible in the type.
+        Assert.Equal(
+            BsDataGrid(Data: Suppliers, Columns: columns).ToHtml(),
+            BsDataGrid(Data: Suppliers, Columns: columns, ExpandedContent: none).ToHtml());
+        Assert.Contains("<th scope=\"col\"></th>",
+            BsDataGrid(Data: Suppliers, Columns: columns, ExpandedContent: s => Div()[s.Name]).ToHtml(),
+            StringComparison.Ordinal);
+    }
+
+    private static readonly Supplier[] Suppliers = [new(1, "Acme"), new(2, "Globex")];
+
+    private sealed record Supplier(int Id, string Name);
+
     private static void Noop() { }
 
     private sealed class CheckModel

@@ -25,18 +25,18 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
     public Carrier<Action<ICollection<TItem>>>? AfterBind { get; set; }
     public Carrier<Func<ICollection<TItem>, Task>>? AfterBindAsync { get; set; }
 
-    public Func<TItem, Component>? OptionLabel { get; set; }
+    public Carrier<Func<TItem, Component>>? OptionLabel { get; set; }
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
 
     // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
     // click, and the keyboard cursor skips over it; e.g. OptionDisabled: t => t.Retired.
-    public Func<TItem, bool>? OptionDisabled { get; set; }
+    public Carrier<Func<TItem, bool>>? OptionDisabled { get; set; }
 
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (t, text) => t.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
-    public new Func<TItem, string, bool>? Filter { get; set; }
+    public new Carrier<Func<TItem, string, bool>>? Filter { get; set; }
 
     // Opt in to a "Select all / Clear all" header row at the top of the dropdown. It toggles the currently
     // shown (filtered), enabled options in one click — adds them all, or clears them when they are already
@@ -45,7 +45,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
     // Groups the options under non-interactive .dropdown-header rows, keyed by the returned string in first-seen
     // order; e.g. OptionGroup: t => t.Category. The roving cursor still walks the flat option order.
-    public Func<TItem, string>? OptionGroup { get; set; }
+    public Carrier<Func<TItem, string>>? OptionGroup { get; set; }
 
     // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
@@ -108,24 +108,25 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
         var errorId = invalid ? prefix + "-error" : null;
 
         Component LabelOf(TItem item) =>
-            OptionLabel is not null ? OptionLabel(item) : item?.ToString() ?? string.Empty;
+            OptionLabel?.Fn is { } label ? label(item) : item?.ToString() ?? string.Empty;
 
         // Filtering is opt-in: only a supplied Filter predicate shows the dropdown's search field and narrows
         // the options by what the user has typed.
-        var searchable = Filter is not null;
+        var filter = Filter?.Fn;
+        var searchable = filter is not null;
         var filtered = searchable && !string.IsNullOrEmpty(_filter)
-            ? Options.Where(o => Filter!(o, _filter))
+            ? Options.Where(o => filter!(o, _filter))
             : Options;
         var filteredList = filtered as IReadOnlyList<TItem> ?? filtered.ToList();
 
         // Group (optional) and flatten: `flat` is the option order the roving cursor indexes — grouping only
         // reorders it into first-seen group order, so flat index still equals the rendered option position.
-        var layout = BsSelectNav.Build(filteredList, OptionGroup);
+        var layout = BsSelectNav.Build(filteredList, OptionGroup?.Fn);
         var flat = layout.Flat;
 
         // Per-option disable predicate over the flat list; the keyboard cursor skips these indices and the
         // option row takes no click.
-        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(flat[i]) == true;
+        Func<int, bool> optDisabled = i => OptionDisabled?.Fn?.Invoke(flat[i]) == true;
 
         // The roving keyboard cursor lives in flat option-index space. Normalise it once against the current
         // list so a filter change (which may shrink the list) can't leave it dangling past the end, and seed

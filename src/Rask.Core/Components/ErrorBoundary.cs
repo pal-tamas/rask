@@ -2,7 +2,7 @@ namespace Rask.Core.Components;
 
 public sealed class ErrorBoundary : Component
 {
-    public Func<Exception, Callback, Component>? Fallback { get; set; }
+    public Carrier<Func<Exception, Callback, Component>>? Fallback { get; set; }
 
     internal Exception? Error { get; private set; }
 
@@ -18,7 +18,7 @@ public sealed class ErrorBoundary : Component
         Func<Exception, Callback, Component>? fallback)
     {
         Children = children;
-        Fallback = fallback;
+        Fallback = Carrier<Func<Exception, Callback, Component>>.From(fallback);
     }
 
     internal void Trip(Exception ex)
@@ -55,12 +55,12 @@ public sealed class ErrorBoundary : Component
             return new Fragment(Children);
         }
 
-        if (Fallback is not null)
+        if (Fallback?.Fn is { } fallback)
         {
             // Pass Recover as a captured Action so the fallback subtree can register it as
             // an event handler (e.g. `Button(OnClick: recover)`) without the user needing
             // to capture the boundary instance themselves.
-            return new Fragment(Fallback(Error, Recover));
+            return new Fragment(fallback(Error, Recover));
         }
 
         return new DefaultErrorPage(Error);

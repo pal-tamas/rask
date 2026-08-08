@@ -24,7 +24,7 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
     public Carrier<Action<ICollection<TItem>>>? AfterBind { get; set; }
     public Carrier<Func<ICollection<TItem>, Task>>? AfterBindAsync { get; set; }
 
-    public Func<TItem, Component>? OptionLabel { get; set; }
+    public Carrier<Func<TItem, Component>>? OptionLabel { get; set; }
     public string? Name { get; set; }
 
     // The group's accessible name. When set, the checkboxes are wrapped in a <fieldset> named by a <legend>
@@ -87,7 +87,7 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
             var optionValue = option;
             var optionId = $"{groupName}-{index}";
             var isChecked = selected is not null && selected.Contains(optionValue, comparer);
-            Component label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            Component label = OptionLabel?.Fn is { } render ? render(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div(Class: wrapperClass, Key: index)[
                 Rask.Core.Components.Generated.Input<string>(

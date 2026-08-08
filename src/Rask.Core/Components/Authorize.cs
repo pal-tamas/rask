@@ -78,7 +78,7 @@ public sealed class Authorize : Component
     ///     When null, the children indexer supplies static authorized content instead:
     ///     <c>Authorize(Roles: "admin")[ adminPanel ]</c>.
     /// </summary>
-    public Func<ClaimsPrincipal, Component>? Authorized { get; set; }
+    public Carrier<Func<ClaimsPrincipal, Component>>? Authorized { get; set; }
 
     /// <summary>Rendered when the gate denies. Defaults to nothing.</summary>
     public Component? NotAuthorized { get; set; }
@@ -127,7 +127,7 @@ public sealed class Authorize : Component
             // The delegate runs fresh with the current principal on every re-render (the component
             // re-renders on IUserProvider.Changed), so user-dependent markup stays in sync without a
             // manual subscription. Null delegate → static authorized content via the children indexer.
-            return Authorized is { } authorized
+            return Authorized?.Fn is { } authorized
                 ? authorized(CurrentUser)
                 : new Fragment { Children = Children ?? [] };
         }

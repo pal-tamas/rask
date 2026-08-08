@@ -25,7 +25,7 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
     public Carrier<Action<TValue>>? AfterBind { get; set; }
     public Carrier<Func<TValue, Task>>? AfterBindAsync { get; set; }
 
-    public Func<TValue, Component>? OptionLabel { get; set; }
+    public Carrier<Func<TValue, Component>>? OptionLabel { get; set; }
     public string? Name { get; set; }
 
     // The group's accessible name. When set, the radios are wrapped in a <fieldset> named by a <legend>
@@ -91,7 +91,7 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
             var optionValue = option;
             var optionId = $"{groupName}-{index}";
             var isChecked = current is not null && comparer.Equals(optionValue, current);
-            Component label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            Component label = OptionLabel?.Fn is { } render ? render(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div(Class: wrapperClass, Key: index)[
                 Rask.Core.Components.Generated.Input<string>(

@@ -45,6 +45,11 @@ non-null carrier wrapping null — an unset handler that no longer reads back as
 (`: (Handler?)null`), or build it with `Handler.From(h)`, which maps null to unset. Every generated
 assignment already does.
 
+The rule is not limited to the interface's members, or to names beginning with `On`: **any** delegate-typed
+property your control declares needs a carrier if you want a builder setter for it. `OptionLabel`,
+`RowClass`, a `Filter` predicate — all of them are invocable as declared, so the setter of the same name can
+never be reached. The generator reports the ones it finds as **RASK039** and names the carrier to use.
+
 You declare those nine properties (plus your own display props), implement `Render`, and the generator
 emits **two factories**:
 
@@ -70,7 +75,11 @@ namespace MyApp.Controls;
 public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
 {
     public required IEnumerable<TValue> Options { get; set; }
-    public Func<TValue, Component>? OptionLabel { get; set; }
+    // A carrier, not a raw `Func<…>`: a delegate-typed property IS invocable, so `.OptionLabel(fn)`
+    // would bind to the property and never reach the same-named builder setter. Same reason the four
+    // bound members below use one. Assignment and every generated `OptionLabel:` argument are
+    // unchanged; reading the delegate back is `.Fn`.
+    public Carrier<Func<TValue, Component>>? OptionLabel { get; set; }
     public string? Class { get; set; }
 
     // IFormControl<TValue> — controlled mode.
@@ -117,7 +126,7 @@ public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
                 Type: "button",
                 Class: active ? "btn btn-primary" : "btn btn-outline-primary",
                 OnClickAsync: () => SelectAsync(acc, ctx, fid, captured),
-                Key: i++)[OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? ""]);
+                Key: i++)[OptionLabel?.Fn is { } label ? label(option) : option?.ToString() ?? ""]);
         }
 
         var children = new List<Component> { Div(Class: "btn-group")[buttons] };

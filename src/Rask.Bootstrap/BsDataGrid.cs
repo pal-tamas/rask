@@ -298,12 +298,12 @@ public sealed partial class BsDataGrid<T> : BsBlock
     public bool Responsive { get; set; } = true;
 
     // Stable per-row key (defaults to the row index) and an optional empty-state placeholder.
-    public Func<T, object?>? RowKey { get; set; }
+    public Carrier<Func<T, object?>>? RowKey { get; set; }
     public Component? Empty { get; set; }
 
     // When set, each row gets a leading expander toggle and, when expanded, a full-width detail row built by
     // this callback (master-detail). Requires RowKey for stable expansion across sort/paging.
-    public Func<T, Component?>? ExpandedContent { get; set; }
+    public Carrier<Func<T, Component?>>? ExpandedContent { get; set; }
 
     // ---------------------------------------------------------------------------------------------------
     // Everything below is APPENDED, and must stay appended. The factory generator orders parameters by
@@ -366,7 +366,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
     ///     overdue invoice, a muted cancelled order). Return null for no extra class. Applies to data rows
     ///     only, not to a master-detail row.
     /// </summary>
-    public Func<T, string?>? RowClass { get; set; }
+    public Carrier<Func<T, string?>>? RowClass { get; set; }
 
     /// <summary>
     ///     Raised with the row the user clicked — the "click the row to open it" idiom.
@@ -571,7 +571,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
     /// </remarks>
     public bool? ColumnChooser { get; set; }
 
-    private bool Expandable => ExpandedContent is not null;
+    private bool Expandable => ExpandedContent?.Fn is not null;
 
     // Same three-way opt-in Sort uses, and for the same reason: Grouped = null legitimately means "ungrouped"
     // and cannot be told apart from "not using controlled grouping", so any of the three opts in.
@@ -1597,7 +1597,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
 
     // A row's key. RowKey is what makes selection and expansion track the ROW; without one this is the row's
     // index on the page, which is why RASK033 asks for a RowKey as soon as either feature is on.
-    private object KeyOf(T row, int index) => RowKey?.Invoke(row) ?? index;
+    private object KeyOf(T row, int index) => RowKey?.Fn?.Invoke(row) ?? index;
 
     private IReadOnlyList<object> PageKeys(IReadOnlyList<T> pageRows)
     {
@@ -1825,7 +1825,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
 
             // table-active is joined with the caller's RowClass rather than replacing it, so a row can be both
             // overdue and selected.
-            yield return Tr(Key: key, Class: BsClass.Join(RowClass?.Invoke(row), isSelected ? "table-active" : null))[
+            yield return Tr(Key: key, Class: BsClass.Join(RowClass?.Fn?.Invoke(row), isSelected ? "table-active" : null))[
                 Cells(visible, row, key, r, selected, isSelected)];
 
             if (!Expandable || !_expanded.Contains(key))
@@ -1833,7 +1833,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
                 continue;
             }
 
-            var detail = ExpandedContent!(row);
+            var detail = ExpandedContent!.Value.Fn!(row);
             if (detail is not null)
             {
                 yield return Tr(Key: $"{key}:detail", Id: DetailId(r))[

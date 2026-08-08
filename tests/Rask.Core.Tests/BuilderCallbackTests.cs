@@ -172,6 +172,33 @@ public class BuilderCallbackTests
         Assert.Null(div.OnClickAsync);
     }
 
+    // The other half of the rule, and the one the `On` prefix never reached: a delegate prop whose
+    // name does not start with `On` got a setter of the SAME name, which C#'s invocable-member rule
+    // could never bind to — the property won and the setter was unreachable dead code. Rask.Core's
+    // cases (Authorize.Authorized, ErrorBoundary.Fallback, DragDrop/VirtualizeModel's Body) ride a
+    // carrier now, which is what makes this a setter call rather than an attempt to invoke a
+    // `Func<Exception, Callback, Component>` with a `Func<Exception, Callback, Component>`.
+    [Fact]
+    public void A_non_On_delegate_prop_is_reachable_through_the_chain()
+    {
+        var boundary = ErrorBoundary().Fallback((ex, _) => Span()[ex.Message]);
+
+        Assert.NotNull(boundary.Fallback?.Fn);
+    }
+
+    // …and an omitted one still reads back as unset. `Authorize` asks exactly this about its own prop
+    // ("null delegate → static authorized content via the children indexer"), so a non-null carrier
+    // wrapping null would send it down the delegate branch and NullReferenceException instead.
+    [Fact]
+    public void An_omitted_non_On_delegate_prop_reads_back_as_unset()
+    {
+        Func<System.Security.Claims.ClaimsPrincipal, Component>? none = null;
+
+        Assert.Null(Authorize().Authorized);
+        Assert.Null(Authorize(Authorized: none).Authorized);
+        Assert.Null(Authorize().Authorized(none).Authorized);
+    }
+
     private static void Noop() { }
 }
 
