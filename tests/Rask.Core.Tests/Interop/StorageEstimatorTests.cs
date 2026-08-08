@@ -40,4 +40,33 @@ public class StorageEstimatorTests
 
         Assert.Null(await new StorageEstimator(js).EstimateAsync());
     }
+
+    [Fact]
+    public async Task IsPersisted_CallsHelper()
+    {
+        var js = new FakeJsRuntime();
+        js.SetResponse("__raskApi.storagePersisted", true);
+
+        Assert.True(await new StorageEstimator(js).IsPersistedAsync());
+    }
+
+    [Fact]
+    public async Task RequestPersist_CallsHelper()
+    {
+        var js = new FakeJsRuntime();
+        js.SetResponse("__raskApi.storagePersist", true);
+
+        Assert.True(await new StorageEstimator(js).RequestPersistAsync());
+    }
+
+    // The helper resolves false rather than throwing where navigator.storage.persist is absent, so an app
+    // can treat "not persisted" and "can't be persisted" the same way: writes are evictable either way.
+    [Fact]
+    public async Task Persistence_ReportsFalse_WhenUnsupported()
+    {
+        var js = new FakeJsRuntime();
+
+        Assert.False(await new StorageEstimator(js).IsPersistedAsync());
+        Assert.False(await new StorageEstimator(js).RequestPersistAsync());
+    }
 }

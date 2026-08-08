@@ -220,6 +220,7 @@ public static class GuideCatalog
         new("navigator-info", "INavigatorInfo", "Typed browser API: INavigatorInfo.", "bi-plug", "Browser API reference", "apis/navigator-info.md"),
         new("network-info", "INetworkInfo", "Typed browser API: INetworkInfo.", "bi-plug", "Browser API reference", "apis/network-info.md"),
         new("notifications", "INotifications", "Typed browser API: INotifications.", "bi-plug", "Browser API reference", "apis/notifications.md"),
+        new("origin-private-file-system", "IOriginPrivateFileSystem", "Typed browser API: IOriginPrivateFileSystem.", "bi-plug", "Browser API reference", "apis/origin-private-file-system.md"),
         new("page-visibility", "IPageVisibility", "Typed browser API: IPageVisibility.", "bi-plug", "Browser API reference", "apis/page-visibility.md"),
         new("performance", "IPerformance", "Typed browser API: IPerformance.", "bi-plug", "Browser API reference", "apis/performance.md"),
         new("permissions", "IPermissions", "Typed browser API: IPermissions.", "bi-plug", "Browser API reference", "apis/permissions.md"),
