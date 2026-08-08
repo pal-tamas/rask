@@ -30,6 +30,7 @@ internal sealed class BrowserSqliteHost(
     IWebLocks locks,
     IIndexedDb indexedDb,
     ISqliteSnapshotter snapshotter,
+    BrowserSqliteOwnership ownership,
     ILogger<BrowserSqliteHost> logger) : IHostedService
 {
     // Completing this releases the Web Lock: IWebLocks holds the lock only for the lifetime of the
@@ -53,6 +54,10 @@ internal sealed class BrowserSqliteHost(
         Directory.CreateDirectory(Path.GetDirectoryName(options.DatabasePath) ?? BrowserSqlite.DirectoryPath);
 
         IsOwner = await TryBecomeOwnerAsync().ConfigureAwait(false);
+
+        // Published before the early return below, so a non-owner tab can say so in its UI instead of
+        // rendering an empty page that reads as data loss.
+        ownership.Resolve(IsOwner);
 
         if (!IsOwner)
         {

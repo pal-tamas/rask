@@ -44,7 +44,13 @@ the processor's poll loop, with no click anywhere near it.
   so anything written since the last tick is lost on a reload. This sample uses 2s to make its own claim
   true; a real app trades that against copying the whole database each tick.
 
-## What it does not show
+## Open a second tab
 
-One tab owns the database. Open a second and it gets its own empty, unpersisted database and logs why —
-promotion when the owner closes, and proxying writes to the owner, are not implemented.
+Only one tab may own the database, so the second gets its own empty one — and without being told, that is
+indistinguishable from your data having been deleted. This sample injects `BrowserSqliteOwnership` and
+shows a banner instead. Note it waits for `ownership.Resolved` before rendering it: `IsOwner` is `null`
+while the election is in flight, so "still deciding" and "not the owner" stay distinct and a normal boot
+never flashes a warning.
+
+What is still not implemented: promoting a waiting tab when the owner closes, and proxying a non-owner's
+writes to the owner.

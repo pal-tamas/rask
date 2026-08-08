@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Jobs;
+using Rask.SQLite.Browser;
 
 namespace Rask.Example.Wasm.Jobs;
 
@@ -13,6 +14,7 @@ public sealed class JobsDemo : Component
     private readonly IDbContextFactory<AppDbContext> _factory;
     private readonly GreetingFeed _feed;
     private readonly DatabaseReady _ready;
+    private readonly BrowserSqliteOwnership _ownership;
 
     private string _name = "world";
     private string _status = "";
@@ -22,12 +24,14 @@ public sealed class JobsDemo : Component
         IJobQueue queue,
         IDbContextFactory<AppDbContext> factory,
         GreetingFeed feed,
-        DatabaseReady ready)
+        DatabaseReady ready,
+        BrowserSqliteOwnership ownership)
     {
         _queue = queue;
         _factory = factory;
         _feed = feed;
         _ready = ready;
+        _ownership = ownership;
     }
 
     protected override async Task OnMountAsync()
@@ -38,6 +42,10 @@ public sealed class JobsDemo : Component
 
         // Hosted services start after the first render on this host, so the schema does not exist yet
         // when this runs. Waiting is the documented way to turn "started" into "ready".
+        // Ownership settles during the host's StartAsync, which runs after this first render — so wait
+        // for it, or the banner would never appear in the tab that needs it.
+        await _ownership.Resolved;
+
         await _ready.Ready;
         await LoadAsync();
     }
@@ -79,6 +87,14 @@ public sealed class JobsDemo : Component
 
     protected override Component? Render() =>
         Div()[
+            // Only once the election has settled: `null` means "still deciding", and showing this during
+            // a normal boot would be a scary banner for a non-problem.
+            _ownership.IsOwner == false
+                ? Div(Class: "notice", Data: new Dictionary<string, string?> { ["testid"] = "not-owner" })[
+                    Strong()["Another tab has this database open."],
+                    " Your data is safe — it just isn't reachable from here, because only one tab may own "
+                    + "the file. Close the other tab and reload."]
+                : null,
             Div(Class: "row")[
                 Input(
                     Type: InputType.Text,

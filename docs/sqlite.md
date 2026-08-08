@@ -555,8 +555,16 @@ Three limits, stated plainly because each one is a silent failure rather than an
   size rather than with how much changed.
 - **One tab owns the database.** Every tab has its own copy of the in-memory filesystem, so two owners
   would mean two divergent databases and a last-writer-wins overwrite. The others run with their own empty,
-  unpersisted database and log why. Promoting a waiting tab when the owner closes, and proxying its writes
-  to the owner, are not implemented.
+  unpersisted database — which, left unexplained, looks exactly like the user's data having been deleted.
+  Inject `BrowserSqliteOwnership` and say so:
+
+  ```csharp
+  protected override async Task OnMountAsync() => _isOwner = await ownership.Resolved;
+  // ownership.IsOwner is null while the election is in flight, so "deciding" and
+  // "not the owner" stay distinguishable and the banner never flashes during a normal boot.
+  ```
+
+  Promoting a waiting tab when the owner closes, and proxying its writes to the owner, are not implemented.
 - **The two build settings above are not optional**: `PublishTrimmed=false`, and publishing *without*
   `-p:WasmBuildNative=false` — otherwise SQLite is not linked in and the app boots normally, then fails on
   every database call.

@@ -47,8 +47,10 @@ builder.Services.AddRaskBrowserSqlite("app", o =>
 - **The durability window is the snapshot interval, not the page-hide flush.** The browser does not wait
   for a `pagehide` handler, so a force-closed or crashed tab loses whatever changed since the last tick.
 - **Non-owner tabs are not read-only — they are separate.** They get their own empty in-memory database
-  and never persist. Promoting a waiting tab when the owner closes, and proxying writes to the owner, are
-  not implemented.
+  and never persist, which looks like data loss unless you say otherwise. Inject `BrowserSqliteOwnership`
+  and tell the user: `await ownership.Resolved` gives the answer, and `ownership.IsOwner` is `null` while
+  the election is still running so a normal boot never flashes a banner. Promoting a waiting tab when the
+  owner closes, and proxying writes to the owner, are not implemented.
 - Snapshots cost their full database size in the origin's storage quota, times `Retain`.
 - Add `<NoWarn>$(NoWarn);WASM0001</NoWarn>` if you build with warnings as errors: the SQLite native build
   reports two varargs functions (`sqlite3_config`, `sqlite3_db_config`) that WASM cannot call. Neither is

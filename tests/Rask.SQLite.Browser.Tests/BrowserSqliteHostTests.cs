@@ -19,8 +19,10 @@ public sealed class BrowserSqliteHostTests : IDisposable
         return options;
     }
 
+    private readonly BrowserSqliteOwnership _ownership = new();
+
     private BrowserSqliteHost Host(BrowserSqliteOptions options) =>
-        new(options, _locks, _db, _snapshotter, NullLogger<BrowserSqliteHost>.Instance);
+        new(options, _locks, _db, _snapshotter, _ownership, NullLogger<BrowserSqliteHost>.Instance);
 
     private void Seed(string name, string snapshotName, string content) =>
         _db.Store(BrowserSqlite.SnapshotStoreName(name)).Values[snapshotName] = Encoding.UTF8.GetBytes(content);
@@ -48,6 +50,35 @@ public sealed class BrowserSqliteHostTests : IDisposable
         await host.StartAsync(CancellationToken.None);
 
         Assert.False(host.IsOwner);
+    }
+
+    // Without this an app cannot tell the user why its data is missing, and an empty page reads as
+    // deletion rather than as another tab holding the database.
+    [Fact]
+    public async Task Start_PublishesOwnership()
+    {
+        var host = Host(Options());
+
+        Assert.Null(_ownership.IsOwner);   // undecided before the election, not "false"
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.True(_ownership.IsOwner);
+        Assert.True(await _ownership.Resolved);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Start_NonOwner_PublishesOwnershipToo()
+    {
+        var options = Options();
+        _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+
+        await Host(options).StartAsync(CancellationToken.None);
+
+        // Published before the early return the non-owner path takes — that is the whole point.
+        Assert.False(_ownership.IsOwner);
+        Assert.False(await _ownership.Resolved);
     }
 
     [Fact]

@@ -31,6 +31,44 @@ public sealed class BrowserJobsWasmExampleTests
     }
 
     /// <summary>
+    ///     A second tab is told why its data is not there.
+    /// </summary>
+    /// <remarks>
+    ///     Only one tab may own the database, so the second gets its own empty one. Without the banner
+    ///     that is indistinguishable from the user's data having been deleted — the worst possible reading
+    ///     of a correct safety measure. Two pages in one browser context share an origin, so they contend
+    ///     for the same Web Lock exactly as two real tabs would.
+    /// </remarks>
+    [Fact]
+    public async Task A_second_tab_is_told_that_another_tab_owns_the_database()
+    {
+        var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
+
+        try
+        {
+            var owner = await context.NewPageAsync();
+            await owner.GotoAsync("/index.html");
+            await Expect(owner.Locator("[data-testid=enqueue]"))
+                .ToBeVisibleAsync(new() { Timeout = BootTimeoutMs });
+
+            // The owner holds the lock for the lifetime of its page, so this one cannot take it.
+            var second = await context.NewPageAsync();
+            await second.GotoAsync("/index.html");
+
+            await Expect(second.Locator("[data-testid=not-owner]"))
+                .ToBeVisibleAsync(new() { Timeout = BootTimeoutMs });
+            await Expect(second.Locator("[data-testid=not-owner]")).ToContainTextAsync("Your data is safe");
+
+            // And the owner is not told anything of the sort.
+            await Expect(owner.Locator("[data-testid=not-owner]")).ToHaveCountAsync(0);
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
+    }
+
+    /// <summary>
     ///     The <c>pagehide</c> drain, and specifically its back/forward-cache guard.
     /// </summary>
     /// <remarks>

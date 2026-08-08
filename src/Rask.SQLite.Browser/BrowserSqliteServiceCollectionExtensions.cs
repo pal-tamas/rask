@@ -57,6 +57,10 @@ public static class BrowserSqliteServiceCollectionExtensions
 
         services.AddSingleton(options);
 
+        // Public, so an app can tell the user "another tab has this open" rather than showing an empty
+        // page that reads as data loss. Resolved by the host during StartAsync.
+        services.TryAddSingleton<BrowserSqliteOwnership>();
+
         // The snapshotter needs its own options type; DatabasePath is the one field that matters here,
         // since the destination is our IndexedDB store rather than a directory.
         services.TryAddSingleton(new SqliteSnapshotOptions

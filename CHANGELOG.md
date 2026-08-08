@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`BrowserSqliteOwnership` — let a second tab explain itself.** Only one tab may own a browser SQLite
+  database, so the others run against their own empty, unpersisted one. That is correct, and until now it
+  was also indistinguishable from the user's data having been deleted: the package logged a warning to the
+  console and the app had no way to ask. Inject `BrowserSqliteOwnership`, `await ownership.Resolved`, and
+  say so. `IsOwner` is `null` while the election is in flight rather than `false`, so "still deciding" and
+  "another tab has it" stay distinguishable and a normal boot never flashes a warning banner.
+  `samples/Rask.Example.Wasm.Jobs` shows one, covered by an E2E that opens two real tabs.
+
 ### Fixed
 - **Playground: picking a chapter or an example before the editor had mounted silently kept the starter
   code.** Run and Reset waited for the editor; the controls that *load* code did not — they only guarded

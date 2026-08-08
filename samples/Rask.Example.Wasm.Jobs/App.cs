@@ -62,6 +62,16 @@ public class App : Component
         button { background: #7c3aed; color: #fff; border-color: #7c3aed; cursor: pointer; }
         button:disabled { opacity: .55; cursor: default; }
         .status { color: #9aa3b2; font-size: .9rem; min-height: 1.6em; }
+        /* Amber, not red: another tab holding the database is correct behaviour, not an error. */
+        .notice {
+            padding: .7rem .9rem;
+            margin-bottom: 1rem;
+            border-radius: .4rem;
+            background: #2a2213;
+            border: 1px solid #5c4718;
+            color: #e8d9b0;
+            font-size: .92rem;
+        }
         ul { list-style: none; padding: 0; margin: 1rem 0 0; }
         li {
             padding: .6rem .8rem;

@@ -25,6 +25,9 @@ public class RegistrationTests
 
         Assert.IsType<IndexedDbSnapshotStore>(provider.GetRequiredService<ISqliteSnapshotStore>());
         Assert.NotNull(provider.GetRequiredService<ISqliteSnapshotter>());
+
+        // Public: an app injects this to explain a non-owner tab instead of showing an empty page.
+        Assert.NotNull(provider.GetRequiredService<BrowserSqliteOwnership>());
     }
 
     // Order is the whole contract: the host restores inside StartAsync so that anything registered after
@@ -118,7 +121,8 @@ public class BrowserSqliteSnapshotServiceTests
 
         var snapshotter = new RecordingSnapshotter();
         var host = new BrowserSqliteHost(
-            options, locks, new FakeIndexedDb(), snapshotter, NullLogger<BrowserSqliteHost>.Instance);
+            options, locks, new FakeIndexedDb(), snapshotter, new BrowserSqliteOwnership(),
+            NullLogger<BrowserSqliteHost>.Instance);
         await host.StartAsync(CancellationToken.None);
 
         var service = new BrowserSqliteSnapshotService(
