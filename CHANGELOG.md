@@ -170,6 +170,44 @@ them until tagged releases begin.
   and shutdown is drained from `pagehide` — in reverse start order, and not for a back/forward-cache
   suspend where the page can be restored still running — which the browser does not wait for, so it
   is an optimisation rather than a guarantee.
+- **`IPermissions` now has a native backend, so on iOS/Android it answers about the OS permission the
+  other native backends actually gate on.** It was the only wrapper in its family without one — the 14
+  interfaces beside it (`IGeolocation`, `INotifications`, `IClipboard`, …) resolve to native backends, and
+  the one you reach for *first*, to decide whether you are about to prompt, still answered from the
+  WebView. That made it wrong twice over on a native head. It barely answered at all:
+  `navigator.permissions.query` throws `NotSupportedError` for `Geolocation`/`Notifications` on WebKit and
+  `TypeError` for the clipboard and persistent-storage names, so five of the seven typed `PermissionName`
+  values faulted the awaited task on iOS — including the two the interface's own docs tell you to pair it
+  with. And where it did answer, it described a different system: those native backends are gated by the
+  **OS app permission** (`Info.plist`/manifest + the system prompt), which the WebView's Permissions API
+  cannot see — so you could ask the WebView, get `granted`, and call `IGeolocation`, which reads
+  `CLLocationManager`. Each name is now answered from **the gate the caller will actually meet**: iOS
+  `CLLocationManager` / `UNUserNotificationCenter`, Android `Activity.CheckSelfPermission` plus
+  `AreNotificationsEnabled` (which also catches a user who switched notifications off below API 33, where
+  there is no runtime permission to check). Wired by `ApplePlatform`/`AndroidPlatform` like every other
+  native backend, so an app needs no new code.
+  Three answers are deliberately *not* the OS grant. **`Camera` and `Microphone` stay with the WebView** —
+  nothing on a native head consumes the app's capture grant (`IMediaDevices` is WASM-only, so capture goes
+  through the WebView, which gates it on its own permission on top of the app's), and they are also the
+  only two names WebKit answers, so deferring is both the accurate and the well-supported choice.
+  **`ClipboardRead` reports `Prompt` on iOS**, because since iOS 16 the programmatic `UIPasteboard` read
+  the native `IClipboard` performs can raise the system "Allow Paste?" alert. `ClipboardWrite` and
+  `PersistentStorage` report `Granted`, which is accurate rather than a stand-in for "don't know".
+  **Caveat, and it is deliberate:** Android's `CheckSelfPermission` reports only granted/denied and cannot
+  separate "never asked" from "denied permanently" (`ShouldShowRequestPermissionRationale` doesn't close
+  the gap — it is `false` both before the first ask and after a permanent denial), so anything not granted
+  that it could still request reports `Prompt`. Read that as "not granted", **not** as a promise that a
+  dialog will appear: a permission missing from the manifest is refused with no dialog at all. Claiming
+  `Denied` would mislead on first run, which is the common case. iOS has the real tri-state and reports it.
+  Named `NativePermissionQuery`, not `NativePermissions`: that name already belongs to the public
+  runtime-*request* bridge the scaffolded heads forward `OnRequestPermissionsResult` to, and renaming it
+  would break every scaffolded app. The two are companions — one asks, one requests.
+- **`-p:RaskNativeHeads=ios` builds just the iOS head**, the mirror of the existing `android` value. Only
+  `android` had a one-head switch (it exists so an Ubuntu job can build the APK without the iOS workload,
+  which Linux can't install), which left the opposite case — a macOS dev with only the ios workload —
+  unable to compile `Platforms/iOS/**` at all, so half of every native change was CI-only by construction.
+  Set on `Rask.Native` and both native samples together; a value present on one and missing from another
+  still fails on the workload the other head needs.
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

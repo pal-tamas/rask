@@ -11,8 +11,10 @@ unchanged.
 > `WKWebView` and Android `WebView` app heads), and the native client runtime **ship and run
 > end-to-end on both platforms** — a scaffolded app boots, renders the component tree over the native
 > bridge, routes, and updates live (see [Roadmap](#roadmap) for the verification detail). It's still
-> pre-1.0: APIs may shift. **Native device *backends*** ship for share, geolocation, clipboard, vibration,
-> wake lock, and network info — one `host.UsePlatform(new ApplePlatform(…))` / `new AndroidPlatform(this)`
+> pre-1.0: APIs may shift. **Native device *backends*** ship for fifteen interfaces — share, geolocation,
+> clipboard, vibration, wake lock, network info, battery, speech synthesis/recognition, screen info, device
+> orientation/motion, notifications, badge, and permissions — one
+> `host.UsePlatform(new ApplePlatform(…))` / `new AndroidPlatform(this)`
 > wires them all, and the framework resolves each native-first over the WebView's JS (see
 > [Native device backends](native-devices.md#native-device-backends)) — with biometrics/push still to come. The native client
 > now shares the

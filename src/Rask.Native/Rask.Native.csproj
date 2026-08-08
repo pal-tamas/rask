@@ -19,9 +19,15 @@
   <PropertyGroup>
     <!-- RaskNativeHeads: unset = plain net10.0 (CI/unit); `true` = all heads (macOS, needs ios+android
          workloads); `android` = just the Android head (so an Ubuntu/KVM job can build the APK without the
-         iOS workload, which Linux can't install). -->
-    <TargetFramework Condition="'$(RaskNativeHeads)' != 'true' AND '$(RaskNativeHeads)' != 'android'">net10.0</TargetFramework>
+         iOS workload, which Linux can't install); `ios` = just the iOS head, the mirror image — it lets a
+         macOS dev compile Platforms/iOS/** without installing the android workload too, which is the only
+         way to check that half locally.
+         Every value except unset must be listed in the TargetFramework condition below: leaving one out
+         sets the SINGULAR TargetFramework as well, and that silently wins over TargetFrameworks — so the
+         build reports success having compiled only net10.0, where Platforms/** is excluded. -->
+    <TargetFramework Condition="'$(RaskNativeHeads)' != 'true' AND '$(RaskNativeHeads)' != 'android' AND '$(RaskNativeHeads)' != 'ios'">net10.0</TargetFramework>
     <TargetFrameworks Condition="'$(RaskNativeHeads)' == 'true'">net10.0;net10.0-ios;net10.0-android</TargetFrameworks>
+    <TargetFrameworks Condition="'$(RaskNativeHeads)' == 'ios'">net10.0;net10.0-ios</TargetFrameworks>
     <TargetFrameworks Condition="'$(RaskNativeHeads)' == 'android'">net10.0;net10.0-android</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
