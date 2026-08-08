@@ -80,6 +80,20 @@ them until tagged releases begin.
   project the same way it already detects the database provider — by reading the project file — and the
   notes tell a WASM app to register `AddRaskBrowserSqlite`, create its schema at boot, and avoid the two
   build settings (`-p:WasmBuildNative=false`, `PublishTrimmed=true`) that each break it without an error.
+- **`INotifications` no longer reports `Granted` on Android for an app whose notifications the user
+  switched off.** The check asked only whether the app *held* `POST_NOTIFICATIONS`, and short-circuited
+  to `Granted` outright below API 33 where no such permission exists. But the per-app notification
+  toggle in Settings is independent of the permission, exists on every supported version, and turning
+  it off makes `NotificationManager.Notify` a **silent** no-op — so `PermissionAsync()` said `Granted`,
+  `ShowAsync` returned without throwing, and nothing ever appeared. The one call that sees that toggle,
+  `AreNotificationsEnabled`, is now consulted first; it exists from API 24, the android head's own
+  minimum, so it needs no version guard.
+  A muted app reports **`Denied`** rather than `Default`, because the way back is the Settings screen
+  and not a prompt — which is what `Denied` means in the web contract this backend mirrors.
+  `RequestPermissionAsync()` returns it too instead of claiming a grant no prompt could produce (it was
+  answering `Granted` unconditionally below API 33). **Behaviour change:** `ShowAsync` on a muted app
+  now throws `InvalidOperationException` like any other ungranted permission, where it previously
+  returned and quietly showed nothing.
 
 ### Added
 - **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
