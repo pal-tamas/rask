@@ -46,6 +46,11 @@ builder.Services.AddRaskBrowserSqlite("app", o =>
   `Microsoft.Data.Sqlite` on its own is reflection-free and trims fine.
 - **The durability window is the snapshot interval, not the page-hide flush.** The browser does not wait
   for a `pagehide` handler, so a force-closed or crashed tab loses whatever changed since the last tick.
+- **Snapshots live in IndexedDB, which is evictable.** The owning tab asks the browser to exempt the
+  origin (`navigator.storage.persist()`) at startup; a refusal is logged and changes nothing else.
+  Chromium decides on engagement without prompting, **Firefox prompts** — so an app that would rather
+  choose its moment sets `o.RequestPersistentStorage = false` and calls
+  `IStorageEstimator.RequestPersistAsync()` from a user-gesture handler instead.
 - **Non-owner tabs are not read-only — they are separate.** They get their own empty in-memory database
   and never persist, which looks like data loss unless you say otherwise. Inject `BrowserSqliteOwnership`
   and tell the user: `await ownership.Resolved` gives the answer, and `ownership.IsOwner` is `null` while

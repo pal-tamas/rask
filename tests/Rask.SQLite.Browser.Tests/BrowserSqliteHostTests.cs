@@ -20,9 +20,10 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     private readonly BrowserSqliteOwnership _ownership = new();
+    private readonly FakeStorageEstimator _storage = new();
 
     private BrowserSqliteHost Host(BrowserSqliteOptions options) =>
-        new(options, _locks, _db, _snapshotter, _ownership, NullLogger<BrowserSqliteHost>.Instance);
+        new(options, _locks, _db, _storage, _snapshotter, _ownership, NullLogger<BrowserSqliteHost>.Instance);
 
     private void Seed(string name, string snapshotName, string content) =>
         _db.Store(BrowserSqlite.SnapshotStoreName(name)).Values[snapshotName] = Encoding.UTF8.GetBytes(content);
@@ -105,6 +106,85 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
         Assert.True(host.IsOwner);
         await host.StopAsync(CancellationToken.None);
+    }
+
+    // IndexedDB is evictable, so without asking, a browser under storage pressure can discard the
+    // snapshots and the database comes back empty with nothing to say why.
+    [Fact]
+    public async Task Start_AsksForPersistentStorage()
+    {
+        var host = Host(Options());
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.Equal(1, _storage.PersistRequests);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    // Asking again would prompt a second time on the browsers that prompt, for something already granted.
+    [Fact]
+    public async Task Start_AlreadyPersisted_DoesNotAskAgain()
+    {
+        _storage.AlreadyPersisted = true;
+        var host = Host(Options());
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.Equal(0, _storage.PersistRequests);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    // A refusal changes nothing about how the app runs — it must not fail the boot, only be visible.
+    [Fact]
+    public async Task Start_PersistDeclined_StillBootsAndRestores()
+    {
+        _storage.GrantsPersist = false;
+        var options = Options();
+        Seed(options.Name, "app-20260808-140000000.db", "restored");
+        var host = Host(options);
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.True(host.IsOwner);
+        Assert.Equal("restored", await File.ReadAllTextAsync(options.DatabasePath));
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Start_PersistThrows_StillBoots()
+    {
+        _storage.Throws = new InvalidOperationException("interop failed");
+        var host = Host(Options());
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.True(host.IsOwner);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Start_PersistDisabled_NeverAsks()
+    {
+        var options = Options();
+        options.RequestPersistentStorage = false;
+        var host = Host(options);
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.Equal(0, _storage.PersistRequests);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    // A non-owner persists nothing, so a prompt there would buy the user nothing.
+    [Fact]
+    public async Task Start_NonOwner_NeverAsksForPersistentStorage()
+    {
+        var options = Options();
+        _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+
+        await Host(options).StartAsync(CancellationToken.None);
+
+        Assert.Equal(0, _storage.PersistRequests);
     }
 
     [Fact]

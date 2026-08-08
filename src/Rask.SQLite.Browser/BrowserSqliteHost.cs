@@ -29,6 +29,7 @@ internal sealed class BrowserSqliteHost(
     BrowserSqliteOptions options,
     IWebLocks locks,
     IIndexedDb indexedDb,
+    IStorageEstimator storage,
     ISqliteSnapshotter snapshotter,
     BrowserSqliteOwnership ownership,
     ILogger<BrowserSqliteHost> logger) : IHostedService
@@ -68,7 +69,59 @@ internal sealed class BrowserSqliteHost(
             return;
         }
 
+        if (options.RequestPersistentStorage)
+        {
+            await EnsurePersistentStorageAsync().ConfigureAwait(false);
+        }
+
         await RestoreAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Asks the browser not to evict this origin's storage.
+    /// </summary>
+    /// <remarks>
+    ///     The snapshots this package writes live in IndexedDB, which is evictable: under storage pressure
+    ///     a browser may discard them and the database returns empty next load, with nothing to say why.
+    ///     A refusal changes nothing about how the app runs, so this never fails the boot — it only makes
+    ///     the risk visible in the log instead of leaving it silent.
+    ///     <para>
+    ///         Checked before asked, so an origin that is already exempt never triggers a second prompt on
+    ///         the browsers that prompt.
+    ///     </para>
+    /// </remarks>
+    private async Task EnsurePersistentStorageAsync()
+    {
+        try
+        {
+            if (await storage.IsPersistedAsync().ConfigureAwait(false))
+            {
+                return;
+            }
+
+            if (await storage.RequestPersistAsync().ConfigureAwait(false))
+            {
+                logger.LogInformation(
+                    "Storage for '{Name}' is now exempt from eviction.", options.Name);
+                return;
+            }
+
+            // One branch, not two: RequestPersistAsync resolves false both when the browser declines and
+            // when it has no such API, and from here those have exactly the same consequence.
+            logger.LogWarning(
+                "The browser did not grant persistent storage, so it may evict the snapshots of '{Name}' "
+                + "under storage pressure and the database would come back empty. Chromium grants this on "
+                + "engagement; Firefox prompts, so ask from a user gesture with "
+                + "IStorageEstimator.RequestPersistAsync() and set BrowserSqliteOptions."
+                + nameof(BrowserSqliteOptions.RequestPersistentStorage) + " to false.",
+                options.Name);
+        }
+#pragma warning disable CA1031 // Durability is best-effort; a failed request must not stop the app booting.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogWarning(ex, "Could not ask for persistent storage for '{Name}'.", options.Name);
+        }
     }
 
     /// <inheritdoc />

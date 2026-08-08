@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A browser database now asks not to be evicted.** `Rask.SQLite.Browser` keeps its snapshots in
+  IndexedDB, and IndexedDB is evictable: under storage pressure a browser may discard them, and the
+  database comes back empty on the next load with nothing to indicate why. The owning tab now calls
+  `navigator.storage.persist()` at startup (via `IStorageEstimator`, added in #645), checking
+  `IsPersistedAsync()` first so an already-exempt origin is never asked twice. A refusal is logged and
+  changes nothing else — the app runs exactly as before, the risk is just no longer silent. Only the
+  owning tab asks, since the others persist nothing. Chromium decides from engagement heuristics without
+  prompting; **Firefox prompts**, and this is asked during boot rather than from a click, so an app that
+  would rather choose its moment sets `o.RequestPersistentStorage = false` and calls
+  `IStorageEstimator.RequestPersistAsync()` from a user-gesture handler instead.
 - **`BrowserSqliteOwnership` — let a second tab explain itself.** Only one tab may own a browser SQLite
   database, so the others run against their own empty, unpersisted one. That is correct, and until now it
   was also indistinguishable from the user's data having been deleted: the package logged a warning to the
