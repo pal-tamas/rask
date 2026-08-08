@@ -17,7 +17,8 @@ APIs live in the [Mobile & PWA guide](pwa.md).
 
 <!-- demo:browser-storage -->
 
-**`IIndexedDb`** — a persistent, asynchronous key/value store, far larger than localStorage and non-blocking.
+**`IIndexedDb`** — a persistent, asynchronous key/value store, far larger than localStorage and non-blocking. Holds
+text (`SetAsync`/`GetAsync`) or raw bytes (`SetBytesAsync`/`GetBytesAsync`, stored as a real `Uint8Array`).
 
 <!-- demo:browser-indexeddb -->
 

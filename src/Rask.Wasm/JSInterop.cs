@@ -19,8 +19,23 @@ internal static partial class JSInterop
     private const string ModuleName = "rask";
     private static WasmLiveSession? _session;
     private static WasmJSRuntime? _runtime;
+    private static WasmHostedServices? _hostedServices;
+
+    /// <summary>How long a hosted service gets to stop once the page is going away.</summary>
+    /// <remarks>
+    ///     Short on purpose. The browser does not await a <c>pagehide</c> handler, so this bounds an
+    ///     unloading tab's work rather than promising it — see <see cref="WasmHostedServices.StopAsync" />.
+    /// </remarks>
+    private static readonly TimeSpan ShutdownGrace = TimeSpan.FromSeconds(2);
 
     public static void Init(WasmLiveSession session) => _session = session;
+
+    /// <summary>
+    ///     Bind the app's hosted services so <c>StopHostedServices</c> can drain them when the page
+    ///     unloads. Called once from <c>WasmHostBuilder.RunAsync</c>. Referenced by name, not by
+    ///     <c>cref</c>: the export it names only exists on the browser TFM.
+    /// </summary>
+    public static void Init(WasmHostedServices hostedServices) => _hostedServices = hostedServices;
 
     /// <summary>
     ///     Bind the singleton <see cref="WasmJSRuntime" /> so the <c>[JSExport]</c>
@@ -102,6 +117,15 @@ internal static partial class JSInterop
                 ex);
         }
     }
+
+    /// <summary>
+    ///     Drains the app's hosted services because the page is going away. Called from the
+    ///     <c>pagehide</c> listener in <c>rask.wasm.js</c> — only for a real teardown, never for a
+    ///     back/forward-cache suspend, where the page can be resumed with its services still needed.
+    /// </summary>
+    [JSExport]
+    public static Task StopHostedServices() =>
+        _hostedServices?.StopAsync(ShutdownGrace) ?? Task.CompletedTask;
 
     // Sync byte[] return — JSExport's marshaller maps that to a Uint8Array on the JS side
     // with zero base64 round-trip. JS triggerDownload calls this in response to a render

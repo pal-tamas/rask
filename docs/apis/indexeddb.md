@@ -8,6 +8,26 @@
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅
 - **Native backend:** — (WebView JS)
 
+## Text and bytes
+
+`OpenStoreAsync(name)` returns an `IKeyValueStore` with two pairs of accessors:
+
+```csharp
+var store = await indexedDb.OpenStoreAsync("cache");
+
+await store.SetAsync("profile", json);              // string
+var json2 = await store.GetAsync("profile");
+
+await store.SetBytesAsync("thumbnail", pngBytes);   // byte[]
+var png = await store.GetBytesAsync("thumbnail");
+```
+
+Use the byte overloads for anything that is not text — an image, a compressed blob, a database file.
+They store a real `Uint8Array`, so a megabyte of bytes costs a megabyte of quota; base64 appears only in
+transit, because that is what marshals identically across the JS interop boundary on every host.
+
+The two pairs are **not interchangeable**: read a key with the same kind of accessor you wrote it with.
+
 ## See also
 
 - Source: [`IIndexedDb.cs`](../../src/Rask.Core/Browser/IIndexedDb.cs)

@@ -117,10 +117,12 @@
       The Native + Server example (Rask.Example.Native.Server) is a thin native shell over a remote server
       that references neither Rask.Example.Shared nor the validation/Bootstrap libs, so it skips them too.
       The marketing landing site (Rask.Example.Site) is a standalone WASM app (its own hand-styled design,
-      no Shared/Bootstrap/validation), so it skips them as well.
+      no Shared/Bootstrap/validation), so it skips them as well. So does the browser-jobs sample
+      (Rask.Example.Wasm.Jobs) — note it must be matched by its exact name, since the showcase it sits
+      next to (Rask.Example.Wasm) does want these usings.
     -->
     <_RaskExampleValidationUsings>$(_RaskInRepoImplicitUsings)</_RaskExampleValidationUsings>
-    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) OR $(MSBuildProjectName.StartsWith('Rask.Example.Sqlite')) OR '$(MSBuildProjectName)' == 'Rask.Example.Native.Server' OR '$(MSBuildProjectName)' == 'Rask.Example.Playground' OR '$(MSBuildProjectName)' == 'Rask.Example.Site' OR $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">false</_RaskExampleValidationUsings>
+    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) OR $(MSBuildProjectName.StartsWith('Rask.Example.Sqlite')) OR '$(MSBuildProjectName)' == 'Rask.Example.Native.Server' OR '$(MSBuildProjectName)' == 'Rask.Example.Playground' OR '$(MSBuildProjectName)' == 'Rask.Example.Site' OR '$(MSBuildProjectName)' == 'Rask.Example.Wasm.Jobs' OR $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">false</_RaskExampleValidationUsings>
     <!-- The showcase trio (Rask.Example.Shared + the Server/Wasm hosts that reference it) pulls in
          Rask.Bootstrap; the Auth/EfCore standalone samples don't reference it, so they must not get
          its global static usings (the namespace wouldn't resolve). Same set as the validation usings. -->

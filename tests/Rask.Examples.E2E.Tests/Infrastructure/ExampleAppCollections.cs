@@ -43,6 +43,13 @@ public sealed class SiteExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class BrowserJobsWasmExampleCollection
+    : ICollectionFixture<BrowserJobsWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "BrowserJobsWasmExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class SubPathWasmExampleCollection
     : ICollectionFixture<SubPathWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
 {

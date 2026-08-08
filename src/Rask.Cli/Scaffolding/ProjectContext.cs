@@ -10,11 +10,24 @@ namespace Rask.Cli.Scaffolding;
 internal sealed partial class ProjectContext(
     string projectDirectory,
     string rootNamespace,
-    DatabaseProvider provider = DatabaseProvider.Sqlite)
+    DatabaseProvider provider = DatabaseProvider.Sqlite,
+    bool isBrowser = false)
 {
     public string ProjectDirectory { get; } = projectDirectory;
 
     public string RootNamespace { get; } = rootNamespace;
+
+    /// <summary>
+    /// Whether this project is a browser (WebAssembly) app rather than a server one.
+    /// </summary>
+    /// <remarks>
+    /// Detected from the project file, like <see cref="Provider"/>, and for the same reason: the answer
+    /// was already decided by <c>rask new</c>, and asking again is a second thing to get out of sync.
+    /// It changes what scaffolding can honestly tell you to do — a browser app has no design-time
+    /// database for <c>rask db</c> to migrate, and its database needs
+    /// <c>AddRaskBrowserSqlite</c> to survive a reload at all.
+    /// </remarks>
+    public bool IsBrowser { get; } = isBrowser;
 
     /// <summary>
     /// The database this project is wired to, read off its package references rather than asked for again.
@@ -64,6 +77,25 @@ internal sealed partial class ProjectContext(
 
     [GeneratedRegex(@"<RootNamespace>\s*(.+?)\s*</RootNamespace>", RegexOptions.IgnoreCase)]
     private static partial Regex RootNamespaceRegex();
+
+    /// <summary>
+    /// Whether a project file describes a browser (WASM) app.
+    /// </summary>
+    /// <remarks>
+    /// Three independent signals, because an app can be recognisably a browser app by any of them: the
+    /// browser target framework, the framework's own <c>RaskWasm</c> marker, or a reference to the WASM
+    /// host. Matching any one of them is deliberate — a project that is a browser app by only one signal
+    /// is still a browser app, and the cost of a false positive here is next-steps text that mentions a
+    /// package the reader does not have, not a broken build.
+    /// </remarks>
+    internal static bool DetectBrowser(string csprojText)
+    {
+        ArgumentNullException.ThrowIfNull(csprojText);
+
+        return csprojText.Contains("-browser", StringComparison.OrdinalIgnoreCase)
+            || csprojText.Contains("<RaskWasm>", StringComparison.OrdinalIgnoreCase)
+            || csprojText.Contains("Rask.Wasm", StringComparison.OrdinalIgnoreCase);
+    }
 
     internal static string ReadRootNamespace(IFileSystem fileSystem, string csprojPath)
     {
@@ -128,10 +160,13 @@ internal static class ProjectLocator
             var projects = fileSystem.ListFiles(directory, "*.csproj");
             if (projects.Count == 1)
             {
+                // One read, two answers — the project file is the source of truth for both.
+                var csproj = fileSystem.ReadAllText(projects[0]);
                 return new ProjectContext(
                     directory,
                     ProjectContext.ReadRootNamespace(fileSystem, projects[0]),
-                    DatabaseCatalog.DetectProvider(fileSystem.ReadAllText(projects[0])));
+                    DatabaseCatalog.DetectProvider(csproj),
+                    ProjectContext.DetectBrowser(csproj));
             }
 
             if (projects.Count > 1)

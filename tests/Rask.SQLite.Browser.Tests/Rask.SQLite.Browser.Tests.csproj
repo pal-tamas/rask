@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite"/>
+    <!-- Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one
+         Microsoft.Data.Sqlite / EF Core pin (CVE-2025-6965). A direct reference is the only
+         lever under CPM — transitive pinning does not move it. See Directory.Packages.props. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.SQLite.Browser"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.SQLite.Browser\Rask.SQLite.Browser.csproj"/>
+    <!-- Referenced directly because Rask.SQLite.Browser takes Rask.Core with PrivateAssets="all" (it is
+         IsPackable=false and reaches consumers through Rask.Wasm), so it does not flow transitively —
+         and the fakes here implement IIndexedDb and IWebLocks. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <!-- Same reason, for ISqliteSnapshotter and SqliteSnapshotInfo. -->
+    <ProjectReference Include="..\..\src\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>
+  </ItemGroup>
+
+</Project>
