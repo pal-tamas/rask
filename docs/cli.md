@@ -252,7 +252,7 @@ audit stamps + a domain-events buffer), so a generated `feature` needs **EF Core
 `Rask.Bootstrap` / the validation library; pass `--no-restore` to skip). It then **writes the DI
 registration** (`AddRaskCqrs()` + `AddRaskData()` + `AddDbContextFactory` with the interceptors) into
 `Program.cs` for you — falling back to printing it if it can't find the file — and prints the migration
-to create and apply with [`rask db`](#rask-db--ef-core-migrations) before it works.
+to create and apply with [`rask db`](#rask-db--migrations-and-getting-the-database-in-and-out) before it works.
 
 Every command has short aliases: `rask g` = `rask generate`, and `g f` / `g c` / `g p` scaffold a
 feature / component / page.

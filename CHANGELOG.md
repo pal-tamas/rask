@@ -45,6 +45,32 @@ them until tagged releases begin.
   `BakeScopedAssetsTask.FailOnEmpty` could not have caught this and — despite its own documentation
   claiming otherwise — has never been wired to anything: it fires only when the bake *runs* and writes
   zero, whereas here the bake runs perfectly well and the break is downstream of it. Its docs now say so.
+- **62 in-page anchors across the docs sent readers to the top of the page instead of the section they
+  named.** The docs under `docs/` are authored and reviewed on GitHub, and their `#anchor` links are
+  written against GitHub's heading slugs — but the guides site rendered Markdig's, which differ wherever
+  a heading holds punctuation. GitHub *deletes* the character and keeps the spaces either side of it, so
+  `## Rask db — migrations` becomes `#rask-db--migrations`, while Markdig collapses the run to
+  `#rask-db-migrations`; leading numbers survive on GitHub (`#1-two-way-binding`) and are stripped by
+  Markdig. Every one of those links still navigated, which is why none of them looked broken.
+  Heading ids are now stamped GitHub-style, so the same anchor resolves in both places a doc is read.
+  Markdig's own `AutoIdentifierOptions.GitHub` does **not** close this gap — it produces identical output
+  to the default, verified — so the slug is ours. The on-this-page rail reads ids from the same pipeline
+  and follows automatically.
+  Five anchors were genuinely dead rather than mis-slugged (a heading reworded, one that never existed)
+  and are repointed at the sections they meant.
+
+### Added
+- **The docs suite now checks that links *inside* a doc resolve, not just that every doc is reachable.**
+  `DocsIndexTests` guarded reachability from `docs/README.md` and `GuidesTests` guarded catalogue parity;
+  neither looked at whether a link written in a doc pointed at anything, so both misses above were found
+  by a person reading rather than by a test. `DocsLinkTests` adds three checks over every `docs/**/*.md`:
+  a relative `*.md` link resolves to a file that exists; it resolves to a doc the app can actually serve
+  (the renderer rewrites `dir/x.md` to the SPA route `/guides/x` by bare leaf, so a doc present on disk
+  but not embedded under that slug is a link a reader can follow to a 404); and an `#anchor` — in the
+  same doc or another — names a real heading. Anchors are checked against the ids Markdig actually
+  stamps, by parsing with the renderer's own pipeline rather than a second slugifier that could disagree
+  with the first. External `http(s)` links are left alone: checking them needs the network and would buy
+  flakiness for no benefit.
 
 ### Fixed
 - **Playground: picking a chapter or an example before the editor had mounted silently kept the starter

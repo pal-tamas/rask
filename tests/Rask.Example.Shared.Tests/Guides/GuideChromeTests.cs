@@ -40,6 +40,28 @@ public sealed class GuideChromeTests
         Assert.Equal("Programmatic navigation — Navigator", Assert.Single(headings).Text);
     }
 
+    [Theory]
+    // The docs are authored on GitHub and their in-page links are written against GitHub's anchors, so
+    // the rendered ids have to be GitHub's. The distinguishing behaviour is that a dropped character
+    // leaves the spaces either side of it — "db — migrations" becomes db--migrations, not db-migrations —
+    // and that a leading number survives. Markdig's own slug does neither, which silently sent readers to
+    // the top of the page for 62 links across docs/.
+    [InlineData("## `rask db` — migrations, and getting it out", "rask-db--migrations-and-getting-it-out")]
+    [InlineData("## Context & dependency injection", "context--dependency-injection")]
+    [InlineData("## 1. Two-way binding", "1-two-way-binding")]
+    [InlineData("## Callbacks (child → parent)", "callbacks-child--parent")]
+    [InlineData("## Gotcha: don't `StateHasChanged()` in unmount", "gotcha-dont-statehaschanged-in-unmount")]
+    public void Headings_UseGitHubAnchorSlugs(string markdown, string expectedId) =>
+        Assert.Equal(expectedId, Assert.Single(Markdown.Headings(markdown)).Id);
+
+    [Fact]
+    public void Headings_DisambiguateRepeatedTitlesTheWayGitHubDoes()
+    {
+        var ids = Markdown.Headings("## Notes\n\n## Notes\n\n## Notes\n").Select(h => h.Id).ToArray();
+
+        Assert.Equal(["notes", "notes-1", "notes-2"], ids);
+    }
+
     [Fact]
     public void ReadingOrder_FollowsGroupOrderThenCatalogOrder()
     {
