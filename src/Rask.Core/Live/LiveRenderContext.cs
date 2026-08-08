@@ -126,6 +126,19 @@ public sealed class LiveRenderContext : IDisposable
     internal int HeadSentinelIndex { get; set; } = -1;
 
     /// <summary>
+    ///     Hands a development-only error to the session, to paint <em>over</em> the app. Called during
+    ///     the render walk by <see cref="RootErrorBoundary" /> when a handler or async lifecycle hook threw.
+    /// </summary>
+    /// <remarks>
+    ///     It goes to the handle rather than being held here because this context is disposed when the
+    ///     walk ends and the frame is built afterwards. The session then rides it inside the render
+    ///     payload rather than sending its own control frame — the same reasoning as <c>resume</c>,
+    ///     <c>history</c> and <c>auth</c>: the frame stream is a contract, and an extra frame is
+    ///     observable in ways an extra field is not.
+    /// </remarks>
+    internal void ReportDevError(DevErrorInfo error) => _handle?.ReportDevError(error);
+
+    /// <summary>
     ///     Every user-component type observed during this render walk. Populated
     ///     unconditionally by <see cref="PushScope" /> on each component entry — covers
     ///     components with scoped CSS, scoped JS, both, and neither. Read by

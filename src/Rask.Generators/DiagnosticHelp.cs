@@ -5,6 +5,16 @@ namespace Rask.Generators;
 // Single source of truth for the docs base URL across all generators/analyzers.
 internal static class DiagnosticHelp
 {
+    // The single category every RASKxxx descriptor reports under.
+    //
+    // There used to be two, split by which kind of thing produced the diagnostic: the incremental
+    // generators used "Rask.Generators" and the analyzers used "Usage". That is an implementation
+    // detail of this repo, and it leaked all the way out to the consumer — a category is what an
+    // .editorconfig rule or an IDE's "group by category" keys on, so any attempt to treat the family
+    // as a family (`dotnet_analyzer_diagnostic.category-Rask.severity = …`) silently caught half of
+    // it (#609). One family, one category.
+    public const string Category = "Rask";
+
     private const string DocBase = "https://github.com/pal-tamas/rask/blob/main/docs/diagnostics.md";
 
     // GitHub lowercases heading anchors, and the docs use "## RASKxxx" headings → "#raskxxx".

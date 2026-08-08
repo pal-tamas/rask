@@ -21,6 +21,7 @@ public sealed class NativeClientSpliceTests
         var input = File.ReadAllText(Path.Combine(core, "rask-input.js"));
         var scoped = File.ReadAllText(Path.Combine(core, "rask-scoped.js"));
         var hotReload = File.ReadAllText(Path.Combine(core, "rask-hotreload.js"));
+        var devError = File.ReadAllText(Path.Combine(core, "rask-deverror.js"));
         var committed = File.ReadAllText(Path.Combine(repoRoot, "src", "Rask.Native", "Assets", "rask.native.js"));
 
         // Mirror the marker splice order in _RaskSpliceNativeClientJs (Rask.Native.csproj).
@@ -32,7 +33,8 @@ public sealed class NativeClientSpliceTests
             .Replace("// @@RASK_PWA@@", pwa)
             .Replace("// @@RASK_INPUT@@", input)
             .Replace("// @@RASK_SCOPED@@", scoped)
-            .Replace("// @@RASK_HOTRELOAD@@", hotReload);
+            .Replace("// @@RASK_HOTRELOAD@@", hotReload)
+            .Replace("// @@RASK_DEVERROR@@", devError);
 
         Assert.True(
             spliced == committed,

@@ -204,10 +204,15 @@ public sealed partial class LiveTicker : Component
                         $"poll {IntervalMs} ms · {_history.Count}/{HistoryCapacity} pts"]
                 ],
                 BsStack(Gap: 3, Align: BsAlign.Baseline, Class: Margin.Bottom(3))[
-                    _history.Count == 0
-                        ? Span(Class: "fs-3 text-secondary", Id: "ticker-price")["Waiting for first tick…"]
-                        : Span(Class: "fs-2 fw-bold", Id: "ticker-price")[
-                            $"${current.ToString("N2", CultureInfo.InvariantCulture)}"],
+                    // One element, one class list, whichever state we're in — the price *text* changes,
+                    // the box doesn't. Two spellings (fs-3 text-secondary → fs-2 fw-bold) meant the first
+                    // tick resized and re-weighted the headline number 50 ms after mount, shoving the chart
+                    // below it; and because the difference lived in a class attribute, it also made this
+                    // demo's golden markup a race against the wall clock (#618).
+                    Span(Class: "fs-2 fw-bold", Id: "ticker-price")[
+                        _history.Count == 0
+                            ? "Waiting for first tick…"
+                            : $"${current.ToString("N2", CultureInfo.InvariantCulture)}"],
                     _history.Count > 1
                         ? Span(Class: $"fs-6 fw-semibold {changeClass}", Id: "ticker-change")[
                             $"{changeSign}{change.ToString("F2", CultureInfo.InvariantCulture)}% since first sample"]
@@ -223,11 +228,13 @@ public sealed partial class LiveTicker : Component
                 // <svg> a known box to fill.
                 Div(Class: "ticker-chart-container", Id: "ticker-chart",
                     Style: "position: relative; height: 160px;")[
-                    _history.Count == 0
-                        ? P(Class: "text-secondary small mb-0")["Waiting for first tick…"]
-                        : Sparkline(
-                            _history.Select(p => (double)p.PriceUsd).ToList(),
-                            Class: "ticker-chart-svg")
+                    // Always the <svg>. Sparkline already draws an empty labelled frame for an empty
+                    // series, so the <p> placeholder this replaces was a second, worse answer to the same
+                    // question — and swapping <p> for <svg> on the first tick was a tag-name change, which
+                    // is the one thing the demo-markup golden cannot snapshot (#618).
+                    Sparkline(
+                        _history.Select(p => (double)p.PriceUsd).ToList(),
+                        Class: "ticker-chart-svg")
                 ]
             ]
         ];

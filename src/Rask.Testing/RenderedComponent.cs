@@ -2,12 +2,13 @@ using System.Diagnostics;
 using System.Text.Json;
 using Rask.Core;
 using Rask.Core.Live;
+using Rask.Core.Routing;
 
 namespace Rask.Testing;
 
 /// <summary>
 ///     A rendered component under test. <see cref="Html" /> is the current markup; invoke a handler
-///     (<see cref="InvokeAsync" />, <see cref="ClickAsync" />) to simulate an event, which dispatches it
+///     (<see cref="InvokeAsync(string, string?)" />, <see cref="ClickAsync(string?)" />) to simulate an event, which dispatches it
 ///     and re-renders, or call <see cref="Render" /> to re-render after mutating external state.
 /// </summary>
 public class RenderedComponent : IRenderHandle
@@ -41,6 +42,12 @@ public class RenderedComponent : IRenderHandle
 
     /// <summary>The current rendered HTML, reflecting the component's state as of the last render.</summary>
     public string Html { get; private set; } = string.Empty;
+
+    // The parsed view of Html, rebuilt lazily and only when the markup actually changed. Keyed on
+    // reference rather than value: Render() always produces a fresh string, so a reference match means
+    // "this is literally the markup we parsed", with no comparison over a page-sized string.
+    private HtmlNode? _parsed;
+    private string? _parsedFrom;
 
     /// <summary>Re-renders the component (e.g. after mutating state it reads) and refreshes <see cref="Html" />.</summary>
     public string Render()
@@ -165,6 +172,204 @@ public class RenderedComponent : IRenderHandle
     /// </summary>
     public IReadOnlyList<string> HandlerIds(string domEvent) => Attrs("data-rask-on-" + domEvent);
 
+    // ---- structure ----
+
+    /// <summary>
+    ///     The single element matching <paramref name="selector" /> in the current render.
+    /// </summary>
+    /// <remarks>
+    ///     Throws when there is no match, and when there is more than one. Both are deliberate: a test that
+    ///     silently took the first of several is one that keeps passing after somebody adds a second, and a
+    ///     test that silently found nothing is one that asserts about an element that isn't there. The
+    ///     message names what was found so the fix is obvious. Use <see cref="FindAll" /> when several
+    ///     matches are the point.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="selector" /> is outside the supported subset.</exception>
+    /// <exception cref="InvalidOperationException">There is not exactly one match.</exception>
+    public HtmlNode Find(string selector)
+    {
+        var matches = FindAll(selector);
+        return matches.Count switch
+        {
+            1 => matches[0],
+            0 => throw new InvalidOperationException(
+                $"No element matches '{selector}'.{NearMiss(selector)}\n\n{Html}"),
+            _ => throw new InvalidOperationException(
+                $"{matches.Count} elements match '{selector}', so Find cannot pick one — use FindAll, or "
+                + "narrow the selector:\n  "
+                + string.Join("\n  ", matches.Take(10).Select(m => m.Path()))),
+        };
+    }
+
+    /// <summary>
+    ///     Every element matching <paramref name="selector" />, in document order. Empty when none match.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="selector" /> is outside the supported subset.</exception>
+    public IReadOnlyList<HtmlNode> FindAll(string selector) =>
+        HtmlSelector.Select(Root, selector);
+
+    /// <summary>True when at least one element matches <paramref name="selector" />.</summary>
+    /// <exception cref="ArgumentException"><paramref name="selector" /> is outside the supported subset.</exception>
+    public bool Exists(string selector) => FindAll(selector).Count > 0;
+
+    /// <summary>
+    ///     The element carrying <c>data-testid="<paramref name="id" />"</c> — the stable hook to reach for
+    ///     when an element has no id of its own and you don't want the test coupled to its classes.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">There is not exactly one such element.</exception>
+    public HtmlNode TestId(string id) => Find($"[data-testid=\"{id}\"]");
+
+    /// <summary>
+    ///     The text under the single element matching <paramref name="selector" />, HTML-decoded and with
+    ///     runs of whitespace collapsed — what a reader would see, not what the serializer wrote.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">There is not exactly one match.</exception>
+    public string TextOf(string selector) => Normalize(Find(selector).TextContent);
+
+    /// <summary>
+    ///     The parsed tree for the current <see cref="Html" />. Reparsed whenever the markup changes, so it
+    ///     always reflects the latest render.
+    /// </summary>
+    public HtmlNode Root
+    {
+        get
+        {
+            var html = Html;
+            if (!ReferenceEquals(_parsedFrom, html))
+            {
+                _parsed = HtmlTree.Parse(html);
+                _parsedFrom = html;
+            }
+
+            return _parsed!;
+        }
+    }
+
+    // ---- targeting a handler by what it says, not by where it happens to sit ----
+
+    /// <summary>
+    ///     The handler id for <paramref name="domEvent" /> on the single element matching
+    ///     <paramref name="selector" />.
+    /// </summary>
+    /// <remarks>
+    ///     The reason this exists: <see cref="HandlerId(string)" /> returns the <em>first</em> match in the
+    ///     document, and <see cref="HandlerIds(string)" /> is indexed by position — so adding an unrelated
+    ///     button above the one under test silently re-points every such assertion at the wrong element,
+    ///     and the test keeps passing. Naming the element instead makes the test say what it means.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     There is not exactly one match, or the matched element is not wired to <paramref name="domEvent" />.
+    /// </exception>
+    public string HandlerIdFor(string selector, string domEvent)
+    {
+        var node = Find(selector);
+        return node.Attribute("data-rask-on-" + domEvent)
+               ?? throw new InvalidOperationException(
+                   $"'{node.Path()}' matches '{selector}' but has no {domEvent} handler. Wired here: "
+                   + Describe(node.Attributes.Keys
+                       .Where(k => k.StartsWith("data-rask-on-", StringComparison.Ordinal))
+                       .Select(k => k["data-rask-on-".Length..])));
+    }
+
+    /// <summary>
+    ///     The events of the single element matching <paramref name="selector" />:
+    ///     <c>await page.On("#save").ClickAsync()</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A handle rather than <c>ClickAsync(selector)</c> overloads, because the existing
+    ///     <see cref="ClickAsync(string?)" /> already takes a <see cref="string" /> — the JSON payload — so a
+    ///     selector overload would be chosen by argument count and quietly send "#save" as event args. Two
+    ///     meanings for one parameter type is exactly the trap this API is meant to remove.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">There is not exactly one match.</exception>
+    public ElementActions On(string selector) => new(this, selector);
+
+    /// <summary>The events of one element, resolved by selector. Obtained from <see cref="On" />.</summary>
+    /// <param name="page">The rendered component the element belongs to.</param>
+    /// <param name="selector">The selector that names it — re-resolved on each call, so it survives re-renders.</param>
+    public readonly struct ElementActions(RenderedComponent page, string selector)
+    {
+        /// <summary>Dispatches this element's <c>click</c> handler, then re-renders.</summary>
+        public Task<string> ClickAsync(string? jsonPayload = null) => Raise("click", jsonPayload);
+
+        /// <summary>Raises <c>input</c> with <paramref name="value" /> as the event's value.</summary>
+        public Task<string> InputAsync(string value) => Raise("input", JsonValuePayload(value));
+
+        /// <summary>Raises <c>change</c> with <paramref name="value" /> as the event's value.</summary>
+        public Task<string> ChangeAsync(string value) => Raise("change", JsonValuePayload(value));
+
+        /// <summary>Dispatches this element's <c>submit</c> handler, then re-renders.</summary>
+        public Task<string> SubmitAsync(string? jsonPayload = null) => Raise("submit", jsonPayload);
+
+        /// <summary>Dispatches an arbitrary DOM event by name, for anything without a helper above.</summary>
+        public Task<string> RaiseAsync(string domEvent, string? jsonPayload = null) =>
+            Raise(domEvent, jsonPayload);
+
+        /// <summary>The element itself, re-resolved from the current render.</summary>
+        public HtmlNode Element => page.Find(selector);
+
+        // Resolved per call, not captured: a handler re-renders, and the node from the previous render is
+        // then stale. Re-resolving means `var save = page.On("#save")` keeps working across renders.
+        private Task<string> Raise(string domEvent, string? jsonPayload) =>
+            page.InvokeAsync(page.HandlerIdFor(selector, domEvent), jsonPayload);
+
+        private static string JsonValuePayload(string value) =>
+            "{\"value\":" + System.Text.Json.JsonSerializer.Serialize(value) + "}";
+    }
+
+    private static string Describe(IEnumerable<string> values)
+    {
+        var list = values.ToList();
+        return list.Count == 0 ? "nothing" : string.Join(", ", list);
+    }
+
+    // A selector that matches nothing is nearly always a typo or a stale expectation, and the two read very
+    // differently. Saying which part of it does match turns "no element matches" into a pointer.
+    private string NearMiss(string selector)
+    {
+        var head = selector.Split([' ', '>'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        if (head is null || head == selector)
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var partial = FindAll(head);
+            return partial.Count == 0
+                ? $" Nor does '{head}'."
+                : $" '{head}' matches {partial.Count}, so the rest of the selector is what fails.";
+        }
+        catch (ArgumentException)
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string Normalize(string text)
+    {
+        var sb = new System.Text.StringBuilder(text.Length);
+        var space = false;
+        foreach (var c in text)
+        {
+            if (char.IsWhiteSpace(c))
+            {
+                space = sb.Length > 0;
+                continue;
+            }
+
+            if (space)
+            {
+                sb.Append(' ');
+                space = false;
+            }
+
+            sb.Append(c);
+        }
+
+        return sb.ToString();
+    }
+
     /// <summary>
     ///     Dispatches the handler registered under <paramref name="handlerId" /> with an optional JSON event
     ///     payload (e.g. <c>"{\"value\":\"hi\"}"</c> for an input event), then re-renders and returns the new
@@ -225,6 +430,13 @@ public class RenderedComponent : IRenderHandle
 
         using (doc)
         {
+            // Enter the Navigator's handler scope for the dispatch, exactly as a live session does.
+            // Without it, Navigator.NavigateTo / Download / SetQuery all refuse — "can only be used from
+            // event handlers" — which was true of the harness and not of the component: a page that
+            // navigates or exports on click could not be unit-tested at all, only through Playwright.
+            // No Navigator registered (the common case for a leaf component) means nothing to scope.
+            using var scope = (_services.GetService(typeof(Navigator)) as Navigator)?.EnterHandler();
+
             return await _root.TryInvokeHandlerAsync(handlerId, doc.RootElement, _services)
                 .ConfigureAwait(false);
         }

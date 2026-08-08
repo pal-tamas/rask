@@ -636,14 +636,21 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             // baseline) and there's nothing out-of-band to flow, the payload would be byte-identical
             // to the last send — skip before building. Preserves JS-applied DOM state (hljs's `.hljs`
             // class) across noop publish-renders, and lets a fresh socket dedup against the GET HTML.
+            // HasPendingDevError defeats this deliberately: a handler that threw and changed nothing
+            // renders byte-identical HTML, so without it the overlay would never reach the browser in
+            // exactly the simplest case — a click whose only effect was the exception.
             if (jsInvokes is null
                 && historyUrl is null && auth is null && download is null
+                && !HasPendingDevError
                 && _htmlBuffers.CurrentEqualsPrevious())
             {
                 return;
             }
 
             var renderStarted = Stopwatch.GetTimestamp();
+
+            // Read before WritePayload consumes it — the byte-level dedup below needs to know too.
+            var devErrorPending = HasPendingDevError;
 
             WritePayload(html, frameWriter, download, jsInvokes, historyUrl, replace,
                 commitCache: true, auth, Id);
@@ -656,7 +663,8 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             // reset one. Measuring it there silently records zero for every frame.
             var payloadBytes = _writeBuffer.WrittenCount;
 
-            var force = historyUrl is not null || auth is not null || download is not null;
+            var force = historyUrl is not null || auth is not null || download is not null
+                        || devErrorPending;
             bool sent;
             try
             {

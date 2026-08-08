@@ -43,15 +43,41 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         // the element and nothing about what was moving. A trace's DOM snapshots do name it.
         //
         // Always-on rather than behind a flag, deliberately: the failure this is for did not reproduce on
-        // demand, so the only trace worth having is the one from the run that happened to fail. Screenshots
-        // are included because a moving box is a thing you can see; Sources are not, since the C# stack is
+        // demand, so the only trace worth having is the one from the run that happened to fail.
+        //
+        // Snapshots only, and the reason is the whole of #625. Capturing a screenshot on every action puts
+        // a small pause and a rendering-pipeline flush in front of each one, which was quietly settling the
+        // page — with screenshots on this suite ran 3/3 green and with them off 4/4 red, same machine, same
+        // commit, back to back. That is a gate passing for a reason unrelated to the code under test, which
+        // is worse than a gate that fails: the page really was unstable (see the font routing below), and
+        // the harness was hiding it. Turning them off is what made the failure reproducible enough to fix.
+        //
+        // Nothing is lost. TestArtifacts already writes a full-page PNG for every test, and what a stuck
+        // journey needs is the DOM, which is what a snapshot is. Sources are off too: the C# stack is
         // already in the test output.
         await _ctx.Tracing.StartAsync(new TracingStartOptions
         {
-            Screenshots = true,
+            Screenshots = false,
             Snapshots = true,
             Sources = false
         });
+
+        // Serve the showcase's web fonts from nowhere, so the gate does not depend on a CDN.
+        //
+        // App.cs links three Google Font families with `display=swap`. Swap means: paint with the fallback
+        // now, and REFLOW when each webfont lands — three families, several weights, over the public
+        // internet, on a page the journey throttles to Slow-3G. Every arrival moves the text and therefore
+        // the bounding box of everything below it, and Playwright's actionability check requires a box that
+        // is identical across two consecutive animation frames. That is #625: "element is not stable" for
+        // the full 30s, on whichever guide page the walk had reached, on all three hosts (they share this
+        // shell), with the text assertions on the very same subtree passing because innerText does not care
+        // what font it is in.
+        //
+        // Aborting the requests makes the page render in the fallback font immediately and settle once.
+        // It costs the gate nothing — no assertion is about typography — and it removes a third-party CDN
+        // from the definition of "the browser gate is green".
+        await _ctx.RouteAsync("**://fonts.googleapis.com/**", route => route.AbortAsync());
+        await _ctx.RouteAsync("**://fonts.gstatic.com/**", route => route.AbortAsync());
 
         Page = await _ctx.NewPageAsync();
         // Capture the browser console + uncaught page errors so a failing test can surface

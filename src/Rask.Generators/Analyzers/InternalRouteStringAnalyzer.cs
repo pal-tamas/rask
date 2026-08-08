@@ -33,7 +33,7 @@ public sealed class InternalRouteStringAnalyzer : DiagnosticAnalyzer
         "Prefer the generated route URL over a hardcoded path",
         "Navigate with the generated 'Routes.{0}()' instead of the string \"{1}\" — a renamed or removed "
         + "[Route] then becomes a compile error, not a silent dead link",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         "Rask generates a type-safe RouteUrl factory ('Routes.<Page>()') for every page's primary [Route]. "

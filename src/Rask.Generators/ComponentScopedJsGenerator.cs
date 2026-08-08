@@ -26,28 +26,38 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask017 = new(
         "RASK017",
         "Orphan scoped-JS file",
-        "Scoped-JS file '{0}' has no matching component class. Expected a Component subclass named '{1}' in the same folder.",
-        "Rask.Generators",
+        "Scoped-JS file '{0}' has no matching component class — add a Component subclass named '{1}' in the "
+        + "same folder, rename the file to match one, or set "
+        + "<RaskScopedJsAutoInclude>false</RaskScopedJsAutoInclude> if it is a plain wwwroot script",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "As RASK015, for a '{Name}.js' sibling: scoped JS is matched by file name and folder, so a script "
+                     + "with no component of that name beside it is registered against nothing.",
         helpLinkUri: DiagnosticHelp.Link("RASK017"));
 
     private static readonly DiagnosticDescriptor Rask018 = new(
         "RASK018",
         "Ambiguous scoped-JS match",
         "Scoped-JS file '{0}' matches multiple component classes named '{1}': {2}. Move one to disambiguate.",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "As RASK016, for scoped JS: two components of the same name in one folder make the pairing "
+                     + "arbitrary.",
         helpLinkUri: DiagnosticHelp.Link("RASK018"));
 
     private static readonly DiagnosticDescriptor Rask020 = new(
         "RASK020",
         "Scoped-JS simple-name collision",
         "Two or more components with scoped JS share the simple type name '{0}': {1}. The browser-side namespace key window.Rask[\"{0}\"] is shared by all of them and the last registration silently wins. Rename one, move it to a differently-named sibling, or expose your exports under a sub-namespace inside the JS file. Promote to error in csproj with <WarningsAsErrors>RASK020</WarningsAsErrors>.",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "Scoped JS is exposed to the browser as window.Rask['Name'], keyed on the component's SIMPLE name "
+                     + "— so two components of the same name in different namespaces share one key and the last one "
+                     + "registered wins, silently. Promote to an error with "
+                     + "<WarningsAsErrors>RASK020</WarningsAsErrors>.",
         helpLinkUri: DiagnosticHelp.Link("RASK020"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)

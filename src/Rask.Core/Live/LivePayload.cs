@@ -65,6 +65,44 @@ public static class LivePayload
     internal static readonly byte[] ServerShutdownFrame = Encoding.UTF8.GetBytes(ServerShutdownJson);
 
     /// <summary>
+    ///     As <see cref="InjectRootAttr(string, string, bool)" />, and additionally stamps where the
+    ///     client can ask about build status while the server is gone.
+    /// </summary>
+    /// <param name="html">The rendered page.</param>
+    /// <param name="sessionId">The live session id, stamped as <c>data-rask-root</c>.</param>
+    /// <param name="dev">Whether this host is in development.</param>
+    /// <param name="devStatusUrl">
+    ///     Where the client can ask <c>rask dev</c> whether the app is down because it is <em>broken</em>
+    ///     or because it is <em>restarting</em> (#603). Stamped as <c>data-rask-dev-status</c> so the
+    ///     client still has it after the server that sent it has gone away — which is the whole point,
+    ///     since a failed rebuild is exactly when there is no server left to ask.
+    /// </param>
+    public static string InjectRootAttr(string html, string sessionId, bool dev, string? devStatusUrl)
+    {
+        var stamped = InjectRootAttr(html, sessionId, dev);
+
+        // Never outside development, and never without the flag it sits beside: a production page must
+        // not carry a localhost URL the browser would then poll.
+        if (!dev || string.IsNullOrEmpty(devStatusUrl))
+        {
+            return stamped;
+        }
+
+        var i = IndexOfBodyOpen(stamped);
+        if (i < 0)
+        {
+            return stamped;
+        }
+
+        var insertAt = i + "<body".Length;
+        var attribute = " data-rask-dev-status=\"" + HtmlEncoder.Default.Encode(devStatusUrl) + "\"";
+        return string.Concat(
+            stamped.AsSpan(0, insertAt),
+            attribute.AsSpan(),
+            stamped.AsSpan(insertAt));
+    }
+
+    /// <summary>
     ///     Stamps the session id onto <c>&lt;body&gt;</c> as <c>data-rask-root</c>, and in development
     ///     also <c>data-rask-dev</c> — the flag the client requires before it will act on any dev-only
     ///     frame. Production HTML never carries it, so those branches are unreachable there even if a
@@ -169,10 +207,11 @@ public static class LivePayload
         AuthInstruction? auth = null,
         PendingDownload? download = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
-        string? resume = null)
+        string? resume = null,
+        DevErrorInfo? devError = null)
     {
         using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
-        WriteJson(writer, html, historyUrl, replace, auth, download, jsInvokes, resume);
+        WriteJson(writer, html, historyUrl, replace, auth, download, jsInvokes, resume, devError);
     }
 
     /// <summary>
@@ -181,7 +220,7 @@ public static class LivePayload
     ///     vectorized <see cref="MemoryExtensions.IndexOf{T}(System.ReadOnlySpan{T}, T)" /> (no
     ///     UTF-16 char-by-char scan), splices <c>data-rask-root="..."</c> on the opening tag,
     ///     and writes the JSON payload containing **only the body**. Replaces the prior
-    ///     <see cref="InjectRootAttr" /> + <see cref="ExtractBody" /> +
+    ///     <see cref="InjectRootAttr(string, string, bool)" /> + <see cref="ExtractBody" /> +
     ///     <see cref="BuildPayloadUtf8(string,string,bool,AuthInstruction,PendingDownload,IReadOnlyList{PendingJsInvoke})" />
     ///     chain in one pass.
     /// </summary>
@@ -256,9 +295,10 @@ public static class LivePayload
         AuthInstruction? auth = null,
         PendingDownload? download = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
-        string? resume = null)
+        string? resume = null,
+        DevErrorInfo? devError = null)
         => BuildPayloadUtf8Spliced(output, html, sessionId, false,
-            historyUrl, replace, auth, download, jsInvokes, resume);
+            historyUrl, replace, auth, download, jsInvokes, resume, devError);
 
     /// <summary>
     ///     Diff-mode payload: writes <c>{ "kind": "diff", "ops": [...] }</c> directly
@@ -308,7 +348,8 @@ public static class LivePayload
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
         string? headHtml = null,
         ReadOnlySpan<char> newHtml = default,
-        string? resume = null)
+        string? resume = null,
+        DevErrorInfo? devError = null)
     {
         // Pass 1: build the attribute-name symbol table. Intern when the name appears
         // 3+ times — break-even with the table overhead lands around there for typical
@@ -523,7 +564,8 @@ public static class LivePayload
         AuthInstruction? auth,
         PendingDownload? download,
         IReadOnlyList<PendingJsInvoke>? jsInvokes,
-        string? resume = null)
+        string? resume = null,
+        DevErrorInfo? devError = null)
     {
         // Find <body> bounds on the UTF-16 source. The prior implementation
         // rented + encoded the entire html to UTF-8 first, scanned the byte span,
@@ -601,7 +643,8 @@ public static class LivePayload
             // not embedded into HTML, so the default HTML-safe escaping inflates the "html"
             // field's `<` / `>` 5× for no security benefit. Shaves ~3-5 KB off a 10 KB page.
             using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
-            WriteJsonUtf8Body(writer, span[..cursor], historyUrl, replace, auth, download, jsInvokes, resume);
+            WriteJsonUtf8Body(writer, span[..cursor], historyUrl, replace, auth, download, jsInvokes, resume,
+                devError);
         }
         finally
         {
@@ -645,11 +688,12 @@ public static class LivePayload
         AuthInstruction? auth,
         PendingDownload? download,
         IReadOnlyList<PendingJsInvoke>? jsInvokes,
-        string? resume = null)
+        string? resume = null,
+        DevErrorInfo? devError = null)
     {
         writer.WriteStartObject();
         writer.WriteString("html", html);
-        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes, resume);
+        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes, resume, devError);
     }
 
     /// <summary>
@@ -670,6 +714,33 @@ public static class LivePayload
         }
     }
 
+    /// <summary>
+    ///     Writes the development error overlay record when a handler or async lifecycle hook threw.
+    /// </summary>
+    /// <remarks>
+    ///     Rides inside the render payload for the same reason <see cref="WriteResume" /> does — the frame
+    ///     stream is a contract, and an extra frame is observable in ways an extra field is not. It is also
+    ///     exact here: the overlay only ever appears alongside the render that follows the fault.
+    ///     <para>
+    ///         Never written outside development: <see cref="DevErrorInfo.From" /> returns <c>null</c> there,
+    ///         so a production payload cannot carry a stack trace even if a call site forgot to check.
+    ///     </para>
+    /// </remarks>
+    private static void WriteDevError(Utf8JsonWriter writer, DevErrorInfo? devError)
+    {
+        if (devError is null)
+        {
+            return;
+        }
+
+        writer.WriteStartObject("devError");
+        writer.WriteString("kind", devError.Kind);
+        writer.WriteString("title", devError.Title);
+        writer.WriteString("message", devError.Message);
+        writer.WriteString("detail", devError.Detail);
+        writer.WriteEndObject();
+    }
+
     private static void WriteJsonUtf8Body(
         Utf8JsonWriter writer,
         ReadOnlySpan<byte> htmlUtf8,
@@ -678,11 +749,12 @@ public static class LivePayload
         AuthInstruction? auth,
         PendingDownload? download,
         IReadOnlyList<PendingJsInvoke>? jsInvokes,
-        string? resume = null)
+        string? resume = null,
+        DevErrorInfo? devError = null)
     {
         writer.WriteStartObject();
         writer.WriteString("html", htmlUtf8);
-        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes, resume);
+        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes, resume, devError);
     }
 
     private static void WriteJsonTail(
@@ -692,9 +764,11 @@ public static class LivePayload
         AuthInstruction? auth,
         PendingDownload? download,
         IReadOnlyList<PendingJsInvoke>? jsInvokes,
-        string? resume = null)
+        string? resume = null,
+        DevErrorInfo? devError = null)
     {
         WriteResume(writer, resume);
+        WriteDevError(writer, devError);
         WriteJsInvokesArray(writer, jsInvokes);
 
         if (historyUrl is not null)

@@ -203,6 +203,41 @@ them until tagged releases begin.
   an instance method on a readonly struct reached through `Nullable<T>` is a stack copy and a call
   (1208 B/render through a chain and through the factory alike, on a component that invokes both its
   callbacks every render).
+- **Three diagnostics for the builder surface, where the compiler stops being able to speak for us.**
+  Entries are members named after their component type, so they interact with name lookup in ways the
+  factory never did — and the two failures that produces both surface as compiler errors that name
+  neither the entry nor the fix.
+  - **A quick-fix for `CS0108`** that inserts `new` on a member hiding an entry: a component property
+    (`BsModal.Footer`), a private helper named after a tag (`Section(…)`), a nested type (`record Line`
+    vs the SVG `<line>` entry), a field. Offered **only** inside a component — hiding in your own class
+    hierarchy is your decision — and it puts `new` where `csharp_preferred_modifier_order` wants it, so
+    the edit survives the next `dotnet format`. Deliberately a code fix rather than a
+    `DiagnosticSuppressor`: a suppressor satisfies the compiler, but `dotnet format` ignores suppressors
+    and applies the underlying fix anyway, so the format gate would never settle.
+  - **RASK037** — a `using` alias hidden by an entry. `using B = …` loses to the `<b>` tag inside any
+    component body and fails as **CS1061** at the *use*, naming a `B` nobody wrote; no code fix can
+    reach it, because by then the alias has already lost the lookup. The analyzer says it at the alias,
+    where the rename goes, and only when an entry actually claims the name.
+  - **RASK038 / RASK039** — the builder half of RASK001. A required property is a required *parameter*
+    on the generated factory, so the language reports an omitted one; in a chain it is just a setter
+    that isn't there, and the component renders holding a `null`. RASK038 walks the chain and names what
+    it never set. RASK039 covers the case the walk cannot answer — a chain stored in a local or a field
+    can be continued anywhere — and reports the gap in the analysis rather than a wrong answer. RASK001
+    stays: both surfaces exist side by side during the migration.
+
+  RASK038 and RASK039 are for now the surface's **hand-written** half: the generator withholds an entry
+  from exactly the components that have a required property (an entry has no argument to carry the value
+  and no default to reset it to), so a chain over a *generated* entry has nothing for RASK038 to find.
+  Lifting that restriction is what switches it on, and the analyzer is the precondition for lifting it.
+  All three, plus the `CS0108` fix, are now pinned against the emission itself — the real
+  `protected static` entries in `Rask.Core`, and the `private static` ones the generator injects into a
+  consumer's `partial` — rather than only against hand-written stand-ins for them.
+- **RASK036 and RASK040–042 are documented.** The builder surface's own four diagnostics (a component
+  must be `partial`; two components share a simple name; the shared pending-bit budget is exhausted; a
+  delegate-typed property has no reachable setter) shipped with a `helpLinkUri` pointing at an anchor
+  that did not exist. They now have their sections in `docs/diagnostics.md`, report under the single
+  `Rask` category with the rest of the family, and carry the expanded IDE tooltip every other RASK
+  diagnostic carries.
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two
@@ -318,6 +353,237 @@ them until tagged releases begin.
   "element is not stable" naming the element and nothing about what was moving. The journey records a trace
   with DOM snapshots throughout and keeps it only on failure, printing the path and the command that opens
   it. Always on rather than behind a flag, because the run worth tracing is the one that unexpectedly failed.
+- **Hot reload can apply an edit in this repo again.** Every save under `rask dev` on any sample failed
+  with `error CS7038: … Changing the version of an assembly reference is not allowed during debugging:
+  'Rask.Bootstrap, Version=0.0.0.0' changed version to '1.0.0.0'`, so the edit never reached the running
+  app — for a one-character change to a `Render()` body, the most hot-reloadable thing there is.
+  - MinVer sets `AssemblyVersion` from a **target**; hot reload never runs targets, because Roslyn's EnC
+    service compiles in-process from the project's **evaluated** properties, where MinVer has not run and
+    the SDK falls back to `Version 1.0.0` → `AssemblyVersion 1.0.0.0`. Every emit therefore disagreed with
+    the assembly already loaded. `Directory.Build.props` now pins `<AssemblyVersion>0.0.0.0</AssemblyVersion>`
+    at evaluation time — the same value MinVer's target produces on the `0.x` line, so nothing about the
+    shipped binaries changes and the real version keeps riding on `FileVersion`/`InformationalVersion`.
+  - **It only affected the packable projects**, which is why it went unnoticed: MinVer is referenced under
+    `Condition=" '$(IsPackable)' != 'false' "`, so `Rask.Core` read `1.0.0.0` on both sides and agreed by
+    accident. That is also why `AssemblyVersionStabilityTests` asserts against a packable assembly — a
+    guard reading `Rask.Core` would pass with the pin removed.
+  - It would equally have hit **any app that project-references a Rask project**, and it quietly devalued
+    the hot-reload work in #534/#569: all of it behaves correctly, and none of it could be demonstrated on
+    this repo's own samples.
+- **A build that fails under `rask dev` is reported as a build failure, not as a lost connection.** Saving
+  a file that didn't compile took the app down, and the browser — which only knows that its socket closed —
+  said "Reconnecting…", then "Still trying to reconnect…" with a **Retry now** button that could not
+  possibly succeed. A compile problem reported as a network problem, with an action that cannot help. The
+  page now shows the compiler errors, and clears itself the moment the code builds: the reconnect ladder
+  keeps running underneath the panel, so a fixed typo brings the app back with no reload and nothing to
+  click.
+  - **It could not be a live-protocol frame, which is the whole point.** The existing out-of-band frames
+    (`hotReload`, `shutdown`) are broadcast *by the app*; when a rebuild fails the app process is **down**,
+    so there is nothing left to send. The signal has to come from something that outlives the app, and the
+    only such thing is `rask dev` itself — which now reads `dotnet watch`'s output as it passes it through
+    to the terminal, and serves what it learned from a read-only loopback endpoint it owns for the life of
+    the session.
+  - Its URL is stamped onto each page the app serves (`data-rask-dev-status` on `<body>`), so the browser
+    still has somewhere to ask **after** the server that sent it is gone. Development only, gated twice:
+    production HTML never carries the attribute, and the client will not poll without it.
+  - The watcher keys on **MSBuild's diagnostic format**, not on watch's prose — watch decorates its lines
+    with emoji, localises them, and has reworded them between SDK releases, where
+    `path(line,col): error CS0103: …` is stable and locale-independent. Repeats of one diagnostic across
+    referencing projects are counted once, so a single typo in a shared library reads as one error rather
+    than three.
+  - Failure to bind the endpoint is never fatal: `rask dev` runs exactly as before and the browser falls
+    back to the reconnect overlay.
+
+### Fixed
+- **A component that calls `ToHtml()` on a tree containing a `<head>` no longer corrupts the page around
+  it.** `HeadSentinelIndex` is a byte offset into whichever builder is being serialized, and `ToHtml()`
+  serializes into a private one whose string is handed straight back — so a nested call published an offset
+  that meant nothing to the render owning the context, and the live root then spliced the scoped-CSS/JS
+  block *there*: into the middle of an unrelated opening tag, cutting it in half and losing its attributes.
+  Recording is first-wins, so a page with its own `<head>` was safe by accident (the shell's head goes
+  first) while a render without one — every `RaskTest.Render`, so every unit test, in a shipped package —
+  was not. `ToHtml()` now saves and restores the offset; its output never goes through the splice, so it
+  had no use for it. Found by the new demo-markup timer guard below, which caught it corrupting a demo that
+  had been snapshotting the damage as normal.
+
+### Changed
+- **Three tests that went red under load rather than on merit.** Each one taught `--no-verify`.
+  - **The persisted-state budget diagnostic** asserted `Assert.Single` over everything the process-global
+    `RaskDiagnostics.Sink` saw while it was swapped in — which is really "no other test in the assembly
+    reported anything in this millisecond", true almost always and so failing rarely and confusingly. It
+    now asserts on the events its own call site produces, and moved into the serialised collection that
+    already owns that global: two tests swapping the sink concurrently lose it entirely, since both save
+    `previous`, the second saves the first's capturing delegate, and restoring in that order leaves the
+    sink pointing at a list nobody reads.
+  - **The log-writer shutdown-drain test** started the writer's loop, on the belief that a five-minute
+    `FlushInterval` meant nothing could reach disk on the timer. `ExecuteAsync` is a `do/while` over a
+    `PeriodicTimer`, so its first cycle runs *before* the first tick — and under load that cycle can pull
+    the entry out of the channel and still be inside `AppendAsync` when shutdown cancels the token, at
+    which point the entry is gone for good and the drain finds nothing. The loop is no longer started, so
+    the drain is the only code that can append and the test's premise is true by construction.
+  - **The demo-markup golden** captured `LiveTicker` mid-race. Fixed at the source rather than by
+    regenerating, which would only have moved the flake to the other state — see below.
+- **`LiveTicker` renders one layout, not two.** The headline price switched class list (`fs-3 text-secondary`
+  → `fs-2 fw-bold`) and the chart swapped a `<p>` placeholder for its `<svg>` when the first tick landed
+  50 ms after mount — so the number resized and the chart appeared, shoving the page around, and the demo's
+  golden markup became a race against machine load. The price span now keeps one class list and changes only
+  its text, and the `<svg>` is always emitted (`Sparkline` already draws a labelled empty frame for an empty
+  series, so the placeholder was a second, worse answer to the same question).
+- **A new guard catches the next demo that does this.** `EveryDemoSkeleton_IsReproducible` renders twice
+  back-to-back, so both renders land on the same side of any mount-time timer and agree — which is exactly
+  how `LiveTicker` walked past it. The new check holds one instance and reads it again after its timers have
+  fired, and names the line that moved. It found two offenders on its first run: the ticker, and the
+  `ToHtml()` corruption above.
+- **The browser gate no longer depends on Google's font CDN, which is what #625 turned out to be.** The
+  showcase shell links three font families with `display=swap`. Swap means paint with the fallback now and
+  **reflow** when each webfont lands — several files, over the public internet, on a page the journey
+  throttles to Slow-3G. Every arrival moves the text and therefore the bounding box of everything below it,
+  and Playwright's actionability check requires a box that is identical across two consecutive animation
+  frames. Hence a 30s `element is not stable` on whichever guide page the walk had reached, on all three
+  hosts (they share the shell), with the text assertions on the very same subtree passing — `innerText`
+  does not care what font it is in. The journey now aborts requests to `fonts.googleapis.com` /
+  `fonts.gstatic.com`, so the page renders in the fallback immediately and settles once. No assertion is
+  about typography, and "the browser gate is green" no longer includes "a third-party CDN was fast today".
+  - **The gate had also been green for the wrong reason.** Capturing a Playwright screenshot on every
+    action was settling the page: with screenshots on the suite ran 3/3 green and with them off 4/4 red,
+    same machine and commit, back to back. Traces now record snapshots only — `TestArtifacts` already
+    writes a full-page PNG per test, and what a stuck journey needs is the DOM.
+- **The docs that ship inside every package now describe what actually ships.** `NUGET.md` is packed into
+  all 24 packages via `Directory.Build.props`, which makes it the most-read page the project publishes and
+  the one nobody edits — it listed **7**. Missing: every battery (Jobs, Mail, Cache, Outbox, Data, Logging,
+  Dashboard), both SQLite satellites, both alternative database providers, and `Rask.Testing`. It also
+  showed only `rask new`, though `generate`, `db`, `dev` and `deploy` have shipped since, and still led
+  with the pre-OPF tagline the README and `llms.txt` had moved on from. Rewritten by role — pick a host,
+  add the batteries you want, pick a database — and **a test now fails the build if a packable project is
+  not named there**, next to the existing guard that catches one missing from the pack workflow.
+- **`CONTRIBUTING.md` no longer contradicts itself about CI.** It said tests don't run in CI and then, 20
+  lines later, that CI runs them; it credited a CodeQL workflow this repo doesn't have; it gave the
+  diagnostic range as RASK001–029 twice when it is 001–035; and it opened with bare `dotnet test`, which
+  pulls in the Playwright suite the rest of the page tells you to avoid. It now says what `ci.yml`
+  contains, and points at the two gate scripts the hooks actually run.
+- **`llms.txt`** framed deployment as "opt-in `--docker`" when `rask deploy` — SSH, blue-green, health-gated
+  cutover, Caddy auto-HTTPS, bare-VPS provisioning — has shipped, and its battery list stopped at four.
+- **`AGENTS.md`** listed 8 of the 12 committed skills, omitting `add-codefix` and all three
+  "drive the real app" playbooks — the ones an agent needs precisely when a passing test isn't proof.
+- **`docs/getting-started.md`** said three templates and listed three; there are four (`native` was
+  missing). It called `--docker` a template when it is a flag, and its "see the README's *Sub-path hosting*
+  section" pointed at a section that does not exist — the README's only mention pointed back at
+  getting-started, so the reader went in a circle. It now points at the pages that cover it.
+
+- **The six diagnostics that told you production would break, without telling you how to stop it, now
+  say.** #275 gave the route family an actionable fix clause but only reached the descriptors in
+  `RoutesGenerator`; the two that deserved it most were in other files and were missed.
+  - **RASK029** (a CQRS handler) and **RASK035** (a job or outbox event) are *Warnings* announcing a
+    guaranteed runtime failure — the type is skipped, so dispatching it throws or a queued message
+    dead-letters — and they stopped at the bare phrase (`is abstract`, `is a file-local type`, `is not
+    accessible from generated code`). A warning you can miss, telling you a crash is coming and not how to
+    avoid it, is the worst shape a diagnostic has. Each reason now arrives with its remedy from a single
+    switch in `SymbolRegistration`, so the two halves cannot drift.
+  - **RASK003** was the one route diagnostic #275 skipped, in the file it edited: it named the offending
+    segment and never showed a correct one. Each of the four parse failures now shows the template you
+    meant (`/users/{id:int}`, `/files/{folder}/{name}`, a parameter in its own segment).
+  - **RASK011** stated the constraint and stopped. The remedy was only in `docs/diagnostics.md`, which is
+    not where you are at 2am; it now names both escapes — a parsable type, or take it as `string` and
+    convert inside the page.
+  - **RASK015 / RASK017** were purely descriptive, so the `RaskScopedCssAutoInclude` /
+    `RaskScopedJsAutoInclude` opt-out — the right answer whenever the orphan file is a deliberate global
+    one — was undiscoverable from the error that fired.
+- **BREAKING — every RASK diagnostic reports under one category, `Rask`.** There used to be two, split by
+  what produced the diagnostic: generators used `Rask.Generators`, analyzers used `Usage`. That is an
+  implementation detail of this repo, and it leaked to the consumer — a category is what an
+  `.editorconfig` rule or an IDE's group-by keys on, so
+  `dotnet_analyzer_diagnostic.category-Rask.severity = …` silently covered 22 of the 35 and quietly
+  ignored the other 13. **If you have a rule keyed on `Usage` or `Rask.Generators`, point it at `Rask`**;
+  one line now covers the family. A test fails the build if a descriptor drifts out of it.
+- **Quick fixes for the three most-hit mechanical diagnostics.** `Rask.Generators.CodeFixes` shipped two
+  providers; the highest-value candidate wasn't among them.
+  - **RASK014** — `new Widget()` → the generated `Widget()` factory. It is an **Error**, so it stops the
+    build, and it is the first thing a Blazor or plain-C# migrant hits, because `new` is simply what you
+    reach for. **Deliberately withheld when the construction has arguments or an object initializer**: the
+    factory's parameters are generated from the component's public properties in an order that is not the
+    constructor's, so carrying positional arguments across would compile and mean something *else*, and an
+    object initializer is only legal after `new`. A quick fix that silently changes meaning is worse than
+    none — in those cases the error stands with its message, which already names the factory.
+  - **RASK026** — deletes the redundant `StateHasChanged()` statement, which is what its message says to
+    do. Offered only when the call is the whole statement, so it can't change what an expression-bodied
+    lambda returns.
+  - **RASK027** — removes the `OnXAsync` argument and keeps the sync one. The diagnostic is already
+    anchored on the exact argument, so there is nothing to infer.
+- **All 35 diagnostics now carry a `description`, so the IDE's expanded tooltip says something.** Only 9
+  did; the other 26 included *every* build-breaking Error (003, 014, 019, 021, 032), where the reader's
+  only route to more detail was clicking through to the docs — not something you do mid-keystroke. Each
+  description explains the consequence and the surprising part rather than restating the message, which is
+  already on screen.
+
+- **`Rask.Testing` can read structure, not just attributes.** Its scan had no notion of elements or
+  nesting — it said so in its own remarks — so every structural assertion in a consumer's test degraded to
+  `Assert.Contains("<span class=\"badge\">3</span>", page.Html)`, brittle against exactly the
+  attribute-order invariant this framework's own suite goes to lengths to pin.
+  - **`Find` / `FindAll` / `Exists` / `TextOf` / `TestId`** over a parsed tree. `Find` throws both when
+    nothing matches *and* when several do — a test that silently took the first of several keeps passing
+    after somebody adds a second — and a failure names the near miss (`'#items' matches 1, so the rest of
+    the selector is what fails`) and the path of each candidate.
+  - The **selector is a documented subset** (`tag`, `*`, `#id`, `.class`, `[attr]`, `[attr="v"]` and the
+    `^= $= *=` variants, `:has-text("…")`, descendant and `>`), and **anything outside it throws**. A
+    selector that quietly matched nothing because `:nth-child` was ignored would turn a green test into a
+    lie. The parser is ~200 lines rather than a dependency: `Rask.Testing` is a shipped package, so a
+    parser dependency lands in every consumer's test project, and Rask's own serializer emits the markup —
+    always double-quoted, always encoded — which is what makes a small reader correct here.
+  - **`page.On("#save").ClickAsync()`** targets an element by name. `HandlerId` returns the *first* match
+    in the document and `HandlerIds` is indexed by position, so adding an unrelated button above the one
+    under test silently re-points every such assertion and the test keeps passing. A handle rather than a
+    `ClickAsync(selector)` overload, because `ClickAsync` already takes a `string` — the JSON payload.
+  - **`TestDownloadSink`.** `Navigator.Download` refuses to run without an `IDownloadSink` and its message
+    says *"If you're in a unit test, register a fake"* — while the testing package shipped none, so
+    everyone wrote the same twenty lines.
+  - **Event dispatch now enters the `Navigator`'s handler scope**, as a live session does. Without it
+    `NavigateTo` / `Download` / `SetQuery` all refused with "can only be used from event handlers" —
+    true of the harness, not of the component — so a page that navigates or exports on click could not be
+    unit-tested at all, only through Playwright.
+  - **`TestRoute.At("/search?q=hello%20world")`** seeds a `RouteState` with its query string parsed,
+    decoded and repeated keys kept. Seeding a path was already a one-liner; seeding a query meant building
+    an `IQueryCollection` by hand, so most tests simply didn't.
+  - **`CapturingDiagnostics`** captures framework diagnostics, so an app author can finally assert that a
+    swallowed fault happened — or that none did. A public wrapper rather than a public `RaskDiagnostics`:
+    `Rask.Testing` is already on Core's `InternalsVisibleTo` list, and a public seam is irreversible where
+    a wrapper is not.
+  - **`TestJSRuntime` stops failing silently on a type mismatch.** `SetResponse("getCount", 1)` against a
+    component calling `InvokeAsync<long>` returned `0` — indistinguishable from "not configured", so the
+    test read as though the component had ignored the value. Unconfigured still returns `default` (that is
+    deliberate and documented); configured-with-the-wrong-type now throws and names both types.
+
+### Fixed
+- **Hot reload stops claiming success for an edit that never reached the page.** The green
+  "Hot reload applied" pill is driven by the coordinator's `Applied` signal, and the repaint is the whole
+  of what a developer can see — so announcing it after a failed repaint told them the opposite of the
+  truth, with the only evidence on the server's stderr. `RerenderAllForHotReloadAsync` catches per session
+  (one faulting tree must not stop the others repainting) but it was also *swallowing*: it reported
+  success upward whatever happened. It now reports the fault as a diagnostic naming the consequence
+  ("its page still shows the previous render"), returns whether every session repainted, and the
+  coordinator announces only when they did. A missing pill is the honest signal — nothing visibly changed,
+  because nothing did. Partially addresses #603.
+
+### Added
+- **In development, a fault the tree survived is shown *over* the app instead of replacing it (#607).** The
+  full-document swap is right in production and wrong in development, where a handler that throws is the
+  common case rather than the exceptional one: it takes the scroll position, the form input, the expanded
+  panels and the route with it, at the moment you most want to look at the state that produced the bug.
+  The app now stays mounted and live behind a dismissible panel carrying the exception type, the message
+  and a collapsible stack — the shape React's and Next's dev overlays settled on, and for the same reason.
+  - **Only for a fault the tree survived.** A *render* fault still replaces the page, in development as in
+    production: re-rendering the subtree that just threw would only throw again. `ErrorBoundary` now
+    records whether it was tripped by a render, a handler or an async lifecycle hook, which is what makes
+    that distinction possible at all.
+  - **It rides inside the render payload**, not a new frame — the same reasoning as `resume`, `history`
+    and `auth`. The frame stream is a documented contract, and an extra frame is observable in ways an
+    extra field is not. Its bytes are discounted from the diff-vs-full comparison for the same reason the
+    resume record's are: it sits on both sides, so counting it only against the diff would ship the whole
+    body precisely when a minimal frame is most readable.
+  - **Both dedup gates now let it through.** A click whose only effect was the exception renders
+    byte-identical HTML, so without this the overlay would never arrive in the simplest case of all.
+  - Production is unchanged and cannot leak: `DevErrorInfo.From` returns `null` outside development, so no
+    stack trace can reach a browser even if a call site forgot to check, and the client requires the
+    `data-rask-dev` flag as a second, independent gate.
 
 ## [0.20.0] - 2026-08-06
 

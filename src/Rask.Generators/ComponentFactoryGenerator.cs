@@ -33,54 +33,87 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         "RASK001",
         "Property is treated as a required factory parameter",
         "Property '{0}.{1}' is treated as a required factory parameter; consider also marking it 'required' for language-level enforcement",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Hidden,
         true,
+        description: "The generated factory emits a non-nullable property with no initializer as a REQUIRED parameter, "
+                     + "so callers must pass it. Marking the property 'required' gets you the same guarantee from the "
+                     + "language, at the declaration, instead of only from the generated signature. Declare it nullable "
+                     + "instead if the value really is optional.",
         helpLinkUri: DiagnosticHelp.Link("RASK001"));
 
     private static readonly DiagnosticDescriptor Rask002 = new(
         "RASK002",
         "'required' property cannot be honored by the generated factory",
         "Property '{0}.{1}' is marked 'required', but the generated factory for '{0}' cannot set it: '{0}' has a dependency-injected constructor and the property is either excluded from the factory parameters (it has a member initializer) or only reachable via ActivatorUtilities.CreateInstance (no parameterless constructor). Adding a parameterless constructor does not help while the DI constructor remains — the factory then builds '{0}' with 'new {0}()' and the DI constructor never runs, leaving injected services null. Remove 'required', move the value to a constructor parameter (with no initializer), or drop the DI constructor.",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "Fires in exactly one shape: the component has both a DI constructor AND a parameterless one, and "
+                     + "the required property carries a member initializer. The factory then builds it with 'new C() { … "
+                     + "}', but an initializer-carrying property is excluded from the factory parameters — so nothing "
+                     + "assigns it and the consumer's build fails with CS9035. A DI constructor with no parameterless "
+                     + "sibling is fine and does not trip this.",
         helpLinkUri: DiagnosticHelp.Link("RASK002"));
 
     private static readonly DiagnosticDescriptor Rask036 = new(
         "RASK036",
         "Component must be partial to receive builder entries",
         "Component '{0}' is not declared 'partial', so the builder entries for the project's other components cannot be injected into it; writing another component's name unqualified in its render body will not compile. Add the 'partial' modifier.",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "A generator cannot add members to 'Rask.Core.Component' from your compilation, so the entry "
+                     + "for each of your own components is injected into every OTHER component of yours instead — "
+                     + "which needs somewhere to inject it. Only a 'partial' class has one. Without it the component "
+                     + "still renders and its own factory still works; what is lost is writing a sibling component's "
+                     + "name unqualified inside its render body.",
         helpLinkUri: DiagnosticHelp.Link("RASK036"));
 
     private static readonly DiagnosticDescriptor Rask040 = new(
         "RASK040",
         "Two components share a simple name, so neither can have a builder entry",
         "Components '{1}' share the simple name '{0}', so neither receives a builder entry: an entry is a single member of 'Rask.Core.Component' (or of each consuming component) named after its type, and one name can only stand for one type. The generated factories are unaffected — they live in a per-namespace 'Generated' class — so both components stay reachable through 'Generated.{0}(...)'. Rename one of them to give both an entry.",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "An entry is keyed by SIMPLE name — it is one member named after its type — while a factory is "
+                     + "keyed by namespace, because factories live in a per-namespace 'Generated' class. Two "
+                     + "components with the same simple name therefore have two factories and can have at most one "
+                     + "entry, and picking a winner would be the generator guessing which type the name means. "
+                     + "Neither gets one until you rename.",
         helpLinkUri: DiagnosticHelp.Link("RASK040"));
 
     private static readonly DiagnosticDescriptor Rask041 = new(
         "RASK041",
         "The builder surface's shared pending-bit budget is exhausted",
         "The shared Element/Component surface has {0} folding properties but only {1} pending bits; '{2}' and every later one (ordinal name order) fall back to the eager reset, which reports the property changed on every render and defeats the render cache for it. Raise 'BuilderRuntime.OwnPendingBit' (and the generator's copy of it) together, or make the property non-folding.",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "A folding setter clears its own PENDING bit as it writes, and whatever is still pending when "
+                     + "the parent's Render() returns is reset to what the factory would have left. The shared "
+                     + "Element/Component surface owns the low 16 of those bits so that a component compiled against "
+                     + "one Rask.Core cannot collide with a shared property added in a later one. The bits are handed "
+                     + "out in ordinal NAME order, so overflowing the budget does not push the NEW property off the "
+                     + "end — it pushes whichever alphabetically-later one was last onto the eager reset, which "
+                     + "reports that property changed on every render and defeats the render cache for it. Nothing "
+                     + "else fails, which is why this exists.",
         helpLinkUri: DiagnosticHelp.Link("RASK041"));
 
     private static readonly DiagnosticDescriptor Rask042 = new(
         "RASK042",
         "Delegate-typed property cannot receive a builder setter",
         "Property '{0}.{1}' is a raw delegate, so it is invocable and C#'s invocable-member rule binds '{1}(...)' to the property instead of to the same-named builder setter — the setter can never be reached. Declare it as a carrier ('{2}') instead: the carrier is not invocable, its implicit conversion keeps assignment and every generated '{1}:' factory argument working, and calling the callback back becomes '{1}?.Invoke(...)'.",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "C#'s invocable-member rule is what lets a setter share a property's name at all: '.OnClick(x)' "
+                     + "binds to the extension method because the property 'OnClick' is not invocable. A RAW delegate "
+                     + "property is invocable, so the same lookup goes to the property and the setter becomes "
+                     + "unreachable dead code — the property simply cannot be set from a chain. A carrier is a "
+                     + "readonly struct, so it is not invocable and the rule goes back to picking the setter; its "
+                     + "implicit conversion means no assignment or generated factory argument changes.",
         helpLinkUri: DiagnosticHelp.Link("RASK042"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)

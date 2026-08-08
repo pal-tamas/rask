@@ -27,9 +27,13 @@ public sealed class HeadChildrenAnalyzer : DiagnosticAnalyzer
         "RASK019",
         "<head> is a framework-managed slot — declare contents via Component.Head",
         "Do not pass children to '<head>'; declare head content by overriding the 'Component? Head' property on any component instead. The framework collects, dedupes, and splices contributions automatically.",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "Rask owns <head>: it collects each component's 'Head' contribution, dedupes it, and splices the "
+                     + "result in, so the element itself takes no children. Contribute by overriding 'protected override "
+                     + "Component? Head => …' on any component in the tree — that is what makes a page's title and meta "
+                     + "composable with the shell's.",
         helpLinkUri: DiagnosticHelp.Link("RASK019"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =

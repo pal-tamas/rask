@@ -26,18 +26,24 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         "RASK028",
         "Ambiguous request handler",
         "Request type '{0}' is handled by more than one handler; a query or command must have exactly one handler",
-        "Rask.Generators",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "The dispatcher maps each request type to exactly one handler, so two handlers for the same query "
+                     + "or command would make dispatch non-deterministic. Reported on each competing handler. "
+                     + "Notifications are exempt: an INotification may have any number of handlers.",
         helpLinkUri: DiagnosticHelp.Link("RASK028"));
 
     private static readonly DiagnosticDescriptor Rask029 = new(
         "RASK029",
         "Handler cannot be registered",
-        "Handler '{0}' {1}; it is skipped, so dispatching its request will throw at runtime",
-        "Rask.Generators",
+        "Handler '{0}' {1}; it is skipped, so dispatching its request will throw at runtime — {2}",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
+        description: "A Warning rather than an Error because the rest of the assembly still builds — but the handler "
+                     + "is left out of the generated dispatch table, so the first dispatch of its request throws at "
+                     + "runtime. It is worth not ignoring.",
         helpLinkUri: DiagnosticHelp.Link("RASK029"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -107,13 +113,15 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 _ => string.Empty,
             };
 
+            var registerability = DescribeRegisterability(symbol, args);
             handlers.Add(new HandlerModel(
                 kind.Value,
                 Fqn(symbol),
                 requestFqn,
                 resultFqn,
                 Fqn(iface),
-                DescribeRegisterability(symbol, args)));
+                registerability?.Problem,
+                registerability?.Remedy));
         }
 
         if (handlers.Count == 0)
@@ -134,28 +142,38 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     // typeof(...) operands and generic arguments. That check is defensive rather than a known break:
     // C# already rejects a handler that exposes a less-accessible request through its public
     // HandleAsync (CS0051), so in practice an unnameable request comes with an unnameable handler.
-    private static string? DescribeRegisterability(INamedTypeSymbol symbol, ImmutableArray<ITypeSymbol> typeArguments)
+    //
+    // Each reason comes back with what to do about it. RASK029 is a *Warning* announcing a guaranteed
+    // production failure — the handler is skipped, so dispatching its request throws — and a warning you
+    // can miss, telling you a crash is coming and not how to avoid it, is the worst shape a diagnostic
+    // has (#608).
+    private static (string Problem, string Remedy)? DescribeRegisterability(
+        INamedTypeSymbol symbol,
+        ImmutableArray<ITypeSymbol> typeArguments)
     {
         if (symbol.IsGenericType)
         {
-            return "is an open generic type";
+            return ("is an open generic type",
+                "close its type parameters, or register the handler by hand");
         }
 
         if (!symbol.InstanceConstructors.Any(c => c.DeclaredAccessibility == Accessibility.Public))
         {
-            return "has no public constructor";
+            return ("has no public constructor",
+                "give it a public constructor — the DI container has to be able to build it");
         }
 
-        if (SymbolRegistration.DescribeUnnameable(symbol) is { } handlerProblem)
+        if (SymbolRegistration.DescribeUnnameableWithRemedy(symbol) is { } handlerProblem)
         {
             return handlerProblem;
         }
 
         foreach (var argument in typeArguments)
         {
-            if (SymbolRegistration.DescribeUnnameable(argument) is { } argumentProblem)
+            if (SymbolRegistration.DescribeUnnameableWithRemedy(argument) is { } argumentProblem)
             {
-                return $"handles '{argument.ToDisplayString()}', which {argumentProblem}";
+                return ($"handles '{argument.ToDisplayString()}', which {argumentProblem.Problem}",
+                    $"for '{argument.ToDisplayString()}', {argumentProblem.Remedy}");
             }
         }
 
@@ -193,7 +211,11 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             if (entry.Model.RegisterabilityProblem is { } problem)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask029, entry.Location?.ToLocation(), entry.Model.HandlerTypeFqn, problem));
+                    Rask029,
+                    entry.Location?.ToLocation(),
+                    entry.Model.HandlerTypeFqn,
+                    problem,
+                    entry.Model.RegisterabilityRemedy));
                 continue;
             }
 
@@ -432,7 +454,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         string RequestTypeFqn,
         string ResultTypeFqn,
         string ServiceInterfaceFqn,
-        string? RegisterabilityProblem) : IEquatable<HandlerModel>;
+        string? RegisterabilityProblem,
+        string? RegisterabilityRemedy) : IEquatable<HandlerModel>;
 
     private sealed record Candidate(EquatableArray<HandlerModel> Handlers, LocationInfo? Location);
 

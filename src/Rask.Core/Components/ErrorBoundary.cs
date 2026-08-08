@@ -1,10 +1,39 @@
 namespace Rask.Core.Components;
 
+/// <summary>Where the exception a boundary caught came from.</summary>
+/// <remarks>
+///     The distinction is load-bearing for the development error overlay: after a <see cref="Handler" />
+///     or <see cref="Lifecycle" /> fault the component tree is intact and the next render succeeds, so the
+///     app can stay on screen with the error painted over it. After a <see cref="Render" /> fault it is
+///     not — re-rendering the subtree that just threw would only throw again — so the fallback must
+///     replace the page, in development as in production.
+/// </remarks>
+internal enum ErrorSource
+{
+    /// <summary>Thrown while rendering. The tree cannot be re-rendered as it stands.</summary>
+    Render,
+
+    /// <summary>Thrown by an event handler. The tree is intact.</summary>
+    Handler,
+
+    /// <summary>Thrown by an async lifecycle hook, off the dispatch's call stack. The tree is intact.</summary>
+    Lifecycle,
+}
+
 public sealed class ErrorBoundary : Component
 {
     public Carrier<Func<Exception, Callback, Component>>? Fallback { get; set; }
 
     internal Exception? Error { get; private set; }
+
+    /// <summary>Where <see cref="Error" /> came from. Meaningless when <see cref="Error" /> is null.</summary>
+    /// <remarks>
+    ///     <c>new</c> because the builder surface gives <see cref="Component" /> an entry named after every
+    ///     tag, and one of them is <c>&lt;source&gt;</c> — exactly the CS0108 the Rask quick-fix inserts
+    ///     <c>new</c> for. Hiding it here is deliberate: nothing inside a boundary builds a
+    ///     <c>&lt;source&gt;</c>.
+    /// </remarks>
+    internal new ErrorSource Source { get; private set; }
 
     // Boundary state (Error) lives outside the framework's prop/state diff, so the cached
     // render result would never reflect a Trip(). BypassRenderCache forces Render() to run
@@ -21,11 +50,19 @@ public sealed class ErrorBoundary : Component
         Fallback = Carrier<Func<Exception, Callback, Component>>.From(fallback);
     }
 
-    internal void Trip(Exception ex)
+    internal void Trip(Exception ex, ErrorSource source = ErrorSource.Render)
     {
         Error = ex;
+        Source = source;
         StateHasChanged();
     }
+
+    /// <summary>
+    ///     Clears the error <b>without</b> asking for a render — for a caller already inside the render
+    ///     that is about to display the app anyway (the development overlay). <see cref="Recover" /> is the
+    ///     one to use from a handler.
+    /// </summary>
+    internal void ClearErrorInRender() => Error = null;
 
     internal void SetParentBoundary(ErrorBoundary? parent)
     {

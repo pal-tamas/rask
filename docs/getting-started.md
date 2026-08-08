@@ -44,19 +44,21 @@ dotnet tool install -g Rask.Cli      # one-time: install the rask CLI
 rask new MyApp                       # create a server app in ./MyApp (server is the default)
 ```
 
-`rask new` ships three templates, one per host model:
+`rask new` ships four templates, one per host model:
 
 | `--template`        | What you get                                                                                  |
 |---------------------|-----------------------------------------------------------------------------------------------|
 | `server` (default)  | One ASP.NET project. Components render on the server; live updates ship over a WebSocket. **Best default.** |
 | `wasm`              | One `net10.0-browser` project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
 | `wasm-hosted`       | Three projects: `MyApp.Client` (the WASM SPA), `MyApp.Server` (the ASP.NET host that serves the bundle and your own `/api/...` endpoints), and `MyApp.Shared` (a class library both reference). |
+| `native`            | A native iOS/Android app head (WebView hybrid, preview) running the same components — see [native](native.md). Needs the `ios android` workloads. |
 
-All three emit the same starter pages, so the rest of this guide applies whichever you chose. Each also
+They emit the same starter pages, so the rest of this guide applies whichever you chose. Each also
 accepts a `--auth` switch that scaffolds a working login flow — see [authentication](authentication.md)
 when you need it. The `server` template additionally accepts `--cqrs`, which scaffolds the
-[Rask.Cqrs](cqrs.md) mediator (a sample query + handler and a `/greeting` page that dispatches it), and
-`--pwa`, which makes it an installable [PWA](pwa.md).
+[Rask.Cqrs](cqrs.md) mediator (a sample query + handler and a `/greeting` page that dispatches it),
+`--pwa`, which makes it an installable [PWA](pwa.md), and `--docker` — a flag, not a template, which adds
+a Dockerfile for [`rask deploy`](cli.md). The full flag list is in [the CLI reference](cli.md).
 
 ## 2. Run it
 
@@ -330,8 +332,10 @@ The snags you're most likely to hit on a fresh project:
   (`RASK015`–`RASK018`) — check the build output.
 
 - **Blank page or 404s on `/_rask/...` assets behind a reverse proxy or sub-path.** The app is running
-  under a URL prefix the framework doesn't know about — set `PathBase` (see the README's
-  *Sub-path hosting* section).
+  under a URL prefix the framework doesn't know about — set `PathBase` ([configuration](configuration.md)),
+  and build any hand-written asset URL as `LiveOptions.PathBase + "/…"` ([JS interop](js-interop.md)).
+  For a WASM bundle published under a prefix (GitHub Pages project sites), publish with
+  `-p:RaskPathBase=/my-repo` — see [Deploying to a sub-path](pwa.md#deploying-github-pages--sub-paths).
 
 ## Next steps
 

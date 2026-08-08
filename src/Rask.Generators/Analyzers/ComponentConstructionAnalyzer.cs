@@ -17,9 +17,13 @@ public sealed class ComponentConstructionAnalyzer : DiagnosticAnalyzer
         "RASK014",
         "Components must be created via factory methods",
         "Do not instantiate '{0}' with 'new'; use the generated {1}Components.{0}(...) factory instead",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
+        description: "The generated factories are how a component gets its key, its children and its injected "
+                     + "services; 'new' skips all three and produces an instance the runtime cannot reconcile. In a test "
+                     + "file that deliberately constructs components, opt out per file with '#pragma warning disable "
+                     + "RASK014'.",
         helpLinkUri: DiagnosticHelp.Link("RASK014"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =

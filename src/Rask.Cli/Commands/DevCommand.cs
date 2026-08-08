@@ -1,3 +1,4 @@
+using Rask.Cli.Dev;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Commands;
@@ -23,6 +24,13 @@ internal sealed class DevCommand(
     IBrowserLauncher browser,
     string workingDirectory) : CliCommand(console)
 {
+    /// <summary>
+    ///     How the app learns where to point the browser for build status. Read by <c>UseRask</c> in
+    ///     Development and stamped onto the page; the client keeps it from the last page it loaded, which
+    ///     is what lets it ask a question after the server it came from has gone away.
+    /// </summary>
+    internal const string DevStatusEnvironmentVariable = "RASK_DEV_STATUS";
+
     private readonly IProcessRunner _process = process;
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IBrowserLauncher _browser = browser;
@@ -129,9 +137,35 @@ internal sealed class DevCommand(
         var open = ResolveBrowserOpen(target, parsed.HasFlag("open"), parsed.HasFlag("no-open"), parsed.Option("urls"));
         var opening = open is null ? Task.CompletedTask : OpenWhenListeningAsync(open, cancellationToken);
 
-        var exit = await _process
-            .RunAsync("dotnet", dotnetArgs, target.ProjectDirectory, cancellationToken, environment)
-            .ConfigureAwait(false);
+        // The build-status channel (#603). A failed rebuild leaves the app process DOWN, so the browser
+        // sees a socket close and — with nothing else to go on — reports a network problem, offering a
+        // "Retry now" that can never succeed. Nothing inside the app can tell it otherwise, because the
+        // app is what died. This endpoint outlives each rebuild and answers the question instead.
+        //
+        // `once` runs a plain `dotnet run` with no watching, so there is no rebuild to report on.
+        var watcher = new DevBuildWatcher();
+        using var status = once ? null : DevStatusServer.TryStart(watcher);
+
+        var runEnvironment = environment;
+        if (status is not null)
+        {
+            // Overlaid here rather than in BuildEnvironment because the port is only known once the
+            // listener is bound, and BuildEnvironment is a pure function the dry run prints.
+            var withStatus = new Dictionary<string, string>(environment, StringComparer.Ordinal)
+            {
+                [DevStatusEnvironmentVariable] = status.Url,
+            };
+            runEnvironment = withStatus;
+        }
+
+        var exit = status is null
+            ? await _process
+                .RunAsync("dotnet", dotnetArgs, target.ProjectDirectory, cancellationToken, runEnvironment)
+                .ConfigureAwait(false)
+            : await _process
+                .RunTeeAsync("dotnet", dotnetArgs, target.ProjectDirectory, watcher.Observe, cancellationToken,
+                    runEnvironment)
+                .ConfigureAwait(false);
 
         await opening.ConfigureAwait(false);
         return exit;
@@ -223,6 +257,14 @@ internal sealed class DevCommand(
         Func<string, string?> readEnv)
     {
         var env = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        // Keep watch's colour when we read its output. Reading it means redirecting stdout, and .NET
+        // disables ANSI the moment stdout is not a terminal — so watch's build output would arrive at the
+        // developer's console grey and unstyled, which is a real cost paid for a feature they cannot see.
+        // This is the documented opt-out, and it is set unconditionally: `rask dev` is the only caller,
+        // its output always ends up on a real console, and a user who genuinely wants plain text sets
+        // NO_COLOR, which the SDK honours ahead of this.
+        env["DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION"] = "1";
 
         // Only when the user has set neither — "when unset" is the whole requirement, and silently
         // overriding someone's Staging run would be worse than not helping at all.

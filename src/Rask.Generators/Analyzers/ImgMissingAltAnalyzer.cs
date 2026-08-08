@@ -25,7 +25,7 @@ public sealed class ImgMissingAltAnalyzer : DiagnosticAnalyzer
         "Img is missing Alt text",
         "Img is created without Alt — set Alt: to a text alternative, or Alt: \"\" for a decorative "
         + "image, so screen readers don't announce the file name (WCAG 1.1.1)",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         "Every informative image needs a text alternative. Pass a meaningful Alt:, or the empty "

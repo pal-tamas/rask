@@ -33,7 +33,7 @@ public sealed class InputTypeMismatchAnalyzer : DiagnosticAnalyzer
         "Input type conflicts with the bound value type",
         "Input<{0}> derives its HTML type from {0}; the string-only InputType.{1} can't apply — drop Type "
         + "(it is inferred from {0}) or bind a string",
-        "Usage",
+        DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         "A non-string Input<T> (e.g. Input<int>, Input<bool>, Input<DateOnly>) renders a type derived from "

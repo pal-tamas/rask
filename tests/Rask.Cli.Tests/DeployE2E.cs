@@ -100,6 +100,24 @@ internal sealed class EnvScopedProcessRunner(
         return exit;
     }
 
+    public async Task<int> RunTeeAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string? workingDirectory,
+        Action<string> onLine,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? environment = null)
+    {
+        // Deploy never tees; the shim captures, then replays the lines so the contract still holds.
+        var (exit, output) = await CaptureCoreAsync(fileName, arguments, workingDirectory, cancellationToken).ConfigureAwait(false);
+        foreach (var line in output.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            onLine(line.TrimEnd('\r'));
+        }
+
+        return exit;
+    }
+
     public async Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
     {
         var (exit, output) = await CaptureCoreAsync(fileName, arguments, workingDirectory, cancellationToken).ConfigureAwait(false);

@@ -100,6 +100,44 @@ public class PackageDependencyTests
             + string.Join("\n  ", missing));
     }
 
+    // NUGET.md is packed into EVERY package (Directory.Build.props), so it is the most-read page the project
+    // ships and the one nobody edits — it listed 7 packages while the repo built 24, missing every battery
+    // (Jobs/Mail/Cache/Outbox/Data/Dashboard/Logging), both SQLite satellites, both alternative database
+    // providers and Rask.Testing (#602). A package that exists and is documented nowhere is one a reader can
+    // only find by reading the source, which defeats the point of shipping it.
+    //
+    // Matching on the PackageId is deliberate: the id is what a reader types into `dotnet add package`, so
+    // naming it is the minimum bar. This does not check that what NUGET.md SAYS about a package is right —
+    // nothing can — only that the package is not silently absent.
+    [Fact]
+    public void Every_packable_project_is_named_in_the_packed_readme()
+    {
+        var readme = File.ReadAllText(Path.Combine(RepoRoot(), "NUGET.md"));
+
+        var missing = SourceProjects()
+            .Where(p => IsPackable(p.Value))
+            .Select(p => PackageId(p.Value))
+            .Where(id => id is not null && !readme.Contains(id, StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(
+            missing.Count == 0,
+            "These packages ship but NUGET.md — which is packed into every one of them — never names them, so "
+            + "the most-read page the project publishes does not admit they exist:\n  "
+            + string.Join("\n  ", missing));
+    }
+
+    // The <PackageId> a project publishes under, or its file name when it doesn't override one.
+    private static string? PackageId(string csprojPath)
+    {
+        var doc = XDocument.Load(csprojPath);
+        var declared = doc.Descendants("PackageId").FirstOrDefault()?.Value.Trim();
+        return string.IsNullOrEmpty(declared) || declared.Contains('$', StringComparison.Ordinal)
+            ? Path.GetFileNameWithoutExtension(csprojPath)
+            : declared;
+    }
+
     // Every project under src/, packable or not, keyed by its file name. Both invariants above need the whole set:
     // one to tell a reference to an unpackable project from a reference to a shipped one, the other to pick the
     // packable ones out.

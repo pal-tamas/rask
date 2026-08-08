@@ -25,6 +25,45 @@ internal static class CodeFixHarness
         return await ApplyAsync(provider, document, FirstOf(diagnostics, diagnosticId));
     }
 
+    // True when the provider offers a fix for an analyzer diagnostic. The counterpart of the generator
+    // version below, and the more used of the two now: RASK014's fix is deliberately withheld for
+    // anything but an argument-free construction, which is a claim only this can test.
+    public static async Task<bool> IsAnalyzerFixOfferedAsync(
+        DiagnosticAnalyzer analyzer, CodeFixProvider provider, string diagnosticId, string source)
+    {
+        var document = CreateDocument(source);
+        var compilation = (CSharpCompilation)(await document.Project.GetCompilationAsync())!;
+        var diagnostics = await compilation
+            .WithAnalyzers(ImmutableArray.Create(analyzer))
+            .GetAnalyzerDiagnosticsAsync();
+        return (await CollectActionsAsync(provider, document, FirstOf(diagnostics, diagnosticId))).Count > 0;
+    }
+
+    // Applies the fix for a COMPILER diagnostic (e.g. CS0108). The builder-entry fix answers one of
+    // those rather than a Rask id, because the collision it resolves is the compiler's own hiding rule.
+    public static async Task<string> ApplyCompilerFixAsync(
+        CodeFixProvider provider, string diagnosticId, string source)
+    {
+        var (document, diagnostic) = await CompilerDiagnosticAsync(diagnosticId, source);
+        return await ApplyAsync(provider, document, diagnostic);
+    }
+
+    // True when the provider offers a fix for a compiler diagnostic — lets a test assert that the fix
+    // is withheld outside a component, where `new` is not Rask's call to make.
+    public static async Task<bool> IsCompilerFixOfferedAsync(
+        CodeFixProvider provider, string diagnosticId, string source)
+    {
+        var (document, diagnostic) = await CompilerDiagnosticAsync(diagnosticId, source);
+        return (await CollectActionsAsync(provider, document, diagnostic)).Count > 0;
+    }
+
+    private static async Task<(Document, Diagnostic)> CompilerDiagnosticAsync(string diagnosticId, string source)
+    {
+        var document = CreateDocument(source);
+        var compilation = (CSharpCompilation)(await document.Project.GetCompilationAsync())!;
+        return (document, FirstOf(compilation.GetDiagnostics(), diagnosticId));
+    }
+
     // Applies the fix for a source-generator-produced diagnostic (e.g. RASK001).
     public static async Task<string> ApplyGeneratorFixAsync(
         IIncrementalGenerator generator, CodeFixProvider provider, string diagnosticId, string source)

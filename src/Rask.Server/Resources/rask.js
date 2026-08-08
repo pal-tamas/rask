@@ -319,6 +319,13 @@
             // pure bookkeeping, changes nothing on screen, and must not wait on the render queue —
             // a drop between now and the paint should still leave us holding the newer record.
             if (typeof data.resume === "string") rememberResumeToken(data.resume);
+            // A development fault the app survived. Like `resume` it rides the render payload rather
+            // than arriving as its own frame, and like it, it is applied here rather than inside either
+            // render path: the panel is a sibling of the app, so it must not wait on the render queue —
+            // and showing it before the repaint is right, since the repaint is what puts the app back on
+            // screen underneath it. Dev-gated twice: the server only sends it in development, and
+            // devMode is read off the document (#607).
+            if (data.devError) showDevError(data.devError);
             // Diff-mode payload (kind:"diff"): apply ops directly against the live DOM.
             // Both render paths chain through _renderQueue so a diff that defers its body
             // for a scoped-CSS load (see applyDiffReply) can't be overtaken by the next
@@ -376,6 +383,27 @@
         } else if (overlayTimer === null && !overlay.hasAttribute("data-show")) {
             overlayTimer = setTimeout(showOverlay, OVERLAY_GRACE_MS);
         }
+
+        // Before claiming this is a network problem, ask whether it is a COMPILE problem (#603). Under
+        // `rask dev` a failed rebuild leaves no server to tell us, which is exactly why this looked like a
+        // dropped connection — and why the answer has to come from `rask dev` itself, over an endpoint
+        // that outlives the app. A no-op in production, where the page carries no status URL.
+        //
+        // While the build is broken the reconnect overlay is taken down: "Reconnecting…" over a "Retry
+        // now" that cannot work is the misleading half of this issue. The backoff below keeps running
+        // underneath, so the moment the code compiles the app comes back on its own.
+        pollDevStatus(
+            function () {
+                hideOverlay();
+                setInert(false);
+            },
+            function () {
+                // Compiles again. Put the overlay back if we are still not connected, so the last few
+                // hundred milliseconds of reconnecting look the way they always did.
+                if (!open && !sessionExpired) {
+                    showOverlay();
+                }
+            });
         const delays = [500, 1000, 2000, 4000, 5000];
         const delay = delays[Math.min(attempt, delays.length - 1)];
         attempt++;
@@ -754,6 +782,10 @@
     // window.__raskHotReloadPill; only the way the notification *arrives* differs per transport (here,
     // the hotReload frame branch above).
     // @@RASK_HOTRELOAD@@
+
+    // The development error panel (showDevError / hideDevError). Shared with the WASM runtime so both
+    // hosts render the same thing from one source.
+    // @@RASK_DEVERROR@@
 
     // Toggle the overlay's manual action button. Pass a label to show it, or null to hide it. A single
     // click handler routes to retryNow(), which reloads when the session has expired and otherwise
