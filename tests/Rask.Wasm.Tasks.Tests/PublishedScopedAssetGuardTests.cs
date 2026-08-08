@@ -65,6 +65,24 @@ public sealed class PublishedScopedAssetGuardTests
         Assert.Contains("WasmBuildNative", target, StringComparison.Ordinal);
     }
 
+    // The second guard, and the one that catches what actually happened in #650: the bake never ran, so
+    // the staging dir is absent and the staged-vs-published comparison sees nothing to compare. Without
+    // _RaskScopedBakeRan, "this project has no scoped assets" and "the bake was skipped" are the same
+    // observation — and the first guard stays silent through the second.
+    [Fact]
+    public void A_bake_that_never_ran_is_distinguished_from_a_project_with_nothing_to_bake()
+    {
+        Assert.Contains("<_RaskScopedBakeRan>true</_RaskScopedBakeRan>", _targets, StringComparison.Ordinal);
+
+        var target = TargetBody();
+        Assert.Contains("'$(_RaskScopedBakeRan)' != 'true' AND '@(_RaskPublishedScopedAsset)' == ''",
+            target, StringComparison.Ordinal);
+
+        // The published half is not optional: an incremental publish can skip the build pass (and so the
+        // bake) while the assets already sit correctly in wwwroot. Requiring both keeps that quiet.
+        Assert.Contains("_RaskBakeScopedStaticWebAssets", target, StringComparison.Ordinal);
+    }
+
     private static string TargetBody()
     {
         const string open = "<Target Name=\"_RaskVerifyPublishedScopedAssets\"";

@@ -127,6 +127,12 @@
       <_RaskBakeInputAssemblies Include="@(ReferenceCopyLocalPaths)" Condition=" '%(Extension)' == '.dll' "/>
     </ItemGroup>
     <BakeScopedAssetsTask BundleDir="$(_RaskScopedStageDir)" Assemblies="@(_RaskBakeInputAssemblies)"/>
+    <!-- Records that the bake actually ran, which _RaskVerifyPublishedScopedAssets needs to tell "this
+         project has no scoped assets" apart from "the bake was skipped". An empty staging dir means the
+         former only if we got this far. -->
+    <PropertyGroup>
+      <_RaskScopedBakeRan>true</_RaskScopedBakeRan>
+    </PropertyGroup>
     <ItemGroup>
       <_RaskScopedBaked Include="$(_RaskScopedStageDir)**\*"/>
     </ItemGroup>
@@ -221,8 +227,23 @@
       <_RaskStagedScopedAsset Include="$(_RaskVerifyStageDir)_rask\a\**\*"/>
       <_RaskPublishedScopedAsset Include="$(PublishDir)wwwroot\_rask\a\**\*"/>
     </ItemGroup>
+    <!-- Baked, but nothing shipped. -->
     <Error Condition=" '@(_RaskStagedScopedAsset)' != '' AND '@(_RaskPublishedScopedAsset)' == '' "
            Text="Rask: the scoped assets were baked but none reached the published output. $(_RaskVerifyStageDir)_rask/a contains @(_RaskStagedScopedAsset->Count()) file(s), while $(PublishDir)wwwroot/_rask/a has none, so every /_rask/a/ URL would 404 in the browser and any component relying on its scoped JS would never initialise. This usually means the project was built in both WasmBuildNative modes through one obj/ — clear $(IntermediateOutputPath) and publish again."/>
+
+    <!--
+      Never baked at all, and nothing shipped. This is the case the staged-vs-published check above cannot
+      see: with the staging dir absent, "no scoped assets" and "the bake was skipped" look identical from
+      the outside — and it is the second one that actually happened in #650, where the publish produced no
+      _rask and no staging either. The bake target unconditionally RemoveDir+MakeDirs its staging, so a
+      missing staging dir is proof it did not run; _RaskScopedBakeRan records that it did.
+
+      Both halves of the condition are needed. An incremental publish can legitimately skip the whole
+      build pass, and therefore the bake, while the previously published assets are still sitting in
+      wwwroot and perfectly correct — requiring the published side to ALSO be empty keeps that case quiet.
+    -->
+    <Error Condition=" '$(_RaskScopedBakeRan)' != 'true' AND '@(_RaskPublishedScopedAsset)' == '' "
+           Text="Rask: the scoped-asset bake did not run during this publish and $(PublishDir)wwwroot/_rask/a is empty, so any scoped CSS/JS this app has would 404 in the browser and any component relying on it would never initialise. The bake target (_RaskBakeScopedStaticWebAssets) is skipped when RaskWasm is not 'true' or when Rask.Wasm.Tasks.dll is missing next to Rask.Wasm.targets — check both, then clear $(IntermediateOutputPath) and publish again."/>
   </Target>
 
 </Project>

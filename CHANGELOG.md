@@ -24,8 +24,15 @@ them until tagged releases begin.
   `/_rask/a/` and **nothing says so**: the app builds, publishes, boots and renders, with only its scoped
   CSS/JS absent. Every scoped URL 404s, and for an app whose scoped JS owns something load-bearing that
   presents as a hung page, sending you to debug the app rather than the build. The publish now compares
-  what was staged against what shipped and errors with the cause and the fix. A project with no scoped
-  assets stages nothing and is silently unaffected. Closes #650.
+  what was staged against what shipped and errors with the cause and the fix.
+
+  It also catches the harder half, which is what actually happened: **the bake not running at all**. With
+  the staging directory absent, "this project has no scoped assets" and "the bake was skipped" are the
+  same observation, so a staged-vs-published comparison sees nothing to compare and stays quiet. The bake
+  now records that it ran, and a publish that never baked *and* shipped no scoped assets fails. A project
+  that genuinely has none bakes zero, records the run, and is silently unaffected — verified against
+  `samples/Rask.Example.Wasm.Jobs`, which has no scoped assets, and an incremental publish that skips the
+  build pass while its assets already sit in `wwwroot` stays quiet too. Closes #650.
 
   `BakeScopedAssetsTask.FailOnEmpty` could not have caught this and — despite its own documentation
   claiming otherwise — has never been wired to anything: it fires only when the bake *runs* and writes
