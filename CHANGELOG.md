@@ -7,6 +7,40 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
+  enters the tree through its generated factory, and that factory is what registers the instance with its
+  parent. One built another way — because its type isn't known until runtime: a plugin, a component chosen
+  by name, one compiled in the browser — arrives as a plain object. It rendered correctly but was invisible
+  to the alive-set walk: **no `OnMount`, no `OnMountAsync`, no `OnRendered`, no `OnUnmount`**, and no handle
+  to re-render through when an async hook completed. Anything loading its data in `OnMountAsync` sat on its
+  placeholder forever, with nothing reported — the failure looked exactly like code that doesn't work.
+  `Div()[Mount(Child: instance)]` adopts and notifies it, and adds no markup of its own; wrapping a
+  factory-built child is a harmless no-op. See [composition.md](docs/composition.md#hosting-a-component-you-built-yourself).
+  (Found because the playground mounts every compiled component this way — so until now *no* playground
+  snippet could load anything in `OnMountAsync`.)
+- **A guided tutorial in the playground, with real EF Core + SQLite running in the browser.** The
+  playground's left pane gains a **Tutorial** tab beside the example gallery: eight chapters that start at
+  "what is a component" and end at a database, each with its goal and notes above the editor, prev/next
+  navigation, and a tick once the chapter compiles (your edits included — the tick means it built, not
+  that you clicked it).
+
+  Chapters 5–8 are the point: they run **actual EF Core against actual SQLite inside the tab** — not a
+  mock, not the in-memory provider. `e_sqlite3` is linked into the published WebAssembly runtime, so
+  `SaveChangesAsync` writes rows a later `Where(...)` reads back through real SQL. They teach the same
+  [`Rask.Data`](docs/data.md) conventions `rask generate feature` scaffolds — `Entity<Guid>`,
+  `ApplyRaskConventions()`, and the auditing / soft-delete interceptors — so what a reader learns in the
+  browser is what they will write on their machine. A reader can now go from the front page to "I inserted
+  a row and queried it back" with nothing installed.
+
+  Notes: each chapter owns its own database file (chapters evolve the schema, and `EnsureCreated()` does
+  nothing to a database that already has tables), those files live in the runtime's in-memory filesystem
+  and are lost on reload — which is the intent for a sandbox, and still [not how to build an
+  app](docs/sqlite.md#sqlite-in-the-browser-wasm). Linking `e_sqlite3` means the playground now publishes
+  with a **native relink** (the `wasm-tools` workload); a build made with `-p:WasmBuildNative=false` ships
+  without the EF Core reference set and marks those chapters read-only rather than pretending they work,
+  so the fast unit-gate build is unaffected.
+
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two
   keystrokes used to do different things depending on where you were, and the two worst cases failed

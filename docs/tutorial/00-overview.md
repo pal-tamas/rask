@@ -8,6 +8,11 @@ to a **deployed, database-backed product that one person runs on one server**. T
 We build a small online shop — **Shop** — and grow it one chapter at a time. Every step is a real command
 you type and real code the `rask` CLI writes for you. Nothing here is pseudo-code.
 
+> **Want to try the ideas before installing anything?** The
+> [playground's guided tutorial](../playground.md#the-guided-tutorial) teaches components, state, forms
+> and then EF Core CRUD — running real SQLite in your browser tab, with nothing to set up. It covers the
+> code; this tutorial covers the product: the CLI, migrations, jobs, email, and shipping it.
+
 ## What you'll build
 
 By the last chapter, Shop has:

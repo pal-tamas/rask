@@ -7,6 +7,9 @@ data in the component lifecycle, and run forms against persisted state. The runn
 
 > WASM note: this is a Server-side pattern. EF Core's SQLite provider isn't a fit for the trimmed
 > browser runtime — keep data access behind the server (a Server host, or an API the WASM app calls).
+> (The [playground tutorial](playground.md#the-guided-tutorial) does run EF Core in the browser, on a
+> deliberately untrimmed, natively relinked build, so you can *learn* this without installing anything.
+> It's a sandbox — [here's why it isn't an architecture](sqlite.md#sqlite-in-the-browser-wasm).)
 
 ## Register the DbContext with a factory, not a scope
 

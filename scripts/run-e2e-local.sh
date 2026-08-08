@@ -21,6 +21,16 @@ fi
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
+# The playground publish below needs the native relink (see the note there), which needs the wasm-tools
+# workload + emscripten. Check up front: without it the publish fails several minutes in, with an error
+# about a missing runtime pack rather than about a missing workload.
+if ! dotnet workload list 2>/dev/null | grep -q '^wasm-tools'; then
+  echo "run-e2e-local: the 'wasm-tools' workload is not installed." >&2
+  echo "  The playground publishes with a native relink so its tutorial can run SQLite in the browser." >&2
+  echo "  Install it once with:  sudo dotnet workload install wasm-tools" >&2
+  exit 1
+fi
+
 # WasmBuildNative=false: build every WASM sample against the prebuilt .NET-WASM runtime, the same mode
 # the fixtures serve (Site/Playground/Standalone all publish with it below) and the CI unit gate uses.
 # Without it, the slnx build compiles Rask.Example.Wasm with the native relink (unset WasmBuildNative →
@@ -38,7 +48,19 @@ dotnet publish samples/Rask.Example.Server -c Release --no-build --no-restore --
 # The Shop fixture runs the published app too: an in-repo `dotnet run` never materialises the
 # _content/Rask.Bootstrap static assets its shell links.
 dotnet publish samples/Rask.Example.Shop -c Release --no-build --no-restore --nologo
-dotnet publish samples/Rask.Example.Playground -c Release --no-restore -p:WasmBuildNative=false --nologo
+# The playground is the one sample published WITH the native relink, and it has to be: its tutorial track
+# runs EF Core against SQLite in the browser, which means linking e_sqlite3 (a static archive) into the
+# runtime. Passing -p:WasmBuildNative=false here would silently drop the data packages (see
+# RaskPlaygroundData in its csproj) and the tutorial half of PlaygroundExampleTests would fail. This does
+# not reintroduce the fingerprint/SRI drift the note above warns about: that is one project built two ways
+# into one obj/, whereas the fixture serves this publish output, which is internally consistent.
+#
+# It also RE-RESTORES (no --no-restore, unlike the publishes above). RaskPlaygroundData gates the EF Core /
+# SQLitePCLRaw PackageReferences, so the package graph differs between the two modes — and the build above
+# restored in the other one. MSBuild does not error when a PackageReference appears after restore, it
+# silently ignores it: the bundle would compile with RASK_PLAYGROUND_DATA defined (chapters 5-8 unlocked)
+# while _framework shipped no EF Core at all, and the E2E would burn its full timeout on a CS0246.
+dotnet publish samples/Rask.Example.Playground -c Release --nologo
 dotnet publish samples/Rask.Example.Site -c Release --no-restore -p:WasmBuildNative=false --nologo
 
 echo "==> Ensure Playwright browsers are installed"

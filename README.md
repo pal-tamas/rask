@@ -264,7 +264,9 @@ host trade-offs, and sub-path hosting are covered in **[getting started](docs/ge
   to `main`; click through a full multi-page Rask app in the browser before cloning anything.
 - **[Playground ↗](https://pal-tamas.github.io/rask/playground/)** — write Rask component C# in the browser with a real
   IDE: Roslyn-powered IntelliSense, as-you-type diagnostics, and a gallery of ready-to-run examples — then see it
-  compile & render live (Roslyn runs in WebAssembly, no server). See [docs/playground.md](docs/playground.md).
+  compile & render live (Roslyn runs in WebAssembly, no server). It also hosts an **eight-chapter guided tutorial**
+  whose last four chapters run **real EF Core + SQLite inside the tab** — write an entity, save a row, query it back,
+  with nothing installed. See [docs/playground.md](docs/playground.md).
 - **[`samples/`](samples/)** — runnable showcase apps that exercise every feature end-to-end: the shared feature pages
   (`samples/Rask.Example.Shared/Features/`), EF Core + SQLite data access, and one auth sample per cell of the
   `{Cookie, JWT} × {Server, WASM}` matrix. Run one with, e.g.,
