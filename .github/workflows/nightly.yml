@@ -136,6 +136,7 @@ jobs:
           dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.ObjectStore/Rask.ObjectStore.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Sync/Rask.Sync.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.SQLite/Rask.SQLite.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj -c Release -o ./artifacts
