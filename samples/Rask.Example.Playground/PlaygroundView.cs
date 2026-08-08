@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using Microsoft.JSInterop;
 using Rask.Bootstrap;
 using Rask.Core.Components;
@@ -351,7 +352,12 @@ public sealed class PlaygroundView : Component
         {
             // The compiled component runs inside a boundary so a throwing Render() shows a message instead
             // of blanking the playground. Keyed via the parent container so each run is a fresh mount.
-            return ErrorBoundary(Fallback: RenderPreviewError)[component];
+            //
+            // Mount() is what gives it a lifecycle. It was built by ActivatorUtilities, not by a generated
+            // factory, so nothing has adopted it: handed straight to the boundary it renders fine but never
+            // receives OnMount/OnMountAsync, which is silent and looks exactly like code that doesn't work —
+            // a component that loads in OnMountAsync just sits on its placeholder.
+            return ErrorBoundary(Fallback: RenderPreviewError)[Mount(Child: component)];
         }
 
         return Div(Class: "pg-preview-empty")[
@@ -364,9 +370,29 @@ public sealed class PlaygroundView : Component
     private static Component RenderPreviewError(Exception error, Callback recover) =>
         Div(Class: "pg-preview-error")[
             Strong()["The component threw while rendering:"],
-            Pre()[error.Message],
+            // The whole chain, not just the outermost message. The ones that matter most here say the least
+            // on their own: EF Core's "An error occurred while saving the entity changes. See the inner
+            // exception for details." is a pointer to the message the reader actually needs.
+            Pre()[ExceptionChain(error)],
             Button(Class: "pg-retry", OnClick: recover)["Retry"]
         ];
+
+    private static string ExceptionChain(Exception error)
+    {
+        var text = new StringBuilder();
+
+        for (var current = error; current is not null; current = current.InnerException)
+        {
+            if (text.Length > 0)
+            {
+                text.Append("\n → ");
+            }
+
+            text.Append(current.GetType().Name).Append(": ").Append(current.Message);
+        }
+
+        return text.ToString();
+    }
 
     private Component? Diagnostics()
     {

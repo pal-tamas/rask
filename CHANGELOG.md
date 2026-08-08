@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
+  enters the tree through its generated factory, and that factory is what registers the instance with its
+  parent. One built another way — because its type isn't known until runtime: a plugin, a component chosen
+  by name, one compiled in the browser — arrives as a plain object. It rendered correctly but was invisible
+  to the alive-set walk: **no `OnMount`, no `OnMountAsync`, no `OnRendered`, no `OnUnmount`**, and no handle
+  to re-render through when an async hook completed. Anything loading its data in `OnMountAsync` sat on its
+  placeholder forever, with nothing reported — the failure looked exactly like code that doesn't work.
+  `Div()[Mount(Child: instance)]` adopts and notifies it, and adds no markup of its own; wrapping a
+  factory-built child is a harmless no-op. See [composition.md](docs/composition.md#hosting-a-component-you-built-yourself).
+  (Found because the playground mounts every compiled component this way — so until now *no* playground
+  snippet could load anything in `OnMountAsync`.)
 - **A guided tutorial in the playground, with real EF Core + SQLite running in the browser.** The
   playground's left pane gains a **Tutorial** tab beside the example gallery: eight chapters that start at
   "what is a component" and end at a database, each with its goal and notes above the editor, prev/next

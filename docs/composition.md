@@ -7,6 +7,7 @@ sending events up, nesting children, and rendering windowed or reorderable lists
 
 - [Children & fragments](#children--fragments)
 - [Component tiers: static method · stateless · stateful](#component-tiers-static-method--stateless--stateful)
+- [Hosting a component you built yourself](#hosting-a-component-you-built-yourself)
 - [Callbacks & context](composition-callbacks-context.md) — child→parent callbacks, provide/consume context.
 - [Lists, toasts, drag & error boundaries](composition-lists.md) — virtualize, keyed lists, toasts, drag-and-drop, error boundaries.
 
@@ -48,6 +49,38 @@ The page root is itself a fragment that renders the full shell:
 protected override Component? Render() =>
     [Doctype(), Html()[Head()[Title()["My app"]], Body()[ /* … */ ]]];
 ```
+
+---
+
+## Hosting a component you built yourself
+
+Components normally enter the tree through their **generated factory**, and that factory is what
+registers the instance with its parent. Occasionally you can't call one — because the type isn't known
+until runtime:
+
+```csharp
+var page = (Component)ActivatorUtilities.CreateInstance(services, pluginType);
+```
+
+Such an instance renders correctly if you drop it straight into a tree, but nothing has adopted it: it
+is invisible to the alive-set walk, so **no lifecycle hook ever runs** — no `OnMount`, no
+`OnMountAsync`, no `OnRendered`, no `OnUnmount` — and it has no handle to re-render through when an
+async hook completes. A component that loads its data in `OnMountAsync` then sits on its placeholder
+forever, and nothing is reported.
+
+Wrap it in **`Mount`** and it behaves like any other child:
+
+```csharp
+Div(Class: "host")[Mount(Child: page)]
+```
+
+`Mount` renders the child in place and adds no markup of its own. Passing a component that *did* come
+from a generated factory is harmless — it has already been adopted, and `Mount` is then a no-op.
+
+> You only need this for instances you constructed yourself. `Div()[Span()["hi"]]` and every other
+> factory call is already adopted. Note that constructing a component with `new` outside the framework
+> is a compile error ([RASK014](diagnostics.md#rask014)) — reflection-built instances are exactly the
+> case this exists for.
 
 ---
 

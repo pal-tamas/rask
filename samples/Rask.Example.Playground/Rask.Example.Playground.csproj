@@ -41,6 +41,12 @@
          explanation. Publishing normally (pages.yml, the E2E gate) gets the full track. -->
     <RaskPlaygroundData Condition=" '$(RaskPlaygroundData)' == '' and '$(WasmBuildNative)' != 'false' ">true</RaskPlaygroundData>
     <DefineConstants Condition=" '$(RaskPlaygroundData)' == 'true' ">$(DefineConstants);RASK_PLAYGROUND_DATA</DefineConstants>
+    <!-- WASM0001: the relink reports that SQLite's variadic natives (sqlite3_config / sqlite3_db_config)
+         "will fail at runtime" — WebAssembly has no varargs calling convention. True, and irrelevant here:
+         nothing on the connection/EF Core path calls them (verified in a browser: open, ADO round-trip,
+         EnsureCreated, SaveChanges, LINQ, ExecuteUpdate all work). Without this the repo-wide
+         TreatWarningsAsErrors turns the two warnings into a failed publish. -->
+    <NoWarn Condition=" '$(RaskPlaygroundData)' == 'true' ">$(NoWarn);WASM0001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
