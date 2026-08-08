@@ -539,6 +539,34 @@ them until tagged releases begin.
     specification, not against its own recorded output, and against the encoding rules the specification
     names individually — `%20` rather than `+`, no double-encoding, slashes preserved in a key, query
     parameters sorted after encoding.
+- **`Rask.Sync` — the merge engine offline-first sync rests on (#642).** Two devices edit the same data
+  while offline; both come back; the data has to be something. This answers that deterministically, and
+  it is deliberately a package with **no dependencies and no I/O** — it does not know where operations
+  come from or go. This is the piece where a mistake silently destroys a user's work, so it is the piece
+  with nothing else in it to hide behind.
+  - **Three properties, asserted by brute force rather than by example.** Replaying a log is
+    order-independent, idempotent and convergent. The tests permute every ordering of each log, replay it
+    twice, interleave duplicates, and split it at every point — because a hand-picked ordering only proves
+    that ordering works, where the actual claim is that order does not matter. Together these are what
+    remove the need for a server: a client never has to know what it already sent, never has to coordinate
+    with a peer, and never has to be right about the order.
+  - **Operations carry changed fields, not whole rows**, so two devices editing different fields of one
+    record offline both keep their work — a whole-row operation would silently discard one of them. Values
+    are raw JSON, opaque to the engine, so it needs no knowledge of the application's types.
+  - **Conflicts are reported, not hidden.** Last-writer-wins loses data by design: something has to lose,
+    and no cleverer rule avoids that. What it can avoid is nobody being told. Every merge that discards
+    another node's value returns a record carrying both values and both stamps. Merging stays fully
+    automatic. Deliberately *not* reported: a device overwriting its own earlier value, two devices writing
+    the same value, and duplicate delivery — a conflict feed that fires on every ordinary save is one
+    people learn to ignore, which is the same outcome as not reporting at all.
+  - **A hybrid logical clock, because wall clocks lose data.** Device clocks disagree, users set them by
+    hand, and they run backwards over NTP corrections — so an edit made later can carry an earlier
+    timestamp and be discarded silently. The clock never moves backwards and advances on every stamp it
+    observes, so anything issued after receiving an operation sorts after it. Stamps are fixed-width hex,
+    so sorting them as strings equals comparing them as values — which is what lets a log be ordered by
+    object key with no parsing and no index. Node identity is the final tie-break: without it two devices
+    can mint identical stamps and the winner depends on arrival order, which is divergence, not a merge.
+  - Rows are addressed by entity name plus a `Guid`, because an offline insert has to mint its own key.
 
 ## [0.20.0] - 2026-08-06
 
