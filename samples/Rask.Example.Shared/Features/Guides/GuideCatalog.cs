@@ -188,6 +188,8 @@ public static class GuideCatalog
             "bi-phone-fill", "Mobile & devices"),
         new("native-devices", "Native — device capabilities", "Safe-area insets, device backends, native header/footer.",
             "bi-phone-fill", "Mobile & devices"),
+        new("sync", "Offline-first merge", "Hybrid logical clock, op log, per-field merge — and why conflicts are reported.",
+            "bi-arrow-repeat", "Mobile & devices"),
         new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPushSender, delivery results.",
             "bi-send", "Mobile & devices"),
         new("object-storage", "Object storage", "S3 and Azure Blob with no cloud SDK — ranged reads, streaming writes, conditional create.",
