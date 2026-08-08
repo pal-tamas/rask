@@ -37,6 +37,36 @@ public interface IKeyValueStore
     /// <summary>Reads the value for <paramref name="key" />, or <c>null</c> if absent.</summary>
     ValueTask<string?> GetAsync(string key);
 
+    /// <summary>
+    ///     Stores raw bytes under <paramref name="key" /> (overwriting any existing) — for content that is
+    ///     binary rather than text, such as an image or a database file.
+    /// </summary>
+    /// <remarks>
+    ///     IndexedDB stores these as a real <c>Uint8Array</c>, so a megabyte of bytes costs a megabyte of
+    ///     quota. Base64 appears only in transit, because that is what crosses the JS interop boundary
+    ///     reliably on every host.
+    ///     <para>
+    ///         The default implementation stores the base64 text through <see cref="SetAsync" />, so a store
+    ///         written before this method existed still compiles and behaves correctly — it just pays the
+    ///         ~33% size penalty in storage as well as on the wire. The built-in store overrides it.
+    ///     </para>
+    /// </remarks>
+    ValueTask SetBytesAsync(string key, byte[] value)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
+        return SetAsync(key, Convert.ToBase64String(value));
+    }
+
+    /// <summary>Reads the bytes for <paramref name="key" />, or <c>null</c> if absent.</summary>
+    /// <remarks>Pairs with <see cref="SetBytesAsync" />; do not read a key written by <see cref="SetAsync" />.</remarks>
+    async ValueTask<byte[]?> GetBytesAsync(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        var value = await GetAsync(key).ConfigureAwait(false);
+        return value is null ? null : Convert.FromBase64String(value);
+    }
+
     /// <summary>Removes <paramref name="key" /> (a no-op if absent).</summary>
     ValueTask DeleteAsync(string key);
 
@@ -79,6 +109,22 @@ public sealed class IndexedDb(IJSRuntime js) : IIndexedDb
         {
             ArgumentNullException.ThrowIfNull(key);
             return js.InvokeAsync<string?>("__raskIdb.get", name, key);
+        }
+
+        // Base64 crosses the boundary; the helper decodes it to a Uint8Array before it reaches the
+        // object store, so the ~33% inflation is paid on the wire but never against the quota.
+        public ValueTask SetBytesAsync(string key, byte[] value)
+        {
+            ArgumentNullException.ThrowIfNull(key);
+            ArgumentNullException.ThrowIfNull(value);
+            return js.InvokeVoidAsync("__raskIdb.setBytes", name, key, Convert.ToBase64String(value));
+        }
+
+        public async ValueTask<byte[]?> GetBytesAsync(string key)
+        {
+            ArgumentNullException.ThrowIfNull(key);
+            var base64 = await js.InvokeAsync<string?>("__raskIdb.getBytes", name, key).ConfigureAwait(false);
+            return base64 is null ? null : Convert.FromBase64String(base64);
         }
 
         public ValueTask DeleteAsync(string key)

@@ -65,6 +65,14 @@ them until tagged releases begin.
   with a **native relink** (the `wasm-tools` workload); a build made with `-p:WasmBuildNative=false` ships
   without the EF Core reference set and marks those chapters read-only rather than pretending they work,
   so the fast unit-gate build is unaffected.
+- **`IIndexedDb` stores raw bytes, not just strings.** `IKeyValueStore` gains
+  `SetBytesAsync(key, byte[])` / `GetBytesAsync(key)` for content that is binary rather than text — an
+  image, a compressed blob, a database file. The value lands in IndexedDB as a real `Uint8Array`, so a
+  megabyte of bytes costs a megabyte of quota; base64 is used only in transit, being the one encoding
+  that marshals identically across the interop boundary on every host. Both methods have default
+  interface implementations that fall back to the string API, so a custom `IKeyValueStore` written
+  before this still compiles and behaves correctly — it just pays the ~33% inflation in storage too.
+  The two pairs are not interchangeable: read a key with the same kind of accessor you wrote it with.
 - **`AddHostedService` now works on the browser host.** It always compiled there —
   `Microsoft.Extensions.Hosting.Abstractions` is pure abstractions — but nothing ever *started* what
   it registered, because a WASM app has no generic host. So a `BackgroundService` that ran on the

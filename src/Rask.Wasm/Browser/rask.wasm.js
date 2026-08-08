@@ -230,11 +230,38 @@ window.__raskIdb = window.__raskIdb || (() => {
         t.onabort = () => reject(t.error);
     }));
 
+    // Binary values (SetBytesAsync/GetBytesAsync) travel the interop boundary as base64 — the one
+    // encoding that marshals identically on every host — but are decoded here so the object store
+    // holds a real Uint8Array. Storing the base64 text instead would cost ~33% of the browser's
+    // storage quota for every byte, which matters once the value is something like a database file.
+    const toBytes = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes;
+    };
+
+    const toBase64 = (value) => {
+        const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+        // Chunked: String.fromCharCode.apply throws RangeError once the argument list gets long,
+        // which for a database-sized value is not a hypothetical.
+        const CHUNK = 0x8000;
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+        }
+        return btoa(binary);
+    };
+
     return {
         isSupported: () => "indexedDB" in window,
         open: (name) => open(name).then(() => undefined),
         set: (name, key, value) => run(name, "readwrite", (s) => s.put(value, key)).then(() => undefined),
         get: (name, key) => run(name, "readonly", (s) => s.get(key)).then((v) => (v === undefined ? null : v)),
+        setBytes: (name, key, base64) =>
+            run(name, "readwrite", (s) => s.put(toBytes(base64), key)).then(() => undefined),
+        getBytes: (name, key) =>
+            run(name, "readonly", (s) => s.get(key)).then((v) => (v === undefined || v === null ? null : toBase64(v))),
         delete: (name, key) => run(name, "readwrite", (s) => s.delete(key)).then(() => undefined),
         keys: (name) => run(name, "readonly", (s) => s.getAllKeys()),
         clear: (name) => run(name, "readwrite", (s) => s.clear()).then(() => undefined)
