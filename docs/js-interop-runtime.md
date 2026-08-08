@@ -69,7 +69,7 @@ later step on the same pattern.
 | `IDeviceMotion` | `devicemotion` | `RequestPermissionAsync()` + `WatchAsync(Func<MotionReading,Task>)` → `IAsyncDisposable` — accelerometer / rotation |
 | `ICrypto` | `crypto` / `crypto.subtle` | `RandomUuidAsync`, `RandomBytesAsync(length)`, `DigestHexAsync(HashAlgorithm, text)` |
 | `IPerformance` | `performance` | `NowAsync()` (high-res clock), `GetNavigationTimingAsync()` → `NavigationTiming?` (TTFB / DCL / load) |
-| `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`Delete`/`Keys`/`Clear`) — large async persistent storage |
+| `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`SetBytes`/`GetBytes`/`Delete`/`Keys`/`Clear`) — large async persistent storage, text or raw bytes |
 
 ```csharp
 public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component

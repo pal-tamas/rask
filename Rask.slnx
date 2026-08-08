@@ -21,6 +21,7 @@
         <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj"/>
         <Project Path="samples/Rask.Example.Sqlite/Rask.Example.Sqlite.csproj"/>
         <Project Path="samples/Rask.Example.Site/Rask.Example.Site.csproj"/>
+        <Project Path="samples/Rask.Example.Wasm.Jobs/Rask.Example.Wasm.Jobs.csproj"/>
         <Project Path="samples/Rask.Example.Wasm.Host/Rask.Example.Wasm.Host.csproj"/>
         <Project Path="samples/Rask.Example.Wasm/Rask.Example.Wasm.csproj"/>
     </Folder>
@@ -51,6 +52,7 @@
         <Project Path="src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj"/>
         <Project Path="src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj"/>
         <Project Path="src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj"/>
+        <Project Path="src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj"/>
         <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj"/>
         <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj"/>
         <Project Path="src/Rask.Testing/Rask.Testing.csproj"/>
@@ -96,6 +98,7 @@
         <Project Path="tests/Rask.SQLite.Limitations.Tests/Rask.SQLite.Limitations.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Litestream.Tests/Rask.SQLite.Litestream.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Snapshots.Tests/Rask.SQLite.Snapshots.Tests.csproj"/>
+        <Project Path="tests/Rask.SQLite.Browser.Tests/Rask.SQLite.Browser.Tests.csproj"/>
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj"/>
         <Project Path="tests/Rask.Validation.DataAnnotations.Tests/Rask.Validation.DataAnnotations.Tests.csproj"/>
         <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj"/>

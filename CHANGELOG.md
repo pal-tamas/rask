@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`BrowserSqliteOwnership` — let a second tab explain itself.** Only one tab may own a browser SQLite
+  database, so the others run against their own empty, unpersisted one. That is correct, and until now it
+  was also indistinguishable from the user's data having been deleted: the package logged a warning to the
+  console and the app had no way to ask. Inject `BrowserSqliteOwnership`, `await ownership.Resolved`, and
+  say so. `IsOwner` is `null` while the election is in flight rather than `false`, so "still deciding" and
+  "another tab has it" stay distinguishable and a normal boot never flashes a warning banner.
+  `samples/Rask.Example.Wasm.Jobs` shows one, covered by an E2E that opens two real tabs.
+
 ### Fixed
 - **Playground: picking a chapter or an example before the editor had mounted silently kept the starter
   code.** Run and Reset waited for the editor; the controls that *load* code did not — they only guarded
@@ -31,6 +40,16 @@ them until tagged releases begin.
   so a samples-only or docs-only commit could break a golden or a docs invariant with nothing objecting
   until somebody else's push. An entire feature could land ungated; the playground tutorial was largely a
   `samples/` + `docs/` change.
+- **`rask generate job` no longer prints server-only next steps inside a browser app**
+  ([#646](https://github.com/pal-tamas/rask/issues/646)). `rask g j` is not gated on project kind, so it
+  runs anywhere a `.csproj` is found — and it told everyone the same thing: point a `DbContextFactory` at
+  `Data Source=app.db`, then run `rask db add && rask db update`. In a WASM app the migration step is not
+  something the reader can do at all (there is no design-time database in a browser bundle), and the
+  registration omits the one call that makes the queue durable. The failure was silent rather than loud:
+  the app built, ran, and quietly lost every queued job on reload. `ProjectContext` now detects a browser
+  project the same way it already detects the database provider — by reading the project file — and the
+  notes tell a WASM app to register `AddRaskBrowserSqlite`, create its schema at boot, and avoid the two
+  build settings (`-p:WasmBuildNative=false`, `PublishTrimmed=true`) that each break it without an error.
 
 ### Added
 - **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
@@ -65,6 +84,62 @@ them until tagged releases begin.
   with a **native relink** (the `wasm-tools` workload); a build made with `-p:WasmBuildNative=false` ships
   without the EF Core reference set and marks those chapters read-only rather than pretending they work,
   so the fast unit-gate build is unaffected.
+- **`samples/Rask.Example.Wasm.Jobs` — `Rask.Jobs` running in the browser, verified end to end.** Queue a
+  job, a `BackgroundService` picks it up and writes a row, reload the page and the row is still there —
+  with no server behind any of it. Every registration below the first line is what you would write on a
+  server, and `GreetJob` plus its `ICommandHandler<GreetJob>` would compile and run there unchanged. The
+  new E2E test is the only evidence for a chain no unit test can reach: the WASM host starting a
+  registered `IHostedService`, EF Core opening a natively-linked SQLite database in the browser,
+  `JobProcessor` claiming a row with its lease, and the database surviving a reload from an IndexedDB
+  snapshot. It is its own sample rather than a page in the showcase because EF Core cannot be trimmed,
+  and it is the one sample that must **not** be published with `-p:WasmBuildNative=false` — SQLite is a
+  native library, and skipping the relink produces a bundle that boots and then fails on every database
+  call. `scripts/run-e2e-local.sh` publishes it accordingly, and the fixture checks the output and says
+  so if it was built the wrong way.
+- **`Rask.SQLite.Browser` — a real SQLite database inside a browser WASM app, persisted across reloads.**
+  `docs/sqlite.md` said this was not worth doing; it is, and it now works. The native `e_sqlite3` links
+  into a `browser-wasm` publish on its own (the patched SQLitePCLRaw 3.x bundle already pinned for
+  CVE-2025-6965 resolves to a native package that ships the browser asset and wires the
+  `NativeFileReference` itself), so `Microsoft.Data.Sqlite` — and Entity Framework Core on top of it,
+  including `ExecuteUpdateAsync` — runs in the browser unchanged. What was missing was durability and a
+  single writer, which is what this package adds: the database is restored from IndexedDB during a hosted
+  service's `StartAsync` (so anything registered after it opens a populated file), written back on an
+  interval and on page-hide through SQLite's Online Backup API rather than an unsafe file copy, and owned
+  by exactly one tab via a Web Lock — because every tab has its own in-memory filesystem, and two owners
+  would mean two divergent databases with the last snapshot silently winning.
+  ```csharp
+  builder.Services.AddRaskBrowserSqlite("app");
+  builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(BrowserSqlite.ConnectionString("app")));
+  builder.Services.AddRaskJobs<AppDbContext>();   // unchanged from the server
+  ```
+  Three limits worth stating plainly: an app using EF Core in the browser must publish with
+  `PublishTrimmed=false` (EF Core does not survive the trimmer there; `Microsoft.Data.Sqlite` alone does);
+  the durability window is the snapshot interval, not the page-hide flush, because the browser does not
+  wait for a `pagehide` handler; and non-owner tabs get their own unpersisted database rather than a view
+  of the owner's — promotion and write-proxying are not implemented.
+- **`IIndexedDb` stores raw bytes, not just strings.** `IKeyValueStore` gains
+  `SetBytesAsync(key, byte[])` / `GetBytesAsync(key)` for content that is binary rather than text — an
+  image, a compressed blob, a database file. The value lands in IndexedDB as a real `Uint8Array`, so a
+  megabyte of bytes costs a megabyte of quota; base64 is used only in transit, being the one encoding
+  that marshals identically across the interop boundary on every host. Both methods have default
+  interface implementations that fall back to the string API, so a custom `IKeyValueStore` written
+  before this still compiles and behaves correctly — it just pays the ~33% inflation in storage too.
+  The two pairs are not interchangeable: read a key with the same kind of accessor you wrote it with.
+- **`AddHostedService` now works on the browser host.** It always compiled there —
+  `Microsoft.Extensions.Hosting.Abstractions` is pure abstractions — but nothing ever *started* what
+  it registered, because a WASM app has no generic host. So a `BackgroundService` that ran on the
+  server registered fine, resolved fine, and silently never ran. Rask now starts registered hosted
+  services itself, in registration order, at the end of boot — late enough that a service can call
+  `StateHasChanged()` against a mounted tree, and late enough that a slow `StartAsync` cannot hold up
+  the rest of the boot or anything after `await RunAsync<App>()`. Differences from the server, all
+  documented in [docs/lifecycle.md](docs/lifecycle.md#hosted-services): a service that throws from
+  `StartAsync` is logged and skipped rather than blanking the app, since a browser tab has no
+  orchestrator to restart it (a throwing *constructor* takes the whole set down, because the
+  container builds them in one call — reported plainly); a `BackgroundService` whose loop faults
+  after starting is observed and logged, so a crashed loop cannot masquerade as one that never ran;
+  and shutdown is drained from `pagehide` — in reverse start order, and not for a back/forward-cache
+  suspend where the page can be restored still running — which the browser does not wait for, so it
+  is an optimisation rather than a guarantee.
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

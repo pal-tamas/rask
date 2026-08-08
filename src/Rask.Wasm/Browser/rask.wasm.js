@@ -230,11 +230,38 @@ window.__raskIdb = window.__raskIdb || (() => {
         t.onabort = () => reject(t.error);
     }));
 
+    // Binary values (SetBytesAsync/GetBytesAsync) travel the interop boundary as base64 — the one
+    // encoding that marshals identically on every host — but are decoded here so the object store
+    // holds a real Uint8Array. Storing the base64 text instead would cost ~33% of the browser's
+    // storage quota for every byte, which matters once the value is something like a database file.
+    const toBytes = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes;
+    };
+
+    const toBase64 = (value) => {
+        const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+        // Chunked: String.fromCharCode.apply throws RangeError once the argument list gets long,
+        // which for a database-sized value is not a hypothetical.
+        const CHUNK = 0x8000;
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+        }
+        return btoa(binary);
+    };
+
     return {
         isSupported: () => "indexedDB" in window,
         open: (name) => open(name).then(() => undefined),
         set: (name, key, value) => run(name, "readwrite", (s) => s.put(value, key)).then(() => undefined),
         get: (name, key) => run(name, "readonly", (s) => s.get(key)).then((v) => (v === undefined ? null : v)),
+        setBytes: (name, key, base64) =>
+            run(name, "readwrite", (s) => s.put(toBytes(base64), key)).then(() => undefined),
+        getBytes: (name, key) =>
+            run(name, "readonly", (s) => s.get(key)).then((v) => (v === undefined || v === null ? null : toBase64(v))),
         delete: (name, key) => run(name, "readwrite", (s) => s.delete(key)).then(() => undefined),
         keys: (name) => run(name, "readonly", (s) => s.getAllKeys()),
         clear: (name) => run(name, "readwrite", (s) => s.clear()).then(() => undefined)
@@ -2905,6 +2932,26 @@ export function setExports(exports) {
     // index.html (and any subsequent applyRender will re-sweep so morph-added
     // assets get picked up too — see applyDom in handle()).
     scanHeadAssets();
+
+    // Let registered IHostedServices drain when the page really goes away — the browser's nearest
+    // thing to SIGTERM. `pagehide` rather than `beforeunload` because it also fires on mobile, where
+    // a tab is far likelier to be discarded than closed.
+    //
+    // `event.persisted` is the whole reason this isn't a one-liner: it means the page is going into
+    // the back/forward cache and can be restored, still running, with its services still needed.
+    // Stopping them there would leave a restored page with dead background work and no way to notice.
+    // Not registered with `once`, so a bfcache round-trip still gets drained on the eventual real
+    // teardown; StopAsync is idempotent, so a double fire is harmless.
+    window.addEventListener("pagehide", (event) => {
+        if (event.persisted) return;
+        try {
+            exports?.Rask?.Wasm?.JSInterop?.StopHostedServices?.();
+        } catch (e) {
+            // Nothing useful can be done while the page is unloading, and throwing here would take
+            // the rest of the browser's teardown with it.
+            console.warn("[Rask] pagehide: stopping hosted services failed", e);
+        }
+    });
 }
 
 // Called by .NET (via [JSImport]) for both the initial paint and subsequent

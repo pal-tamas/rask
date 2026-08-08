@@ -31,4 +31,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Rask.SQLite.Browser registers SqliteSnapshotter itself rather than calling
+         AddRaskSqliteSnapshots: in a browser the snapshot loop has to be gated on which tab owns the
+         database, which the shared hosted service knows nothing about. Sharing the internal snapshotter
+         keeps the Online Backup logic in one place instead of reimplementing it there. -->
+    <InternalsVisibleTo Include="Rask.SQLite.Browser"/>
+  </ItemGroup>
+
 </Project>

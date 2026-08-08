@@ -224,5 +224,18 @@ public sealed class WasmHostBuilder
                     RaskLogLevel.Warning, "Rask.Wasm", "[Rask.Wasm] applying web app manifest failed", ex);
             }
         }
+
+        // Registered IHostedServices — the browser analogue of the generic host starting them, so an
+        // AddHostedService line means the same thing on both hosts instead of silently doing nothing here.
+        //
+        // LAST in the boot sequence, deliberately, for two reasons. A background service is free to mutate
+        // state and call StateHasChanged, and until InitialRenderAsync has run there is no mounted tree to
+        // render into. And a plain IHostedService (not a BackgroundService) does its work *inside*
+        // StartAsync, so starting these any earlier would let a slow one delay the manifest injection — or,
+        // if it never returns, hold up everything after `await RunAsync<App>()` in the user's Program.cs
+        // with no clue as to why. Nothing after this point can be starved.
+        var hostedServices = new WasmHostedServices(provider);
+        JSInterop.Init(hostedServices);
+        await hostedServices.StartAsync().ConfigureAwait(false);
     }
 }

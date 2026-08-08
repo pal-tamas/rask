@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Multi-targeted for the same reason Rask.Wasm is: net10.0-browser is where this actually runs, and
+      plain net10.0 exists so a normal xunit project can reference and test the logic. Nothing here is
+      browser-conditional at compile time — the browser-only part is the NATIVE SQLite build, and that is
+      linked into the consuming app (RuntimeIdentifier=browser-wasm), not into this library.
+    -->
+    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.SQLite.Browser</PackageId>
+    <Title>Rask.SQLite.Browser — a real SQLite database inside the browser</Title>
+    <Description>Runs Microsoft.Data.Sqlite (and Entity Framework Core on top of it) inside a browser WebAssembly app, with the database persisted across reloads. The database file lives in the WASM runtime's in-memory filesystem; this package restores it from IndexedDB at boot and writes it back on a schedule and on page-hide, using SQLite's Online Backup API (never an unsafe file copy) via Rask.SQLite.Snapshots. A Web Lock elects one tab as the owner, so several open tabs cannot write over each other. Register `AddRaskBrowserSqlite("app")` and point your DbContext at `BrowserSqlite.ConnectionString("app")` — the same registration you would write on the server.</Description>
+    <!-- Override the framework default tags (web/component/wasm): this is a data-layer package. -->
+    <PackageTags>sqlite wasm webassembly browser indexeddb persistence offline efcore dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
+    <!-- Run the trim + AOT analysers on every build, as Rask.Core and Rask.Wasm do, so a browser app
+         that publishes trimmed keeps working. Microsoft.Data.Sqlite is reflection-free and trim-clean;
+         EF Core is NOT, which is why this package deliberately does not reference it. -->
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <!-- Package-specific README instead of the shared framework overview Directory.Build.props packs. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- IIndexedDb (the snapshot store) and IWebLocks (the owner election). PrivateAssets="all" because
+         Rask.Core is IsPackable=false and arrives at the consumer through Rask.Wasm — the same
+         arrangement Rask.Bootstrap and Rask.Validation.* use. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <!-- The Online Backup API snapshotter, its options, and the ISqliteSnapshotStore seam this package
+         implements over IndexedDB. A real package dependency: consumers resolve it from NuGet. -->
+    <ProjectReference Include="..\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <!--
+      Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one Microsoft.Data.Sqlite pins
+      (CVE-2025-6965). A direct reference is the only lever under CPM — see Directory.Packages.props.
+
+      It earns its place twice here: the 3.x bundle resolves to a native package that ships
+      runtimes/browser-wasm/nativeassets/net9.0/e_sqlite3.a and adds the NativeFileReference itself when
+      RuntimeIdentifier=browser-wasm. That is what makes SQLite link into a WASM app at all, and it is
+      why a consuming app needs no hand-written native wiring.
+    -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.SQLite.Browser.Tests"/>
+  </ItemGroup>
+
+</Project>
