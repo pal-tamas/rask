@@ -65,6 +65,27 @@ them until tagged releases begin.
   with a **native relink** (the `wasm-tools` workload); a build made with `-p:WasmBuildNative=false` ships
   without the EF Core reference set and marks those chapters read-only rather than pretending they work,
   so the fast unit-gate build is unaffected.
+- **`Rask.SQLite.Browser` — a real SQLite database inside a browser WASM app, persisted across reloads.**
+  `docs/sqlite.md` said this was not worth doing; it is, and it now works. The native `e_sqlite3` links
+  into a `browser-wasm` publish on its own (the patched SQLitePCLRaw 3.x bundle already pinned for
+  CVE-2025-6965 resolves to a native package that ships the browser asset and wires the
+  `NativeFileReference` itself), so `Microsoft.Data.Sqlite` — and Entity Framework Core on top of it,
+  including `ExecuteUpdateAsync` — runs in the browser unchanged. What was missing was durability and a
+  single writer, which is what this package adds: the database is restored from IndexedDB during a hosted
+  service's `StartAsync` (so anything registered after it opens a populated file), written back on an
+  interval and on page-hide through SQLite's Online Backup API rather than an unsafe file copy, and owned
+  by exactly one tab via a Web Lock — because every tab has its own in-memory filesystem, and two owners
+  would mean two divergent databases with the last snapshot silently winning.
+  ```csharp
+  builder.Services.AddRaskBrowserSqlite("app");
+  builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(BrowserSqlite.ConnectionString("app")));
+  builder.Services.AddRaskJobs<AppDbContext>();   // unchanged from the server
+  ```
+  Three limits worth stating plainly: an app using EF Core in the browser must publish with
+  `PublishTrimmed=false` (EF Core does not survive the trimmer there; `Microsoft.Data.Sqlite` alone does);
+  the durability window is the snapshot interval, not the page-hide flush, because the browser does not
+  wait for a `pagehide` handler; and non-owner tabs get their own unpersisted database rather than a view
+  of the owner's — promotion and write-proxying are not implemented.
 - **`IIndexedDb` stores raw bytes, not just strings.** `IKeyValueStore` gains
   `SetBytesAsync(key, byte[])` / `GetBytesAsync(key)` for content that is binary rather than text — an
   image, a compressed blob, a database file. The value lands in IndexedDB as a real `Uint8Array`, so a

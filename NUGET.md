@@ -74,6 +74,7 @@ dotnet add package Rask.SQLite                        # production pragmas (WAL,
 dotnet add package Rask.SQLite.EntityFrameworkCore    # the EF Core provider glue
 dotnet add package Rask.SQLite.Litestream             # managed continuous replication
 dotnet add package Rask.SQLite.Snapshots              # scheduled Online-Backup-API copies
+dotnet add package Rask.SQLite.Browser                # a persistent SQLite database inside a WASM app
 dotnet add package Rask.Postgres                      # or Postgres
 dotnet add package Rask.SqlServer                     # or SQL Server
 ```
