@@ -16,6 +16,13 @@ them until tagged releases begin.
   and Run compiled the wrong code and ticked the chapter off as done. On a cold load the window is seconds
   wide, which is exactly when a first-time reader clicks "Tutorial". Every control now shares one gate
   (`CanInteract`), since the bug was two copies of the condition disagreeing. Closes #647.
+- **Playground: a bundle whose scoped assets are missing now says so, instead of looking hung.** Mounting
+  the editor is an interop call into `PlaygroundView.js`; if that module never loaded, the call never
+  *settles* — which is not the same as failing, and the textarea fallback never gets a chance. Every
+  control then sat disabled forever with no explanation, which reads as "the playground is broken" and
+  sends you to debug Roslyn or Monaco rather than the build that dropped the assets. The mount now has a
+  deadline (generous, so a slow connection fetching Monaco can't trip it) and reports the module as
+  missing. See #650 for the build-side glitch that produces such a bundle.
 
 ### Added
 - **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally

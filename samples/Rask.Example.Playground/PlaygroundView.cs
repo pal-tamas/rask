@@ -110,9 +110,29 @@ public sealed class PlaygroundView : Component
 
         // The editor host div now exists in the DOM; create the Monaco editor inside it. mountEditor never
         // throws (it falls back to a textarea), so reaching here means the editor is usable.
-        await _js.InvokeVoidAsync("Rask.PlaygroundView.mountEditor", _editorHost, PlaygroundSamples.Starter);
-        _editorReady = true;
-        _phase = "Press Run to compile.";
+        //
+        // The timeout covers the case that promise never SETTLES, which is different from failing: if the
+        // scoped PlaygroundView.js module didn't load at all, there is nothing to resolve the invoke, so
+        // without a deadline _editorReady stays false forever and every control sits disabled with no
+        // explanation. That has happened for real — a build that silently baked no scoped assets — and it
+        // reads as "the playground is broken", sending you to debug Roslyn or Monaco rather than the build
+        // (#650). Generous, because a slow connection fetching Monaco must not trip it.
+        try
+        {
+            await _js.InvokeVoidAsync(
+                "Rask.PlaygroundView.mountEditor", TimeSpan.FromSeconds(60), _editorHost,
+                PlaygroundSamples.Starter);
+            _editorReady = true;
+            _phase = "Press Run to compile.";
+        }
+        catch (Exception ex) when (ex is TaskCanceledException or JSException or JSDisconnectedException)
+        {
+            // Everything stays disabled — without the module we cannot even read the editor's contents —
+            // but now it says why instead of looking like a hung page.
+            _phase = "The editor module (PlaygroundView.js) did not load — try reloading the page.";
+            _ide = IdeState.Unavailable;
+            return;
+        }
 
         // Kick off the (multi-MB) reference download in the background so IntelliSense + live diagnostics come
         // alive a few seconds after load — without blocking first paint or the first Run. Fire-and-forget:
