@@ -61,7 +61,17 @@ dotnet publish samples/Rask.Example.Shop -c Release --no-build --no-restore --no
 # button. It reads as a hang, names nothing, and reproduces only on some runs — whichever mode wrote obj/
 # last. Clearing only obj/Release/net10.0-browser keeps obj/project.assets.json, so the restore below is
 # still incremental.
-rm -rf samples/Rask.Example.Playground/obj/Release/net10.0-browser
+#
+# bin/ has to go too, and leaving it behind is why the first attempt at this (#652) did not work. With the
+# no-native build still sitting in bin/Release/net10.0-browser the publish below treats the compile as up
+# to date, so it never re-runs the scoped-asset bake — and since the staged copy under obj/ has just been
+# deleted, there is now nothing at all to publish. Clearing obj alone is therefore worse than clearing
+# neither. Measured: obj only -> 0 files under publish/wwwroot/_rask; obj + bin -> 6.
+#
+# Note this cannot be caught by running the gate twice: both runs clear obj and both leave the same stale
+# bin, so both fail identically and look consistent. See #650.
+rm -rf samples/Rask.Example.Playground/obj/Release/net10.0-browser \
+       samples/Rask.Example.Playground/bin/Release/net10.0-browser
 # It also RE-RESTORES (no --no-restore, unlike the publishes above). RaskPlaygroundData gates the EF Core /
 # SQLitePCLRaw PackageReferences, so the package graph differs between the two modes — and the build above
 # restored in the other one. MSBuild does not error when a PackageReference appears after restore, it

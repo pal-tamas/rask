@@ -65,6 +65,7 @@ dotnet add package Rask.Outbox            # transactional outbox for domain even
 dotnet add package Rask.Logging           # durable log store (its own SQLite file)
 dotnet add package Rask.Dashboard         # the /_ops operator dashboard over every pillar
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
+dotnet add package Rask.ObjectStore       # S3 / Azure Blob client, server-side or straight from the browser
 ```
 
 **Database** — SQLite is the production default; Postgres and SQL Server are drop-in alternatives:
