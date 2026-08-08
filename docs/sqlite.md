@@ -512,11 +512,17 @@ already wraps:
 Keep SQLite behind the server (or on device with `Rask.Native`), and let the WASM client talk to it
 through an API or the browser storage APIs above.
 
-> **The one deliberate exception: the [playground's tutorial](playground.md#the-guided-tutorial).** Its
-> data chapters do run EF Core + `Microsoft.Data.Sqlite` in the browser, native relink and all. Every
-> drawback above still applies — the database is in memory and lost on reload — but there it is the
-> *point*: a teaching sandbox wants a throwaway database and no server, and the reader gets to write real
-> EF Core instead of reading about it. That is a demo, not an architecture. Don't copy it into an app.
+> **It does run, though: the [playground's tutorial](playground.md#the-guided-tutorial) does exactly
+> this.** Its data chapters run EF Core + `Microsoft.Data.Sqlite` in the browser — native relink and all —
+> and everything above about *pragmas* still holds, but "it can't work" would be too strong. Two
+> constraints if you try it: the app must be **untrimmed** (`PublishTrimmed=true` breaks EF Core, though
+> raw ADO.NET survives it), and it needs `NoWarn=WASM0001` for the varargs `sqlite3_config` natives, which
+> this repo's warnings-as-errors would otherwise turn into a failed build.
+>
+> What the playground does *not* solve is durability: its databases live in the runtime's in-memory
+> filesystem and are gone on reload, which is the right trade for a teaching sandbox and the wrong one for
+> an app. Durable client-side SQLite needs OPFS, and that is being designed separately — until it lands,
+> the advice above stands for anything that has to keep its data.
 
 ## Limitations & when to outgrow SQLite
 
