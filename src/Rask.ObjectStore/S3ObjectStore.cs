@@ -166,7 +166,7 @@ public sealed class S3ObjectStore : IObjectStore
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ObjectEntry>> ListAsync(
-        string prefix, CancellationToken cancellationToken = default)
+        string prefix, string? startAfter = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(prefix);
 
@@ -177,7 +177,7 @@ public sealed class S3ObjectStore : IObjectStore
         {
             var token = continuationToken;
             using var response = await SendAsync(
-                () => new HttpRequestMessage(HttpMethod.Get, ListUri(prefix, token)),
+                () => new HttpRequestMessage(HttpMethod.Get, ListUri(prefix, token, startAfter)),
                 cancellationToken).ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
@@ -204,6 +204,44 @@ public sealed class S3ObjectStore : IObjectStore
         while (continuationToken is { Length: > 0 });
 
         return entries;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> ListPrefixesAsync(
+        string prefix, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(prefix);
+
+        var prefixes = new List<string>();
+        string? continuationToken = null;
+
+        do
+        {
+            var token = continuationToken;
+            using var response = await SendAsync(
+                () => new HttpRequestMessage(HttpMethod.Get, ListUri(prefix, token, delimiter: true)),
+                cancellationToken).ConfigureAwait(false);
+
+            response.EnsureSuccessStatusCode();
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var root = XDocument.Parse(body).Root!;
+
+            foreach (var common in root.Elements(S3Ns + "CommonPrefixes"))
+            {
+                if (common.Element(S3Ns + "Prefix")?.Value is { Length: > 0 } value)
+                {
+                    prefixes.Add(value);
+                }
+            }
+
+            continuationToken =
+                string.Equals(root.Element(S3Ns + "IsTruncated")?.Value, "true", StringComparison.OrdinalIgnoreCase)
+                    ? root.Element(S3Ns + "NextContinuationToken")?.Value
+                    : null;
+        }
+        while (continuationToken is { Length: > 0 });
+
+        return prefixes;
     }
 
     /// <inheritdoc />
@@ -320,12 +358,23 @@ public sealed class S3ObjectStore : IObjectStore
     // reinterpret a key that happens to start with "/" as rooted, silently dropping the bucket segment.
     private Uri KeyUri(string key) => new(BucketBase() + EncodeKey(key));
 
-    private Uri ListUri(string prefix, string? continuationToken)
+    private Uri ListUri(string prefix, string? continuationToken, string? startAfter = null, bool delimiter = false)
     {
         var query = $"?list-type=2&prefix={Uri.EscapeDataString(prefix)}";
+        if (delimiter)
+        {
+            query += "&delimiter=%2F";
+        }
+
         if (continuationToken is { Length: > 0 })
         {
             query += $"&continuation-token={Uri.EscapeDataString(continuationToken)}";
+        }
+        // Only meaningful on the first page: once a continuation token is in play the service is already
+        // resuming from where it stopped, and sending both is contradictory.
+        else if (startAfter is { Length: > 0 })
+        {
+            query += $"&start-after={Uri.EscapeDataString(startAfter)}";
         }
 
         return new Uri(BucketBase() + query);

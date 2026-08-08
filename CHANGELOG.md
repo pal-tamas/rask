@@ -598,6 +598,37 @@ them until tagged releases begin.
     can mint identical stamps and the winner depends on arrival order, which is divergence, not a merge.
   - Rows are addressed by entity name plus a `Guid`, because an offline insert has to mint its own key.
 
+### Added
+- **`Rask.Sync.Client` — several devices sharing data with no server between them (#642).** Joins
+  `Rask.Sync`'s merge engine to an object-storage bucket. The design rests on one rule: **each device
+  writes only under its own prefix** (`clients/{id}/ops/`) and never touches another's. No two clients
+  ever write the same key, so there is nothing to lock, nothing to retry on conflict, and no lease to
+  renew or to leak if a device disappears mid-write. Everything else follows from it.
+  - **Forward-only reads.** Keys carry the hybrid logical clock in fixed-width hex, so they sort in the
+    order things happened and a remembered key resumes exactly where the last sync stopped — the cost of
+    a sync is what changed, not what exists. Peers are found with a grouped listing, so discovery costs
+    one response listing the *devices* rather than one listing every object they have ever written.
+  - **Offline is the normal case, not an error.** `RecordAsync` never touches the network, so the app
+    behaves identically with or without connectivity. A failed upload leaves the queue intact and the next
+    sync re-sends it, which is safe precisely because applying an operation twice changes nothing.
+    `SyncPhase.Offline` is deliberately not a failure state — showing it as one trains people to ignore
+    the indicator that matters.
+  - **The status carries the two questions apps usually leave unanswered**: `Pending` ("if I close this
+    tab now, do I lose anything?") and `Conflicts` ("did syncing throw away something I typed?"). Neither
+    can be answered unless the engine counts them, so they belong on the status rather than in the app.
+  - `ISyncStore` keeps the queue and watermarks across reloads. Losing the queue loses a user's offline
+    edits; losing the watermarks costs only re-reading, because replay is idempotent — an asymmetry worth
+    knowing when choosing an implementation.
+
+### Changed
+- **`IObjectStore` gained `startAfter` on `ListAsync`, and a `ListPrefixesAsync` grouped listing.** Both
+  exist because syncing forward-only needs them: without `startAfter` every sync re-reads the whole
+  history, and without a grouped listing, discovering which devices exist means listing every object they
+  have ever written — which would undo the saving. `startAfter` is server-side on S3 (`start-after`);
+  **Azure Blob has no equivalent**, so there it filters the results and the listing still costs the same.
+  The behaviour is identical either way, and the difference is documented on the interface rather than
+  left for someone to discover from a bill.
+
 ## [0.20.0] - 2026-08-06
 
 ### Fixed

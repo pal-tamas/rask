@@ -138,6 +138,29 @@ public class AzureBlobObjectStoreTests
         Assert.Contains("marker=page-2", handler.Last.Uri.Query);
     }
 
+    // Azure has no start-after, so the skip is applied to the results. Same answer as S3, different cost —
+    // and the caller must not be able to tell the difference, or the engine above would need a per-provider
+    // branch.
+    [Fact]
+    public async Task List_AppliesStartAfter_ClientSide()
+    {
+        var (store, handler) = Create();
+        handler.Respond(HttpStatusCode.OK, ListXml(null, ("ops/1", 1), ("ops/5", 1), ("ops/9", 1)));
+
+        var entries = await store.ListAsync("ops/", startAfter: "ops/5");
+
+        Assert.Equal(["ops/9"], entries.Select(e => e.Key));
+    }
+
+    [Fact]
+    public async Task List_StartAfter_IsExclusive()
+    {
+        var (store, handler) = Create();
+        handler.Respond(HttpStatusCode.OK, ListXml(null, ("ops/5", 1)));
+
+        Assert.Empty(await store.ListAsync("ops/", startAfter: "ops/5"));
+    }
+
     [Fact]
     public async Task MissingSas_FailsWithAnActionableMessage()
     {
