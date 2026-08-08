@@ -84,7 +84,16 @@ rm -rf samples/Rask.Example.Playground/obj/Release/net10.0-browser \
 # restored in the other one. MSBuild does not error when a PackageReference appears after restore, it
 # silently ignores it: the bundle would compile with RASK_PLAYGROUND_DATA defined (chapters 5-8 unlocked)
 # while _framework shipped no EF Core at all, and the E2E would burn its full timeout on a CS0246.
-dotnet publish samples/Rask.Example.Playground -c Release --nologo
+#
+# -nodeReuse:false is the actual difference between this publish working and not. BakeScopedAssetsTask
+# inspects the built assemblies with Assembly.LoadFrom, and MSBuild reuses worker nodes between builds: a
+# publish landing on a node that already loaded an assembly of the same simple name (from the solution
+# build above) hits a FileLoadException, skips that assembly, and bakes an empty bundle while reporting
+# success. Measured here at 3 failures in 4 consecutive publishes on identical inputs — which is why this
+# looked like a stale-output problem for so long, and why neither clean below ever fixed it: the
+# conflicting state is in the process, not on disk. A fresh node per publish removes the conflict.
+# The task now also fails rather than baking nothing silently, so this is the fix and that is the net.
+dotnet publish samples/Rask.Example.Playground -c Release -nodeReuse:false --nologo
 dotnet publish samples/Rask.Example.Site -c Release --no-restore -p:WasmBuildNative=false --nologo
 # The other exception to WasmBuildNative=false, and the slowest line here (an emscripten relink, minutes
 # not seconds): this sample runs SQLite in the browser, and SQLite is a native library. Skipping the
