@@ -119,6 +119,42 @@ internal sealed partial class MountBuildsFactoryHost : Component
         Div()[Leaf = Rask.Core.Tests.Generated.MountBuildsFactoryLeaf(Word: "a")];
 }
 
+// A stand-in for a native bar: a component that renders no HTML and is picked out of the walk by the
+// session (Rask.Core names no Rask.Native type — the serializer hands every walked user component to
+// IRenderHandle.ReportNativeComponent and the native session classifies it). Built by its parent with a
+// chain that drops a prop on the second frame, the same shape the Head pair above uses.
+internal sealed partial class ChromeEntryBar : Component
+{
+    public string? Word { get; set; }
+
+    public string? Extra { get; set; }
+
+    protected override Component? Render() => null;
+}
+
+internal sealed partial class ChromeEntryHost : Component
+{
+    internal string Seed = "a";
+
+    internal ChromeEntryBar? Bar;
+
+    protected override Component? Render() =>
+        Div[Bar = Seed == "a" ? ChromeEntryBar.Word(Seed).Extra("keep") : ChromeEntryBar.Word(Seed)];
+}
+
+internal sealed partial class ChromeFactoryHost : Component
+{
+    internal string Seed = "a";
+
+    internal ChromeEntryBar? Bar;
+
+    protected override Component? Render() =>
+        Div()[
+            Bar = Seed == "a"
+                ? Rask.Core.Tests.Generated.ChromeEntryBar(Word: Seed, Extra: "keep")
+                : Rask.Core.Tests.Generated.ChromeEntryBar(Word: Seed)];
+}
+
 public class BuilderRenderPathTests
 {
     // One live render, driven the way a parent whose own props moved would drive it, so the host
@@ -188,6 +224,60 @@ public class BuilderRenderPathTests
             "name=\"probe\" content=\"keep\"",
             ctx.HeadAssets.ApplyTo(HeadAssetRegistry.Sentinel, sp),
             StringComparison.Ordinal);
+    }
+
+    // The native-chrome collection point sits where the Head collection used to — before the component's
+    // own parent scope is pushed — but it is NOT the same bug, and this pins why. Head was a virtual the
+    // serializer EVALUATED there, so a chain written inside a Head override ran in the enclosing
+    // component's scope. Native chrome has no such override: Component declares no Header/Footer, and
+    // CollectNativeChrome only hands the already-built component to the session, which type-switches over
+    // it. No user expression runs at the collection point, so nothing can take an identity there.
+    //
+    // What DOES build the bars is the parent's ordinary Render() — the supported composition is a bar as
+    // a sibling of the WebView — so the ownership question is the ordinary one, and the answer has to
+    // match the factory frame for frame: reported to the session, and reset on time when the chain stops
+    // naming a prop. Runs on any host here (a fake handle opting into collection); the real projection is
+    // native-only and verifiable only on a device.
+    [Fact]
+    public void A_bar_built_by_an_entry_is_reported_and_reset_like_the_factory()
+    {
+        var sp = RenderHarness.EmptyServices();
+        var builderChrome = new ChromeHandle();
+        var factoryChrome = new ChromeHandle();
+        var builder = new ChromeEntryHost { RenderHandle = builderChrome };
+        var factory = new ChromeFactoryHost { RenderHandle = factoryChrome };
+
+        Assert.Equal(Render(factory, sp), Render(builder, sp));
+
+        // Pre-order: the host is reported before the bar it composed, which is what makes "deepest wins".
+        Assert.Equal(new Component[] { builder, builder.Bar! }, builderChrome.Reported);
+        Assert.Equal(factoryChrome.Reported.Count, builderChrome.Reported.Count);
+        Assert.Equal("keep", builder.Bar!.Extra);
+        Assert.Equal(factory.Bar!.Extra, builder.Bar.Extra);
+
+        builder.Seed = "b";
+        factory.Seed = "b";
+        builderChrome.Reported.Clear();
+        factoryChrome.Reported.Clear();
+        Render(builder, sp);
+        Render(factory, sp);
+
+        Assert.Null(factory.Bar!.Extra);
+        Assert.Null(builder.Bar!.Extra);
+        Assert.Equal(new Component[] { builder, builder.Bar }, builderChrome.Reported);
+    }
+
+    // Opts into the serializer's native-chrome collection and records what it is handed, in walk order.
+    // Rask.Core.Tests has InternalsVisibleTo, so it can implement IRenderHandle's internal members.
+    private sealed class ChromeHandle : IRenderHandle
+    {
+        internal List<Component> Reported { get; } = new();
+
+        public Task RequestRenderAsync() => Task.CompletedTask;
+
+        bool IRenderHandle.CollectsNativeChrome => true;
+
+        void IRenderHandle.ReportNativeComponent(Component component) => Reported.Add(component);
     }
 
     // A lifecycle hook is user code and may build components; the commit that runs it is walking the

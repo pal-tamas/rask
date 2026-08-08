@@ -426,9 +426,13 @@ internal static class HtmlSerializer
                 }
 
                 // Native header/footer collection — only when the host opts in (the native host with an
-                // INativeChrome backend). Reading the overrides here, mid-walk, keeps the native factories
-                // DI-correct (ambient context) and picks the deepest override (last non-null wins). Pure no-op
-                // on Server/WASM: CollectsNativeChrome is false, so the overrides are never even read.
+                // INativeChrome backend). Nothing is EVALUATED here: there is no Header/Footer override on
+                // Component, so this hands the already-built component to the session, which type-switches
+                // it (Rask.Core names no Rask.Native type). Which is why this sits outside the component's
+                // own parent scope while the Head collection had to move inside it — no user expression runs
+                // here, so nothing can take a positional identity from the wrong parent. Reporting pre-order,
+                // before the subtree walk, is what makes the deepest bar of each kind win. Pure no-op on
+                // Server/WASM: CollectsNativeChrome is false, so this never even runs.
                 if (liveCtx is not null && liveCtx.CollectsNativeChrome)
                 {
                     liveCtx.CollectNativeChrome(component);
