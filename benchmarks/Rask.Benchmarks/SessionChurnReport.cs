@@ -69,6 +69,8 @@ internal static class SessionChurnReport
         Console.WriteLine();
         UpdateCost();
         Console.WriteLine();
+        UpdateCostWithHandlerShift();
+        Console.WriteLine();
         Churn();
         return 0;
     }
@@ -145,6 +147,42 @@ internal static class SessionChurnReport
             var before = GC.GetAllocatedBytesForCurrentThread();
             var sw = Stopwatch.StartNew();
             SessionHarness.Drive(handle.Session, handle.App, UpdateSamples);
+            sw.Stop();
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0},{1},{2:0.0}",
+                rows, (GC.GetAllocatedBytesForCurrentThread() - before) / UpdateSamples,
+                sw.Elapsed.TotalMicroseconds / UpdateSamples));
+            GC.KeepAlive(store);
+            GC.KeepAlive(services);
+        }
+    }
+
+    // ---- Update cost when the page's handler count moves ------------------------------
+
+    // The pass above holds the handler count constant, which is the cache's easy case. This one flips one
+    // extra header button on and off, so the number of handlers registered ABOVE the rows changes on every
+    // single update — the shape a page takes whenever a toolbar action, a "selected" affordance or a
+    // conditional row control appears. It is the honest worst case for the clean-subtree cache and the
+    // reason to read it next to UpdateCost: the gap between the two IS the cost of an upstream handler
+    // count moving. Same rows, same warmup, same sample count, so only the toggle differs.
+    private static void UpdateCostWithHandlerShift()
+    {
+        Console.WriteLine("# Update cost with a HANDLER-COUNT SHIFT — same page and sample count as the pass");
+        Console.WriteLine("# above, but each update also toggles one extra header button, so the handler count");
+        Console.WriteLine("# above the rows changes every render. Read the delta against UpdateCost.");
+        Console.WriteLine("Rows,AllocBytesPerUpdate,MicrosecondsPerUpdate");
+
+        foreach (var rows in UpdateCostRows)
+        {
+            var services = SessionHarness.NewHost();
+            var store = services.GetRequiredService<LiveSessionStore>();
+            var handle = SessionHarness.Create(store, rows, connected: true);
+            SessionHarness.EnsureReachedSteadyState(handle);
+            SessionHarness.DriveWithHandlerShift(handle.Session, handle.App, UpdateWarmup);
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var sw = Stopwatch.StartNew();
+            SessionHarness.DriveWithHandlerShift(handle.Session, handle.App, UpdateSamples);
             sw.Stop();
 
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0},{1},{2:0.0}",

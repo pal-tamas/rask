@@ -114,7 +114,7 @@ public struct RenderFrame
 ///     <c>HtmlStart</c>/<c>HtmlEnd</c> (offsets into one render's HTML, regenerated on replay) — so a
 ///     mounted page retains ~24 bytes per node instead of the full frame's ~40. The live
 ///     <see cref="RenderFrame" /> stream that <see cref="FrameDiffer" /> walks is unchanged; only the
-///     per-component <c>CachedFrames</c> snapshot uses this leaner shape. On replay,
+///     per-component clean-subtree snapshot uses this leaner shape. On replay,
 ///     <see cref="HtmlSerializer" /> re-emits the HTML AND writes full frames (with fresh offsets) back
 ///     into the active <see cref="FrameWriter" /> in one pass.
 /// </summary>

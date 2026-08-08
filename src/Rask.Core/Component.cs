@@ -21,10 +21,17 @@ namespace Rask.Core;
 [CollectionBuilder(typeof(Component), "__Fragment")]
 public abstract class Component
 {
-    // Pre-built "h0".."h255" so handler registration in the common case (small forms,
-    // typical pages) doesn't pay a string-concat allocation per call. Overflow above
-    // 256 handlers per render falls back to the concat path.
+    // Pre-built "h0".."h1023" so minting a handler slot's id in the common case (small forms, typical
+    // pages) doesn't pay a string allocation. A slot past the table falls back to CreateLargeHandlerId
+    // — once, because the id string is then cached on the slot for the component's lifetime.
     private static readonly string[] _smallHandlerIds = BuildSmallHandlerIds(1024);
+
+    // Process-wide source for HandlerState.Generation. Renders are serialized per session but NOT
+    // across sessions, so a per-root counter would hand two concurrently-rendering roots the same
+    // generation numbers. A shared monotonic source makes a generation globally unique, so a component
+    // can never read a stale stamp as "already reset this frame". long, so it cannot wrap in any
+    // realistic uptime.
+    private static long _renderGenerationSource;
 
     // Static empty dict for PersistedChildren exposed via the public-internal accessor —
     // saves callers from null checks while keeping the per-instance allocation lazy.
@@ -882,23 +889,12 @@ public abstract class Component
             return false;
         }
 
-        // Handler ids are positional and reissued from zero on every root render, so the ids baked into
-        // this span are only the ids a walk would issue now if the counter has arrived back at exactly
-        // the value it held when we captured. It hasn't when anything upstream changed how many handlers
-        // it registers, and replaying then would emit ids that collide with a sibling's. Fall through to
-        // a walk, which reissues correct ids and re-captures under them.
-        //
-        // A miss is not free — we released the Element graph at capture, so the walk re-runs Render() —
-        // but it is exactly what every render costs today, and it only happens when an upstream handler
-        // count actually moves.
-        if (cached.Handlers is { } handlers)
+        // Without a live context there is nowhere to put this subtree's registrations back, and the
+        // root's map is cleared every render — replaying would leave its buttons silently dead. So a
+        // handler-bearing snapshot needs one; fall through to a walk when there is none.
+        if (cached.Handlers is not null && liveCtx is null)
         {
-            if (liveCtx is null || liveCtx.PeekNextHandlerId != cached.HandlerStartId)
-            {
-                return false;
-            }
-
-            liveCtx.ReplayHandlerRun(cached.HandlerStartId, handlers);
+            return false;
         }
 
         // The captured frames carry a baked-in data-rask-key: this component's own Key forwarded onto
@@ -921,6 +917,19 @@ public abstract class Component
             return false;
         }
 
+        // Past every bail-out, so the map is only written once the replay is certain to happen — a
+        // rejected replay must leave the root's handler state exactly as it found it, or the walk that
+        // follows would run against registrations it did not make.
+        //
+        // The ids to re-register under are this component's own slot ids: settled for its lifetime, and
+        // therefore still exactly the ids a walk would issue now no matter what the rest of the page did
+        // this frame. That is the whole reason ids are per (component, slot) — there is no page-wide
+        // counter left to arrive back at, so an upstream handler count moving no longer costs a re-walk.
+        if (cached.Handlers is { } handlers)
+        {
+            liveCtx!.ReplayHandlerRun(this, handlers);
+        }
+
         // Re-emit the HTML and re-write the full frame stream (with fresh offsets) into the active
         // writer in one pass — the replayed frames are identical to a fresh walk's, so the diff sees
         // no change, and no Element object graph is touched.
@@ -940,8 +949,6 @@ public abstract class Component
     // from the full element tree to a compact frame array. Safety requires:
     //   * no nested user component (a nested component could go dirty independently; replaying the
     //     parent's frames would skip its re-render and show stale content — <paramref name="hadNested" />),
-    //   * no event handlers (Rask reissues handler ids positionally each render, so a baked-in id in a
-    //     replayed span could collide with a sibling's — deferred to a stable-id follow-up),
     //   * no indexer Children, no Head contribution (would be dropped on replay), not collecting native
     //     chrome, and cache-eligible (no bypass / ambient-state read) — everything that would make a
     //     frame replay diverge from a walk.
@@ -967,17 +974,15 @@ public abstract class Component
     // component's first element adopts an ancestor's forwarded key, baking someone else's identity into
     // our span — not covered by our own-Key check, and stale-replaying it was a live bug.
     //
-    // Event handlers no longer disqualify either. They used to, because ids are positional and reissued
-    // from zero every root render (RenderAsLiveRootCore clears the map): a replay skips the walk, so it
-    // would neither re-register its handlers — leaving the id absent from the freshly-cleared map, i.e.
-    // a dead button — nor advance the counter, shifting every later sibling's ids into collisions. So
-    // the snapshot records the handler run instead (<paramref name="handlerStartId" /> is the counter
-    // read BEFORE the walk), and a replay re-registers it and advances the counter by its length,
-    // reproducing exactly what the walk did. TryReplayCleanSubtree refuses when the counter no longer
-    // lines up.
+    // Event handlers do not disqualify. RenderAsLiveRootCore clears the root's map every render, so a
+    // replay that skipped the walk would leave its ids absent from the map — a silently dead button —
+    // which is why the snapshot records the handler run and a replay re-registers it. What it does NOT
+    // have to reproduce is a position in a page-wide counter: ids belong to (component, slot) and hold
+    // for the component's lifetime, so the run goes back under the same ids it came from and nothing
+    // upstream can invalidate it.
     internal void TryCacheCleanSubtree(
         FrameWriter frames, int frameStart, bool hadNested, bool collectsNativeChrome,
-        string? forwardedKeyAtCapture, int handlerStartId, LiveRenderContext? liveCtx)
+        string? forwardedKeyAtCapture, LiveRenderContext? liveCtx)
     {
         var count = frames.Count - frameStart;
         if (hadNested
@@ -1037,9 +1042,8 @@ public abstract class Component
         // by now our first element has consumed it, so the live slot no longer holds it.
         cached.KeyIdentity = Key ?? (object?)forwardedKeyAtCapture;
         // Snapshot the handler run this walk registered (empty run → null, so a handler-free subtree
-        // pays nothing and its replay skips the counter check entirely).
-        cached.HandlerStartId = handlerStartId;
-        cached.Handlers = liveCtx?.CaptureHandlerRun(handlerStartId);
+        // pays nothing and its replay skips re-registration entirely).
+        cached.Handlers = liveCtx?.CaptureHandlerRun(this);
         // Drop the Element object graph: a clean re-render now replays the frame span above.
         Live.CachedRenderResult = null;
     }
@@ -1262,25 +1266,126 @@ public abstract class Component
     internal string RegisterHandler(Delegate handler) =>
         RegisterHandler(handler, this);
 
+    /// <summary>
+    ///     Open a new handler-slot generation on this render root, telling every component to restart
+    ///     its own slot numbering the next time it registers. Called once per live render pass, from
+    ///     <see cref="LiveRenderContext" />'s constructor.
+    /// </summary>
+    internal void BeginHandlerGeneration() =>
+        (Live.HandlerState ??= new HandlerState()).Generation =
+            Interlocked.Increment(ref _renderGenerationSource);
+
     internal string RegisterHandler(Delegate handler, Component owner)
     {
-        // For lambdas / method groups that close over `this` inside a Component subclass
-        // (e.g., `() => _field++` or `OnSubmit: SubmitHandler`), the originating component is
-        // the right owner to dirty-mark after invocation — it sidesteps the case where an
-        // element with a handler is built in ComponentA.Render() but rendered inside
-        // ComponentB's subtree (passed as a child of a composite wrapper). DelegateOwner also
-        // unwraps a closure that captured `this` alongside a local (e.g. `() => _active = index`),
-        // so wrapping an interactive element in a composite never steals its re-render.
-        if (DelegateOwner.Resolve(handler) is { } target)
+        // Two roles, kept deliberately separate:
+        //
+        //  * slotComponent — CurrentParent, i.e. the component whose SUBTREE this element is being
+        //    serialized in. It anchors the numbering: each component numbers the handlers appearing in
+        //    its own subtree 0, 1, 2… in walk order, so nothing outside that subtree can renumber them.
+        //    Note "serialized in", not "rendered by": an element built in a parent's Render() and passed
+        //    into a wrapper as indexer children serializes inside the WRAPPER's scope and takes a slot
+        //    there. So `Card()[cond ? Button(a) : null, Button(b)]` still renumbers Button(b) when the
+        //    condition flips — the renumbering is bounded to that one wrapper rather than running to the
+        //    end of the page, which is the guarantee, and it is what CleanSubtreeCache relies on.
+        //  * dispatchOwner — the component to dirty-mark after the handler runs. For lambdas / method
+        //    groups that close over `this` inside a Component subclass (`() => _field++`,
+        //    `OnSubmit: SubmitHandler`), DelegateOwner resolves the component that owns the state, so
+        //    an element built in ComponentA.Render() but rendered inside ComponentB's subtree (passed
+        //    as a child of a composite wrapper) still re-renders A. It also unwraps a closure that
+        //    captured `this` alongside a local (`() => _active = index`).
+        //
+        // Anchoring the SLOT to that resolved target instead would undo the whole point: a callback
+        // passed down into a wrapper would consume a slot on the component it was passed FROM, and so
+        // shift that component's own ids from outside its own render.
+        var slotComponent = owner;
+        var dispatchOwner = DelegateOwner.Resolve(handler) is { } target ? target : owner;
+
+        // `this` is always the render root — LiveRenderContext.RegisterHandler dispatches to _root — so
+        // the id source, the generation and the handler map all live on one node.
+        var rootState = Live.HandlerState ??= new HandlerState();
+        var map = Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
+
+        var slotState = slotComponent.Live.HandlerState ??= new HandlerState();
+
+        // Slot ids are drawn from ONE root's sequence, so a component that arrives under a different
+        // root has to re-mint: handing back an id the new root never issued would let the number it
+        // does issue next collide, wiring two elements to a single entry in the map. Reachable through
+        // ordinary API — rendering the same instance a second time builds a fresh root.
+        if (!ReferenceEquals(slotState.MintedUnder, rootState))
         {
-            owner = target;
+            slotState.MintedUnder = rootState;
+            slotState.Slot0Id = null;
+            slotState.RestIds = null;
+            slotState.Stamp = 0;
         }
 
-        Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
-        var id = HandlerId(Live.NextHandlerId++);
-        Live.Handlers[id] = (owner, handler);
+        // Per-component slot index, reset the first time this component registers in a given root
+        // render. The generation stamp (rather than a "reset me" call at scope entry) is what keeps a
+        // component that somehow gets walked twice in one frame numbering forward instead of reusing
+        // its own slots.
+        if (slotState.Stamp != rootState.Generation)
+        {
+            slotState.Stamp = rootState.Generation;
+            slotState.LocalCount = 0;
+        }
+
+        var id = SlotId(slotState, rootState, slotState.LocalCount++);
+        map[id] = (dispatchOwner, handler);
         return id;
     }
+
+    // The id for one of a component's slots: minted the first time a render reaches that slot, then
+    // held for the component's lifetime. Existing slots never renumber, which is the invariant the
+    // clean-subtree cache rests on — an unchanged component's baked-in ids are still exactly the ids a
+    // walk would issue now, no matter what the rest of the page did.
+    //
+    // A number is never handed to a SECOND COMPONENT. When a component unmounts, its ids simply stop
+    // being re-registered, so a stale in-flight event for a removed element resolves to nothing and
+    // safely no-ops; a free-list would instead redirect that click to whichever component took the
+    // number. The number space therefore grows with CUMULATIVE rather than concurrent slots — but the
+    // id STRING is cached per slot, so a steady-state re-render allocates nothing however large the
+    // numbers get, and only a brand-new slot past the interned table costs a one-off string.
+    //
+    // WITHIN one component a slot is still reused: a component that renders [Cancel, Delete] while
+    // editing and [Delete] otherwise gives Delete slot 0 — Cancel's — once editing ends, so an
+    // in-flight click on Cancel can land on Delete. That is unchanged from the page-wide counter this
+    // replaced (which reassigned far more aggressively), and HandlerFrameShape.Accepts is what narrows
+    // it: a frame can only run a handler it can actually feed. Closing it completely would mean keying
+    // slots on something stabler than emission order, which is a separate change.
+    //
+    // Slot 0 is a scalar, so the common single-handler component never allocates an array; slots 1..
+    // share one geometrically grown array, allocated only when a second handler appears.
+    private static string SlotId(HandlerState slotState, HandlerState rootState, int slot)
+    {
+        if (slot == 0)
+        {
+            return slotState.Slot0Id ??= HandlerId(rootState.NextNumber++);
+        }
+
+        var index = slot - 1;
+        var rest = slotState.RestIds;
+        if (rest is null || index >= rest.Length)
+        {
+            // Double (or jump straight to the needed size) so a component registering many handlers
+            // pays O(n) total array allocation, not O(n²). New entries default to null = unassigned.
+            var grown = new string[Math.Max(index + 1, Math.Max(2, (rest?.Length ?? 0) * 2))];
+            if (rest is { Length: > 0 })
+            {
+                Array.Copy(rest, grown, rest.Length);
+            }
+
+            slotState.RestIds = rest = grown;
+        }
+
+        return rest[index] ??= HandlerId(rootState.NextNumber++);
+    }
+
+    // The id already issued for a slot, or null when that slot has never been reached. Capture and
+    // replay read through this so neither can mint a number as a side effect.
+    private static string? IssuedSlotId(HandlerState state, int slot) =>
+        slot == 0
+            ? state.Slot0Id
+            : state.RestIds is { } rest && slot - 1 < rest.Length ? rest[slot - 1] : null;
 
     private static string[] BuildSmallHandlerIds(int n)
     {
@@ -1306,33 +1411,40 @@ public abstract class Component
             : "h" + n;
     }
 
-    // ---- Clean-subtree handler round-trip (root-scoped; see CachedSubtree.Handlers) ----------------
+    // ---- Clean-subtree handler round-trip (see CachedSubtree.Handlers) -----------------------------
     //
-    // These exist so a replayed subtree can reproduce the walk's effect on handler state. They are only
-    // ever called on the live-render ROOT (LiveRenderContext holds it), which is where the id counter
-    // and the map live.
-
-    /// <summary>The next handler id this render will issue — the replay's staleness check.</summary>
-    internal int NextHandlerIdInternal => Live.NextHandlerId;
+    // These exist so a replayed subtree can reproduce the walk's effect on handler state: the root's
+    // map is cleared every render, so a replay that re-emitted a handler's id without re-registering it
+    // would leave a silently dead button. Called on the SLOT component (the one being cached), with the
+    // root passed in because that is where the map lives.
 
     /// <summary>
-    ///     The (owner, delegate) pairs registered from <paramref name="startId" /> to the current
-    ///     counter, in id order, or <c>null</c> for an empty run. The ids of one subtree's walk are
-    ///     contiguous — a cached subtree contains no nested user component, so nothing interleaves its
-    ///     own registrations — which is what lets the run be described by a start and a length.
+    ///     The (owner, delegate) pairs this component registered during the walk that just finished, in
+    ///     slot order, or <c>null</c> when it registered none. A cacheable subtree contains no nested
+    ///     user component, so every handler inside it was registered under THIS component's slots —
+    ///     which is what lets the run be described by a slot count rather than by a position in some
+    ///     page-wide sequence that anything upstream could move.
     /// </summary>
-    internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(int startId)
+    internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(Component root)
     {
-        var count = Live.NextHandlerId - startId;
-        if (count <= 0 || Live.Handlers is not { } map)
+        var state = _live?.HandlerState;
+        var rootState = root._live?.HandlerState;
+
+        // A stale stamp means this component registered nothing this render, so LocalCount still
+        // belongs to an older generation and must not be read as a count.
+        if (state is null
+            || rootState is null
+            || state.Stamp != rootState.Generation
+            || state.LocalCount <= 0
+            || root.Live.Handlers is not { } map)
         {
             return null;
         }
 
-        var run = new (Component, Delegate)[count];
-        for (var i = 0; i < count; i++)
+        var run = new (Component, Delegate)[state.LocalCount];
+        for (var i = 0; i < run.Length; i++)
         {
-            if (!map.TryGetValue(HandlerId(startId + i), out var entry))
+            if (IssuedSlotId(state, i) is not { } id || !map.TryGetValue(id, out var entry))
             {
                 // The run isn't what we assumed it was; caching it would risk a dead handler on replay.
                 return null;
@@ -1345,23 +1457,28 @@ public abstract class Component
     }
 
     /// <summary>
-    ///     Re-register a captured run under the ids it was captured with and advance the counter past it,
-    ///     leaving the root's handler state exactly as the skipped walk would have.
+    ///     Re-register a captured run under this component's own slot ids, leaving the root's handler
+    ///     map exactly as the skipped walk would have. The ids belong to the component rather than to a
+    ///     page-wide sequence, so there is nothing upstream that could have invalidated them.
     /// </summary>
-    internal void ReplayHandlerRun(int startId, (Component Owner, Delegate Handler)[] run)
+    internal void ReplayHandlerRun(Component root, (Component Owner, Delegate Handler)[] run)
     {
-        var map = Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
+        var state = _live!.HandlerState!;
+        var map = root.Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
         for (var i = 0; i < run.Length; i++)
         {
-            map[HandlerId(startId + i)] = run[i];
+            // Non-null by construction: CaptureHandlerRun refuses a run whose slots weren't all issued,
+            // and a slot id is never surrendered once minted.
+            map[IssuedSlotId(state, i)!] = run[i];
         }
-
-        Live.NextHandlerId = startId + run.Length;
     }
 
-    // The id for counter value n. Shared by issue / capture / replay so all three agree by construction.
+    // The id for slot number n. Shared by issue / capture / replay so all three agree by construction.
+    // Unsigned compare so a wrapped (negative) number falls to the format path and yields "h-1" rather
+    // than indexing the table out of bounds. Numbers now accumulate over a session's whole life instead
+    // of resetting each render, so overflow is reachable in principle — 2^31 slots — where it was not.
     private static string HandlerId(int n) =>
-        n < _smallHandlerIds.Length ? _smallHandlerIds[n] : CreateLargeHandlerId(n);
+        (uint)n < (uint)_smallHandlerIds.Length ? _smallHandlerIds[n] : CreateLargeHandlerId(n);
 
     internal ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload)
         => TryInvokeHandlerAsync(id, payload, null);
@@ -1376,11 +1493,12 @@ public abstract class Component
 
         var (owner, handler) = entry;
 
-        // The id said WHICH handler; the frame's own `type` says what it is carrying. Ids are positional
-        // per render, so a frame that outlived its render resolves to whatever now occupies that slot —
-        // and running it because the id happened to resolve is how an `input` message ends up invoking a
-        // parameterless callback. A frame that cannot feed the handler it landed on is a stale id, and is
-        // answered exactly like one.
+        // The id said WHICH handler; the frame's own `type` says what it is carrying. An id names a
+        // component's slot for that component's lifetime, so a frame that outlived its render usually
+        // resolves to the same handler or to nothing at all — but a component that swapped what its
+        // slot 0 renders (an input handler this frame, a click handler the next) still lands a stale
+        // `input` message on a parameterless callback. A frame that cannot feed the handler it landed
+        // on is a stale id by definition, and is answered exactly like one.
         if (!HandlerFrameShape.Accepts(payload, handler))
         {
             return false;
@@ -1748,12 +1866,18 @@ public abstract class Component
     // copied into it instead and null is returned (the caller reads sink.Current).
     private string? RenderAsLiveRootCore(IServiceProvider? services, bool publishOnly, RenderedHtmlBuffers? sink)
     {
-        // Reuse the handler dictionary across renders — IDs are reissued from 0 every
-        // root render, so the prior frame's contents are irrelevant. Lazy-init only on
-        // the very first render of this component as a root.
+        // Reuse the handler map across renders, but clear it: a component that left the tree must not
+        // keep a live registration, and every component still in it re-registers during the walk (or,
+        // for a replayed subtree, via ReplayHandlerRun). Lazy-init only on the very first render of
+        // this component as a root.
+        //
+        // The IDS are not reset. They belong to (component, slot) and stick for the component's
+        // lifetime, so a component that renders unchanged re-registers under exactly the ids already
+        // baked into the page — which is what lets the diff leave its data-rask-on-* attributes alone
+        // and lets its cached subtree replay. What restarts each component's own slot numbering is the
+        // generation, stamped by LiveRenderContext's constructor a few lines below.
         Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
         Live.Handlers.Clear();
-        Live.NextHandlerId = 0;
         // Lazily init on first root render — non-root Component instances (the 99% case for
         // leaf Elements in a page) never touch this field and stay allocation-free.
         var previousEditContexts =
@@ -2151,20 +2275,72 @@ public abstract class Component
 
         /// <summary>
         ///     The subtree's event handlers in the order the walk registered them, or <c>null</c> when it
-        ///     has none. Ids are NOT stored: the walk issues them from a contiguous counter run starting
-        ///     at <see cref="HandlerStartId" />, so id <c>i</c> is recomputable — one less reference per
-        ///     entry. Retaining the delegates is not new retention: the released Element graph held these
-        ///     very instances.
+        ///     has none. Ids are NOT stored: a cached subtree has no nested user component, so entry
+        ///     <c>i</c> is this component's own slot <c>i</c> and its id is read back off the slot table
+        ///     — one less reference per entry, and the id is settled for the component's lifetime so
+        ///     there is nothing to go stale. Retaining the delegates is not new retention: the released
+        ///     Element graph held these very instances.
         /// </summary>
         public (Component Owner, Delegate Handler)[]? Handlers;
+    }
+
+    /// <summary>
+    ///     Handler-id bookkeeping, hung off <see cref="LiveState.HandlerState" /> so a component that
+    ///     renders no handler pays one null reference rather than a field per role. The render root
+    ///     uses the first two members (it owns the id source); a component that renders handlers uses
+    ///     the rest (its own slot table). See <see cref="RegisterHandler(Delegate, Component)" />.
+    ///     <para>
+    ///         A slot id means something only within the sequence that minted it, so a component that
+    ///         turns up under a different root drops its table and re-mints — see
+    ///         <see cref="MintedUnder" />. Its ids are not stable across that move, which is correct:
+    ///         they were never ids the new root had issued.
+    ///     </para>
+    /// </summary>
+    private sealed class HandlerState
+    {
+        // ---- render root ----
 
         /// <summary>
-        ///     The root's handler counter as it stood when <see cref="Frames" /> were captured, i.e. the
-        ///     first id this subtree baked in. Handler ids are positional and reissued from zero every
-        ///     root render, so a replay is only sound when the counter has arrived back at this exact
-        ///     value — otherwise the baked ids are not the ones a walk would now issue.
+        ///     The next number this root will hand out. Monotonic for the root's whole life: numbers are
+        ///     never reset and never reused, so a stale in-flight event cannot be redirected onto a
+        ///     component that took a freed number.
         /// </summary>
-        public int HandlerStartId;
+        public int NextNumber;
+
+        /// <summary>
+        ///     Identifies the current root render, so each component resets its slot counter exactly
+        ///     once per frame. Drawn from a process-wide source rather than counted per root, because a
+        ///     component reached from two different roots must never mistake one root's generation for
+        ///     the other's and skip its reset.
+        /// </summary>
+        public long Generation;
+
+        // ---- a component that renders handlers ----
+
+        /// <summary>
+        ///     The <see cref="HandlerState" /> of the root whose sequence minted this component's slot
+        ///     ids. Compared by reference on every registration: a component that turns up under a
+        ///     different root re-mints, because ids from one root's sequence mean nothing in another's.
+        /// </summary>
+        public HandlerState? MintedUnder;
+
+        /// <summary>The generation in which <see cref="LocalCount" /> was last reset.</summary>
+        public long Stamp;
+
+        /// <summary>Slots this component has used so far in the generation named by <see cref="Stamp" />.</summary>
+        public int LocalCount;
+
+        /// <summary>
+        ///     The id for slot 0 — a scalar, so the common single-handler component never allocates an
+        ///     array. Minted on first use and then held for the component's lifetime.
+        /// </summary>
+        public string? Slot0Id;
+
+        /// <summary>
+        ///     Ids for slots 1.. (index <c>i</c> → slot <c>i+1</c>), grown geometrically and allocated
+        ///     only when a second handler appears. A null entry is a slot never yet reached.
+        /// </summary>
+        public string[]? RestIds;
     }
 
     // The hoisted state — class so it stays out-of-band from each Component instance.
@@ -2200,7 +2376,7 @@ public abstract class Component
         public bool HasRenderedOnce;
         public bool IsDisposed;
         public bool IsUnmounted;
-        public int NextHandlerId;
+        public HandlerState? HandlerState;
         public Dictionary<Component, Component>? ParentMap;
         public Dictionary<LiveRenderContext.ObjectKey, EditContext>? PersistedEditContexts;
         public Dictionary<(Type, int), Component>? PreviousChildren;

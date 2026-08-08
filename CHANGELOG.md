@@ -8,6 +8,38 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **An event handler's id now belongs to the component that renders it, so one component gaining a
+  handler no longer renumbers the rest of the page.** Ids came from a single counter reset to zero on
+  every root render and handed out `h0, h1, …` in walk order, so a conditional button appearing
+  anywhere pushed every later handler on the page up by one. Two things fell out of that. The diff
+  rewrote `data-rask-on-*` on elements whose markup had not changed — on a 100-row list of buttons with
+  one conditional action above it, an update shipped **3,205 bytes across 101 edit ops; it now ships 94
+  bytes in 1** (new gated `HandlerShiftAboveList100` scenario in `payload-bytes`; the five existing
+  scenarios are byte-identical). And the clean-subtree cache had to refuse any snapshot whose baked-in
+  ids the shifted counter had invalidated, so an interactive list re-walked itself whenever anything
+  above it changed shape: on the `session-churn` handler-shift pass that is **−60% allocation per
+  update at 200 rows (252,097 → 100,124 B) and −64% at 1,000 (1,220,549 → 438,170 B)**, which brings
+  the cost of an update that moves the handler count down to within ~2% of one that does not.
+  Ids are now assigned per (component, local slot) and held for that component's lifetime, anchored to
+  the component whose subtree the element serializes in rather than to the delegate's target — so a
+  callback passed down into a composite wrapper cannot shift the wrapper's own ids either. Renumbering
+  is *bounded to one component*, not eliminated: an element passed into a wrapper as children takes a
+  slot on that wrapper, so a conditional sibling there still shifts the ones after it — within that
+  wrapper, rather than to the end of the page. A number is never handed to a **second component**: when
+  one unmounts its ids simply stop being registered, so a click a user sent a moment before a row
+  vanished resolves to nothing and no-ops instead of being redirected onto whichever component
+  inherited a recycled number. (Within a single component a slot is still reused when its handler set
+  shrinks — unchanged from the counter this replaces, and still narrowed by the frame-shape guard.)
+  The number space
+  therefore tracks cumulative rather than concurrent handler slots — but each id string is minted once
+  and cached on its slot, so steady-state re-render allocation is **unchanged to the byte**
+  (`LiveRenderRoundTrip`'s marginal cost per re-render is 70.31 KB before and after). The costs, both
+  one-off: a component's first render allocates one small state object (a 1,000-row interactive grid
+  retains **+1.5%**, 7,381,092 → 7,493,300 B/session), and a single component that registers many
+  handlers in its own render allocates one array for slots 1.. (`Register1000`, the pathological
+  one-component-owns-1,000-handlers shape, 128.82 → 145.1 KB on the render that builds it).
+  Nothing changes on the wire or in any API: a first render still emits `h0, h1, …` in document order,
+  and ids stay opaque to the client, which echoes them back verbatim.
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two
   keystrokes used to do different things depending on where you were, and the two worst cases failed
   *silently* rather than erroring, which is what made this worth breaking for:
