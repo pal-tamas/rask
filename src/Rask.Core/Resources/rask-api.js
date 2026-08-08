@@ -104,6 +104,22 @@ window.__raskApi = window.__raskApi || {
         return {quota: e.quota || 0, usage: e.usage || 0};
     },
 
+    // Storage persistence (driven by IStorageEstimator): whether the origin is exempt from eviction, and a
+    // request to become so. persist() is a one-shot grant — Chromium decides from engagement heuristics
+    // without prompting, Firefox shows a permission prompt. Both resolve false where unsupported.
+    storagePersisted: async () => {
+        if (!(navigator.storage && navigator.storage.persisted)) {
+            return false;
+        }
+        return await navigator.storage.persisted();
+    },
+    storagePersist: async () => {
+        if (!(navigator.storage && navigator.storage.persist)) {
+            return false;
+        }
+        return await navigator.storage.persist();
+    },
+
     // Visual viewport (driven by IVisualViewport): window.visualViewport is a live object — return a plain
     // snapshot (mapped to VisualViewport in C#), or null when unsupported.
     visualViewportSupported: () => !!window.visualViewport,
@@ -885,6 +901,179 @@ window.__raskFs = window.__raskFs || (() => {
         },
         release: (id) => {
             handles.delete(id);
+        }
+    };
+})();
+
+// Origin Private File System (driven by IOriginPrivateFileSystem). OPFS handles are opaque and can't cross
+// the interop boundary, and every call needs the path walked from the private root, so this helper resolves
+// "db/app.sqlite" itself per operation rather than holding handles under an id the way __raskFs does — the
+// tree is app-owned and persistent, so there is nothing to keep alive between calls. Bytes ride the boundary
+// base64-encoded. A missing path resolves to null / false / [] rather than throwing.
+window.__raskOpfs = window.__raskOpfs || (() => {
+    // A path segment that isn't there, or is a directory where a file was expected.
+    const isMissing = (e) => e && (e.name === "NotFoundError" || e.name === "TypeMismatchError");
+
+    // Splits on "/" via split rather than a regex: the framework's JS minifier reads a bare /.../ as
+    // division, which would break the spliced bundle.
+    const segments = (path) => (path || "").split("/").filter((s) => s.length > 0);
+
+    // "db/app.sqlite" -> { dir: <handle for "db">, name: "app.sqlite" }.
+    const parent = async (path, create) => {
+        const parts = segments(path);
+        if (parts.length === 0) {
+            return null;
+        }
+        const name = parts.pop();
+        let dir = await navigator.storage.getDirectory();
+        for (let i = 0; i < parts.length; i++) {
+            dir = await dir.getDirectoryHandle(parts[i], {create: !!create});
+        }
+        return {dir: dir, name: name};
+    };
+
+    const fileHandle = async (path, create) => {
+        const at = await parent(path, create);
+        if (!at) {
+            return null;
+        }
+        return await at.dir.getFileHandle(at.name, {create: !!create});
+    };
+
+    const directory = async (path) => {
+        let dir = await navigator.storage.getDirectory();
+        const parts = segments(path);
+        for (let i = 0; i < parts.length; i++) {
+            dir = await dir.getDirectoryHandle(parts[i], {create: false});
+        }
+        return dir;
+    };
+
+    const toBase64 = (buffer) => {
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+
+    const fromBase64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+
+    return {
+        isSupported: () => !!(navigator.storage && navigator.storage.getDirectory),
+        exists: async (path) => {
+            try {
+                return !!(await fileHandle(path, false));
+            } catch (e) {
+                if (isMissing(e)) {
+                    return false;
+                }
+                throw e;
+            }
+        },
+        size: async (path) => {
+            try {
+                const handle = await fileHandle(path, false);
+                if (!handle) {
+                    return null;
+                }
+                return (await handle.getFile()).size;
+            } catch (e) {
+                if (isMissing(e)) {
+                    return null;
+                }
+                throw e;
+            }
+        },
+        // Blob.slice() reads only the requested range, so a chunked read never materialises the whole file.
+        // A range past the end yields the bytes that were there, matching an ordinary short read.
+        read: async (path, offset, count) => {
+            try {
+                const handle = await fileHandle(path, false);
+                if (!handle) {
+                    return null;
+                }
+                const file = await handle.getFile();
+                return toBase64(await file.slice(offset, offset + count).arrayBuffer());
+            } catch (e) {
+                if (isMissing(e)) {
+                    return null;
+                }
+                throw e;
+            }
+        },
+        readAll: async (path) => {
+            try {
+                const handle = await fileHandle(path, false);
+                if (!handle) {
+                    return null;
+                }
+                return toBase64(await (await handle.getFile()).arrayBuffer());
+            } catch (e) {
+                if (isMissing(e)) {
+                    return null;
+                }
+                throw e;
+            }
+        },
+        // keepExistingData is load-bearing: without it createWritable() starts from an empty file, so a
+        // ranged write would discard every byte outside the range it wrote. Writing past the end zero-fills
+        // the gap rather than failing — File System Standard, write() step 9 — which is what lets a growing
+        // database write a page beyond its current size.
+        write: async (path, offset, base64) => {
+            const handle = await fileHandle(path, true);
+            const writable = await handle.createWritable({keepExistingData: true});
+            await writable.write({type: "write", position: offset, data: fromBase64(base64)});
+            await writable.close();
+        },
+        // Whole-file replace, so the default (start empty) is what we want here.
+        writeAll: async (path, base64) => {
+            const handle = await fileHandle(path, true);
+            const writable = await handle.createWritable();
+            await writable.write(fromBase64(base64));
+            await writable.close();
+        },
+        truncate: async (path, size) => {
+            const handle = await fileHandle(path, true);
+            const writable = await handle.createWritable({keepExistingData: true});
+            await writable.truncate(size);
+            await writable.close();
+        },
+        delete: async (path, recursive) => {
+            try {
+                const at = await parent(path, false);
+                if (!at) {
+                    return;
+                }
+                await at.dir.removeEntry(at.name, {recursive: !!recursive});
+            } catch (e) {
+                if (isMissing(e)) {
+                    return;
+                }
+                throw e;
+            }
+        },
+        list: async (path) => {
+            try {
+                const names = [];
+                for await (const name of (await directory(path)).keys()) {
+                    names.push(name);
+                }
+                return names;
+            } catch (e) {
+                if (isMissing(e)) {
+                    return [];
+                }
+                throw e;
+            }
         }
     };
 })();

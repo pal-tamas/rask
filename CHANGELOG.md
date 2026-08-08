@@ -387,6 +387,31 @@ them until tagged releases begin.
     stack trace can reach a browser even if a call site forgot to check, and the client requires the
     `data-rask-dev` flag as a second, independent gate.
 
+### Added
+- **`IOriginPrivateFileSystem` — a private, persistent file tree the app owns outright (#642).** The two
+  storage wrappers Rask shipped both stop short of a file an app writes to repeatedly and reopens on the
+  next visit: `IIndexedDb` is a key/value store, and `IFileSystemAccess` is a *picker* — it needs a user
+  gesture and models a document the user chose, not storage the app manages. OPFS is the missing third
+  case, and the one a local database file needs.
+  - **Reads and writes take a byte offset**, so a large file is worked in chunks and the payload crossing
+    the interop boundary is bounded by the range asked for, not the size of the file. A ranged write
+    leaves the rest intact; writing past the end extends the file, zero-filling the gap.
+    `ReadAllBytesAsync`/`WriteAllBytesAsync` are the single-round-trip convenience over the same store.
+  - **Paths, not handles.** The tree is app-owned and persistent, so the same path is reopened every
+    session — there is nothing to pick and nothing to keep alive between calls. Parent directories are
+    created on write.
+  - **A missing path returns `null` rather than throwing**, matching `IKeyValueStore.GetAsync`, and a
+    ranged read past the end returns the bytes that were there — an ordinary short read, not an error.
+  - Works on both transports, but every call is a round trip: under the Server transport that crosses the
+    WebSocket, so the local-database scenario this exists for is in practice a WASM one.
+- **`IStorageEstimator` can now ask for storage to survive eviction.** `IsPersistedAsync` and
+  `RequestPersistAsync` wrap `navigator.storage.persisted()`/`persist()` — the same object `estimate()`
+  already came from. Without this, OPFS is persistent but still reclaimable under storage pressure, which
+  is the difference between a cache and a database. Both resolve `false` where unsupported, so an app can
+  treat "not persisted" and "cannot be persisted" the same way: writes are evictable either way.
+  Chromium grants from engagement heuristics without prompting; Firefox prompts, so call it from a
+  gesture handler.
+
 ## [0.20.0] - 2026-08-06
 
 ### Fixed
