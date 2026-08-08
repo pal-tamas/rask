@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.JSInterop;
 using Rask.Bootstrap;
 using Rask.Core.Components;
@@ -34,6 +35,24 @@ public sealed class PlaygroundView : Component
 
     // Which gallery example is loaded — drives the active-item highlight and what Reset restores.
     private string _activeSampleId = PlaygroundSamples.All[0].Id;
+
+    // The left pane shows one of two lists. The playground opens on the gallery (an editor with something
+    // runnable in it), with the guided track one click away.
+    private PlaygroundTab _tab = PlaygroundTab.Examples;
+
+    // Which chapter is loaded, and which ones have compiled at least once this session. Progress is
+    // deliberately in-memory only: a reload is a clean slate, like the chapter databases themselves.
+    private string _activeChapterId = TutorialChapters.First.Id;
+    private readonly HashSet<string> _completedChapters = new(StringComparer.Ordinal);
+
+    // Whether this build ships the EF Core + SQLite reference set (see RaskPlaygroundData in the csproj).
+    // The fast no-native build doesn't, and the data chapters say so rather than failing to compile.
+    private const bool DataChaptersAvailable =
+#if RASK_PLAYGROUND_DATA
+        true;
+#else
+        false;
+#endif
 
     // Progress of the background reference download that powers the IDE features (diagnostics + IntelliSense).
     private IdeState _ide = IdeState.Loading;
@@ -150,7 +169,8 @@ public sealed class PlaygroundView : Component
                     BsButton(Class: "pg-reset", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
                         Disabled: _busy || !_editorReady, OnClickAsync: ResetAsync)["Reset"],
                     BsButton(Class: "pg-run", Color: BsColor.Primary, Size: BsSize.Sm,
-                        Disabled: _busy || !_editorReady, OnClickAsync: RunAsync)[_busy ? "Running…" : "Run ▸"],
+                        Disabled: _busy || !_editorReady || IsActiveChapterLocked,
+                        OnClickAsync: RunAsync)[_busy ? "Running…" : "Run ▸"],
                     // Cross-app links back to the docs + repo, and the shared light/dark toggle.
                     BsLink(Href: "https://pal-tamas.github.io/rask/docs/", Target: "_blank", Rel: "noopener",
                         Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm)[
@@ -164,20 +184,22 @@ public sealed class PlaygroundView : Component
             ],
             Div(Class: "pg-body")[
                 Aside(Class: "pg-examples")[
-                    Div(Class: "pg-examples-head")["Examples"],
-                    Nav(Class: "pg-example-list")[
-                        PlaygroundSamples.All.Select(s =>
-                            Button(
-                                Key: s.Id,
-                                Class: s.Id == _activeSampleId ? "pg-example is-active" : "pg-example",
-                                Disabled: _busy,
-                                OnClickAsync: () => SelectSampleAsync(s))[
-                                Span(Class: "pg-example-title")[s.Title],
-                                Span(Class: "pg-example-blurb")[s.Blurb]
-                            ])
-                    ]
+                    Div(Class: "pg-tabs")[
+                        TabButton(PlaygroundTab.Tutorial, "Tutorial"),
+                        TabButton(PlaygroundTab.Examples, "Examples")
+                    ],
+                    _tab == PlaygroundTab.Tutorial ? ChapterList() : SampleList()
                 ],
                 Section(Class: "pg-editor")[
+                    // The brief is ALWAYS rendered, empty when the gallery is showing (CSS hides an empty
+                    // one). That is load-bearing, not laziness: it keeps the editor host at a fixed child
+                    // slot. Rendering the brief conditionally would shift the host's position on every tab
+                    // switch, and the positional diff would then match the brief against the live Monaco
+                    // host — rewriting its attributes and inserting the brief's content into the DOM Monaco
+                    // owns. Keying the two children instead does NOT work: a keyed host is re-created by
+                    // the full-document morph, which orphans the editor Monaco mounted into the old node
+                    // (the editor keeps rendering, detached, and setEditorValue silently stops landing).
+                    Brief(),
                     // Monaco mounts into this host in OnRenderedAsync(firstRender). The host renders childless,
                     // so the positional diff never addresses inside it — but a *morph* (every full-HTML frame)
                     // compares live children against the rendered ones and would strip Monaco's DOM. mountEditor
@@ -192,6 +214,120 @@ public sealed class PlaygroundView : Component
                 ]
             ]
         ];
+
+    private Component TabButton(PlaygroundTab tab, string label) =>
+        Button(
+            Id: TutorialPaneState.TabId(tab),
+            Class: _tab == tab
+                ? $"{TutorialPaneState.TabClass} {TutorialPaneState.Active}"
+                : TutorialPaneState.TabClass,
+            Disabled: _busy,
+            OnClickAsync: () => SwitchTabAsync(tab))[label];
+
+    // Switching tabs loads what that tab is pointing at, so the editor always holds the thing the pane
+    // highlights. Without this the brief could describe chapter 3 while the editor held a gallery sample —
+    // and Run would then tick chapter 3 off for compiling something else entirely.
+    private Task SwitchTabAsync(PlaygroundTab tab)
+    {
+        if (_busy || _tab == tab)
+        {
+            return Task.CompletedTask;
+        }
+
+        return tab == PlaygroundTab.Tutorial
+            ? SelectChapterAsync(ActiveChapter)
+            : SelectSampleAsync(PlaygroundSamples.All.First(s => s.Id == _activeSampleId));
+    }
+
+    private Component SampleList() =>
+        Nav(Class: "pg-example-list")[
+            PlaygroundSamples.All.Select(s =>
+                Button(
+                    Key: s.Id,
+                    Class: s.Id == _activeSampleId ? "pg-example is-active" : "pg-example",
+                    Disabled: _busy,
+                    OnClickAsync: () => SelectSampleAsync(s))[
+                    Span(Class: "pg-example-title")[s.Title],
+                    Span(Class: "pg-example-blurb")[s.Blurb]
+                ])
+        ];
+
+    private Component ChapterList() =>
+        Nav(Class: "pg-chapter-list")[
+            TutorialChapters.All.Select(c =>
+                Button(
+                    Key: c.Id,
+                    Id: TutorialPaneState.ChapterId(c.Number),
+                    Class: TutorialPaneState.ClassesFor(StateOf(c), _completedChapters.Contains(c.Id)),
+                    // A locked chapter still opens — the code is worth reading even where it can't run.
+                    // Run is what gets disabled for it (see IsActiveChapterLocked).
+                    Disabled: _busy,
+                    OnClickAsync: () => SelectChapterAsync(c))[
+                    Span(Class: "pg-chapter-no")[c.Number.ToString(CultureInfo.InvariantCulture)],
+                    Span(Class: "pg-chapter-title")[c.Title],
+                    Span(Class: "pg-chapter-goal")[c.Goal]
+                ])
+        ];
+
+    private ChapterState StateOf(TutorialChapter chapter)
+    {
+        if (chapter.NeedsDatabase && !DataChaptersAvailable)
+        {
+            return ChapterState.Locked;
+        }
+
+        return chapter.Id == _activeChapterId && _tab == PlaygroundTab.Tutorial
+            ? ChapterState.Active
+            : ChapterState.Open;
+    }
+
+    // True when the editor holds a chapter this build can't compile. Run is disabled rather than left to
+    // fill the preview with CS0246s about DbContext — the reader can still read the code.
+    private bool IsActiveChapterLocked =>
+        _tab == PlaygroundTab.Tutorial && ActiveChapter.NeedsDatabase && !DataChaptersAvailable;
+
+    // The instruction band above the editor: what this chapter is for, what to notice, and the way on.
+    // Always rendered — empty on the Examples tab, where CSS collapses it — so the editor host below keeps
+    // a fixed child slot. See the note at the call site.
+    private Component Brief()
+    {
+        if (_tab != PlaygroundTab.Tutorial)
+        {
+            return Div(Class: "pg-brief");
+        }
+
+        var chapter = ActiveChapter;
+        var locked = chapter.NeedsDatabase && !DataChaptersAvailable;
+
+        return Div(Class: "pg-brief")[
+            Div(Class: "pg-brief-head")[
+                Span(Class: "pg-brief-title")[
+                    $"Chapter {chapter.Number.ToString(CultureInfo.InvariantCulture)} — {chapter.Title}"
+                ],
+                Div(Class: "pg-brief-nav")[
+                    BsButton(Class: "pg-prev", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
+                        Disabled: _busy || chapter.Number == 1,
+                        OnClickAsync: () => StepAsync(-1))["← Back"],
+                    BsButton(Class: "pg-next", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
+                        Disabled: _busy || chapter.Number == TutorialChapters.All.Count,
+                        OnClickAsync: () => StepAsync(1))["Next →"]
+                ]
+            ],
+            P(Class: "pg-brief-goal")[chapter.Goal],
+            locked
+                ? P(Class: "pg-brief-locked")[
+                    "This build ships without the EF Core + SQLite reference set, so this chapter can be "
+                    + "read but not run. The deployed playground has it."
+                ]
+                : null,
+            Ul(Class: "pg-brief-steps")[
+                chapter.Steps.Select((s, i) => Li(Key: i)[s])
+            ]
+        ];
+    }
+
+    private TutorialChapter ActiveChapter =>
+        TutorialChapters.All.FirstOrDefault(c => c.Id == _activeChapterId) ?? TutorialChapters.First;
 
     private Component? IdeBadge()
     {
@@ -258,6 +394,7 @@ public sealed class PlaygroundView : Component
             return;
         }
 
+        _tab = PlaygroundTab.Examples;
         _activeSampleId = sample.Id;
         _result = null;
         _runId++;
@@ -265,9 +402,74 @@ public sealed class PlaygroundView : Component
         await _js.InvokeVoidAsync("Rask.PlaygroundView.setEditorValue", _editorHost, sample.Code);
     }
 
-    // Restore the active example's original code (after the visitor has edited it).
-    private Task ResetAsync() =>
-        SelectSampleAsync(PlaygroundSamples.All.First(s => s.Id == _activeSampleId));
+    // Load a tutorial chapter into the editor. Same swap as a gallery example, plus the pane state that
+    // makes this chapter the active one.
+    private async Task SelectChapterAsync(TutorialChapter chapter)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _tab = PlaygroundTab.Tutorial;
+        _activeChapterId = chapter.Id;
+        _result = null;
+        _runId++;
+        _phase = chapter.NeedsDatabase && !DataChaptersAvailable
+            ? "This build ships without SQLite — read-only."
+            : "Press Run to compile.";
+        await _js.InvokeVoidAsync("Rask.PlaygroundView.setEditorValue", _editorHost, chapter.Code);
+    }
+
+    private Task StepAsync(int delta)
+    {
+        var next = ActiveChapter.Number - 1 + delta;
+        return next >= 0 && next < TutorialChapters.All.Count
+            ? SelectChapterAsync(TutorialChapters.All[next])
+            : Task.CompletedTask;
+    }
+
+    // Restore what's loaded to its original code — the tab decides, and the tab is authoritative because
+    // switching it loads that pane's code (see SwitchTabAsync). In the tutorial, also drop THIS chapter's
+    // database, so "Reset" is a genuine clean slate rather than code-clean-but-rows-still-there. Only this
+    // chapter's: wiping the others would throw away a neighbouring chapter's state the reader still wants.
+    private Task ResetAsync()
+    {
+        if (_tab == PlaygroundTab.Tutorial)
+        {
+            var chapter = ActiveChapter;
+            DeleteChapterDatabase(chapter);
+            return SelectChapterAsync(chapter);
+        }
+
+        return SelectSampleAsync(PlaygroundSamples.All.First(s => s.Id == _activeSampleId));
+    }
+
+    // The chapters address their databases by relative path, so they live in the runtime's working
+    // directory — an in-memory filesystem in the browser. Plain BCL file IO: no EF Core reference needed
+    // here, which is what keeps the host code buildable on a build without the data packages.
+    private static void DeleteChapterDatabase(TutorialChapter chapter)
+    {
+        if (!chapter.NeedsDatabase)
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                $"ch{chapter.Number.ToString(CultureInfo.InvariantCulture)}.db"));
+        }
+        catch (IOException)
+        {
+            // A database that won't delete just means the next run reuses it — not worth failing Reset over.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Same.
+        }
+    }
 
     private async Task RunAsync()
     {
@@ -300,6 +502,13 @@ public sealed class PlaygroundView : Component
             _phase = _result.Succeeded
                 ? "Compiled ✓"
                 : $"{_result.Diagnostics.Count(d => d.Severity == PlaygroundSeverity.Error)} error(s)";
+
+            // Tick the chapter off once it has actually compiled — the reader's own edits count, so this
+            // marks "I got this to build", not "I clicked it".
+            if (_result.Succeeded && _tab == PlaygroundTab.Tutorial)
+            {
+                _completedChapters.Add(_activeChapterId);
+            }
 
             // Paint the compiler/analyzer diagnostics as inline editor squiggles (best-effort).
             await _js.InvokeVoidAsync("Rask.PlaygroundView.setMarkers", _editorHost,

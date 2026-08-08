@@ -512,6 +512,12 @@ already wraps:
 Keep SQLite behind the server (or on device with `Rask.Native`), and let the WASM client talk to it
 through an API or the browser storage APIs above.
 
+> **The one deliberate exception: the [playground's tutorial](playground.md#the-guided-tutorial).** Its
+> data chapters do run EF Core + `Microsoft.Data.Sqlite` in the browser, native relink and all. Every
+> drawback above still applies — the database is in memory and lost on reload — but there it is the
+> *point*: a teaching sandbox wants a throwaway database and no server, and the reader gets to write real
+> EF Core instead of reading about it. That is a demo, not an architecture. Don't copy it into an app.
+
 ## Limitations & when to outgrow SQLite
 
 SQLite is a genuine production database for a single-server app — but it isn't a client-server database,
