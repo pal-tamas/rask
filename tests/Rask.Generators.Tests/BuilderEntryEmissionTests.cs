@@ -43,7 +43,7 @@ public class BuilderEntryEmissionTests
                                               }
                                               """);
 
-        var collisions = run.WithId("RASK037").ToList();
+        var collisions = run.WithId("RASK040").ToList();
         Assert.Equal(2, collisions.Count);
         Assert.All(collisions, d =>
         {
@@ -91,7 +91,7 @@ public class BuilderEntryEmissionTests
                                               """);
 
         // Products.Card has a `required` member, so only Orders.Card is eligible — no collision.
-        Assert.Empty(run.WithId("RASK037"));
+        Assert.Empty(run.WithId("RASK040"));
 
         var entry = run.Source(Entries).Split('\n')
             .Single(l => l.Contains(" Card =>", StringComparison.Ordinal));
@@ -150,7 +150,7 @@ public class BuilderEntryEmissionTests
                                               }
                                               """);
 
-        Assert.Empty(run.WithId("RASK037"));
+        Assert.Empty(run.WithId("RASK040"));
         var entries = run.Source(Entries);
         Assert.Contains("Pick<TItem>(global::System.Linq.Expressions.Expression", entries, StringComparison.Ordinal);
         Assert.Contains("Pick<TValue, TItem>(global::System.Linq.Expressions.Expression", entries,

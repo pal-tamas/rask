@@ -347,7 +347,7 @@ public class BuilderSetterEmissionTests
                                               }
                                               """);
 
-        var reported = Assert.Single(run.WithId("RASK039"));
+        var reported = Assert.Single(run.WithId("RASK042"));
         Assert.Contains("Demo.Widget.Format", reported.GetMessage(), StringComparison.Ordinal);
         Assert.Contains("global::Rask.Core.Carrier<global::System.Func<int, string>>?", reported.GetMessage(),
             StringComparison.Ordinal);
@@ -379,7 +379,7 @@ public class BuilderSetterEmissionTests
                                               }
                                               """);
 
-        Assert.Empty(run.WithId("RASK039"));
+        Assert.Empty(run.WithId("RASK042"));
         Assert.DoesNotContain(" Format(this ", run.Source("RaskBuilderSetters.g.cs"), StringComparison.Ordinal);
     }
 
@@ -442,7 +442,7 @@ public class BuilderSetterEmissionTests
                                                }
                                                """);
 
-        var reported = Assert.Single(run.WithId("RASK038"));
+        var reported = Assert.Single(run.WithId("RASK041"));
         Assert.Contains("17 folding properties but only 16 pending bits", reported.GetMessage(),
             StringComparison.Ordinal);
         Assert.Contains("'P16'", reported.GetMessage(), StringComparison.Ordinal);
@@ -466,7 +466,7 @@ public class BuilderSetterEmissionTests
                                                }
                                                """);
 
-        Assert.Empty(run.WithId("RASK038"));
+        Assert.Empty(run.WithId("RASK041"));
         Assert.Contains("public const ulong SharedElementPending = 0xFFFFUL;", run.Source("RaskBuilderReset.g.cs"),
             StringComparison.Ordinal);
     }

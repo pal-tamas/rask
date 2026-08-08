@@ -56,32 +56,32 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         true,
         helpLinkUri: DiagnosticHelp.Link("RASK036"));
 
-    private static readonly DiagnosticDescriptor Rask037 = new(
-        "RASK037",
+    private static readonly DiagnosticDescriptor Rask040 = new(
+        "RASK040",
         "Two components share a simple name, so neither can have a builder entry",
         "Components '{1}' share the simple name '{0}', so neither receives a builder entry: an entry is a single member of 'Rask.Core.Component' (or of each consuming component) named after its type, and one name can only stand for one type. The generated factories are unaffected — they live in a per-namespace 'Generated' class — so both components stay reachable through 'Generated.{0}(...)'. Rename one of them to give both an entry.",
         "Rask.Generators",
         DiagnosticSeverity.Warning,
         true,
-        helpLinkUri: DiagnosticHelp.Link("RASK037"));
+        helpLinkUri: DiagnosticHelp.Link("RASK040"));
 
-    private static readonly DiagnosticDescriptor Rask038 = new(
-        "RASK038",
+    private static readonly DiagnosticDescriptor Rask041 = new(
+        "RASK041",
         "The builder surface's shared pending-bit budget is exhausted",
         "The shared Element/Component surface has {0} folding properties but only {1} pending bits; '{2}' and every later one (ordinal name order) fall back to the eager reset, which reports the property changed on every render and defeats the render cache for it. Raise 'BuilderRuntime.OwnPendingBit' (and the generator's copy of it) together, or make the property non-folding.",
         "Rask.Generators",
         DiagnosticSeverity.Warning,
         true,
-        helpLinkUri: DiagnosticHelp.Link("RASK038"));
+        helpLinkUri: DiagnosticHelp.Link("RASK041"));
 
-    private static readonly DiagnosticDescriptor Rask039 = new(
-        "RASK039",
+    private static readonly DiagnosticDescriptor Rask042 = new(
+        "RASK042",
         "Delegate-typed property cannot receive a builder setter",
         "Property '{0}.{1}' is a raw delegate, so it is invocable and C#'s invocable-member rule binds '{1}(...)' to the property instead of to the same-named builder setter — the setter can never be reached. Declare it as a carrier ('{2}') instead: the carrier is not invocable, its implicit conversion keeps assignment and every generated '{1}:' factory argument working, and calling the callback back becomes '{1}?.Invoke(...)'.",
         "Rask.Generators",
         DiagnosticSeverity.Warning,
         true,
-        helpLinkUri: DiagnosticHelp.Link("RASK039"));
+        helpLinkUri: DiagnosticHelp.Link("RASK042"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -229,7 +229,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             if (s.IsDelegate && SetterName(s.Name, s.IsDelegate) == s.Name)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask039, Location.None, s.Owner, s.Name,
+                spc.ReportDiagnostic(Diagnostic.Create(Rask042, Location.None, s.Owner, s.Name,
                     SuggestedCarrier(s.TypeFqn)));
                 continue;
             }
@@ -279,7 +279,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 {
                     if (!IsRequiredFactoryParam(p))
                     {
-                        spc.ReportDiagnostic(Diagnostic.Create(Rask039, MakeLocation(p), c.FullyQualifiedName,
+                        spc.ReportDiagnostic(Diagnostic.Create(Rask042, MakeLocation(p), c.FullyQualifiedName,
                             p.Name, SuggestedCarrier(p.TypeFqn)));
                     }
 
@@ -365,7 +365,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         var first = folding.First(s => !bits.ContainsKey(s.Name));
-        spc.ReportDiagnostic(Diagnostic.Create(Rask038, Location.None,
+        spc.ReportDiagnostic(Diagnostic.Create(Rask041, Location.None,
             folding.Count.ToString(CultureInfo.InvariantCulture),
             OwnPendingBit.ToString(CultureInfo.InvariantCulture),
             first.Name));
@@ -643,13 +643,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // The name a builder setter takes for a property. A raw delegate prop is invocable and would beat a
     // same-named extension (CS1593), so historically those setters dropped the `On` prefix; the props
     // that matter have since moved to carriers, which are not invocable and so keep their own name. A
-    // delegate prop whose name the rule leaves unchanged has no reachable setter at all — RASK039.
+    // delegate prop whose name the rule leaves unchanged has no reachable setter at all — RASK042.
     private static string SetterName(string name, bool isDelegate) =>
         isDelegate && name.StartsWith("On", StringComparison.Ordinal) && name.Length > 2
             ? name.Substring(2)
             : name;
 
-    // The carrier RASK039 tells the author to declare instead: the named pair for a Callback-shaped
+    // The carrier RASK042 tells the author to declare instead: the named pair for a Callback-shaped
     // delegate, the open Carrier<TDelegate> for anything else.
     private static string SuggestedCarrier(string typeFqn)
     {
@@ -1017,7 +1017,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // entry. Dropping the loser silently is the worst of the options: it compiles, and whichever one
     // the sort happened to put second simply has no entry (and, once the factory is deleted, no way to
     // be built at all). A collision between two types is not resolvable here — it is the author's to
-    // resolve — so neither gets an entry and RASK037 says why.
+    // resolve — so neither gets an entry and RASK040 says why.
     private static List<Candidate> EntryCandidates(
         SourceProductionContext spc, ImmutableArray<Candidate> candidates, HashSet<string> taken)
     {
@@ -1064,7 +1064,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var names = string.Join("', '", members.Select(static c => c.FullyQualifiedName));
         foreach (var c in members)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(Rask037, MakeDeclLocation(c), c.TypeName, names));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask040, MakeDeclLocation(c), c.TypeName, names));
         }
     }
 

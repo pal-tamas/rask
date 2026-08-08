@@ -159,7 +159,7 @@ them until tagged releases begin.
   **And four ways the surface could disagree with itself are now closed.** *An entry is keyed by simple
   name* — factories are not, they live in a per-namespace `Generated` class — so
   `Features.Products.Card` and `Features.Orders.Card` cannot both be `Card`. The loser used to be
-  dropped in silence; both are now reported (**RASK037**) and neither gets an entry, because which one
+  dropped in silence; both are now reported (**RASK040**) and neither gets an entry, because which one
   the name should mean is the author's call, not the generator's. Worse than the silence was the
   disagreement it hid: the entry pass and the per-component *reset* pass applied different eligibility
   rules to the same simple name, so an entry could be handed the reset generated for the OTHER type —
@@ -181,10 +181,10 @@ them until tagged releases begin.
   the four option controls, `BsDatePicker`/`BsDateTimePicker.Disable`, `Authorize.Authorized`,
   `ErrorBoundary.Fallback` and `DragDrop`/`VirtualizeModel.Body` ride `Carrier<TDelegate>` now (reading
   them back is `.Fn`; assignment and every generated argument are unchanged), and anything left is
-  reported as **RASK039**. The bound `Validate`/`AfterBind` setters were spelling those members as bare
+  reported as **RASK042**. The bound `Validate`/`AfterBind` setters were spelling those members as bare
   delegates, which ran the carrier's implicit conversion instead of `From` and reopened the null trap
   one layer up; they go through the carrier now. Finally the shared pending-bit budget has a guard
-  (**RASK038**): 16 bits handed out in ordinal name order means adding one folding prop to `Element`
+  (**RASK041**): 16 bits handed out in ordinal name order means adding one folding prop to `Element`
   silently pushes an alphabetically-later one (`Title`, `TabIndex`) onto the always-dirty eager path,
   with no compile error and no failing test. Allocation per render is unchanged on every pinned shape,
   and a carrier-borne render fragment costs the same through a chain as through the factory

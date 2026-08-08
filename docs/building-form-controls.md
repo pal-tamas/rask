@@ -52,7 +52,7 @@ assignment already does.
 The rule is not limited to the interface's members, or to names beginning with `On`: **any** delegate-typed
 property your control declares needs a carrier if you want a builder setter for it. `OptionLabel`,
 `RowClass`, a `Filter` predicate — all of them are invocable as declared, so the setter of the same name can
-never be reached. The generator reports the ones it finds as **RASK039** and names the carrier to use.
+never be reached. The generator reports the ones it finds as **RASK042** and names the carrier to use.
 
 You declare those nine properties (plus your own display props), implement `Render`, and the generator
 emits **two factories**:
