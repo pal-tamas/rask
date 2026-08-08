@@ -66,22 +66,22 @@ public abstract partial class Element
     // readonly struct around a reference allocates nothing. A slot holding the other kind (an async
     // handler read through the sync view) reads back as null, exactly as the `as` cast did before.
     //
-    // The unset branch is CAST, never a bare `null`: the carrier's implicit conversion accepts a null
-    // delegate, so `cond ? new Handler(fn) : null` has a natural type of `Handler` — the null literal
-    // would go through the operator and hand back a non-null carrier wrapping a null delegate, and an
-    // unset handler would stop reading back as unset. The cast gives the conditional the nullable type
-    // and lets the standard null-literal conversion win.
-    private protected Handler? SyncHandler(string name) =>
-        GetDomEvent(name) is Callback fn ? new Handler(fn) : (Handler?)null;
+    // Null-preservation goes through the carrier's own `From`, never a hand-written conditional: the
+    // implicit conversion accepts a null delegate, so `slot is Callback fn ? new Handler(fn) : null`
+    // has a natural type of `Handler` and the null branch runs the operator — handing back a non-null
+    // carrier wrapping a null delegate, so an unset handler stops reading back as unset. `From` is the
+    // one audited place that gets that right (its own cast is load-bearing for the same reason), and a
+    // slot holding the other kind still reads back as null, exactly as the `as` cast did before.
+    private protected Handler? SyncHandler(string name) => Handler.From(GetDomEvent(name) as Callback);
 
     private protected HandlerAsync? AsyncHandler(string name) =>
-        GetDomEvent(name) is CallbackAsync fn ? new HandlerAsync(fn) : (HandlerAsync?)null;
+        HandlerAsync.From(GetDomEvent(name) as CallbackAsync);
 
     private protected Handler<TArgs>? SyncHandler<TArgs>(string name) =>
-        GetDomEvent(name) is Callback<TArgs> fn ? new Handler<TArgs>(fn) : (Handler<TArgs>?)null;
+        Handler<TArgs>.From(GetDomEvent(name) as Callback<TArgs>);
 
     private protected HandlerAsync<TArgs>? AsyncHandler<TArgs>(string name) =>
-        GetDomEvent(name) is CallbackAsync<TArgs> fn ? new HandlerAsync<TArgs>(fn) : (HandlerAsync<TArgs>?)null;
+        HandlerAsync<TArgs>.From(GetDomEvent(name) as CallbackAsync<TArgs>);
 
     // Sync handler always wins: setting it overwrites whatever's there, so `OnClick` beats `OnClickAsync`
     // when both are supplied the same render. A null clears the slot only when it currently holds a sync
