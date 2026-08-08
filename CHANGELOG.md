@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Playground: picking a chapter or an example before the editor had mounted silently kept the starter
+  code.** Run and Reset waited for the editor; the controls that *load* code did not — they only guarded
+  against a compile being in flight. Loading a chapter is a round-trip to `setEditorValue`, and before the
+  editor exists that call is a no-op, so the editor then came up holding the starter instead. The reader
+  was left with the brief and the chapter highlight showing one chapter while the editor held another —
+  and Run compiled the wrong code and ticked the chapter off as done. On a cold load the window is seconds
+  wide, which is exactly when a first-time reader clicks "Tutorial". Every control now shares one gate
+  (`CanInteract`), since the bug was two copies of the condition disagreeing. Closes #647.
+
 ### Added
 - **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
   enters the tree through its generated factory, and that factory is what registers the instance with its
