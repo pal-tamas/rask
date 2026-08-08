@@ -70,7 +70,7 @@ public class RedundantStateHasChangedAnalyzerTests
     public async Task BuilderSetter_Click_StateHasChanged_ReportsRask026()
     {
         var d = Assert.Single(await Diagnostics(App(
-            "protected override Component? Render() => Button.Click(() => StateHasChanged())[\"x\"];")));
+            "protected override Component? Render() => Button.OnClick(() => StateHasChanged())[\"x\"];")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("Click", d.GetMessage());
     }

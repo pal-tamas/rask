@@ -13,7 +13,7 @@ internal sealed partial class BuilderCard : Component
     public new string? Label { get; set; }
     public Handler? OnSelect { get; set; }
 
-    protected override Component? Render() => Button.Click(OnSelect?.Fn)[Label ?? ""];
+    protected override Component? Render() => Button.OnClick(OnSelect?.Fn)[Label ?? ""];
 }
 
 internal sealed partial class CardHost : Component
@@ -66,5 +66,78 @@ public class BuilderCallbackTests
         Assert.Same(stat, card.OnSelect?.Fn);
     }
 
+    // Element's whole event surface rides the same carriers, so a DOM handler's setter keeps the
+    // property's name: `.OnClick(…)`, not the `.Click(…)` a raw delegate prop forced.
+    [Fact]
+    public void An_element_event_setter_keeps_the_On_prefix()
+    {
+        var div = Div();
+        Callback stat = Noop;
+
+        div.OnClick(stat);
+
+        Assert.Same(stat, div.OnClick?.Fn);
+    }
+
+    // …and the argument-taking half, which rides Handler<TArgs> — the setter still takes the
+    // Callback<TArgs>, because a lambda cannot reach the carrier (C# will not chain a delegate
+    // conversion into a user-defined one).
+    [Fact]
+    public void A_typed_element_event_setter_wires_the_dom_slot()
+    {
+        var view = BuilderEventProbe();
+
+        Assert.Equal(
+            "<div data-rask-on-click=\"h0\" data-rask-on-mousedown=\"h1\" "
+            + "data-rask-on-scroll=\"h2\"></div>",
+            view.RenderAsLiveRoot());
+    }
+
+    // The hard rule the carrier must not quietly break: an ELEMENT handler goes straight to the DOM,
+    // where handler-owner resolution already re-renders the owner — wrapping it would allocate a
+    // closure per handler per render. Same owned handler as the card test above, opposite outcome.
+    [Fact]
+    public void An_element_event_setter_does_not_auto_wrap()
+    {
+        var host = CardHost();
+        var raw = (Callback)host.Choose;
+
+        var div = Div().OnClick(raw);
+
+        Assert.Same(raw, div.OnClick?.Fn);
+    }
+
+    // The carrier converts FROM a delegate, and that conversion accepts the null literal too — so a
+    // `cond ? handler : null` inside the property (or a factory passing its default) must not hand back
+    // a carrier wrapping a null delegate. An unset handler reads back as null, the way it always did.
+    [Fact]
+    public void An_unset_element_event_reads_back_as_null()
+    {
+        var div = Div().OnClick(null);
+
+        Assert.Null(div.OnClick);
+        Assert.Null(div.OnMouseDown);
+    }
+
+    // The async sibling still loses to a sync handler on the shared slot, through the carrier.
+    [Fact]
+    public void The_sync_handler_still_wins_the_shared_slot()
+    {
+        Callback sync = Noop;
+        var div = Div().OnClickAsync(() => Task.CompletedTask).OnClick(sync);
+
+        Assert.Same(sync, div.OnClick?.Fn);
+        Assert.Null(div.OnClickAsync);
+    }
+
     private static void Noop() { }
+}
+
+// Renders through the live path so the wired slots actually emit data-rask-on-*.
+internal sealed partial class BuilderEventProbe : Component
+{
+    protected override Component? Render() =>
+        Div.OnClick(Bump).OnMouseDown(_ => Bump()).OnScroll(_ => Bump());
+
+    private void Bump() { }
 }

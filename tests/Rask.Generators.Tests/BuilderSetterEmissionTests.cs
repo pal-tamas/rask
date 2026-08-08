@@ -173,6 +173,76 @@ public class BuilderSetterEmissionTests
         Assert.DoesNotContain("BuilderRuntime.Track", click, StringComparison.Ordinal);
     }
 
+    // A carrier prop keeps its own name — that is the whole point of the carrier, and it is what makes
+    // Element's event surface read `.OnClick(…)` instead of `.Click(…)`. The SETTER still takes the
+    // delegate: a method group cannot reach a carrier, because C# will not chain a delegate conversion
+    // into a user-defined one. And it must not be AutoCallback-wrapped — a DOM handler is forwarded
+    // raw, where handler-owner resolution already re-renders the owner.
+    [Fact]
+    public void A_carrier_element_event_keeps_its_name_and_is_not_wrapped()
+    {
+        var src = """
+                  namespace Rask.Core;
+                  public abstract partial class Element : Component
+                  {
+                      public global::Rask.Core.Handler? OnClick { get; set; }
+                      public global::Rask.Core.Handler<global::Rask.Core.Live.MouseEventArgs>? OnMouseDown { get; set; }
+                      public global::Rask.Core.HandlerAsync? OnClickAsync { get; set; }
+                  }
+                  """;
+
+        var output = Run(src);
+
+        Assert.Contains(
+            "public static T OnClick<T>(this T __c, global::Rask.Core.Callback? value) "
+            + "where T : global::Rask.Core.Element "
+            + "{ __c.OnClick = new global::Rask.Core.Handler(value); return __c; }",
+            output,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "OnMouseDown<T>(this T __c, "
+            + "global::Rask.Core.Callback<global::Rask.Core.Live.MouseEventArgs>? value)",
+            output,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "OnClickAsync<T>(this T __c, global::Rask.Core.CallbackAsync? value)",
+            output,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("AutoCallback.Wrap", output, StringComparison.Ordinal);
+    }
+
+    // A prop inherited from an INTERMEDIATE base (HtmlMediaElement, BsBlock, BsFormControl<T>, a
+    // consumer's own base) has no shared emission to fall back on — only Rask.Core's Element/Component
+    // chain is written once as constrained generics — so it needs a per-component setter or it gets
+    // none at all. The receiver is the concrete component, so the chain keeps its type.
+    [Fact]
+    public void A_prop_from_an_intermediate_base_gets_a_setter_on_the_concrete_component()
+    {
+        var output = Run("""
+                         using Rask.Core;
+                         namespace Demo;
+                         public abstract class Panel : Component
+                         {
+                             public string? Heading { get; set; }
+                         }
+
+                         public partial class Widget : Panel
+                         {
+                             public int Count { get; set; }
+                         }
+                         """);
+
+        Assert.Contains("Heading(this global::Demo.Widget __c, string? value)", output, StringComparison.Ordinal);
+
+        // …and the inherited prop is reset like an own one, or the chain would keep last render's
+        // heading where the factory would have put it back.
+        Assert.Contains("__c.Heading, null))", PendingReset(output, "Widget"), StringComparison.Ordinal);
+
+        // Component's own props stay on the shared surface: emitting them here as well would be dead
+        // weight on every component in the assembly.
+        Assert.DoesNotContain("Key(this global::Demo.Widget", output, StringComparison.Ordinal);
+    }
+
     // The shared Element/Component surface gets its reset emitted ONCE, into Rask.Core.BuilderRuntime —
     // a fixed name, because a consumer assembly cannot know the per-assembly setter class Rask.Core
     // emitted its own setters into. Only the assembly declaring Element contributes it.

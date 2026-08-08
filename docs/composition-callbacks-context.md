@@ -52,8 +52,9 @@ lambda identity between renders does not refire `OnPropsChanged`.
 
 **DOM events on elements.** `Element` exposes the full DOM **`GlobalEventHandlers`** surface — so
 **every** element (not a hand-picked few) carries the complete event set, just like the real DOM
-mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Callback<TArgs>`)
-and an asynchronous `OnXxxAsync` (`CallbackAsync<TArgs>`); set **at most one** per event (wiring both
+mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Handler<TArgs>`, the
+carrier over `Callback<TArgs>`) and an asynchronous `OnXxxAsync` (`HandlerAsync<TArgs>` over
+`CallbackAsync<TArgs>`); set **at most one** per event (wiring both
 is a compile error, [RASK027](diagnostics.md#rask027) — the runtime would keep the sync one and drop
 the async). Pass a **bare lambda or method group** — `OnMouseMove: e => { _x = e.OffsetX; }`,
 `OnKeyDown: OnKey` — never `new Callback<T>(…)`: the named parameter already gives the lambda its
@@ -78,6 +79,13 @@ type, exactly like `OnClick: () => _count++`. The surface:
 - **Forms** — `OnBeforeInput` (`Callback<string>`), `OnSelect`, `OnInvalid`, `OnReset`.
 - **Media** — `Audio`/`Video` add the `HTMLMediaElement` events `OnPlay`/`OnPause`/`OnEnded`/
   `OnTimeUpdate`/`OnVolumeChange`/… (`MediaEventArgs`: current time, duration, paused, volume, …).
+
+You never name the carrier: you pass the lambda or method group and the implicit conversion does the
+rest, so `OnClick: Save` and `OnClick = Save` read exactly as before. It exists so a property and its
+builder setter can share a name — a delegate-typed property *is* invocable, which would make
+`.OnClick(Save)` try to call the handler (CS1593). Reading a handler back off an element is the one
+place it shows: `el.OnClick?.Fn`. DOM handlers are **never** auto-wrapped — they go straight to the
+DOM, where handler-owner resolution already re-renders the owner.
 
 All of these are delegated by a single capture-phase listener per event in the shared client module
 (`rask-events.js`, spliced into both the Server and WASM runtimes), so there is no per-element JS. The

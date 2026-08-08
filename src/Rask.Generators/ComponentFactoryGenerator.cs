@@ -213,13 +213,19 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             var ownBits = OwnPendingBits(c);
             foreach (var p in c.Properties)
             {
-                // Depth 0 == declared on the component itself; anything deeper is part of the shared
-                // surface above and must not be duplicated per tag.
+                // Everything the component does not inherit from Rask.Core's Element/Component chain —
+                // its own props AND those it inherits from an intermediate base (HtmlMediaElement,
+                // BsBlock, BsFormControl<T>, a consumer's own base). The shared chain is emitted once
+                // as constrained generic extensions above and must not be duplicated per tag; an
+                // intermediate base has no such emission, so skipping it left those props with no
+                // setter at all (every Bs control's Id/Class/Label/Size, every media element's Src).
+                // The receiver stays the CONCRETE component so the chain keeps its type — a
+                // `BsFormControl<T>`-typed extension would return the base and break the next setter.
                 // An init-only prop can only be assigned in an object initializer (CS8852), so it has
                 // no setter — the factory reaches it through the initializer instead.
                 // A type-parameter prop (`T? Value`) is fine here even though it needs `default` rather
                 // than `null` as a factory default — a setter has no default to write.
-                if (p.InheritanceDepth != 0 || p.IsInitOnly || p.Name == "Children")
+                if (p.IsSharedSurfaceProp || p.IsInitOnly || p.Name == "Children")
                 {
                     continue;
                 }
@@ -297,7 +303,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // uses, so the bit a setter clears is the bit the reset tests.
     private static IEnumerable<PropInfo> OwnSetterProps(Candidate c) =>
         c.Properties.Where(static p =>
-            p.InheritanceDepth == 0 && !p.IsInitOnly && p.Name != "Children" && !p.IsBoundInterfaceProp);
+            !p.IsSharedSurfaceProp && !p.IsInitOnly && p.Name != "Children" && !p.IsBoundInterfaceProp);
 
     // What the reset may put back: a prop the factory would re-apply from a parameter DEFAULT. A prop
     // with a non-constant initializer (`= new List<>()`) is not a factory parameter at all, and a
@@ -652,11 +658,33 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 return "global::Rask.Core.CallbackAsync?";
         }
 
-        const string open = "global::Rask.Core.Carrier<";
-        return t.StartsWith(open, StringComparison.Ordinal) && t.EndsWith(">", StringComparison.Ordinal)
-            ? t.Substring(open.Length, t.Length - open.Length - 1) + "?"
-            : null;
+        if (!t.EndsWith(">", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        // The argument-taking carriers name their ARGUMENT, not their delegate (Element's whole event
+        // surface is declared with them), so the delegate is rebuilt around it.
+        foreach (var (open, delegateOpen) in CarrierShapes)
+        {
+            if (t.StartsWith(open, StringComparison.Ordinal))
+            {
+                var inner = t.Substring(open.Length, t.Length - open.Length - 1);
+                return delegateOpen is null ? inner + "?" : delegateOpen + inner + ">?";
+            }
+        }
+
+        return null;
     }
+
+    // Open generic → the delegate a carrier of that shape carries. `Carrier<TDelegate>` names the
+    // delegate itself (null); the Handler pair names the argument.
+    private static readonly (string Open, string? DelegateOpen)[] CarrierShapes =
+    {
+        ("global::Rask.Core.Carrier<", null),
+        ("global::Rask.Core.HandlerAsync<", "global::Rask.Core.CallbackAsync<"),
+        ("global::Rask.Core.Handler<", "global::Rask.Core.Callback<"),
+    };
 
     // The type a generated factory parameter uses for a property: the carried delegate for a carrier
     // prop, the property's own type otherwise.
@@ -1486,6 +1514,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         return false;
     }
 
+    // Does this level of a component's inheritance chain belong to the SHARED builder surface — the
+    // props emitted once as constrained generic extensions (GetSetterHost) instead of per component?
+    // That is exactly Rask.Core's Element/Component chain, which GetSetterHost walks from Element up to
+    // object; the two must agree, or a prop is either emitted twice or not at all. Every other base a
+    // component inherits from — HtmlMediaElement, BsBlock, BsFormControl<T>, a consumer's own base —
+    // has no shared emission, so its props need a per-component setter or they get none.
+    private static bool IsSharedSurfaceType(ITypeSymbol type)
+    {
+        var name = type.OriginalDefinition.ToDisplayString();
+        return name == ElementFullName || name == ComponentFullName;
+    }
+
     private static bool InheritsFromElement(INamedTypeSymbol symbol)
     {
         for (var t = symbol; t is not null; t = t.BaseType)
@@ -1542,6 +1582,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             {
                 case "Rask.Core.Handler":
                 case "Rask.Core.HandlerAsync":
+                case "Rask.Core.Handler<TArgs>":
+                case "Rask.Core.HandlerAsync<TArgs>":
+                    // The carriers over Callback/CallbackAsync — the shape a parent↔child event
+                    // callback has. Element's own events reach here too, but never with this answer:
+                    // the caller gates on !isElement first, because a DOM handler is forwarded raw.
                     return true;
                 case "Rask.Core.Carrier<TDelegate>":
                     return IsAutoRerenderDelegate(named.TypeArguments[0]);
@@ -1773,7 +1818,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     isBoundInterfaceProp,
                     isDelegate,
                     initializerDefault,
-                    prop.SetMethod?.IsInitOnly == true));
+                    prop.SetMethod?.IsInitOnly == true,
+                    IsSharedSurfaceType(current)));
             }
         }
 
@@ -2631,7 +2677,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            sb.Append(p.TypeFqn).Append(' ').Append(p.Name);
+            // ParamType, not TypeFqn: this overload forwards to the ordinary factory, whose parameter
+            // for a carrier prop is the DELEGATE. Typing the pass-through as the carrier would emit an
+            // argument the target cannot take — the implicit conversion only runs delegate → carrier.
+            sb.Append(ParamType(p)).Append(' ').Append(p.Name);
             if (!IsRequiredFactoryParam(p))
             {
                 sb.Append(" = ").Append(DefaultLiteralFor(p));
@@ -2928,7 +2977,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsBoundInterfaceProp,
         bool IsDelegate,
         string? InitializerDefault,
-        bool IsInitOnly)
+        bool IsInitOnly,
+        bool IsSharedSurfaceProp)
     {
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
         public string Escaped => EscapeIdentifier(Name);

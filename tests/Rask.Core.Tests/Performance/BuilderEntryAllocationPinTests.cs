@@ -52,6 +52,37 @@ internal sealed partial class AllocBoundFactoryProbe : Component
         Div()[Rask.Core.Components.Generated.Input(() => Model.Name, Id: "name")];
 }
 
+// The event surface, which is where the carriers live: every one of Element's ~88 handler pairs is a
+// `Handler?`/`Handler<TArgs>?` prop, so a wired handler now goes through a struct wrap on the way in and
+// the reset writes a struct on the way out. Both are supposed to be free — the carrier is a view over
+// the same dictionary slot, never storage — and, critically, an element handler must stay UNWRAPPED: an
+// AutoCallback wrapper would be one closure per handler per render, which is exactly what this pins.
+internal sealed partial class AllocEventEntryProbe : Component
+{
+    internal int Clicks;
+
+    protected override Component? Render() =>
+        Div.Id("counter")[
+            Button.Class("inc").OnClick(Bump)["+"],
+            Span.Class("value").OnMouseDown(_ => Bump())["42"]
+        ];
+
+    private void Bump() => Clicks++;
+}
+
+internal sealed partial class AllocEventFactoryProbe : Component
+{
+    internal int Clicks;
+
+    protected override Component? Render() =>
+        Div(Id: "counter")[
+            Button(Class: "inc", OnClick: Bump)["+"],
+            Span(Class: "value", OnMouseDown: _ => Bump())["42"]
+        ];
+
+    private void Bump() => Clicks++;
+}
+
 public class BuilderEntryAllocationPinTests
 {
     [Fact]
@@ -59,6 +90,15 @@ public class BuilderEntryAllocationPinTests
     {
         var entry = Measure(static () => new AllocEntryProbe());
         var factory = Measure(static () => new AllocFactoryProbe());
+
+        AssertNoWorseThan(entry, factory);
+    }
+
+    [Fact]
+    public void An_entry_built_event_handler_does_not_allocate_more_per_render_than_the_factory()
+    {
+        var entry = Measure(static () => new AllocEventEntryProbe());
+        var factory = Measure(static () => new AllocEventFactoryProbe());
 
         AssertNoWorseThan(entry, factory);
     }

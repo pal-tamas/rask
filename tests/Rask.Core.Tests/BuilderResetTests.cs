@@ -62,7 +62,7 @@ internal sealed partial class ResetElementBuilderHost : Component
     internal bool Full = true;
 
     protected override Component? Render() =>
-        Full ? Div.Id("x").Class("c").Title("t").Click(() => { }) : Div;
+        Full ? Div.Id("x").Class("c").Title("t").OnClick(() => { }) : Div;
 }
 
 internal sealed partial class ResetElementFactoryHost : Component

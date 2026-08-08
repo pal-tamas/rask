@@ -93,6 +93,29 @@ them until tagged releases begin.
   0/5/200/1,000-row sweep, `LiveRenderRoundTripBenchmarks` allocation is identical on all four shapes,
   and a pinned test holds an entry-built render at or below the equivalent factory-built one (a bound
   control is ~1.1 KB/render *cheaper* — one entry where the factory has a three-overload fan-out).
+  **An event setter is now called what the property is called.** `Div.OnClick(Save)`, not
+  `Div.Click(Save)` — the setter used to drop the `On` because a delegate-typed property *is* invocable,
+  so the property beat the same-named extension (CS1593). `Element`'s whole GlobalEventHandlers surface
+  (~88 sync/async pairs, plus `HtmlMediaElement`'s media events) therefore moved to the carriers, which
+  now cover the argument-taking shapes too: `Handler` / `HandlerAsync` gain `Handler<TArgs>` /
+  `HandlerAsync<TArgs>` over `Callback<TArgs>` / `CallbackAsync<TArgs>`. Those properties are computed
+  views over the shared DOM-event slot rather than storage, which is what makes the swap free: the
+  dictionary keeps holding the raw delegate, so handler registration, dispatch and emit order are
+  untouched, and the carrier is a readonly struct wrapped and unwrapped around a reference that is
+  already there. Assignment (`OnClick = Save`) and every generated `OnClick:` factory argument keep
+  working through the implicit conversion — no call site in `src`, `samples` or `tests` needed a change —
+  but code that *reads* a handler back off an element now reads `el.OnClick?.Fn`. Element handlers are
+  still never `AutoCallback`-wrapped: they go straight to the DOM, where handler-owner resolution
+  already re-renders the owner, and a wrapper would be a closure per handler per render (pinned by an
+  entry-vs-factory allocation test on a handler-bearing tree, not just a plain one).
+  **And a control finally gets setters for what it inherits from its own base.** Only Rask.Core's
+  `Element`/`Component` chain is emitted once as constrained generic extensions; everything else a
+  component inherited — `HtmlMediaElement`'s `Src`/`Controls`/media events, `BsBlock`'s `Id`/`Class`,
+  `BsFormControl<T>`'s `Label`/`Disabled`/`Size`/… — was skipped as "part of the shared surface" and got
+  no setter anywhere, so a Bootstrap control could not be built through a chain at all. Those props are
+  now emitted per component with the CONCRETE component as the receiver (a `BsFormControl<T>`-typed
+  extension would return the base and end the chain), and they take part in the omitted-prop reset on
+  the same rules as a component's own.
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two
