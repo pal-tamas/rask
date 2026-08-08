@@ -5,8 +5,9 @@ using C = Rask.Core.Components.Generated;
 namespace Rask.Benchmarks.Infrastructure;
 
 /// <summary>
-///     The page under measurement for the session capacity reports — a data-table page: a shell, a header
-///     carrying a mutable counter, and <see cref="RowCount" /> keyed rows that each own an event handler.
+///     The page under measurement for the session capacity reports — a data-table page: a header carrying
+///     a mutable counter, and <see cref="RowCount" /> keyed rows that each own an event handler. The
+///     document around it is the framework's, exactly as in production.
 ///     <para>
 ///         One component shape swept by row count, rather than several hand-written pages, so that
 ///         <b>page size is the only independent variable</b> across the sweep. If the sizes differed in
@@ -50,18 +51,9 @@ public sealed partial class FootprintApp : Component
             rows.Add(Bench.FootprintRow(Index: i, Key: i));
         }
 
-        return
-        [
-            C.Doctype(),
-            C.Html()[
-                C.Head(),
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        C.Div(Class: "header")[C.Span()[$"rows={RowCount} counter={Counter}"]],
-                        C.Table(Class: "table")[C.Tbody()[rows]]
-                    ]
-                ]
-            ]
+        return C.Div(Class: "container", Id: "root")[
+            C.Div(Class: "header")[C.Span()[$"rows={RowCount} counter={Counter}"]],
+            C.Table(Class: "table")[C.Tbody()[rows]]
         ];
     }
 }

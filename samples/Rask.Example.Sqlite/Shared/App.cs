@@ -1,8 +1,8 @@
 namespace Rask.Example.Sqlite;
 
 // App shell: the framework-managed <head> (Bootstrap + icons via CDN), a navbar, and a Router that
-// renders the matched page. Only this component renders the Doctype/Html/Head/Body shell — the page
-// returns a body fragment (RASK021).
+// renders the matched page. Like every component here it renders into <body> — the document around
+// it is the framework's (RASK021).
 public sealed partial class App : Component
 {
     protected override Component? Head =>
@@ -16,23 +16,19 @@ public sealed partial class App : Component
             Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css")
     ];
 
+    protected override string? BodyClass => "bg-body-tertiary";
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        Html("en")[
-            Head(),
-            Body(Class: "bg-body-tertiary")[
-                Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm")[
-                    Div(Class: "container")[
-                        Span(Class: "navbar-brand fw-bold")[
-                            I(Class: "bi bi-database-check me-2"), "Rask · SQLite pragmas"
-                        ],
-                        A("https://github.com/pal-tamas/rask", "_blank",
-                            Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
-                    ]
+        Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm")[
+            Div(Class: "container")[
+                Span(Class: "navbar-brand fw-bold")[
+                    I(Class: "bi bi-database-check me-2"), "Rask · SQLite pragmas"
                 ],
-                Main(Class: "container py-4")[Router()]
+                A("https://github.com/pal-tamas/rask", "_blank",
+                    Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
             ]
-        ]
+        ],
+        Main(Class: "container py-4")[Router()]
     ];
 }

@@ -13,16 +13,13 @@ internal sealed partial class StubApp : Component
 
     public StubApp(RouteState routeState) => _routeState = routeState;
 
+    protected override Component? Head => Title()["stub"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        Html()[
-            Head()[Title()["stub"]],
-            Body()[
-                H1()[$"path={_routeState.Path}"],
-                P()[$"count={Counter}"],
-                Button(OnClick: () => Counter++)["bump"]
-            ]
-        ]
+        H1()[$"path={_routeState.Path}"],
+        P()[$"count={Counter}"],
+        Button(OnClick: () => Counter++)["bump"]
     ];
 }

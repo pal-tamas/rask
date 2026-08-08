@@ -12,13 +12,13 @@ public sealed partial class ThrowingHandlerApp : Component
 {
     public int Counter;
 
+    protected override Component? Head => new Title()["throw"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[new Head()[new Title()["throw"]],
-            new Body()[
-                new P()[$"count={Counter}"],
-                Button(OnClick: () => throw new InvalidOperationException("boom in handler"))["boom"],
-                Button(OnClick: () => Counter++)["bump"]]]
+        new P()[$"count={Counter}"],
+        Button(OnClick: () => throw new InvalidOperationException("boom in handler"))["boom"],
+        Button(OnClick: () => Counter++)["bump"]
     ];
 }

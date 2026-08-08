@@ -58,6 +58,19 @@ public sealed class ErrorBoundary : Component
     }
 
     /// <summary>
+    ///     Records the error <b>without</b> asking for a render — the mirror of
+    ///     <see cref="ClearErrorInRender" />, for a caller that is already inside the render which will
+    ///     display the fallback (<c>RootErrorBoundary</c>, when the App's <c>Shell</c> override throws).
+    ///     <see cref="Trip" /> would signal a render from inside the render that is about to show the
+    ///     error, and since the same override throws again the frame after, that is a loop.
+    /// </summary>
+    internal void TripInRender(Exception ex)
+    {
+        Error = ex;
+        Source = ErrorSource.Render;
+    }
+
+    /// <summary>
     ///     Clears the error <b>without</b> asking for a render — for a caller already inside the render
     ///     that is about to display the app anyway (the development overlay). <see cref="Recover" /> is the
     ///     one to use from a handler.

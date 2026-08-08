@@ -240,6 +240,59 @@ them until tagged releases begin.
   diagnostic carries.
 
 ### Changed
+- **BREAKING — the app renders into `<body>`; Rask composes the document around it.** A root component
+  used to have to produce the whole page itself — `[Doctype(), Html("en")[Head(), Body()[Router()]]]` —
+  and the framework checked, at runtime, by scanning every root render's finished HTML for four tokens
+  and throwing when one was missing. That is a contract the app can only get wrong: a missing `<body>`
+  left the auto-injected runtime `<script>` nowhere to land, so the page loaded and then did nothing.
+  Now the root returns the body's content and nothing else:
+  ```csharp
+  protected override Component? Render() => Router();
+  ```
+  and the doctype, `<html>`, `<head>` and `<body>` are the framework's. The two attributes an app
+  actually sets on them get named hooks — `HtmlLang` (default `"en"`, `null` omits it) and `BodyClass`,
+  the one that carries a theme — and anything beyond that gets `Shell(head, body)`:
+  ```csharp
+  protected override Component Shell(Component head, Component body) =>
+      Html("en", Dir: "rtl")[head, Body(Class: "dark")[body]];
+  ```
+  The pieces arrive as **parameters** deliberately: an override never has to name the `Head()` tag, so
+  the `<head>` element and the `Component.Head` virtual — which every component already uses to
+  contribute *into* that element — cannot be confused for each other. `Doctype`/`Html`/`Head`/`Body`
+  remain ordinary tag components for hand-built documents (`ToHtml()`, email bodies); they have only
+  left the app-authoring path. **Migrating:** delete the shell from your root's `Render()`, keep what
+  was inside `Body()`, and move `<html lang>` to `HtmlLang`, `<body class>` to `BodyClass`. Head
+  contributions were already in the `Head` override and do not move.
+  - **The runtime shell check is gone**, along with one string scan of the whole page per root render.
+  - **RASK021 is inverted rather than retired**: it now warns when a root *does* render the shell. It
+    has to, because this is the one mistake with no symptom — the parser unwraps a second document
+    nested inside `<body>`, so the page renders on and quietly drops the nested tags' attributes.
+  - **A fault no longer replaces the document.** The root error boundary sits inside `<body>`, so the
+    error page keeps the `<html>` attributes, the body class and the head that were already there. It
+    contributes its own charset, viewport and title through `Head`, because an App whose `Render()`
+    threw contributed none. A `Shell` override that throws is held to the same promise as a `Render()`
+    that does: the error page is shown, inside the framework's default shell, instead of the exception
+    escaping to the host as a 500.
+  - **`RaskTest.RenderDocument(app, services)`** is the new way to assert on the page — the `<head>`,
+    the `<html lang>`, the `<body class>` — since `RaskTest.Render` deliberately adds no markup of its
+    own and now therefore produces no document. Every sample, the `rask new` templates and the docs
+    move with the change; the scaffolded native template overrides `Shell`, because a native `<body>`
+    needs safe-area padding and `BodyClass` cannot carry a style.
+  - **What it costs.** The composition is 624 B per root render — pinned as a delta against the same
+    body rendered bare, and pinned again as *not* scaling with page size — against one whole-page scan
+    per render removed. Per live session it is +144…+424 B unconnected on an empty and a 5-row page,
+    and 0.01–0.02% on a 200- and a 1000-row one: the shell elements moving onto the boundary, plus its
+    child map growing. The grouping wrapper is a collection expression rather than the `Fragment`
+    factory, because the factory would retain it for the session's lifetime while this is the same
+    transient every `[Doctype(), Html(...)]` used to build. End-to-end render cost is unchanged
+    (`LiveRenderRoundTrip` allocates byte-identically on all four cases).
+  - **Two things it does not change**, since the shape of the page is the same as before: `<head>` is
+    still filled by splicing into a sentinel after the body walk rather than by concatenation — the
+    diff codec's op paths resolve from `document` and its frame offsets are captured against the page
+    being serialized, so the head cannot be appended late — and a full frame still carries the whole
+    document, so the client's `document.documentElement` morph still strips `<html>` attributes it did
+    not render. An app that stamps a theme attribute pre-boot still re-applies it from
+    `window.raskAfterMorph`.
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two
   keystrokes used to do different things depending on where you were, and the two worst cases failed
   *silently* rather than erroring, which is what made this worth breaking for:

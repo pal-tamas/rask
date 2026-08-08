@@ -36,21 +36,12 @@ public sealed partial class LoadPage(LoadPageOptions options) : Component
             rows.Add(Bench.FootprintRow(Index: i, Key: i));
         }
 
-        return
-        [
-            C.Doctype(),
-            C.Html()[
-                C.Head(),
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        // The first handler in document order — the one the client finds and clicks.
-                        C.Div(Class: "header")[
-                            C.Button(OnClick: () => _counter++)[$"rows={options.RowCount} counter={_counter}"]
-                        ],
-                        C.Table(Class: "table")[C.Tbody()[rows]]
-                    ]
-                ]
-            ]
+        return C.Div(Class: "container", Id: "root")[
+            // The first handler in document order — the one the client finds and clicks.
+            C.Div(Class: "header")[
+                C.Button(OnClick: () => _counter++)[$"rows={options.RowCount} counter={_counter}"]
+            ],
+            C.Table(Class: "table")[C.Tbody()[rows]]
         ];
     }
 }

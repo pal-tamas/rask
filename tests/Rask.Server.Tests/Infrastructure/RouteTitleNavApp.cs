@@ -21,14 +21,8 @@ public sealed partial class RouteTitleNavApp : Component
 
     protected override void OnUnmount() => _routeState.Changed -= StateHasChanged;
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        new Html()[
-            new Head()[new Title()[$"t-{_routeState.Path}"]],
-            new Body()[
-                new H1()[$"path={_routeState.Path}"]
-            ]
-        ]
-    ];
+    protected override Component? Head => new Title()[$"t-{_routeState.Path}"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => new H1()[$"path={_routeState.Path}"];
 }

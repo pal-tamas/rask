@@ -5,8 +5,8 @@ using Rask.Core.Live;
 namespace Rask.Example.Site;
 
 /// <summary>
-/// Root of the Rask landing site — a WASM app that renders the whole marketing page in pure Rask
-/// (RASK021 full shell). The interactive tiles (<see cref="LiveCounter"/>, <see cref="InstallTabs"/>)
+/// Root of the Rask landing site — a WASM app that renders the whole marketing page in pure Rask,
+/// straight into the framework's &lt;body&gt;. The interactive tiles (<see cref="LiveCounter"/>, <see cref="InstallTabs"/>)
 /// are genuine stateful Rask components; the hero canvas packet-race, scroll reveals and the theme
 /// toggle are driven by the sibling scoped module <c>App.js</c>, wired up in <see cref="OnRenderedAsync"/>.
 /// Public + non-sealed to match the host's ActivatorUtilities + DAM contract.
@@ -42,21 +42,15 @@ public partial class App : Component
 
     protected override Component? Render() =>
     [
-        Doctype(),
-        Html("en")[
-            Head(),
-            Body()[
-                TopBar(),
-                Hero(),
-                CounterSection(),
-                BytesSection(),
-                HostsSection(),
-                FeaturesSection(),
-                WholeBackEndSection(),
-                InstallSection(),
-                FooterSection()
-            ]
-        ]
+        TopBar(),
+        Hero(),
+        CounterSection(),
+        BytesSection(),
+        HostsSection(),
+        FeaturesSection(),
+        WholeBackEndSection(),
+        InstallSection(),
+        FooterSection()
     ];
 
     // ---- top bar ----

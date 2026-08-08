@@ -407,44 +407,44 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
 
 internal sealed partial class HeaderApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     private int _added;
 
     protected override Component? Render() =>
     [
         NativeHeaderBar(Title: "Home", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: () => _added++)]),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()[$"added={_added}"]]]
-        ]
+        NativeWebView()[P()[$"added={_added}"]]
     ];
 }
 
 internal sealed partial class DynamicHeaderApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     private int _n;
 
     protected override Component? Render() =>
     [
         NativeHeaderBar(Title: $"Count {_n}", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: () => _n++)]),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()[$"n={_n}"]]]
-        ]
+        NativeWebView()[P()[$"n={_n}"]]
     ];
 }
 
 internal sealed partial class TabApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     private readonly RouteState _route;
 
     public TabApp(RouteState route) => _route = route;
 
     protected override Component? Render() =>
     [
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[H1()[$"path={_route.Path}"]]]
-        ],
+        NativeWebView()[H1()[$"path={_route.Path}"]],
         NativeTabBar(
             Tabs:
             [
@@ -456,6 +456,9 @@ internal sealed partial class TabApp : Component
 
 internal sealed partial class NavButtonApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     private readonly Navigator _nav;
     private readonly RouteState _route;
 
@@ -469,49 +472,46 @@ internal sealed partial class NavButtonApp : Component
     [
         NativeHeaderBar(Title: "Nav",
             Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: () => _nav.NavigateTo("/me"))]),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[H1()[$"at={_route.Path}"]]]
-        ]
+        NativeWebView()[H1()[$"at={_route.Path}"]]
     ];
 }
 
 internal sealed partial class TwoHeaderApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
         NativeHeaderBar(Title: "Outer"),
         NativeHeaderBar(Title: "Inner"),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
-        ]
+        NativeWebView()[P()["x"]]
     ];
 }
 
 internal sealed partial class StyledHeaderApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
         NativeHeaderBar(Title: "Home",
             Background: NativeColor.Hex("#1E88E5"),
             Tint: NativeColor.White,
             TitleColor: NativeColor.Adaptive(NativeColor.Black, NativeColor.White)),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
-        ]
+        NativeWebView()[P()["x"]]
     ];
 }
 
 internal sealed partial class StyledTabApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
-        ],
+        NativeWebView()[P()["x"]],
         NativeTabBar(
             Background: NativeColor.Hex("#1E88E5"),
             Tint: NativeColor.White,
@@ -526,15 +526,15 @@ internal sealed partial class StyledTabApp : Component
 
 internal sealed partial class BadgeTabApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     private int _count = 2;
 
     protected override Component? Render() =>
     [
         NativeHeaderBar(Title: "B", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: () => _count++)]),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()[$"c={_count}"]]]
-        ],
+        NativeWebView()[P()[$"c={_count}"]],
         NativeTabBar(
             Tabs:
             [
@@ -546,27 +546,29 @@ internal sealed partial class BadgeTabApp : Component
 
 internal sealed partial class BackApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
         NativeHeaderBar(Title: "Detail", Leading: NativeBackButton()),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
-        ]
+        NativeWebView()[P()["x"]]
     ];
 }
 
 internal sealed partial class ChromeOnlyApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     private bool _flag;
 
     protected override Component? Render() =>
     [
         NativeHeaderBar(Title: "C", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: () => _flag = !_flag)]),
         NativeWebView()[
-            Doctype(),
             // The body NEVER changes — only the native badge below does, so a tap emits no HTML diff.
-            Html()[Head()[Title()["t"]], Body()[P()["static"]]]
+            P()["static"]
         ],
         NativeTabBar(Tabs: [NativeTab(Title: "Home", Icon: NativeIcon.Home, To: "/", Badge: _flag ? "1" : null)])
     ];
@@ -574,6 +576,9 @@ internal sealed partial class ChromeOnlyApp : Component
 
 internal sealed partial class MenuApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     private string _last = "none";
 
     protected override Component? Render() =>
@@ -588,15 +593,15 @@ internal sealed partial class MenuApp : Component
                     NativeMenuItem(Title: "Delete", Destructive: true, OnClick: () => _last = "delete"),
                 ]),
             ]),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()[$"last={_last}"]]]
-        ]
+        NativeWebView()[P()[$"last={_last}"]]
     ];
 }
 
 internal sealed partial class SegmentedApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     private int _seg;
 
     protected override Component? Render() =>
@@ -606,22 +611,19 @@ internal sealed partial class SegmentedApp : Component
             Segments: ["All", "Active", "Done"],
             SelectedSegment: _seg,
             OnSegmentChanged: i => _seg = i),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()[$"seg={_seg}"]]]
-        ]
+        NativeWebView()[P()[$"seg={_seg}"]]
     ];
 }
 
 internal sealed partial class SystemHeaderApp : Component
 {
+    protected override Component? Head => Title()["t"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
         // Explicit System overrides any registered theme, forcing the platform default for the slot.
         NativeHeaderBar(Title: "Home", Background: NativeColor.System),
-        NativeWebView()[
-            Doctype(),
-            Html()[Head()[Title()["t"]], Body()[P()["x"]]]
-        ]
+        NativeWebView()[P()["x"]]
     ];
 }

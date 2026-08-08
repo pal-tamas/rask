@@ -15,13 +15,13 @@ public sealed partial class GatedCounterApp : Component
 
     public int Counter;
 
+    protected override Component? Head => new Title()["gated"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[new Head()[new Title()["gated"]],
-            new Body()[
-                new P()[$"count={Counter}"],
-                Button(OnClickAsync: async () => await Gate.Task)["hang"],
-                Button(OnClick: () => Counter++)["bump"]]]
+        new P()[$"count={Counter}"],
+        Button(OnClickAsync: async () => await Gate.Task)["hang"],
+        Button(OnClick: () => Counter++)["bump"]
     ];
 }

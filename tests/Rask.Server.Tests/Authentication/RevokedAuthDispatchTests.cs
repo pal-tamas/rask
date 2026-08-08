@@ -107,8 +107,9 @@ public sealed class M2Counter
 
 public sealed partial class M2App : Component
 {
-    protected override Component? Render() =>
-        [Doctype(), Html("en")[Head()[Title()["m2"]], Body()[Router()]]];
+    protected override Component? Head => Title()["m2"];
+
+    protected override Component? Render() => Router();
 }
 
 [Route("/m2/protected")]

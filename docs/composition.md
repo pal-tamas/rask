@@ -42,12 +42,15 @@ show ? Panel() : null    // null renders nothing
 > The `..` spread fails inside `[…]` (the compiler parses it as a `Range`). Pass the
 > enumerable directly — `Div()[items]` — instead of `Div()[..items]`.
 
-The page root is itself a fragment that renders the full shell:
+A layout is often a fragment for the same reason — several siblings that share no wrapper:
 
 ```csharp
 protected override Component? Render() =>
-    [Doctype(), Html()[Head()[Title()["My app"]], Body()[ /* … */ ]]];
+    [Header()[H1()["My app"]], Main()[Outlet()], Footer()["Contact"]];
 ```
+
+The page root is an ordinary component too: it renders into `<body>`, and Rask composes the document
+around it — see [the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override).
 
 ---
 

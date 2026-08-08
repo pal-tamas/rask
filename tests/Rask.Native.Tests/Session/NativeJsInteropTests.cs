@@ -71,18 +71,15 @@ internal sealed partial class NativeJsInteropApp : Component
 
     public NativeJsInteropApp(IJSRuntime js) => _js = js;
 
+    protected override Component? Head => Title()["js"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        Html()[
-            Head()[Title()["js"]],
-            Body()[
-                P()[$"result={Result ?? "(none)"}"],
-                Button(OnClickAsync: async () =>
-                {
-                    Result = await _js.InvokeAsync<string>("sessionStorage.getItem", "k");
-                })["go"]
-            ]
-        ]
+        P()[$"result={Result ?? "(none)"}"],
+        Button(OnClickAsync: async () =>
+        {
+            Result = await _js.InvokeAsync<string>("sessionStorage.getItem", "k");
+        })["go"]
     ];
 }

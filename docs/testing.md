@@ -51,6 +51,18 @@ public async Task Clicking_increments()
   ```
 
   Returning `null` renders nothing, and drives the component it stops returning through its unmount path.
+- **`RaskTest.RenderDocument(app, services?)`** — renders the component the way a host does, with the
+  whole document composed around it, so you can assert on the **page**: the doctype, `<html lang>`, the
+  `<head>` every mounted component contributed to, `<body class>`. Reach for it only when the page is
+  what you're asserting about — `Render` adds no markup of its own, which is what keeps an assertion
+  about a component from quietly becoming an assertion about a page.
+
+  ```csharp
+  var page = RaskTest.RenderDocument(new App(), services);
+  Assert.StartsWith("<!DOCTYPE html>", page.Html);
+  Assert.Contains("<html lang=\"en\">", page.Html);
+  Assert.Contains(">My app</title>", page.Html);   // head tags carry a dedupe key attribute
+  ```
 - **`.Html`** — the current markup. **`.Render()`** re-renders after you mutate external state it reads.
 - **`.WaitForAsync(text | predicate, timeout?)`** — re-renders until the markup contains the text (or the
   predicate accepts it) and returns it; throws a `TimeoutException` carrying the last markup after 5
@@ -318,6 +330,15 @@ it needs, then asserted on the resulting HTML:
 var routeState = new RouteState { Path = "/" };
 var html = new App().RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 Assert.Contains("Hello, world!", html);
+```
+
+That renders the root exactly as written — its body content, with no document around it. When the
+assertion is about the *page* (the doctype, `<html lang>`, what landed in `<head>`), render the root
+through `RaskTest.RenderDocument` instead, which composes the document the way a host does:
+
+```csharp
+var html = RaskTest.RenderDocument(new App(), TestServices.Default(routeState: routeState)).Html;
+Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 
 `tests/Rask.Example.Shared.Tests/Pages/` shows page tests for routing, lifecycle, forms, uploads, and

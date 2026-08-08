@@ -17,8 +17,9 @@ public partial class App : Component
     // Dark-first theme init: stamp data-theme + data-bs-theme on <html> from the saved choice (shared
     // across the site/docs/playground on the same origin) or the OS preference, BEFORE any stylesheet
     // matches — so there's no flash of the wrong theme. Also re-applies the SAVED choice from
-    // window.raskAfterMorph, because a full-document morph strips these attributes off <html> (App
-    // renders a bare <html>); a no-choice visitor stays attribute-less and auto-follows the OS theme.
+    // window.raskAfterMorph, because a full-document morph strips these attributes off <html> (the
+    // framework renders <html lang> and nothing else); a no-choice visitor stays attribute-less and
+    // auto-follows the OS theme.
     // On Server this runs in the SSR'd <head>; on WASM the same snippet lives in index.html for pre-boot
     // (the morphed-in copy here doesn't re-execute, but re-registers the same idempotent hook).
     private const string ThemeInitJs =
@@ -60,15 +61,8 @@ public partial class App : Component
             Href: LiveOptions.PathBase + "/global.css")
     ];
 
+    protected override string? BodyClass => "bg-body-tertiary";
+
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        Html("en")[
-            Head(),
-            Body(Class: "bg-body-tertiary")[
-                Router()
-            ]
-        ]
-    ];
+    protected override Component? Render() => Router();
 }

@@ -3,9 +3,18 @@ using F = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Live;
 
-// Transparent wrapper installed by Rask.Server.UseRask<TApp> and Rask.Wasm.WasmHostBuilder
-// so that a render-time, async-lifecycle, or event-handler exception anywhere in the App's
-// subtree produces a styled fallback page instead of an HTTP 500 / blank screen.
+// The document root installed by Rask.Server.UseRask<TApp>, Rask.Wasm.WasmHostBuilder and the native
+// host. Two jobs:
+//
+//  1. It COMPOSES THE PAGE SHELL around the App. The App renders straight into <body>; the doctype,
+//     <html>, <head> and <body> are the framework's, built here from the App's own Shell/HtmlLang/
+//     BodyClass hooks. Nothing about the shell depends on the App remembering to render it, which is
+//     what let the old contract fail at runtime (a missing <body> left the runtime <script> nowhere to
+//     land) and is why the shell-token scan and RASK021's runtime backstop are gone.
+//  2. It is the root ERROR BOUNDARY: a render-time, async-lifecycle or event-handler exception
+//     anywhere in the App's subtree produces a styled fallback instead of an HTTP 500 / blank screen.
+//     The boundary sits INSIDE <body>, so a fault now replaces the app's content and keeps the
+//     document — the head assets, the <html> attributes and the body class all survive it.
 //
 // The user's App becomes a framework-tracked child of this wrapper via GetOrCreate, which
 // is what lets RenderAsLiveRoot's CollectAlive pass still walk through it for disposal and
@@ -70,7 +79,8 @@ internal sealed class RootErrorBoundary : Component
         // The boundary is resolved explicitly rather than through the generated factory because the
         // fallback needs to ask it HOW it was tripped (see below), and the factory's delegate only
         // receives the exception and Recover. Same positional identity either way: GetOrCreate keys on
-        // (type, position) and this is the second and last GetOrCreate in this method, every render.
+        // (type, position), and this is the only ErrorBoundary this method resolves — the shell
+        // elements below are counted per type, so adding them cannot move it.
         var boundary = (ErrorBoundary)ctx.GetOrCreate(typeof(ErrorBoundary), static _ => new ErrorBoundary());
 
         RenderedFallback = false;
@@ -101,19 +111,37 @@ internal sealed class RootErrorBoundary : Component
             }
 
             RenderedFallback = true;
-            return F.Fragment()[
-                F.Doctype(),
-                F.Html("en")[
-                    F.Head()[
-                        F.Meta("utf-8"),
-                        F.Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-                        F.Title()["Application error"]
-                    ],
-                    F.Body()[new DefaultErrorPage(ex, recover)]
-                ]
-            ];
+
+            // Body content only — the document around it is this component's, and it is already built
+            // by the time the boundary trips. OwnsDocument lets the page contribute its own <title> and
+            // the charset/viewport meta, so it is complete even when the App threw before contributing
+            // any head of its own; a nested boundary's fallback replaces one widget and says nothing
+            // about the document, which is why the flag exists rather than being unconditional.
+            return new DefaultErrorPage(ex, recover) { OwnsDocument = true };
         });
 
-        return boundary;
+        // Compose the document. The App's Shell override is user code that builds components, so it is
+        // held to the same promise as its Render(): a throw shows the error page rather than escaping to
+        // the host as a 500. The framework's own default shell takes over for that render — a custom
+        // shell cannot be trusted after it has just failed, and the error page needs a document to live
+        // in.
+        var head = F.Head();
+        Component document;
+        try
+        {
+            document = inner.ShellInternal(head, boundary);
+        }
+        catch (Exception ex)
+        {
+            boundary.TripInRender(ex);
+            document = ShellInternal(head, boundary);
+        }
+
+        // A collection expression, not F.Fragment(): the factory would make the wrapper a tracked child
+        // and retain it, and this one is pure grouping — two children that never change, on the one
+        // component that re-renders every frame. Retained per live session it measures; allocated per
+        // render it does not (it is the same transient Fragment every root render used to build for the
+        // App's own [Doctype(), Html(...)]).
+        return [F.Doctype(), document];
     }
 }

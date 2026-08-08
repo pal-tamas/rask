@@ -14,14 +14,9 @@ namespace Rask.Server.Tests.Authentication;
 // auth navigation mounts the destination under the NEW identity, not the pre-SignIn snapshot.
 public sealed partial class DeferredAuthNavTestApp : Component
 {
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        Html("en")[
-            Head()[Title()["deferred-auth-nav"]],
-            Body()[Router()]
-        ]
-    ];
+    protected override Component? Head => Title()["deferred-auth-nav"];
+
+    protected override Component? Render() => Router();
 }
 
 [Route("/start")]

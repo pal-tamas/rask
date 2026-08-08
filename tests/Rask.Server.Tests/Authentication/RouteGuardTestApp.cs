@@ -11,14 +11,9 @@ namespace Rask.Server.Tests.Authentication;
 // pipeline (Allow / Challenge / Forbid) can be exercised end-to-end over real HTTP.
 public sealed partial class RouteGuardTestApp : Component
 {
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        Html("en")[
-            Head()[Title()["route-guard-e2e"]],
-            Body()[Router()]
-        ]
-    ];
+    protected override Component? Head => Title()["route-guard-e2e"];
+
+    protected override Component? Render() => Router();
 }
 
 [Route("/e2e/public")]

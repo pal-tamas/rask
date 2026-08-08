@@ -48,9 +48,11 @@ internal static partial class ProjectGenerator
         """.TrimStart('\n');
     }
 
-    // The app shell every page renders through (RASK021), living in Features/Shared/ — the cross-cutting
-    // bucket a new project shares across its feature slices. Styled with Bootstrap so there is no scoped
-    // .css to pair. The welcome home page is its own Features/Home slice (see HomePageCs).
+    // The app root every page renders through, living in Features/Shared/ — the cross-cutting bucket a
+    // new project shares across its feature slices. It renders into <body>; Rask builds the document
+    // around it, so there is no shell to get wrong (RASK021 flags one that tries). Styled with Bootstrap
+    // so there is no scoped .css to pair. The welcome home page is its own Features/Home slice (see
+    // HomePageCs).
     private const string AppShellCs =
         """
         using Rask.Core.Routing;
@@ -70,14 +72,9 @@ internal static partial class ProjectGenerator
                 BootstrapStyles()
             ];
 
-            protected override Component? Render() =>
-                [
-                    Doctype(),
-                    Html("en")[
-                        Head(),
-                        Body()[Router()]
-                    ]
-                ];
+            // The body's content. Rask emits the doctype, <html lang>, <head> and <body> around this —
+            // override HtmlLang / BodyClass for their attributes, or Shell(head, body) for the rest.
+            protected override Component? Render() => Router();
         }
 
         """;

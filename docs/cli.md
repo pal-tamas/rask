@@ -120,14 +120,14 @@ MyApp/
   appsettings.json                logging levels (incl. Rask's own diagnostic categories)
   appsettings.Production.json     overrides applied when deployed
   Features/
-    Shared/App.cs                 the root shell every page renders through
+    Shared/App.cs                 the root component every page renders through
     Home/HomePage.cs              a [Route("/")] welcome page that teaches the CLI
   Properties/launchSettings.json
 ```
 
-The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice, styled with
-Bootstrap. `--auth` adds a `Features/Auth/` slice and `--data` an `AppDbContext` under `Features/Shared/`.
-Add pages and components to taste — `rask generate` is the fast path.
+The root component lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice,
+styled with Bootstrap. `--auth` adds a `Features/Auth/` slice and `--data` an `AppDbContext` under
+`Features/Shared/`. Add pages and components to taste — `rask generate` is the fast path.
 
 | Option | Meaning |
 |--------|---------|

@@ -23,6 +23,9 @@ internal sealed partial class NavigateWithPublishRenderApp : Component
         _nav = nav;
     }
 
+    protected override Component? Head => Title()["nav-pub"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render()
     {
         // Always request a render — RequestRenderInternalAsync short-circuits
@@ -36,14 +39,10 @@ internal sealed partial class NavigateWithPublishRenderApp : Component
         // the navigation entry.
         StateHasChanged();
 
-        return [
-            Doctype(),
-            Html()[
-                Head()[Title()["nav-pub"]],
-                Body()[
-                    Div()[$"path={_routeState.Path}"],
-                    Button(OnClick: () => _nav.NavigateTo("/destination"))["go"]
-                ]
-            ]];
+        return
+        [
+            Div()[$"path={_routeState.Path}"],
+            Button(OnClick: () => _nav.NavigateTo("/destination"))["go"]
+        ];
     }
 }

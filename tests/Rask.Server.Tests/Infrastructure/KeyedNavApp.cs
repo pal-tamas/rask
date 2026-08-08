@@ -46,20 +46,17 @@ public sealed partial class KeyedNavApp : Component
         StateHasChanged();
     }
 
+    protected override Component? Head => new Title()["keyed-nav"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[
-            new Head()[new Title()["keyed-nav"]],
-            new Body()[
-                new H1()[$"path={_route.Path} count={_items.Count}"],
-                Ul()[
-                    _items.Select(i => Li(
-                        Class: "row",
-                        Data: new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[
-                        $"item {i}"])
-                ]
-            ]
+        new H1()[$"path={_route.Path} count={_items.Count}"],
+        Ul()[
+            _items.Select(i => Li(
+                Class: "row",
+                Data: new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[
+                $"item {i}"])
         ]
     ];
 }

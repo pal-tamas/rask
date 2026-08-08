@@ -4335,8 +4335,12 @@ function applyFullReply(reply) {
     if (typeof reply.html === "string" && reply.html.length > 0) {
         const doc = new DOMParser().parseFromString(reply.html, "text/html");
         // Morph the whole <html> element so head changes (title, stylesheet links,
-        // scoped-css link) propagate too — the App component owns the full page,
-        // not just <body>. The bootstrap <script src="main.js"> in the original
+        // scoped-css link) propagate too — a full frame carries the whole document,
+        // not just <body>, and <head> is where those changes are. Note the cost: the
+        // morph removes any attribute the rendered <html> does not carry, so anything
+        // a pre-boot script stamps on document.documentElement (a theme attribute, say)
+        // must be re-applied from window.raskAfterMorph below. The bootstrap
+        // <script src="main.js"> in the original
         // index.html may get removed by morph if the App's body doesn't include
         // an equivalent; that's harmless because the module is already running.
         freshHtml = doc.documentElement;

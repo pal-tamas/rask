@@ -15,14 +15,8 @@ internal sealed partial class RouteTitleStubApp : Component
 
     public RouteTitleStubApp(RouteState routeState) => _routeState = routeState;
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        Html()[
-            Head()[Title()[$"title-{_routeState.Path}"]],
-            Body()[
-                H1()[$"path={_routeState.Path}"]
-            ]
-        ]
-    ];
+    protected override Component? Head => Title()[$"title-{_routeState.Path}"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => H1()[$"path={_routeState.Path}"];
 }

@@ -53,6 +53,34 @@ public static class RaskTest
     }
 
     /// <summary>
+    ///     Renders <paramref name="app" /> the way a host does — as the application root, with the whole
+    ///     document composed around it. Use this to assert on the page rather than on the component: the
+    ///     doctype, <c>&lt;html lang&gt;</c>, the <c>&lt;head&gt;</c> every mounted component contributed
+    ///     to, and the <c>&lt;body&gt;</c> the app rendered into.
+    ///     <code>
+    ///     var page = RaskTest.RenderDocument(new App(), services);
+    ///     Assert.Contains("&gt;My app&lt;/title&gt;", page.Html);   // the head block keys its tags, so match the body
+    ///     </code>
+    ///     <see cref="Render{T}(T, IServiceProvider)" /> is the one to use for everything else — it adds no
+    ///     markup of its own, so an assertion about a component is not an assertion about a page.
+    /// </summary>
+    /// <typeparam name="T">The app root's type, inferred from <paramref name="app" />.</typeparam>
+    /// <param name="app">The root component the host would mount.</param>
+    /// <param name="services">
+    ///     Services available to the app. Defaults to an empty provider.
+    /// </param>
+    public static RenderedComponent<T> RenderDocument<T>(T app, IServiceProvider? services = null)
+        where T : Component
+    {
+        ArgumentNullException.ThrowIfNull(app);
+
+        // The same wrapper Rask.Server / Rask.Wasm / Rask.Native install: it composes the shell from the
+        // app's Shell / HtmlLang / BodyClass and catches anything the subtree throws. Going through it
+        // rather than reimplementing the composition is the point — a test asserts what a browser gets.
+        return new RenderedComponent<T>(new RootErrorBoundary(app), app, services ?? EmptyServices);
+    }
+
+    /// <summary>
     ///     A zero-markup component that hands <paramref name="capture" /> the <see cref="EditContext" /> the
     ///     surrounding form is using, so a test can assert validation state (<c>GetValidationMessages</c>,
     ///     <c>IsValidating</c>, <c>IsModified</c>) that never reaches the markup. Place it <b>inside</b> the

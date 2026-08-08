@@ -15,12 +15,7 @@ public sealed partial class App : Component
         BootstrapStyles()
     ];
 
-    protected override Component? Render() =>
-        [
-            Doctype(),
-            Html("en")[
-                Head(),
-                Body()[Router()]
-            ]
-        ];
+    // The body's content. Rask emits the doctype, <html lang>, <head> and <body> around this —
+    // override HtmlLang / BodyClass for their attributes, or Shell(head, body) for the rest.
+    protected override Component? Render() => Router();
 }

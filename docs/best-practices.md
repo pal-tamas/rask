@@ -57,14 +57,16 @@ mistake, the rule notes the ID.
 - **Trust `Text` for anything user-supplied; reserve `Raw` for markup you control.** A plain string
   becomes a `Text` node and is **HTML-encoded**; `Raw(...)` emits verbatim. User input through `Raw`
   is an XSS hole. See [getting started → your first component](getting-started.md#4-your-first-component).
-- **Render the full shell from the page root.** The `TApp` root must render
-  `Doctype`/`Html`/`Head`/`Body` — both `<head>` and `<body>` are framework-managed (the runtime
-  `<script>` is appended to `<body>`, `<head>` is filled from each component's `Head` override). A
-  partial shell is **RASK021**.
+- **Leave the page shell to the framework.** The `TApp` root renders into `<body>`; Rask emits the
+  doctype, `<html>`, `<head>` and `<body>` around it (the runtime `<script>` is appended to `<body>`,
+  `<head>` is filled from each component's `Head` override). Rendering the shell yourself is
+  **RASK021** — a second document nested inside the body, which the HTML parser silently unwraps. Set
+  `<html lang>` with the `HtmlLang` override and `<body class>` with `BodyClass`; for anything else,
+  override `Shell(head, body)` and place both parameters.
 - **Contribute to `<head>` via the `Head` override, not `Head()` children.** `Head()` is a managed
   slot; passing it children is **RASK019**. Override `protected override Component? Head` instead;
   `<title>`/`<base>` are singletons where the last contributor wins. See
-  [getting started §7](getting-started.md#7-the-page-shell-and-the-head-override).
+  [getting started §7](getting-started.md#7-the-document-and-the-head-override).
 - **Don't fight the attribute order.** Universal attributes always render
   `id, class, style, data-*, role, tabindex, aria-*`, then tag-specific. Tests assert it and it's
   stable across releases — match it when asserting on HTML.
@@ -260,6 +262,7 @@ mistake, the rule notes the ID.
 | `new Counter()` outside Core (**RASK014**) | Call the generated factory `Counter()` |
 | Service as a settable property → required factory param (**RASK002**) | Inject via the constructor |
 | `Head()[Title()[...]]` (**RASK019**) | Override `protected override Component? Head` |
+| Root renders `Doctype`/`Html`/`Head`/`Body` (**RASK021**) | Return the body's content; `Head`/`HtmlLang`/`BodyClass`/`Shell` |
 | User input through `Raw(...)` (XSS) | Use a plain string / `Text` (encodes by default) |
 | `StateHasChanged()` inside an awaited handler/hook | Redundant — the `await` re-renders for you |
 | `StateHasChanged()` in `OnUnmount` | No-op by design — only tear down subscriptions |

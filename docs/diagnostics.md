@@ -56,7 +56,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK018](#rask018) | Error | Ambiguous scoped-JS match |
 | [RASK019](#rask019) | Error | `<head>` is a framework-managed slot |
 | [RASK020](#rask020) | Warning | Scoped-JS simple-name collision |
-| [RASK021](#rask021) | Warning | Root component must render a complete page shell |
+| [RASK021](#rask021) | Warning | Root component must not render the page shell |
 | [RASK022](#rask022) | Warning | List item is missing a `Key` |
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `UseRask()` |
@@ -268,14 +268,29 @@ sub-namespace inside the JS file. Promote to an error with
 `<WarningsAsErrors>RASK020</WarningsAsErrors>`.
 
 ## RASK021
-**Root component must render a complete page shell** · Warning
+**Root component must not render the page shell** · Warning
 
-The root `TApp` doesn't render a full shell. A root `Render()` must produce
-`Doctype()`, `Html(...)[ Head(), Body()[ ... ] ]`. A runtime backstop (`ValidateRootShell`) also
-enforces this, so an incomplete shell that slips past the analyzer still fails at render.
+The root `TApp` renders into `<body>` — Rask emits the doctype, `<html>`, `<head>` and `<body>` around
+whatever it returns. A root that builds them itself nests a second document *inside* the body, which
+the HTML parser silently unwraps: the page keeps rendering, and quietly loses the nested tags'
+attributes. Nothing fails, so this warning is the only signal there is.
 
-**Fix:** make the root render the complete shell — typically `[ Doctype(), Html(...)[...] ]`.
-Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
+```csharp
+// ✗ RASK021 — the root builds the document
+protected override Component? Render() =>
+    [Doctype(), Html("en")[Head(), Body()[Router()]]];
+
+// ✓ the root renders the body's content
+protected override Component? Render() => Router();
+```
+
+**Fix:** return the body's content (usually `Router()`) and move the shell's pieces to the overrides
+that own them — `<head>` content to `Head`, `<html lang>` to `HtmlLang`, `<body class>` to `BodyClass`,
+and a genuinely custom document to `Shell(head, body)`, which receives the framework's `<head>` and the
+rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
+`Doctype`/`Html`/`Head`/`Body` stay ordinary tag components for documents you build by hand
+(`ToHtml()`, an email body) — they have just left the app-authoring path. See
+[the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override).
 
 ## RASK022
 **List item is missing a `Key`** · Warning
@@ -506,7 +521,7 @@ protected override Component? Render() => NativeWebView()[NativeHeaderBar(Title:
 protected override Component? Render() =>
 [
     NativeHeaderBar(Title: "Home"),
-    NativeWebView()[Doctype(), Html("en")[Head(), Body()[Router()]]],
+    NativeWebView()[Router()],
     NativeTabBar(Tabs: [...], Selected: 0)
 ];
 ```

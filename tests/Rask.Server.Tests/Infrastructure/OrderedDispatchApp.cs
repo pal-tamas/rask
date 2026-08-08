@@ -19,16 +19,13 @@ public sealed partial class OrderedDispatchApp : Component
 
     public string Sequence { get; private set; } = "";
 
+    protected override Component? Head => new Title()["ordered-dispatch"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[
-            new Head()[new Title()["ordered-dispatch"]],
-            new Body()[
-                new P()[$"Sequence={Sequence}"],
-                Buttons()
-            ]
-        ]
+        new P()[$"Sequence={Sequence}"],
+        Buttons()
     ];
 
     private Component Buttons()

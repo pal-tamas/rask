@@ -12,11 +12,12 @@ public sealed partial class NoOpApp : Component
 {
     public int Hidden;
 
+    protected override Component? Head => new Title()["noop"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[new Head()[new Title()["noop"]],
-            new Body()[new H1()["static"],
-                Button(OnClick: () => Hidden++)["noop"]]]
+        new H1()["static"],
+        Button(OnClick: () => Hidden++)["noop"]
     ];
 }

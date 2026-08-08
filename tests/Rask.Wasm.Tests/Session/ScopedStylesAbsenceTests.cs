@@ -53,13 +53,8 @@ public class ScopedStylesAbsenceTests : ResettingTestBase
     {
         protected override Component? Head => Title()["wasm-stub"];
 
-        protected override Component? Render() =>
-        [
-            Doctype(),
-            Html()[
-                Head(),
-                Body()[Div(Class: "tag")["hi"]]
-            ]
-        ];
+        protected override string? HtmlLang => null;
+
+        protected override Component? Render() => Div(Class: "tag")["hi"];
     }
 }

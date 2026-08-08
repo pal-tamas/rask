@@ -7,11 +7,12 @@ using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.HeadAssets;
 using Rask.Core.Live;
+using F = Rask.Core.Components.Generated;
 
 namespace Rask.Core;
 
 // [CollectionBuilder] makes `Component` itself a collection-expression target, so a render body
-// can be written as `Render() => [Doctype(), Html(...)]` (the items are built into a Fragment by
+// can be written as `Render() => [Nav(), Main()[Router()]]` (the items are built into a Fragment by
 // __Fragment below). The builder is self-referential (typeof(Component)) and public so collection
 // expressions in *other* assemblies bind to it even though Fragment itself is internal. The
 // required iteration type comes from the *pattern* GetEnumerator below — Component deliberately
@@ -29,14 +30,6 @@ public abstract partial class Component
     // Static empty dict for PersistedChildren exposed via the public-internal accessor —
     // saves callers from null checks while keeping the per-instance allocation lazy.
     private static readonly Dictionary<(Type, int), Component> _emptyChildren = new();
-
-    // Page-shell tokens a root render must produce, paired with the factory that emits each.
-    // Doctype writes the literal "<!DOCTYPE html>"; the element tags are matched by their
-    // opening prefix so attributes (e.g. <html lang="en">) don't defeat the check.
-    private static readonly (string Token, string Factory)[] _requiredShell =
-    {
-        ("<!DOCTYPE html>", "Doctype()"), ("<html", "Html(...)"), ("<head", "Head()"), ("<body", "Body()")
-    };
 
     // Per-node boolean state packed into one byte so it costs a single field slot instead of one
     // (padded) slot per bool across the Component/Element pair. Bit 0 lives on the base; Element
@@ -361,6 +354,51 @@ public abstract partial class Component
     /// </remarks>
     internal Component? CachedHeadInternal => _live?.CachedHead;
     internal void MarkReadsAmbientStateInternal() => SetFlag(FlagReadsAmbientState, true);
+
+    /// <summary>
+    ///     The <c>lang</c> attribute for the document's <c>&lt;html&gt;</c> element. Read off the root
+    ///     component only — Rask builds the shell around whatever the root renders. Return <c>null</c> to
+    ///     emit no <c>lang</c> at all.
+    /// </summary>
+    protected virtual string? HtmlLang => "en";
+
+    /// <summary>
+    ///     The <c>class</c> attribute for the document's <c>&lt;body&gt;</c> element (theming hooks,
+    ///     Bootstrap ground classes). Read off the root component only. Default <c>null</c> — no class.
+    /// </summary>
+    protected virtual string? BodyClass => null;
+
+    /// <summary>
+    ///     Composes the document around the framework-built <c>&lt;head&gt;</c> and this component's
+    ///     rendered body. Override on the root component when <see cref="HtmlLang" /> and
+    ///     <see cref="BodyClass" /> are not enough — an extra attribute on <c>&lt;html&gt;</c>, an
+    ///     element wrapped around the app, a wholly hand-built document:
+    ///     <code>
+    ///     protected override Component Shell(Component head, Component body) =>
+    ///         Html("en", Dir: "rtl")[head, Body(Class: "dark")[body]];
+    ///     </code>
+    ///     <para>
+    ///         The pieces arrive as <b>parameters</b> — <paramref name="head" /> is the framework's
+    ///         <c>&lt;head&gt;</c> element, which collects every mounted component's <see cref="Head" />
+    ///         contribution plus the scoped CSS/JS assets, and <paramref name="body" /> is the app's own
+    ///         render output. Place both; dropping <paramref name="head" /> loses every head asset on the
+    ///         page, and dropping <paramref name="body" /> renders nothing. The doctype is emitted by the
+    ///         framework ahead of whatever this returns, and the runtime <c>&lt;script&gt;</c> is appended
+    ///         inside <c>&lt;body&gt;</c> automatically.
+    ///     </para>
+    ///     <para>
+    ///         Evaluated once per render, <b>before</b> the app's own <see cref="Render" /> runs, so it
+    ///         cannot observe state that render produces. Anything reactive belongs in the body or in
+    ///         <see cref="Head" />.
+    ///     </para>
+    /// </summary>
+    protected virtual Component Shell(Component head, Component body) =>
+        F.Html(HtmlLang)[head, F.Body(Class: BodyClass)[body]];
+
+    // The host's entry into the escape hatch above: RootErrorBoundary composes the document around the
+    // App, so it needs to reach the App's override. Kept internal because Shell is a user-facing
+    // extension point, not a call site — nothing outside the framework composes a document root.
+    internal Component ShellInternal(Component head, Component body) => Shell(head, body);
 
     /// <summary>
     ///     Where this component is being presented — a web page (<see cref="RenderShell.Web" />) or a native
@@ -2006,19 +2044,6 @@ public abstract partial class Component
             RaskStringBuilderPool.Shared.Return(pageBuilder);
         }
 
-        // Fail-fast backstop for a malformed root: the App must render the full page shell
-        // (Doctype/Html/Head/Body). The RASK021 analyzer catches this at compile time, but
-        // an App built from a referenced library or via a delegated helper can slip past it,
-        // so verify the finalized HTML here too. A throwing App renders the RootErrorBoundary
-        // fallback (which has its own shell); this only fires when the App renders cleanly but
-        // structurally incomplete. Gated on RootErrorBoundary because that's the wrapper both
-        // hosts install around the real app root — direct RenderAsLiveRoot calls (the test
-        // helper path, used to render partial component trees) are intentionally exempt.
-        if (this is RootErrorBoundary)
-        {
-            ValidateRootShell(sink is not null ? sink.CurrentSpan : html.AsSpan());
-        }
-
         // Post-render alive set: union of _children across the whole tree, reachable from root.
         // Components that re-rendered have fresh _children; components that skipped kept theirs.
         CollectAlive(this, Live.AliveNow);
@@ -2097,29 +2122,6 @@ public abstract partial class Component
                 ctx.Dispose();
             }
         }
-    }
-
-    private static void ValidateRootShell(ReadOnlySpan<char> html)
-    {
-        List<string>? missing = null;
-        foreach (var (token, factory) in _requiredShell)
-        {
-            if (html.IndexOf(token, StringComparison.OrdinalIgnoreCase) < 0)
-            {
-                (missing ??= new List<string>()).Add(factory);
-            }
-        }
-
-        if (missing is null)
-        {
-            return;
-        }
-
-        throw new InvalidOperationException(
-            "The Rask root component must render a full page shell, but the rendered output is "
-            + "missing: " + string.Join(", ", missing) + ". A root render should look like:\n"
-            + "    [Doctype(), Html(\"en\")[Head(), Body()[ /* content */ ]]]\n"
-            + "The runtime <script> is injected into <body> automatically — you do not need to add it.");
     }
 
     private static void CollectAlive(Component root, HashSet<Component> seen)

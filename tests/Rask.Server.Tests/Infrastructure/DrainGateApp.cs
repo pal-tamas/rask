@@ -17,16 +17,16 @@ public sealed partial class DrainGateApp : Component
 
     public int Counter;
 
+    protected override Component? Head => new Title()["drain"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[new Head()[new Title()["drain"]],
-            new Body()[
-                new P()[$"count={Counter}"],
-                Button(OnClickAsync: async () =>
-                {
-                    await Gate.Task;
-                    Counter++;
-                })["hang"]]]
+        new P()[$"count={Counter}"],
+        Button(OnClickAsync: async () =>
+        {
+            await Gate.Task;
+            Counter++;
+        })["hang"]
     ];
 }

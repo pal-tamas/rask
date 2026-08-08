@@ -94,10 +94,10 @@ WASM templates differ mainly in `Program.cs`):
   `app.UseRask<App>()` mounts your root component (`App`) as the whole site, and a `/health` endpoint is
   wired for deployment probes. Your own services go here too.
 
-- **`App.cs`** — two things live here. First, the **root component** `App`: the one place that renders the
-  full HTML page shell (`Doctype` / `Html` / `Head` / `Body`) and drops a `Router()` where the current page
-  appears. `<head>` is framework-managed — app-wide tags (title, charset, viewport) go through its `Head`
-  override, not by passing children to `Head()` (more in [section 7](#7-the-page-shell-and-the-head-override)).
+- **`App.cs`** — two things live here. First, the **root component** `App`: it renders straight into
+  `<body>` — Rask builds the document around it — and drops a `Router()` where the current page appears.
+  `<head>` is framework-managed — app-wide tags (title, charset, viewport) go through its `Head`
+  override, not by passing children to `Head()` (more in [section 7](#7-the-document-and-the-head-override)).
   Second, the **`HomePage`** component — the `/` route, a small welcome card. Edit or replace it; it's your
   starting point.
 
@@ -245,12 +245,13 @@ cached internal state the caller shouldn't pass. The counter below starts at 7 (
 
 <!-- demo:components-skipfactory -->
 
-## 7. The page shell and the `Head` override
+## 7. The document and the `Head` override
 
-Your root component (the `TApp` you pass to the host — `App` in the template) must render the **full
-HTML shell**: `Doctype`, `Html`, `Head`, `Body`. Both `<head>` and `<body>` are framework-managed — the
-runtime `<script>` is auto-appended to `<body>`, and `<head>` is filled from every mounted component's
-`Head` override.
+Your root component (the `TApp` you pass to the host — `App` in the template) renders straight into
+`<body>`. Rask composes the document around it: the doctype, `<html>`, a `<head>` filled from every
+mounted component's `Head` override (plus the scoped CSS and JS the page needs), and a `<body>` holding
+what the root rendered and the auto-appended runtime `<script>`. So a root is just its head
+contributions and a `Router()`:
 
 ```csharp
 public sealed class App : Component
@@ -262,18 +263,31 @@ public sealed class App : Component
         Meta(Name: "viewport", Content: "width=device-width, initial-scale=1")
     ];
 
-    protected override Component? Render() =>
-        [
-            Doctype(),
-            Html("en")[
-                Head(),               // framework-managed slot — do NOT pass children
-                Body()[
-                    Router()
-                ]
-            ]
-        ];
+    protected override Component? Render() => Router();
 }
 ```
+
+The two attributes an app usually wants on the shell are overrides of their own, read off the root:
+`HtmlLang` — the `lang` on `<html>`, `"en"` by default, `null` to omit it — and `BodyClass`, the
+`class` on `<body>`, `null` by default:
+
+```csharp
+protected override string? HtmlLang => "fr";
+protected override string? BodyClass => "bg-body-tertiary";
+```
+
+Anything those two can't express — another attribute on `<html>`, an element wrapped around the app —
+is a `Shell` override. It receives the framework's `<head>` and the app's rendered body as
+**parameters**, so place both: drop `head` and the page loses every head asset.
+
+```csharp
+protected override Component Shell(Component head, Component body) =>
+    Html("en", Dir: "rtl")[head, Body(Class: "dark")[body]];
+```
+
+The doctype is still emitted ahead of whatever `Shell` returns, and the runtime `<script>` still lands
+in `<body>` — neither is yours to add. `Shell` is evaluated once per render, *before* your `Render()`
+runs, so it can't observe state that render produces; keep anything reactive in the body or in `Head`.
 
 Any component can contribute to `<head>` while it's in the tree by overriding `Head`. `<title>` and
 `<base>` are singleton tags — the last contributor wins, so a page's `Title` overrides the app fallback:
@@ -283,8 +297,15 @@ protected override Component? Head => Title()["Welcome — My Rask App"];
 ```
 
 > **Guardrails:** two compile-time checks catch the common mistakes (full list in
-> [diagnostics](diagnostics.md)) — **RASK021** if the root doesn't render a complete shell, and
-> **RASK019** if you pass children to `Head()` instead of using the override.
+> [diagnostics](diagnostics.md)) — **RASK021** if the root renders the shell itself, and **RASK019** if
+> you pass children to `Head()` instead of using the override.
+
+> **Already have an app?** Delete the shell from your root's `Render()` and return what was inside
+> `<body>` (usually just `Router()`). Its pieces move to the overrides that own them: the `lang` on
+> `Html(...)` becomes `HtmlLang`, the `Class` on `Body(...)` becomes `BodyClass`, the `Head()` slot just
+> goes away (your head contributions were already in the `Head` override), and anything left over
+> becomes a `Shell` override. `Doctype`, `Html`, `Head`, and `Body` are still ordinary tag components —
+> they're what you build a document out of by hand (`ToHtml()`, an email body), just not the app's page.
 
 ## 8. Add a route
 
@@ -309,10 +330,11 @@ public sealed class UserPage : Component
 NavLink(UserPage(id: 42))["View user"];
 ```
 
-The `Router()` in your shell matches the current path and renders the page. To navigate from an event
-handler, inject the `Navigator` service through the constructor and call `nav.NavigateTo(HomePage())`,
-`nav.SetQuery("tab", "settings")`, and so on. For nested layouts (`[ParentRoute]` + `Outlet()`), 404
-pages (`[NotFound]`), and the full routing model, see [routing](routing.md).
+The `Router()` in your root component matches the current path and renders the page. To navigate from
+an event handler, inject the `Navigator` service through the constructor and call
+`nav.NavigateTo(HomePage())`, `nav.SetQuery("tab", "settings")`, and so on. For nested layouts
+(`[ParentRoute]` + `Outlet()`), 404 pages (`[NotFound]`), and the full routing model, see
+[routing](routing.md).
 
 ## Troubleshooting
 

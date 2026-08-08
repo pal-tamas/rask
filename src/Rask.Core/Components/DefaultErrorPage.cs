@@ -72,6 +72,37 @@ public sealed class DefaultErrorPage : Component
 
     protected override bool BypassRenderCache => true;
 
+    /// <summary>
+    ///     Whether this page stands in for the <b>whole</b> app rather than one failed subtree — set only
+    ///     by the root boundary, and the condition on <see cref="Head" /> below.
+    /// </summary>
+    internal bool OwnsDocument { get; init; }
+
+    /// <summary>
+    ///     What this page needs in <c>&lt;head&gt;</c> to stand on its own — but only when it <em>is</em>
+    ///     the page.
+    /// </summary>
+    /// <remarks>
+    ///     The framework owns the document, so the fallback renders inside the app's shell rather than
+    ///     replacing it — which is what keeps the <c>&lt;html&gt;</c> attributes and the body class across
+    ///     a fault. But the head is built from the components that are actually mounted, and an App whose
+    ///     <c>Render()</c> threw contributed none of its own: without this the error page would arrive
+    ///     with no charset (mangling any non-ASCII in the message) and no title. Gated on
+    ///     <see cref="OwnsDocument" /> because a <em>nested</em> boundary's fallback replaces one widget
+    ///     while the rest of the page is fine — retitling the tab "Application error" because a sidebar
+    ///     failed would be a worse lie than the missing title it fixes. The registry resolves
+    ///     <c>&lt;title&gt;</c> as a singleton with the last contributor winning, so the root fallback
+    ///     does replace the app's title, exactly while the fault is on screen.
+    /// </remarks>
+    protected override Component? Head => OwnsDocument
+        ?
+        [
+            Generated.Meta("utf-8"),
+            Generated.Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
+            Generated.Title()["Application error"]
+        ]
+        : null;
+
     protected override Component? Render()
     {
         var children = new List<Component>

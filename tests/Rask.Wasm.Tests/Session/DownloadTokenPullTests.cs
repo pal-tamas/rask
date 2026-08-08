@@ -89,15 +89,9 @@ public class DownloadTokenPullTests : ResettingTestBase
             _contentType = contentType;
         }
 
-        protected override Component? Render() =>
-        [
-            Doctype(),
-            Html()[
-                Head()[Title()["dl"]],
-                Body()[
-                    Button(OnClick: () => _nav.Download(_filename, _bytes, _contentType))["go"]
-                ]
-            ]
-        ];
+        protected override Component? Head => Title()["dl"];
+        protected override string? HtmlLang => null;
+
+        protected override Component? Render() => Button(OnClick: () => _nav.Download(_filename, _bytes, _contentType))["go"];
     }
 }

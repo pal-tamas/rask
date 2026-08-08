@@ -3,7 +3,7 @@ using Rask.Core.Live;
 
 namespace Rask.Example.Playground;
 
-// Root of the playground WASM app. Renders the full document shell (RASK021); the single-page UI,
+// Root of the playground WASM app. Renders into the framework's <body>; the single-page UI,
 // editor, compile orchestration and live preview all live in PlaygroundView. Public + non-sealed to match
 // the host's ActivatorUtilities.CreateInstance + DAM contract.
 public partial class PlaygroundApp : Component
@@ -35,14 +35,5 @@ public partial class PlaygroundApp : Component
         Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/global.css")
     ];
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        Html("en")[
-            Head(),
-            Body()[
-                PlaygroundView()
-            ]
-        ]
-    ];
+    protected override Component? Render() => PlaygroundView();
 }

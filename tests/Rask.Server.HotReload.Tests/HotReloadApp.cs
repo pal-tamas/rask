@@ -18,12 +18,5 @@ public sealed partial class HotReloadApp : Component
 
     internal static string Heading { get; set; } = Original;
 
-    protected override Component? Render() =>
-        [
-            Doctype(),
-            Html("en")[
-                Head(),
-                Body()[Div(Id: "heading")[Heading]]
-            ]
-        ];
+    protected override Component? Render() => Div(Id: "heading")[Heading];
 }

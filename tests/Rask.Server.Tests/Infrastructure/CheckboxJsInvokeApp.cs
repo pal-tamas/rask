@@ -17,16 +17,13 @@ public sealed partial class CheckboxJsInvokeApp(IJSRuntime js) : Component
     protected override async Task OnRenderedAsync(bool firstRender) =>
         await js.InvokeVoidAsync("test.noop", firstRender);
 
+    protected override Component? Head => new Title()["checkbox"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[
-            new Head()[new Title()["checkbox"]],
-            new Body()[
-                Form(_m)[Input(() => _m.Subscribe).Id("sub")],
-                new P()[$"S={_m.Subscribe}"]
-            ]
-        ]
+        Form(_m)[Input(() => _m.Subscribe).Id("sub")],
+        new P()[$"S={_m.Subscribe}"]
     ];
 
     private sealed class Model

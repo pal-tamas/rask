@@ -188,11 +188,12 @@ internal static partial class ProjectGenerator
 
     // ---- native-only template files ----
 
-    // The root shell, in the Features/Shared bucket. A native page is a small COMPOSED tree: the native bars
-    // (NativeHeaderBar / NativeTabBar) as siblings of a NativeWebView, which hosts the ordinary page shell
-    // (Doctype/Html/Head/Body, RASK021). The native host projects the bars to REAL platform chrome — a
-    // UINavigationBar + UITabBar on iOS, a top bar + bottom tab bar on Android — and serializes the
-    // NativeWebView's HTML into the WebView between them.
+    // The root, in the Features/Shared bucket. A native page is a small COMPOSED tree: the native bars
+    // (NativeHeaderBar / NativeTabBar) as siblings of a NativeWebView, which hosts the ordinary page
+    // content. The native host projects the bars to REAL platform chrome — a UINavigationBar + UITabBar on
+    // iOS, a top bar + bottom tab bar on Android — and serializes the NativeWebView's HTML into the WebView
+    // between them. The document around all of it is the framework's; this template overrides Shell because
+    // a native body needs the safe-area padding, which is the one thing BodyClass cannot carry.
     private const string NativeAppShell =
         """
         using Rask.Core.Routing;
@@ -211,25 +212,26 @@ internal static partial class ProjectGenerator
                 Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover")
             ];
 
+            // Rask builds the document around Render(); override Shell when its HtmlLang / BodyClass hooks
+            // are not enough. Here the body is padded by the device safe-area insets so content clears the
+            // status bar / notch / home indicator (the boot shell asks for an edge-to-edge viewport with
+            // viewport-fit=cover). head is the framework's <head> — place it, or the page loses every head
+            // asset.
+            protected override Component Shell(Component head, Component body) =>
+                Html("en")[
+                    head,
+                    Body(Style: "margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
+                                "env(safe-area-inset-bottom) env(safe-area-inset-left)")[body]
+                ];
+
             protected override Component? Render() =>
             [
                 // Real native top bar. Opt in by hosting webView.ChromeView + registering the head as INativeChrome —
                 // see Platforms/iOS/AppDelegate.cs and Platforms/Android/MainActivity.cs.
                 NativeHeaderBar(Title: "Rask App"),
 
-                // The HTML surface — its children are the normal page shell, morphed into the platform WebView.
-                NativeWebView()[
-                    Doctype(),
-                    Html("en")[
-                        Head(),
-                        // Pad the body by the device safe-area insets so content clears the status bar / notch /
-                        // home indicator (the boot shell requests an edge-to-edge viewport with viewport-fit=cover).
-                        Body(Style: "margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
-                                    "env(safe-area-inset-bottom) env(safe-area-inset-left)")[
-                            Router()
-                        ]
-                    ]
-                ]
+                // The HTML surface — its children are the page content, morphed into the platform WebView.
+                NativeWebView()[Router()]
 
                 // Add a real native bottom tab bar here once you have somewhere to navigate:
                 //   NativeTabBar(Tabs: [NativeTab(Title: "Home", Icon: NativeIcon.Home, To: Routes.HomePage())])

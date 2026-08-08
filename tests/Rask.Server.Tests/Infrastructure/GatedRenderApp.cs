@@ -29,6 +29,9 @@ public sealed partial class GatedRenderApp : Component
         ReleaseRender.Reset();
     }
 
+    protected override Component? Head => new Title()["gated"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render()
     {
         if (_gateNextRender)
@@ -41,14 +44,8 @@ public sealed partial class GatedRenderApp : Component
 
         return
         [
-            Doctype(),
-            new Html()[
-                new Head()[new Title()["gated"]],
-                new Body()[
-                    new P()["gated-render"],
-                    Button(OnClickAsync: GateAsync)["go"]
-                ]
-            ]
+            new P()["gated-render"],
+            Button(OnClickAsync: GateAsync)["go"]
         ];
     }
 

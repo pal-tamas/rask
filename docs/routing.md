@@ -38,16 +38,9 @@ root (`App`):
 ```csharp
 public sealed class App : Component
 {
+    // The root renders into <body> — Rask composes the document around it.
     protected override Component? Render() =>
-        [
-            Doctype(),
-            Html("en")[
-                Head(),
-                Body()[
-                    Router()        // matches RouteState.Path and renders the page
-                ]
-            ]
-        ];
+        Router();                   // matches RouteState.Path and renders the page
 }
 ```
 

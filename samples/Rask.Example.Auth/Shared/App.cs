@@ -18,21 +18,17 @@ public sealed partial class App : Component
         Link(Rel: "stylesheet", Href: "/global.css")
     ];
 
+    protected override string? BodyClass => "bg-body-tertiary";
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        Html("en")[
-            Head(),
-            Body(Class: "bg-body-tertiary")[
-                Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm")[
-                    Div(Class: "container")[
-                        NavLink(Features.Routes.HomePage(), Class: "navbar-brand fw-bold")["Rask · cookie auth"],
-                        A("https://github.com/pal-tamas/rask", "_blank",
-                            Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
-                    ]
-                ],
-                Main(Class: "container py-4")[Router()]
+        Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm")[
+            Div(Class: "container")[
+                NavLink(Features.Routes.HomePage(), Class: "navbar-brand fw-bold")["Rask · cookie auth"],
+                A("https://github.com/pal-tamas/rask", "_blank",
+                    Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
             ]
-        ]
+        ],
+        Main(Class: "container py-4")[Router()]
     ];
 }

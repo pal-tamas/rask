@@ -16,16 +16,13 @@ internal sealed partial class RouteTitleStructuralStubApp : Component
 
     public RouteTitleStructuralStubApp(RouteState routeState) => _routeState = routeState;
 
+    protected override Component? Head => Title()[$"title-{_routeState.Path}"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        Html()[
-            Head()[Title()[$"title-{_routeState.Path}"]],
-            Body()[
-                _routeState.Path == "/destination"
-                    ? Ul()[Li()["a"], Li()["b"], Li()["c"]]
-                    : Div()["plain"]
-            ]
-        ]
+        _routeState.Path == "/destination"
+            ? Ul()[Li()["a"], Li()["b"], Li()["c"]]
+            : Div()["plain"]
     ];
 }

@@ -218,11 +218,10 @@ internal sealed partial class JsRoundTripApp : Component
     public static TaskCompletionSource<string?> LastResult { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
-    ];
+    protected override Component? Head => new Title()["t"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => Text("ready");
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {
@@ -252,14 +251,10 @@ internal sealed partial class JsClickApp : Component
     public JsClickApp(IJSRuntime js) => _js = js;
     public static TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        new Html()[new Head()[new Title()["t"]],
-            new Body()[
-                Button(OnClickAsync: SetAsync)["set"]
-            ]]
-    ];
+    protected override Component? Head => new Title()["t"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => Button(OnClickAsync: SetAsync)["set"];
 
     private async Task SetAsync()
     {
@@ -275,11 +270,10 @@ internal sealed partial class JsRenderStormApp : Component
 
     public JsRenderStormApp(IJSRuntime js) => _js = js;
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
-    ];
+    protected override Component? Head => new Title()["t"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => Text("ready");
 
     // Intentionally NO firstRender guard — the whole point is to assert the framework
     // doesn't loop even with this anti-pattern. Mirrors the original CodeSample shape
@@ -297,11 +291,10 @@ internal sealed partial class JsErrorApp : Component
     public static TaskCompletionSource<Exception> Caught { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
-    ];
+    protected override Component? Head => new Title()["t"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => Text("ready");
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {

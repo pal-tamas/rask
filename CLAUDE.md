@@ -50,7 +50,7 @@ dotnet run --project samples/Rask.Example.Server
   HTML attrs). `Text` encodes; `Raw` is verbatim. `Fragment`/`Doctype` special-cased in `HtmlSerializer`.
 - **Attribute render order: id, class, style, title, data-*, role, tabindex, aria-*, then tag-specific — tests assert it; preserve it.**
 - Children via the indexer `Div()[Span(), "hi"]` (no `Children:` param; `..` spread breaks — pass enumerables).
-  Page root must render the full shell (`Doctype`/`Html`/`Head`/`Body`) — RASK021. Runtime `<script>` auto-appended.
+  Page root renders into `<body>`; Rask adds the shell (`Head`/`HtmlLang`/`BodyClass`/`Shell`) + runtime `<script>` — RASK021.
 - **Factory params** (generated per public prop): nullable→optional(null); non-nullable no-initializer→**required**
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
   settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
