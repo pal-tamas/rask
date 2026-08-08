@@ -34,10 +34,42 @@ public sealed class BrowserSqliteOwnership
     /// <summary>Completes with the answer once the election has run, during the host's <c>StartAsync</c>.</summary>
     public Task<bool> Resolved => _resolved.Task;
 
+    /// <summary>
+    ///     For a tab that is <em>not</em> the owner: completes once the database has become free, so the
+    ///     user can be told their data is reachable again rather than left guessing.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <b>Reloading is the only way to take it.</b> This tab already opened its own empty database
+    ///         when it booted, and the app is holding live connections to it — the file cannot be swapped
+    ///         underneath them, and a tab that started persisting its empty database would overwrite the
+    ///         previous owner's good snapshot. So this signals "reload to use it", not "you now own it".
+    ///     </para>
+    ///     <para>
+    ///         Advisory, not a claim: nothing is held on this tab's behalf, so another tab may take
+    ///         ownership between this completing and the reload. The reloaded page runs the normal
+    ///         election and finds out.
+    ///     </para>
+    ///     <para>Never completes in the owning tab, which has nothing to wait for.</para>
+    ///     <code>
+    ///     await ownership.Resolved;
+    ///     if (ownership.IsOwner == false)
+    ///     {
+    ///         await ownership.Available;      // the other tab closed
+    ///         _canReload = true; StateHasChanged();
+    ///     }
+    ///     </code>
+    /// </remarks>
+    public Task Available => _available.Task;
+
+    private readonly TaskCompletionSource _available = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     // Idempotent: the election runs once per page, but a second call must not throw on the TCS.
     internal void Resolve(bool isOwner)
     {
         IsOwner = isOwner;
         _resolved.TrySetResult(isOwner);
     }
+
+    internal void MarkAvailable() => _available.TrySetResult();
 }

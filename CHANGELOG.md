@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A waiting tab now finds out when the database becomes free.** `BrowserSqliteOwnership.Available`
+  completes in a non-owner tab once the owning tab closes, so an app can turn "close the other tab" into
+  "your data is ready — reload" instead of leaving the user to guess when the condition was met.
+  **Reloading is what takes ownership**, deliberately: a waiting tab already opened its own empty database
+  at boot, so the file cannot be swapped under its live connections, and a tab that started persisting its
+  empty database would overwrite the previous owner's good snapshot with nothing. The watcher polls with
+  `TryRequestAsync`, which acquires and releases within the call, rather than waiting on `RequestAsync` —
+  waiting would mean *holding* the lock the moment it frees, which would both make this tab an owner it
+  must not be and block a tab that could actually use it. The signal is therefore advisory: another tab
+  may win between the poll and the reload, and the reloaded page runs the normal election to find out.
+  Tunable via `TakeoverPollInterval` (2s default); `samples/Rask.Example.Wasm.Jobs` shows it, covered by
+  an E2E that opens two real tabs and closes the owner.
 - **A browser database now asks not to be evicted.** `Rask.SQLite.Browser` keeps its snapshots in
   IndexedDB, and IndexedDB is evictable: under storage pressure a browser may discard them, and the
   database comes back empty on the next load with nothing to indicate why. The owning tab now calls

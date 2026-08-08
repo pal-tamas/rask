@@ -46,6 +46,10 @@ internal sealed class BrowserSqliteHost(
     // StopAsync returns, rather than at some unobservable later moment.
     private Task<bool>? _ownerHold;
 
+    // Stops the non-owner's availability watcher when the page goes away.
+    private readonly CancellationTokenSource _shutdown = new();
+    private Task? _takeoverWatch;
+
     /// <summary>Whether this tab owns the database — i.e. whether it may persist anything.</summary>
     public bool IsOwner { get; private set; }
 
@@ -66,6 +70,9 @@ internal sealed class BrowserSqliteHost(
                 "Another tab already owns the browser SQLite database '{Name}'. This tab starts with an empty "
                 + "in-memory database and will not persist anything, so two tabs cannot overwrite each other.",
                 options.Name);
+
+            // Not awaited: watching for the owner to go away must not hold up the boot.
+            _takeoverWatch = WatchForAvailabilityAsync(_shutdown.Token);
             return;
         }
 
@@ -146,6 +153,14 @@ internal sealed class BrowserSqliteHost(
             }
         }
 
+        await _shutdown.CancelAsync().ConfigureAwait(false);
+
+        if (_takeoverWatch is not null)
+        {
+            // Already swallows its own failures; awaiting only makes the stop orderly.
+            await _takeoverWatch.ConfigureAwait(false);
+        }
+
         _release.TrySetResult();
 
         if (_ownerHold is null)
@@ -162,6 +177,55 @@ internal sealed class BrowserSqliteHost(
 #pragma warning restore CA1031
         {
             logger.LogWarning(ex, "Releasing the owner lock for '{Name}' failed.", options.Name);
+        }
+    }
+
+    /// <summary>
+    ///     Watches, in a tab that is not the owner, for the database to become free.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Polls with <see cref="IWebLocks.TryRequestAsync" />, which acquires and releases within the
+    ///         call, rather than waiting on <c>RequestAsync</c>. Waiting would mean <em>holding</em> the
+    ///         lock the moment it frees — and this tab must not own the database: it opened its own empty
+    ///         one at boot, so persisting from here would overwrite the previous owner's good snapshot with
+    ///         nothing. Holding a lock it must never use would also block a tab that could actually use it.
+    ///     </para>
+    ///     <para>
+    ///         So this only ever <em>reports</em> availability, and the taking is done by a reload. That is
+    ///         also why the signal is advisory: another tab may win between the poll and the reload.
+    ///     </para>
+    /// </remarks>
+    private async Task WatchForAvailabilityAsync(CancellationToken cancellationToken)
+    {
+        var name = BrowserSqlite.OwnerLockName(options.Name);
+
+        try
+        {
+            using var timer = new PeriodicTimer(options.TakeoverPollInterval);
+
+            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+            {
+                // The callback is empty on purpose: acquiring proves the lock is free, and returning
+                // immediately hands it straight back.
+                if (await locks.TryRequestAsync(name, static () => Task.CompletedTask).ConfigureAwait(false))
+                {
+                    logger.LogInformation(
+                        "The tab that owned '{Name}' has gone; reload to use the database here.", options.Name);
+                    ownership.MarkAvailable();
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The page is going away.
+        }
+#pragma warning disable CA1031 // A watcher that dies must not take the app with it; the tab simply stops offering to take over.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogWarning(ex, "Gave up watching for '{Name}' to become available.", options.Name);
         }
     }
 

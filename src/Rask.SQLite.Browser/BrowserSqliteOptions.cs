@@ -28,6 +28,16 @@ public sealed class BrowserSqliteOptions
     public int Retain { get; set; } = 2;
 
     /// <summary>
+    ///     How often a tab that is not the owner checks whether the database has become free, so it can
+    ///     tell the user to reload. Defaults to 2 seconds.
+    /// </summary>
+    /// <remarks>
+    ///     Each check is one Web Locks round-trip that acquires and immediately releases, so this is cheap
+    ///     — but it only runs in a non-owner tab, and stops for good the first time it succeeds.
+    /// </remarks>
+    public TimeSpan TakeoverPollInterval { get; set; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>
     ///     Whether the owning tab asks the browser to exempt this origin's storage from eviction
     ///     (<c>navigator.storage.persist()</c>). Defaults to <see langword="true" />.
     /// </summary>
@@ -75,6 +85,12 @@ public sealed class BrowserSqliteOptions
         if (Retain < 1)
         {
             throw new InvalidOperationException($"{nameof(Retain)} must be at least 1 (was {Retain}).");
+        }
+
+        if (TakeoverPollInterval <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(TakeoverPollInterval)} must be positive (was {TakeoverPollInterval}).");
         }
     }
 }

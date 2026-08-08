@@ -54,8 +54,10 @@ builder.Services.AddRaskBrowserSqlite("app", o =>
 - **Non-owner tabs are not read-only — they are separate.** They get their own empty in-memory database
   and never persist, which looks like data loss unless you say otherwise. Inject `BrowserSqliteOwnership`
   and tell the user: `await ownership.Resolved` gives the answer, and `ownership.IsOwner` is `null` while
-  the election is still running so a normal boot never flashes a banner. Promoting a waiting tab when the
-  owner closes, and proxying writes to the owner, are not implemented.
+  the election is still running so a normal boot never flashes a banner. When the owner closes,
+  `await ownership.Available` completes so you can offer a reload — reloading is what takes ownership,
+  since a waiting tab already opened its own empty database and the file cannot be swapped under live
+  connections. Proxying a non-owner's writes to the owner is not implemented.
 - Snapshots cost their full database size in the origin's storage quota, times `Retain`.
 - Add `<NoWarn>$(NoWarn);WASM0001</NoWarn>` if you build with warnings as errors: the SQLite native build
   reports two varargs functions (`sqlite3_config`, `sqlite3_db_config`) that WASM cannot call. Neither is

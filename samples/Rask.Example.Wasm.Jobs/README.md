@@ -52,5 +52,9 @@ shows a banner instead. Note it waits for `ownership.Resolved` before rendering 
 while the election is in flight, so "still deciding" and "not the owner" stay distinct and a normal boot
 never flashes a warning.
 
-What is still not implemented: promoting a waiting tab when the owner closes, and proxying a non-owner's
-writes to the owner.
+Close the owning tab and the banner turns green: `ownership.Available` completes, and the waiting tab
+offers a reload. Reloading is what takes ownership — this tab already opened its own empty database at
+boot, so the file cannot be swapped under its live connections, and a tab that started persisting an empty
+database would overwrite the previous owner's good snapshot.
+
+What is still not implemented: proxying a non-owner's writes to the owner.

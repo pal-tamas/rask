@@ -571,7 +571,11 @@ Three limits, stated plainly because each one is a silent failure rather than an
   // "not the owner" stay distinguishable and the banner never flashes during a normal boot.
   ```
 
-  Promoting a waiting tab when the owner closes, and proxying its writes to the owner, are not implemented.
+  When the owner closes, `await ownership.Available` completes in the waiting tab so you can offer a
+  reload. **Reloading is what takes it over** — a waiting tab already opened its own empty database at
+  boot, so the file cannot be swapped under its live connections, and a tab that started persisting its
+  empty database would overwrite the previous owner's good snapshot. Proxying a non-owner's writes to the
+  owner is not implemented.
 - **The two build settings above are not optional**: `PublishTrimmed=false`, and publishing *without*
   `-p:WasmBuildNative=false` — otherwise SQLite is not linked in and the app boots normally, then fails on
   every database call.

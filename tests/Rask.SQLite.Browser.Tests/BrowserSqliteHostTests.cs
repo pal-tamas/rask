@@ -14,7 +14,13 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
     private BrowserSqliteOptions Options(string name = "app")
     {
-        var options = new BrowserSqliteOptions { Name = name, DatabasePath = Path.Combine(_temp, $"{name}.db") };
+        var options = new BrowserSqliteOptions
+        {
+            Name = name,
+            DatabasePath = Path.Combine(_temp, $"{name}.db"),
+            // Short, so the takeover tests do not spend seconds waiting on a poll.
+            TakeoverPollInterval = TimeSpan.FromMilliseconds(10),
+        };
         options.Validate();
         return options;
     }
@@ -185,6 +191,75 @@ public sealed class BrowserSqliteHostTests : IDisposable
         await Host(options).StartAsync(CancellationToken.None);
 
         Assert.Equal(0, _storage.PersistRequests);
+    }
+
+    // A second tab is otherwise stuck: told to close the other one, with no way to know when that
+    // happened. This is the signal that turns "close the other tab" into "reload now".
+    [Fact]
+    public async Task NonOwner_SignalsWhenTheDatabaseBecomesAvailable()
+    {
+        var options = Options();
+        var lockName = BrowserSqlite.OwnerLockName(options.Name);
+        _locks.HoldElsewhere(lockName);
+        var host = Host(options);
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.False(_ownership.Available.IsCompleted);   // the owner is still there
+
+        _locks.ReleaseElsewhere(lockName);               // that tab closes
+
+        await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5));
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    // Reporting availability must not take the lock: this tab already opened its own EMPTY database, so
+    // owning it would mean snapshotting nothing over the previous owner's good snapshot.
+    [Fact]
+    public async Task NonOwner_DoesNotHoldTheLockItReportsAsFree()
+    {
+        var options = Options();
+        var lockName = BrowserSqlite.OwnerLockName(options.Name);
+        _locks.HoldElsewhere(lockName);
+        var host = Host(options);
+        await host.StartAsync(CancellationToken.None);
+
+        _locks.ReleaseElsewhere(lockName);
+        await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Free for a tab that can actually use it — a reloaded page, or another tab.
+        Assert.DoesNotContain(await _locks.QueryAsync(), l => l.Name == lockName);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Owner_NeverSignalsAvailability()
+    {
+        var host = Host(Options());
+
+        await host.StartAsync(CancellationToken.None);
+        await Task.Delay(60);
+
+        // The owner has nothing to wait for; completing here would tell an app to reload for no reason.
+        Assert.False(_ownership.Available.IsCompleted);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Stop_EndsTheAvailabilityWatch()
+    {
+        var options = Options();
+        var lockName = BrowserSqlite.OwnerLockName(options.Name);
+        _locks.HoldElsewhere(lockName);
+        var host = Host(options);
+        await host.StartAsync(CancellationToken.None);
+
+        // Returns only once the watcher has stopped — a watcher still polling after shutdown would hang it.
+        await host.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+
+        _locks.ReleaseElsewhere(lockName);
+        await Task.Delay(60);
+        Assert.False(_ownership.Available.IsCompleted);
     }
 
     [Fact]

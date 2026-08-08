@@ -74,6 +74,9 @@ internal sealed class FakeWebLocks : IWebLocks
     /// <summary>Pre-hold a lock, standing in for another tab that already owns it.</summary>
     public void HoldElsewhere(string name) => _held.Add(name);
 
+    /// <summary>Drop a pre-held lock — that other tab closing.</summary>
+    public void ReleaseElsewhere(string name) => _held.Remove(name);
+
     public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(Supported);
 
     public async ValueTask RequestAsync(string name, Func<Task> work, LockMode mode = LockMode.Exclusive)
