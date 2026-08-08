@@ -31,6 +31,16 @@ them until tagged releases begin.
   so a samples-only or docs-only commit could break a golden or a docs invariant with nothing objecting
   until somebody else's push. An entire feature could land ungated; the playground tutorial was largely a
   `samples/` + `docs/` change.
+- **`rask generate job` no longer prints server-only next steps inside a browser app**
+  ([#646](https://github.com/pal-tamas/rask/issues/646)). `rask g j` is not gated on project kind, so it
+  runs anywhere a `.csproj` is found — and it told everyone the same thing: point a `DbContextFactory` at
+  `Data Source=app.db`, then run `rask db add && rask db update`. In a WASM app the migration step is not
+  something the reader can do at all (there is no design-time database in a browser bundle), and the
+  registration omits the one call that makes the queue durable. The failure was silent rather than loud:
+  the app built, ran, and quietly lost every queued job on reload. `ProjectContext` now detects a browser
+  project the same way it already detects the database provider — by reading the project file — and the
+  notes tell a WASM app to register `AddRaskBrowserSqlite`, create its schema at boot, and avoid the two
+  build settings (`-p:WasmBuildNative=false`, `PublishTrimmed=true`) that each break it without an error.
 
 ### Added
 - **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
