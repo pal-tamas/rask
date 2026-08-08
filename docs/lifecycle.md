@@ -250,3 +250,38 @@ The producer is a DI `AddSingleton<IMetricsFeed, MetricsFeed>()` — one instanc
 tiny component that subscribes on mount and **unsubscribes on unmount** so it stops repainting (and can be collected)
 once it leaves the tree. The loop runs on a background thread, so `StateHasChanged()` crosses threads — safe here: it
 schedules a render under the subscriber's own session lock and is a no-op once the component unmounts.
+
+### Hosted services
+
+A self-starting singleton is the simplest producer, but it gives you no say over *when* it starts and no chance to shut
+it down cleanly. For that, register an `IHostedService` — usually by deriving from `BackgroundService`:
+
+```csharp
+builder.Services.AddHostedService<ReportGenerator>();
+```
+
+This works the same on **both hosts**. On the Server the generic host starts it; on WASM the framework starts it for
+you at the end of boot — late enough that a service is free to mutate state and call `StateHasChanged()` against a
+mounted tree, and early enough that the work has begun before anyone can interact. Registration order is start order,
+and startup is sequential.
+
+Be precise about what "started" buys you, though: for a `BackgroundService` it means `ExecuteAsync` reached its
+**first await**, not that it finished initialising. If one service must not run until another is genuinely *ready* —
+a job processor that must not poll until its store has restored a snapshot — make it wait on something explicit
+(a `TaskCompletionSource`, a readiness flag); registration order alone will not do it.
+
+Three differences from the Server are worth knowing:
+
+- **A failure to start is not fatal.** On the Server a hosted service that throws from `StartAsync` aborts startup,
+  which is right when an orchestrator can restart the process. A browser tab has nothing to restart, so the failure is
+  logged and the app carries on without that service rather than showing a blank page. One caveat: a hosted service
+  whose *constructor* throws (or whose dependency is not registered) takes the whole set down, because the container
+  builds them all in a single call — you get a clear error, and no hosted services.
+- **A loop that faults later is reported.** `StartAsync` has already returned by the time a `BackgroundService`'s
+  `ExecuteAsync` fails, and nothing on this host awaits it, so Rask observes the execute task for you and logs a
+  fault. Without that, a crashed background loop would look exactly like one that was never started.
+- **Shutdown is best-effort.** The browser's nearest thing to `SIGTERM` is `pagehide`, and it does not wait for
+  anything a handler starts. Rask drains hosted services there (in reverse start order, and not for a back/forward-cache
+  suspend, where the page can be restored still running), but a service may get little time or none. Treat it as an
+  optimisation — `Rask.Jobs`' processor, for instance, hands its lease back in `StopAsync`, and when that does not land
+  the lease simply expires, exactly as it would for a server that was killed rather than drained.

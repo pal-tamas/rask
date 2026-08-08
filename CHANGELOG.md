@@ -65,6 +65,21 @@ them until tagged releases begin.
   with a **native relink** (the `wasm-tools` workload); a build made with `-p:WasmBuildNative=false` ships
   without the EF Core reference set and marks those chapters read-only rather than pretending they work,
   so the fast unit-gate build is unaffected.
+- **`AddHostedService` now works on the browser host.** It always compiled there —
+  `Microsoft.Extensions.Hosting.Abstractions` is pure abstractions — but nothing ever *started* what
+  it registered, because a WASM app has no generic host. So a `BackgroundService` that ran on the
+  server registered fine, resolved fine, and silently never ran. Rask now starts registered hosted
+  services itself, in registration order, at the end of boot — late enough that a service can call
+  `StateHasChanged()` against a mounted tree, and late enough that a slow `StartAsync` cannot hold up
+  the rest of the boot or anything after `await RunAsync<App>()`. Differences from the server, all
+  documented in [docs/lifecycle.md](docs/lifecycle.md#hosted-services): a service that throws from
+  `StartAsync` is logged and skipped rather than blanking the app, since a browser tab has no
+  orchestrator to restart it (a throwing *constructor* takes the whole set down, because the
+  container builds them in one call — reported plainly); a `BackgroundService` whose loop faults
+  after starting is observed and logged, so a crashed loop cannot masquerade as one that never ran;
+  and shutdown is drained from `pagehide` — in reverse start order, and not for a back/forward-cache
+  suspend where the page can be restored still running — which the browser does not wait for, so it
+  is an optimisation rather than a guarantee.
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

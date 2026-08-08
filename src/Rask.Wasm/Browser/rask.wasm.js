@@ -2905,6 +2905,26 @@ export function setExports(exports) {
     // index.html (and any subsequent applyRender will re-sweep so morph-added
     // assets get picked up too — see applyDom in handle()).
     scanHeadAssets();
+
+    // Let registered IHostedServices drain when the page really goes away — the browser's nearest
+    // thing to SIGTERM. `pagehide` rather than `beforeunload` because it also fires on mobile, where
+    // a tab is far likelier to be discarded than closed.
+    //
+    // `event.persisted` is the whole reason this isn't a one-liner: it means the page is going into
+    // the back/forward cache and can be restored, still running, with its services still needed.
+    // Stopping them there would leave a restored page with dead background work and no way to notice.
+    // Not registered with `once`, so a bfcache round-trip still gets drained on the eventual real
+    // teardown; StopAsync is idempotent, so a double fire is harmless.
+    window.addEventListener("pagehide", (event) => {
+        if (event.persisted) return;
+        try {
+            exports?.Rask?.Wasm?.JSInterop?.StopHostedServices?.();
+        } catch (e) {
+            // Nothing useful can be done while the page is unloading, and throwing here would take
+            // the rest of the browser's teardown with it.
+            console.warn("[Rask] pagehide: stopping hosted services failed", e);
+        }
+    });
 }
 
 // Called by .NET (via [JSImport]) for both the initial paint and subsequent
