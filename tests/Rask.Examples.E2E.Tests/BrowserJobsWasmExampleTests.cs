@@ -30,6 +30,76 @@ public sealed class BrowserJobsWasmExampleTests
         _pw = pw;
     }
 
+    /// <summary>
+    ///     The <c>pagehide</c> drain, and specifically its back/forward-cache guard.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Observed through the snapshot loop rather than through the drain directly, because a stopped
+    ///         hosted service has no visible output of its own. The sample snapshots every 2s and logs each
+    ///         one, so "did the services stop?" becomes "did the log go quiet?" — which is deterministic,
+    ///         unlike asserting on the final flush itself (the browser does not wait for a <c>pagehide</c>
+    ///         handler, so that would be genuinely flaky).
+    ///     </para>
+    ///     <para>
+    ///         The <c>persisted: true</c> half is the point. A bfcache suspend can be restored with its
+    ///         services still needed, so draining there would leave a resumed page with dead background
+    ///         work and nothing to indicate why — the exact silent failure this whole change set exists to
+    ///         remove.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public async Task Pagehide_drains_hosted_services_but_not_for_a_bfcache_suspend()
+    {
+        var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
+        var page = await context.NewPageAsync();
+
+        var snapshots = 0;
+        page.Console += (_, message) =>
+        {
+            if (message.Text.Contains("Created SQLite snapshot", StringComparison.Ordinal))
+            {
+                Interlocked.Increment(ref snapshots);
+            }
+        };
+
+        try
+        {
+            await page.GotoAsync("/index.html");
+            await Expect(page.Locator("[data-testid=enqueue]"))
+                .ToBeVisibleAsync(new() { Timeout = BootTimeoutMs });
+
+            // A bfcache suspend: the page can come back with its services still needed, so the loop must
+            // keep running.
+            await page.EvaluateAsync(
+                "() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))");
+
+            var beforeSuspend = Volatile.Read(ref snapshots);
+            await page.WaitForTimeoutAsync(6_000);
+            var afterSuspend = Volatile.Read(ref snapshots);
+
+            Assert.True(
+                afterSuspend > beforeSuspend,
+                $"a bfcache pagehide stopped the snapshot loop: {beforeSuspend} -> {afterSuspend} over ~6s "
+                + "with a 2s interval. The event.persisted guard in rask.wasm.js is not holding.");
+
+            // A real teardown: the services drain, so the loop stops.
+            await page.EvaluateAsync(
+                "() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false }))");
+
+            // One interval of slack: a tick already in flight when the drain landed may still log.
+            await page.WaitForTimeoutAsync(3_000);
+            var afterTeardown = Volatile.Read(ref snapshots);
+            await page.WaitForTimeoutAsync(6_000);
+
+            Assert.Equal(afterTeardown, Volatile.Read(ref snapshots));
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
+    }
+
     [Fact]
     public async Task A_queued_job_runs_in_the_browser_and_survives_a_reload()
     {
