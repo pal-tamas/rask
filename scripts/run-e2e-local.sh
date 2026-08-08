@@ -62,14 +62,24 @@ dotnet publish samples/Rask.Example.Shop -c Release --no-build --no-restore --no
 # last. Clearing only obj/Release/net10.0-browser keeps obj/project.assets.json, so the restore below is
 # still incremental.
 #
-# bin/ has to go too, and leaving it behind is why the first attempt at this (#652) did not work. With the
-# no-native build still sitting in bin/Release/net10.0-browser the publish below treats the compile as up
-# to date, so it never re-runs the scoped-asset bake — and since the staged copy under obj/ has just been
-# deleted, there is now nothing at all to publish. Clearing obj alone is therefore worse than clearing
-# neither. Measured: obj only -> 0 files under publish/wwwroot/_rask; obj + bin -> 6.
+# bin/ is cleared as well as obj/, because clearing only the intermediates was measured to be
+# insufficient: on one machine, an A/B inside this gate gave 0 files under publish/wwwroot/_rask with obj
+# alone and 6 with obj + bin, the one-line change being the only difference. On another machine the same
+# sequence — solution build, clear obj, publish — reproduces cleanly and ships its files every time, so
+# whatever decides it is not in this script.
 #
-# Note this cannot be caught by running the gate twice: both runs clear obj and both leave the same stale
-# bin, so both fail identically and look consistent. See #650.
+# The mechanism is therefore NOT known. The first explanation (a stale no-native bin/ letting the publish
+# treat the compile as up to date, so the bake never re-runs) is contradicted by those clean runs, where
+# the bake re-ran and published normally; it is recorded here only so nobody re-derives and re-believes
+# it. The clean is a deliberate superset justified by cost — one recompile of a project whose native
+# relink dominates this step regardless — not by a claim either measurement supports.
+#
+# Worth knowing when verifying any fix here: running the gate twice back to back does NOT distinguish
+# these, since both runs clear the same things and leave the same things stale. Nor does inspecting
+# publish/wwwroot after a passing run — `dotnet publish` does not clean its output directory, so _rask
+# left by an earlier good publish makes a broken publish look fine. Delete the publish dir first.
+# _RaskVerifyPublishedScopedAssets (Rask.Wasm.targets) turns the whole class into a build error if it
+# recurs, which is the durable half of this. See #650.
 rm -rf samples/Rask.Example.Playground/obj/Release/net10.0-browser \
        samples/Rask.Example.Playground/bin/Release/net10.0-browser
 # It also RE-RESTORES (no --no-restore, unlike the publishes above). RaskPlaygroundData gates the EF Core /
