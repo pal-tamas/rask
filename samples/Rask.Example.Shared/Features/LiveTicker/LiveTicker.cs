@@ -74,7 +74,7 @@ public sealed partial class LiveTicker : Component
 
     // Parent-owned log sink so OnUnmount* entries survive disposal — same pattern
     // LifecycleCycleProbe uses (LifecycleProbe.cs:49).
-    public Carrier<Action<string>>? Log { get; set; }
+    public Handler<string>? Log { get; set; }
 
     // Pluggable price feed. Null ⇒ the synthetic random-walk below. A real deploy
     // swaps in an HTTP-backed Func here — the "one-line change in PollOnceAsync"
@@ -289,5 +289,5 @@ public sealed partial class LiveTicker : Component
         _ => 100m
     };
 
-    private void Emit(string entry) => Log?.Fn?.Invoke(entry);
+    private void Emit(string entry) => Log?.Invoke(entry);
 }

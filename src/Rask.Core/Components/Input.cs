@@ -74,7 +74,7 @@ public sealed class Input<T> : Element, IFormControl<T>
     // All six are carrier-typed (Handler<>/HandlerAsync<>, not Callback<>/CallbackAsync<>) so the builder
     // setter keeps the property's own name: a delegate-typed member is invocable, so `.OnInput(handler)`
     // would bind to the property (CS1593). Assignment and every generated `OnInput:` argument are
-    // unchanged; reading the delegate back is `.Fn`.
+    // unchanged; calling one back is `OnInput?.Invoke(value)` (the carried delegate is internal).
     public Handler<string>? OnInput { get; set; }
     public Handler<T>? OnChange { get; set; }
     public HandlerAsync<string>? OnInputAsync { get; set; }

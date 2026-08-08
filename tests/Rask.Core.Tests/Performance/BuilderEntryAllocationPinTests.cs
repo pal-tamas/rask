@@ -144,6 +144,44 @@ internal sealed partial class AllocFragmentFactoryProbe : Component
     private Component Row(int i) => Span()[i.ToString(System.Globalization.CultureInfo.InvariantCulture)];
 }
 
+// The carrier's public READ surface. `OnPing?.Invoke()` is what a component calls its own callback back
+// with now that the carried delegate is internal, and it sits wherever the component chose to put it —
+// including inside Render(), on the hot path. It has to cost exactly what `Fn?.Invoke()` cost: an
+// instance method on a readonly struct, reached through Nullable<T>, is a stack copy and a call. A boxed
+// carrier (an Invoke reached through an interface, say) would be one allocation per call per render.
+// The handlers are STATIC method groups so AutoCallback leaves them alone — the wrapped case has its own
+// probe above, and this one is measuring the call, not the wrap.
+internal sealed partial class AllocInvokeLeaf : Component
+{
+    public Handler? OnPing { get; set; }
+    public Handler<string>? OnNamed { get; set; }
+
+    protected override Component? Render()
+    {
+        OnPing?.Invoke();
+        OnNamed?.Invoke("x");
+        return Div;
+    }
+}
+
+internal sealed partial class AllocInvokeEntryProbe : Component
+{
+    protected override Component? Render() => Div[AllocInvokeLeaf.OnPing(Ping).OnNamed(Named)];
+
+    private static void Ping() { }
+
+    private static void Named(string value) { }
+}
+
+internal sealed partial class AllocInvokeFactoryProbe : Component
+{
+    protected override Component? Render() => Div()[Generated.AllocInvokeLeaf(OnPing: Ping, OnNamed: Named)];
+
+    private static void Ping() { }
+
+    private static void Named(string value) { }
+}
+
 // A Head override, which the component's own render now produces (Component.RenderForLive) so that an
 // entry built there is owned by the component whose Head it is. That puts a second chain — and a second
 // set of pending resets — on the per-render path of every component that contributes to the head, so it
@@ -200,6 +238,16 @@ public class BuilderEntryAllocationPinTests
     {
         var entry = Measure(static () => new AllocFragmentEntryProbe());
         var factory = Measure(static () => new AllocFragmentFactoryProbe());
+
+        AssertNoWorseThan(entry, factory);
+    }
+
+    // Calling a callback back through the carrier, per render, on both surfaces.
+    [Fact]
+    public void A_callback_invoked_through_the_carrier_does_not_allocate_more_per_render_than_the_factory()
+    {
+        var entry = Measure(static () => new AllocInvokeEntryProbe());
+        var factory = Measure(static () => new AllocInvokeFactoryProbe());
 
         AssertNoWorseThan(entry, factory);
     }

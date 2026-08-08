@@ -24,7 +24,8 @@ public sealed class DragDrop : Component
     // Fired once when an item is dropped onto a zone. Set exactly one of OnDrop / OnDropAsync.
     // Carrier-typed (Handler<>, not Callback<>) so the builder setter can keep the property's own name —
     // a delegate-typed member is invocable, so `.OnDrop(handler)` would bind to the property (CS1593).
-    // Assignment and the generated `OnDrop:` factory argument are unchanged; reading the delegate is `.Fn`.
+    // Assignment and the generated `OnDrop:` factory argument are unchanged; calling one back is
+    // `OnDrop?.Invoke(move)` (the carried delegate itself is internal — see Rask.Core.Handler).
     public Handler<DragDropMove>? OnDrop { get; set; }
     public HandlerAsync<DragDropMove>? OnDropAsync { get; set; }
 

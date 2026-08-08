@@ -245,7 +245,7 @@ public sealed class LiveTickerTests
     // RenderAsLiveRoot path App uses). [SkipFactory] keeps the generator from
     // emitting a colliding Generated.TwoTickerRoot() factory.
     [SkipFactory]
-    private sealed class TwoTickerRoot(Action<string> log) : Component
+    private sealed class TwoTickerRoot(Callback<string> log) : Component
     {
         protected override Component? Render() =>
         [

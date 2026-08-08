@@ -104,7 +104,7 @@ them until tagged releases begin.
   untouched, and the carrier is a readonly struct wrapped and unwrapped around a reference that is
   already there. Assignment (`OnClick = Save`) and every generated `OnClick:` factory argument keep
   working through the implicit conversion — no call site in `src`, `samples` or `tests` needed a change —
-  but code that *reads* a handler back off an element now reads `el.OnClick?.Fn`. Element handlers are
+  but code that *reads* a handler back off an element now calls it back — `el.OnClick?.Invoke()`. Element handlers are
   still never `AutoCallback`-wrapped: they go straight to the DOM, where handler-owner resolution
   already re-renders the owner, and a wrapper would be a closure per handler per render (pinned by an
   entry-vs-factory allocation test on a handler-bearing tree, not just a plain one).
@@ -124,7 +124,7 @@ them until tagged releases begin.
   controlled pair changes with it (`Handler<T>?` / `HandlerAsync<T>?`), so a custom control must update
   those two declarations alongside its four bound ones. Assignment and every generated `OnClick:`
   argument keep working through the implicit conversion — no call site in `src`, `samples` or `tests`
-  changed — but reading a callback back off a component is now `.Fn`.
+  changed — but calling a callback back off a component is now `OnClick?.Invoke(…)`.
   Unlike an element's, these callbacks **stay `AutoCallback`-wrapped**: a component callback has no DOM
   handler-owner resolution behind it, so dropping the wrapper would leave the handler running while
   nothing re-rendered, with byte-identical markup. Pinned on both surfaces, against the element case, and
@@ -189,6 +189,20 @@ them until tagged releases begin.
   with no compile error and no failing test. Allocation per render is unchanged on every pinned shape,
   and a carrier-borne render fragment costs the same through a chain as through the factory
   (1208 B/render either way).
+  **BREAKING — a carrier hands you the CALL, not the delegate.** `Handler`, `HandlerAsync` and their
+  argument-taking siblings stopped being positional records, so the delegate they carry is no longer a
+  public `Fn` property: the public surface is `Invoke` — `button.OnClick?.Invoke()`,
+  `await form.OnSubmitAsync?.InvokeAsync(data)`. It reads as what it does, and it is null-safe by
+  construction on both halves of the problem: an unset carrier (`?.` never reaches it) and a carrier that
+  wraps a null delegate, which the implicit conversion makes constructible and which a hand-held `.Fn()`
+  would have thrown on. That is the same trap `From` closes at the assignment end, structurally rather
+  than one call site at a time. `Carrier<TDelegate>` keeps its `Fn` public and is the deliberate
+  exception: it names its delegate only by a type parameter, so it knows neither the arity nor the return
+  type an `Invoke` would need, and a component declaring a value-returning callback prop
+  (`Carrier<Func<T, string?>>? RowClass`) has to reach the delegate to use it. Costs nothing per render —
+  an instance method on a readonly struct reached through `Nullable<T>` is a stack copy and a call
+  (1208 B/render through a chain and through the factory alike, on a component that invokes both its
+  callbacks every render).
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

@@ -59,7 +59,7 @@ public sealed partial class BsToast : Component
     private void Dismiss()
     {
         OnClose?.Invoke(Id);
-        OnCloseAsync?.Fn?.Invoke(Id);
+        OnCloseAsync?.InvokeAsync(Id);
     }
 
     protected override Component? Render()

@@ -77,7 +77,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask039 = new(
         "RASK039",
         "Delegate-typed property cannot receive a builder setter",
-        "Property '{0}.{1}' is a raw delegate, so it is invocable and C#'s invocable-member rule binds '{1}(...)' to the property instead of to the same-named builder setter — the setter can never be reached. Declare it as a carrier ('{2}') instead: the carrier is not invocable, its implicit conversion keeps assignment and every generated '{1}:' factory argument working, and reading the delegate back becomes '.Fn'.",
+        "Property '{0}.{1}' is a raw delegate, so it is invocable and C#'s invocable-member rule binds '{1}(...)' to the property instead of to the same-named builder setter — the setter can never be reached. Declare it as a carrier ('{2}') instead: the carrier is not invocable, its implicit conversion keeps assignment and every generated '{1}:' factory argument working, and calling the callback back becomes '{1}?.Invoke(...)'.",
         "Rask.Generators",
         DiagnosticSeverity.Warning,
         true,

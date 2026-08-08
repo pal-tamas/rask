@@ -32,7 +32,7 @@ public sealed class Form : Element
     public bool? Novalidate { get; set; }
     public string? Name { get; set; }
     // Carrier-typed so the builder setter keeps the property's own name (a delegate prop is invocable,
-    // so `.OnSubmit(save)` would try to invoke it — CS1593). Reading the delegate back is `.Fn`.
+    // so `.OnSubmit(save)` would try to invoke it — CS1593). Calling one back is `OnSubmit?.Invoke(data)`.
     public Handler<FormData>? OnSubmit { get; set; }
 
     public HandlerAsync<FormData>? OnSubmitAsync { get; set; }

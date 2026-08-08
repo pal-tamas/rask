@@ -57,10 +57,14 @@ siblings `Handler<T>?` / `HandlerAsync<T>?`, or `Carrier<TDelegate>?` for any ot
 changes at the call site: `OnClick: Save` and `OnClick = Save` still take a bare lambda or method
 group, because the carrier converts implicitly. It exists so the property and its builder setter can
 share a name — a delegate-typed property *is* invocable, so `.OnClick(Save)` would try to call the
-handler (CS1593). Two consequences: reading the delegate back is `.Fn` (`button.OnClick?.Fn`), and the
-implicit conversion accepts a null delegate, so build an optional one with `Handler.From(h)` (or cast
-the unset branch, `: (Handler?)null`) rather than letting `cond ? new Handler(h) : null` hand back a
-non-null carrier wrapping null. **Wrapping is unchanged:** a component callback is still auto-wrapped,
+handler (CS1593). Two consequences: calling the callback back is `Invoke` — `button.OnClick?.Invoke()`,
+`grid.OnSortChange?.Invoke(sort)`, `await form.OnSubmitAsync?.InvokeAsync(data)` — which is null-safe
+whether the carrier is unset or wraps nothing (the carried delegate itself is internal to the
+framework; `Carrier<TDelegate>` is the one exception, and exposes `.Fn`, because a delegate named only
+by a type parameter has no signature to offer an `Invoke` for). And the implicit conversion accepts a
+null delegate, so build an optional one with `Handler.From(h)` (or cast the unset branch,
+`: (Handler?)null`) rather than letting `cond ? new Handler(h) : null` hand back a non-null carrier
+wrapping null. **Wrapping is unchanged:** a component callback is still auto-wrapped,
 a DOM handler still is not — the carrier carries no opinion about it.
 
 Your own delegate props need none of this; they keep working exactly as above, and their builder setter
@@ -101,7 +105,7 @@ You never name the carrier: you pass the lambda or method group and the implicit
 rest, so `OnClick: Save` and `OnClick = Save` read exactly as before. It exists so a property and its
 builder setter can share a name — a delegate-typed property *is* invocable, which would make
 `.OnClick(Save)` try to call the handler (CS1593). Reading a handler back off an element is the one
-place it shows: `el.OnClick?.Fn`. DOM handlers are **never** auto-wrapped — they go straight to the
+place it shows: `el.OnClick?.Invoke()`. DOM handlers are **never** auto-wrapped — they go straight to the
 DOM, where handler-owner resolution already re-renders the owner.
 
 All of these are delegated by a single capture-phase listener per event in the shared client module

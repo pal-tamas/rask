@@ -14,8 +14,13 @@ namespace Rask.Core;
 ///     </para>
 ///     <para>
 ///         The implicit conversion keeps ordinary assignment working (<c>OnSelect = Choose</c>), so
-///         the change is invisible at every site except the prop's declared type. Reading the delegate
-///         back needs <c>.Fn</c>.
+///         the change is invisible at every site except the prop's declared type. Calling the callback
+///         back is <c>OnSelect?.Invoke()</c> — the carrier's public surface is the invocation, not the
+///         delegate it holds. The delegate itself (<c>Fn</c>) is deliberately internal: handing it out
+///         re-exposes the null trap the carrier exists to close (see <see cref="From" />) and invites
+///         call sites to re-wrap a delegate the framework already owns. The <em>declaring</em> struct is
+///         written without a positional parameter for that reason — a positional record would publish
+///         <c>Fn</c> as a property no matter what.
 ///     </para>
 ///     <para>
 ///         <see cref="Element" />'s whole GlobalEventHandlers surface is declared with these carriers —
@@ -31,8 +36,17 @@ namespace Rask.Core;
 ///         silently regress the render hot path.
 ///     </para>
 /// </remarks>
-public readonly record struct Handler(Callback? Fn)
+public readonly record struct Handler
 {
+    /// <summary>Wraps <paramref name="fn" />. Prefer <see cref="From" />, which maps null to unset.</summary>
+    public Handler(Callback? fn) => Fn = fn;
+
+    // The carried delegate. INTERNAL: Invoke is the public read surface (see the type remarks); the
+    // framework itself still needs the delegate — Element's facade setters store it raw in the DOM event
+    // dictionary, and the wrap-preservation tests assert its identity rather than invoking it.
+    internal Callback? Fn { get; }
+
+    /// <summary>Runs the carried callback; a no-op when nothing is wired.</summary>
     public void Invoke() => Fn?.Invoke();
 
     /// <inheritdoc cref="Carrier{TDelegate}.From" />
@@ -42,8 +56,15 @@ public readonly record struct Handler(Callback? Fn)
 }
 
 /// <summary>The async sibling of <see cref="Handler" />.</summary>
-public readonly record struct HandlerAsync(CallbackAsync? Fn)
+public readonly record struct HandlerAsync
 {
+    /// <summary>Wraps <paramref name="fn" />. Prefer <see cref="From" />, which maps null to unset.</summary>
+    public HandlerAsync(CallbackAsync? fn) => Fn = fn;
+
+    // The carried delegate — internal for the reason Handler.Fn is.
+    internal CallbackAsync? Fn { get; }
+
+    /// <summary>Runs the carried callback; completes synchronously when nothing is wired.</summary>
     public Task InvokeAsync() => Fn?.Invoke() ?? Task.CompletedTask;
 
     /// <inheritdoc cref="Carrier{TDelegate}.From" />
@@ -60,8 +81,15 @@ public readonly record struct HandlerAsync(CallbackAsync? Fn)
 ///     <c>Carrier&lt;Callback&lt;MouseEventArgs&gt;&gt;?</c>. <see cref="Element" />'s whole
 ///     GlobalEventHandlers surface is declared with these four carriers.
 /// </remarks>
-public readonly record struct Handler<TArgs>(Callback<TArgs>? Fn)
+public readonly record struct Handler<TArgs>
 {
+    /// <summary>Wraps <paramref name="fn" />. Prefer <see cref="From" />, which maps null to unset.</summary>
+    public Handler(Callback<TArgs>? fn) => Fn = fn;
+
+    // The carried delegate — internal for the reason Handler.Fn is.
+    internal Callback<TArgs>? Fn { get; }
+
+    /// <summary>Runs the carried callback with <paramref name="args" />; a no-op when nothing is wired.</summary>
     public void Invoke(TArgs args) => Fn?.Invoke(args);
 
     /// <inheritdoc cref="Carrier{TDelegate}.From" />
@@ -72,8 +100,18 @@ public readonly record struct Handler<TArgs>(Callback<TArgs>? Fn)
 }
 
 /// <summary>The async sibling of <see cref="Handler{TArgs}" />.</summary>
-public readonly record struct HandlerAsync<TArgs>(CallbackAsync<TArgs>? Fn)
+public readonly record struct HandlerAsync<TArgs>
 {
+    /// <summary>Wraps <paramref name="fn" />. Prefer <see cref="From" />, which maps null to unset.</summary>
+    public HandlerAsync(CallbackAsync<TArgs>? fn) => Fn = fn;
+
+    // The carried delegate — internal for the reason Handler.Fn is.
+    internal CallbackAsync<TArgs>? Fn { get; }
+
+    /// <summary>
+    ///     Runs the carried callback with <paramref name="args" />; completes synchronously when nothing
+    ///     is wired.
+    /// </summary>
     public Task InvokeAsync(TArgs args) => Fn?.Invoke(args) ?? Task.CompletedTask;
 
     /// <inheritdoc cref="Carrier{TDelegate}.From" />
@@ -96,6 +134,16 @@ public readonly record struct HandlerAsync<TArgs>(CallbackAsync<TArgs>? Fn)
 ///         the validator with a validator.
 ///     </para>
 ///     <para>
+///         Its <see cref="Fn" /> is the one carrier delegate that stays PUBLIC — the four
+///         <see cref="Handler" /> shapes keep theirs internal behind <c>Invoke</c>. There is no
+///         <c>Invoke</c> to offer here: the delegate is a type parameter, so its signature (arity,
+///         argument types, return type) is unknown to this type and no method can stand in for calling
+///         it. A component that declares a value-returning callback prop —
+///         <c>Carrier&lt;Func&lt;T, string?&gt;&gt;? RowClass</c> — has to reach the delegate to use it,
+///         and it is usually in another assembly. Reading it back is the deliberate escape hatch;
+///         <em>constructing</em> one still goes through <see cref="From" />.
+///     </para>
+///     <para>
 ///         The implicit conversion keeps plain assignment (<c>Validate = rule</c>) and the generated
 ///         factories' <c>Validate:</c> parameter working unchanged — the generator maps a carrier prop
 ///         back to its delegate for every parameter it emits, so no call site sees the carrier.
@@ -105,8 +153,14 @@ public readonly record struct HandlerAsync<TArgs>(CallbackAsync<TArgs>? Fn)
 ///         no initializer is a <em>required</em> factory parameter (RASK001 / CS9040).
 ///     </para>
 /// </remarks>
-public readonly record struct Carrier<TDelegate>(TDelegate? Fn) where TDelegate : Delegate
+public readonly record struct Carrier<TDelegate> where TDelegate : Delegate
 {
+    /// <summary>Wraps <paramref name="fn" />. Prefer <see cref="From" />, which maps null to unset.</summary>
+    public Carrier(TDelegate? fn) => Fn = fn;
+
+    /// <summary>The carried delegate, or <c>null</c> when the carrier is unset.</summary>
+    public TDelegate? Fn { get; }
+
     /// <summary>
     ///     Wraps a delegate, mapping <c>null</c> to an <em>unset</em> carrier — the null-preserving
     ///     counterpart of the implicit conversion.
