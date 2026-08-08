@@ -54,11 +54,20 @@ public sealed class BakeScopedAssetsTask : Task
     ///     <c>false</c>) if the Rask registry resolved but produced zero files — i.e.
     ///     a Rask WASM project whose scoped assets silently failed to bake. Defaults to
     ///     <c>false</c>: a non-Rask project (no <c>Rask.Core</c>) still no-ops quietly,
-    ///     and the build-time bake stays non-fatal. Wired to <c>true</c> only on the
-    ///     <c>dotnet run</c> hook, where a missing bundle means the served app would
-    ///     404 on every <c>/_rask/a/</c> URL — better to fail fast than serve a broken
-    ///     standalone bundle.
+    ///     and the build-time bake stays non-fatal.
     /// </summary>
+    /// <remarks>
+    ///     <b>Nothing sets this today</b> — the single call site in <c>Rask.Wasm.targets</c> leaves it at
+    ///     its default, so the guard below never fires in a real build. It is kept because the check is
+    ///     cheap and correct for what it covers, and a future caller may want it.
+    ///     <para>
+    ///         It is deliberately <b>not</b> the guard against a published bundle missing its scoped
+    ///         assets, which is the failure that actually bites (#650/#652): there the bake runs and
+    ///         writes its files perfectly well, and the break is between staging and the published
+    ///         output — invisible from inside this task. <c>_RaskVerifyPublishedScopedAssets</c> in
+    ///         <c>Rask.Wasm.targets</c> covers that, by comparing what was staged against what shipped.
+    ///     </para>
+    /// </remarks>
     public bool FailOnEmpty { get; set; }
 
     public override bool Execute()

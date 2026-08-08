@@ -190,4 +190,39 @@
              Text="Rask: rewrote &lt;base href&gt; to &quot;$(_RaskNormalizedBase)/&quot; in $(PublishDir)wwwroot/index.html"/>
   </Target>
 
+  <!--
+    Fail the publish if the scoped assets were baked but did not reach the published wwwroot.
+
+    The bake stages into obj/…/rask-scoped/_rask/a and registers the files as computed static web assets
+    in the BUILD pass, relying on AssetKind=All to carry them into the publish manifest. That link can be
+    broken without anything erroring — most reliably by building the project once in each WasmBuildNative
+    mode, since the two share one obj/ and only one of them leaves the staging the publish reads. The
+    result is a published bundle with no /_rask/a/ at all: the app builds, publishes, boots and renders,
+    and only the scoped CSS/JS is quietly absent.
+
+    That silence is the whole problem. Every scoped-asset URL 404s in the browser, and for an app whose
+    scoped JS owns something load-bearing (the playground's editor, say) it presents as a hung page rather
+    than a missing file — sending you to debug the app instead of the build. This is exactly what happened
+    in #650/#652, twice, to two different people.
+
+    Comparing staged-vs-published is what makes this precise rather than a guess: a project with no scoped
+    assets stages nothing, publishes nothing and is silently fine, while a project that staged files and
+    published none is unambiguously broken. BakeScopedAssetsTask's own FailOnEmpty cannot cover this — it
+    only fires when the bake RUNS and writes zero, and here the bake ran perfectly well, just not into the
+    staging this publish consumed.
+  -->
+  <Target Name="_RaskVerifyPublishedScopedAssets"
+          AfterTargets="Publish"
+          Condition=" '$(RaskWasm)' == 'true' ">
+    <PropertyGroup>
+      <_RaskVerifyStageDir>$(IntermediateOutputPath)rask-scoped\</_RaskVerifyStageDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_RaskStagedScopedAsset Include="$(_RaskVerifyStageDir)_rask\a\**\*"/>
+      <_RaskPublishedScopedAsset Include="$(PublishDir)wwwroot\_rask\a\**\*"/>
+    </ItemGroup>
+    <Error Condition=" '@(_RaskStagedScopedAsset)' != '' AND '@(_RaskPublishedScopedAsset)' == '' "
+           Text="Rask: the scoped assets were baked but none reached the published output. $(_RaskVerifyStageDir)_rask/a contains @(_RaskStagedScopedAsset->Count()) file(s), while $(PublishDir)wwwroot/_rask/a has none, so every /_rask/a/ URL would 404 in the browser and any component relying on its scoped JS would never initialise. This usually means the project was built in both WasmBuildNative modes through one obj/ — clear $(IntermediateOutputPath) and publish again."/>
+  </Target>
+
 </Project>
