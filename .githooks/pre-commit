@@ -15,7 +15,19 @@ if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
   exit 0
 fi
 
-if ! git diff --cached --name-only | grep -qE '^(src/|tests/|benchmarks/|Rask\.slnx$|Directory\.)'; then
+# samples/ and docs/ are in here for the same reason src/ is: the suite genuinely gates them.
+#
+#   samples/ is compiled, analyzer-checked, warnings-as-errors code with its own test projects. More than
+#   that, Rask.Example.Shared.Tests compiles samples/Rask.Example.Shared and owns DemoMarkup.golden.txt —
+#   so a samples-only commit could break a committed golden with nothing objecting.
+#
+#   docs/ is an input to the tests, not just prose: DocsIndexTests walks docs/**/*.md on disk for
+#   reachability from docs/README.md, and GuidesTests holds the GuideCatalog parity guard in both
+#   directions. A new page committed on its own skipped exactly the checks written to catch it.
+#
+# Leaving these out meant a whole feature could land ungated — the playground tutorial was largely a
+# samples/ + docs/ change, and reported "no code changes staged".
+if ! git diff --cached --name-only | grep -qE '^(src/|samples/|docs/|tests/|benchmarks/|Rask\.slnx$|Directory\.)'; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
 fi

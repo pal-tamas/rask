@@ -58,9 +58,10 @@ public sealed class PlaygroundView : Component
     // Progress of the background reference download that powers the IDE features (diagnostics + IntelliSense).
     private IdeState _ide = IdeState.Loading;
 
-    // Set once the editor (Monaco, or the textarea fallback) has mounted. Run stays disabled until then so
-    // a click can't read an empty editor and compile nothing — and Playwright's actionability wait means
-    // the E2E naturally waits for the editor without a bespoke sleep.
+    // Set once the editor (Monaco, or the textarea fallback) has mounted. Every control is disabled until
+    // then (see CanInteract) so a click can't read an empty editor and compile nothing, or push code into
+    // an editor that doesn't exist yet — and Playwright's actionability wait means the E2E naturally waits
+    // for the editor without a bespoke sleep.
     private bool _editorReady;
 
     // Bumps every compile so the preview subtree (and its ErrorBoundary) is keyed fresh — a new run mounts
@@ -109,9 +110,29 @@ public sealed class PlaygroundView : Component
 
         // The editor host div now exists in the DOM; create the Monaco editor inside it. mountEditor never
         // throws (it falls back to a textarea), so reaching here means the editor is usable.
-        await _js.InvokeVoidAsync("Rask.PlaygroundView.mountEditor", _editorHost, PlaygroundSamples.Starter);
-        _editorReady = true;
-        _phase = "Press Run to compile.";
+        //
+        // The timeout covers the case that promise never SETTLES, which is different from failing: if the
+        // scoped PlaygroundView.js module didn't load at all, there is nothing to resolve the invoke, so
+        // without a deadline _editorReady stays false forever and every control sits disabled with no
+        // explanation. That has happened for real — a build that silently baked no scoped assets — and it
+        // reads as "the playground is broken", sending you to debug Roslyn or Monaco rather than the build
+        // (#650). Generous, because a slow connection fetching Monaco must not trip it.
+        try
+        {
+            await _js.InvokeVoidAsync(
+                "Rask.PlaygroundView.mountEditor", TimeSpan.FromSeconds(60), _editorHost,
+                PlaygroundSamples.Starter);
+            _editorReady = true;
+            _phase = "Press Run to compile.";
+        }
+        catch (Exception ex) when (ex is TaskCanceledException or JSException or JSDisconnectedException)
+        {
+            // Everything stays disabled — without the module we cannot even read the editor's contents —
+            // but now it says why instead of looking like a hung page.
+            _phase = "The editor module (PlaygroundView.js) did not load — try reloading the page.";
+            _ide = IdeState.Unavailable;
+            return;
+        }
 
         // Kick off the (multi-MB) reference download in the background so IntelliSense + live diagnostics come
         // alive a few seconds after load — without blocking first paint or the first Run. Fire-and-forget:
@@ -168,9 +189,9 @@ public sealed class PlaygroundView : Component
                     // Reset / Run — the same Bs* button language as the docs; the pg-run class stays a hook
                     // for the Ctrl/Cmd+Enter shortcut (PlaygroundView.js) and the E2E.
                     BsButton(Class: "pg-reset", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                        Disabled: _busy || !_editorReady, OnClickAsync: ResetAsync)["Reset"],
+                        Disabled: !CanInteract, OnClickAsync: ResetAsync)["Reset"],
                     BsButton(Class: "pg-run", Color: BsColor.Primary, Size: BsSize.Sm,
-                        Disabled: _busy || !_editorReady || IsActiveChapterLocked,
+                        Disabled: !CanInteract || IsActiveChapterLocked,
                         OnClickAsync: RunAsync)[_busy ? "Running…" : "Run ▸"],
                     // Cross-app links back to the docs + repo, and the shared light/dark toggle.
                     BsLink(Href: "https://pal-tamas.github.io/rask/docs/", Target: "_blank", Rel: "noopener",
@@ -222,7 +243,7 @@ public sealed class PlaygroundView : Component
             Class: _tab == tab
                 ? $"{TutorialPaneState.TabClass} {TutorialPaneState.Active}"
                 : TutorialPaneState.TabClass,
-            Disabled: _busy,
+            Disabled: !CanInteract,
             OnClickAsync: () => SwitchTabAsync(tab))[label];
 
     // Switching tabs loads what that tab is pointing at, so the editor always holds the thing the pane
@@ -246,7 +267,7 @@ public sealed class PlaygroundView : Component
                 Button(
                     Key: s.Id,
                     Class: s.Id == _activeSampleId ? "pg-example is-active" : "pg-example",
-                    Disabled: _busy,
+                    Disabled: !CanInteract,
                     OnClickAsync: () => SelectSampleAsync(s))[
                     Span(Class: "pg-example-title")[s.Title],
                     Span(Class: "pg-example-blurb")[s.Blurb]
@@ -262,7 +283,7 @@ public sealed class PlaygroundView : Component
                     Class: TutorialPaneState.ClassesFor(StateOf(c), _completedChapters.Contains(c.Id)),
                     // A locked chapter still opens — the code is worth reading even where it can't run.
                     // Run is what gets disabled for it (see IsActiveChapterLocked).
-                    Disabled: _busy,
+                    Disabled: !CanInteract,
                     OnClickAsync: () => SelectChapterAsync(c))[
                     Span(Class: "pg-chapter-no")[c.Number.ToString(CultureInfo.InvariantCulture)],
                     Span(Class: "pg-chapter-title")[c.Title],
@@ -281,6 +302,20 @@ public sealed class PlaygroundView : Component
             ? ChapterState.Active
             : ChapterState.Open;
     }
+
+    // The one gate every control shares: nothing may be clicked while a compile is in flight, and nothing
+    // may be clicked before the editor exists.
+    //
+    // The second half is the subtle one and used to be missing from the selection controls (#647). Loading
+    // a chapter or an example is a JS round-trip to setEditorValue, and before mountEditor has run there is
+    // no editor registered for the host, so that call is a silent no-op — mountEditor then finishes and
+    // installs the starter over the selection. The reader was left with the brief and the highlight showing
+    // one chapter while the editor held another, and Run cheerfully compiled the wrong code and ticked the
+    // chapter off. On a cold load the window is seconds wide, which is exactly when a first-time reader
+    // clicks "Tutorial".
+    //
+    // One property rather than six copies of the condition: the bug was two of those copies disagreeing.
+    private bool CanInteract => !_busy && _editorReady;
 
     // True when the editor holds a chapter this build can't compile. Run is disabled rather than left to
     // fill the preview with CS0246s about DbContext — the reader can still read the code.
@@ -307,10 +342,10 @@ public sealed class PlaygroundView : Component
                 ],
                 Div(Class: "pg-brief-nav")[
                     BsButton(Class: "pg-prev", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                        Disabled: _busy || chapter.Number == 1,
+                        Disabled: !CanInteract || chapter.Number == 1,
                         OnClickAsync: () => StepAsync(-1))["← Back"],
                     BsButton(Class: "pg-next", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                        Disabled: _busy || chapter.Number == TutorialChapters.All.Count,
+                        Disabled: !CanInteract || chapter.Number == TutorialChapters.All.Count,
                         OnClickAsync: () => StepAsync(1))["Next →"]
                 ]
             ],
