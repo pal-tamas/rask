@@ -15,7 +15,11 @@ if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
   exit 0
 fi
 
-if ! git diff --cached --name-only | grep -qE '^(src/|tests/|benchmarks/|Rask\.slnx$|Directory\.)'; then
+# samples/ is in here for the same reason src/ is: it is compiled, analyzer-checked, warnings-as-errors
+# code with its own test projects (Rask.Example.Playground.Tests, Rask.Example.Shared.Tests, …). Leaving it
+# out meant a sample-only commit — a whole feature, in the case of the playground tutorial — skipped the
+# format + unit gate entirely and reported "no code changes staged".
+if ! git diff --cached --name-only | grep -qE '^(src/|samples/|tests/|benchmarks/|Rask\.slnx$|Directory\.)'; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
 fi
