@@ -1,0 +1,63 @@
+<!--
+  Rask.Example.Wasm.Jobs — background jobs running against a real SQLite database inside the browser.
+  This shell is intentionally minimal: the App component is the source of truth for the real <head> and
+  <body>; the runtime imports main.js, boots dotnet, and morphs the App's rendered HTML onto
+  document.documentElement on first paint.
+
+  It must be a real committed file: the framework contributes main.js / rask.wasm.js / rask-sw.js as
+  static web assets, but NOT index.html — the wwwroot/** glob has to see it at evaluation time for the
+  SDK's OverrideHtmlAssetPlaceholders pass to fill the import map and preload placeholders below.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <base href="/"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Rask — background jobs in the browser</title>
+    <!-- Asset-fingerprinting placeholders filled by Microsoft.NET.Sdk.WebAssembly at publish
+         (<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>). -->
+    <link rel="preload" id="webassembly"/>
+    <script type="importmap"></script>
+    <style id="rask-scoped"></style>
+    <style>
+        /* This app is untrimmed and ships EF Core, the SQLite provider and a native SQLite build, so
+           first boot is noticeably slower than a normal Rask WASM app. Say so rather than showing a
+           blank page for several seconds. */
+        .rask-boot {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            font: 0.8125rem/1.6 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #c4b5fd;
+            background: #0f1117;
+        }
+
+        .rask-boot .rask-spin {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 3px solid rgba(139, 92, 246, 0.25);
+            border-top-color: #8b5cf6;
+            animation: rask-spin 0.8s linear infinite;
+        }
+
+        @keyframes rask-spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body data-rask-root>
+<div class="rask-boot">
+    <div class="rask-spin"></div>
+    <div>Loading SQLite…</div>
+</div>
+<script src="main.js" type="module"></script>
+</body>
+</html>

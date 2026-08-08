@@ -69,6 +69,11 @@ rm -rf samples/Rask.Example.Playground/obj/Release/net10.0-browser
 # while _framework shipped no EF Core at all, and the E2E would burn its full timeout on a CS0246.
 dotnet publish samples/Rask.Example.Playground -c Release --nologo
 dotnet publish samples/Rask.Example.Site -c Release --no-restore -p:WasmBuildNative=false --nologo
+# The one exception to WasmBuildNative=false, and the slowest line here (an emscripten relink, minutes
+# not seconds): this sample runs SQLite in the browser, and SQLite is a native library. Skipping the
+# relink produces a bundle that boots and then fails on every database call, so the flag must NOT be
+# passed. BrowserJobsWasmAppFixture checks the published output and says so if it was.
+dotnet publish samples/Rask.Example.Wasm.Jobs -c Release --no-restore --nologo
 
 echo "==> Ensure Playwright browsers are installed"
 pw="$(find tests/Rask.Examples.E2E.Tests/bin/Release -name 'playwright.ps1' 2>/dev/null | head -1)"

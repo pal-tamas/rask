@@ -65,6 +65,18 @@ them until tagged releases begin.
   with a **native relink** (the `wasm-tools` workload); a build made with `-p:WasmBuildNative=false` ships
   without the EF Core reference set and marks those chapters read-only rather than pretending they work,
   so the fast unit-gate build is unaffected.
+- **`samples/Rask.Example.Wasm.Jobs` — `Rask.Jobs` running in the browser, verified end to end.** Queue a
+  job, a `BackgroundService` picks it up and writes a row, reload the page and the row is still there —
+  with no server behind any of it. Every registration below the first line is what you would write on a
+  server, and `GreetJob` plus its `ICommandHandler<GreetJob>` would compile and run there unchanged. The
+  new E2E test is the only evidence for a chain no unit test can reach: the WASM host starting a
+  registered `IHostedService`, EF Core opening a natively-linked SQLite database in the browser,
+  `JobProcessor` claiming a row with its lease, and the database surviving a reload from an IndexedDB
+  snapshot. It is its own sample rather than a page in the showcase because EF Core cannot be trimmed,
+  and it is the one sample that must **not** be published with `-p:WasmBuildNative=false` — SQLite is a
+  native library, and skipping the relink produces a bundle that boots and then fails on every database
+  call. `scripts/run-e2e-local.sh` publishes it accordingly, and the fixture checks the output and says
+  so if it was built the wrong way.
 - **`Rask.SQLite.Browser` — a real SQLite database inside a browser WASM app, persisted across reloads.**
   `docs/sqlite.md` said this was not worth doing; it is, and it now works. The native `e_sqlite3` links
   into a `browser-wasm` publish on its own (the patched SQLitePCLRaw 3.x bundle already pinned for

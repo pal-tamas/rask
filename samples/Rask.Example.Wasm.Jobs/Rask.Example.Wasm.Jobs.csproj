@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <UseAppHost>false</UseAppHost>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Rask WASM marker: gates build/Rask.Wasm.targets (wwwroot staging + scoped-asset bake). -->
+    <RaskWasm>true</RaskWasm>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+
+    <!--
+      NOT trimmed, and this is the whole reason this sample is separate from Rask.Example.Wasm rather
+      than a page inside it. EF Core does not survive the trimmer in a browser build: trimmed+AOT throws
+      MissingMethodException on EntryCurrentValueComparer<int> at the first EF call, and
+      trimmed-without-AOT aborts even earlier. Raw Microsoft.Data.Sqlite survives both — it is EF that
+      cannot. The showcase's TrimMode=full / zero-IL-warning gate is load-bearing and must stay intact.
+
+      The cost is bundle size: this app ships EF Core, the SQLite provider and the native SQLite build.
+      That is the honest price of a real relational database in the browser.
+    -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <!-- Full AOT is off for the same reason. -->
+    <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+
+    <!--
+      The SQLite native build reports two varargs functions it cannot call (sqlite3_config,
+      sqlite3_db_config). Neither is reached on the open/query/update paths this app uses, but the repo
+      builds warnings-as-errors, so an unsuppressed WASM0001 would fail the build.
+    -->
+    <NoWarn>$(NoWarn);WASM0001;IL2104</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
+    <!-- Rask.Wasm marks Rask.Core / Rask.Client PrivateAssets="all" (kept out of its nuspec deps),
+         so an in-repo consumer referencing the host by ProjectReference must pull them in directly. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
+    <!-- The point of the sample: the browser database, and the same job queue the server uses. -->
+    <ProjectReference Include="..\..\src\Rask.SQLite.Browser\Rask.SQLite.Browser.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <!-- Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one EF Core pins
+         (CVE-2025-6965). A direct reference is the only lever under CPM. It is also what supplies the
+         browser-wasm e_sqlite3.a and its NativeFileReference. See Directory.Packages.props. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\src\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\src\Rask.Jobs.Generators\Rask.Jobs.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

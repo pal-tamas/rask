@@ -21,6 +21,7 @@
         <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj"/>
         <Project Path="samples/Rask.Example.Sqlite/Rask.Example.Sqlite.csproj"/>
         <Project Path="samples/Rask.Example.Site/Rask.Example.Site.csproj"/>
+        <Project Path="samples/Rask.Example.Wasm.Jobs/Rask.Example.Wasm.Jobs.csproj"/>
         <Project Path="samples/Rask.Example.Wasm.Host/Rask.Example.Wasm.Host.csproj"/>
         <Project Path="samples/Rask.Example.Wasm/Rask.Example.Wasm.csproj"/>
     </Folder>
