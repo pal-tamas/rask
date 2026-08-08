@@ -23,11 +23,14 @@ them until tagged releases begin.
   sends you to debug Roslyn or Monaco rather than the build that dropped the assets. The mount now has a
   deadline (generous, so a slow connection fetching Monaco can't trip it) and reports the module as
   missing. See #650 for the build-side glitch that produces such a bundle.
-- **The pre-commit gate now covers `samples/`.** Its change filter listed `src/`, `tests/`, `benchmarks/`
-  and the build files, so a sample-only commit reported "no code changes staged" and skipped formatting
-  and the unit suite — even though samples are compiled, analyzer-checked, warnings-as-errors code with
-  their own test projects. An entire feature landing under `samples/` (the playground tutorial, say) went
-  through ungated.
+- **The pre-commit gate now covers `samples/` and `docs/`.** Its change filter listed `src/`, `tests/`,
+  `benchmarks/` and the build files, so a commit touching only samples or only docs reported "no code
+  changes staged" and skipped both formatting and the unit suite. That is not merely a missed format run:
+  `Rask.Example.Shared.Tests` compiles `samples/Rask.Example.Shared` and owns a committed markup golden,
+  and `DocsIndexTests` / `GuidesTests` read `docs/**/*.md` off disk for reachability and catalog parity —
+  so a samples-only or docs-only commit could break a golden or a docs invariant with nothing objecting
+  until somebody else's push. An entire feature could land ungated; the playground tutorial was largely a
+  `samples/` + `docs/` change.
 
 ### Added
 - **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
