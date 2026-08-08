@@ -29,8 +29,8 @@ public sealed partial class BsPageItem : BsBlock
     public bool? Active { get; set; }
     public bool? Disabled { get; set; }
     public string? Href { get; set; }
-    public Callback? OnClick { get; set; }
-    public CallbackAsync? OnClickAsync { get; set; }
+    public Handler? OnClick { get; set; }
+    public HandlerAsync? OnClickAsync { get; set; }
 
     // Extra ARIA attributes for the page link itself — pass aria-label to name an icon-only control
     // (a prev/next arrow whose only child is a decorative BsIcon has no accessible name otherwise).
@@ -64,8 +64,8 @@ public sealed partial class BsPageItem : BsBlock
 
         Component link = Href is not null
             ? A(Class: "page-link", Href: Href, Aria: linkAria)[Items]
-            : Button(Type: "button", Class: "page-link", Aria: linkAria, OnClick: OnClick,
-                OnClickAsync: OnClickAsync)[Items];
+            : Button(Type: "button", Class: "page-link", Aria: linkAria, OnClick: OnClick?.Fn,
+                OnClickAsync: OnClickAsync?.Fn)[Items];
 
         return Li(Id: Id, Class: BsClass.Join(liCls, Class), Aria: liAria)[[link]];
     }

@@ -15,8 +15,8 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
     // Controlled mode (no Bind).
     public ICollection<TItem>? Value { get; set; }
-    public Callback<ICollection<TItem>>? OnChange { get; set; }
-    public CallbackAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
+    public Handler<ICollection<TItem>>? OnChange { get; set; }
+    public HandlerAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }

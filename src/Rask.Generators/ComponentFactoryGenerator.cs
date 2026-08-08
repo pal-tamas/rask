@@ -604,7 +604,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             ? "global::Rask.Core.AutoCallback.Wrap(value)"
               + (carrier is null && !typeFqn.EndsWith("?", StringComparison.Ordinal) ? "!" : string.Empty)
             : "value";
-        var assigned = carrier is null ? value : "new " + StripNullable(typeFqn) + "(" + value + ")";
+        // `From`, not `new Handler(…)`: an unset handler must land as a NULL carrier, or the component's
+        // own `OnClose is not null` tests all start answering true — see AssignExpr. (A non-nullable
+        // carrier prop cannot hold From's `Handler?`, but it is already rejected upstream as a required
+        // factory parameter; the constructor stays as the fallback so the emission can't break on one.)
+        var assigned = carrier is null
+            ? value
+            : typeFqn.EndsWith("?", StringComparison.Ordinal)
+                ? StripNullable(typeFqn) + ".From(" + value + ")"
+                : "new " + typeFqn + "(" + value + ")";
 
         // The propsChanged fold, one prop at a time. The factory can snapshot every prop, assign them
         // all and diff once, because it knows where the assignments end; a setter chain does not, so
@@ -689,6 +697,24 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // The type a generated factory parameter uses for a property: the carried delegate for a carrier
     // prop, the property's own type otherwise.
     private static string ParamType(PropInfo p) => CarrierDelegate(p.TypeFqn) ?? p.TypeFqn;
+
+    // The expression a generated ASSIGNMENT uses to put a delegate-typed argument into a property:
+    // `Handler.From(value)` for a carrier prop, the value itself otherwise.
+    //
+    // Never the bare implicit conversion, and never `new Handler(value)`: the conversion accepts a null
+    // delegate, so an omitted argument would land as a non-NULL carrier wrapping null. A component that
+    // asks about its own callback — `AutoHideMs is > 0 && OnClose is not null` (BsToast),
+    // `OnSortChange is not null` (BsDataGrid), `OnChange is null && OnChangeAsync is null`
+    // (BsRadioGroup) — would then answer true for a handler nobody wired. From maps null → null, so a
+    // carrier prop reads back exactly as unset as the raw delegate prop it replaced. Allocation-free
+    // either way (a struct, and Nullable<> of one).
+    //
+    // Only applied to a NULLABLE prop: the carrier of a required prop cannot hold From's `Handler?`,
+    // and a non-nullable carrier is already rejected upstream (RASK001 / CS9040).
+    private static string AssignExpr(PropInfo p, string valueExpr) =>
+        p.IsNullable && CarrierDelegate(p.TypeFqn) is not null
+            ? StripNullable(p.TypeFqn) + ".From(" + valueExpr + ")"
+            : valueExpr;
 
     private static bool IsCarrierProp(PropInfo p) => CarrierDelegate(p.TypeFqn) is not null;
 
@@ -2320,19 +2346,24 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // Bound-mode member assignments (raw — never auto-wrapped; AfterBind is a post-bind hook, not an
         // event callback). The validator param (named Validate either way) sets Validate for the sync
         // overload and ValidateAsync for the async overload.
-        var validateExpr = shape == ValidatorShape.Sync ? "Validate" : "null";
-        var validateAsyncExpr = shape == ValidatorShape.Async ? "Validate" : "null";
+        // Each carrier member goes through AssignExpr, so an omitted validator/hook stays an unset
+        // carrier instead of a non-null one wrapping null (a bare `null` literal already converts
+        // straight, but the supplied-argument branch would otherwise run the implicit conversion).
+        var validate = Member("Validate");
+        var validateAsync = Member("ValidateAsync");
+        var validateExpr = shape == ValidatorShape.Sync ? AssignExpr(validate, "Validate") : "null";
+        var validateAsyncExpr = shape == ValidatorShape.Async ? AssignExpr(validateAsync, "Validate") : "null";
         var assigns = new List<(string Esc, string Expr)>
         {
             ("Bind", "Bind"),
             ("Validate", validateExpr),
             ("ValidateAsync", validateAsyncExpr),
-            (afterBind.Escaped, afterBind.Escaped),
-            (afterBindAsync.Escaped, afterBindAsync.Escaped),
+            (afterBind.Escaped, AssignExpr(afterBind, afterBind.Escaped)),
+            (afterBindAsync.Escaped, AssignExpr(afterBindAsync, afterBindAsync.Escaped)),
         };
         foreach (var p in shared)
         {
-            assigns.Add((p.Escaped, p.Escaped));
+            assigns.Add((p.Escaped, AssignExpr(p, p.Escaped)));
         }
 
         // Fold (propsChanged): only the shared value props participate — the bound members are fresh
@@ -2750,7 +2781,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         for (var i = 0; i < entries.Count; i++)
         {
             var p = entries[i];
-            sb.Append("                ").Append(p.Escaped).Append(" = ").Append(p.Escaped);
+            sb.Append("                ").Append(p.Escaped).Append(" = ").Append(AssignExpr(p, p.Escaped));
             if (i < entries.Count - 1)
             {
                 sb.Append(',');
@@ -2782,23 +2813,24 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // delegates are wrapped so invoking them re-renders the owning component (see AutoCallback).
         foreach (var p in assignProps)
         {
-            sb.Append("        __c.").Append(p.Escaped).Append(" = ");
+            string value;
             if (p.IsAutoRerenderDelegate)
             {
                 // Wrap returns a nullable delegate (null in → null out); a non-nullable prop never
-                // passes null, so the null-forgiving `!` is safe and silences CS8601.
-                sb.Append("global::Rask.Core.AutoCallback.Wrap(").Append(p.Escaped).Append(')');
+                // passes null, so the null-forgiving `!` is safe and silences CS8601. A carrier prop
+                // takes the `?` back off through From, so it never needs the suppression.
+                value = "global::Rask.Core.AutoCallback.Wrap(" + p.Escaped + ")";
                 if (!p.IsNullable)
                 {
-                    sb.Append('!');
+                    value += "!";
                 }
             }
             else
             {
-                sb.Append(p.Escaped);
+                value = p.Escaped;
             }
 
-            sb.AppendLine(";");
+            sb.Append("        __c.").Append(p.Escaped).Append(" = ").Append(AssignExpr(p, value)).AppendLine(";");
         }
 
         if (foldProps.Count == 0)

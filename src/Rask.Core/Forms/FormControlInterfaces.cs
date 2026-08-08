@@ -38,10 +38,12 @@ public interface IFormControl<T> : IFormControl
     Carrier<Action<T>>? AfterBind { get; set; }
     Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
 
-    // Controlled mode — the parent owns Value and is notified of changes.
+    // Controlled mode — the parent owns Value and is notified of changes. The two callbacks ride in a
+    // carrier for the same reason the bound members do: `control.OnChange(handler)` must reach the
+    // builder setter, not try to invoke the property.
     T? Value { get; set; }
-    Callback<T>? OnChange { get; set; }
-    CallbackAsync<T>? OnChangeAsync { get; set; }
+    Handler<T>? OnChange { get; set; }
+    HandlerAsync<T>? OnChangeAsync { get; set; }
 
     // The single delegate the EditContext dispatches — sync or async, whichever the consumer set.
     Delegate? Validator => (Delegate?)Validate?.Fn ?? ValidateAsync?.Fn;
@@ -82,9 +84,9 @@ public interface IFormControl<T> : IFormControl
     async Task InvokeOnChangeAsync(T value)
     {
         OnChange?.Invoke(value);
-        if (OnChangeAsync is not null)
+        if (OnChangeAsync?.Fn is { } notify)
         {
-            await OnChangeAsync(value).ConfigureAwait(false);
+            await notify(value).ConfigureAwait(false);
         }
     }
 
@@ -95,7 +97,7 @@ public interface IFormControl<T> : IFormControl
     // the element's `data-rask-on-change` handler.
     Delegate? ControlledChangeHandler()
     {
-        if (OnChange is null && OnChangeAsync is null)
+        if (OnChange?.Fn is null && OnChangeAsync?.Fn is null)
         {
             return null;
         }
@@ -114,7 +116,7 @@ public interface IFormControl<T> : IFormControl
         // closures) to find the defining component, which is the same rule RegisterHandler and
         // AutoCallback already apply. It also refuses to resolve to an Element, so it cannot regress to
         // dirty-marking the control itself.
-        var consumer = DelegateOwner.Resolve(OnChange) ?? DelegateOwner.Resolve(OnChangeAsync);
+        var consumer = DelegateOwner.Resolve(OnChange?.Fn) ?? DelegateOwner.Resolve(OnChangeAsync?.Fn);
 
         return new CallbackAsync<string>(async raw =>
         {

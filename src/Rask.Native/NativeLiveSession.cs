@@ -203,7 +203,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             for (var i = 0; i < segments.Count; i++)
             {
                 string? id = null;
-                if (bar.OnSegmentChanged is { } onChanged)
+                if (bar.OnSegmentChanged?.Fn is { } onChanged)
                 {
                     var index = i; // capture per iteration so the tapped segment's index is echoed
                     id = "h.segment." + i;
@@ -303,7 +303,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                     {
                         var entry = entries[i];
                         string? entryId = null;
-                        if (entry.OnClick is { } entryClick)
+                        if (entry.OnClick?.Fn is { } entryClick)
                         {
                             entryId = id + ".menu." + i;
                             handlers[entryId] = entryClick;
@@ -324,7 +324,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
 
             case NativeBarButton button:
                 string? tapId = null;
-                if (button.OnClick is { } onClick)
+                if (button.OnClick?.Fn is { } onClick)
                 {
                     handlers[id] = onClick;
                     tapId = id;

@@ -22,8 +22,11 @@ public sealed class DragDrop : Component
     public new Func<DragDropContext, Component>? Body { get; set; }
 
     // Fired once when an item is dropped onto a zone. Set exactly one of OnDrop / OnDropAsync.
-    public Callback<DragDropMove>? OnDrop { get; set; }
-    public CallbackAsync<DragDropMove>? OnDropAsync { get; set; }
+    // Carrier-typed (Handler<>, not Callback<>) so the builder setter can keep the property's own name —
+    // a delegate-typed member is invocable, so `.OnDrop(handler)` would bind to the property (CS1593).
+    // Assignment and the generated `OnDrop:` factory argument are unchanged; reading the delegate is `.Fn`.
+    public Handler<DragDropMove>? OnDrop { get; set; }
+    public HandlerAsync<DragDropMove>? OnDropAsync { get; set; }
 
     // DragDrop reads mutable internal drag state (source / hover target) that the framework can't
     // observe through props, so every render must re-execute — same reasoning as VirtualizeModel.
@@ -75,7 +78,7 @@ public sealed class DragDrop : Component
             return Task.CompletedTask;
         }
 
-        if (OnDropAsync is { } handler)
+        if (OnDropAsync?.Fn is { } handler)
         {
             return handler(move);
         }

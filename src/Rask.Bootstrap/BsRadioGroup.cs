@@ -15,8 +15,8 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
 
     // Controlled mode (used when Bind is null): the parent owns the current value.
     public TValue? Value { get; set; }
-    public Callback<TValue>? OnChange { get; set; }
-    public CallbackAsync<TValue>? OnChangeAsync { get; set; }
+    public Handler<TValue>? OnChange { get; set; }
+    public HandlerAsync<TValue>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
     public Expression<Func<TValue>>? Bind { get; set; }
@@ -47,7 +47,7 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
         ArgumentNullException.ThrowIfNull(Options);
 
         var bound = Bind is not null;
-        if (!bound && OnChange is null && OnChangeAsync is null)
+        if (!bound && OnChange?.Fn is null && OnChangeAsync?.Fn is null)
         {
             throw new InvalidOperationException(
                 "BsRadioGroup requires Bind (bound mode) or an OnChange/OnChangeAsync handler (controlled mode).");

@@ -28,16 +28,22 @@ public interface IFormControl<T>
 
     // Controlled mode — the parent owns Value and is notified of changes.
     T? Value { get; set; }
-    Callback<T>? OnChange { get; set; }
-    CallbackAsync<T>? OnChangeAsync { get; set; }
+    Handler<T>? OnChange { get; set; }
+    HandlerAsync<T>? OnChangeAsync { get; set; }
 }
 ```
 
-The four bound delegates ride in a **`Carrier<>`** (`Rask.Core`). A delegate-typed property *is* invocable,
-so `control.Validate(rule)` would bind to the property instead of the same-named builder setter; the carrier
-makes the member non-invocable. Its implicit conversion keeps ordinary assignment (`Validate = rule`) and
-every generated `Validate:` / `AfterBind:` factory parameter working unchanged — read the delegate back
-through `.Fn` (`Validate?.Fn`).
+All six delegate members ride in a **carrier** (`Rask.Core`) — `Carrier<>` for the bound four,
+`Handler<T>`/`HandlerAsync<T>` for the change pair. A delegate-typed property *is* invocable, so
+`control.Validate(rule)` (or `control.OnChange(h)`) would bind to the property instead of the same-named
+builder setter; the carrier makes the member non-invocable. Its implicit conversion keeps ordinary
+assignment (`Validate = rule`) and every generated `Validate:` / `OnChange:` factory parameter working
+unchanged — read the delegate back through `.Fn` (`Validate?.Fn`, `OnChange?.Fn`).
+
+One trap the conversion brings: it accepts a *null* delegate, so `cond ? new Handler(h) : null` hands back a
+non-null carrier wrapping null — an unset handler that no longer reads back as unset. Cast the unset branch
+(`: (Handler?)null`), or build it with `Handler.From(h)`, which maps null to unset. Every generated
+assignment already does.
 
 You declare those nine properties (plus your own display props), implement `Render`, and the generator
 emits **two factories**:
@@ -69,8 +75,8 @@ public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
 
     // IFormControl<TValue> — controlled mode.
     public TValue? Value { get; set; }
-    public Callback<TValue>? OnChange { get; set; }
-    public CallbackAsync<TValue>? OnChangeAsync { get; set; }
+    public Handler<TValue>? OnChange { get; set; }
+    public HandlerAsync<TValue>? OnChangeAsync { get; set; }
 
     // IFormControl<TValue> — bound mode.
     public Expression<Func<TValue>>? Bind { get; set; }
@@ -164,7 +170,7 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 | `Validator` | `(Delegate?)Validate?.Fn ?? ValidateAsync?.Fn` — the single delegate the `EditContext` dispatches |
 | `RegisterValidator(accessor, ctx)` | `ctx?.RegisterFieldValidator(acc.Field, Validator, () => acc.Getter())` |
 | `InvokeAfterBindAsync(value)` | `AfterBind?.Fn?.Invoke(v); if (AfterBindAsync?.Fn is { } h) await h(v);` |
-| `InvokeOnChangeAsync(value)` | `OnChange?.Invoke(v); if (OnChangeAsync is not null) await OnChangeAsync(v);` |
+| `InvokeOnChangeAsync(value)` | `OnChange?.Invoke(v); if (OnChangeAsync?.Fn is { } f) await f(v);` |
 | `ControlledChangeHandler()` | a `Callback<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChangeAsync` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
 
 `RegisterValidator` is safe (and required) to call **every render** — passing the collapsed validator each

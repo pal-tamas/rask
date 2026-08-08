@@ -19,8 +19,8 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
 
     // IFormControl<T> — controlled mode.
     public T? Value { get; set; }
-    public Callback<T>? OnChange { get; set; }
-    public CallbackAsync<T>? OnChangeAsync { get; set; }
+    public Handler<T>? OnChange { get; set; }
+    public HandlerAsync<T>? OnChangeAsync { get; set; }
 
     // Shared Bootstrap field props.
     public new string? Label { get; set; }

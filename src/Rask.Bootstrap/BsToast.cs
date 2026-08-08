@@ -31,8 +31,8 @@ public sealed partial class BsToast : Component
 
     // Invoked with this toast's Id from the × or the auto-hide timer. Bind a host method group so the
     // auto-wrapped callback re-renders the host (which drops this toast and unmounts it).
-    public Callback<int>? OnClose { get; set; }
-    public CallbackAsync<int>? OnCloseAsync { get; set; }
+    public Handler<int>? OnClose { get; set; }
+    public HandlerAsync<int>? OnCloseAsync { get; set; }
 
     // Auto-hide delay in ms; null/<= 0 keeps the toast until dismissed by hand.
     public int? AutoHideMs { get; set; }
@@ -44,7 +44,7 @@ public sealed partial class BsToast : Component
 
     protected override void OnMount()
     {
-        if (AutoHideMs is > 0 && (OnClose is not null || OnCloseAsync is not null))
+        if (AutoHideMs is > 0 && (OnClose?.Fn is not null || OnCloseAsync?.Fn is not null))
         {
             _autoHideTimer = new Timer(_ => Dismiss(), null, AutoHideMs.Value, Timeout.Infinite);
         }
@@ -59,7 +59,7 @@ public sealed partial class BsToast : Component
     private void Dismiss()
     {
         OnClose?.Invoke(Id);
-        OnCloseAsync?.Invoke(Id);
+        OnCloseAsync?.Fn?.Invoke(Id);
     }
 
     protected override Component? Render()
@@ -67,8 +67,10 @@ public sealed partial class BsToast : Component
         var close = BsCloseButton(
             White: Color is not null,
             Class: Color is not null ? "me-2 m-auto" : null,
-            OnClick: OnClose is null ? null : () => OnClose(Id),
-            OnClickAsync: OnCloseAsync is null ? null : () => OnCloseAsync(Id));
+            OnClick: OnClose?.Fn is null ? null : () => OnClose?.Invoke(Id),
+            OnClickAsync: OnCloseAsync?.Fn is null
+                ? null
+                : () => OnCloseAsync?.InvokeAsync(Id) ?? Task.CompletedTask);
 
         // Colored "Color schemes" layout — headerless, body + white × in a flex row.
         if (Color is { } color)

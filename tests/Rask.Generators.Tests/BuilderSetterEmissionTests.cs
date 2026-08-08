@@ -196,7 +196,7 @@ public class BuilderSetterEmissionTests
         Assert.Contains(
             "public static T OnClick<T>(this T __c, global::Rask.Core.Callback? value) "
             + "where T : global::Rask.Core.Element "
-            + "{ __c.OnClick = new global::Rask.Core.Handler(value); return __c; }",
+            + "{ __c.OnClick = global::Rask.Core.Handler.From(value); return __c; }",
             output,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -209,6 +209,72 @@ public class BuilderSetterEmissionTests
             output,
             StringComparison.Ordinal);
         Assert.DoesNotContain("AutoCallback.Wrap", output, StringComparison.Ordinal);
+    }
+
+    // The other half of the carrier rule, and the one that fails SILENTLY. A carrier on a
+    // non-Element component (BsButton.OnClick, BsDataGrid.OnSortChange, Input's DragDrop sibling…)
+    // must STAY AutoCallback-wrapped: a component callback has no DOM handler-owner resolution behind
+    // it, so dropping the wrapper stops the consumer re-rendering while the markup stays identical.
+    // IsAutoRerenderProp answers the question through the carrier; this pins that it still does.
+    [Fact]
+    public void A_carrier_callback_on_a_non_element_component_is_still_auto_wrapped()
+    {
+        var output = Run("""
+                         using Rask.Core;
+                         namespace Demo;
+                         public partial class Widget : Component
+                         {
+                             public Handler? OnPick { get; set; }
+                             public HandlerAsync<string>? OnPickAsync { get; set; }
+                             public Carrier<System.Action<int>>? OnRank { get; set; }
+                         }
+                         """);
+
+        Assert.Contains(
+            "OnPick(this global::Demo.Widget __c, global::Rask.Core.Callback? value) "
+            + "{ __c.OnPick = global::Rask.Core.Handler.From(global::Rask.Core.AutoCallback.Wrap(value)); "
+            + "return __c; }",
+            output,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "__c.OnPickAsync = global::Rask.Core.HandlerAsync<string>"
+            + ".From(global::Rask.Core.AutoCallback.Wrap(value));",
+            output,
+            StringComparison.Ordinal);
+
+        // Carrier<TDelegate> asks the same question of the delegate it carries, so an Action<int>
+        // callback is wrapped for the same reason.
+        Assert.Contains(
+            "__c.OnRank = global::Rask.Core.Carrier<global::System.Action<int>>"
+            + ".From(global::Rask.Core.AutoCallback.Wrap(value));",
+            output,
+            StringComparison.Ordinal);
+    }
+
+    // `From`, never `new Handler(value)` and never the bare implicit conversion: the conversion accepts
+    // a null delegate, so an omitted argument would land as a non-null carrier wrapping null and the
+    // component's own `OnClose is not null` tests would all start answering true. Pinned on the FACTORY
+    // too, which is where an omitted argument actually arrives.
+    [Fact]
+    public void A_carrier_assignment_maps_a_null_delegate_to_an_unset_carrier()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public partial class Widget : Component
+                  {
+                      public Handler? OnPick { get; set; }
+                  }
+                  """;
+
+        var factory = Run(src, "Demo.Generated.g.cs");
+
+        Assert.Contains("global::Rask.Core.Callback? OnPick = null", factory, StringComparison.Ordinal);
+        Assert.Contains(
+            "__c.OnPick = global::Rask.Core.Handler.From(global::Rask.Core.AutoCallback.Wrap(OnPick));",
+            factory,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("__c.OnPick = new global::Rask.Core.Handler(", factory, StringComparison.Ordinal);
     }
 
     // A prop inherited from an INTERMEDIATE base (HtmlMediaElement, BsBlock, BsFormControl<T>, a

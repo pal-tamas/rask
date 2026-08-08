@@ -33,8 +33,8 @@ public sealed class Select<T> : Element, IFormControl<T>
     public string? Autocomplete { get; set; }
 
     // IFormControl<T> — controlled mode (OnChange/OnChangeAsync are the typed change callbacks).
-    public Callback<T>? OnChange { get; set; }
-    public CallbackAsync<T>? OnChangeAsync { get; set; }
+    public Handler<T>? OnChange { get; set; }
+    public HandlerAsync<T>? OnChangeAsync { get; set; }
     public T? Value { get; set; }
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).

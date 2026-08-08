@@ -1,3 +1,5 @@
+using Rask.Core;
+
 namespace Rask.Native.Components;
 
 /// <summary>
@@ -14,7 +16,7 @@ public sealed partial class NativeMenuItem : NativeBarItem
     public NativeIcon? Icon { get; set; }
 
     /// <summary>Invoked when the entry is selected. Optional (an entry may be display-only).</summary>
-    public Action? OnClick { get; set; }
+    public Carrier<Action>? OnClick { get; set; }
 
     /// <summary>
     ///     When <c>true</c>, the entry is styled as destructive (iOS renders it in red). Nullable so it stays an

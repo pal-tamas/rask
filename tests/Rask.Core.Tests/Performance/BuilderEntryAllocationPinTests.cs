@@ -83,6 +83,41 @@ internal sealed partial class AllocEventFactoryProbe : Component
     private void Bump() => Clicks++;
 }
 
+// The other side of the carrier rule. A NON-Element component's callback stays AutoCallback-wrapped, so
+// it costs one closure per handler per render — on BOTH surfaces, which is the parity being pinned. The
+// carrier itself must add nothing on top: it is a struct, its nullable is a struct, and the setter's
+// From() maps null to unset without touching the heap.
+internal sealed partial class AllocCallbackLeaf : Component
+{
+    public Handler? OnPick { get; set; }
+    public Handler<string>? OnName { get; set; }
+
+    protected override Component? Render() => Div;
+}
+
+internal sealed partial class AllocCallbackEntryProbe : Component
+{
+    internal int Picks;
+
+    protected override Component? Render() => Div[AllocCallbackLeaf.OnPick(Pick).OnName(Name)];
+
+    private void Pick() => Picks++;
+
+    private void Name(string value) => Picks++;
+}
+
+internal sealed partial class AllocCallbackFactoryProbe : Component
+{
+    internal int Picks;
+
+    protected override Component? Render() =>
+        Div()[Generated.AllocCallbackLeaf(OnPick: Pick, OnName: Name)];
+
+    private void Pick() => Picks++;
+
+    private void Name(string value) => Picks++;
+}
+
 public class BuilderEntryAllocationPinTests
 {
     [Fact]
@@ -99,6 +134,17 @@ public class BuilderEntryAllocationPinTests
     {
         var entry = Measure(static () => new AllocEventEntryProbe());
         var factory = Measure(static () => new AllocEventFactoryProbe());
+
+        AssertNoWorseThan(entry, factory);
+    }
+
+    // A wrapped component callback (as opposed to the raw DOM handler above): the wrapper closure is the
+    // dominant cost and both surfaces pay it, so the carrier must not add a second allocation on top.
+    [Fact]
+    public void An_entry_built_component_callback_does_not_allocate_more_per_render_than_the_factory()
+    {
+        var entry = Measure(static () => new AllocCallbackEntryProbe());
+        var factory = Measure(static () => new AllocCallbackFactoryProbe());
 
         AssertNoWorseThan(entry, factory);
     }

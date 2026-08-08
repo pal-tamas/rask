@@ -13,14 +13,14 @@ public sealed partial class BsCloseButton : BsBlock
 
     public bool? Disabled { get; set; }
 
-    public Callback? OnClick { get; set; }
-    public CallbackAsync? OnClickAsync { get; set; }
+    public Handler? OnClick { get; set; }
+    public HandlerAsync? OnClickAsync { get; set; }
 
     protected override Component? Render()
     {
         var aria = new Dictionary<string, string?> { ["label"] = AriaLabel ?? "Close" };
         return Button(Id: Id, Type: "button", Disabled: Disabled,
             Class: BsClass.Join("btn-close", White is true ? "btn-close-white" : null, Class),
-            Aria: aria, OnClick: OnClick, OnClickAsync: OnClickAsync)[Items];
+            Aria: aria, OnClick: OnClick?.Fn, OnClickAsync: OnClickAsync?.Fn)[Items];
     }
 }

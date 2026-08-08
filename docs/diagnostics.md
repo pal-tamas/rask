@@ -332,9 +332,9 @@ or the `AfterBind`/`AfterBindAsync` hooks is dead weight. The tell-tale anti-pat
 
 ```csharp
 // ✗ redundant — the framework re-renders this component after OnChange runs:
-Select<string>().Value(_pick).Change(v => { _pick = v; StateHasChanged(); })
+Select<string>().Value(_pick).OnChange(v => { _pick = v; StateHasChanged(); })
 // ✓ just update state; the render is automatic:
-Select<string>().Value(_pick).Change(v => _pick = v)
+Select<string>().Value(_pick).OnChange(v => _pick = v)
 
 // ✗ AfterBind only to force a re-render of a sibling readout:
 RadioGroup(() => model.Plan, options, AfterBind: _ => StateHasChanged())

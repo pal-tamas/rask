@@ -71,12 +71,16 @@ public sealed class Input<T> : Element, IFormControl<T>
     // DOM event handlers in the legacy declaration order so positional factory calls keep working.
     // OnChange/OnChangeAsync are the IFormControl<T> controlled callbacks (typed T); OnInput/OnFiles are the
     // string/file DOM handlers, not part of the interface.
-    public Callback<string>? OnInput { get; set; }
-    public Callback<T>? OnChange { get; set; }
-    public CallbackAsync<string>? OnInputAsync { get; set; }
-    public CallbackAsync<T>? OnChangeAsync { get; set; }
-    public Callback<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
-    public CallbackAsync<IReadOnlyList<RaskFileType>>? OnFilesAsync { get; set; }
+    // All six are carrier-typed (Handler<>/HandlerAsync<>, not Callback<>/CallbackAsync<>) so the builder
+    // setter keeps the property's own name: a delegate-typed member is invocable, so `.OnInput(handler)`
+    // would bind to the property (CS1593). Assignment and every generated `OnInput:` argument are
+    // unchanged; reading the delegate back is `.Fn`.
+    public Handler<string>? OnInput { get; set; }
+    public Handler<T>? OnChange { get; set; }
+    public HandlerAsync<string>? OnInputAsync { get; set; }
+    public HandlerAsync<T>? OnChangeAsync { get; set; }
+    public Handler<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+    public HandlerAsync<IReadOnlyList<RaskFileType>>? OnFilesAsync { get; set; }
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).
     public Expression<Func<T>>? Bind { get; set; }
@@ -344,7 +348,7 @@ public sealed class Input<T> : Element, IFormControl<T>
         else
         {
             // Plain / controlled.
-            var input = (Delegate?)OnInput ?? OnInputAsync;
+            var input = (Delegate?)OnInput?.Fn ?? OnInputAsync?.Fn;
             if (input is not null)
             {
                 AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
@@ -357,7 +361,7 @@ public sealed class Input<T> : Element, IFormControl<T>
             }
         }
 
-        var files = (Delegate?)OnFiles ?? OnFilesAsync;
+        var files = (Delegate?)OnFiles?.Fn ?? OnFilesAsync?.Fn;
         if (files is not null)
         {
             AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));

@@ -1,3 +1,4 @@
+using Rask.Core.DragAndDrop;
 using static Rask.Core.Tests.Generated;
 
 namespace Rask.Core.Tests;
@@ -24,6 +25,12 @@ internal sealed partial class CardHost : Component
         Div[BuilderCard().Label("Pick me").OnSelect(Choose)];
 
     internal void Choose() => Selected++;
+
+    // Method groups off a Component, so DelegateOwner resolves an owner and AutoCallback can wrap them —
+    // which is what the wrapped/raw pin below is actually measuring.
+    internal void Dropped(DragDropMove move) => Selected++;
+
+    internal void Named(string value) => Selected++;
 }
 
 public class BuilderCallbackTests
@@ -117,6 +124,41 @@ public class BuilderCallbackTests
 
         Assert.Null(div.OnClick);
         Assert.Null(div.OnMouseDown);
+    }
+
+    // The distinction the carrier must not blur, now that every framework callback prop rides one.
+    // DragDrop is a plain Component, so its OnDrop stays AutoCallback-wrapped: nothing else re-renders
+    // the consumer whose state the handler mutates. Input<T> is Element-derived, so its OnChange is
+    // forwarded RAW to the DOM, where handler-owner resolution already re-renders and a wrapper would
+    // cost a closure per handler per render. Getting either backwards is silent — the markup is
+    // byte-identical either way — so both surfaces are pinned, and so is the factory they must agree with.
+    [Fact]
+    public void A_component_callback_is_wrapped_where_an_element_controls_is_not()
+    {
+        var host = CardHost();
+        var dropped = (Callback<DragDropMove>)host.Dropped;
+        var changed = (Callback<string>)host.Named;
+
+        Assert.NotSame(dropped, DragDrop(_ => Div(), OnDrop: dropped).OnDrop?.Fn);
+        Assert.NotSame(dropped, DragDrop(_ => Div()).OnDrop(dropped).OnDrop?.Fn);
+
+        Assert.Same(changed, Input<string>(OnChange: changed).OnChange?.Fn);
+        Assert.Same(changed, Input<string>().OnChange(changed).OnChange?.Fn);
+    }
+
+    // A null delegate must land as an UNSET carrier on both surfaces. The implicit conversion accepts
+    // one, so an argument that merely HAPPENS to be null (`OnSelect: maybe`) would convert into a
+    // non-null carrier wrapping null — and every `is not null` a component asks about its own callback
+    // (BsToast's auto-hide timer, BsDataGrid's controlled-mode gates) would answer true for a handler
+    // nobody wired. Both surfaces assign through Handler.From, which maps null to unset.
+    [Fact]
+    public void A_null_callback_argument_reads_back_as_unset()
+    {
+        Callback? maybe = null;
+
+        Assert.Null(BuilderCard().OnSelect);
+        Assert.Null(BuilderCard(OnSelect: maybe).OnSelect);
+        Assert.Null(BuilderCard().OnSelect(maybe).OnSelect);
     }
 
     // The async sibling still loses to a sync handler on the shared slot, through the carrier.

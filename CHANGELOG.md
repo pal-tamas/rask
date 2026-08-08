@@ -116,6 +116,24 @@ them until tagged releases begin.
   now emitted per component with the CONCRETE component as the receiver (a `BsFormControl<T>`-typed
   extension would return the base and end the chain), and they take part in the omitted-prop reset on
   the same rules as a component's own.
+  **The same rename for every framework component, not just elements.** The remaining 81 prefix-dropped
+  setters — `BsButton.OnClick`, `BsDataGrid`'s fourteen, `BsFormControl<T>.OnChange` (and therefore every
+  Bs control that inherits it), `Input`/`Select`/`Textarea`/`Form`, `DragDrop.OnDrop`, the gesture
+  triggers' `OnResult`/`OnColor`/`OnOutcome`, `NativeBarButton.OnClick`, … — moved to the carriers too,
+  so `.OnClick(Save)` is now the shape everywhere and `.Click(Save)` is gone. `IFormControl<T>`'s
+  controlled pair changes with it (`Handler<T>?` / `HandlerAsync<T>?`), so a custom control must update
+  those two declarations alongside its four bound ones. Assignment and every generated `OnClick:`
+  argument keep working through the implicit conversion — no call site in `src`, `samples` or `tests`
+  changed — but reading a callback back off a component is now `.Fn`.
+  Unlike an element's, these callbacks **stay `AutoCallback`-wrapped**: a component callback has no DOM
+  handler-owner resolution behind it, so dropping the wrapper would leave the handler running while
+  nothing re-rendered, with byte-identical markup. Pinned on both surfaces, against the element case, and
+  in the entry-vs-factory allocation test (a wrapped component callback costs 1464 B/render on both).
+  One trap the carrier brings is now closed at the source rather than per call site: its implicit
+  conversion accepts a *null* delegate, so an omitted `OnClose:` would have arrived as a non-null carrier
+  wrapping null and every `OnClose is not null` a component asks about its own callback (BsToast's
+  auto-hide timer, BsDataGrid's controlled-mode gates) would have answered true for a handler nobody
+  wired. Each carrier gains a null-preserving `From`, and every generated assignment goes through it.
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

@@ -24,8 +24,8 @@ public sealed partial class BsButton : BsBlock
     public new string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
-    public Callback? OnClick { get; set; }
-    public CallbackAsync? OnClickAsync { get; set; }
+    public Handler? OnClick { get; set; }
+    public HandlerAsync? OnClickAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -43,6 +43,6 @@ public sealed partial class BsButton : BsBlock
         // whose handler-owner resolution re-renders the parent.
         return Button(Id: Id, Class: cls, Style: Style, Type: Type ?? "button",
             Disabled: Disabled, Name: Name, Value: Value, Aria: aria,
-            OnClick: OnClick, OnClickAsync: OnClickAsync)[Items];
+            OnClick: OnClick?.Fn, OnClickAsync: OnClickAsync?.Fn)[Items];
     }
 }

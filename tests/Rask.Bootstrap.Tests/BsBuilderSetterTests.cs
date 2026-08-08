@@ -36,8 +36,52 @@ public class BsBuilderSetterTests
         Assert.Contains("disabled", html, StringComparison.Ordinal);
     }
 
+    // A Bs callback prop rides a carrier now (so its setter is `.OnClick(…)`, not `.Click(…)`), and the
+    // one thing that must NOT change with it: a non-Element component's callback stays AutoCallback-
+    // wrapped. A Bs control is not an Element, so there is no DOM handler-owner resolution to re-render
+    // the consumer — drop the wrapper and the handler runs, the state changes, and nothing repaints,
+    // with byte-identical markup. Both surfaces, because they have to agree.
+    [Fact]
+    public void A_bs_callback_stays_auto_wrapped_on_both_surfaces()
+    {
+        var host = Generated.ClickHost();
+        var raw = (Rask.Core.Callback)host.Bump;
+
+        Assert.NotSame(raw, BsButton(OnClick: raw).OnClick?.Fn);
+        Assert.NotSame(raw, BsButton().OnClick(raw).OnClick?.Fn);
+
+        // …and an unowned handler is still handed through untouched, so the wrap is genuinely
+        // AutoCallback's decision rather than an unconditional closure per render.
+        Rask.Core.Callback orphan = Noop;
+        Assert.Same(orphan, BsButton().OnClick(orphan).OnClick?.Fn);
+    }
+
+    // An omitted callback must read back as unset: BsToast starts its auto-hide timer only when OnClose
+    // is wired, and BsDataGrid's controlled-mode gates are all `is not null` tests on their callbacks.
+    [Fact]
+    public void An_omitted_bs_callback_reads_back_as_unset()
+    {
+        Rask.Core.Callback? maybe = null;
+
+        Assert.Null(BsButton().OnClick);
+        Assert.Null(BsButton(OnClick: maybe).OnClick);
+        Assert.Null(BsButton().OnClick(maybe).OnClick);
+    }
+
+    private static void Noop() { }
+
     private sealed class CheckModel
     {
         public bool Done { get; set; }
     }
+
+}
+
+// A Component so DelegateOwner can resolve an owner for the method group — which is the precondition
+// AutoCallback checks before it wraps anything.
+internal sealed partial class ClickHost : Rask.Core.Component
+{
+    internal void Bump() { }
+
+    protected override Rask.Core.Component? Render() => null;
 }

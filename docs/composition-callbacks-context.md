@@ -50,6 +50,23 @@ returns unchanged and does **not** trigger a re-render.
 Auto-wrapped delegates are excluded from the `propsChanged` diff — changing only the
 lambda identity between renders does not refire `OnPropsChanged`.
 
+**Carriers on framework components.** Rask's own component callbacks (`BsButton.OnClick`,
+`BsDataGrid.OnSortChange`, `Input.OnInput`, `DragDrop.OnDrop`, `NativeBarButton.OnClick`, …) declare a
+**carrier** rather than the bare delegate — `Handler?` / `HandlerAsync?` and their argument-taking
+siblings `Handler<T>?` / `HandlerAsync<T>?`, or `Carrier<TDelegate>?` for any other shape. Nothing
+changes at the call site: `OnClick: Save` and `OnClick = Save` still take a bare lambda or method
+group, because the carrier converts implicitly. It exists so the property and its builder setter can
+share a name — a delegate-typed property *is* invocable, so `.OnClick(Save)` would try to call the
+handler (CS1593). Two consequences: reading the delegate back is `.Fn` (`button.OnClick?.Fn`), and the
+implicit conversion accepts a null delegate, so build an optional one with `Handler.From(h)` (or cast
+the unset branch, `: (Handler?)null`) rather than letting `cond ? new Handler(h) : null` hand back a
+non-null carrier wrapping null. **Wrapping is unchanged:** a component callback is still auto-wrapped,
+a DOM handler still is not — the carrier carries no opinion about it.
+
+Your own delegate props need none of this; they keep working exactly as above, and their builder setter
+simply drops the `On` (`.Rate(…)` for `OnRate`). Declare the prop as a carrier if you want the setter
+to keep the property's name.
+
 **DOM events on elements.** `Element` exposes the full DOM **`GlobalEventHandlers`** surface — so
 **every** element (not a hand-picked few) carries the complete event set, just like the real DOM
 mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Handler<TArgs>`, the

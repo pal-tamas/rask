@@ -31,9 +31,11 @@ public sealed class Form : Element
     public string? Autocomplete { get; set; }
     public bool? Novalidate { get; set; }
     public string? Name { get; set; }
-    public Callback<FormData>? OnSubmit { get; set; }
+    // Carrier-typed so the builder setter keeps the property's own name (a delegate prop is invocable,
+    // so `.OnSubmit(save)` would try to invoke it — CS1593). Reading the delegate back is `.Fn`.
+    public Handler<FormData>? OnSubmit { get; set; }
 
-    public CallbackAsync<FormData>? OnSubmitAsync { get; set; }
+    public HandlerAsync<FormData>? OnSubmitAsync { get; set; }
 
     // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
     // walks the model graph so descendant sub-objects also resolve to the same context. Without
@@ -161,11 +163,11 @@ public sealed class Form : Element
             var handler = isValid ? OnValidSubmit : OnInvalidSubmit;
             if (handler is null)
             {
-                if (OnSubmit is { } sync)
+                if (OnSubmit?.Fn is { } sync)
                 {
                     sync(formData);
                 }
-                else if (OnSubmitAsync is { } asyn)
+                else if (OnSubmitAsync?.Fn is { } asyn)
                 {
                     await asyn(formData).ConfigureAwait(false);
                 }
@@ -221,7 +223,7 @@ public sealed class Form : Element
         }
         else
         {
-            submit = (Delegate?)OnSubmit ?? OnSubmitAsync;
+            submit = (Delegate?)OnSubmit?.Fn ?? OnSubmitAsync?.Fn;
         }
 
         if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)

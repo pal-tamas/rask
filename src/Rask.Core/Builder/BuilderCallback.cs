@@ -35,6 +35,9 @@ public readonly record struct Handler(Callback? Fn)
 {
     public void Invoke() => Fn?.Invoke();
 
+    /// <inheritdoc cref="Carrier{TDelegate}.From" />
+    public static Handler? From(Callback? fn) => fn is null ? (Handler?)null : new Handler(fn);
+
     public static implicit operator Handler(Callback? fn) => new(fn);
 }
 
@@ -42,6 +45,10 @@ public readonly record struct Handler(Callback? Fn)
 public readonly record struct HandlerAsync(CallbackAsync? Fn)
 {
     public Task InvokeAsync() => Fn?.Invoke() ?? Task.CompletedTask;
+
+    /// <inheritdoc cref="Carrier{TDelegate}.From" />
+    public static HandlerAsync? From(CallbackAsync? fn) =>
+        fn is null ? (HandlerAsync?)null : new HandlerAsync(fn);
 
     public static implicit operator HandlerAsync(CallbackAsync? fn) => new(fn);
 }
@@ -57,6 +64,10 @@ public readonly record struct Handler<TArgs>(Callback<TArgs>? Fn)
 {
     public void Invoke(TArgs args) => Fn?.Invoke(args);
 
+    /// <inheritdoc cref="Carrier{TDelegate}.From" />
+    public static Handler<TArgs>? From(Callback<TArgs>? fn) =>
+        fn is null ? (Handler<TArgs>?)null : new Handler<TArgs>(fn);
+
     public static implicit operator Handler<TArgs>(Callback<TArgs>? fn) => new(fn);
 }
 
@@ -64,6 +75,10 @@ public readonly record struct Handler<TArgs>(Callback<TArgs>? Fn)
 public readonly record struct HandlerAsync<TArgs>(CallbackAsync<TArgs>? Fn)
 {
     public Task InvokeAsync(TArgs args) => Fn?.Invoke(args) ?? Task.CompletedTask;
+
+    /// <inheritdoc cref="Carrier{TDelegate}.From" />
+    public static HandlerAsync<TArgs>? From(CallbackAsync<TArgs>? fn) =>
+        fn is null ? (HandlerAsync<TArgs>?)null : new HandlerAsync<TArgs>(fn);
 
     public static implicit operator HandlerAsync<TArgs>(CallbackAsync<TArgs>? fn) => new(fn);
 }
@@ -92,5 +107,26 @@ public readonly record struct HandlerAsync<TArgs>(CallbackAsync<TArgs>? Fn)
 /// </remarks>
 public readonly record struct Carrier<TDelegate>(TDelegate? Fn) where TDelegate : Delegate
 {
+    /// <summary>
+    ///     Wraps a delegate, mapping <c>null</c> to an <em>unset</em> carrier — the null-preserving
+    ///     counterpart of the implicit conversion.
+    /// </summary>
+    /// <remarks>
+    ///     The implicit conversion accepts a null delegate, so converting one yields a non-null carrier
+    ///     wrapping null: an omitted handler that no longer reads back as unset, silently flipping every
+    ///     <c>OnClose is not null</c> test a component makes about its own callback. Every generated
+    ///     assignment to a carrier property goes through <c>From</c> for that reason; hand-written code
+    ///     that needs the same guarantee should too (or cast the unset branch — <c>(Handler?)null</c>).
+    ///     Both forms are allocation-free: the carrier is a struct and <see cref="Nullable{T}" /> of one
+    ///     stays on the stack.
+    ///     <para>
+    ///         The cast inside <c>From</c> itself is load-bearing for the same reason it is at a call
+    ///         site: without it the conditional's natural type is the bare carrier, so the null branch
+    ///         runs the conversion and <c>From</c> hands back exactly what it exists to prevent.
+    ///     </para>
+    /// </remarks>
+    public static Carrier<TDelegate>? From(TDelegate? fn) =>
+        fn is null ? (Carrier<TDelegate>?)null : new Carrier<TDelegate>(fn);
+
     public static implicit operator Carrier<TDelegate>(TDelegate? fn) => new(fn);
 }

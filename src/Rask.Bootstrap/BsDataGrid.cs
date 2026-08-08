@@ -331,13 +331,13 @@ public sealed partial class BsDataGrid<T> : BsBlock
     public int? Page { get; set; }
 
     /// <summary>Raised with the page the user asked for. Only meaningful when <see cref="Page" /> is set.</summary>
-    public Callback<int>? OnPageChange { get; set; }
+    public Handler<int>? OnPageChange { get; set; }
 
     /// <summary>
     ///     The awaited form of <see cref="OnPageChange" />: the grid awaits it before returning from the click,
     ///     so you can run the query for the new page right here.
     /// </summary>
-    public CallbackAsync<int>? OnPageChangeAsync { get; set; }
+    public HandlerAsync<int>? OnPageChangeAsync { get; set; }
 
     /// <summary>
     ///     The <see cref="BsColumn{T}.SortField" /> of the sorted column, or null for unsorted. Set it (with
@@ -352,14 +352,14 @@ public sealed partial class BsDataGrid<T> : BsBlock
     public bool SortDescending { get; set; } = false;
 
     /// <summary>Raised with the sort the user asked for. Only meaningful when <see cref="Sort" /> is in use.</summary>
-    public Callback<DataGridSort>? OnSortChange { get; set; }
+    public Handler<DataGridSort>? OnSortChange { get; set; }
 
     /// <summary>
     ///     The awaited form of <see cref="OnSortChange" />. This is how the grid supports async data without any
     ///     async machinery of its own: the click awaits your handler, you run <c>CountAsync</c>/<c>ToListAsync</c>
     ///     in it and update the state the grid renders from, and the re-render shows the result.
     /// </summary>
-    public CallbackAsync<DataGridSort>? OnSortChangeAsync { get; set; }
+    public HandlerAsync<DataGridSort>? OnSortChangeAsync { get; set; }
 
     /// <summary>
     ///     Extra CSS classes for a row, computed from it — the hook for conditional row styling (a red
@@ -391,10 +391,10 @@ public sealed partial class BsDataGrid<T> : BsBlock
     ///         It costs one handler per clickable cell, so it scales with rows × columns rather than rows.
     ///     </para>
     /// </remarks>
-    public Callback<T>? OnRowClick { get; set; }
+    public Handler<T>? OnRowClick { get; set; }
 
     /// <summary>The awaited form of <see cref="OnRowClick" />.</summary>
-    public CallbackAsync<T>? OnRowClickAsync { get; set; }
+    public HandlerAsync<T>? OnRowClickAsync { get; set; }
 
     /// <summary>
     ///     Freezes the header row while the body scrolls under it. Needs <see cref="MaxHeight" />: a sticky
@@ -466,10 +466,10 @@ public sealed partial class BsDataGrid<T> : BsBlock
     ///         that has since been deleted or that this user may not touch.
     ///     </para>
     /// </remarks>
-    public Callback<IReadOnlyList<object>>? OnSelectionChange { get; set; }
+    public Handler<IReadOnlyList<object>>? OnSelectionChange { get; set; }
 
     /// <summary>The awaited form of <see cref="OnSelectionChange" />.</summary>
-    public CallbackAsync<IReadOnlyList<object>>? OnSelectionChangeAsync { get; set; }
+    public HandlerAsync<IReadOnlyList<object>>? OnSelectionChangeAsync { get; set; }
 
     /// <summary>
     ///     The columns to band rows by, outermost first, named by <see cref="BsColumn{T}.Field" /> — so this is
@@ -486,10 +486,10 @@ public sealed partial class BsDataGrid<T> : BsBlock
     public IReadOnlyList<string>? Grouped { get; set; }
 
     /// <summary>Raised with the group fields the user asked for, outermost first.</summary>
-    public Callback<IReadOnlyList<string>>? OnGroupedChange { get; set; }
+    public Handler<IReadOnlyList<string>>? OnGroupedChange { get; set; }
 
     /// <summary>The awaited form of <see cref="OnGroupedChange" />.</summary>
-    public CallbackAsync<IReadOnlyList<string>>? OnGroupedChangeAsync { get; set; }
+    public HandlerAsync<IReadOnlyList<string>>? OnGroupedChangeAsync { get; set; }
 
     /// <summary>Lets a band header collapse its rows. Zero-JS, like the master-detail expander.</summary>
     public bool? GroupCollapsible { get; set; }
@@ -536,10 +536,10 @@ public sealed partial class BsDataGrid<T> : BsBlock
     public IReadOnlyList<string>? HiddenColumns { get; set; }
 
     /// <summary>Raised with the full set of hidden tokens after a toggle — not a delta.</summary>
-    public Callback<IReadOnlyList<string>>? OnHiddenColumnsChange { get; set; }
+    public Handler<IReadOnlyList<string>>? OnHiddenColumnsChange { get; set; }
 
     /// <summary>The awaited form of <see cref="OnHiddenColumnsChange" />.</summary>
-    public CallbackAsync<IReadOnlyList<string>>? OnHiddenColumnsChangeAsync { get; set; }
+    public HandlerAsync<IReadOnlyList<string>>? OnHiddenColumnsChangeAsync { get; set; }
 
     /// <summary>
     ///     The <see cref="BsColumn{T}.Field" /> names in display order, so this is URL-serialisable
@@ -552,10 +552,10 @@ public sealed partial class BsDataGrid<T> : BsBlock
     public IReadOnlyList<string>? ColumnOrder { get; set; }
 
     /// <summary>Raised with the full column order, outermost first, after a move.</summary>
-    public Callback<IReadOnlyList<string>>? OnColumnOrderChange { get; set; }
+    public Handler<IReadOnlyList<string>>? OnColumnOrderChange { get; set; }
 
     /// <summary>The awaited form of <see cref="OnColumnOrderChange" />.</summary>
-    public CallbackAsync<IReadOnlyList<string>>? OnColumnOrderChangeAsync { get; set; }
+    public HandlerAsync<IReadOnlyList<string>>? OnColumnOrderChangeAsync { get; set; }
 
     /// <summary>
     ///     Renders a "Columns" menu above the grid: a checkbox to show or hide each column, and move earlier/later
@@ -576,19 +576,20 @@ public sealed partial class BsDataGrid<T> : BsBlock
     // Same three-way opt-in Sort uses, and for the same reason: Grouped = null legitimately means "ungrouped"
     // and cannot be told apart from "not using controlled grouping", so any of the three opts in.
     private bool GroupControlled =>
-        Grouped is not null || OnGroupedChange is not null || OnGroupedChangeAsync is not null;
+        Grouped is not null || OnGroupedChange?.Fn is not null || OnGroupedChangeAsync?.Fn is not null;
 
     private IReadOnlyList<string> CurrentGrouped => GroupControlled ? Grouped ?? [] : _grouped;
 
     // Column visibility and order follow the same three-way opt-in as Grouped: an empty list is a legitimate
     // controlled value ("nothing hidden" / "no explicit order"), so any of the three signals opts in.
     private bool HideControlled =>
-        HiddenColumns is not null || OnHiddenColumnsChange is not null || OnHiddenColumnsChangeAsync is not null;
+        HiddenColumns is not null || OnHiddenColumnsChange?.Fn is not null
+        || OnHiddenColumnsChangeAsync?.Fn is not null;
 
     private IReadOnlyList<string> CurrentHidden => HideControlled ? HiddenColumns ?? [] : _hidden;
 
     private bool OrderControlled =>
-        ColumnOrder is not null || OnColumnOrderChange is not null || OnColumnOrderChangeAsync is not null;
+        ColumnOrder is not null || OnColumnOrderChange?.Fn is not null || OnColumnOrderChangeAsync?.Fn is not null;
 
     private IReadOnlyList<string> CurrentOrder => OrderControlled ? ColumnOrder ?? [] : _order;
 
@@ -599,8 +600,8 @@ public sealed partial class BsDataGrid<T> : BsBlock
     // Any of the four opts in: Selectable for a grid that owns its selection, the other three for a caller
     // that owns it. Mirrors how SortControlled reads its three.
     private bool SelectionEnabled =>
-        Selectable is true || SelectedKeys is not null || OnSelectionChange is not null
-        || OnSelectionChangeAsync is not null;
+        Selectable is true || SelectedKeys is not null || OnSelectionChange?.Fn is not null
+        || OnSelectionChangeAsync?.Fn is not null;
 
     // Unlike Sort, "is it set?" is a sound signal here: an empty list is a perfectly good controlled selection
     // meaning "nothing picked", so null is unambiguous — the caller isn't controlling it.
@@ -621,7 +622,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
     // so it cannot be told apart from "not using controlled sort". Any of the three opts in — which also means
     // a Sort passed without a callback still renders sorted rather than being silently discarded.
     private bool SortControlled =>
-        Sort is not null || OnSortChange is not null || OnSortChangeAsync is not null;
+        Sort is not null || OnSortChange?.Fn is not null || OnSortChangeAsync?.Fn is not null;
 
     private int CurrentPage => Page ?? _page;
 
@@ -695,15 +696,15 @@ public sealed partial class BsDataGrid<T> : BsBlock
 
     // Sync wins when both are set and the async half is skipped — the contract RASK027 states and every other
     // component follows. Wiring both is a diagnostic, not a supported way to get two calls.
-    private static Task Raise<TArg>(Callback<TArg>? sync, CallbackAsync<TArg>? async, TArg arg)
+    private static Task Raise<TArg>(Handler<TArg>? sync, HandlerAsync<TArg>? async, TArg arg)
     {
-        if (sync is not null)
+        if (sync?.Fn is { } fn)
         {
-            sync.Invoke(arg);
+            fn.Invoke(arg);
             return Task.CompletedTask;
         }
 
-        return async is not null ? async.Invoke(arg) : Task.CompletedTask;
+        return async?.Fn is { } fnAsync ? fnAsync.Invoke(arg) : Task.CompletedTask;
     }
 
     // The current selection as a set. Built once per render and threaded through the cells: a controlled
@@ -1881,7 +1882,7 @@ public sealed partial class BsDataGrid<T> : BsBlock
     // Null when the grid has no row-click wired, which is what keeps every cell handler-free (and the markup
     // byte-identical) for the grids that don't use the feature.
     private CallbackAsync? RowClickHandler(T row) =>
-        OnRowClick is null && OnRowClickAsync is null
+        OnRowClick?.Fn is null && OnRowClickAsync?.Fn is null
             ? null
             : () => Raise(OnRowClick, OnRowClickAsync, row);
 

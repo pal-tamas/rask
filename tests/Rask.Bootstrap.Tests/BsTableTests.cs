@@ -115,7 +115,9 @@ public class BsTableTests
         // block, above the inherited pass-throughs. A required parameter (a non-nullable property with no
         // initializer, RASK001) would also be hoisted ahead of everything, which is why the new trio is
         // nullable.
-        var names = typeof(Generated).GetMethods().Single(m => m.Name == "BsTable")
+        // Fully qualified: this assembly declares components of its own now, so the generator emits a
+        // `Rask.Bootstrap.Tests.Generated` too — and a bare `Generated` binds to that nearer one.
+        var names = typeof(Rask.Bootstrap.Generated).GetMethods().Single(m => m.Name == "BsTable")
             .GetParameters();
 
         Assert.Equal(

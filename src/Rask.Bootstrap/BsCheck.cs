@@ -22,8 +22,8 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
     // IFormControl<bool> — controlled mode. Value is plain bool (the interface's `T?` resolves to
     // `bool` for the value type T=bool); the generator gives it a `= default` (false) factory default.
     public bool Value { get; set; }
-    public Callback<bool>? OnChange { get; set; }
-    public CallbackAsync<bool>? OnChangeAsync { get; set; }
+    public Handler<bool>? OnChange { get; set; }
+    public HandlerAsync<bool>? OnChangeAsync { get; set; }
 
     public new string? Label { get; set; }
     public bool? Disabled { get; set; }

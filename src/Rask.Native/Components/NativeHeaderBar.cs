@@ -1,3 +1,5 @@
+using Rask.Core;
+
 namespace Rask.Native.Components;
 
 /// <summary>
@@ -41,5 +43,5 @@ public sealed partial class NativeHeaderBar : NativeComponent
     public int? SelectedSegment { get; set; }
 
     /// <summary>Invoked with the tapped segment's index; runs on the render thread and re-renders, like any Rask callback.</summary>
-    public Action<int>? OnSegmentChanged { get; set; }
+    public Carrier<Action<int>>? OnSegmentChanged { get; set; }
 }
