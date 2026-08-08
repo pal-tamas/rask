@@ -126,6 +126,34 @@ public class TutorialPaneStateTests
         Assert.Contains("ChapterState.Locked", view, StringComparison.Ordinal);
     }
 
+    // #647: Run and Reset were gated on the editor having mounted, but the controls that LOAD code were
+    // not — they only guarded against a compile being in flight. Loading a chapter is a JS round-trip to
+    // setEditorValue, and before mountEditor has run there is no editor for the host, so the call is a
+    // silent no-op and mountEditor then installs the starter over the selection: the brief says one
+    // chapter, the editor holds another, and Run compiles the wrong code and ticks the chapter off.
+    //
+    // The fix is one shared condition. This asserts the condition is genuinely shared — a new control
+    // written with the old bare `Disabled: _busy` is the exact regression, and it re-opens the race.
+    [Fact]
+    public void Every_control_is_gated_on_the_editor_being_ready_not_just_on_busy()
+    {
+        var view = ReadView();
+
+        Assert.Contains("private bool CanInteract => !_busy && _editorReady;", view, StringComparison.Ordinal);
+
+        var bare = Regex.Matches(view, @"Disabled: _busy\b").Count;
+        Assert.True(
+            bare == 0,
+            $"{bare} control(s) still gate only on _busy. Loading code into an editor that has not mounted "
+            + "is a silent no-op (#647) — use `Disabled: !CanInteract` so the control waits for the editor, "
+            + "as Run and Reset already do.");
+
+        // And every control really is gated: one per Disabled: site, all of them through CanInteract.
+        var disabled = Regex.Matches(view, @"Disabled: ").Count;
+        var gated = Regex.Matches(view, @"Disabled: !CanInteract").Count;
+        Assert.Equal(disabled, gated);
+    }
+
     private static string ReadView() =>
         File.ReadAllText(Path.Combine(_repoRoot, "samples", "Rask.Example.Playground", "PlaygroundView.cs"));
 

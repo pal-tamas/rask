@@ -51,10 +51,17 @@ dotnet publish samples/Rask.Example.Shop -c Release --no-build --no-restore --no
 # The playground is the one sample published WITH the native relink, and it has to be: its tutorial track
 # runs EF Core against SQLite in the browser, which means linking e_sqlite3 (a static archive) into the
 # runtime. Passing -p:WasmBuildNative=false here would silently drop the data packages (see
-# RaskPlaygroundData in its csproj) and the tutorial half of PlaygroundExampleTests would fail. This does
-# not reintroduce the fingerprint/SRI drift the note above warns about: that is one project built two ways
-# into one obj/, whereas the fixture serves this publish output, which is internally consistent.
+# RaskPlaygroundData in its csproj) and the tutorial half of PlaygroundExampleTests would fail.
 #
+# Which makes this project the exact case the note above warns about — one project built two ways into one
+# obj/ — so it gets the TFM intermediates cleared first. Without this the scoped-asset bake, staged under
+# obj/Release/net10.0-browser/rask-scoped/_rask/a, is left over from the no-native build and does NOT make
+# it into the publish: wwwroot/_rask/ is simply absent, the page 404s on the PlaygroundView.js that owns
+# mountEditor, the editor never mounts, and every journey dies waiting for a permanently disabled Run
+# button. It reads as a hang, names nothing, and reproduces only on some runs — whichever mode wrote obj/
+# last. Clearing only obj/Release/net10.0-browser keeps obj/project.assets.json, so the restore below is
+# still incremental.
+rm -rf samples/Rask.Example.Playground/obj/Release/net10.0-browser
 # It also RE-RESTORES (no --no-restore, unlike the publishes above). RaskPlaygroundData gates the EF Core /
 # SQLitePCLRaw PackageReferences, so the package graph differs between the two modes — and the build above
 # restored in the other one. MSBuild does not error when a PackageReference appears after restore, it
