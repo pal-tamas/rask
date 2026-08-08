@@ -67,6 +67,7 @@ public static class RaskBrowserApis
         services.AddBrowserApi<IPerformance, Performance>(lifetime);
         services.AddBrowserApi<IIndexedDb, IndexedDb>(lifetime);
         services.AddBrowserApi<IFileSystemAccess, FileSystemAccess>(lifetime);
+        services.AddBrowserApi<IOriginPrivateFileSystem, OriginPrivateFileSystem>(lifetime);
         services.AddBrowserApi<IWebAuthn, WebAuthn>(lifetime);
         services.AddBrowserApi<ICookies, Cookies>(lifetime);
         services.AddBrowserApi<IPermissions, Permissions>(lifetime);

@@ -131,6 +131,10 @@ The push pattern above, one element at a time.
 
 <!-- demo:browser-file-system -->
 
+**`IOriginPrivateFileSystem`** — a private, persistent file tree the app owns: no picker, addressed by path, written in byte ranges. The right home for a local database file.
+
+<!-- demo:browser-opfs -->
+
 **`IWebAuthn`** — register and sign in with a passkey instead of a password.
 
 <!-- demo:browser-webauthn -->

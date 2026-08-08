@@ -34,6 +34,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`IPerformance`](apis/performance.md) | ✅ | ✅ | ✅ | — |
 | [`IIndexedDb`](apis/indexeddb.md) | ✅ | ✅ | ✅ | — |
 | [`IFileSystemAccess`](apis/file-system-access.md) | ✅ | ✅ | ⬜ | — |
+| [`IOriginPrivateFileSystem`](apis/origin-private-file-system.md) | ✅ | ✅ | ✅ | — |
 | [`IWebAuthn`](apis/webauthn.md) | ✅ | ✅ | ✅ | — |
 | [`IWebLocks`](apis/web-locks.md) | ✅ | ✅ | ✅ | — |
 | [`IBroadcastChannel`](apis/broadcast-channel.md) | ✅ | ✅ | ✅ | — |

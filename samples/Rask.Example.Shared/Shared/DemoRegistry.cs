@@ -123,6 +123,7 @@ public static class DemoRegistry
             ["browser-media-session"] = () => CodeSample(["MediaSessionDemo.cs"], Result: MediaSessionDemo()),
             ["browser-crypto"] = () => CodeSample(["CryptoDemo.cs"], Result: CryptoDemo()),
             ["browser-file-system"] = () => CodeSample(["FileSystemAccessDemo.cs"], Result: FileSystemAccessDemo()),
+            ["browser-opfs"] = () => CodeSample(["OriginPrivateFileSystemDemo.cs"], Result: OriginPrivateFileSystemDemo()),
             ["browser-webauthn"] = () => CodeSample(["WebAuthnDemo.cs"], Result: WebAuthnDemo()),
             ["browser-broadcast-channel"] = () => CodeSample(["BroadcastChannelDemo.cs"], Result: BroadcastChannelDemo()),
             ["browser-web-locks"] = () => CodeSample(["WebLocksDemo.cs"], Result: WebLocksDemo()),
