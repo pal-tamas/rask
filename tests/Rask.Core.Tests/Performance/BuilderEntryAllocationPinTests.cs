@@ -270,6 +270,22 @@ public class BuilderEntryAllocationPinTests
         AssertNoWorseThan(entry, factory);
     }
 
+    // The pins above are RELATIVE, so a regression that hits BOTH surfaces passes all of them in
+    // silence. This one is absolute: it fixes what the shape actually costs, measured 2026-08-08 on
+    // 3e143905 at 1528 B/render for both surfaces (element handlers 2072 B, a bound control 3555 B on
+    // the entry against the factory's 4709 B). Pinned at 1800 B — enough slack for jitter and a small
+    // feature, tight enough that a per-render allocation added to the shared render path shows up here
+    // rather than in a benchmark nobody ran.
+    [Fact]
+    public void The_shape_both_surfaces_share_costs_what_it_costs()
+    {
+        var entry = Measure(static () => new AllocEntryProbe());
+        var factory = Measure(static () => new AllocFactoryProbe());
+
+        Assert.InRange(entry, 0, 1800);
+        Assert.InRange(factory, 0, 1800);
+    }
+
     // One-sided: the entry surface is allowed to be CHEAPER (it is, for a bound control — it has one
     // entry where the factory has a none/sync/async fan-out), never more expensive. The 256 B of slack
     // covers measurement jitter; a per-render delegate or buffer would be well clear of it.
