@@ -134,6 +134,28 @@ them until tagged releases begin.
   wrapping null and every `OnClose is not null` a component asks about its own callback (BsToast's
   auto-hide timer, BsDataGrid's controlled-mode gates) would have answered true for a handler nobody
   wired. Each carrier gains a null-preserving `From`, and every generated assignment goes through it.
+  **And the deferred commit now holds up where a chain leaves the happy path.** A factory finishes its
+  component before it returns; an entry is finished by the parent when the parent's `Render()` returns,
+  which turns three ordinary situations into three separate promises. *A `Render()` that throws* —
+  a supported path, since an `ErrorBoundary` catches it and renders a fallback — used to strand the
+  entries it had already built on the per-thread slot stack, which is only ever popped by the render
+  that pushed onto it. That both pinned a live subtree on a pooled thread shared across sessions and
+  silently corrupted the *next* successful render of the same component: it pushes a second slot for the
+  same instance, the stale one drains first, and its stale pending mask blanks a prop the new chain just
+  set (`Div.Id("x")` rendering as `<div></div>`). The reset half now runs as the exception unwinds; the
+  lifecycle half deliberately does not, so a hook cannot throw over the original fault. *An entry inside
+  a `Head` override* was owned by the enclosing component, because the serializer collected head
+  contributions from outside the component's own render scope — so an omitted head prop took an extra
+  frame to disappear, and on a shell that renders once the slot never drained at all. A component's
+  `Head` is now produced by its own render (`RenderForLive`) and read back by the walk, which also means
+  it is evaluated exactly once per render rather than twice, and a `Context` read inside a `Head` now
+  marks the right component as ambient-reading. *A lifecycle hook that builds something* — `OnMount`
+  calling a factory or an entry — threw `Collection was modified` outright: the commit was enumerating
+  the parent's child map, and building anything writes to it. The commit now runs over a snapshot and
+  repeats until no new entry appears, so a hook's own entries are reset and notified like any other.
+  All three ride the existing per-thread buffers, so allocation per render is unchanged (entry vs
+  factory: 1528/1576/2072/1464 B on the plain, head-bearing, handler-bearing and component-callback
+  trees; 3555 vs 4709 on a bound control).
 
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two

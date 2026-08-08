@@ -99,6 +99,16 @@ public static partial class BuilderRuntime
     internal static void PushSlot(Component parent, Component target, Action<Component, ulong> reset, ulong pending)
         => (_slots ??= new List<EntrySlot>()).Add(new EntrySlot(parent, target, reset, pending));
 
+    // Scratch for the deferred commit's snapshot of a parent's child map (Component.CommitEach). Same
+    // discipline and the same reasons as the slot stack above: per-thread so it costs no field on
+    // LiveState, reused across renders so the steady state allocates nothing, and used as a stack —
+    // each commit appends its own range and truncates back — so a lifecycle hook that re-enters another
+    // component's render nests cleanly instead of clobbering the frame below it.
+    [ThreadStatic]
+    private static List<Component>? _commitBuffer;
+
+    internal static List<Component> CommitBuffer => _commitBuffer ??= new List<Component>();
+
     /// <summary>Clears <paramref name="bit" /> — the prop it stands for was written by the chain.</summary>
     /// <remarks>
     ///     A backwards scan, not a lookup: a setter runs immediately after the entry that produced its

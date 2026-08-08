@@ -425,15 +425,6 @@ internal static class HtmlSerializer
                     component.Boundary = liveCtx.CurrentBoundary;
                 }
 
-                // Collect this component's Head contribution before entering its render
-                // scope. The registry is consumed once at the end of RenderAsLiveRoot when
-                // it replaces the RaskHeadAssets sentinel — components that go away on the
-                // next render just stop contributing and their head tags fall out naturally.
-                if (liveCtx is not null && component.HeadInternal is { } head)
-                {
-                    liveCtx.HeadAssets.Add(head);
-                }
-
                 // Native header/footer collection — only when the host opts in (the native host with an
                 // INativeChrome backend). Reading the overrides here, mid-walk, keeps the native factories
                 // DI-correct (ambient context) and picks the deepest override (last non-null wins). Pure no-op
@@ -495,7 +486,21 @@ internal static class HtmlSerializer
 
                     try
                     {
-                        Serialize(component.RenderForLive(), sb);
+                        var rendered = component.RenderForLive();
+
+                        // Collect this component's Head contribution — produced by the render that just
+                        // ran (Component.RenderForLive), which is what owns anything it built, and read
+                        // back here rather than re-evaluated. Still before its subtree is walked, so the
+                        // registry keeps walk order: an ancestor's head precedes every descendant's. The
+                        // registry is consumed once at the end of RenderAsLiveRoot when it replaces the
+                        // RaskHeadAssets sentinel — components that go away on the next render just stop
+                        // contributing and their head tags fall out naturally.
+                        if (liveCtx is not null && component.CachedHeadInternal is { } head)
+                        {
+                            liveCtx.HeadAssets.Add(head);
+                        }
+
+                        Serialize(rendered, sb);
                     }
                     finally
                     {

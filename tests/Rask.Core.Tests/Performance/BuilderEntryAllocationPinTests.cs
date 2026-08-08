@@ -118,6 +118,24 @@ internal sealed partial class AllocCallbackFactoryProbe : Component
     private void Name(string value) => Picks++;
 }
 
+// A Head override, which the component's own render now produces (Component.RenderForLive) so that an
+// entry built there is owned by the component whose Head it is. That puts a second chain — and a second
+// set of pending resets — on the per-render path of every component that contributes to the head, so it
+// gets the same parity pin as the body.
+internal sealed partial class AllocHeadEntryProbe : Component
+{
+    protected override Component? Head => Meta.Name("probe").Content("keep");
+
+    protected override Component? Render() => Div.Id("page")[Span["42"]];
+}
+
+internal sealed partial class AllocHeadFactoryProbe : Component
+{
+    protected override Component? Head => Rask.Core.Components.Generated.Meta(Name: "probe", Content: "keep");
+
+    protected override Component? Render() => Div(Id: "page")[Span()["42"]];
+}
+
 public class BuilderEntryAllocationPinTests
 {
     [Fact]
@@ -145,6 +163,15 @@ public class BuilderEntryAllocationPinTests
     {
         var entry = Measure(static () => new AllocCallbackEntryProbe());
         var factory = Measure(static () => new AllocCallbackFactoryProbe());
+
+        AssertNoWorseThan(entry, factory);
+    }
+
+    [Fact]
+    public void An_entry_built_Head_does_not_allocate_more_per_render_than_the_factory()
+    {
+        var entry = Measure(static () => new AllocHeadEntryProbe());
+        var factory = Measure(static () => new AllocHeadFactoryProbe());
 
         AssertNoWorseThan(entry, factory);
     }

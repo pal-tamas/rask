@@ -349,7 +349,17 @@ public abstract partial class Component
     /// </summary>
     protected virtual Component? Head => null;
 
-    internal Component? HeadInternal => Head;
+    /// <summary>
+    ///     This component's <see cref="Head" /> contribution as its last render produced it, or
+    ///     <c>null</c> when it has none.
+    /// </summary>
+    /// <remarks>
+    ///     Read rather than re-evaluated, by both the serializer's collection point and the
+    ///     clean-subtree cache: <see cref="Head" /> is a user-written expression that builds components,
+    ///     so it has to run exactly once per render, inside the render that owns what it builds (see
+    ///     <see cref="RenderForLive" />).
+    /// </remarks>
+    internal Component? CachedHeadInternal => _live?.CachedHead;
     internal void MarkReadsAmbientStateInternal() => SetFlag(FlagReadsAmbientState, true);
 
     /// <summary>
@@ -835,7 +845,44 @@ public abstract partial class Component
         // the scope is live during BOTH Render() and the walk of its returned subtree —
         // factories inside Render and handlers registered on elements deep in the tree both
         // attribute back to this component.
-        Live.CachedRenderResult = Render();
+        //
+        // A Render() that THROWS is a supported path — an ancestor ErrorBoundary catches it and
+        // re-renders a fallback — so the entries it built before the throw still have to be swept off
+        // the per-thread slot stack, which is only ever popped by the render that pushed onto it. A
+        // stranded slot pins a live subtree on a pooled thread AND corrupts the next successful render
+        // of this same component: that render pushes a second slot for the same target (positional
+        // identity hands back the same instance), the stale one drains first, and its stale pending
+        // mask blanks a prop the new chain has just set. Only the reset half runs on the way out —
+        // firing lifecycle while an exception unwinds could throw again and swallow the original fault,
+        // and it would be notifying a render that never happened.
+        try
+        {
+            Live.CachedRenderResult = Render();
+        }
+        catch
+        {
+            if (Live.HasEntryChildren)
+            {
+                Live.HasEntryChildren = false;
+                BuilderRuntime.DrainSlots(this);
+            }
+
+            throw;
+        }
+
+        // The Head override is part of THIS component's render, not of the walk that serializes it.
+        // Evaluating it here rather than at the serializer's collection point — which runs in the
+        // ENCLOSING component's parent scope, after that component's own render has finished and
+        // drained — is what gives an entry inside a Head override the right owner: its identity comes
+        // from this component's positional child map (counted on from the render's own children, since
+        // the reset above already ran), its pending reset drains with the rest below rather than a
+        // frame late, and a Context read inside a Head marks THIS component as ambient-reading.
+        //
+        // Cached alongside the render result because the registry that collects it is rebuilt every
+        // frame while this component may be served from the render cache: re-running the chain on a
+        // cache hit would hand out fresh positional identities on every frame (the counter is only
+        // reset by a real render), and re-running it at all is work a clean component does not owe.
+        Live.CachedHead = Head;
 
         // Builder-surface commit point. A generated FACTORY assigns every prop and then calls
         // NotifyParameters itself, because it knows when the props are done. A setter chain has no
@@ -865,21 +912,59 @@ public abstract partial class Component
     // that just finished. Kept out of RenderForLive so the hot path is a single bool test.
     private void CommitEntryChildren()
     {
-        Live.HasEntryChildren = false;
-
-        // Ordering is load-bearing: the pending resets put every prop the chain did NOT name back to
-        // the value the factory would have passed, folding each one into EntryPropsChanged as it goes,
-        // so they have to run before the commit below reads that flag.
-        BuilderRuntime.DrainSlots(this);
-
-        if (_live?.Children is not { Count: > 0 } children)
+        // A commit can build more entries. The hooks it runs are user code, they run while this
+        // component is still the one in scope, and a factory or an entry called from one lands here —
+        // after the sweep that was supposed to complete them. So the whole pass repeats until it finds
+        // nothing new; the flag is armed by the entry itself, so the overwhelmingly common "the hooks
+        // built nothing" case costs one more bool test. It terminates on anything the factory survives:
+        // a hook that unconditionally builds a component whose hook does the same recurses on the
+        // factory too, straight into a stack overflow, because there the notification is synchronous.
+        do
         {
-            return;
+            Live.HasEntryChildren = false;
+
+            // Ordering is load-bearing: the pending resets put every prop the chain did NOT name back
+            // to the value the factory would have passed, folding each one into EntryPropsChanged as it
+            // goes, so they have to run before the commit below reads that flag.
+            BuilderRuntime.DrainSlots(this);
+
+            if (_live?.Children is { Count: > 0 } children)
+            {
+                CommitEach(children);
+            }
         }
+        while (Live.HasEntryChildren);
+    }
 
-        foreach (var child in children.Values)
+    // Fires the commit over a SNAPSHOT of the child map rather than over the map itself. The lifecycle
+    // hooks it runs may build components, and building one writes to this very dictionary
+    // (GetOrCreateChild) — which, mid-enumeration, is an InvalidOperationException. It was not reachable
+    // before the deferred commit existed: the factory notified from inside Render(), where the map is
+    // written but never walked.
+    //
+    // The snapshot rides a per-thread buffer, reused across renders and unwound like a stack, so it
+    // allocates nothing in the steady state and stays correct when a hook re-enters another component's
+    // render (a nested ToHtml(), which commits onto the same buffer above our range).
+    private static void CommitEach(Dictionary<(Type, int), Component> children)
+    {
+        var buffer = BuilderRuntime.CommitBuffer;
+        var start = buffer.Count;
+        try
         {
-            child.CommitEntry();
+            foreach (var child in children.Values)
+            {
+                buffer.Add(child);
+            }
+
+            var end = buffer.Count;
+            for (var i = start; i < end; i++)
+            {
+                buffer[i].CommitEntry();
+            }
+        }
+        finally
+        {
+            buffer.RemoveRange(start, buffer.Count - start);
         }
     }
 
@@ -1038,7 +1123,7 @@ public abstract partial class Component
             || Children is not null
             || BypassRenderCache
             || _readsAmbientState
-            || HeadInternal is not null
+            || CachedHeadInternal is not null
             || collectsNativeChrome
             || count <= 0)
         {
@@ -2233,6 +2318,11 @@ public abstract partial class Component
         public IRenderHandle? RenderHandle;
         public CancellationTokenSource? LifetimeCts;
         public Component? CachedRenderResult;
+
+        // The Head override's output, produced by the same render as CachedRenderResult and re-read
+        // (never re-run) by every later collection of it — see Component.CachedHeadInternal. Null on
+        // the components that have no Head, which is nearly all of them.
+        public Component? CachedHead;
 
         // Phase B clean-subtree frame cache — see CachedSubtree. ONE reference, not the handful of
         // fields the snapshot actually needs: LiveState is allocated per node on a mounted page, so
