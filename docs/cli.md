@@ -206,7 +206,7 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 |----------|-------|-------------------|
 | `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
 | `component <Name>` | `Features/Shared/<Name>.cs` — a plain `Component` (or `Features/<Feature>/` with `--feature`) | `<Name>` in `<Root>.Features.Shared` |
-| `job <Name>` | `Features/Shared/<Name>.cs` — a background job: an `IJob` record + its `ICommandHandler` (adds the `Rask.Jobs` / `Rask.Cqrs` packages). `--feature` co-locates it in a slice. Alias: `rask g j` | `<Name>` in `<Root>.Features.Shared` |
+| `job <Name>` | `Features/Shared/<Name>.cs` — a background job: an `IJob` record + its `ICommandHandler` (adds the `Rask.Jobs` / `Rask.Cqrs` packages). `--feature` co-locates it in a slice. **Refused in a browser (WASM) project** — see below. Alias: `rask g j` | `<Name>` in `<Root>.Features.Shared` |
 | `email <Name>` | `Features/Shared/<Name>.cs` — an email-body component rendered to HTML by `Email.Body(...)` (adds the `Rask.Mail` package). **Auto-wires** into your `DbContext` — registers `AddRaskMail<Ctx>` in `Program.cs` and maps the mail table in `OnModelCreating` — when it finds a single one (or `--context <Name>`); otherwise prints the steps. `--feature` co-locates it in a slice. Alias: `rask g e` | `<Name>` in `<Root>.Features.Shared` |
 | `cache <Name>` | `Features/Shared/<Name>.cs` — a read-through cache accessor that owns its key and its invalidation in one place (adds the `Rask.Cache` package). `--feature` co-locates it in a slice. Alias: `rask g ca` | `<Name>` in `<Root>.Features.Shared` |
 | `feature <Name> <field:type> …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id) with **value objects** for required strings (built-in validation), an EF `IEntityTypeConfiguration` mapped by the app's one `DbContext` (found in the project, or written to `Features/Shared/AppDbContext.cs` when there is none), **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
@@ -235,6 +235,14 @@ folder path, the C# convention), and **refuses to overwrite an existing file** u
 | `--force` | Overwrite existing file(s). |
 | `--dry-run` | Print the file(s) that would be written, and write nothing. |
 | `--save-defaults` | `feature` only: remember this run's feature flags in `.rask/generate.json` (see below). |
+
+**`generate job` is refused in a browser (WASM) project.** Not a limitation of the scaffolder — there is
+nothing for it to scaffold *into*. `AddRaskJobs` registers the processor as a **hosted service**, and the
+WASM host never starts those, so the job would compile, enqueue, and never run; the queue also needs a
+database that survives a reload, which the browser's in-memory file is not. Rather than emit next steps
+you can't follow, the CLI stops and points at a server project — in a hosted-WASM solution, the Server
+half: `rask generate job SendWelcomeEmail --project ../MyApp.Server`. (Consistently, `rask new --wasm`
+doesn't offer the `--jobs` battery either.) Every other generator runs in a WASM app as usual.
 
 **Team defaults (`.rask/generate.json`).** So a project doesn't retype the same feature flags every
 time, `rask generate feature` reads defaults from `.rask/generate.json` at the project root — e.g.

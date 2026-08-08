@@ -10,11 +10,20 @@ namespace Rask.Cli.Scaffolding;
 internal sealed partial class ProjectContext(
     string projectDirectory,
     string rootNamespace,
-    DatabaseProvider provider = DatabaseProvider.Sqlite)
+    DatabaseProvider provider = DatabaseProvider.Sqlite,
+    bool isBrowser = false)
 {
     public string ProjectDirectory { get; } = projectDirectory;
 
     public string RootNamespace { get; } = rootNamespace;
+
+    /// <summary>
+    /// Whether this project runs in the browser (a WASM app), read off its project file the same way
+    /// <see cref="Provider"/> is. Scaffolding that depends on a host-side facility has to know: the
+    /// browser has no hosted services, no design-time database and no durable file by default, so a
+    /// generator that assumes a server would emit something that compiles and then quietly does nothing.
+    /// </summary>
+    public bool IsBrowser { get; } = isBrowser;
 
     /// <summary>
     /// The database this project is wired to, read off its package references rather than asked for again.
@@ -64,6 +73,24 @@ internal sealed partial class ProjectContext(
 
     [GeneratedRegex(@"<RootNamespace>\s*(.+?)\s*</RootNamespace>", RegexOptions.IgnoreCase)]
     private static partial Regex RootNamespaceRegex();
+
+    // A browser TFM on either the singular or plural element — net10.0-browser today, but matched by the
+    // "-browser" suffix rather than the version so a framework bump doesn't silently stop detecting it.
+    [GeneratedRegex(@"<TargetFrameworks?>[^<]*-browser", RegexOptions.IgnoreCase)]
+    private static partial Regex BrowserTargetFrameworkRegex();
+
+    /// <summary>Whether <paramref name="csprojText"/> describes a project that runs in the browser.</summary>
+    internal static bool DetectBrowser(string csprojText)
+    {
+        ArgumentNullException.ThrowIfNull(csprojText);
+
+        // Any one of the three is conclusive, and a hand-edited project may carry only one of them.
+        // The package check keeps its closing quote so it does NOT match Rask.Wasm.Hosting — that is
+        // referenced by the SERVER half of a hosted-WASM solution, which is the opposite answer.
+        return BrowserTargetFrameworkRegex().IsMatch(csprojText)
+            || csprojText.Contains("<RaskWasm>true</RaskWasm>", StringComparison.OrdinalIgnoreCase)
+            || csprojText.Contains("Include=\"Rask.Wasm\"", StringComparison.OrdinalIgnoreCase);
+    }
 
     internal static string ReadRootNamespace(IFileSystem fileSystem, string csprojPath)
     {
@@ -128,10 +155,12 @@ internal static class ProjectLocator
             var projects = fileSystem.ListFiles(directory, "*.csproj");
             if (projects.Count == 1)
             {
+                var csproj = fileSystem.ReadAllText(projects[0]);
                 return new ProjectContext(
                     directory,
                     ProjectContext.ReadRootNamespace(fileSystem, projects[0]),
-                    DatabaseCatalog.DetectProvider(fileSystem.ReadAllText(projects[0])));
+                    DatabaseCatalog.DetectProvider(csproj),
+                    ProjectContext.DetectBrowser(csproj));
             }
 
             if (projects.Count > 1)

@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **`rask generate job` no longer scaffolds a job into a browser app that could never run it.** The
+  generator wasn't gated on project kind, so running it inside a WASM app produced an `IJob` + handler
+  and printed next steps written for a server: register `AddRaskJobs<AppDbContext>()`, point EF at
+  `Data Source=app.db`, then `rask db add && rask db update`. Every line of that is wrong there —
+  `rask db` drives `dotnet-ef` against a design-time database a browser bundle doesn't have, and the
+  connection string names a file in the WASM runtime's **in-memory** filesystem that disappears on
+  reload. Worse than either: `AddRaskJobs` registers the processor as a **hosted service**, and
+  `WasmHostBuilder.RunAsync` never starts those — so the queue would have had no runner at all. The
+  scaffolded code compiled, enqueued, and silently did nothing.
+  The CLI now recognises a browser project (a `-browser` target framework, `<RaskWasm>`, or a
+  `Rask.Wasm` reference) and refuses, saying why and where the job belongs — in a hosted-WASM solution,
+  the Server half: `rask generate job SendWelcomeEmail --project ../MyApp.Server`. It exits 1 rather
+  than as a usage error, because the command line was fine; `--help` has nothing to say about it. Every
+  other generator still runs in a WASM app, and `Rask.Wasm.Hosting` (referenced by the *server* half of
+  a hosted solution) deliberately doesn't read as "browser".
+
 ### Added
 - **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
   enters the tree through its generated factory, and that factory is what registers the instance with its

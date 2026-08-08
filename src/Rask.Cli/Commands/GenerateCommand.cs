@@ -223,6 +223,27 @@ internal sealed class GenerateCommand(IConsole console, IFileSystem fileSystem, 
             return 1;
         }
 
+        // Background jobs have no working shape in the browser, so refuse rather than scaffold dead code.
+        // Not a usage error (the command line is fine), so it reports and exits 1 like the no-project case
+        // above rather than printing usage — help has nothing to say about this.
+        if (kind == "job" && project.IsBrowser)
+        {
+            Console.WriteErrorLine(
+                "Background jobs don't run in a browser app, so 'rask generate job' won't scaffold one here.",
+                ConsoleStyle.Error);
+            Console.Error.WriteLine(
+                "  AddRaskJobs registers the processor as a hosted service, and the WASM host never starts");
+            Console.Error.WriteLine(
+                "  those — the job would compile and enqueue, and nothing would ever run it. The queue also");
+            Console.Error.WriteLine(
+                "  needs a database that survives a reload, which the browser's in-memory file isn't.");
+            Console.Error.WriteLine(
+                "  Generate it in a server project instead (in a hosted-WASM solution, the Server one):");
+            Console.Error.WriteLine(
+                $"      rask generate job {name} --project <path-to-server-project>");
+            return 1;
+        }
+
         // --output names a folder INSIDE the project: the namespace is derived from its path, so a folder
         // outside can't produce a coherent one. It used to be accepted — files were written outside the
         // project and quietly given the root namespace instead of failing.

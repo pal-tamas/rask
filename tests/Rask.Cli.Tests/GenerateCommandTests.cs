@@ -75,6 +75,86 @@ public sealed class GenerateCommandTests
         Assert.Contains("AddRaskJobs", console.OutText, StringComparison.Ordinal);
     }
 
+    // ── Jobs in a browser app (issue #646) ──────────────────────────────────────────────────────────
+    //
+    // `rask generate job` isn't gated on project kind, so it ran happily inside a WASM app and printed
+    // server-only next steps. The deeper problem is that there is no working shape to point at: AddRaskJobs
+    // registers the processor as a hosted service and WasmHostBuilder.RunAsync never starts those, so a
+    // scaffolded job compiles, enqueues, and is never run — silently. Refuse instead of scaffolding it.
+
+    [Theory]
+    // Any one signal is enough: a hand-edited project may carry only one of the three.
+    [InlineData("<Project><PropertyGroup><TargetFramework>net10.0-browser</TargetFramework></PropertyGroup></Project>")]
+    [InlineData("<Project><PropertyGroup><RaskWasm>true</RaskWasm></PropertyGroup></Project>")]
+    [InlineData("""<Project><ItemGroup><PackageReference Include="Rask.Wasm" Version="1.0.0"/></ItemGroup></Project>""")]
+    public async Task Job_in_a_browser_project_is_refused_with_the_reason(string csproj)
+    {
+        var console = new StringConsole();
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/MyApp.csproj", csproj);
+        var command = new GenerateCommand(console, fs, new FakeProcessRunner(), ProjectDir);
+
+        var exit = await command.ExecuteAsync(["job", "SendWelcomeEmail"], CancellationToken.None);
+
+        // 1, not UsageExitCode: the command line was fine, the project just can't host the thing.
+        Assert.Equal(1, exit);
+        Assert.False(fs.Files.ContainsKey(Path.GetFullPath("/proj/Features/Shared/SendWelcomeEmail.cs")));
+        Assert.Contains("don't run in a browser app", console.ErrorText, StringComparison.Ordinal);
+        // The way out has to be in the message — the reason alone leaves you stuck.
+        Assert.Contains("--project", console.ErrorText, StringComparison.Ordinal);
+        // And no usage block: `rask generate --help` has nothing to say about this.
+        Assert.DoesNotContain("Run 'rask generate --help'", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Job_alias_j_is_refused_in_a_browser_project_too()
+    {
+        // The check keys off the resolved verb, so the alias must land on it as well — `rask g j` is how
+        // most people actually type this.
+        var console = new StringConsole();
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/MyApp.csproj", "<Project><PropertyGroup><RaskWasm>true</RaskWasm></PropertyGroup></Project>");
+        var command = new GenerateCommand(console, fs, new FakeProcessRunner(), ProjectDir);
+
+        var exit = await command.ExecuteAsync(["j", "SendWelcomeEmail"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("don't run in a browser app", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Job_in_the_server_half_of_a_hosted_wasm_solution_is_still_scaffolded()
+    {
+        // Rask.Wasm.Hosting is referenced by the SERVER project, and it must not read as "browser" —
+        // that project is exactly where the job belongs.
+        var console = new StringConsole();
+        var fs = new FakeFileSystem();
+        fs.Seed(
+            "/proj/MyApp.csproj",
+            """<Project><ItemGroup><PackageReference Include="Rask.Wasm.Hosting" Version="1.0.0"/></ItemGroup></Project>""");
+        var command = new GenerateCommand(console, fs, new FakeProcessRunner(), ProjectDir);
+
+        var exit = await command.ExecuteAsync(["job", "SendWelcomeEmail"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Features/Shared/SendWelcomeEmail.cs")));
+    }
+
+    [Fact]
+    public async Task Other_generators_still_run_in_a_browser_project()
+    {
+        // The refusal is specific to jobs — pages and components are perfectly at home in a WASM app.
+        var console = new StringConsole();
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/MyApp.csproj", "<Project><PropertyGroup><RaskWasm>true</RaskWasm></PropertyGroup></Project>");
+        var command = new GenerateCommand(console, fs, new FakeProcessRunner(), ProjectDir);
+
+        var exit = await command.ExecuteAsync(["page", "Products"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.True(fs.Files.ContainsKey(Path.GetFullPath("/proj/Features/Products/ProductsPage.cs")));
+    }
+
     [Fact]
     public async Task Job_alias_j_scaffolds_a_job()
     {
