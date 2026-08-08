@@ -218,4 +218,82 @@ public class CodeFixProviderTests
         Assert.DoesNotContain("OnClickAsync", fixhed);
         Assert.Contains("OnClick: () => {}", fixhed);
     }
+
+    // ---- CS0108: a member hides an inherited builder entry -> add `new` ----
+    //
+    // Every component type contributes an entry named after itself, so a member that shares a tag's or
+    // a component's name hides one. The five shapes that produce it in this repo are a component
+    // property, a private helper method named after a tag, a nested type, a field, and a `using` alias
+    // (that last one is RASK037's — it is a hard CS1061, not a CS0108, so no fix can reach it).
+
+    private static string Hiding(string hidden, string hider) => $$"""
+        using Rask.Core;
+        namespace Demo;
+        public class Shell : Component
+        {
+            {{hidden}}
+        }
+        public class Modal : Shell
+        {
+            {{hider}}
+        }
+        """;
+
+    [Fact]
+    public async Task Cs0108_Property_GetsNewAfterAccessibility()
+    {
+        var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
+            new HiddenBuilderEntryCodeFixProvider(), "CS0108",
+            Hiding("public Component? Footer => null;", "public Component? Footer => null;"));
+        Assert.Contains("public new Component? Footer => null;", fixhed);
+    }
+
+    [Fact]
+    public async Task Cs0108_PrivateHelperMethod_GetsNew()
+    {
+        var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
+            new HiddenBuilderEntryCodeFixProvider(), "CS0108",
+            Hiding("public Component? Section() => null;", "private Component? Section() => null;"));
+        Assert.Contains("private new Component? Section() => null;", fixhed);
+    }
+
+    [Fact]
+    public async Task Cs0108_NestedType_GetsNewBeforeSealed()
+    {
+        // `new` sits after the accessibility and before `sealed`, which is where
+        // csharp_preferred_modifier_order wants it — so the fix does not fight `dotnet format`.
+        var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
+            new HiddenBuilderEntryCodeFixProvider(), "CS0108",
+            Hiding("public Component? Line => null;", "public sealed record Line(int X);"));
+        Assert.Contains("public new sealed record Line(int X);", fixhed);
+    }
+
+    [Fact]
+    public async Task Cs0108_Field_GetsNewBeforeReadonly()
+    {
+        var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
+            new HiddenBuilderEntryCodeFixProvider(), "CS0108",
+            Hiding("public string Table => \"\";", "private readonly string Table = \"\";"));
+        Assert.Contains("private new readonly string Table = \"\";", fixhed);
+    }
+
+    [Fact]
+    public async Task Cs0108_MemberWithNoModifiers_KeepsItsIndentation()
+    {
+        var fixhed = await CodeFixHarness.ApplyCompilerFixAsync(
+            new HiddenBuilderEntryCodeFixProvider(), "CS0108",
+            Hiding("public string Table => \"\";", "string Table = \"\";"));
+        Assert.Contains("    new string Table = \"\";", fixhed);
+    }
+
+    [Fact]
+    public async Task Cs0108_OutsideAComponent_FixIsWithheld() =>
+        // Hiding in a plain class hierarchy is the user's own design decision; Rask has no business
+        // answering it, and a fix offered there would be applied by `dotnet format` unasked.
+        Assert.False(await CodeFixHarness.IsCompilerFixOfferedAsync(
+            new HiddenBuilderEntryCodeFixProvider(), "CS0108", """
+                namespace Demo;
+                public class Base { public int Count => 1; }
+                public class Derived : Base { public int Count => 2; }
+                """));
 }

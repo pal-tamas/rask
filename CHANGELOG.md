@@ -7,6 +7,29 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Three diagnostics for the builder surface, where the compiler stops being able to speak for us.**
+  Entries are members named after their component type, so they interact with name lookup in ways the
+  factory never did — and the two failures that produces both surface as compiler errors that name
+  neither the entry nor the fix.
+  - **A quick-fix for `CS0108`** that inserts `new` on a member hiding an entry: a component property
+    (`BsModal.Footer`), a private helper named after a tag (`Section(…)`), a nested type (`record Line`
+    vs the SVG `<line>` entry), a field. Offered **only** inside a component — hiding in your own class
+    hierarchy is your decision — and it puts `new` where `csharp_preferred_modifier_order` wants it, so
+    the edit survives the next `dotnet format`. Deliberately a code fix rather than a
+    `DiagnosticSuppressor`: a suppressor satisfies the compiler, but `dotnet format` ignores suppressors
+    and applies the underlying fix anyway, so the format gate would never settle.
+  - **RASK037** — a `using` alias hidden by an entry. `using B = …` loses to the `<b>` tag inside any
+    component body and fails as **CS1061** at the *use*, naming a `B` nobody wrote; no code fix can
+    reach it, because by then the alias has already lost the lookup. The analyzer says it at the alias,
+    where the rename goes, and only when an entry actually claims the name.
+  - **RASK038 / RASK039** — the builder half of RASK001. A required property is a required *parameter*
+    on the generated factory, so the language reports an omitted one; in a chain it is just a setter
+    that isn't there, and the component renders holding a `null`. RASK038 walks the chain and names what
+    it never set. RASK039 covers the case the walk cannot answer — a chain stored in a local or a field
+    can be continued anywhere — and reports the gap in the analysis rather than a wrong answer. RASK001
+    stays: both surfaces exist side by side during the migration.
+
 ### Changed
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two
   keystrokes used to do different things depending on where you were, and the two worst cases failed

@@ -52,7 +52,7 @@ a `[DynamicallyAccessedMembers]` annotation or a justified `[UnconditionalSuppre
 | Path | What lives there |
 |------|------------------|
 | `src/Rask.Core/` | Rendering, live diff codec, routing, lifecycle, scoped CSS/JS, primitives. |
-| `src/Rask.Generators/` | Roslyn factory/route generators and analyzers (RASK001–034; RASK035 is in `src/Rask.Generators.Shared/`). |
+| `src/Rask.Generators/` | Roslyn factory/route generators and analyzers (RASK001–034 and RASK037–039; RASK035 is in `src/Rask.Generators.Shared/`). |
 | `src/Rask.Server/`, `src/Rask.Wasm/`, `src/Rask.Wasm.Hosting/` | The three hosts. |
 | `src/Rask.Cli/` | The `rask` CLI — scaffolds every project via `rask new` (server, wasm, wasm-hosted, native). |
 | `samples/` | Runnable feature showcases. | 
@@ -69,7 +69,7 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
   `tests/Rask.Core.Tests/Components/{Tag}Tests.cs` asserting exact attribute order
   (id, class, style, data-*, then tag-specific). The factory is generated automatically.
 - **Don't `new` a `Component`** outside `Rask.Core` — use the generated factory (RASK014).
-- Diagnostics RASK001–035 are documented in [docs/diagnostics.md](docs/diagnostics.md);
+- Diagnostics RASK001–039 are documented in [docs/diagnostics.md](docs/diagnostics.md);
   the analyzer descriptors are the source of truth.
 
 ## Commits & pull requests

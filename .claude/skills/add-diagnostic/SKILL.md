@@ -6,7 +6,8 @@ description: Add a new RASK0xx compile-time diagnostic to the Rask Roslyn genera
 # add-diagnostic
 
 ## 1. Pick the next ID
-RASK001–RASK031 are in use (028/029 in Rask.Cqrs.Generators) → **next free is RASK032**. Confirm with:
+RASK001–RASK039 are in use (028/029 in Rask.Cqrs.Generators, 035 in Rask.Generators.Shared, 036
+reserved by the in-flight builder-surface work) → **next free is RASK040**. Confirm with:
 ```bash
 grep -rhoE 'RASK[0-9]{3}' src/Rask.Generators | sort -u | tail
 ```
