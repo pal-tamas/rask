@@ -26,20 +26,21 @@ them until tagged releases begin.
   presents as a hung page, sending you to debug the app rather than the build. The publish now compares
   what was staged against what shipped and errors with the cause and the fix.
 
-  It also catches the harder half, which is what actually happened: **the bake not running at all**. With
-  the staging directory absent, "this project has no scoped assets" and "the bake was skipped" are the
-  same observation, so a staged-vs-published comparison sees nothing to compare and stays quiet. The bake
-  now records that it ran, and a publish that never baked *and* shipped no scoped assets fails. A project
-  that genuinely has none bakes zero, records the run, and is silently unaffected — verified against
-  `samples/Rask.Example.Wasm.Jobs`, which has no scoped assets, and an incremental publish that skips the
-  build pass while its assets already sit in `wwwroot` stays quiet too.
+  It also catches a second shape — **the bake not running at all**. With the staging directory absent,
+  "this project has no scoped assets" and "the bake was skipped" are the same observation, so the
+  comparison above has nothing to compare and stays quiet. The bake now records that it ran, and a publish
+  that never baked *and* shipped no scoped assets fails. A project that genuinely has none bakes zero,
+  records the run, and is unaffected — verified against `samples/Rask.Example.Wasm.Jobs`, which has no
+  scoped assets; an incremental publish that skips the build pass while its assets already sit in
+  `wwwroot` stays quiet too.
 
-  This covers two of the three shapes this failure takes. The one still uncovered is a bake that **runs
-  and produces zero** for an app that does have scoped assets: an empty staging directory is
-  indistinguishable from a project that legitimately has none, so nothing can tell them apart from the
-  outside. `BakeScopedAssetsTask.FailOnEmpty` cannot be enabled to cover it either — its `registryResolved`
-  is true whenever `Rask.Core` merely loads, so it would falsely fail every WASM app with no scoped assets.
-  Tracked in #650, which stays open.
+  **Neither covers what #650 actually is**, so that issue stays open. Two sessions have now reproduced it
+  and the build log is unambiguous: after a no-native solution build, the native publish's bake *runs* and
+  writes **zero** files for an app that plainly has scoped assets. Nothing outside the bake can see the
+  difference between that and a project with none, so no publish-time check can catch it —
+  `FailOnEmpty` can't either, since its `registryResolved` is true whenever `Rask.Core` merely loads and
+  would fail every WASM app without scoped assets. The fix has to be inside the bake, once the binlog
+  shows what its inputs looked like on the failing run.
 
   `BakeScopedAssetsTask.FailOnEmpty` could not have caught this and — despite its own documentation
   claiming otherwise — has never been wired to anything: it fires only when the bake *runs* and writes
