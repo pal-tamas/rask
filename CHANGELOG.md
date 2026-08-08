@@ -436,6 +436,34 @@ them until tagged releases begin.
   treat "not persisted" and "cannot be persisted" the same way: writes are evictable either way.
   Chromium grants from engagement heuristics without prompting; Firefox prompts, so call it from a
   gesture handler.
+- **`Rask.ObjectStore` — S3 and Azure Blob with no cloud SDK behind it (#642).** The AWS and Azure SDKs
+  are large, reflection-heavy, and not usable from a browser, which ruled them out for the one place this
+  is most useful: a WASM app talking to a bucket with no backend in between. Signing SigV4 is a few dozen
+  lines of HMAC, and an Azure SAS needs no signing at all, so the client does both itself and runs
+  unchanged server-side and in the browser. One interface covers S3, Cloudflare R2, Google Cloud Storage
+  (through its S3 interop keys), MinIO, Backblaze B2, DigitalOcean Spaces and Azure Blob.
+  - **Ranged reads, streamed writes.** Object storage charges per byte moved, so `GetRangeAsync` asks for
+    a range rather than an object; `PutAsync(key, Stream, length)` uploads without buffering, keeping
+    object size and memory use unrelated.
+  - **A missing object returns `null`; a range past the end returns a short read.** Those two stay
+    distinguishable on purpose — anything walking an append-only log has to tell "gone" from "nothing new
+    yet", and collapsing them into one answer is how a sync client silently decides its peers vanished.
+  - **`TryCreateAsync` is mutual exclusion without a lock service** — an atomic compare-and-create
+    (`If-None-Match: *`) that S3, Azure Blob and GCS all support. Preferred over an Azure blob lease,
+    which exists on one provider, needs renewal, and strands the resource if the holder disappears.
+  - **Credentials are asked for per request**, so an expiring STS session or SAS refreshes without
+    rebuilding the store. `InMemoryObjectStoreCredentials` — the browser case, where the user supplies the
+    credential — holds it for the life of the process and offers *no* persistence option: a credential
+    that survives a reload is one any later script injection can read back, so getting there has to be a
+    deliberate act rather than an overload someone reaches for.
+  - **Clock skew is handled rather than assumed away.** SigV4 rejects a request more than 15 minutes off
+    the service's clock and device clocks are genuinely wrong; the service's own `Date` is read from the
+    rejected response and later requests sign against corrected time, so a wrong clock costs one round
+    trip instead of an error that explains nothing.
+  - The signer is verified against a separate implementation of the algorithm written from the AWS
+    specification, not against its own recorded output, and against the encoding rules the specification
+    names individually — `%20` rather than `+`, no double-encoding, slashes preserved in a key, query
+    parameters sorted after encoding.
 
 ## [0.20.0] - 2026-08-06
 

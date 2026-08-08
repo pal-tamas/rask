@@ -190,6 +190,8 @@ public static class GuideCatalog
             "bi-phone-fill", "Mobile & devices"),
         new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPushSender, delivery results.",
             "bi-send", "Mobile & devices"),
+        new("object-storage", "Object storage", "S3 and Azure Blob with no cloud SDK — ranged reads, streaming writes, conditional create.",
+            "bi-bucket", "Mobile & devices"),
 
         // ---- Browser API reference ----
         new("browser-capabilities", "Capability matrix", "Which browser/device API works on which host.",
