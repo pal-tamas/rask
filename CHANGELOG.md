@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **`rask generate job` in the Server half of a `wasm-hosted` solution treated it as a browser app.**
+  Browser detection matched `Rask.Wasm` as a substring, and the Server project references
+  **`Rask.Wasm.Hosting`** — so the one project a background job actually belongs in got the browser
+  next-steps (`AddRaskBrowserSqlite`, "`rask db` does not apply") and had `Rask.SQLite.Browser` added to
+  it. That package doesn't resolve for a server project, so the command finished with *"the files were
+  written, but the wiring above didn't complete"* and exit 1 — broken, not merely misleading.
+  All three signals are now matched precisely rather than as substrings: `-browser` on the
+  `TargetFramework(s)` element rather than anywhere in the file, `<RaskWasm>true</RaskWasm>` rather than
+  `<RaskWasm>` (which also matched an explicit `false`), and a reference to `Rask.Wasm` itself as either
+  a package or a project — anchored so `Rask.Wasm.Hosting` can't satisfy it. A genuine browser app,
+  including the Client half of the same solution, is unaffected.
+
 ### Added
 - **`BrowserSqliteOwnership` — let a second tab explain itself.** Only one tab may own a browser SQLite
   database, so the others run against their own empty, unpersisted one. That is correct, and until now it

@@ -18,6 +18,46 @@ public class JobGeneratorBrowserTests
         Assert.True(ProjectContext.DetectBrowser($"<Project>{marker}</Project>"));
     }
 
+    // The Server half of a `wasm-hosted` solution references Rask.Wasm.Hosting (ProjectGenerator.
+    // WasmHosted.cs), whose id contains "Rask.Wasm". Reading it as a browser app is the costly direction
+    // to be wrong in: that project is precisely where a background job belongs, and misdetecting it both
+    // prints the browser next-steps and adds Rask.SQLite.Browser to a server project, which doesn't
+    // resolve there — `rask g j` exits 1 with "the wiring didn't complete".
+    [Theory]
+    [InlineData("""<PackageReference Include="Rask.Wasm.Hosting" Version="0.20.0"/>""")]
+    [InlineData("""<ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>""")]
+    public void DetectBrowser_WasmHostedServerProject_IsNotBrowser(string reference)
+    {
+        var csproj = $"""
+            <Project Sdk="Microsoft.NET.Sdk.Web">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <ItemGroup>{reference}</ItemGroup>
+            </Project>
+            """;
+
+        Assert.False(ProjectContext.DetectBrowser(csproj));
+    }
+
+    // <RaskWasm>false</RaskWasm> asserts the opposite of what it was being read as.
+    [Fact]
+    public void DetectBrowser_RaskWasmExplicitlyFalse_IsNotBrowser() =>
+        Assert.False(ProjectContext.DetectBrowser(
+            "<Project><PropertyGroup><RaskWasm>false</RaskWasm></PropertyGroup></Project>"));
+
+    // "-browser" is matched on the TargetFramework element, not anywhere in the file: a comment or a
+    // package id that happens to contain it says nothing about how the project runs.
+    [Theory]
+    [InlineData("<!-- the -browser TFM is covered in docs/wasm.md -->")]
+    [InlineData("""<PackageReference Include="Some.Vendor-browser.Tools" Version="1.0.0"/>""")]
+    public void DetectBrowser_IncidentalMentionOfBrowser_IsNotBrowser(string line)
+    {
+        var csproj = $"""
+            <Project><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>{line}</Project>
+            """;
+
+        Assert.False(ProjectContext.DetectBrowser(csproj));
+    }
+
     [Fact]
     public void DetectBrowser_PlainServerProject_IsNotBrowser()
     {
