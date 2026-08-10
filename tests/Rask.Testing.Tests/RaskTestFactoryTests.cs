@@ -43,7 +43,7 @@ public class RaskTestFactoryTests
     {
         public string Name { get; set; } = "";
 
-        protected override Component? Render() => Span()[$"Hi {Name}"];
+        protected override Component? Render() => Span[$"Hi {Name}"];
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class RaskTestFactoryTests
         private bool _on;
 
         protected override Component? Render() =>
-            Button(Type: "button", OnClick: () => _on = !_on)[_on ? "on" : "off"];
+            Button.Type("button").OnClick(() => _on = !_on)[_on ? "on" : "off"];
     }
 
     [Fact]

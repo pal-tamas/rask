@@ -11,10 +11,10 @@ public class MarkupTests
         public List<string> Clicked { get; } = [];
 
         protected override Component? Render() =>
-            Div()[
-                Button(Type: "button", OnClick: () => Clicked.Add("a"))["a"],
-                Button(Type: "button", OnClick: () => Clicked.Add("b"))["b"],
-                Button(Type: "button", OnClick: () => Clicked.Add("c"))["c"]
+            Div[
+                Button.Type("button").OnClick(() => Clicked.Add("a"))["a"],
+                Button.Type("button").OnClick(() => Clicked.Add("b"))["b"],
+                Button.Type("button").OnClick(() => Clicked.Add("c"))["c"]
             ];
     }
 
@@ -54,9 +54,9 @@ public class MarkupTests
     private sealed class TwoLabelled : Component
     {
         protected override Component? Render() =>
-            Div()[
-                Button(Type: "button", Aria: new Dictionary<string, string?> { ["label"] = "Close" })["x"],
-                Button(Type: "button", Aria: new Dictionary<string, string?> { ["label"] = "Open" })["o"]
+            Div[
+                Button.Type("button").Aria(new Dictionary<string, string?> { ["label"] = "Close" })["x"],
+                Button.Type("button").Aria(new Dictionary<string, string?> { ["label"] = "Open" })["o"]
             ];
     }
 

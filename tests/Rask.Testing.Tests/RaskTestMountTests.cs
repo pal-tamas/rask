@@ -25,7 +25,7 @@ public class RaskTestMountTests
 
         protected override void OnUnmount() => Calls.Add(nameof(OnUnmount));
 
-        protected override Component Render() => Div()["probe"];
+        protected override Component Render() => Div["probe"];
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class RaskTestMountTests
             _loaded = "loaded";
         }
 
-        protected override Component Render() => Div()[_loaded ?? "placeholder"];
+        protected override Component Render() => Div[_loaded ?? "placeholder"];
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class RaskTestMountTests
 
     private sealed class Stuck : Component
     {
-        protected override Component Render() => Div()["stuck"];
+        protected override Component Render() => Div["stuck"];
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class RaskTestMountTests
             StateHasChanged();
         }
 
-        protected override Component Render() => Div()[_label];
+        protected override Component Render() => Div[_label];
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public class RaskTestMountTests
 
         protected override void OnMount() => Mounts++;
 
-        protected override Component Render() => Div()["counter"];
+        protected override Component Render() => Div["counter"];
     }
 
     [Fact]

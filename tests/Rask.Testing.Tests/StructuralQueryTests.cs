@@ -14,13 +14,13 @@ public class StructuralQueryTests
     private sealed class Card : Component
     {
         protected override Component? Render() =>
-            Div(Class: "card shadow-sm")[
-                H2(Class: "title")["Orders"],
-                Ul(Id: "items")[
-                    Li(Class: "item")[Span(Class: "badge")["3"], " pending"],
-                    Li(Class: "item selected")[Span(Class: "badge")["7"], " shipped"]
+            Div.Class("card shadow-sm")[
+                H2.Class("title")["Orders"],
+                Ul.Id("items")[
+                    Li.Class("item")[Span.Class("badge")["3"], " pending"],
+                    Li.Class("item selected")[Span.Class("badge")["7"], " shipped"]
                 ],
-                Button(Class: "btn", Data: new Dictionary<string, string?> { ["testid"] = "refresh" })["Refresh"]
+                Button.Class("btn").Data(new Dictionary<string, string?> { ["testid"] = "refresh" })["Refresh"]
             ];
     }
 
@@ -85,7 +85,7 @@ public class StructuralQueryTests
     private sealed class Spaced : Component
     {
         protected override Component? Render() =>
-            P(Id: "t")["  Total\n\n  ", Span()["42"], "   items  "];
+            P.Id("t")["  Total\n\n  ", Span["42"], "   items  "];
     }
 
     [Fact]
@@ -126,6 +126,6 @@ public class StructuralQueryTests
     private sealed class Quoted : Component
     {
         protected override Component? Render() =>
-            Div(Id: "t", Title: "a \"quoted\" & <angled> title")["3 < 5 & 5 > 3"];
+            Div.Id("t").Title("a \"quoted\" & <angled> title")["3 < 5 & 5 > 3"];
     }
 }
