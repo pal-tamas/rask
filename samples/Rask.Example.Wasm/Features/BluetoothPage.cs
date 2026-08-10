@@ -12,24 +12,24 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class BluetoothPage : Component
 {
-    protected override Component? Head => Title()["Web Bluetooth — Rask"];
+    protected override Component? Head => Title["Web Bluetooth — Rask"];
 
     protected override Component? Render() =>
     [
-        H1(Class: "h2 mb-1")["Web Bluetooth"],
-        P(Class: "text-secondary")[
+        H1.Class("h2 mb-1")["Web Bluetooth"],
+        P.Class("text-secondary")[
             "Pair with a Bluetooth Low Energy device and talk to its GATT services from C# — connect, read / ",
             "write characteristics, and subscribe to notifications (heart-rate monitors, thermometers, fitness ",
             "sensors, custom hardware) — via IBluetooth (the Web Bluetooth API). WASM-only: requestDevice() ",
             "needs a live user gesture and the live device handle, and it's Chromium-family only at the time of ",
             "writing."
         ],
-        CodeSample(
-            ["BluetoothDemo.cs"],
-            Notes: "RequestDeviceAsync shows the chooser and returns an IBluetoothDevice (null if dismissed). "
+        CodeSample
+            .Files(["BluetoothDemo.cs"])
+            .Notes("RequestDeviceAsync shows the chooser and returns an IBluetoothDevice (null if dismissed). "
                 + "Connect, then GetCharacteristicAsync(service, characteristic) → read/write/WatchAsync "
                 + "(notifications). This demo reads the standard Battery Service. Values cross as byte[]; "
-                + "dispose the device to drop the connection. Gate on IsSupportedAsync.",
-            Result: BluetoothDemo())
+                + "dispose the device to drop the connection. Gate on IsSupportedAsync.")
+            .Result(BluetoothDemo)
     ];
 }

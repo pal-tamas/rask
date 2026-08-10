@@ -12,19 +12,19 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class OrientationPage : Component
 {
-    protected override Component? Head => Title()["Orientation — Rask"];
+    protected override Component? Head => Title["Orientation — Rask"];
 
     protected override Component? Render() =>
     [
-        H1(Class: "h2 mb-1")["Orientation"],
-        P(Class: "text-secondary")[
+        H1.Class("h2 mb-1")["Orientation"],
+        P.Class("text-secondary")[
             "Read the screen orientation via IScreenOrientation and, for an installed or fullscreen app, ",
             "lock it. Locking is usually rejected outside fullscreen and is often unsupported on desktop."
         ],
-        CodeSample(
-            ["OrientationDemo.cs"],
-            Notes: "GetAsync returns the OrientationInfo (type + angle); LockAsync/UnlockAsync change it. "
-                + "WASM-only — locking needs the live, usually fullscreen, document.",
-            Result: OrientationDemo())
+        CodeSample
+            .Files(["OrientationDemo.cs"])
+            .Notes("GetAsync returns the OrientationInfo (type + angle); LockAsync/UnlockAsync change it. "
+                + "WASM-only — locking needs the live, usually fullscreen, document.")
+            .Result(OrientationDemo)
     ];
 }

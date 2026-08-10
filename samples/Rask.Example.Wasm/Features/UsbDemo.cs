@@ -16,31 +16,37 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "usb-request", OnClickAsync: RequestDevice)[
-                        I(Class: "bi bi-usb-drive me-1"), "Pair device"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "usb-open", Disabled: _device is null || _open,
-                        OnClickAsync: Open)["Open"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "usb-close", Disabled: _device is null,
-                        OnClickAsync: Release)["Release"]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button.Class("btn btn-primary btn-sm").Id("usb-request").OnClickAsync(RequestDevice)[
+                        I.Class("bi bi-usb-drive me-1"), "Pair device"],
+                    Button
+                        .Class("btn btn-outline-primary btn-sm")
+                        .Id("usb-open")
+                        .Disabled(_device is null || _open)
+                        .OnClickAsync(Open)["Open"],
+                    Button
+                        .Class("btn btn-outline-danger btn-sm")
+                        .Id("usb-close")
+                        .Disabled(_device is null)
+                        .OnClickAsync(Release)["Release"]
                 ],
                 _info is null
-                    ? Div(Class: "small text-secondary")["No device paired."]
-                    : Dl(Class: "row small mb-2", Id: "usb-info")[
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Vendor ID"],
-                        Dd(Class: "col-7 col-sm-8")[Code()[Hex(_info.VendorId)]],
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Product ID"],
-                        Dd(Class: "col-7 col-sm-8")[Code()[Hex(_info.ProductId)]],
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Manufacturer"],
-                        Dd(Class: "col-7 col-sm-8")[_info.ManufacturerName ?? "—"],
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Product"],
-                        Dd(Class: "col-7 col-sm-8")[_info.ProductName ?? "—"],
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Serial"],
-                        Dd(Class: "col-7 col-sm-8")[_info.SerialNumber ?? "—"]
+                    ? Div.Class("small text-secondary")["No device paired."]
+                    : Dl.Class("row small mb-2").Id("usb-info")[
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Vendor ID"],
+                        Dd.Class("col-7 col-sm-8")[Code[Hex(_info.VendorId)]],
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Product ID"],
+                        Dd.Class("col-7 col-sm-8")[Code[Hex(_info.ProductId)]],
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Manufacturer"],
+                        Dd.Class("col-7 col-sm-8")[_info.ManufacturerName ?? "—"],
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Product"],
+                        Dd.Class("col-7 col-sm-8")[_info.ProductName ?? "—"],
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Serial"],
+                        Dd.Class("col-7 col-sm-8")[_info.SerialNumber ?? "—"]
                     ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "usb-status")[_status]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("usb-status")[_status]]
             ]
         ];
 

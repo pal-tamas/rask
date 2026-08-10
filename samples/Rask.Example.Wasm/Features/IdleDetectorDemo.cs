@@ -15,13 +15,13 @@ public sealed partial class IdleDetectorDemo(IIdleDetector idle) : Component, IA
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Button(Class: "btn btn-primary btn-sm mb-3", Id: "idle-start", OnClickAsync: Start)[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Button.Class("btn btn-primary btn-sm mb-3").Id("idle-start").OnClickAsync(Start)[
                     "Start watching (60s threshold)"],
-                Div(Class: "small text-secondary")["User: ", Code(Id: "idle-user")[_user]],
-                Div(Class: "small text-secondary")["Screen: ", Code(Id: "idle-screen")[_screen]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "idle-status")[_status]]
+                Div.Class("small text-secondary")["User: ", Code.Id("idle-user")[_user]],
+                Div.Class("small text-secondary")["Screen: ", Code.Id("idle-screen")[_screen]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("idle-status")[_status]]
             ]
         ];
 

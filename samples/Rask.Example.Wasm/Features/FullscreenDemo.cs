@@ -14,20 +14,22 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Ref: _stage, Class: "border rounded bg-light d-flex align-items-center justify-content-center mb-2",
-                    Style: "min-height: 8rem")[
-                    Span(Class: "text-secondary small")["This box goes fullscreen."]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div
+                    .Ref(_stage)
+                    .Class("border rounded bg-light d-flex align-items-center justify-content-center mb-2")
+                    .Style("min-height: 8rem")[
+                    Span.Class("text-secondary small")["This box goes fullscreen."]
                 ],
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "fullscreen-enter", OnClickAsync: Enter)[
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button.Class("btn btn-primary btn-sm").Id("fullscreen-enter").OnClickAsync(Enter)[
                         "Fullscreen this box"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "fullscreen-page", OnClickAsync: EnterPage)[
+                    Button.Class("btn btn-outline-primary btn-sm").Id("fullscreen-page").OnClickAsync(EnterPage)[
                         "Fullscreen the page"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "fullscreen-exit", OnClickAsync: Exit)["Exit"]
+                    Button.Class("btn btn-outline-danger btn-sm").Id("fullscreen-exit").OnClickAsync(Exit)["Exit"]
                 ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "fullscreen-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
             ]
         ];
 

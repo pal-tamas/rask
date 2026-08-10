@@ -15,19 +15,27 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Video(Ref: _video, Width: 320, Height: 240, Muted: true, PlaysInline: true,
-                    Class: "rounded border mb-2 bg-dark d-block"),
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "media-start", OnClickAsync: StartCamera)[
-                        I(Class: "bi bi-camera-video me-1"), "Start camera"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "media-screen", OnClickAsync: ShareScreen)[
-                        I(Class: "bi bi-display me-1"), "Share screen"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "media-stop", Disabled: _stream is null,
-                        OnClickAsync: Stop)["Stop"]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Video
+                    .Ref(_video)
+                    .Width(320)
+                    .Height(240)
+                    .Muted(true)
+                    .PlaysInline(true)
+                    .Class("rounded border mb-2 bg-dark d-block"),
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button.Class("btn btn-primary btn-sm").Id("media-start").OnClickAsync(StartCamera)[
+                        I.Class("bi bi-camera-video me-1"), "Start camera"],
+                    Button.Class("btn btn-outline-primary btn-sm").Id("media-screen").OnClickAsync(ShareScreen)[
+                        I.Class("bi bi-display me-1"), "Share screen"],
+                    Button
+                        .Class("btn btn-outline-danger btn-sm")
+                        .Id("media-stop")
+                        .Disabled(_stream is null)
+                        .OnClickAsync(Stop)["Stop"]
                 ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "media-status")[_status]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("media-status")[_status]]
             ]
         ];
 

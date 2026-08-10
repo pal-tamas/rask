@@ -13,19 +13,19 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class PwaPage : Component
 {
-    protected override Component? Head => Title()["PWA — Rask"];
+    protected override Component? Head => Title["PWA — Rask"];
 
     protected override Component? Render() =>
     [
-        H1(Class: "h2 mb-1")["PWA — notifications & push"],
-        P(Class: "text-secondary")[
+        H1.Class("h2 mb-1")["PWA — notifications & push"],
+        P.Class("text-secondary")[
             "A live demo of the WASM-only PWA APIs. This site is itself an installable, offline PWA — ",
             "install it from your browser's address bar, then try the buttons below."
         ],
-        CodeSample(
-            ["PwaDemo.cs"],
-            Notes: "Local notifications, Web Push readiness, and the installed-app badge — all WASM-only "
-                + "(they need a live user gesture or the installed-PWA instance the Server round-trip can't carry).",
-            Result: PwaDemo())
+        CodeSample
+            .Files(["PwaDemo.cs"])
+            .Notes("Local notifications, Web Push readiness, and the installed-app badge — all WASM-only "
+                + "(they need a live user gesture or the installed-PWA instance the Server round-trip can't carry).")
+            .Result(PwaDemo)
     ];
 }

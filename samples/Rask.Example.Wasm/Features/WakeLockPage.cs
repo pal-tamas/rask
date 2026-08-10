@@ -13,20 +13,20 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class WakeLockPage : Component
 {
-    protected override Component? Head => Title()["Wake lock — Rask"];
+    protected override Component? Head => Title["Wake lock — Rask"];
 
     protected override Component? Render() =>
     [
-        H1(Class: "h2 mb-1")["Wake lock"],
-        P(Class: "text-secondary")[
+        H1.Class("h2 mb-1")["Wake lock"],
+        P.Class("text-secondary")[
             "Keep the screen from dimming or locking via IWakeLock (the Screen Wake Lock API) — for timers, ",
             "reading, or media. The lock is released automatically when the page is hidden and re-acquired ",
             "when it returns."
         ],
-        CodeSample(
-            ["WakeLockDemo.cs"],
-            Notes: "RequestAsync returns an IWakeLockSentinel (IAsyncDisposable); dispose it to release. "
-                + "WASM-only — the lock is tied to the live document.",
-            Result: WakeLockDemo())
+        CodeSample
+            .Files(["WakeLockDemo.cs"])
+            .Notes("RequestAsync returns an IWakeLockSentinel (IAsyncDisposable); dispose it to release. "
+                + "WASM-only — the lock is tied to the live document.")
+            .Result(WakeLockDemo)
     ];
 }

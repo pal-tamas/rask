@@ -12,23 +12,23 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class UsbPage : Component
 {
-    protected override Component? Head => Title()["WebUSB — Rask"];
+    protected override Component? Head => Title["WebUSB — Rask"];
 
     protected override Component? Render() =>
     [
-        H1(Class: "h2 mb-1")["WebUSB"],
-        P(Class: "text-secondary")[
+        H1.Class("h2 mb-1")["WebUSB"],
+        P.Class("text-secondary")[
             "Pair with and drive a USB device — custom hardware, a dev board, an instrument — straight from C# ",
             "via IUsb (the WebUSB API): show its descriptor, open it, claim an interface, and run ",
             "bulk / interrupt / control transfers. WASM-only: requestDevice() needs a live user gesture and the ",
             "live device handle, and it's Chromium-family only at the time of writing."
         ],
-        CodeSample(
-            ["UsbDemo.cs"],
-            Notes: "RequestDeviceAsync shows the browser device chooser and returns an IUsbDevice (null if the "
+        CodeSample
+            .Files(["UsbDemo.cs"])
+            .Notes("RequestDeviceAsync shows the browser device chooser and returns an IUsbDevice (null if the "
                 + "user dismisses it). Transfer payloads cross as byte[]; dispose the device to release it. "
                 + "Actual transfers are device-specific, so the demo shows discovery + lifecycle. Gate on "
-                + "IsSupportedAsync.",
-            Result: UsbDemo())
+                + "IsSupportedAsync.")
+            .Result(UsbDemo)
     ];
 }

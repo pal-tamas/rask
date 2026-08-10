@@ -37,16 +37,22 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Video(Ref: _video, Width: 320, Height: 180, Muted: true, PlaysInline: true, Controls: true,
-                    Class: "rounded border mb-2 bg-dark"),
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "pip-enter", OnClickAsync: Enter)[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Video
+                    .Ref(_video)
+                    .Width(320)
+                    .Height(180)
+                    .Muted(true)
+                    .PlaysInline(true)
+                    .Controls(true)
+                    .Class("rounded border mb-2 bg-dark"),
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button.Class("btn btn-primary btn-sm").Id("pip-enter").OnClickAsync(Enter)[
                         "Open miniplayer"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "pip-exit", OnClickAsync: Exit)["Exit"]
+                    Button.Class("btn btn-outline-danger btn-sm").Id("pip-exit").OnClickAsync(Exit)["Exit"]
                 ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "pip-status")[_status]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("pip-status")[_status]]
             ]
         ];
 

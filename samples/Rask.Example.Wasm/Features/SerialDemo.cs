@@ -18,10 +18,10 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap align-items-center mb-2")[
-                    Label(Class: "small text-secondary mb-0", For: "serial-baud")["Baud"],
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("d-flex gap-2 flex-wrap align-items-center mb-2")[
+                    Label.Class("small text-secondary mb-0").For("serial-baud")["Baud"],
                     Rask.Core.Components.Generated.Input(
                         Id: "serial-baud",
                         Type: InputType.Number,
@@ -30,12 +30,18 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         Value: _baudRate.ToString(),
                         Disabled: _port is not null,
                         OnInput: v => int.TryParse(v, out _baudRate)),
-                    Button(Class: "btn btn-primary btn-sm", Id: "serial-connect", Disabled: _port is not null,
-                        OnClickAsync: Connect)[I(Class: "bi bi-usb-plug me-1"), "Connect"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "serial-disconnect", Disabled: _port is null,
-                        OnClickAsync: Disconnect)["Disconnect"]
+                    Button
+                        .Class("btn btn-primary btn-sm")
+                        .Id("serial-connect")
+                        .Disabled(_port is not null)
+                        .OnClickAsync(Connect)[I.Class("bi bi-usb-plug me-1"), "Connect"],
+                    Button
+                        .Class("btn btn-outline-danger btn-sm")
+                        .Id("serial-disconnect")
+                        .Disabled(_port is null)
+                        .OnClickAsync(Disconnect)["Disconnect"]
                 ],
-                Div(Class: "input-group input-group-sm mb-2")[
+                Div.Class("input-group input-group-sm mb-2")[
                     Rask.Core.Components.Generated.Input(
                         Id: "serial-outgoing",
                         Class: "form-control",
@@ -43,13 +49,18 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         Placeholder: "Line to send",
                         Disabled: _port is null,
                         OnInput: v => _outgoing = v),
-                    Button(Class: "btn btn-primary", Id: "serial-send", Disabled: _port is null,
-                        OnClickAsync: Send)["Send"]
+                    Button
+                        .Class("btn btn-primary")
+                        .Id("serial-send")
+                        .Disabled(_port is null)
+                        .OnClickAsync(Send)["Send"]
                 ],
-                Pre(Class: "small bg-dark text-light rounded p-2 mb-2", Id: "serial-log",
-                    Style: "min-height: 6rem; max-height: 12rem; overflow: auto")[
+                Pre
+                    .Class("small bg-dark text-light rounded p-2 mb-2")
+                    .Id("serial-log")
+                    .Style("min-height: 6rem; max-height: 12rem; overflow: auto")[
                     _log.Count == 0 ? "(no data yet)" : string.Join("\n", _log)],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "serial-status")[_status]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("serial-status")[_status]]
             ]
         ];
 
