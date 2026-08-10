@@ -361,12 +361,12 @@ public sealed partial class LogsPage(
 
     private static Component LevelBadge(LogLevel level) => BsBadge
         .Color(level switch
-    {
-        LogLevel.Critical or LogLevel.Error => BsColor.Danger,
-        LogLevel.Warning => BsColor.Warning,
-        LogLevel.Information => BsColor.Info,
-        _ => BsColor.Secondary,
-    })[level.ToString()];
+        {
+            LogLevel.Critical or LogLevel.Error => BsColor.Danger,
+            LogLevel.Warning => BsColor.Warning,
+            LogLevel.Information => BsColor.Info,
+            _ => BsColor.Secondary,
+        })[level.ToString()];
 
     private void OnLogged()
     {
