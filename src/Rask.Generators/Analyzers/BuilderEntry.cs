@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -22,6 +23,8 @@ internal static class BuilderEntry
     public const string ComponentFullName = "Rask.Core.Component";
 
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
+
+    private const string GlobalPrefix = "global::";
 
     /// <summary>
     ///     The component type an entry hands back, or <c>null</c> when <paramref name="member" /> is not
@@ -89,21 +92,24 @@ internal static class BuilderEntry
     ///     required-parameter rule (non-nullable, no member initializer — see RASK001) over the same
     ///     property set the setters are emitted from.
     ///     <para>
-    ///         Deliberately conservative for a property that comes from <b>metadata</b> rather than
-    ///         source: a member initializer is invisible there, so a prop with one would look required
-    ///         and produce a wrong answer. Those count only when they carry the language's own
-    ///         <c>required</c> modifier, which metadata does preserve.
+    ///         Nothing an analyzer can <i>read</i> off a <b>metadata</b> symbol tells a RASK001-required
+    ///         property apart from an optional one: a member initializer compiles into the constructor and
+    ///         leaves no symbol-level trace, and <c>DeclaringSyntaxReferences</c> is empty there. Only the
+    ///         language's own <c>required</c> modifier survives. So a referenced component's requiredness
+    ///         is not derived here at all — it is read back from the
+    ///         <see cref="PublishedRequiredProperties" /> the owning compilation emitted alongside its
+    ///         <c>RaskEntries{Assembly}</c> class. Publish, don't re-derive: that compilation already
+    ///         computed it and already reported its diagnostics, and a second derivation would silently
+    ///         diverge. Pinned by <c>CrossAssemblyRequiredPropertyTests</c>.
     ///     </para>
     ///     <para>
-    ///         That conservatism is a <b>hard ceiling</b>, not a rough edge, and it is what stops RASK038
-    ///         from ever policing a referenced library's RASK001 props — the exact set the builder surface
-    ///         has to reach before the factory can be deleted. Nothing an analyzer can read tells it
-    ///         apart from an optional one; the answer has to come from the compilation that OWNS the
-    ///         component and be published alongside <c>RaskEntries{Assembly}</c>. Pinned by
-    ///         <c>CrossAssemblyRequiredPropertyTests</c>.
+    ///         A property that still has syntax is in THIS compilation, where the initializer is visible
+    ///         and authoritative — the generator may not even have run yet — so the syntax check wins for
+    ///         those and the published set is consulted only for the rest.
     ///     </para>
     /// </summary>
-    public static List<IPropertySymbol> RequiredProperties(INamedTypeSymbol type, CancellationToken cancellationToken)
+    public static List<IPropertySymbol> RequiredProperties(
+        INamedTypeSymbol type, PublishedRequiredProperties published, CancellationToken cancellationToken)
     {
         var result = new List<IPropertySymbol>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -119,7 +125,7 @@ internal static class BuilderEntry
                     continue;
                 }
 
-                if (!IsSettableByAChain(prop) || !IsRequired(prop, cancellationToken))
+                if (!IsSettableByAChain(prop) || !IsRequired(prop, type, published, cancellationToken))
                 {
                     continue;
                 }
@@ -130,6 +136,57 @@ internal static class BuilderEntry
 
         return result;
     }
+
+    /// <summary>
+    ///     The key <c>[assembly: RaskRequiredProperties]</c> names a component by: the fully-qualified
+    ///     type with no <c>global::</c> prefix, every type-argument list stripped, and a <c>`n</c> arity
+    ///     suffix when the type is generic. Computed from the same
+    ///     <see cref="SymbolDisplayFormat.FullyQualifiedFormat" /> string on both sides — the generator
+    ///     writes it from <c>Candidate.FullyQualifiedName</c>, the analyzer reads it off the symbol — so
+    ///     the two cannot drift.
+    /// </summary>
+    public static string TypeKey(string fullyQualifiedName)
+    {
+        var name = new StringBuilder(fullyQualifiedName.Length);
+        var depth = 0;
+        var arity = 0;
+        foreach (var ch in fullyQualifiedName)
+        {
+            switch (ch)
+            {
+                case '<':
+                    if (depth++ == 0)
+                    {
+                        arity++;
+                    }
+
+                    continue;
+                case '>':
+                    depth--;
+                    continue;
+                case ',' when depth == 1:
+                    arity++;
+                    continue;
+            }
+
+            if (depth == 0)
+            {
+                name.Append(ch);
+            }
+        }
+
+        if (name.Length > GlobalPrefix.Length
+            && string.CompareOrdinal(name.ToString(0, GlobalPrefix.Length), GlobalPrefix) == 0)
+        {
+            name.Remove(0, GlobalPrefix.Length);
+        }
+
+        return arity == 0 ? name.ToString() : name.Append('`').Append(arity).ToString();
+    }
+
+    /// <inheritdoc cref="TypeKey(string)" />
+    public static string TypeKey(INamedTypeSymbol type) =>
+        TypeKey(type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
     /// <summary>
     ///     Whether <paramref name="chain" /> named <paramref name="prop" />. A delegate prop's setter
@@ -184,7 +241,11 @@ internal static class BuilderEntry
         return true;
     }
 
-    private static bool IsRequired(IPropertySymbol prop, CancellationToken cancellationToken)
+    private static bool IsRequired(
+        IPropertySymbol prop,
+        INamedTypeSymbol component,
+        PublishedRequiredProperties published,
+        CancellationToken cancellationToken)
     {
         if (prop.IsRequired)
         {
@@ -198,10 +259,18 @@ internal static class BuilderEntry
             return false;
         }
 
-        // No syntax ⇒ the property came from a referenced assembly and its initializer, if any, is not
-        // observable. Stay quiet rather than guess.
-        return prop.DeclaringSyntaxReferences.Length > 0
-               && prop.DeclaringSyntaxReferences[0].GetSyntax(cancellationToken)
-                   is PropertyDeclarationSyntax { Initializer: null };
+        // Syntax ⇒ the property is declared in THIS compilation, where the initializer is right there and
+        // is the authoritative answer (the generator that publishes the attribute may not have run yet).
+        if (prop.DeclaringSyntaxReferences.Length > 0)
+        {
+            return prop.DeclaringSyntaxReferences[0].GetSyntax(cancellationToken)
+                is PropertyDeclarationSyntax { Initializer: null };
+        }
+
+        // No syntax ⇒ metadata, where an initializer is invisible. Ask the assembly that compiled the
+        // component rather than guessing from a symbol that cannot carry the answer. Keyed on the
+        // COMPONENT being built, not on the property's declaring type: the generator publishes each
+        // component's whole required set, inherited props included, exactly as BlocksEntry reads it.
+        return published.Contains(component, prop.Name);
     }
 }

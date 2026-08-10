@@ -718,10 +718,15 @@ Card.Title("Q3").Note("later")                 // ✓
 Order does not matter, and child indexing (`Card.Title("Q3")[…]`) is part of the same expression. A
 property whose setter drops an `On` prefix (`OnSave` → `.Save(…)`) counts under either spelling.
 
-The check is exact for properties **declared in your own compilation**. A property that comes from a
-referenced assembly is only counted when it carries the language's `required` modifier: a member
-initializer is invisible in metadata, so treating those as required would report properties that are
-in fact optional.
+Properties **declared in your own compilation** are read straight off the syntax, where the member
+initializer is right there. A property from a **referenced assembly** cannot be: an initializer
+compiles into the constructor and leaves no trace in metadata, so `string Title` and
+`string Title = ""` are the same symbol from outside. The owning assembly therefore publishes the
+answer — the factory generator emits one
+`[assembly: RaskRequiredProperties("Rask.Bootstrap.BsIcon", "Name")]` per component with such a
+property — and this analyzer reads it back. A library built by an older Rask, or by no Rask at all,
+publishes nothing, and its properties are then counted only when they carry the language's `required`
+modifier, which metadata does preserve.
 
 **Fix:** add the setter to the chain, or — if the property really is optional — give it a nullable
 type or a member initializer, which is what marks it optional for both surfaces. Suppress with

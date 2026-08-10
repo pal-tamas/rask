@@ -69,14 +69,19 @@ public sealed class RequiredBuilderPropertyAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
+            // Scanned once per compilation: it walks every referenced assembly's attributes, which is far
+            // too much work to repeat for each entry the file mentions.
+            var published = PublishedRequiredProperties.For(start.Compilation);
+
             start.RegisterOperationAction(
-                ctx => Analyze(ctx, component),
+                ctx => Analyze(ctx, component, published),
                 OperationKind.PropertyReference,
                 OperationKind.Invocation);
         });
     }
 
-    private static void Analyze(OperationAnalysisContext context, INamedTypeSymbol component)
+    private static void Analyze(
+        OperationAnalysisContext context, INamedTypeSymbol component, PublishedRequiredProperties published)
     {
         var operation = context.Operation;
         var member = operation switch
@@ -98,7 +103,7 @@ public sealed class RequiredBuilderPropertyAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var required = BuilderEntry.RequiredProperties(entryType, context.CancellationToken);
+        var required = BuilderEntry.RequiredProperties(entryType, published, context.CancellationToken);
         if (required.Count == 0)
         {
             return;

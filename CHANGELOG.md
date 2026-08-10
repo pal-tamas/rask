@@ -230,6 +230,20 @@ them until tagged releases begin.
   `BsDateTimePicker` call sites in `samples` and in `src/Rask.Cli`'s scaffolding moved to the builder
   chain, exactly as `Input`/`Select`/`Textarea` did. `BsCheck`, `BsSelect` and `BsMultiSelect` have a
   required factory parameter, so they have no entry and keep their factory untouched.
+  **And each assembly now publishes which of its components' properties a chain must set**, as
+  `[assembly: RaskRequiredProperties("Rask.Bootstrap.BsIcon", "Name")]`. This is the one fact about a
+  component that an assembly boundary destroys: a member initializer compiles into the constructor and
+  leaves no symbol-level trace, and a metadata symbol has no syntax to fall back on, so from a
+  referencing compilation `string Title` and `string Title = ""` are the same symbol — RASK038 could
+  police only the properties carrying the language's `required` modifier, which is the one kind metadata
+  preserves and the one kind that was never the problem. It is not a rough edge that a better analyzer
+  closes; the information is gone. So the compilation that owns the component publishes it — the same
+  rule it already applies to decide whether the component may have a builder entry at all — and a
+  consumer reads it back instead of guessing. Publish, don't re-derive, exactly as the entry host does:
+  a second derivation could only be a divergent copy. The property carries a *name* rather than a
+  `typeof` on purpose — a `System.Type` in an attribute blob is an assembly-qualified name the trimmer
+  resolves and marks, which would root every component of a referenced component library in every
+  trimmed app.
 - **Three diagnostics for the builder surface, where the compiler stops being able to speak for us.**
   Entries are members named after their component type, so they interact with name lookup in ways the
   factory never did — and the two failures that produces both surface as compiler errors that name
