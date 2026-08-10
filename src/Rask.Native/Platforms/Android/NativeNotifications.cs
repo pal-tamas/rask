@@ -8,8 +8,10 @@ namespace Rask.Native;
 // Native Android backend for INotifications — the platform NotificationManager instead of the WebView's
 // Notification constructor (android.webkit.WebView doesn't support it). Registered by AndroidPlatform; the
 // framework resolves it over the JS default (native-first). Needs POST_NOTIFICATIONS (API 33+) in the manifest
-// + a runtime grant. Icon/Badge URLs and RequireInteraction have no native equivalent here and are ignored;
-// Silent routes to a no-sound channel. Matches the JS default's contract: a denied permission throws.
+// + a runtime grant, AND the app's notifications left on in Settings — that toggle is independent of the
+// permission and silences Notify() without an error, so it is checked too (see CurrentPermission).
+// Icon/Badge URLs and RequireInteraction have no native equivalent here and are ignored; Silent routes to a
+// no-sound channel. Matches the JS default's contract: a denied permission throws.
 internal sealed class NativeNotifications(Activity activity) : INotifications
 {
     private const string DefaultChannel = "rask_default";
@@ -24,8 +26,18 @@ internal sealed class NativeNotifications(Activity activity) : INotifications
 
     public async ValueTask<NotificationPermission> RequestPermissionAsync()
     {
+        var current = CurrentPermission();
+
+        // Switched off in Settings: there is no prompt that can undo that, so report the block rather than
+        // claim a grant the request would never produce. Checked BEFORE the pre-33 short-circuit below,
+        // which would otherwise answer Granted for an app that cannot show a notification.
+        if (current == NotificationPermission.Denied)
+        {
+            return NotificationPermission.Denied;
+        }
+
         // Before API 33 notifications need no runtime permission; already-granted needs no prompt.
-        if (!OperatingSystem.IsAndroidVersionAtLeast(33) || CurrentPermission() == NotificationPermission.Granted)
+        if (!OperatingSystem.IsAndroidVersionAtLeast(33) || current == NotificationPermission.Granted)
         {
             return NotificationPermission.Granted;
         }
@@ -64,11 +76,27 @@ internal sealed class NativeNotifications(Activity activity) : INotifications
         return default;
     }
 
-    private NotificationPermission CurrentPermission() =>
-        !OperatingSystem.IsAndroidVersionAtLeast(33)
-        || activity.CheckSelfPermission(Android.Manifest.Permission.PostNotifications) == Permission.Granted
-            ? NotificationPermission.Granted
-            : NotificationPermission.Default;
+    private NotificationPermission CurrentPermission()
+    {
+        // Holding POST_NOTIFICATIONS is not the same as being allowed to show anything, and neither is
+        // running below API 33 where no such permission exists: the per-app notification toggle in Settings
+        // is independent of both, and turning it off makes Notify() a silent no-op rather than an error.
+        // AreNotificationsEnabled is the only call that sees it, and it exists from API 24 — the android
+        // head's own minimum — so it covers the whole supported range without a version guard.
+        //
+        // Denied, not Default: the way back is the Settings screen, not a prompt, which is exactly what
+        // Denied means in the web contract this backend mirrors ("blocked until the user changes the
+        // setting"). Reporting Default would tell a caller a request is still worth making.
+        if (!AndroidNotifications.Manager(activity).AreNotificationsEnabled())
+        {
+            return NotificationPermission.Denied;
+        }
+
+        return !OperatingSystem.IsAndroidVersionAtLeast(33)
+            || activity.CheckSelfPermission(Android.Manifest.Permission.PostNotifications) == Permission.Granted
+                ? NotificationPermission.Granted
+                : NotificationPermission.Default;
+    }
 
     [SupportedOSPlatform("android33.0")]
     private Task<bool> RequestPostNotificationsAsync() =>
