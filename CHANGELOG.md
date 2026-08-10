@@ -46,6 +46,30 @@ them until tagged releases begin.
   branches ([#661](https://github.com/pal-tamas/rask/issues/661)).
 
 ### Added
+- **`Rask.SQLite.Crdt.Sync` — share those replicas through a bucket, with no server between them.**
+  Ships the change feed over `Rask.ObjectStore`: `new CrdtSyncEngine(objectStore, feed)` then
+  `SyncAsync()`, with a status a UI can render (published / received / peers / offline). The design
+  rests on one rule — **each device writes only under its own prefix** (`crdt/{site-id}/changes/`) and
+  never touches another's — so no two devices ever write the same key and there is nothing to lock,
+  nothing to retry on conflict, and no lease to leak when a device dies mid-write. Keys carry the
+  publisher's own `db_version` range in fixed-width hex, so they sort in the order changes were made
+  and a remembered key resumes where the last sync stopped; peers are found with a grouped listing, so
+  discovery costs one response naming the *devices*. Only `ReadLocalChangesAsync()` is published, or
+  every device would re-upload every other device's history, and uploads batch because object storage
+  charges per request.
+  **A peer watermark is a key, not a version** — a `db_version` is assigned by whichever database reads
+  it, so "everything peer X has after N" is unanswerable from versions and building on them would
+  silently skip changes. The watermark advances only after changes commit locally, so an interrupted
+  pull is retried rather than skipped. **Offline is the normal case**: the database *is* the queue, so
+  an unreachable bucket loses nothing and `CrdtSyncPhase.Offline` is deliberately not a failure state.
+  There is no conflict count, on purpose — merging is per column and automatic, so nothing was silently
+  discarded. `ICrdtSyncStore` is a cache rather than a record: losing it costs re-uploading and
+  re-reading, never data, and a fresh state is answered *from the bucket* so a reinstalled device does
+  not republish its history. The wire format is hand-written (no reflection, trim-safe) and tags each
+  value with its SQLite storage class, because a value written back as the wrong class is a different
+  value rather than a formatting difference. Documented in
+  [docs/sqlite-crdt-sync.md](docs/sqlite-crdt-sync.md); verified with two real replicas syncing through
+  a bucket, not only against a fake feed.
 - **`Rask.SQLite.Crdt` — several replicas of one database, written independently and merged without
   conflicts, through ordinary EF Core.** Wires the cr-sqlite extension into a `DbContext` so application
   code stays LINQ, change tracking and `SaveChanges`, and merging happens per **column** rather than per
