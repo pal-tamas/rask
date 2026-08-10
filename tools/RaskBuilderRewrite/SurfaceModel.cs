@@ -191,6 +191,21 @@ internal sealed class SurfaceModel
                 continue;
             }
 
+            // A generic component's setters are generic methods over the component's own type parameter
+            // (`Input<T> Type<T>(this Input<T> __c, …)`), so the receiver here is an OPEN type and no
+            // conversion exists from the constructed `Input<string>` to it. Matching the unbound
+            // definitions is what those setters need; the closed case still goes through the conversion.
+            if (receiver is INamedTypeSymbol named)
+            {
+                for (var t = componentType; t is not null; t = t.BaseType)
+                {
+                    if (SymbolEqualityComparer.Default.Equals(t.OriginalDefinition, named.OriginalDefinition))
+                    {
+                        return true;
+                    }
+                }
+            }
+
             if (_compilation.ClassifyConversion(componentType, receiver).IsImplicit)
             {
                 return true;
@@ -199,6 +214,22 @@ internal sealed class SurfaceModel
 
         return false;
     }
+
+    /// <summary>
+    ///     Whether a generic component can be reached by a NO-ARGUMENT method entry at this position —
+    ///     <c>Input&lt;string&gt;()</c> rather than the property an ordinary component gets.
+    /// </summary>
+    /// <remarks>
+    ///     A property cannot be generic, so a generic component's entry is a method, and a method entry
+    ///     displaces its own same-named factory inside a markup host. That is why these call sites are
+    ///     written fully qualified (<c>Rask.Core.Components.Generated.Input(…)</c>) — the simple name is
+    ///     already taken. When the entry has a parameterless overload the site converts cleanly to
+    ///     <c>Input&lt;T&gt;()</c> plus the usual setters, and the qualification goes away with it.
+    /// </remarks>
+    public static bool HasParameterlessEntry(SemanticModel model, int position, string name) =>
+        model.LookupSymbols(position, name: name)
+            .OfType<IMethodSymbol>()
+            .Any(m => m is { Parameters.Length: 0, IsStatic: true } && m.TypeParameters.Length > 0);
 
     /// <summary>The enclosing type of a node, or null when it has none.</summary>
     public static INamedTypeSymbol? EnclosingType(SemanticModel model, SyntaxNode node)

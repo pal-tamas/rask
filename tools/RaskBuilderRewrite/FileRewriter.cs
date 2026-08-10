@@ -19,6 +19,7 @@ internal sealed record Site(
     int Id,
     InvocationExpressionSyntax Node,
     string ComponentName,
+    string Receiver,
     string File,
     int Line,
     SiteVerdict Verdict,
@@ -161,8 +162,11 @@ internal sealed class FileRewriter
             var line = tree.GetLineSpan(node.Span).StartLinePosition.Line + 1;
             var file = tree.FilePath;
 
+            var typeArguments = "";
+
             Site Make(SiteVerdict verdict, string? detail, IReadOnlyList<string>? setters = null) =>
-                new(siteId, node, name, file, line, verdict, detail, setters ?? Array.Empty<string>(),
+                new(siteId, node, name, name + typeArguments, file, line, verdict, detail,
+                    setters ?? Array.Empty<string>(),
                     !SymbolEqualityComparer.Default.Equals(
                         component.ContainingAssembly, _surface.FrameworkAssembly));
 
@@ -174,19 +178,27 @@ internal sealed class FileRewriter
                 continue;
             }
 
-            if (method.IsGenericMethod || component.IsGenericType)
-            {
-                // A generic component's entry is a METHOD, and a method entry displaces its same-named
-                // factory inside a markup host — so these sites do not sit still while the surface moves
-                // under them. They move with the entry, not here.
-                sites.Add(Make(SiteVerdict.GenericFactory, "generic component"));
-                continue;
-            }
-
             if (!_surface.IsInMarkupHost(SurfaceModel.EnclosingType(model, node)))
             {
                 sites.Add(Make(SiteVerdict.NotInMarkupHost, null));
                 continue;
+            }
+
+            // A generic component's entry is a METHOD, because a property cannot be generic — and a
+            // method entry displaces its own same-named factory inside a markup host, which is why these
+            // sites are written fully qualified in the first place. A parameterless overload of the entry
+            // takes the site as it stands; anything else (a forwarder that folds an argument the entry
+            // does not have) moves with the entry, not before it.
+            if (method.IsGenericMethod || component.IsGenericType)
+            {
+                if (!SurfaceModel.HasParameterlessEntry(model, node.SpanStart, name))
+                {
+                    sites.Add(Make(SiteVerdict.GenericFactory, "no parameterless entry"));
+                    continue;
+                }
+
+                typeArguments = "<" + string.Join(", ", component.TypeArguments.Select(t =>
+                    t.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))) + ">()";
             }
 
             var setters = new List<string>();
@@ -315,13 +327,13 @@ internal sealed class FileRewriter
                 parts.Add($".{site.Setters[i]}({visited.ArgumentList.Arguments[i].Expression.ToFullString().Trim()})");
             }
 
-            var single = site.ComponentName + string.Concat(parts);
+            var single = site.Receiver + string.Concat(parts);
             var multiline = node.ArgumentList.Span.Length > 0
                             && (node.ToString().Contains('\n') || indent.Length + single.Length > 116);
 
             var code = parts.Count == 0 || !multiline
                 ? single
-                : site.ComponentName + string.Concat(parts.Select(p => "\n" + indent + "    " + p));
+                : site.Receiver + string.Concat(parts.Select(p => "\n" + indent + "    " + p));
 
             return ParseExpression(code)
                 .WithTriviaFrom(visited)

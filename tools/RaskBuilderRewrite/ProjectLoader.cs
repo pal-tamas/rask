@@ -41,10 +41,17 @@ internal sealed class ProjectLoader
             projectPath, null,
             "-getProperty:TargetFramework", "-getProperty:TargetFrameworks", "-getProperty:AssemblyName");
         var tfm = eval.Property("TargetFramework");
+
+        // Only a genuinely multi-targeted project gets -p:TargetFramework on the command line. It is a
+        // GLOBAL property, so it flows into every nested build — and the WASM host project builds its
+        // WASM app through a nested `dotnet publish`, which then looks for a net10.0 target in a
+        // net10.0-browser assets file and fails with NETSDK1005.
+        var pinned = "";
         if (string.IsNullOrEmpty(tfm))
         {
             tfm = eval.Property("TargetFrameworks").Split(';', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()
                   ?? throw new InvalidOperationException($"No TargetFramework(s) on {projectPath}");
+            pinned = tfm;
         }
 
         // Wipe the generator output before rebuilding it, and the intermediate assembly with it.
@@ -71,7 +78,7 @@ internal sealed class ProjectLoader
 
         var build = Query(
             projectPath,
-            tfm,
+            pinned,
             "-t:Build",
             "-p:EmitCompilerGeneratedFiles=true",
             "-getItem:ReferencePath",
