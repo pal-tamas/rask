@@ -78,6 +78,7 @@ dotnet add package Rask.SQLite.EntityFrameworkCore    # the EF Core provider glu
 dotnet add package Rask.SQLite.Litestream             # managed continuous replication
 dotnet add package Rask.SQLite.Snapshots              # scheduled Online-Backup-API copies
 dotnet add package Rask.SQLite.Browser                # a persistent SQLite database inside a WASM app
+dotnet add package Rask.SQLite.Crdt                   # many replicas, merged per column, through plain EF Core
 dotnet add package Rask.Postgres                      # or Postgres
 dotnet add package Rask.SqlServer                     # or SQL Server
 ```

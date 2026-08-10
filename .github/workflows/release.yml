@@ -115,6 +115,9 @@ jobs:
       - name: Pack Rask.SQLite.Browser
         run: dotnet pack src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.SQLite.Crdt
+        run: dotnet pack src/Rask.SQLite.Crdt/Rask.SQLite.Crdt.csproj -c Release --no-build -o ./artifacts
+
       # The door out of one box — the two non-SQLite providers. They ship on the same cadence as the
       # SQLite family above because `rask new --database postgres|sqlserver` scaffolds a reference to them.
       - name: Pack Rask.Postgres
