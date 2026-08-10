@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Tests.Demos;
 // the host stays a leaf, the right JS calls go out with the right arguments, the JSON matches what the
 // library parses, and events route back to the owning instance. The chart actually drawing — and
 // surviving a morph — is E2E's job (SharedSmokeTests.Journey).
-public sealed class GanttTests
+public sealed partial class GanttTests : global::Rask.Core.RaskMarkup
 {
     private static readonly GanttTask[] Tasks =
     [
@@ -24,7 +24,7 @@ public sealed class GanttTests
     public void Host_RendersAsChildlessLeafCarryingTheRef()
     {
         var js = new FakeJsRuntime();
-        var host = new LiveHost(() => Gantt(Data: Tasks), TestServices.Default(js: js));
+        var host = new LiveHost(() => Gantt.Data(Tasks), TestServices.Default(js: js));
 
         var html = host.RenderAsLiveRoot();
 
@@ -36,7 +36,7 @@ public sealed class GanttTests
     public void FirstRender_MountsOnceWithRefIdPathBaseAndOptions()
     {
         var js = new FakeJsRuntime();
-        var host = new LiveHost(() => Gantt(Data: Tasks), TestServices.Default(js: js));
+        var host = new LiveHost(() => Gantt.Data(Tasks), TestServices.Default(js: js));
 
         host.RenderAsLiveRoot();
 
@@ -55,7 +55,7 @@ public sealed class GanttTests
     public void ReRender_DoesNotMountAgain()
     {
         var js = new FakeJsRuntime();
-        var host = new LiveHost(() => Gantt(Data: Tasks), TestServices.Default(js: js));
+        var host = new LiveHost(() => Gantt.Data(Tasks), TestServices.Default(js: js));
 
         host.RenderAsLiveRoot();
         host.RenderAsLiveRoot();
@@ -72,7 +72,7 @@ public sealed class GanttTests
     {
         var js = new FakeJsRuntime();
         IReadOnlyList<GanttTask> tasks = Tasks;
-        var host = new LiveHost(() => Gantt(Data: tasks), TestServices.Default(js: js));
+        var host = new LiveHost(() => Gantt.Data(tasks), TestServices.Default(js: js));
         host.RenderAsLiveRoot();
         Assert.Equal(0, js.CallCount("Rask.Gantt.update"));
 
@@ -99,7 +99,7 @@ public sealed class GanttTests
         js.SetPending("Rask.Gantt.mount", gate.Task);
 
         IReadOnlyList<GanttTask> tasks = Tasks;
-        var host = new LiveHost(() => Gantt(Data: tasks), TestServices.Default(js: js));
+        var host = new LiveHost(() => Gantt.Data(tasks), TestServices.Default(js: js));
         host.RenderAsLiveRoot();
 
         // Still loading: nothing has been pushed yet.
@@ -158,7 +158,7 @@ public sealed class GanttTests
     public void Unmount_DestroysTheChart()
     {
         var js = new FakeJsRuntime();
-        var host = new LiveHost(() => Gantt(Data: Tasks), TestServices.Default(js: js));
+        var host = new LiveHost(() => Gantt.Data(Tasks), TestServices.Default(js: js));
         host.RenderAsLiveRoot();
 
         host.Mounted = false;
@@ -293,7 +293,7 @@ public sealed class GanttTests
         var calls = 0;
         var js = new FakeJsRuntime();
         var host = new LiveHost(
-            () => Gantt(Data: Tasks, OnTaskClick: _ => { calls++; return Task.CompletedTask; }),
+            () => Gantt.Data(Tasks).TaskClick(_ => { calls++; return Task.CompletedTask; }),
             TestServices.Default(js: js));
 
         host.RenderAsLiveRoot();

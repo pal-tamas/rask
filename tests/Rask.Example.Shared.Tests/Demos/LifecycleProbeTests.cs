@@ -5,7 +5,7 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class LifecycleProbeTests
+public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
 {
     // Regression: the "Trigger re-render" button is a BsButton, which forwards its OnClick down to the
     // native <button>. The handler closes over the probe (appends to its hook log), so firing it re-renders
@@ -16,7 +16,7 @@ public sealed class LifecycleProbeTests
     [Fact]
     public async Task TriggerReRender_ThroughBsButton_RunsHandlerAndRepaintsProbe()
     {
-        var page = RaskTest.Render(() => LifecycleProbe(), TestServices.Default());
+        var page = RaskTest.Render(() => LifecycleProbe, TestServices.Default());
 
         // The probe's only click handler is the trigger button; that an id exists proves BsButton forwarded
         // the OnClick to the native button.
@@ -30,7 +30,7 @@ public sealed class LifecycleProbeTests
     [Fact]
     public async Task LifecycleProbe_FiresMountThroughRenderedHooks_InOrder()
     {
-        var page = RaskTest.Render(() => LifecycleProbe(), TestServices.Default());
+        var page = RaskTest.Render(() => LifecycleProbe, TestServices.Default());
         // OnMountAsync awaits 450ms; allow time for the full sequence.
         await WaitFor.True(() => page.Render().Contains("OnMountAsync (after 450ms await)"),
             TimeSpan.FromSeconds(2));

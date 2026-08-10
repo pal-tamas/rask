@@ -4,7 +4,7 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class CancellationProbeTests
+public sealed partial class CancellationProbeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task OnMountAsync_LogsCancelledOnUnmount_ThroughRegisterCallback()

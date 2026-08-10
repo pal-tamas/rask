@@ -5,7 +5,7 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class PageHeaderTests
+public sealed partial class PageHeaderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_EmitsTitle_AsH2_AndLead_AsP()

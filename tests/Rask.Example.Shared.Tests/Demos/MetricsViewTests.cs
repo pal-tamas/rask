@@ -9,13 +9,13 @@ namespace Rask.Example.Shared.Tests.Demos;
 // MetricsGauge / MetricsChart are driven through RaskTest.Render so the real framework fires
 // their lifecycle hooks. A FakeMetricsFeed stands in for the producer so the test pushes
 // updates by hand (Publish) — fully deterministic, no background timer.
-public sealed class MetricsViewTests
+public sealed partial class MetricsViewTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Gauge_RendersInitialSnapshot()
     {
         var feed = new FakeMetricsFeed(Snapshot(tick: 0, cpu: 50, jobs: 4));
-        var page = RaskTest.Render(() => MetricsGauge(), Services(feed));
+        var page = RaskTest.Render(() => MetricsGauge, Services(feed));
 
         var html = page.Html;
 
@@ -27,7 +27,7 @@ public sealed class MetricsViewTests
     public void Gauge_RepaintsWhenFeedPublishes()
     {
         var feed = new FakeMetricsFeed(Snapshot(tick: 0, cpu: 50, jobs: 4));
-        var page = RaskTest.Render(() => MetricsGauge(), Services(feed));
+        var page = RaskTest.Render(() => MetricsGauge, Services(feed));
 
         feed.Publish(Snapshot(tick: 7, cpu: 73.5, jobs: 9));
         var html = page.Render();
@@ -42,7 +42,7 @@ public sealed class MetricsViewTests
     {
         var feed = new FakeMetricsFeed(Snapshot(tick: 0, cpu: 50, jobs: 4));
         var mounted = true;
-        var page = RaskTest.Render(() => mounted ? MetricsGauge() : null, Services(feed));
+        var page = RaskTest.Render(() => mounted ? MetricsGauge : null, Services(feed));
         Assert.Equal(1, feed.SubscriberCount);
 
         mounted = false;
@@ -59,7 +59,7 @@ public sealed class MetricsViewTests
     {
         var feed = new FakeMetricsFeed(Snapshot(tick: 0, cpu: 50, jobs: 4));
         var mounted = true;
-        var page = RaskTest.Render(() => mounted ? MetricsChart() : null, Services(feed));
+        var page = RaskTest.Render(() => mounted ? MetricsChart : null, Services(feed));
 
         var html = page.Html;
         Assert.Equal(1, feed.SubscriberCount);

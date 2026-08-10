@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Tests.Demos;
 // or driven by Value + OnChange (controlled mode). These drive the live handlers directly (open, select,
 // deselect, Esc, click-outside) and assert the bound collection / emitted selection / rendered chips. The
 // full browser flow is covered in SharedSmokeTests (Multi-select branch).
-public sealed class MultiSelectTests
+public sealed partial class MultiSelectTests : global::Rask.Core.RaskMarkup
 {
     private static readonly string[] Options = ["a", "b", "c"];
 

@@ -4,7 +4,7 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class DisposableTimerProbeTests
+public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task DisposableTimerProbe_DisposeFires_OnUnmount()

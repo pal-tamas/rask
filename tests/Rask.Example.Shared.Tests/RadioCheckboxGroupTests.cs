@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Tests.Demos;
 
 // BsRadioGroup<TValue> / BsCheckboxGroup<TItem> are example form controls (moved out of Rask.Core into the
 // samples). These drive the live change handlers directly and assert the bound model + rendered checks.
-public class RadioCheckboxGroupTests
+public partial class RadioCheckboxGroupTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void RadioGroup_RendersOnePerOption_CurrentChecked()

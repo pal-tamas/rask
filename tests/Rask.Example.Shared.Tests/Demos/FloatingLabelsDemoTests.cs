@@ -6,7 +6,7 @@ using static Rask.Example.Shared.Features.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class FloatingLabelsDemoTests
+public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMarkup
 {
     // A valid submit must re-render the consumer (FloatingLabelsDemo) so its success alert — which
     // lives OUTSIDE the Form — appears. OnValidSubmit sets the demo's _submission; the Form must
@@ -14,7 +14,7 @@ public sealed class FloatingLabelsDemoTests
     [Fact]
     public async Task ValidSubmit_ShowsSuccessAlert()
     {
-        var page = RaskTest.Render(() => FloatingLabelsDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => FloatingLabelsDemo, TestServices.Default());
         var html = page.Render();
 
         // Populate the model through the live field handlers (the submit bridge validates/invokes
@@ -72,7 +72,7 @@ public sealed class FloatingLabelsDemoTests
     [Fact]
     public void FloatingLabelsDemo_Render_EmitsFloatingFieldsAndLinkedLabels()
     {
-        var html = RaskTest.Render(() => FloatingLabelsDemo(), TestServices.Default()).Html;
+        var html = RaskTest.Render(() => FloatingLabelsDemo, TestServices.Default()).Html;
 
         // Bootstrap floating-label markup across all three controls.
         Assert.Contains("form-floating", html);

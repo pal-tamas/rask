@@ -7,12 +7,12 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class NestedFormDemosTests
+public sealed partial class NestedFormDemosTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void NestedSubObjectDemo_Render_EmitsAllFieldsAndShippingFieldset()
     {
-        var html = new LiveHost(() => NestedSubObjectDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => NestedSubObjectDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("nf-name", html);
         Assert.Contains("nf-email", html);
         Assert.Contains("Shipping address", html);
@@ -25,7 +25,7 @@ public sealed class NestedFormDemosTests
     [Fact]
     public void NestedListForeachDemo_Render_StartsWithSeededLineItem()
     {
-        var html = new LiveHost(() => NestedListForeachDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => NestedListForeachDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("Coffee beans (250g)", html);
         Assert.Contains("nf-list-add", html);
         Assert.Contains("nf-list-submit", html);
@@ -34,7 +34,7 @@ public sealed class NestedFormDemosTests
     [Fact]
     public void NestedListIndexerDemo_Render_StartsWithSeededSku()
     {
-        var html = new LiveHost(() => NestedListIndexerDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => NestedListIndexerDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("WIDGET-1", html);
         Assert.Contains("nf-idx-add", html);
     }
@@ -42,7 +42,7 @@ public sealed class NestedFormDemosTests
     [Fact]
     public void NestedFluentValidationDemo_Render_StartsWithSeededLine()
     {
-        var html = new LiveHost(() => NestedFluentValidationDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => NestedFluentValidationDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("BOX-1", html);
         Assert.Contains("nf-fv-add", html);
         Assert.Contains("nf-fv-submit", html);

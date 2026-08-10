@@ -9,12 +9,12 @@ namespace Rask.Example.Shared.Tests.Demos;
 // and a Tier-2 stateful counter. These pin each tier's render, plus the defining Tier-2 behaviour —
 // clicking the button mutates a private field and re-renders with NO StateHasChanged() call, driven
 // through the same handler-dispatch path the live runtime uses.
-public sealed class ComponentTiersDemoTests
+public sealed partial class ComponentTiersDemoTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_ShowsAllThreeTiers()
     {
-        var page = RaskTest.Render(() => ComponentTiersDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => ComponentTiersDemo, TestServices.Default());
         var html = page.Render();
 
         // Tier 0 — the static helper's inlined badges.
@@ -30,7 +30,7 @@ public sealed class ComponentTiersDemoTests
     [Fact]
     public async Task StatefulCounter_Click_Increments_WithoutStateHasChanged()
     {
-        var page = RaskTest.Render(() => ComponentTiersDemo(), TestServices.Default());
+        var page = RaskTest.Render(() => ComponentTiersDemo, TestServices.Default());
         var clickId = ClickHandler(page.Render());
 
         await page.InvokeAsync(clickId);
