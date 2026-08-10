@@ -55,6 +55,39 @@ them until tagged releases begin.
   still green, proving nothing. That was found the hard way, when the first run over
   `tests/Rask.Core.Tests` turned the deliberately-mixed host in `BuilderHoistTests` into two identical
   branches and the test that pins the renumbering went red.
+- **Stage E, second pass: the types that were not markup hosts are, and their call sites moved with them.**
+  Entries are inherited members, so a test class and a static markup helper reached none of them — which
+  is what put a third of the repo out of the first pass's reach. 260 types now take the surface directly
+  (`: RaskMarkup` where the base slot is free, `[RaskMarkup]` where it is not), and ~1,400 further call
+  sites moved. Format clean, solution clean, all 40 test assemblies green, Shop's golden transcript
+  unchanged throughout.
+  Four things that were not true before this pass ran:
+  - **A name collision does not argue for `[RaskMarkup]` over `: RaskMarkup`.** When an attributed type's
+    base slot is free the generator writes `: RaskMarkup` into its own generated partial, so the entry is
+    *inherited* either way and a member named after a tag still hides it. `BsDataGridColumnsTests` took
+    the attribute and hid `Thead` anyway. The base slot is the only thing that chooses between the two
+    forms, and `new` on the colliding member is owed by both — six members across the repo now carry it.
+  - **Becoming a host displaces every factory whose component has a *method* entry** — the bound controls
+    and the generic ones — so the project deliberately does not compile between opting in and rewriting.
+    The rewriter now finds a displaced factory by name and argument names instead of by binding, reads
+    its constructed type arguments from the call site's own syntax, and keeps a bound site's `Bind`
+    argument as the entry's own argument (`BsInput(() => m.Name).Label("Name")`).
+  - **A type that declares a nested component cannot become a host at all.** Consumer entries are injected
+    into the host's partial, one member per reachable component, named after the component — so
+    `DependencyInjectionTests.GreetingComponent` the entry collides with the nested class of the same
+    name. CS0102, in generated source, out of a one-line opt-in. Injection already skips a name the host
+    already *reaches*; it should also skip a name the host *declares*. 190 types in `Rask.Core.Tests` are
+    waiting on that.
+  - **An entry-built component whose chain sets no folding prop never runs `OnMount`.** `Authorize[…]` and
+    `Authorize.Authorized(user => …)` render as if nobody were signed in. A chain that sets only `Children`
+    or a carrier-typed delegate never calls `BuilderRuntime.Track`, so the child never allocates its
+    `LiveState`, and `CommitEntry` reads a null `_live` as "this child never reached `GetOrCreate`" and
+    returns — so the deferred `NotifyParameters` that stands in for the factory's inline one never fires.
+    The guard's premise only holds when the render carries a handle; a handle-less render (`ToHtml`,
+    `RenderAsLiveRoot`, a server-rendered first paint) allocates no `LiveState` on its own. The factory
+    has no such hole because it notifies unconditionally. **Not fixed here** — the obvious repair makes
+    every element in an entry-built tree allocate a `LiveState` at commit, which is the memory work this
+    design exists to protect, so it needs a cheaper "this came from an entry" signal than the one it has.
 - **A committed Stage E rewriter** (`tools/RaskBuilderRewrite`), because ~6,600 call sites is past
   hand-editing and the migration has to be re-runnable rather than remembered. It resolves each site
   against the **real generated factory signature** — a purely syntactic pass cannot; positional arguments
