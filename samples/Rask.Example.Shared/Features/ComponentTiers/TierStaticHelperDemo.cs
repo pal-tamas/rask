@@ -6,10 +6,11 @@ namespace Rask.Example.Shared.Features;
 // cheapest way to factor out repeated markup — but because it has no instance it can neither
 // hold state nor safely latch onto ambient context (Context.Get). Promote it to a Component
 // (Tier 1) the moment you need any of those.
-internal static class TierStaticHelper
+[global::Rask.Core.RaskMarkup]
+internal static partial class TierStaticHelper
 {
     public static Component Badge(string label) =>
-        BsBadge(Color: BsColor.Secondary)[label];
+        BsBadge.Color(BsColor.Secondary)[label];
 }
 
 // Call site: invoke it like any method — no generated factory, no reconciliation identity.
