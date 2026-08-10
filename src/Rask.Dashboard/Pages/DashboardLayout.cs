@@ -28,27 +28,27 @@ public sealed partial class DashboardLayout(
 {
     protected override Component? Head =>
     [
-        Title()["Ops"],
+        Title["Ops"],
         // An operator surface has no business in a search index, even behind a policy.
-        Meta(Name: "robots", Content: "noindex, nofollow"),
-        BootstrapStyles(),
-        RaskTokens(),
+        Meta.Name("robots").Content("noindex, nofollow"),
+        BootstrapStyles,
+        RaskTokens,
     ];
 
     protected override Component? Render() =>
     [
-        BsNavbar(Class: "border-bottom mb-4")[
-            BsContainer(Fluid: true)[
-                BsNavbarBrand(Href: Routes.OverviewPage(), Class: "d-flex align-items-center gap-2")[
-                    BsIcon(Name: BsIconName.Speedometer2),
-                    Span()["Ops"]
+        BsNavbar.Class("border-bottom mb-4")[
+            BsContainer.Fluid(true)[
+                BsNavbarBrand.Href(Routes.OverviewPage()).Class("d-flex align-items-center gap-2")[
+                    BsIcon.Name(BsIconName.Speedometer2),
+                    Span["Ops"]
                 ],
-                BsNav(Class: "ms-auto")[NavItems()]
+                BsNav.Class("ms-auto")[NavItems()]
             ]
         ],
-        BsContainer(Fluid: true)[
+        BsContainer.Fluid(true)[
             UnsecuredWarning(),
-            Outlet()
+            Outlet
         ],
     ];
 
@@ -69,12 +69,14 @@ public sealed partial class DashboardLayout(
     }
 
     private new Component NavLink(RouteUrl url, string label, BsIconName icon, bool exact) =>
-        BsNavItem(Key: label)[
-            BsLink(url, Class: Bs.Join(
+        BsNavItem.Key(label)[
+            BsLink
+                .Href(url)
+                .Class(Bs.Join(
                 "nav-link d-flex align-items-center gap-1",
                 IsActive(url.Path, exact) ? "active" : null))[
-                BsIcon(Name: icon),
-                Span()[label]
+                BsIcon.Name(icon),
+                Span[label]
             ]
         ];
 
@@ -92,11 +94,11 @@ public sealed partial class DashboardLayout(
     // only while it applies: an app that defined the policy has real access control and gets no banner.
     private Component? UnsecuredWarning() =>
         security.IsUnsecured
-            ? BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-center gap-2")[
-                BsIcon(Name: BsIconName.ExclamationTriangle),
-                Span()[
+            ? BsAlert.Color(BsColor.Warning).Class("d-flex align-items-center gap-2")[
+                BsIcon.Name(BsIconName.ExclamationTriangle),
+                Span[
                     "Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs. Define the ",
-                    Code()[RaskDashboardPolicies.Access],
+                    Code[RaskDashboardPolicies.Access],
                     " authorization policy; without one the dashboard denies everyone outside Development."
                 ]
             ]

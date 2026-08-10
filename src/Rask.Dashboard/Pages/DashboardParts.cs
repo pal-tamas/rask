@@ -46,9 +46,9 @@ internal static class DashboardParts
 internal sealed partial class DashboardLoading : Component
 {
     protected override Component? Render() =>
-        Div(Class: "d-flex align-items-center gap-2 text-body-secondary py-4")[
-            BsSpinner(Small: true),
-            Span()["Reading…"]
+        Div.Class("d-flex align-items-center gap-2 text-body-secondary py-4")[
+            BsSpinner.Small(true),
+            Span["Reading…"]
         ];
 }
 
@@ -61,10 +61,10 @@ internal sealed partial class DashboardEmpty : Component
     public required string Detail { get; set; }
 
     protected override Component? Render() =>
-        BsCard(Class: "text-center py-5")[
-            BsCardBody()[
-                Div(Class: "fs-5 fw-semibold")[Heading],
-                Div(Class: "text-body-secondary mt-1")[Detail]
+        BsCard.Class("text-center py-5")[
+            BsCardBody[
+                Div.Class("fs-5 fw-semibold")[Heading],
+                Div.Class("text-body-secondary mt-1")[Detail]
             ]
         ];
 }
@@ -81,9 +81,9 @@ internal sealed partial class DashboardError : Component
     protected override Component? Render() =>
         Message is null
             ? null
-            : BsAlert(Color: BsColor.Danger, Class: "d-flex align-items-center gap-2")[
-                BsIcon(Name: BsIconName.ExclamationTriangle),
-                Span()["Couldn't read: ", Message]
+            : BsAlert.Color(BsColor.Danger).Class("d-flex align-items-center gap-2")[
+                BsIcon.Name(BsIconName.ExclamationTriangle),
+                Span["Couldn't read: ", Message]
             ];
 }
 
@@ -99,9 +99,9 @@ internal sealed partial class DashboardParked : Component
 
     protected override Component? Render() =>
         Parked
-            ? Div(Class: "d-flex align-items-center gap-2 text-body-secondary small mt-3")[
-                Span()["Live updates paused to keep the database free."],
-                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: ResumeAsync)[
+            ? Div.Class("d-flex align-items-center gap-2 text-body-secondary small mt-3")[
+                Span["Live updates paused to keep the database free."],
+                BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClickAsync(ResumeAsync)[
                     "Resume"]
             ]
             : null;

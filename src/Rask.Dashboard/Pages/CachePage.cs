@@ -59,20 +59,20 @@ public sealed partial class CachePage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Div(Class: "d-flex align-items-center gap-2 mb-3")[
-                H1(Class: "h4 mb-0")["Cache"],
-                Div(Class: "ms-auto")[FlushButton()]
+            Div.Class("d-flex align-items-center gap-2 mb-3")[
+                H1.Class("h4 mb-0")["Cache"],
+                Div.Class("ms-auto")[FlushButton()]
             ],
             DashboardError.Message(LoadError),
             ActionResult(),
-            BsRow(Class: "g-3 mb-4")[
-                BsCol(Sm: 4)[BsStat(Value: _stats.Entries.ToString(), Label: "Entries", Icon: BsIconName.Archive)],
-                BsCol(Sm: 4)[BsStat(Value: DashboardParts.Bytes(_stats.Bytes), Label: "Stored", Icon: BsIconName.Database)],
-                BsCol(Sm: 4)[BsStat(
-                    Value: _stats.Expired.ToString(),
-                    Label: "Expired, not yet swept",
-                    Icon: BsIconName.ClockHistory,
-                    Caption: "removed by the purge sweep")]
+            BsRow.Class("g-3 mb-4")[
+                BsCol.Sm(4)[BsStat.Value(_stats.Entries.ToString()).Label("Entries").Icon(BsIconName.Archive)],
+                BsCol.Sm(4)[BsStat.Value(DashboardParts.Bytes(_stats.Bytes)).Label("Stored").Icon(BsIconName.Database)],
+                BsCol.Sm(4)[BsStat
+                    .Value(_stats.Expired.ToString())
+                    .Label("Expired, not yet swept")
+                    .Icon(BsIconName.ClockHistory)
+                    .Caption("removed by the purge sweep")]
             ],
             _rows.Count == 0
                 ? DashboardEmpty.Heading(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
@@ -84,19 +84,19 @@ public sealed partial class CachePage(
     }
 
     private new Component Table(DateTime now) =>
-        BsTable(Small: true, Hover: true, Responsive: true)[
-            Thead()[Tr()[Th()["Key"], Th()["Size"], Th()["Written"], Th()["Expires"], Th()["Sliding"], Th()]],
-            Tbody()[_rows.Select(r => Tr(Key: r.Key, Class: r.ExpiresAt <= now ? "text-body-secondary" : null)[
-                Td()[Div(Class: "text-truncate font-monospace small", Style: "max-width:28rem", Title: r.Key)[r.Key]],
-                Td()[DashboardParts.Bytes(r.Bytes)],
-                Td(Title: r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)],
-                Td(Title: r.ExpiresAt.ToString("u"))[
+        BsTable.Small(true).Hover(true).Responsive(true)[
+            Thead[Tr[Th["Key"], Th["Size"], Th["Written"], Th["Expires"], Th["Sliding"], Th]],
+            Tbody[_rows.Select(r => Tr.Key(r.Key).Class(r.ExpiresAt <= now ? "text-body-secondary" : null)[
+                Td[Div.Class("text-truncate font-monospace small").Style("max-width:28rem").Title(r.Key)[r.Key]],
+                Td[DashboardParts.Bytes(r.Bytes)],
+                Td.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)],
+                Td.Title(r.ExpiresAt.ToString("u"))[
                     r.ExpiresAt <= now
-                        ? BsBadge(Color: BsColor.Secondary)["expired"]
-                        : Span()[DashboardParts.Ago(r.ExpiresAt, now)]
+                        ? BsBadge.Color(BsColor.Secondary)["expired"]
+                        : Span[DashboardParts.Ago(r.ExpiresAt, now)]
                 ],
-                Td()[r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"],
-                Td(Class: "text-end")[EvictButton(r.Key)]
+                Td[r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"],
+                Td.Class("text-end")[EvictButton(r.Key)]
             ])]
         ];
 
@@ -108,12 +108,20 @@ public sealed partial class CachePage(
             return null;
         }
 
-        return Div(Class: "d-flex align-items-center gap-2")[
-            BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                Disabled: _page == 0, OnClickAsync: () => GoAsync(_page - 1))["Previous"],
-            Span(Class: "small text-body-secondary")[$"Page {_page + 1} of {pages} — {_total} keys"],
-            BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                Disabled: _page >= pages - 1, OnClickAsync: () => GoAsync(_page + 1))["Next"]
+        return Div.Class("d-flex align-items-center gap-2")[
+            BsButton
+                .Color(BsColor.Secondary)
+                .Outline(true)
+                .Size(BsSize.Sm)
+                .Disabled(_page == 0)
+                .OnClickAsync(() => GoAsync(_page - 1))["Previous"],
+            Span.Class("small text-body-secondary")[$"Page {_page + 1} of {pages} — {_total} keys"],
+            BsButton
+                .Color(BsColor.Secondary)
+                .Outline(true)
+                .Size(BsSize.Sm)
+                .Disabled(_page >= pages - 1)
+                .OnClickAsync(() => GoAsync(_page + 1))["Next"]
         ];
     }
 
@@ -122,35 +130,35 @@ public sealed partial class CachePage(
     // stampede — hence the Destructive tier and a confirmation.
     private Component? EvictButton(string key) =>
         options.Actions.HasFlag(RaskDashboardActions.Safe)
-            ? BsButton(
-                Color: BsColor.Secondary,
-                Outline: true,
-                Size: BsSize.Sm,
-                OnClickAsync: () => EvictAsync(key))["Evict"]
+            ? BsButton
+                .Color(BsColor.Secondary)
+                .Outline(true)
+                .Size(BsSize.Sm)
+                .OnClickAsync(() => EvictAsync(key))["Evict"]
             : null;
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
-            ? BsButton(Color: BsColor.Danger, Size: BsSize.Sm, OnClick: () => Confirm(true))["Flush cache"]
+            ? BsButton.Color(BsColor.Danger).Size(BsSize.Sm).OnClick(() => Confirm(true))["Flush cache"]
             : null;
 
     private Component? ActionResult()
     {
         if (_confirmFlush)
         {
-            return BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-center gap-2")[
-                Span(Class: "flex-grow-1")[
+            return BsAlert.Color(BsColor.Warning).Class("d-flex align-items-center gap-2")[
+                Span.Class("flex-grow-1")[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
-                BsButton(Color: BsColor.Danger, Size: BsSize.Sm, OnClickAsync: FlushAsync)["Confirm"],
-                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => Confirm(false))["Cancel"]
+                BsButton.Color(BsColor.Danger).Size(BsSize.Sm).OnClickAsync(FlushAsync)["Confirm"],
+                BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClick(() => Confirm(false))["Cancel"]
             ];
         }
 
         return _message is { } message
-            ? BsAlert(Color: BsColor.Info, Class: "d-flex align-items-center gap-2")[
-                Span(Class: "flex-grow-1")[message],
-                BsCloseButton(OnClick: Dismiss)
+            ? BsAlert.Color(BsColor.Info).Class("d-flex align-items-center gap-2")[
+                Span.Class("flex-grow-1")[message],
+                BsCloseButton.OnClick(Dismiss)
             ]
             : null;
     }
