@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.JSInterop;
 using Rask.Client.Browser;
 using Rask.Core.Browser;
 using UIKit;
@@ -13,7 +14,8 @@ namespace Rask.Native;
 ///     <c>IWakeLock</c>, <c>INetworkInfo</c> (NWPathMonitor), <c>IBattery</c> (UIDevice battery monitoring),
 ///     <c>ISpeechSynthesis</c> (AVSpeechSynthesizer), <c>ISpeechRecognition</c> (SFSpeechRecognizer),
 ///     <c>IScreenInfo</c> (UIScreen), <c>IDeviceOrientation</c>/<c>IDeviceMotion</c> (CoreMotion),
-///     <c>INotifications</c> (UNUserNotificationCenter), and <c>IBadge</c> (the app-icon badge) — so
+///     <c>INotifications</c> (UNUserNotificationCenter), <c>IBadge</c> (the app-icon badge), and
+///     <c>IPermissions</c> (the OS authorization status the backends above actually gate on) — so
 ///     injecting any of them resolves the native implementation, and every other interface falls back to the
 ///     WebView's JS. The app writes one line
 ///     (<c>host.UsePlatform(new ApplePlatform(() =&gt; Window?.RootViewController))</c>) instead of
@@ -45,5 +47,9 @@ public sealed class ApplePlatform(Func<UIViewController?> presenter) : INativePl
         services.TryAddSingleton<IDeviceMotion>(_ => new NativeDeviceMotion());
         services.TryAddSingleton<INotifications>(_ => new NativeNotifications());
         services.TryAddSingleton<IBadge>(_ => new NativeBadge());
+        // Camera/Microphone defer to the WebView's own Permissions API (see NativePermissionQuery), so this
+        // one needs it. Built directly rather than resolved as IPermissions — that would resolve to this.
+        services.TryAddSingleton<IPermissions>(sp =>
+            new NativePermissionQuery(new Permissions(sp.GetRequiredService<IJSRuntime>())));
     }
 }
