@@ -94,6 +94,14 @@ internal static class BuilderEntry
     ///         and produce a wrong answer. Those count only when they carry the language's own
     ///         <c>required</c> modifier, which metadata does preserve.
     ///     </para>
+    ///     <para>
+    ///         That conservatism is a <b>hard ceiling</b>, not a rough edge, and it is what stops RASK038
+    ///         from ever policing a referenced library's RASK001 props — the exact set the builder surface
+    ///         has to reach before the factory can be deleted. Nothing an analyzer can read tells it
+    ///         apart from an optional one; the answer has to come from the compilation that OWNS the
+    ///         component and be published alongside <c>RaskEntries{Assembly}</c>. Pinned by
+    ///         <c>CrossAssemblyRequiredPropertyTests</c>.
+    ///     </para>
     /// </summary>
     public static List<IPropertySymbol> RequiredProperties(INamedTypeSymbol type, CancellationToken cancellationToken)
     {

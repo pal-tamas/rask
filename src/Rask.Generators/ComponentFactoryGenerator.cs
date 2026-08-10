@@ -1045,6 +1045,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     //    the very first render it is `null!`. Both silently. Those components stay on their factory
     //    until the chain-walking required-props analyzer can enforce them at the call site.
     //
+    // Both of those blockers are worse than "write the analyzer" makes them sound, and the shape of the
+    // fix is different for each — see CrossAssemblyRequiredPropertyTests, which pins both:
+    //
+    //  * `required` cannot ride on Entry<T> at all: it is constrained `where T : Component, new()` and a
+    //    type with a required member does not satisfy `new()` (CS9040). Policing the call site does not
+    //    help; the entry needs a construction path that is not `new T()`.
+    //  * a RASK001 prop is invisible to RASK038 across an assembly boundary — a member initializer does
+    //    not survive into metadata, so from a consumer's side `double Value` and `double Value = 0` are
+    //    the same symbol. The requiredness has to be PUBLISHED by the assembly that compiled the
+    //    component (this compilation already computes it, right here) for a consumer to read it back.
+    //
     // …and so does a name Component already declares (`Head`), which would be CS0102.
     private static bool CanHaveEntry(Candidate c, HashSet<string> taken) =>
         (c.TypeParameters.Length == 0
