@@ -16,13 +16,13 @@ internal sealed partial class NativeStubApp : Component
 
     public NativeStubApp(RouteState routeState) => _routeState = routeState;
 
-    protected override Component? Head => Title()["stub"];
+    protected override Component? Head => Title["stub"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        H1()[$"path={_routeState.Path}"],
-        P()[$"count={Counter}"],
-        Button(OnClick: () => Counter++)["bump"]
+        H1[$"path={_routeState.Path}"],
+        P[$"count={Counter}"],
+        Button.OnClick(() => Counter++)["bump"]
     ];
 }
