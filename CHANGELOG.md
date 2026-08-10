@@ -31,6 +31,27 @@ them until tagged releases begin.
   branches ([#661](https://github.com/pal-tamas/rask/issues/661)).
 
 ### Added
+- **`Rask.SQLite.Crdt` — several replicas of one database, written independently and merged without
+  conflicts, through ordinary EF Core.** Wires the cr-sqlite extension into a `DbContext` so application
+  code stays LINQ, change tracking and `SaveChanges`, and merging happens per **column** rather than per
+  row: two devices editing different fields of the same record both keep their work, and last-writer-wins
+  applies only where two devices wrote the same field. `CrdtChangeFeed` exposes the change log with no
+  transport attached — `ReadChangesAsync` from a watermark, `ApplyChangesAsync` back — so the same log
+  works over a bucket, a socket, or nothing at all; pair it with `Rask.Sync.Client` for the bucket case.
+  Applying a change twice is a no-op, which is what makes re-sending safe after an upload whose outcome
+  is unknown.
+  The package exists for the three requirements that otherwise fail *quietly*: the extension is per
+  connection rather than per process, so loading once at startup works until the pool recycles and then
+  silently stops (it is now loaded on every open and finalized before every close); cr-sqlite refuses a
+  `NOT NULL` column without a default, which is the exact shape EF emits for every required property, so
+  `ApplyCrdtConventions()` supplies them; and loading the extension seeds bookkeeping tables that make
+  `EnsureCreated` treat the database as already provisioned, so the schema must be created on a context
+  *without* the extension — otherwise nothing is created at all and the first symptom is the promotion
+  complaining about a missing primary key. Configuring a non-SQLite provider is reported rather than
+  skipped, because silently not replicating surfaces later as data loss. The native binary is supplied by
+  the app via `ExtensionPath`, since cr-sqlite ships one per platform. Documented in
+  [docs/sqlite-crdt.md](docs/sqlite-crdt.md); the merge behaviour is covered against the real extension
+  (`RASK_CRSQLITE_PATH`), and everything reachable without it always runs.
 - **A waiting tab now finds out when the database becomes free.** `BrowserSqliteOwnership.Available`
   completes in a non-owner tab once the owning tab closes, so an app can turn "close the other tab" into
   "your data is ready — reload" instead of leaving the user to guess when the condition was met.
