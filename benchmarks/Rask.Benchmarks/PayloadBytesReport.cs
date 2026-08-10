@@ -1,8 +1,10 @@
 using System.Buffers;
 using System.Globalization;
 using System.Text;
+using Rask.Benchmarks.Infrastructure;
 using Rask.Core;
 using Rask.Core.Live;
+using B = Rask.Benchmarks.Infrastructure.Generated;
 using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks;
@@ -56,7 +58,15 @@ internal static class PayloadBytesReport
             // drops from full-page to one subtree.
             Report("RawGuidePage", writer,
                 BuildGuideDocument(1),
-                BuildGuideDocument(2))
+                BuildGuideDocument(2)),
+            // Handler-count shift: a 100-row list of buttons with one conditional button ABOVE it, toggled
+            // between the two renders. The rows themselves do not change at all — only the toolbar does —
+            // so the ideal diff touches the toolbar and nothing else. This is the one scenario rendered
+            // through the LIVE root (the others serialize without a live context, which registers no
+            // handlers at all), because handler ids only exist on that path.
+            ReportLive("HandlerShiftAboveList100", writer,
+                B.HandlerShiftPage(RowCount: 100),
+                page => page.ShowToolbarAction = true)
         };
 
         return check ? CheckAgainstBaseline(rows) : 0;
@@ -156,12 +166,6 @@ internal static class PayloadBytesReport
         Component before,
         Component after)
     {
-        // Full-HTML payload size — what the server ships TODAY for every state change.
-        var fullHtml = after.RenderAsLiveRoot();
-        writer.ResetWrittenCount();
-        LivePayload.BuildPayloadUtf8WithRoot(writer, fullHtml, "session-bench", null, false);
-        var fullBytes = writer.WrittenCount;
-
         // Diff payload size — build the previous- and current-render frame streams, diff them, and
         // serialize as the diff wire format. The frames' HtmlStart/HtmlEnd offsets index into the SAME
         // serialized string (afterHtml) they were captured against, so that string — not the injected
@@ -169,6 +173,47 @@ internal static class PayloadBytesReport
         // mirroring how the live session pairs its frames with its render HTML.
         var (beforeFrames, _) = CaptureFrames(before);
         var (afterFrames, afterHtml) = CaptureFrames(after);
+
+        // Full-HTML size is measured from the live-root render (runtime script and all) — what the
+        // server would ship without the diff codec — while the diff is sliced from the bare serialize
+        // the frames were captured against.
+        return Emit(name, writer, beforeFrames, afterFrames, afterHtml, after.RenderAsLiveRoot());
+    }
+
+    /// <summary>
+    ///     Diff cost for one state change on a PERSISTENT root, rendered through <c>RenderAsLiveRoot</c> so
+    ///     the live render context exists and event handlers are actually registered. <see cref="Report" />
+    ///     builds two independent trees and serializes them bare, which is right for markup-shaped
+    ///     scenarios but registers no handlers — so it can't see anything handler ids do.
+    /// </summary>
+    private static Row ReportLive<T>(
+        string name,
+        ArrayBufferWriter<byte> writer,
+        T page,
+        Action<T> mutate)
+        where T : Component
+    {
+        var (beforeFrames, _) = CaptureLiveFrames(page);
+        mutate(page);
+        // Here the live-root render IS what the frames were captured against, so one string serves both.
+        var (afterFrames, afterHtml) = CaptureLiveFrames(page);
+        return Emit(name, writer, beforeFrames, afterFrames, afterHtml, afterHtml);
+    }
+
+    // Shared tail: size the full payload and the diff for one before/after frame pair, print the CSV
+    // row, and hand it back for the baseline check.
+    private static Row Emit(
+        string name,
+        ArrayBufferWriter<byte> writer,
+        RenderFrame[] beforeFrames,
+        RenderFrame[] afterFrames,
+        string afterHtml,
+        string fullHtml)
+    {
+        writer.ResetWrittenCount();
+        LivePayload.BuildPayloadUtf8WithRoot(writer, fullHtml, "session-bench", null, false);
+        var fullBytes = writer.WrittenCount;
+
         var ops = new List<EditOp>();
         FrameDiffer.Diff(beforeFrames, afterFrames, ops, afterHtml);
 
@@ -182,6 +227,18 @@ internal static class PayloadBytesReport
             name, fullBytes, diffBytes, ops.Count));
 
         return new Row(name, fullBytes, diffBytes, ops.Count);
+    }
+
+    private static (RenderFrame[] Frames, string Html) CaptureLiveFrames(Component root)
+    {
+        var fw = new FrameWriter();
+        string html;
+        using (FrameSinkScope.Push(fw))
+        {
+            html = root.RenderAsLiveRoot();
+        }
+
+        return (fw.WrittenSpan.ToArray(), html);
     }
 
     private static (RenderFrame[] Frames, string Html) CaptureFrames(Component tree)

@@ -474,10 +474,6 @@ internal static class HtmlSerializer
                 // consumed — and the snapshot needs to know which identity it was captured under.
                 var forwardedKeyAtCapture = KeyForwardScope.Peek();
 
-                // Likewise the handler-id counter: the walk about to run issues this subtree's ids
-                // starting here, and the snapshot has to know where its run began to replay it.
-                var handlerStartId = liveCtx?.PeekNextHandlerId ?? 0;
-
                 using (LiveRenderContext.PushScopeOrNone(liveCtx, component))
                 using (LiveRenderContext.EnterParentScopeOrNone(liveCtx, component))
                 using (component.EnterChildrenScopeInternal())
@@ -511,7 +507,7 @@ internal static class HtmlSerializer
                 {
                     component.TryCacheCleanSubtree(
                         frames, frameStart, hadNested, liveCtx?.CollectsNativeChrome ?? false,
-                        forwardedKeyAtCapture, handlerStartId, liveCtx);
+                        forwardedKeyAtCapture, liveCtx);
                 }
 
                 // Mark that our parent's subtree now contains a user component (us).
@@ -543,5 +539,17 @@ internal static class HtmlSerializer
                 Serialize(boundary.RenderForLive(), sb);
             }
         }
+
+        // Mark that our parent's subtree now contains a nested component, exactly as the user-component
+        // arm does — an ErrorBoundary IS one, and both reasons that flag exists apply to it:
+        //
+        //  * It re-renders independently. Trip() swaps the body for the fallback without dirtying the
+        //    enclosing component, so replaying that component's frames would re-emit the subtree that
+        //    just threw.
+        //  * It becomes CurrentParent while its children serialize, so handlers the enclosing component
+        //    wrote and passed through as children take slots on the BOUNDARY. The enclosing component's
+        //    capture reads only its own slots, so replaying it would drop those registrations from the
+        //    freshly-cleared map and leave the buttons dead.
+        _sawNestedComponent = true;
     }
 }
