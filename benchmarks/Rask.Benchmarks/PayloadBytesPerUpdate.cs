@@ -26,7 +26,7 @@ namespace Rask.Benchmarks;
 // makes BenchmarkDotNet show the wire size as the benchmark's "Mean" column equivalent
 // — the metric we're optimizing for.
 [MemoryDiagnoser]
-public class PayloadBytesPerUpdate
+public partial class PayloadBytesPerUpdate : global::Rask.Core.RaskMarkup
 {
     private const string SessionId = "session-bench";
 
@@ -107,23 +107,23 @@ public class PayloadBytesPerUpdate
         var rows = new List<Component>(LargePageRowCount);
         for (var i = 0; i < LargePageRowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
-                C.Span(Class: "label")[$"Item {i}"],
-                C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
-                C.Img($"/img/{i}.png", $"item {i}", 32, 32),
-                C.Input<string>(InputType.Text, $"f{i}", $"v{i}", "edit", MaxLength: 64)
+            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+                Span.Class("label")[$"Item {i}"],
+                A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
+                Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),
+                Input<string>().Type(InputType.Text).Name($"f{i}").Value($"v{i}").Placeholder("edit").MaxLength(64)
             ]);
         }
 
         return [
-            C.Doctype(),
-            C.Html()[
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        C.Div(Class: "counter", Id: "counter")[
-                            C.Span(Class: "value")[counter.ToString()]
+            Doctype,
+            Html[
+                Body[
+                    Div.Class("container").Id("root")[
+                        Div.Class("counter").Id("counter")[
+                            Span.Class("value")[counter.ToString()]
                         ],
-                        C.Div(Class: "body")[rows]
+                        Div.Class("body")[rows]
                     ]
                 ]
             ]
@@ -136,17 +136,17 @@ public class PayloadBytesPerUpdate
         for (var i = 0; i < order.Length; i++)
         {
             var idx = order[i];
-            rows.Add(C.Div(
-                Class: "row",
-                Data: new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
-                C.Span()[$"Item {idx}"]
+            rows.Add(Div
+                .Class("row")
+                .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
+                Span[$"Item {idx}"]
             ]);
         }
 
         return [
-            C.Doctype(),
-            C.Html()[
-                C.Body()[C.Div(Class: "list")[rows]]
+            Doctype,
+            Html[
+                Body[Div.Class("list")[rows]]
             ]
         ];
     }
@@ -161,18 +161,18 @@ public class PayloadBytesPerUpdate
         for (var i = 0; i < LargePageRowCount; i++)
         {
             var text = i == LargePageRowCount / 2 ? $"ticker {counter}" : $"Item {i}";
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
-                C.Span(Class: "label")[text],
-                C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
-                C.Img($"/img/{i}.png", $"item {i}", 32, 32),
-                C.Input<string>(InputType.Text, $"f{i}", $"v{i}", "edit", MaxLength: 64)
+            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+                Span.Class("label")[text],
+                A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
+                Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),
+                Input<string>().Type(InputType.Text).Name($"f{i}").Value($"v{i}").Placeholder("edit").MaxLength(64)
             ]);
         }
 
         return [
-            C.Doctype(),
-            C.Html()[
-                C.Body()[C.Div(Class: "body")[rows]]
+            Doctype,
+            Html[
+                Body[Div.Class("body")[rows]]
             ]
         ];
     }

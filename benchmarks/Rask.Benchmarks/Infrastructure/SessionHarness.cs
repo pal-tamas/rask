@@ -12,7 +12,8 @@ namespace Rask.Benchmarks.Infrastructure;
 ///     production-shaped host, mints live sessions against it, and drives them to a steady state —
 ///     all in-process, with no HTTP and no real socket.
 /// </summary>
-internal static class SessionHarness
+[global::Rask.Core.RaskMarkup]
+internal static partial class SessionHarness
 {
     /// <summary>
     ///     Updates driven to reach steady state. Two sends is the minimum for BOTH payload buffers to
@@ -42,7 +43,7 @@ internal static class SessionHarness
         FootprintApp? app = null;
         var session = store.Create(_ =>
         {
-            app = Bench.FootprintApp(RowCount: rows);
+            app = FootprintApp.RowCount(rows);
             // Mirrors the GET endpoint, which wraps the user's App in this same implicit boundary
             // (RaskEndpointExtensions). RootErrorBoundary is framework-internal and has no public
             // factory, so this is the only way to reproduce production's real tree shape — and the

@@ -21,7 +21,8 @@ namespace Rask.Benchmarks;
 //   KeyedList100Reorder ≤ 500 bytes
 //   TextNodeUpdate      ≤ 100 bytes
 // — the targets that justify the "Rask is a real Blazor competitor" claim.
-internal static class PayloadBytesReport
+[global::Rask.Core.RaskMarkup]
+internal static partial class PayloadBytesReport
 {
     private const string Header = "Scenario,FullPayloadBytes,DiffPayloadBytes,DiffOpCount";
 
@@ -219,21 +220,21 @@ internal static class PayloadBytesReport
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
-                C.Span(Class: "label")[$"Item {i}"],
-                C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
-                C.Img($"/img/{i}.png", $"item {i}", 32, 32),
-                C.Input<string>(InputType.Text, $"f{i}", $"v{i}", "edit", MaxLength: 64)
+            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+                Span.Class("label")[$"Item {i}"],
+                A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
+                Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),
+                Input<string>().Type(InputType.Text).Name($"f{i}").Value($"v{i}").Placeholder("edit").MaxLength(64)
             ]);
         }
 
         return [
-            C.Doctype(),
-            C.Html()[
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        C.Div(Class: "counter", Id: "counter")[C.Span(Class: "value")[counter.ToString()]],
-                        C.Div(Class: "body")[rows]
+            Doctype,
+            Html[
+                Body[
+                    Div.Class("container").Id("root")[
+                        Div.Class("counter").Id("counter")[Span.Class("value")[counter.ToString()]],
+                        Div.Class("body")[rows]
                     ]
                 ]
             ]
@@ -246,16 +247,16 @@ internal static class PayloadBytesReport
         for (var i = 0; i < order.Length; i++)
         {
             var idx = order[i];
-            rows.Add(C.Div(
-                Class: "row",
-                Data: new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
-                C.Span()[$"Item {idx}"]
+            rows.Add(Div
+                .Class("row")
+                .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
+                Span[$"Item {idx}"]
             ]);
         }
 
         return [
-            C.Doctype(),
-            C.Html()[C.Body()[C.Div(Class: "list")[rows]]]
+            Doctype,
+            Html[Body[Div.Class("list")[rows]]]
         ];
     }
 
@@ -276,20 +277,20 @@ internal static class PayloadBytesReport
         var nav = new List<Component>(12);
         for (var i = 0; i < 12; i++)
         {
-            nav.Add(C.A($"/guides/{i}", Class: "nav-link", Key: i)[$"Guide {i}"]);
+            nav.Add(A.Href($"/guides/{i}").Class("nav-link").Key(i)[$"Guide {i}"]);
         }
 
         return [
-            C.Doctype(),
-            C.Html()[
-                C.Body()[
-                    C.Nav(Class: "sidebar")[nav],
-                    C.Main(Class: "content")[
-                        C.H1()["Counter guide"],
-                        C.P()["A counter component highlighted below, with a live status line."],
-                        C.Div(Class: "sample", Id: "sample")[
-                            C.Raw(highlightedCode),
-                            C.Div(Class: "status", Id: "demo-status")[$"count: {status}"]
+            Doctype,
+            Html[
+                Body[
+                    Nav.Class("sidebar")[nav],
+                    Main.Class("content")[
+                        H1["Counter guide"],
+                        P["A counter component highlighted below, with a live status line."],
+                        Div.Class("sample").Id("sample")[
+                            Raw.Value(highlightedCode),
+                            Div.Class("status").Id("demo-status")[$"count: {status}"]
                         ]
                     ]
                 ]
@@ -304,18 +305,18 @@ internal static class PayloadBytesReport
         for (var i = 0; i < rowCount; i++)
         {
             var text = i == rowCount / 2 ? $"ticker {counter}" : $"Item {i}";
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
-                C.Span(Class: "label")[text],
-                C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
-                C.Img($"/img/{i}.png", $"item {i}", 32, 32),
-                C.Input<string>(InputType.Text, $"f{i}", $"v{i}", "edit", MaxLength: 64)
+            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+                Span.Class("label")[text],
+                A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
+                Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),
+                Input<string>().Type(InputType.Text).Name($"f{i}").Value($"v{i}").Placeholder("edit").MaxLength(64)
             ]);
         }
 
         return [
-            C.Doctype(),
-            C.Html()[
-                C.Body()[C.Div(Class: "body")[rows]]
+            Doctype,
+            Html[
+                Body[Div.Class("body")[rows]]
             ]
         ];
     }

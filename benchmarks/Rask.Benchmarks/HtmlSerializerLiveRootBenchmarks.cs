@@ -14,7 +14,7 @@ namespace Rask.Benchmarks;
 // A small and a large page so the fixed two-lookup DI cost is visible at small sizes and amortised
 // across many elements at large sizes.
 [MemoryDiagnoser]
-public class HtmlSerializerLiveRootBenchmarks
+public partial class HtmlSerializerLiveRootBenchmarks : global::Rask.Core.RaskMarkup
 {
     private Component _small = null!;
     private Component _large = null!;
@@ -53,20 +53,20 @@ public class HtmlSerializerLiveRootBenchmarks
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
-                C.Span(Class: "label")[$"Item {i}"]
+            rows.Add(Div.Class("row").Id($"r{i}").Key(i)[
+                Span.Class("label")[$"Item {i}"]
             ]);
         }
 
         return
         [
-            C.Doctype(),
-            C.Html()[
+            Doctype,
+            Html[
                 // Head content is framework-managed (RASK019); the serializer's <head> branch emits
                 // the head-asset sentinel and resolves IRaskHeadContribution regardless of children.
                 C.Head(),
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[rows]
+                Body[
+                    Div.Class("container").Id("root")[rows]
                 ]
             ]
         ];
@@ -76,13 +76,13 @@ public class HtmlSerializerLiveRootBenchmarks
     // codec never emits ops for it).
     private sealed class BenchHeadContribution : IRaskHeadContribution
     {
-        private readonly Component _markup = C.Meta(Name: "theme-color", Content: "#0d1117");
+        private readonly Component _markup = Meta.Name("theme-color").Content("#0d1117");
         public Component? Render() => _markup;
     }
 
     private sealed class BenchRuntimeScript : IRaskRuntimeScript
     {
-        private readonly Component _script = C.Script(Src: "/_rask/rask.js", Type: "module");
+        private readonly Component _script = Script.Src("/_rask/rask.js").Type("module");
         public Component Render() => _script;
     }
 }

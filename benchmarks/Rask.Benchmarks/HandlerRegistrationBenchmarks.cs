@@ -9,7 +9,7 @@ namespace Rask.Benchmarks;
 // "h" + n concat which allocates a string per call. Two benchmarks: well-under and
 // well-over the intern threshold, so a regression in either branch shows up.
 [MemoryDiagnoser]
-public class HandlerRegistrationBenchmarks
+public partial class HandlerRegistrationBenchmarks : global::Rask.Core.RaskMarkup
 {
     private Action _action = null!;
     private RegHost _host = null!;
@@ -22,7 +22,7 @@ public class HandlerRegistrationBenchmarks
     // outside the measured region. Construction goes through the generated factory so
     // RASK014 is satisfied.
     [IterationSetup]
-    public void IterationSetup() => _host = (RegHost)Bench.RegHost();
+    public void IterationSetup() => _host = (RegHost)RegHost;
 
     [Benchmark]
     public string Register200()

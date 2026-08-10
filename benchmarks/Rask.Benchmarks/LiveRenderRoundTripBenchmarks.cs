@@ -17,7 +17,7 @@ namespace Rask.Benchmarks;
 // first-render warmup, so the steady-state allocation per render dominates). The 10x is
 // the one to watch when comparing before/after.
 [MemoryDiagnoser]
-public class LiveRenderRoundTripBenchmarks
+public partial class LiveRenderRoundTripBenchmarks : global::Rask.Core.RaskMarkup
 {
     // 100-row list with data-rask-key emission per row. Mirrors the VirtualizeModel / sortable
     // table pattern: every render shuffles the row order so the keyed-morph branch (in
@@ -71,16 +71,16 @@ public class LiveRenderRoundTripBenchmarks
         var rows = new List<Component>(20);
         for (var i = 0; i < 20; i++)
         {
-            rows.Add(Bench.RowItem(i, Key: i));
+            rows.Add(RowItem.Index(i).Key(i));
         }
 
         return [
-            C.Doctype(),
-            C.Html()[
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        C.Div(Class: "header")[C.Span()["Live Bench"]],
-                        C.Div(Class: "body")[rows]
+            Doctype,
+            Html[
+                Body[
+                    Div.Class("container").Id("root")[
+                        Div.Class("header")[Span["Live Bench"]],
+                        Div.Class("body")[rows]
                     ]
                 ]
             ]
@@ -93,10 +93,10 @@ public class LiveRenderRoundTripBenchmarks
         // the bottom-most renders a small leaf so the framework-tag path still emits
         // something to HTML. Wrap in Fragment+Doctype+Html+Body so RenderAsLiveRoot
         // produces a valid document with a <body> for the live root marker.
-        Component current = Bench.DeepNode(50);
+        Component current = DeepNode.Depth(50);
         return [
-            C.Doctype(),
-            C.Html()[C.Body()[C.Div(Class: "deep")[current]]]
+            Doctype,
+            Html[Body[Div.Class("deep")[current]]]
         ];
     }
 
@@ -121,16 +121,16 @@ public class LiveRenderRoundTripBenchmarks
         for (var i = 0; i < count; i++)
         {
             var idx = order[i];
-            rows.Add(C.Div(
-                Class: "row",
-                Data: new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
-                C.Span()[$"Item {idx}"]
+            rows.Add(Div
+                .Class("row")
+                .Data(new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
+                Span[$"Item {idx}"]
             ]);
         }
 
         return [
-            C.Doctype(),
-            C.Html()[C.Body()[C.Div(Class: "list")[rows]]]
+            Doctype,
+            Html[Body[Div.Class("list")[rows]]]
         ];
     }
 }
