@@ -13,7 +13,7 @@ public sealed partial class ClipboardDemo(IClipboard clipboard) : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 BsInputGroup(Size: BsSize.Sm, Class: "mb-2")[
-                    BsInput<string>(Id: "clipboard-input", Value: _input, OnChange: v => _input = v),
+                    BsInput<string>().Id("clipboard-input").Value(_input).OnChange(v => _input = v),
                     BsButton(Color: BsColor.Primary, Id: "clipboard-copy", OnClickAsync: Copy)["Copy"],
                     BsButton(Color: BsColor.Primary, Outline: true, Id: "clipboard-paste", OnClickAsync: Paste)["Paste"]
                 ],

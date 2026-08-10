@@ -29,8 +29,8 @@ public sealed partial class BsFormsDemo : Component
     [
         Form<Signup>(_model, m => _result = $"Welcome, {m.Name}!", Class: "vstack gap-3")[
             DataAnnotationsValidator(),
-            BsInput(() => _model.Name, Label: "Name", Placeholder: "Jane Doe"),
-            BsInput(() => _model.Email, Label: "Email", Type: InputType.Email, HelpText: "We never share it."),
+            BsInput(() => _model.Name).Label("Name").Placeholder("Jane Doe"),
+            BsInput(() => _model.Email).Label("Email").Type(InputType.Email).HelpText("We never share it."),
             // Searchable: a Filter predicate adds a search field in the dropdown that narrows the options.
             BsSelect(() => _model.Plan, Plans, OptionLabel: p => Text(PlanLabel(p)),
                 Filter: (p, t) => PlanLabel(p).Contains(t, StringComparison.OrdinalIgnoreCase),

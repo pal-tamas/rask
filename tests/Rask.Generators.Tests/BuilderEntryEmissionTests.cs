@@ -93,10 +93,16 @@ public class BuilderEntryEmissionTests
         // Products.Card has a `required` member, so only Orders.Card is eligible — no collision.
         Assert.Empty(run.WithId("RASK040"));
 
-        var entry = run.Source(Entries).Split('\n')
+        // The canonical entry — the one place the reset triple is written — and the member injected into
+        // every other component, which forwards to it. Both have to name the same `Card`.
+        var entry = run.Source("RaskBuilderEntryHost.g.cs").Split('\n')
             .Single(l => l.Contains(" Card =>", StringComparison.Ordinal));
         Assert.Contains("Entry<global::Demo.Orders.Card>", entry, StringComparison.Ordinal);
         Assert.Contains("__RaskResetEager_Demo_Orders_Card", entry, StringComparison.Ordinal);
+        Assert.Contains(
+            "    private static global::Demo.Orders.Card Card => global::RaskEntriesTestAssembly.Card;",
+            run.Source(Entries),
+            StringComparison.Ordinal);
 
         // …and that reset casts to the type the entry builds, not to the other Card. (The cast rides on
         // the PENDING half here: both Cards' own props fold, so the eager half has nothing to write.)
@@ -210,6 +216,80 @@ public class BuilderEntryEmissionTests
 
         Assert.Equal(1, Count(setters, " Note(this global::Demo.Widget"));
         Assert.Equal(1, Count(setters, " __RaskResetEager_Demo_Widget("));
+    }
+
+    // The injection is per-HOST: N components produce N×(N+M) members. So the members must not carry the
+    // entry's body. Each assembly emits ONE canonical entry per component into `RaskEntries{Assembly}`,
+    // and the injected member is a forwarder onto it — same entry, same reset routines, same pending
+    // mask, one line instead of a reset triple repeated once per host component.
+    [Fact]
+    public void An_injected_entry_forwards_to_the_one_canonical_entry_instead_of_repeating_it()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Page : Component { }
+                                              public partial class Card : Component
+                                              {
+                                                  public string? Note { get; set; }
+                                              }
+                                              """);
+
+        // The canonical entry: public (a referencing assembly has to reach it), and the only place the
+        // reset triple is written.
+        var host = run.Source("RaskBuilderEntryHost.g.cs");
+        Assert.Contains("public static class RaskEntriesTestAssembly", host, StringComparison.Ordinal);
+        Assert.Contains(
+            "public static global::Demo.Card Card => global::Rask.Core.BuilderRuntime.Entry<global::Demo.Card>("
+            + "global::RaskBuilderSettersTestAssembly.__RaskResetEager_Demo_Card, "
+            + "global::RaskBuilderSettersTestAssembly.__RaskResetPending_Demo_Card, ",
+            host,
+            StringComparison.Ordinal);
+
+        // The injected member: the same entry, reached by name.
+        var entries = run.Source(Entries);
+        Assert.Contains(
+            "    private static global::Demo.Card Card => global::RaskEntriesTestAssembly.Card;",
+            entries,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("__RaskResetEager_Demo_Card", entries, StringComparison.Ordinal);
+    }
+
+    // Components in a REFERENCED assembly are in neither emission: they are not Rask.Core's (whose
+    // entries ride on Component itself and are inherited), and they are not in this compilation's
+    // syntax. Without this they reach the builder surface not at all and stay factory-only — which is
+    // what makes deleting the factory impossible. Rask.Native is a real referenced Rask assembly here.
+    [Fact]
+    public void A_referenced_assemblys_components_are_injected_too()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public partial class Page : Component { }
+                                                  """).Source(Entries);
+
+        Assert.Contains(
+            "    private static global::Rask.Native.Components.NativeTabBar NativeTabBar "
+            + "=> global::RaskEntriesRask_Native.NativeTabBar;",
+            entries,
+            StringComparison.Ordinal);
+    }
+
+    // Rask.Core's tags are members of Component, which every component everywhere already inherits.
+    // Forwarding to them from a consumer's partial as well would HIDE the inherited member — CS0108, an
+    // error under warnings-as-errors — so the assembly that declares Component is skipped, and so is any
+    // referenced entry whose name Component already carries.
+    [Fact]
+    public void Rask_cores_own_entries_are_not_re_injected_over_the_inherited_ones()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public partial class Page : Component { }
+                                                  """).Source(Entries);
+
+        Assert.DoesNotContain("RaskEntriesRask_Core", entries, StringComparison.Ordinal);
+        Assert.DoesNotContain(" Div =>", entries, StringComparison.Ordinal);
     }
 
     private static int Count(string haystack, string needle)

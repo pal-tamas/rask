@@ -171,8 +171,19 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(componentHost),
             static (spc, t) => EmitBuilderEntries(spc, t.Left.Left, t.Left.Right, t.Right));
 
-        context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(componentHost),
-            static (spc, t) => EmitConsumerEntries(spc, t.Left.Left, t.Left.Right, t.Right));
+        // Components in REFERENCED assemblies (Rask.Bootstrap's Bs*, any third-party component library)
+        // are in neither of the two paths above: they are not Rask.Core's, so they cannot ride on
+        // Component, and they are not in this compilation's syntax, so they are not consumer candidates.
+        // Each assembly publishes its own entries as a public `RaskEntries{Assembly}` class, which is what
+        // this finds. CompilationProvider yields a fresh Compilation per keystroke, so the result is
+        // wrapped in an EquatableArray and the emission only re-runs when the entry SET changes.
+        var externalEntries = context.CompilationProvider.Select(
+            static (c, _) => new EquatableArray<EntryRef>(ScanExternalEntries(c)));
+
+        context.RegisterSourceOutput(
+            grouped.Combine(builderEnabled).Combine(componentHost).Combine(externalEntries),
+            static (spc, t) =>
+                EmitConsumerEntries(spc, t.Left.Left.Left, t.Left.Left.Right, t.Left.Right, t.Right));
 
         // Setters. Emitted into the GLOBAL namespace: an extension method is only found when its
         // containing namespace is in scope, and the global namespace encloses every namespace — so
@@ -935,19 +946,25 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsElementOwned,
         bool IsRequired);
 
-    // The names already declared on Rask.Core.Component, when THIS compilation is the one declaring it.
-    // An entry whose name matches an existing member would be CS0102 ("already contains a definition"),
-    // so those are skipped — `Head` is the real case: Component.Head is the head-asset contribution.
-    // Empty (and NotHost) for every other compilation.
+    // The names already declared on Rask.Core.Component. In the compilation that DECLARES it, an entry
+    // whose name matches one would be CS0102 ("already contains a definition") — `Head` is the real case:
+    // Component.Head is the head-asset contribution. In a CONSUMER the same names, now including every
+    // tag entry Rask.Core emitted, are what a referenced library's entry would hide (CS0108).
     private static ComponentHost GetComponentHost(Compilation compilation)
     {
         var assembly = SanitizeIdentifier(compilation.AssemblyName ?? "Rask");
-        var component = compilation.Assembly.GetTypeByMetadataName(ComponentFullName);
+        // Resolved through the whole compilation, not just its own assembly, so a CONSUMER gets the
+        // names too — including the tag entries Rask.Core's own emission added, which are members of the
+        // Component it references. A referenced library's entry named after one of them would hide it
+        // (CS0108, an error under warnings-as-errors), so that is what the external filter tests against.
+        var component = compilation.GetTypeByMetadataName(ComponentFullName);
         if (component is null)
         {
             return new ComponentHost(false, assembly, new EquatableArray<string>(Array.Empty<string>()));
         }
 
+        var declaresComponent =
+            SymbolEqualityComparer.Default.Equals(component.ContainingAssembly, compilation.Assembly);
         var names = new SortedSet<string>(StringComparer.Ordinal);
         for (var t = component; t is not null; t = t.BaseType)
         {
@@ -960,7 +977,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        return new ComponentHost(true, assembly, new EquatableArray<string>(names.ToArray()));
+        return new ComponentHost(declaresComponent, assembly, new EquatableArray<string>(names.ToArray()));
     }
 
     private static void EmitBuilderEntries(
@@ -1137,15 +1154,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static void EmitBoundEntry(
         StringBuilder sb, Candidate c, HashSet<string> taken, string visibility, string indent,
-        string assemblyName, string hostTypeParameters = "")
+        string assemblyName, string hostTypeParameters = "", string runtimePrefix = "")
     {
         // No bind expression to infer from, no `new T()` to build, or a member that must be set at
         // construction (CS9040): no entry — the factory stays the way in.
-        if (c.FormControl is not { } fc || !c.HasParameterlessCtor || taken.Contains(c.TypeName)
-            || c.Properties.Any(static p => p.UserMarkedRequired))
+        if (!CanHaveBoundEntry(c, taken))
         {
             return;
         }
+
+        var fc = c.FormControl!.Value;
 
         // A method's type parameter may not reuse an enclosing type's name (CS0693), and the consumer
         // entries are injected INTO components — including generic ones (`BsDataGrid<T>` hosting the
@@ -1183,7 +1201,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters)
             .Append("(global::System.Linq.Expressions.Expression<global::System.Func<").Append(valueType)
             .Append(">> Bind)").Append(constraints).AppendLine();
-        sb.Append(indent).Append("    => EntryBound<").Append(self).Append(", ")
+        sb.Append(indent).Append("    => ").Append(runtimePrefix).Append("EntryBound<").Append(self).Append(", ")
             .Append(valueType).Append(">(Bind, ");
         EmitResetArguments(sb, c, assemblyName, typeParameters);
         sb.AppendLine(");");
@@ -1194,10 +1212,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(indent).Append(visibility).Append(" static ").Append(self).Append(' ')
             .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters).Append("()").Append(constraints)
             .AppendLine();
-        sb.Append(indent).Append("    => Entry<").Append(self).Append(">(");
+        sb.Append(indent).Append("    => ").Append(runtimePrefix).Append("Entry<").Append(self).Append(">(");
         EmitResetArguments(sb, c, assemblyName, typeParameters);
         sb.AppendLine(");");
     }
+
+    // The guard EmitBoundEntry applies, named because the per-component FORWARDER has to agree with it
+    // exactly: a forwarder to a canonical entry the host class never emitted is a compile error, and one
+    // withheld where the entry does exist is a component that silently cannot be built.
+    private static bool CanHaveBoundEntry(Candidate c, HashSet<string> taken) =>
+        c.FormControl is not null && c.HasParameterlessCtor && !taken.Contains(c.TypeName)
+        && !c.Properties.Any(static p => p.UserMarkedRequired);
 
     // "<TValue, TItem>" → { "TValue", "TItem" }; empty for a non-generic type.
     private static HashSet<string> ParseTypeParameters(string list)
@@ -1254,11 +1279,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // in a referenced assembly, and delivering entries via `using static` does not work either — a
     // static-imported property loses to a same-named type in scope (CS0119). So each component gets the
     // entries injected into its OWN partial, where a member of the enclosing type wins outright.
+    //
+    // That injection is per-HOST, so it is quadratic: N components in the assembly produce N×(N+M)
+    // members, where M is everything reachable from referenced libraries. So none of it carries the
+    // entry's actual body. Each assembly emits ONE canonical entry per component into a public
+    // `RaskEntries{Assembly}` class (EmitEntryHost below), and every injected member is a one-line
+    // forwarder onto it. That is what keeps the quadratic term a name and a delegation instead of a
+    // reset triple, and it is the same member a REFERENCED assembly's components are reached through —
+    // the two problems have one answer.
     private static void EmitConsumerEntries(
         SourceProductionContext spc,
         ImmutableArray<Candidate> candidates,
         bool enabled,
-        ComponentHost host)
+        ComponentHost host,
+        EquatableArray<EntryRef> external)
     {
         if (!enabled || host.DeclaresComponent || candidates.IsDefaultOrEmpty)
         {
@@ -1266,7 +1300,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         var entries = EntryCandidates(spc, candidates, EmptyNames);
-        if (entries.Count == 0)
+        EmitEntryHost(spc, entries, host);
+
+        var refs = OwnEntryRefs(entries, "global::" + EntryHostName(host.AssemblyName));
+        refs.AddRange(UsableExternalEntries(spc, external, refs, host));
+        if (refs.Count == 0)
         {
             return;
         }
@@ -1301,28 +1339,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             sb.Append("partial class ").Append(host2.TypeName).AppendLine(host2.TypeParameters);
             sb.AppendLine("{");
-            foreach (var e in entries)
+            foreach (var e in refs)
             {
                 // A member may not share its enclosing type's name (CS0542) — and a component never
                 // needs an entry for itself anyway.
-                if (string.Equals(e.TypeName, host2.TypeName, StringComparison.Ordinal))
+                if (string.Equals(e.Name, host2.TypeName, StringComparison.Ordinal))
                 {
                     continue;
                 }
 
-                if (e.TypeParameters.Length != 0)
-                {
-                    EmitBoundEntry(sb, e, EmptyNames, "private", indent: "    ", host.AssemblyName,
-                        host2.TypeParameters);
-                    continue;
-                }
-
-                sb.Append("    private static ").Append(e.FullyQualifiedName).Append(' ')
-                    .Append(EscapeIdentifier(e.TypeName))
-                    .Append(NeedsDiEntry(e) ? " => EntryDi<" : " => Entry<")
-                    .Append(e.FullyQualifiedName).Append(">(");
-                EmitResetArguments(sb, e, host.AssemblyName);
-                sb.AppendLine(");");
+                EmitEntryForwarder(sb, e, host2.TypeParameters);
             }
 
             sb.AppendLine("}");
@@ -1333,6 +1359,286 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         spc.AddSource("RaskBuilderConsumerEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    // The one canonical entry per component in this assembly, public so a REFERENCING assembly's
+    // components can forward to it. Rask.Core needs no such class: its entries are members of Component
+    // itself, which every component everywhere inherits.
+    private static void EmitEntryHost(
+        SourceProductionContext spc, List<Candidate> entries, ComponentHost host)
+    {
+        if (entries.Count == 0)
+        {
+            return;
+        }
+
+        const string runtime = "global::Rask.Core.BuilderRuntime.";
+        var sb = new StringBuilder();
+        sb.AppendLine("// <auto-generated />");
+        sb.AppendLine("#nullable enable");
+        sb.AppendLine();
+        sb.AppendLine("/// <summary>");
+        sb.AppendLine("///     This assembly's builder entries, one per component. Every component's own entry");
+        sb.AppendLine("///     member — here and in any assembly that references this one — forwards to these, so");
+        sb.AppendLine("///     the per-component injection stays one line. Global namespace, like the setters:");
+        sb.AppendLine("///     a referencing assembly must be able to name it with no `using`.");
+        sb.AppendLine("/// </summary>");
+        sb.Append("public static class ").AppendLine(EntryHostName(host.AssemblyName));
+        sb.AppendLine("{");
+
+        foreach (var c in entries)
+        {
+            var visibility = c.IsPublic ? "public" : "internal";
+            if (c.TypeParameters.Length != 0)
+            {
+                EmitBoundEntry(sb, c, EmptyNames, visibility, indent: "    ", host.AssemblyName,
+                    runtimePrefix: runtime);
+                continue;
+            }
+
+            sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
+                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime)
+                .Append(NeedsDiEntry(c) ? "EntryDi<" : "Entry<")
+                .Append(c.FullyQualifiedName).Append(">(");
+            EmitResetArguments(sb, c, host.AssemblyName);
+            sb.AppendLine(");");
+        }
+
+        sb.AppendLine("}");
+        spc.AddSource("RaskBuilderEntryHost.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static string EntryHostName(string sanitizedAssemblyName) => "RaskEntries" + sanitizedAssemblyName;
+
+    // This assembly's own entries, described the way a forwarder needs them. A generic form control is
+    // two overloads (bound and controlled), matching what EmitBoundEntry put in the host class.
+    private static List<EntryRef> OwnEntryRefs(List<Candidate> entries, string hostFqn)
+    {
+        var refs = new List<EntryRef>();
+        foreach (var c in entries)
+        {
+            if (c.TypeParameters.Length == 0)
+            {
+                refs.Add(new EntryRef(hostFqn, c.TypeName, c.FullyQualifiedName, string.Empty, string.Empty,
+                    string.Empty, string.Empty));
+                continue;
+            }
+
+            if (!CanHaveBoundEntry(c, EmptyNames))
+            {
+                continue;
+            }
+
+            var bind = "(global::System.Linq.Expressions.Expression<global::System.Func<"
+                       + c.FormControl!.Value.ValueTypeFqn + ">> Bind)";
+            refs.Add(new EntryRef(hostFqn, c.TypeName, c.FullyQualifiedName, c.TypeParameters,
+                c.TypeParameterConstraints, bind, "(Bind)"));
+            refs.Add(new EntryRef(hostFqn, c.TypeName, c.FullyQualifiedName, c.TypeParameters,
+                c.TypeParameterConstraints, "()", "()"));
+        }
+
+        return refs;
+    }
+
+    // Which referenced-assembly entries this compilation can actually inject.
+    //
+    //  * a name Component already carries (its own members, plus every tag entry Rask.Core emitted) would
+    //    HIDE that member — CS0108, an error here — and the inherited entry is the better one anyway;
+    //  * a name one of this assembly's own components already claims stays with the local component: it
+    //    is the one the author wrote, and two members cannot share a name (CS0102);
+    //  * the same name from two different libraries is not resolvable here at all, so neither is used and
+    //    RASK040 says which types collided — the same answer two same-named local components get.
+    private static List<EntryRef> UsableExternalEntries(
+        SourceProductionContext spc, EquatableArray<EntryRef> external, List<EntryRef> own, ComponentHost host)
+    {
+        var result = new List<EntryRef>();
+        if (external.Count == 0)
+        {
+            return result;
+        }
+
+        var taken = new HashSet<string>(host.MemberNames, StringComparer.Ordinal);
+        foreach (var e in own)
+        {
+            taken.Add(e.Name);
+        }
+
+        var byName = new Dictionary<string, List<EntryRef>>(StringComparer.Ordinal);
+        foreach (var e in external)
+        {
+            if (taken.Contains(e.Name))
+            {
+                continue;
+            }
+
+            if (!byName.TryGetValue(e.Name, out var list))
+            {
+                byName[e.Name] = list = new List<EntryRef>();
+            }
+
+            list.Add(e);
+        }
+
+        foreach (var pair in byName.OrderBy(static p => p.Key, StringComparer.Ordinal))
+        {
+            var hosts = new HashSet<string>(pair.Value.Select(static e => e.HostFqn), StringComparer.Ordinal);
+            if (hosts.Count > 1)
+            {
+                var names = string.Join("', '",
+                    pair.Value.Select(static e => e.ReturnTypeFqn).Distinct(StringComparer.Ordinal)
+                        .OrderBy(static n => n, StringComparer.Ordinal));
+                spc.ReportDiagnostic(Diagnostic.Create(Rask040, Location.None, pair.Key, names));
+                continue;
+            }
+
+            result.AddRange(pair.Value);
+        }
+
+        return result;
+    }
+
+    // One injected member: the entry's own signature, delegating to the canonical one.
+    private static void EmitEntryForwarder(StringBuilder sb, EntryRef e, string hostTypeParameters)
+    {
+        var typeParameters = e.TypeParameters;
+        var constraints = e.Constraints;
+        var returnType = e.ReturnTypeFqn;
+        var parameters = e.Parameters;
+        // A method's type parameter may not reuse an enclosing type's name (CS0693), and these are
+        // injected INTO components, generic ones included.
+        var reserved = typeParameters.Length == 0 ? EmptyNames : ParseTypeParameters(hostTypeParameters);
+        foreach (var name in reserved.Count == 0 ? EmptyNames : ParseTypeParameters(typeParameters))
+        {
+            if (!reserved.Contains(name))
+            {
+                continue;
+            }
+
+            var renamed = name;
+            do
+            {
+                renamed += "_";
+            }
+            while (reserved.Contains(renamed));
+
+            typeParameters = RenameTypeParameter(typeParameters, name, renamed);
+            constraints = RenameTypeParameter(constraints, name, renamed);
+            returnType = RenameTypeParameter(returnType, name, renamed);
+            parameters = RenameTypeParameter(parameters, name, renamed);
+        }
+
+        sb.Append("    private static ").Append(returnType).Append(' ').Append(EscapeIdentifier(e.Name))
+            .Append(typeParameters).Append(parameters).Append(constraints).Append(" => ").Append(e.HostFqn)
+            .Append('.').Append(EscapeIdentifier(e.Name)).Append(typeParameters).Append(e.Arguments)
+            .AppendLine(";");
+    }
+
+    // Every entry a referenced assembly publishes, read straight off its `RaskEntries{Assembly}` class.
+    //
+    // Reading the emitted MEMBERS rather than re-deriving entries from the referenced components is the
+    // point: whether a component can have an entry at all depends on its constructors, its required
+    // members and its RASK001 props, and that question was already answered — correctly, with the
+    // diagnostics reported — by the compilation that owns it. Re-asking it here from metadata would be a
+    // second, silently divergent copy of CanHaveEntry.
+    //
+    // [assembly: RaskFactoryNamespace] is deliberately NOT the hook: it names a NAMESPACE so the
+    // `using static` emission can surface a satellite factory family, which is exactly the mechanism the
+    // builder surface exists to remove. It says nothing about which types in that namespace are
+    // entry-eligible, and a library that never declared it (Rask.Bootstrap) would stay invisible.
+    private static ImmutableArray<EntryRef> ScanExternalEntries(Compilation compilation)
+    {
+        var component = compilation.GetTypeByMetadataName(ComponentFullName);
+        if (component is null)
+        {
+            return ImmutableArray<EntryRef>.Empty;
+        }
+
+        // Rask.Core's own components are entries ON Component, inherited by every component in every
+        // assembly. Forwarding to them as well would hide the inherited member (CS0108).
+        var declaring = component.ContainingAssembly;
+        var result = new List<EntryRef>();
+        foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
+        {
+            if (SymbolEqualityComparer.Default.Equals(assembly, declaring))
+            {
+                continue;
+            }
+
+            var hostType = assembly.GetTypeByMetadataName(EntryHostName(SanitizeIdentifier(assembly.Name)));
+            if (hostType is null || hostType.DeclaredAccessibility != Accessibility.Public)
+            {
+                continue;
+            }
+
+            var hostFqn = hostType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            foreach (var member in hostType.GetMembers())
+            {
+                if (!member.IsStatic || member.DeclaredAccessibility != Accessibility.Public)
+                {
+                    continue;
+                }
+
+                switch (member)
+                {
+                    case IPropertySymbol { IsIndexer: false } p:
+                        result.Add(new EntryRef(hostFqn, p.Name, p.Type.ToDisplayString(FullyQualifiedNullable),
+                            string.Empty, string.Empty, string.Empty, string.Empty));
+                        break;
+                    case IMethodSymbol { MethodKind: MethodKind.Ordinary } m:
+                        result.Add(ExternalMethodEntry(hostFqn, m));
+                        break;
+                }
+            }
+        }
+
+        if (result.Count == 0)
+        {
+            return ImmutableArray<EntryRef>.Empty;
+        }
+
+        result.Sort(static (a, b) =>
+        {
+            var byName = string.CompareOrdinal(a.Name, b.Name);
+            if (byName != 0)
+            {
+                return byName;
+            }
+
+            var byHost = string.CompareOrdinal(a.HostFqn, b.HostFqn);
+            return byHost != 0 ? byHost : string.CompareOrdinal(a.Parameters, b.Parameters);
+        });
+        return result.ToImmutableArray();
+    }
+
+    private static EntryRef ExternalMethodEntry(string hostFqn, IMethodSymbol m)
+    {
+        var typeParameters = m.TypeParameters.Length == 0
+            ? string.Empty
+            : "<" + string.Join(", ", m.TypeParameters.Select(static tp => tp.Name)) + ">";
+        var parameters = new StringBuilder("(");
+        var arguments = new StringBuilder("(");
+        for (var i = 0; i < m.Parameters.Length; i++)
+        {
+            if (i != 0)
+            {
+                parameters.Append(", ");
+                arguments.Append(", ");
+            }
+
+            var p = m.Parameters[i];
+            parameters.Append(p.Type.ToDisplayString(FullyQualifiedNullable)).Append(' ')
+                .Append(EscapeIdentifier(p.Name));
+            arguments.Append(EscapeIdentifier(p.Name));
+        }
+
+        return new EntryRef(
+            hostFqn,
+            m.Name,
+            m.ReturnType.ToDisplayString(FullyQualifiedNullable),
+            typeParameters,
+            BuildConstraintsClause(m.TypeParameters),
+            parameters.Append(')').ToString(),
+            arguments.Append(')').ToString());
     }
 
     // Nothing is "taken" inside a consumer's own partial: the CS0542 self-name case is filtered before
@@ -1355,6 +1661,19 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool DeclaresComponent,
         string AssemblyName,
         EquatableArray<string> MemberNames);
+
+    // One canonical entry, as a forwarder needs to restate it. Covers both shapes: a property
+    // (TypeParameters/Parameters/Arguments all empty) and a generic form control's method overload
+    // (Parameters "(… Bind)" or "()", Arguments "(Bind)" or "()"). Kept as strings rather than symbols
+    // because it is an incremental-generator input — it must be value-equatable, and a symbol is not.
+    private readonly record struct EntryRef(
+        string HostFqn,
+        string Name,
+        string ReturnTypeFqn,
+        string TypeParameters,
+        string Constraints,
+        string Parameters,
+        string Arguments);
 
     // Collect the distinct, ordered factory namespaces declared by [assembly: RaskFactoryNamespace(ns)] on
     // this compilation's own assembly and every referenced assembly. Ordered for deterministic output.

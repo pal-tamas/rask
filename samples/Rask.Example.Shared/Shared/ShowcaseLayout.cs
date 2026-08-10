@@ -125,8 +125,8 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
         Div(Class: "side-nav-search")[
-            BsInput(Value: _filter, OnChange: v => _filter = v ?? "", Size: BsSize.Sm,
-                Placeholder: "Filter guides & examples…", Class: "side-nav-filter")
+            BsInput<string>().Value(_filter).OnChange(v => _filter = v ?? "").Size(BsSize.Sm)
+                .Placeholder("Filter guides & examples…").Class("side-nav-filter")
         ],
         Div(Class: "side-nav-scroll")[BuildSections()]
     ];

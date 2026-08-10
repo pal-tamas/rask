@@ -18,11 +18,11 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 BsInputGroup(Size: BsSize.Sm, Class: "mb-2")[
-                    BsInput<string>(
-                        Id: "storage-input",
-                        Value: _input,
-                        Placeholder: "Value to persist",
-                        OnChange: v => _input = v),
+                    BsInput<string>()
+                        .Id("storage-input")
+                        .Value(_input)
+                        .Placeholder("Value to persist")
+                        .OnChange(v => _input = v),
                     BsButton(Color: BsColor.Primary, Id: "storage-set", OnClickAsync: Set)["Set"],
                     BsButton(Color: BsColor.Primary, Outline: true, Id: "storage-read", OnClickAsync: Read)["Read"],
                     BsButton(Color: BsColor.Danger, Outline: true, Id: "storage-remove", OnClickAsync: Remove)["Remove"]

@@ -195,4 +195,68 @@ public static partial class BuilderRuntime
         _ = target;
         _ = pending;
     }
+
+    // ---- Entry construction ----------------------------------------------------------------------
+    //
+    // The bodies live here rather than on Component because the generator emits ONE canonical entry per
+    // component into a public `RaskEntries{Assembly}` class in the global namespace (see
+    // `RaskBuilderEntryHost.g.cs`), and every per-component forwarder — this assembly's and every
+    // consumer's — routes through it. A static class cannot reach Component's `protected static`
+    // helpers, so the reachable half has to be public and non-derived. Component's `Entry`/`EntryDi`/
+    // `EntryBound` are thin forwarders onto these and stay the documented, protected surface.
+
+    /// <inheritdoc cref="Component.Entry{T}" />
+    public static T Entry<T>(
+        Action<Component> reset,
+        Action<Component, ulong> pendingReset,
+        ulong pending)
+        where T : Component, new()
+    {
+        if (Live.LiveRenderContext.Current is not { } ctx)
+        {
+            return new T();
+        }
+
+        var component = ctx.GetOrCreateEntry<T>(static _ => new T(), pendingReset, pending);
+        reset(component);
+        return component;
+    }
+
+    /// <inheritdoc cref="Component.EntryDi{T}" />
+    public static T EntryDi<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
+        Action<Component> reset,
+        Action<Component, ulong> pendingReset,
+        ulong pending)
+        where T : Component
+    {
+        if (Live.LiveRenderContext.Current is { } ctx)
+        {
+            var component = ctx.GetOrCreateEntry<T>(
+                static sp => Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(sp),
+                pendingReset,
+                pending);
+            reset(component);
+            return component;
+        }
+
+        throw new InvalidOperationException(
+            $"Component '{typeof(T)}' has no parameterless constructor; it can only be instantiated "
+            + "inside a LiveRenderContext (e.g. via MapRask<TApp>).");
+    }
+
+    /// <inheritdoc cref="Component.EntryBound{TControl,TValue}" />
+    public static TControl EntryBound<TControl, TValue>(
+        System.Linq.Expressions.Expression<Func<TValue>> bind,
+        Action<Component> reset,
+        Action<Component, ulong> pendingReset,
+        ulong pending)
+        where TControl : Component, Forms.IFormControl<TValue>, new()
+    {
+        // Bind is assigned AFTER the reset, which has just cleared it along with the rest of the bound
+        // members — the entry is the chain's first link, so this is the same ordering a setter gets.
+        var control = Entry<TControl>(reset, pendingReset, pending);
+        control.Bind = bind;
+        return control;
+    }
 }

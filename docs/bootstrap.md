@@ -40,7 +40,7 @@ runtime, no `bootstrap.js`.
 ```csharp
 BsButton(Color: BsColor.Primary, Size: BsSize.Lg)["Save"]
 BsModal(Open: _open, Title: "Hi", OnClose: () => _open = false)[ /* body */ ]  // traps focus, Escape-closes, labelled — see accessibility.md
-BsInput(() => model.Email, Label: "Email", Type: InputType.Email)   // .is-invalid + .invalid-feedback built in
+BsInput(() => model.Email).Label("Email").Type(InputType.Email)   // .is-invalid + .invalid-feedback built in
 BsIcon(Name: BsIconName.HeartFill, Color: BsColor.Danger)
 ```
 

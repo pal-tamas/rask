@@ -4,9 +4,10 @@ using Rask.Core.Forms;
 namespace Rask.Bootstrap;
 
 // Base for the Bootstrap form controls (BsInput/BsTextarea/BsSelect/BsCheck). Implements
-// IFormControl<T> so the generator emits the bound factory (BsInput(() => model.Email, …)) and the
-// controlled factory (Value:/OnChange:); the controls themselves WRAP the core Input/Select/Textarea
-// and reuse the framework binding helpers (RegisterValidator/StringSetHandler/…) — no re-implemented
+// IFormControl<T> so the generator emits the bound builder entry (BsInput(() => model.Email)) and the
+// controlled one (BsInput<T>(), then .Value(…)/.OnChange(…)); the controls themselves WRAP the core
+// Input/Select/Textarea and reuse the framework binding helpers (RegisterValidator/StringSetHandler/…)
+// — no re-implemented
 // binding. Mirrors the worked-example controls (RadioGroup/CheckboxGroup).
 public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
 {

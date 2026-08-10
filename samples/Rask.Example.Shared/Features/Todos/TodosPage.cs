@@ -157,7 +157,7 @@ public sealed partial class TodoFormDialog : Component
                 DataAnnotationsValidator(),
                 // BsInput renders its own <label> + input + Bootstrap .invalid-feedback from the
                 // EditContext, so the raw Label/Input/ValidationMessage trio collapses to one call.
-                BsInput(() => Model.Title, Id: "todo-title", Label: "Title"),
+                BsInput(() => Model.Title).Id("todo-title").Label("Title"),
                 Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
                     BsButton(Color: BsColor.Secondary, Outline: true, OnClick: OnCancel)["Cancel"],
                     BsButton(Type: "submit", Color: BsColor.Primary)[

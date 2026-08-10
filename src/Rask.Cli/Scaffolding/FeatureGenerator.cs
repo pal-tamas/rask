@@ -983,21 +983,30 @@ internal static class FeatureGenerator
             // A value-object field wires its built-in Validate into the bound input; the dataannotations /
             // fluent modes validate through the form-level validator component instead.
             var validate = IsValueObject(field, useValueObjects) ? $", Validate: {ValueObjectName(entity, field)}.Validate" : "";
+            var chainedValidate = IsValueObject(field, useValueObjects)
+                ? $".Validate({ValueObjectName(entity, field)}.Validate)"
+                : "";
             if (useBs)
             {
-                // Bs form controls render their own label + input + validation feedback. Still the factory:
-                // a referenced assembly's components get no builder entry in the consumer's compilation.
-                var control = field.CsType == "bool" ? "BsCheck" : "BsInput";
-                sb.Append("                    ").Append(control).Append("(() => _form.").Append(field.Name).Append(validate)
-                    .Append(", Id: \"").Append(id).Append("\", Label: \"").Append(field.Name).Append("\"),\n");
+                // Bs form controls render their own label + input + validation feedback. BsInput reaches the
+                // app through its builder entry — a referenced assembly's entries are injected into the
+                // consumer's components — so it takes only the bind expression and everything else chains.
+                // BsCheck has a required property, so it has no entry and stays on its factory.
+                if (field.CsType == "bool")
+                {
+                    sb.Append("                    BsCheck(() => _form.").Append(field.Name).Append(validate)
+                        .Append(", Id: \"").Append(id).Append("\", Label: \"").Append(field.Name).Append("\"),\n");
+                    continue;
+                }
+
+                sb.Append("                    BsInput(() => _form.").Append(field.Name).Append(')')
+                    .Append(chainedValidate).Append(".Id(\"").Append(id).Append("\").Label(\"").Append(field.Name)
+                    .Append("\"),\n");
             }
             else
             {
                 // Plain, unstyled HTML: a label + the bound input (a bool renders as a checkbox). The bound
                 // control is the builder entry — it takes only the bind expression; everything else chains.
-                var chainedValidate = IsValueObject(field, useValueObjects)
-                    ? $".Validate({ValueObjectName(entity, field)}.Validate)"
-                    : "";
                 sb.Append("                    Div()[\n")
                     .Append("                        Label(\"").Append(id).Append("\")[\"").Append(field.Name).Append("\"],\n")
                     .Append("                        Input(() => _form.").Append(field.Name).Append(')').Append(chainedValidate)

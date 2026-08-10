@@ -10,8 +10,8 @@ namespace Rask.Bootstrap;
 // calendar, and the time columns grey out-of-range items on the boundary day. Seconds:true adds a seconds
 // column. Keyboard mirrors BsDatePicker for the grid; Labels localizes the nav/column/clear aria-labels.
 // Native:true falls back to <input type=datetime-local>. Reuses PickerParts.CalendarGrid + TimeColumns.
-//   Bound:      BsDateTimePicker(() => model.When, Label: "When")
-//   Controlled: BsDateTimePicker(Value: dt, OnChange: v => …)
+//   Bound:      BsDateTimePicker(() => model.When).Label("When")
+//   Controlled: BsDateTimePicker<DateTime>().Value(dt).OnChange(v => …)
 public sealed partial class BsDateTimePicker<T> : BsPickerBase<T>
 {
     public DateTime? Min { get; set; }

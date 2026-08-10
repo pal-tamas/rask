@@ -4,7 +4,7 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap text input. Wraps the core Input and adds the .form-control class, an optional label,
 // help text, and the .is-invalid + .invalid-feedback validation display. Bound:
-// BsInput(() => model.Email, Label: "Email"); controlled: BsInput(Value: x, OnChange: …). The HTML
+// BsInput(() => model.Email).Label("Email"); controlled: BsInput<T>().Value(x).OnChange(…). The HTML
 // input type is derived from T (or set explicitly via Type).
 public sealed partial class BsInput<T> : BsFormControl<T>
 {

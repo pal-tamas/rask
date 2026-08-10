@@ -1,5 +1,3 @@
-using Rask.Core.Live;
-
 namespace Rask.Core;
 
 /// <summary>
@@ -54,23 +52,14 @@ public abstract partial class Component
         Action<Component, ulong> pendingReset,
         ulong pending)
         where T : Component, new()
-    {
-        if (LiveRenderContext.Current is not { } ctx)
-        {
-            return new T();
-        }
-
-        var component = ctx.GetOrCreateEntry<T>(static _ => new T(), pendingReset, pending);
-        reset(component);
-        return component;
-    }
+        => BuilderRuntime.Entry<T>(reset, pendingReset, pending);
 
     /// <summary>
     ///     The entry for a component whose only constructor takes injected services.
     /// </summary>
     /// <remarks>
     ///     Mirrors the generated factory's DI branch: construction goes through
-    ///     <c>ActivatorUtilities</c> inside <see cref="LiveRenderContext.GetOrCreate{T}" />. Outside a
+    ///     <c>ActivatorUtilities</c> inside <see cref="Live.LiveRenderContext.GetOrCreate{T}" />. Outside a
     ///     render context there is no service provider to construct from, so this throws with the same
     ///     message the factory uses rather than returning a half-built component.
     /// </remarks>
@@ -80,21 +69,7 @@ public abstract partial class Component
         Action<Component, ulong> pendingReset,
         ulong pending)
         where T : Component
-    {
-        if (LiveRenderContext.Current is { } ctx)
-        {
-            var component = ctx.GetOrCreateEntry<T>(
-                static sp => Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(sp),
-                pendingReset,
-                pending);
-            reset(component);
-            return component;
-        }
-
-        throw new InvalidOperationException(
-            $"Component '{typeof(T)}' has no parameterless constructor; it can only be instantiated "
-            + "inside a LiveRenderContext (e.g. via MapRask<TApp>).");
-    }
+        => BuilderRuntime.EntryDi<T>(reset, pendingReset, pending);
 
     /// <summary>
     ///     The entry for a generic <see cref="Forms.IFormControl{T}" /> in bound mode.
@@ -112,11 +87,5 @@ public abstract partial class Component
         Action<Component, ulong> pendingReset,
         ulong pending)
         where TControl : Component, Forms.IFormControl<TValue>, new()
-    {
-        // Bind is assigned AFTER the reset, which has just cleared it along with the rest of the bound
-        // members — the entry is the chain's first link, so this is the same ordering a setter gets.
-        var control = Entry<TControl>(reset, pendingReset, pending);
-        control.Bind = bind;
-        return control;
-    }
+        => BuilderRuntime.EntryBound<TControl, TValue>(bind, reset, pendingReset, pending);
 }

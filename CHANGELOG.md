@@ -203,6 +203,33 @@ them until tagged releases begin.
   an instance method on a readonly struct reached through `Nullable<T>` is a stack copy and a call
   (1208 B/render through a chain and through the factory alike, on a component that invokes both its
   callbacks every render).
+  **A referenced library's components are reachable through the builder surface now, and the injection
+  that carries them stopped being quadratic in bytes.** Entries were emitted only for the compilation's
+  *own* components, so Rask.Bootstrap's `Bs*` — and anything from any third-party component library —
+  reached the builder surface not at all: they were neither Rask.Core's (whose entries ride on
+  `Component` itself, inherited by everything) nor the consumer's. Every assembly now publishes one
+  canonical entry per component in a public `RaskEntries{Assembly}` class, and a referencing compilation
+  reads that class straight off the assembly. Reading the emitted *members* rather than re-deriving
+  entries from the referenced components is the point: whether a component can have an entry at all
+  depends on its constructors, its `required` members and its RASK001 props, and the compilation that
+  owns it already answered that — with the diagnostics reported. `[assembly: RaskFactoryNamespace]` is
+  deliberately not the hook; it names a namespace so the `using static` emission can surface a satellite
+  factory family, which is the mechanism the builder surface exists to remove, and Rask.Bootstrap never
+  declared it. A name Component already carries, one the consumer's own components claim, and the same
+  name from two libraries (RASK040) are the three cases that withhold a forwarder.
+  That same class is what makes the per-component injection affordable. Entries are injected into every
+  component's `partial`, so N components produce N×(N+M) members — 43,183 of them in the showcase, each
+  carrying its own reset triple and its own pair of cached delegates. Each is now a one-line forwarder
+  onto the canonical entry, which cut generated source for `Rask.Example.Shared` from 14.4 MB to 8.6 MB
+  and its IL from 7.12 MB to 5.24 MB *while adding* 57 Bootstrap entries per class (199 → 256), and
+  `Rask.Bootstrap`'s from 2.01 MB / 1.41 MB to 1.18 MB / 0.90 MB. Behaviour is unchanged by
+  construction: the forwarder's body is the canonical entry, so every entry that existed still exists,
+  with the same reset routines, the same pending mask and the same `GetOrCreate` identity.
+  Injecting Bootstrap's bound controls does what a **method** entry always does — it hides the
+  same-named factory inside a component body — so the `BsInput` / `BsDatePicker` / `BsTimePicker` /
+  `BsDateTimePicker` call sites in `samples` and in `src/Rask.Cli`'s scaffolding moved to the builder
+  chain, exactly as `Input`/`Select`/`Textarea` did. `BsCheck`, `BsSelect` and `BsMultiSelect` have a
+  required factory parameter, so they have no entry and keep their factory untouched.
 - **Three diagnostics for the builder surface, where the compiler stops being able to speak for us.**
   Entries are members named after their component type, so they interact with name lookup in ways the
   factory never did — and the two failures that produces both surface as compiler errors that name

@@ -9,8 +9,8 @@ namespace Rask.Bootstrap;
 // aria-activedescendant, PageUp/Down change month — Shift for a year, Home/End the week edge, Enter
 // selects, Escape closes) and ARIA grid roles; typing into the box also commits live. Min/Max/Disable grey
 // out unavailable days. Labels localizes the nav/clear aria-labels. Native:true falls back to <input type=date>.
-//   Bound:      BsDatePicker(() => model.StartDate, Label: "Start", Min: today)
-//   Controlled: BsDatePicker(Value: d, OnChange: v => …)
+//   Bound:      BsDatePicker(() => model.StartDate).Label("Start").Min(today)
+//   Controlled: BsDatePicker<DateOnly>().Value(d).OnChange(v => …)
 public sealed partial class BsDatePicker<T> : BsPickerBase<T>
 {
     public DateOnly? Min { get; set; }

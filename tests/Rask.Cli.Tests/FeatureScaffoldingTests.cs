@@ -304,7 +304,7 @@ public sealed class FeatureGeneratorTests
 
         var create = File(result, "CreateProduct.cs");
         Assert.Contains("BsCard(Class: Bs.Join(Shadow.Sm", create, StringComparison.Ordinal);
-        Assert.Contains("BsInput(() => _form.Name, Validate: ProductName.Validate, Id: \"name\", Label: \"Name\")", create, StringComparison.Ordinal);
+        Assert.Contains("BsInput(() => _form.Name).Validate(ProductName.Validate).Id(\"name\").Label(\"Name\")", create, StringComparison.Ordinal);
         Assert.Contains("BsButton(Type: \"submit\", Color: BsColor.Primary)", create, StringComparison.Ordinal);
         Assert.Contains("Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3))", create, StringComparison.Ordinal);
 

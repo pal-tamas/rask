@@ -89,7 +89,7 @@ control renders:
   validation fails on submit/blur.
 
 ```csharp
-BsInput(() => model.Email, Label: "Email", HelpText: "We never share it.")
+BsInput(() => model.Email).Label("Email").HelpText("We never share it.")
 // valid   → <input id="Email" aria-describedby="Email-help" …>
 // invalid → <input id="Email" class="form-control is-invalid"
 //                  aria-invalid="true" aria-describedby="Email-help Email-error" …>
