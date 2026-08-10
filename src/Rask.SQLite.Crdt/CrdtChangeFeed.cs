@@ -20,7 +20,7 @@ namespace Rask.SQLite.Crdt;
 ///         what its peers already have.
 ///     </para>
 /// </remarks>
-public sealed class CrdtChangeFeed(DbContext context)
+public sealed class CrdtChangeFeed(DbContext context) : ICrdtChangeFeed
 {
     private const string Columns =
         "\"table\", pk, cid, val, col_version, db_version, site_id, cl, seq";

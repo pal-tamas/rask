@@ -79,6 +79,8 @@ public static class GuideCatalog
             "bi-database", "One Person Framework"),
         new("sqlite-crdt", "Multi-writer SQLite", "Many replicas of one database, merged per column through plain EF Core.",
             "bi-diagram-3", "One Person Framework"),
+        new("sqlite-crdt-sync", "Sharing a CRDT database", "Several devices, one database, a bucket — and no server between them.",
+            "bi-cloud-arrow-up", "One Person Framework"),
         new("databases", "Choosing a database", "SQLite by default, PostgreSQL when one box isn't enough.",
             "bi-hdd-stack", "One Person Framework"),
         new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.",

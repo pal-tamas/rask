@@ -56,6 +56,7 @@
         <Project Path="src/Rask.SQLite.Snapshots/Rask.SQLite.Snapshots.csproj"/>
         <Project Path="src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj"/>
         <Project Path="src/Rask.SQLite.Crdt/Rask.SQLite.Crdt.csproj"/>
+        <Project Path="src/Rask.SQLite.Crdt.Sync/Rask.SQLite.Crdt.Sync.csproj"/>
         <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj"/>
         <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj"/>
         <Project Path="src/Rask.Testing/Rask.Testing.csproj"/>
@@ -105,6 +106,7 @@
         <Project Path="tests/Rask.SQLite.Snapshots.Tests/Rask.SQLite.Snapshots.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Browser.Tests/Rask.SQLite.Browser.Tests.csproj"/>
         <Project Path="tests/Rask.SQLite.Crdt.Tests/Rask.SQLite.Crdt.Tests.csproj"/>
+        <Project Path="tests/Rask.SQLite.Crdt.Sync.Tests/Rask.SQLite.Crdt.Sync.Tests.csproj"/>
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj"/>
         <Project Path="tests/Rask.Validation.DataAnnotations.Tests/Rask.Validation.DataAnnotations.Tests.csproj"/>
         <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj"/>
