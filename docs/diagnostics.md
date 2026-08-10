@@ -663,12 +663,21 @@ public partial class DashboardTests : RaskMarkup     // ✓ — same rule outsid
     [Fact]
     public void It_renders() => Assert.Equal("<div>…</div>", Div[SalesCard].ToHtml());
 }
+
+[RaskMarkup]                                         // ✓ — and when the base slot is not yours
+public static partial class Demos                    //     to spend, or there is none to spend
+{
+    public static Component Badge() => Div[SalesCard];
+}
 ```
 
-Nothing else is lost: the component still renders, still gets its own entry *elsewhere*, and its
-generated factory is unaffected — `Generated.SalesCard(…)` keeps working from anywhere. Nested
-components are skipped without a warning, because injecting into one would need every enclosing type
-to be `partial` as well.
+For a host that **derives** from `RaskMarkup`, nothing else is lost: the component still renders, still
+gets its own entry *elsewhere*, and its generated factory is unaffected — `Generated.SalesCard(…)` keeps
+working from anywhere. An **`[RaskMarkup]`** host loses more, and the message says so: the generated
+`partial` is where its base — or, when the base slot is already spent, the framework tags themselves —
+would have come from, so without `partial` it gets no builder surface at all. Nested types are skipped
+without a warning either way, because injecting into one would need every enclosing type to be `partial`
+as well.
 
 **Fix:** add `partial`. Suppress with `#pragma warning disable RASK036` / `.editorconfig`
 (`dotnet_diagnostic.RASK036.severity = none`) if you build every component through the factory.
@@ -841,7 +850,8 @@ The builder surface is reachable only from **inside a type that has the entries*
 members* — that is the whole design, because a static-imported property loses to a same-named type
 (CS0119) while a member of the enclosing type wins. A component is such a type; so is anything
 deriving from **`Rask.Core.RaskMarkup`**, which is `Component`'s own base and carries the framework
-entries and nothing else. Code that is neither reaches components through the generated **factory**,
+entries and nothing else; and so is anything marked **`[RaskMarkup]`**, which is the same opt-in for a
+type that has no base slot to spend. Code that is none of those reaches components through the generated **factory**,
 which is a *method* and so may share its component's name under C#'s invocable-member rule. That is
 exactly why the factory works in these positions and an entry cannot.
 
@@ -859,12 +869,12 @@ internal static class Parts
 ```csharp
 using Rask.Core;
 
-// ✓ a sealed class with a private constructor holds static members as well as a static class did,
-//   and — unlike a static class — it can derive, so the entries are in scope.
-internal sealed partial class Parts : RaskMarkup
+// ✓ a static class can derive from nothing, so the attribute is the way in — it stays static and the
+//   framework entries are injected as its own members. Prefer `: RaskMarkup` when the base slot is
+//   free; the attribute takes it for you in that case anyway, and only injects when it cannot.
+[RaskMarkup]
+internal static partial class Parts
 {
-    private Parts() { }
-
     public static Component Loading() => Div.Class("spinner")["…"];
 }
 ```

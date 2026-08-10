@@ -26,12 +26,12 @@ namespace Rask.Core;
 ///         one must be <c>partial</c> (RASK036).
 ///     </para>
 ///     <para>
-///         A <c>static class</c> cannot derive from anything, so it cannot be a markup host. It has two
-///         ways to reach the surface anyway, both of which are ordinary C# rather than anything Rask
-///         adds: stop being <c>static</c> (a sealed class with a private constructor holds static
-///         members just as well, and a static field initializer, a delegate field and a lambda all reach
-///         an inherited <c>protected static</c> member), or nest inside a markup host (simple-name
-///         lookup walks out through enclosing types).
+///         Deriving costs the one base slot C# gives a type, which is not always yours to spend — a
+///         <c>static class</c> has none at all, and a base that belongs to someone else cannot be given
+///         up. <see cref="RaskMarkupAttribute" /> is the same opt-in without a base slot, and it prefers
+///         this class whenever it can: an attributed type whose slot is still free is simply given
+///         <c>: RaskMarkup</c> in its own generated <c>partial</c>. Nesting inside a markup host is the
+///         third way and needs nothing at all — simple-name lookup walks out through enclosing types.
 ///     </para>
 /// </remarks>
 public abstract partial class RaskMarkup
