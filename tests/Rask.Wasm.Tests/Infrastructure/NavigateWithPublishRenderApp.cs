@@ -23,7 +23,7 @@ internal sealed partial class NavigateWithPublishRenderApp : Component
         _nav = nav;
     }
 
-    protected override Component? Head => Title()["nav-pub"];
+    protected override Component? Head => Title["nav-pub"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render()
@@ -41,8 +41,8 @@ internal sealed partial class NavigateWithPublishRenderApp : Component
 
         return
         [
-            Div()[$"path={_routeState.Path}"],
-            Button(OnClick: () => _nav.NavigateTo("/destination"))["go"]
+            Div[$"path={_routeState.Path}"],
+            Button.OnClick(() => _nav.NavigateTo("/destination"))["go"]
         ];
     }
 }

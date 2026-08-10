@@ -7,12 +7,12 @@ namespace Rask.Wasm.Tests.Infrastructure;
 
 internal sealed partial class ThrowingStubApp : Component
 {
-    protected override Component? Head => Title()["throw"];
+    protected override Component? Head => Title["throw"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        P()["throwing app"],
-        Button(OnClick: () => throw new InvalidOperationException("boom"))["go"]
+        P["throwing app"],
+        Button.OnClick(() => throw new InvalidOperationException("boom"))["go"]
     ];
 }
