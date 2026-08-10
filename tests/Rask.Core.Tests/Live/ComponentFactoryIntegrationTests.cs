@@ -2,7 +2,7 @@
 
 namespace Rask.Core.Tests.Live;
 
-public class ComponentFactoryIntegrationTests
+public partial class ComponentFactoryIntegrationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Factory_PassesRequiredProperty()

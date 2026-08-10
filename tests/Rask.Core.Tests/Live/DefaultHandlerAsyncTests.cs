@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Live;
 // assigned through the untyped Element.OnDrag* `Delegate?` slot, e.g. a method group typed
 // Func<Task<T>>). The arm must await a returned awaitable so faults route to the ErrorBoundary
 // and post-await state changes still render — not fire-and-forget it.
-public class DefaultHandlerAsyncTests
+public partial class DefaultHandlerAsyncTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task UnmatchedAsyncSignature_IsAwaited_BeforeDispatchReturns()
@@ -36,7 +36,7 @@ public class DefaultHandlerAsyncTests
     {
         var sp = RenderHarness.EmptyServices();
         var owner = new UnmatchedAsyncOwner(true);
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary;
         boundary.SetProps(new Component[] { owner }, null);
 
         using var ctx = LiveRenderContext.Begin(boundary, sp);

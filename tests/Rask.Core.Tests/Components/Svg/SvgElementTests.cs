@@ -91,7 +91,7 @@ public partial class SvgElementTests : global::Rask.Core.RaskMarkup
 
 // Scoped-CSS stamping must flow onto SVG descendants the same way it does for HTML elements.
 [Collection("ScopedAssets")]
-public class SvgScopedCssTests
+public partial class SvgScopedCssTests : global::Rask.Core.RaskMarkup
 {
     public SvgScopedCssTests()
     {

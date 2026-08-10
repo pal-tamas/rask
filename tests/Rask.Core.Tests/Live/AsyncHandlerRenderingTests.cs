@@ -5,7 +5,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-public class AsyncHandlerRenderingTests
+public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
 {
     private static JsonElement EmptyPayload => JsonDocument.Parse("{}").RootElement;
 

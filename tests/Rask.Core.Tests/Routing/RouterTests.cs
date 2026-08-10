@@ -8,7 +8,7 @@ using Rask.Core.Routing;
 namespace Rask.Core.Tests.Routing;
 
 [Collection("RouteRegistry")]
-public class RouterTests
+public partial class RouterTests : global::Rask.Core.RaskMarkup
 {
     private static (StubComponent view, RouteState state, IServiceProvider sp) BuildView(IReadOnlyList<Route> routes)
     {
@@ -16,7 +16,7 @@ public class RouterTests
         var services = new ServiceCollection();
         services.AddSingleton(state);
         var sp = services.BuildServiceProvider();
-        var view = new StubComponent(() => Router(routes));
+        var view = new StubComponent(() => Router.Routes(routes));
         return (view, state, sp);
     }
 
@@ -175,7 +175,7 @@ public class RouterTests
             var services = new ServiceCollection();
             services.AddSingleton(state);
             var sp = services.BuildServiceProvider();
-            var view = new StubComponent(() => Router());
+            var view = new StubComponent(() => Router);
 
             state.Path = "/";
             Assert.Equal("<span>home</span>", view.RenderAsLiveRoot(sp));
@@ -198,7 +198,7 @@ public class RouterTests
         services.AddSingleton(state);
         services.AddSingleton(gate);
         var sp = services.BuildServiceProvider();
-        var view = new StubComponent(() => Router(new[] { Route<SyncInitPage>("/sync") }));
+        var view = new StubComponent(() => Router.Routes(new[] { Route<SyncInitPage>("/sync") }));
         state.Path = "/sync";
 
         var html = view.RenderAsLiveRoot(sp);
@@ -216,7 +216,7 @@ public class RouterTests
         services.AddSingleton(gate);
         var sp = services.BuildServiceProvider();
         var handle = new RecordingRenderHandle();
-        var view = new StubComponent(() => Router(new[] { Route<AsyncInitPage>("/async") })) { RenderHandle = handle };
+        var view = new StubComponent(() => Router.Routes(new[] { Route<AsyncInitPage>("/async") })) { RenderHandle = handle };
         state.Path = "/async";
 
         var initial = view.RenderAsLiveRoot(sp);

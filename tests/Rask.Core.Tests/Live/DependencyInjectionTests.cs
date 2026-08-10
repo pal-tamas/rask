@@ -6,7 +6,7 @@ using Rask.Server;
 
 namespace Rask.Core.Tests.Live;
 
-public class DependencyInjectionTests
+public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void ConstructorInjection_ResolvesServicesViaGeneratedFactory()

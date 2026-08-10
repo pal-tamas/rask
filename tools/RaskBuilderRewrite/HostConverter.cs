@@ -82,19 +82,12 @@ internal sealed class HostConverter
                 continue;
             }
 
-            // A type that declares a nested COMPONENT cannot become a host: the generator injects one
-            // entry per reachable component into the host's own partial, named after the component — and
-            // `DependencyInjectionTests.GreetingComponent` the entry collides with
-            // `DependencyInjectionTests.GreetingComponent` the nested class. CS0102, in generated source,
-            // out of a one-line opt-in. That is the generator's to fix (it should skip a name the host
-            // already declares, the way injection already skips a name the host already reaches); until
-            // it does, these types stay off the surface and are counted.
-            if (_surface.DeclaresNestedComponent(symbol))
-            {
-                blocked.Add(symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                continue;
-            }
-
+            // A type that declares a nested COMPONENT used to be excluded here: the generator injected one
+            // entry per reachable component into the host's own partial, named after the component, and
+            // `DependencyInjectionTests.GreetingComponent` the entry collided with
+            // `DependencyInjectionTests.GreetingComponent` the nested class — CS0102, in generated source,
+            // out of a one-line opt-in. The generator now skips a name the host DECLARES as well as one it
+            // already reaches, so the exclusion is gone and the 190 types it cost are hosts like any other.
             candidates[outermost] = symbol;
         }
 

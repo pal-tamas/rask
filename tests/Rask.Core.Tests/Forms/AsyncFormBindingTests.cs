@@ -9,7 +9,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Forms;
 
-public class AsyncFormBindingTests
+public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task ExplicitContext_InputDispatch_RoutesValidationThroughUserContext()
@@ -148,7 +148,7 @@ public class AsyncFormBindingTests
         services.AddSingleton(state);
         var sp = services.BuildServiceProvider();
 
-        var view = new StubComponent(() => Router(new[] { Route<RouterOutletFormPage>("/form") }));
+        var view = new StubComponent(() => Router.Routes(new[] { Route<RouterOutletFormPage>("/form") }));
         var handle = new RenderingHandle(view);
         view.RenderHandle = handle;
 

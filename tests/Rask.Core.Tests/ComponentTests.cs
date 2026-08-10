@@ -2,7 +2,7 @@
 
 namespace Rask.Core.Tests;
 
-public class ComponentTests
+public partial class ComponentTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NullProps_NoChildren_ReturnsOpenAndCloseTags() =>
@@ -36,7 +36,7 @@ public class ComponentTests
     [Fact]
     public void Render_MultipleChildren_RendersInDeclarationOrder()
     {
-        var html = new Block()[Text("a"), Raw("<i>"), Text("b")].ToHtml();
+        var html = new Block()[Text.Value("a"), Raw.Value("<i>"), Text.Value("b")].ToHtml();
         Assert.Equal("<block>a<i>b</block>", html);
     }
 
@@ -54,7 +54,7 @@ public class ComponentTests
     [Fact]
     public void Render_SelfClosing_WithChildrenSupplied_StillReturnsSelfClosingAndIgnoresChildren()
     {
-        var html = new VoidEl()[Text("ignored")].ToHtml();
+        var html = new VoidEl()[Text.Value("ignored")].ToHtml();
         Assert.Equal("<void />", html);
     }
 
@@ -67,8 +67,8 @@ public class ComponentTests
     [Fact]
     public void Indexer_AssignsChildren_AndReturnsThis()
     {
-        var div = Div();
-        var returned = div[Text("a")];
+        var div = Div;
+        var returned = div[Text.Value("a")];
 
         Assert.Same(div, returned);
         Assert.NotNull(div.Children);
@@ -78,7 +78,7 @@ public class ComponentTests
     [Fact]
     public void Indexer_RenderedHtml_ContainsChildren()
     {
-        var html = Div()[Span(), "hi"].ToHtml();
+        var html = Div[Span, "hi"].ToHtml();
         Assert.Equal("<div><span></span>hi</div>", html);
     }
 
@@ -87,7 +87,7 @@ public class ComponentTests
     {
         // Both `"text"` and `Component` instances flow through the indexer thanks to the
         // implicit Component conversions; the indexer signature is `params IEnumerable<Component>`.
-        var html = Div()["before", Strong()["bold"], "after"].ToHtml();
+        var html = Div["before", Strong["bold"], "after"].ToHtml();
         Assert.Equal("<div>before<strong>bold</strong>after</div>", html);
     }
 

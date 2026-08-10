@@ -5,7 +5,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Routing;
 
-public class OutletTests
+public partial class OutletTests : global::Rask.Core.RaskMarkup
 {
     private static (StubComponent view, RouteState state, IServiceProvider sp) BuildView(IReadOnlyList<Route> routes)
     {
@@ -13,7 +13,7 @@ public class OutletTests
         var services = new ServiceCollection();
         services.AddSingleton(state);
         var sp = services.BuildServiceProvider();
-        var view = new StubComponent(() => Router(routes));
+        var view = new StubComponent(() => Router.Routes(routes));
         return (view, state, sp);
     }
 
@@ -74,7 +74,10 @@ public class OutletTests
     }
 
     [SkipFactory]
-    public sealed class Section : Component
+    // `new`: a nested component named after a tag. The generator no longer injects an entry for it (that
+    // would be CS0102 against this very declaration), but the inherited <section> entry is still there to
+    // hide — CS0108, and `new` is what says the nested component is the one meant here.
+    public new sealed class Section : Component
     {
         protected override Component? Render() =>
             Section["section:", Outlet];

@@ -6,7 +6,7 @@ using Rask.Server;
 
 namespace Rask.Core.Tests.Live;
 
-public class LiveSessionStoreTests
+public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
 {
     private static LiveSessionStore NewStore(IHostApplicationLifetime? lifetime = null) =>
         new(

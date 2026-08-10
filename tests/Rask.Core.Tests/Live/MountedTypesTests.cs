@@ -13,7 +13,7 @@ namespace Rask.Core.Tests.Live;
 ///     this set; before it was unconditional, JS-only components silently dropped out.
 /// </summary>
 [Collection("ScopedAssets")]
-public class MountedTypesTests
+public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
 {
     public MountedTypesTests() => ScopedAssetRegistry.InvalidateAll();
 

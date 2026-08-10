@@ -15,7 +15,7 @@ namespace Rask.Core.Tests.Components;
 // consumer after invoking it. Bound mode (two-way Bind) never had the bug: its handler is a
 // BindingHelpers closure whose Target is not a Component, so the owner stays the consumer that
 // rendered the control. Both are pinned here.
-public class FormControlChangeRerenderTests
+public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task ControlledSelect_OnChange_RerendersConsumer_NotJustSelect()

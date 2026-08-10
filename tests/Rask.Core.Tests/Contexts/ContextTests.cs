@@ -4,7 +4,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Contexts;
 
-public class ContextTests
+public partial class ContextTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Provide_ThenConsume_DescendantSeesValue()
@@ -135,7 +135,7 @@ public class ContextTests
     {
         var sp = RenderHarness.EmptyServices();
         var root = new StubComponent(() =>
-            Context.Provide(1, Key: "k1")[Div()["body"]]);
+            Context.Provide(1, Key: "k1")[Div["body"]]);
 
         var html = root.RenderAsLiveRoot(sp);
 

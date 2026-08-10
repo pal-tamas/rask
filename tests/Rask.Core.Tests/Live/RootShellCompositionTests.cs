@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Live;
 ///     <see cref="RootErrorBoundary" /> — the wrapper every host installs — builds the doctype,
 ///     <c>&lt;html&gt;</c>, <c>&lt;head&gt;</c> and <c>&lt;body&gt;</c> around it.
 /// </summary>
-public class RootShellCompositionTests
+public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
 {
     private static IServiceProvider Services() => RenderHarness.EmptyServices();
 

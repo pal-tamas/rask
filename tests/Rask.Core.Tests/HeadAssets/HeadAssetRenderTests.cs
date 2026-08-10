@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.HeadAssets;
 // the HtmlSerializer.Add → HeadAssetRegistry → Component.RenderAsLiveRootCore splice
 // pass. Unit-level dedup behavior lives in HeadAssetRegistryTests; this file
 // asserts the rendered HTML you'd actually see in the browser.
-public class HeadAssetRenderTests
+public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void NoHeadContribution_SentinelStrippedFromOutput()
