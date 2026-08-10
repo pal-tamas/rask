@@ -144,10 +144,10 @@ public sealed partial class RowItem : Component
     public int Index { get; set; }
 
     protected override Component? Render() =>
-        C.Div(Class: "row", Id: $"r{Index}")[
-            C.Span(Class: "label")[$"Item {Index}"],
-            C.A($"/item/{Index}", Class: "lnk")[$"open {Index}"],
-            C.Button("button", OnClick: () => { })["go"]
+        Div.Class("row").Id($"r{Index}")[
+            Span.Class("label")[$"Item {Index}"],
+            A.Href($"/item/{Index}").Class("lnk")[$"open {Index}"],
+            Button.Type("button").OnClick(() => { })["go"]
         ];
 }
 
@@ -161,6 +161,6 @@ public sealed partial class DeepNode : Component
 
     protected override Component? Render() =>
         Depth <= 0
-            ? C.Div(Class: "leaf", Id: "leaf")[C.Span()["leaf"]]
-            : C.Div(Class: "node", Id: $"n{Depth}")[Bench.DeepNode(Depth - 1)];
+            ? Div.Class("leaf").Id("leaf")[Span["leaf"]]
+            : Div.Class("node").Id($"n{Depth}")[Bench.DeepNode(Depth - 1)];
 }

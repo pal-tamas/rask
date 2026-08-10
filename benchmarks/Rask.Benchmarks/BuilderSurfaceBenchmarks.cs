@@ -1,3 +1,7 @@
+// rask-rewrite: keep the factory — this benchmark IS the factory-versus-entry comparison. Converting
+// its factory arm would leave two identical hosts and a measured difference of zero.
+// tools/RaskBuilderRewrite skips any file carrying this marker.
+
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
 using C = Rask.Core.Components.Generated;

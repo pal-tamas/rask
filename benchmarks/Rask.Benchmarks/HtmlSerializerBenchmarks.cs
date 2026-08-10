@@ -142,24 +142,24 @@ public class HtmlSerializerBenchmarks
 public sealed partial class ScopedRowA : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => C.Div(Class: "row", Id: $"a{Index}")[C.Span()[$"a {Index}"]];
+    protected override Component? Render() => Div.Class("row").Id($"a{Index}")[Span[$"a {Index}"]];
 }
 
 public sealed partial class ScopedRowB : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => C.Div(Class: "row", Id: $"b{Index}")[C.Span()[$"b {Index}"]];
+    protected override Component? Render() => Div.Class("row").Id($"b{Index}")[Span[$"b {Index}"]];
 }
 
 public sealed partial class ScopedRowC : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => C.Div(Class: "row", Id: $"c{Index}")[C.Span()[$"c {Index}"]];
+    protected override Component? Render() => Div.Class("row").Id($"c{Index}")[Span[$"c {Index}"]];
 }
 
 public sealed partial class ScopedRowD : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => C.Div(Class: "row", Id: $"d{Index}")[C.Span()[$"d {Index}"]];
+    protected override Component? Render() => Div.Class("row").Id($"d{Index}")[Span[$"d {Index}"]];
 }
 #pragma warning restore RASK014

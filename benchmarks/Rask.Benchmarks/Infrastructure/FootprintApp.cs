@@ -33,7 +33,7 @@ public sealed partial class FootprintApp : Component
     // emits it; the reports build the page via Bench.FootprintApp(RowCount: n).
     public int RowCount { get; set; }
 
-    protected override Component? Head => C.Title()["rask session footprint"];
+    protected override Component? Head => Title["rask session footprint"];
 
     /// <summary>
     ///     Change the rendered HTML so the next render survives the session's dedup.
@@ -48,12 +48,12 @@ public sealed partial class FootprintApp : Component
         var rows = new List<Component>(RowCount);
         for (var i = 0; i < RowCount; i++)
         {
-            rows.Add(Bench.FootprintRow(Index: i, Key: i));
+            rows.Add(FootprintRow.Index(i).Key(i));
         }
 
-        return C.Div(Class: "container", Id: "root")[
-            C.Div(Class: "header")[C.Span()[$"rows={RowCount} counter={Counter}"]],
-            C.Table(Class: "table")[C.Tbody()[rows]]
+        return Div.Class("container").Id("root")[
+            Div.Class("header")[Span[$"rows={RowCount} counter={Counter}"]],
+            Table.Class("table")[Tbody[rows]]
         ];
     }
 }
@@ -64,10 +64,10 @@ public sealed partial class FootprintRow : Component
     public int Index { get; set; }
 
     protected override Component? Render() =>
-        C.Tr(Class: "row")[
-            C.Td()[$"#{Index}"],
-            C.Td()[$"Item {Index}"],
-            C.Td()[$"{Index * 37 % 1000} units"],
-            C.Td()[C.Button(OnClick: () => { })["select"]]
+        Tr.Class("row")[
+            Td[$"#{Index}"],
+            Td[$"Item {Index}"],
+            Td[$"{Index * 37 % 1000} units"],
+            Td[Button.OnClick(() => { })["select"]]
         ];
 }

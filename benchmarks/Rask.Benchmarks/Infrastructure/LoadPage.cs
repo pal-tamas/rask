@@ -26,22 +26,22 @@ public sealed partial class LoadPage(LoadPageOptions options) : Component
 {
     private int _counter;
 
-    protected override Component? Head => C.Title()["rask session load"];
+    protected override Component? Head => Title["rask session load"];
 
     protected override Component? Render()
     {
         var rows = new List<Component>(options.RowCount);
         for (var i = 0; i < options.RowCount; i++)
         {
-            rows.Add(Bench.FootprintRow(Index: i, Key: i));
+            rows.Add(FootprintRow.Index(i).Key(i));
         }
 
-        return C.Div(Class: "container", Id: "root")[
+        return Div.Class("container").Id("root")[
             // The first handler in document order — the one the client finds and clicks.
-            C.Div(Class: "header")[
-                C.Button(OnClick: () => _counter++)[$"rows={options.RowCount} counter={_counter}"]
+            Div.Class("header")[
+                Button.OnClick(() => _counter++)[$"rows={options.RowCount} counter={_counter}"]
             ],
-            C.Table(Class: "table")[C.Tbody()[rows]]
+            Table.Class("table")[Tbody[rows]]
         ];
     }
 }
