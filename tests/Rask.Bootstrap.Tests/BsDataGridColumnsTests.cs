@@ -57,8 +57,8 @@ public class BsDataGridColumnsTests
     private static string Handler(string html, string kind, int index = 0) =>
         Regex.Matches(html, $"data-rask-on-{kind}=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ElementAt(index);
 
-    // The handler id of the button carrying this aria-label. Read from the current markup because ids are
-    // reissued every render.
+    // The handler id of the button carrying this aria-label. Read from the current markup rather than
+    // captured: an id only holds while its component keeps rendering that same handler.
     private static string ClickFor(string html, string label)
     {
         var m = Regex.Match(html,

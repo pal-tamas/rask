@@ -6,13 +6,14 @@ namespace Rask.Core.Live;
 // Cross-checks the `type` a client frame declares against the argument shape the handler its `id`
 // resolved to actually demands.
 //
-// Handler ids are POSITIONAL per render (Component.HandlerId over Live.NextHandlerId), so the same id
-// names a different handler after the tree changes. Dispatch used to key on the id alone: a frame that
-// outlived the render it was issued against resolved to whatever now sits in that slot and ran it, with
-// no complaint — `{"id":"h37","type":"input","value":"…"}` arriving at a page where h37 is now a
+// A handler id names one component's slot (Component.RegisterHandler), so the same id can still name a
+// different handler after that component changes what it renders into that slot. Dispatch used to key
+// on the id alone: a frame that outlived the render it was issued against ran whatever now sits there,
+// with no complaint — `{"id":"h37","type":"input","value":"…"}` arriving at a page where h37 is now a
 // parameterless Callback invoked that callback. Not a cross-origin hole (the socket is same-origin and
-// session-bound), but positional ids make the collision ordinary rather than exotic, and the silence is
-// what makes it bad: nothing says the wrong thing ran.
+// session-bound), and per-component ids make it far rarer than the page-wide counter that preceded them
+// did — a slot is no longer reassigned just because something upstream changed. The silence is what
+// makes the remainder bad: nothing says the wrong thing ran.
 //
 // The check is the frame's own claim about what it carries, versus what the delegate needs to be fed. A
 // mismatch is a stale id by definition, so it is answered exactly like one — `false`, no render.

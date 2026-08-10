@@ -136,10 +136,10 @@ public class CleanSubtreeReplayTests
 
     // ---- Handler-bearing subtrees ----------------------------------------------------------
     //
-    // Handler ids are positional and reissued from zero on every ROOT render, so these go through
-    // RenderAsLiveRoot rather than HtmlSerializer.Serialize: only the real root path clears the map and
-    // resets the counter, which is exactly the state a replay has to reproduce. The component under test
-    // is a nested child (the root itself is never cacheable — it contains a user component).
+    // The root's handler map is cleared on every ROOT render, so these go through RenderAsLiveRoot
+    // rather than HtmlSerializer.Serialize: only the real root path clears it and opens a new slot
+    // generation, which is exactly the state a replay has to reproduce. The component under test is a
+    // nested child (the root itself is never cacheable — it contains a user component).
 
     private static JsonElement EmptyPayload => JsonDocument.Parse("{}").RootElement;
 
@@ -233,9 +233,10 @@ public class CleanSubtreeReplayTests
     }
 
     [Fact]
-    public async Task ReplayedSubtree_AdvancesTheHandlerCounter()
+    public async Task ReplayedSiblings_KeepDistinctHandlerRegistrations()
     {
-        // A replay that didn't advance the counter would hand the SECOND row the first row's id.
+        // Two replayed siblings must each re-register under their OWN slot ids. A replay that wrote
+        // both runs into the same ids would leave the second row's button wired to the first's.
         var a = new StubComponent(() => Div(Class: "a", OnClick: () => { })["a"]);
         var b = new StubComponent(() => Div(Class: "b", OnClick: () => { })["b"]);
         var root = new StubComponent(() => Div(Class: "page")[a, b]);
@@ -253,16 +254,56 @@ public class CleanSubtreeReplayTests
     }
 
     [Fact]
-    public async Task HandlerIdsShiftUpstream_FallsBackToWalk()
+    public async Task HandlerInsideAnErrorBoundary_SurvivesTheEnclosingComponentsReplay()
     {
-        // A handler appearing BEFORE a cached sibling shifts every later id by one. The sibling's baked
-        // ids are then not what a walk would issue, so it must re-walk under the corrected ids rather
-        // than replay a colliding span.
+        // An ErrorBoundary becomes CurrentParent while its children serialize, so handlers written by
+        // the ENCLOSING component but passed through the boundary as children land on the boundary's
+        // slot table, not the enclosing one's. A capture that reads only the cached component's own
+        // slots would miss them, and since the root's map is cleared every render the replay would
+        // leave a button that resolves to nothing — dead for the rest of the session, silently.
+        //
+        // A boundary is also a component that can re-render independently (it trips into its fallback
+        // without dirtying its parent), which is the same reason a nested user component disqualifies
+        // the enclosing subtree from caching. So it disqualifies too, and the walk keeps the button live.
+        var clicks = 0;
+        var page = new StubComponent(() =>
+            Div(Class: "page")[ErrorBoundary()[Div(Class: "btn", OnClick: () => clicks++)["go"]]]);
+        var root = new StubComponent(() => Div(Class: "shell")[page]);
+        var cache = new SessionRenderCache();
+        var ops = new List<EditOp>();
+
+        var first = RenderRoot(cache, root, ops);
+        Assert.Contains("data-rask-on-click", first);
+
+        var second = RenderRoot(cache, root, ops);
+        Assert.Equal(first, second);
+
+        var id = HandlerIdIn(second);
+        Assert.True(await root.TryInvokeHandlerAsync(id, EmptyPayload), "the button must still resolve");
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public async Task HandlerAppearingUpstream_LeavesACachedSiblingReplayable()
+    {
+        // A handler appearing BEFORE a cached sibling used to shift every later id by one, so the
+        // sibling's baked ids were no longer what a walk would issue and it had to be re-walked under
+        // corrected ids. Ids are now per (component, slot), so the header growing one costs the header
+        // and nothing else: the row's ids are still exactly what a walk would issue, and its snapshot
+        // replays. This is the whole point of stable ids — the cache stops missing on a change that
+        // never touched the cached subtree.
         var headerHandler = false;
         var rowClicks = 0;
-        var row = new StubComponent(() => Div(Class: "row", OnClick: () => rowClicks++)["row"]);
+        var rowRenders = 0;
+        var row = new StubComponent(() =>
+        {
+            rowRenders++;
+            return Div(Class: "row", OnClick: () => rowClicks++)["row"];
+        });
         var root = new StubComponent(() => Div(Class: "page")[
-            headerHandler ? Div(Class: "hdr", OnClick: () => { })["hdr"] : Div(Class: "hdr")["hdr"],
+            // The wrapper stays put so only the HANDLER COUNT moves — the row keeps its position in
+            // the tree and its identity, and the render below is a pure cache question.
+            Div(Class: "hdr")[headerHandler ? Div(Class: "act", OnClick: () => { })["act"] : null],
             row
         ]);
         var cache = new SessionRenderCache();
@@ -271,15 +312,18 @@ public class CleanSubtreeReplayTests
         var first = RenderRoot(cache, root, ops);
         var rowIdBefore = HandlerIdIn(first);
         Assert.True(row.IsCleanSubtreeCachedForTest);
+        Assert.Equal(1, rowRenders);
 
-        // The header grows a handler and takes the row's old id.
         headerHandler = true;
         var second = RenderRoot(cache, root, ops);
         var headerId = HandlerIdIn(second, 0);
         var rowIdAfter = HandlerIdIn(second, 1);
 
-        Assert.Equal(rowIdBefore, headerId);       // the header claimed the id the row used to hold
-        Assert.NotEqual(rowIdAfter, headerId);     // the row moved rather than colliding
+        Assert.Equal(rowIdBefore, rowIdAfter);     // the row did not move
+        Assert.NotEqual(rowIdAfter, headerId);     // and the header drew a number of its own
+        Assert.Equal(1, rowRenders);               // ...so the row replayed rather than re-rendering
+        Assert.True(row.IsCleanSubtreeCachedForTest);
+
         Assert.True(await root.TryInvokeHandlerAsync(rowIdAfter, EmptyPayload));
         Assert.Equal(1, rowClicks);                // and it is still the ROW's handler behind it
     }

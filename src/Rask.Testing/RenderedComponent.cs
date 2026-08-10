@@ -157,9 +157,10 @@ public class RenderedComponent : IRenderHandle
     /// <summary>
     ///     The handler id for the <b>first</b> element wired to <paramref name="domEvent" /> (e.g.
     ///     <c>"click"</c>, <c>"input"</c>, <c>"change"</c>, <c>"submit"</c>), or <c>null</c> if none is
-    ///     present. Handler ids are reissued from scratch on every render, so an id is valid only for the
-    ///     <see cref="Html" /> it was read from — re-query after any re-render rather than reusing a
-    ///     captured id. When several elements are wired to the same event, use <see cref="HandlerIds" />;
+    ///     present. An id belongs to the component that rendered it and survives a re-render, but not
+    ///     that element leaving the tree or its component rendering a different set of handlers — so
+    ///     treat an id as valid only for the <see cref="Html" /> it was read from and re-query after a
+    ///     re-render. When several elements are wired to the same event, use <see cref="HandlerIds" />;
     ///     the event helpers below always target the first match.
     /// </summary>
     public string? HandlerId(string domEvent) => Attr("data-rask-on-" + domEvent);
@@ -168,7 +169,7 @@ public class RenderedComponent : IRenderHandle
     ///     The handler ids for <b>every</b> element wired to <paramref name="domEvent" />, in document order
     ///     — index the one under test when a component wires several (a grid's sort headers, a list's row
     ///     buttons): <c>await page.InvokeAsync(page.HandlerIds("click")[2])</c>. Like <see cref="HandlerId" />,
-    ///     these are only valid for the render they were read from, so re-read them after every re-render.
+    ///     treat these as valid only for the render they were read from, so re-read after every re-render.
     /// </summary>
     public IReadOnlyList<string> HandlerIds(string domEvent) => Attrs("data-rask-on-" + domEvent);
 
@@ -384,8 +385,10 @@ public class RenderedComponent : IRenderHandle
         if (!await DispatchAsync(handlerId, jsonPayload).ConfigureAwait(false))
         {
             throw new InvalidOperationException(
-                $"No handler with id '{handlerId}' is registered in the current render. Handler ids are "
-                + "reissued every render — read the id from the current Html (HandlerId(\"click\") / "
+                $"No handler with id '{handlerId}' is registered in the current render. A handler id "
+                + "belongs to the component that rendered it, so it survives a re-render but not the "
+                + "element leaving the tree or that component rendering a different set of handlers — "
+                + "read the id from the current Html (HandlerId(\"click\") / "
                 + "Attr(\"data-rask-on-...\")) immediately before invoking.");
         }
 
