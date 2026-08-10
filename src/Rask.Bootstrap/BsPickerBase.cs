@@ -10,7 +10,7 @@ namespace Rask.Bootstrap;
 // that round-trips a boxed value through the accessor (nullable-agnostic), the .form-control trigger
 // box + click-outside backdrop + Esc handling (mirroring BsMultiSelect, zero bootstrap.js), and the
 // Native opt-out that degrades to a native <input> by delegating to BsInput<T>.
-public abstract class BsPickerBase<T> : BsFormControl<T>
+public abstract partial class BsPickerBase<T> : BsFormControl<T>
 {
     // Opt out of the custom popover and render the native <input type=date|time|datetime-local> instead
     // (BsInput derives the type from T). Guarantees a working control where the custom UI is unwanted.

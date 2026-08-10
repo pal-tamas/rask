@@ -9,7 +9,7 @@ namespace Rask.Bootstrap;
 // an object option (BsSelect<TValue, TItem> with OptionValue: p => p.Id). Everything else — the .form-select
 // display box, the .dropdown-menu listbox, the opt-in dropdown search, nullable × clear, floating label and
 // the Native <select> fallback — lives here. The value of an option is obtained through ValueOf().
-public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
+public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 {
     public required IEnumerable<TItem> Options { get; set; }
 

@@ -420,6 +420,89 @@ public class BuilderEntryEmissionTests
         Assert.DoesNotContain(" Div =>", entries, StringComparison.Ordinal);
     }
 
+    // An ABSTRACT component gets no entry of its own — nothing can construct it — but it is still a
+    // component, and the builder surface is only reachable from INSIDE one. Skipping it as an injection
+    // host left every abstract base (BsBlock, BsFormControl<T>, PollingPanel) able to name no entry at
+    // all, with no diagnostic: the calls simply bound to the factory instead, and CS0119 is what the
+    // author saw once the factory went away.
+    [Fact]
+    public void An_abstract_component_base_is_injected_into_even_though_it_has_no_entry()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public abstract partial class PanelBase : Component
+                                                  {
+                                                      public string? Class { get; set; }
+                                                  }
+                                                  public partial class Card : Component
+                                                  {
+                                                      public string? Note { get; set; }
+                                                  }
+                                                  """).Source(Entries);
+
+        Assert.Contains("partial class PanelBase\n", entries.Replace("\r\n", "\n", StringComparison.Ordinal),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "    private static global::Demo.Card Card => global::RaskEntriesTestAssembly.Card;",
+            entries,
+            StringComparison.Ordinal);
+
+        // …and it is only a host. An abstract type cannot be built, so it never publishes an entry.
+        Assert.DoesNotContain(" PanelBase =>", entries, StringComparison.Ordinal);
+    }
+
+    // A generic abstract base is injected the same way. A partial declaration may omit the constraint
+    // clauses the other declaration states, so the injected half restates only the type parameters.
+    [Fact]
+    public void A_generic_abstract_base_is_injected_without_restating_its_constraints()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public abstract partial class ControlBase<T> : Component
+                                                      where T : notnull
+                                                  {
+                                                  }
+                                                  public partial class Card : Component { }
+                                                  """).Source(Entries);
+
+        Assert.Contains("partial class ControlBase<T>", entries, StringComparison.Ordinal);
+        Assert.DoesNotContain("where T : notnull", entries, StringComparison.Ordinal);
+    }
+
+    // The forwarders are `private static`, so a base and its subclass both carrying them is not hiding —
+    // CS0108 only fires for an inherited member the derived type can SEE. That is also why the base
+    // cannot stand in for its subclasses: each class needs its own copy.
+    [Fact]
+    public void A_subclass_of_an_injected_base_still_gets_its_own_copy()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public abstract partial class PanelBase : Component { }
+                                                  public partial class Panel : PanelBase { }
+                                                  public partial class Card : Component { }
+                                                  """).Source(Entries);
+
+        Assert.Equal(2, Count(entries, "private static global::Demo.Card Card =>"));
+    }
+
+    // RASK036 is the diagnostic for a component that cannot receive entries because there is no partial
+    // to inject into. An abstract base is a host now, so it is held to the same rule.
+    [Fact]
+    public void A_non_partial_abstract_base_is_reported_as_RASK036()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public abstract class PanelBase : Component { }
+                                              public partial class Card : Component { }
+                                              """);
+
+        Assert.Contains(run.WithId("RASK036"), d => d.GetMessage().Contains("PanelBase", StringComparison.Ordinal));
+    }
+
     private static int Count(string haystack, string needle)
     {
         var count = 0;

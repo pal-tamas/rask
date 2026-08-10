@@ -15,7 +15,7 @@ namespace Rask.Bootstrap;
 // BsBlock itself exposes the Id/Class pass-through that the generated factory surfaces as optional
 // parameters, without pulling in Element's full HTML attribute/event surface. Abstract, so the
 // factory generator skips it; subclasses inherit Id/Class as leading optional factory params.
-public abstract class BsBlock : Component
+public abstract partial class BsBlock : Component
 {
     public string? Id { get; set; }
     public string? Class { get; set; }

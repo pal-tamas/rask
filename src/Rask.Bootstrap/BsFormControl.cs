@@ -9,7 +9,7 @@ namespace Rask.Bootstrap;
 // Input/Select/Textarea and reuse the framework binding helpers (RegisterValidator/StringSetHandler/…)
 // — no re-implemented
 // binding. Mirrors the worked-example controls (RadioGroup/CheckboxGroup).
-public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
+public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
 {
     // IFormControl<T> — bound mode.
     public Expression<Func<T>>? Bind { get; set; }

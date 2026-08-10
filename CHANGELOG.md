@@ -429,6 +429,19 @@ them until tagged releases begin.
   All three, plus the `CS0108` fix, are now pinned against the emission itself — the real
   `protected static` entries in `Rask.Core`, and the `private static` ones the generator injects into a
   consumer's `partial` — rather than only against hand-written stand-ins for them.
+- **An abstract component base can reach the builder surface now.** The entries are *inherited members*,
+  which is the whole design — a static-imported property loses to a same-named type (CS0119) while a
+  member of the enclosing type wins — and the consequence is that the surface is only reachable from
+  inside a component. Injection targeted concrete components only, so every abstract base that composes
+  other components (`BsBlock`, `BsFormControl<T>`, `BsSelectBase<TValue, TItem>`, `BsPickerBase<T>`,
+  `PollingPanel`, `NativeComponent`) could name no entry at all. Nothing said so: the calls bound to the
+  factory instead, and `CS0119` with no RASK diagnostic is what an author would have seen the day the
+  factory went away. An abstract class is collected as an injection **host** now — deliberately not as a
+  candidate, since nothing can construct it, so it still publishes no entry of its own. The forwarders
+  stay `private static`, which is what makes a base and its subclasses both carrying them legal:
+  `CS0108` fires only for an inherited member the derived type can *see*, and by the same rule the base
+  cannot stand in for its subclasses — each class needs its own copy, exactly as before. A non-`partial`
+  abstract base is held to the same **RASK036** as any other component.
 - **RASK036 and RASK040–042 are documented.** The builder surface's own four diagnostics (a component
   must be `partial`; two components share a simple name; the shared pending-bit budget is exhausted; a
   delegate-typed property has no reachable setter) shipped with a `helpLinkUri` pointing at an anchor
