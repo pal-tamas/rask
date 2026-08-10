@@ -44,7 +44,7 @@ namespace Rask.Example.Shop.Tests;
 ///         the artifact, not the file.
 ///     </para>
 /// </remarks>
-public sealed partial class ShopRenderGoldenTests  : global::Rask.Core.RaskMarkup, IDisposable
+public sealed partial class ShopRenderGoldenTests : global::Rask.Core.RaskMarkup, IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-shop-golden-{Guid.NewGuid():N}.db");
     private readonly ServiceProvider _provider;
