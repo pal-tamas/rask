@@ -1,6 +1,7 @@
 using Android.App;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.JSInterop;
 using Rask.Client.Browser;
 using Rask.Core.Browser;
 
@@ -14,7 +15,8 @@ namespace Rask.Native;
 ///     <c>IBattery</c> (BatteryManager), <c>ISpeechSynthesis</c> (TextToSpeech),
 ///     <c>ISpeechRecognition</c> (SpeechRecognizer), <c>IScreenInfo</c> (DisplayMetrics),
 ///     <c>IDeviceOrientation</c>/<c>IDeviceMotion</c> (SensorManager), <c>INotifications</c>
-///     (NotificationManager), and <c>IBadge</c> (a badge notification) — so injecting any of them resolves the
+///     (NotificationManager), <c>IBadge</c> (a badge notification), and <c>IPermissions</c> (the OS app
+///     permission the backends above actually gate on) — so injecting any of them resolves the
 ///     native implementation and every other interface falls back to the
 ///     WebView's JS. The app writes one line (<c>host.UsePlatform(new AndroidPlatform(this))</c>) instead of
 ///     registering each backend by hand. Geolocation needs <c>ACCESS_FINE_LOCATION</c>, network info needs
@@ -42,5 +44,9 @@ public sealed class AndroidPlatform(Activity activity) : INativePlatform
         services.TryAddSingleton<IDeviceMotion>(_ => new NativeDeviceMotion(activity));
         services.TryAddSingleton<INotifications>(_ => new NativeNotifications(activity));
         services.TryAddSingleton<IBadge>(_ => new NativeBadge(activity));
+        // Camera/Microphone defer to the WebView's own Permissions API (see NativePermissionQuery), so this
+        // one needs it. Built directly rather than resolved as IPermissions — that would resolve to this.
+        services.TryAddSingleton<IPermissions>(sp =>
+            new NativePermissionQuery(activity, new Permissions(sp.GetRequiredService<IJSRuntime>())));
     }
 }
