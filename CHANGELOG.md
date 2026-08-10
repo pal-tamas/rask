@@ -19,6 +19,16 @@ them until tagged releases begin.
   `<RaskWasm>` (which also matched an explicit `false`), and a reference to `Rask.Wasm` itself as either
   a package or a project — anchored so `Rask.Wasm.Hosting` can't satisfy it. A genuine browser app,
   including the Client half of the same solution, is unaffected.
+- **The battery demo's live subscription no longer overwrites what you just read.** `BatteryDemo` showed
+  one "Status" line written by two independent sources: the `WatchAsync` subscription stamped `live` on
+  every push from the device, and the *Read now* button stamped `read`. Whichever wrote last won — so a
+  push arriving after a click replaced the answer with `live` and **never put it back**, making the
+  button look like it had done nothing. The two are now separate lines, `Watch:` and `Status:`, each with
+  exactly one writer; the level and charging figures stay shared, since both sources describe the same
+  battery and the freshest value is the right one whichever produced it.
+  This also removes an intermittent red from the **longest test in the E2E gate** — the shared journey
+  asserted that one label after clicking Read, so a chance push failed the whole journey on unrelated
+  branches ([#661](https://github.com/pal-tamas/rask/issues/661)).
 
 ### Added
 - **A waiting tab now finds out when the database becomes free.** `BrowserSqliteOwnership.Available`

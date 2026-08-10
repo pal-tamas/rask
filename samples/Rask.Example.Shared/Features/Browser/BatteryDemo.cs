@@ -12,7 +12,16 @@ namespace Rask.Example.Shared.Features;
 public sealed class BatteryDemo(IBattery battery) : Component, IAsyncDisposable
 {
     private BatteryStatus? _status;
-    private string _state = "(read or watch)";
+
+    // Two labels, not one, because the two halves of this demo write on their own schedules: the watch
+    // pushes whenever the device changes, and the button reports what a one-shot read just returned.
+    // Sharing a field made whichever wrote last the visible truth — a push landing after a click replaced
+    // "read" with "live" and never put it back, which read as the button having done nothing.
+    private string _watchState = "(starting…)";
+    private string _readState = "(not read yet)";
+
+    // The level/charging figures ARE shared on purpose: both sources describe the same battery, so the
+    // freshest value is the right one to show whichever produced it.
     private IAsyncDisposable? _watch;
     private bool _started;
 
@@ -26,7 +35,8 @@ public sealed class BatteryDemo(IBattery battery) : Component, IAsyncDisposable
         _started = true;
         if (!await battery.IsSupportedAsync())
         {
-            _state = "not supported on this browser";
+            _watchState = "not supported on this browser";
+            _readState = "not supported on this browser";
             StateHasChanged();
             return;
         }
@@ -34,7 +44,7 @@ public sealed class BatteryDemo(IBattery battery) : Component, IAsyncDisposable
         _watch = await battery.WatchAsync(s =>
         {
             _status = s;
-            _state = "live";
+            _watchState = "live";
             StateHasChanged();
             return Task.CompletedTask;
         });
@@ -51,7 +61,9 @@ public sealed class BatteryDemo(IBattery battery) : Component, IAsyncDisposable
                     "Level: ", Code(Id: "battery-level")[_status is { } s ? $"{s.Level * 100:0}%" : "(none)"]],
                 Div(Class: "small text-secondary mb-1")[
                     "Charging: ", Code(Id: "battery-charging")[_status is { } c ? (c.Charging ? "yes" : "no") : "(none)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "battery-status")[_state]]
+                Div(Class: "small text-secondary mb-1")[
+                    "Watch: ", Code(Id: "battery-watch")[_watchState]],
+                Div(Class: "small text-secondary")["Status: ", Code(Id: "battery-status")[_readState]]
             ]
         ];
 
@@ -60,11 +72,11 @@ public sealed class BatteryDemo(IBattery battery) : Component, IAsyncDisposable
         try
         {
             _status = await battery.GetStatusAsync();
-            _state = _status is null ? "not supported" : "read";
+            _readState = _status is null ? "not supported" : "read";
         }
         catch (Exception ex)
         {
-            _state = "failed: " + ex.Message;
+            _readState = "failed: " + ex.Message;
         }
     }
 
