@@ -249,10 +249,10 @@ public sealed class LiveTickerTests
     {
         protected override Component? Render() =>
         [
-            Doctype(),
-            Html("en")[
+            Doctype,
+            Html.Lang("en")[
                 Head(),
-                Body()[
+                Body[
                     LiveTicker("BTC", 5000, log),
                     LiveTicker("ETH", 5000, log)
                 ]
