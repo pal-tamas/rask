@@ -1691,9 +1691,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .Append(host2.TypeName).Append(host2.TypeParameters)
                 .AppendLine(host2.Delivery == Delivery.Base ? " : global::Rask.Core.RaskMarkup" : string.Empty);
             sb.AppendLine("{");
-            var declared = host2.Delivery == Delivery.Injected
-                ? new HashSet<string>(host2.MemberNames, StringComparer.Ordinal)
-                : EmptyNames;
+            var declared = new HashSet<string>(host2.MemberNames, StringComparer.Ordinal);
             if (host2.Delivery == Delivery.Injected)
             {
                 foreach (var e in frameworkRefs)
@@ -2258,15 +2256,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             classDecl.Identifier.Span.Length,
             symbol.IsStatic,
             delivery,
-            delivery == Delivery.Injected ? ReachableMemberNames(symbol) : default);
+            ReachableMemberNames(symbol));
     }
 
     // Every name an injected entry must leave alone: this type's own members and its whole base chain's.
     //
-    // Only the injected delivery needs the list, and only it can be broken by the names on it. For an
-    // INHERITED entry, a same-named member of yours simply hides it and `new` says so — the compiler
-    // accepts that, and it is what FieldErrors.Template and DemoRegistry.Map used to write. An INJECTED
-    // entry has neither out: against this type's own member it is a second member of the same name
+    // Collected for EVERY delivery, which it was not. The list used to be gathered only for the injected
+    // delivery, on the reasoning that an inherited entry a member happens to shadow is merely hidden and
+    // `new` says so. True — of the FRAMEWORK entries, which is the only half that arrives by inheritance.
+    // A consuming assembly's own components, and a referenced library's, are injected as MEMBERS into
+    // every host whatever its delivery, so a component nested inside the host is both a type it declares
+    // and a member it is about to be given: CS0102, in generated source, out of a one-line opt-in. It cost
+    // 190 test classes in Rask.Core.Tests their builder surface.
+    //
+    // An INJECTED entry has no out: against this type's own member it is a second member of the same name
     // (CS0102, which no modifier fixes), and against a BASE's it silently hides something belonging to a
     // type the author does not control (CS0108, an error under warnings-as-errors). Both answers are the
     // same one — the name stays with the member that is already there, and the entry is not injected.
@@ -2278,6 +2281,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             foreach (var name in t.MemberNames)
             {
                 names.Add(name);
+            }
+
+            // Nested types are members too, and they are the ones that bite: an entry is named after its
+            // component, so a component nested inside the host collides with its own entry. Taken from
+            // GetTypeMembers rather than trusting MemberNames to have carried them.
+            foreach (var nested in t.GetTypeMembers())
+            {
+                names.Add(nested.Name);
             }
         }
 

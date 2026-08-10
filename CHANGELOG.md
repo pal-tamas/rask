@@ -8,6 +8,20 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A type that declares a nested component can be a markup host now.** Opting one in produced **CS0102 in
+  generated source** — `DependencyInjectionTests.GreetingComponent` the injected entry against
+  `DependencyInjectionTests.GreetingComponent` the nested class — out of a one-line opt-in, with no
+  modifier that fixes it. It cost 190 test classes their builder surface.
+  Two mistakes, one on top of the other. The list of names an injected entry must leave alone was gathered
+  **only for the injected delivery**, on the reasoning that an inherited entry a member shadows is merely
+  hidden and `new` says so. That is true of the *framework* entries, which are the only half that arrives
+  by inheritance — a consuming assembly's own components and a referenced library's are injected as
+  **members into every host whatever its delivery**, so they need the list too. And the list was built from
+  `INamedTypeSymbol.MemberNames`, which does not carry **nested type** names — which is precisely the
+  collision, since an entry is named after its component. Both halves are fixed: the names are collected
+  for every delivery, and from `GetTypeMembers()` as well as `MemberNames`.
+  A nested component named after a tag still hides the *inherited* tag entry (CS0108) and still owes a
+  `new` — `OutletTests.Section` is the example, and that one no modifier can avoid.
 - **An auth gate built by a builder entry rendered as if nobody were signed in.** `Authorize[content]` and
   `Authorize.Authorized(user => …)` produced an empty page on a server-rendered first paint — the shape at
   the top of every gated route, failing silently and open-ended: no exception, no diagnostic, just missing
