@@ -65,14 +65,13 @@ public sealed partial class QueuePage(
     {
         if (IsLoading)
         {
-            return DashboardParts.Loading();
+            return DashboardLoading;
         }
 
         if (_panel is null)
         {
-            return DashboardParts.Empty(
-                $"No queue called \"{Queue}\"",
-                "Either that battery isn't registered, or its table isn't mapped into the DbContext.");
+            return DashboardEmpty.Heading($"No queue called \"{Queue}\"")
+                .Detail("Either that battery isn't registered, or its table isn't mapped into the DbContext.");
         }
 
         return [
@@ -81,12 +80,12 @@ public sealed partial class QueuePage(
                 H1(Class: "h4 mb-0")[_panel.Title],
                 Div(Class: "ms-auto d-flex gap-2")[QueueActionButtons()]
             ],
-            DashboardParts.Error(LoadError),
+            DashboardError.Message(LoadError),
             ActionResult(),
             FilterTabs(),
             _rows.Count == 0 ? EmptyForFilter() : RowsTable(),
             Pager(),
-            DashboardParts.Parked(IsParked, ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
 
@@ -109,9 +108,8 @@ public sealed partial class QueuePage(
             ]
         ];
 
-    private Component EmptyForFilter() => DashboardParts.Empty(
-        $"Nothing {Filter.ToString().ToLowerInvariant()}",
-        Filter == QueueFilter.Failed
+    private Component EmptyForFilter() => DashboardEmpty.Heading($"Nothing {Filter.ToString().ToLowerInvariant()}")
+        .Detail(Filter == QueueFilter.Failed
             ? "No dead letters. This is the number you want at zero."
             : "Nothing in this slice right now.");
 

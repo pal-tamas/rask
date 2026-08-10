@@ -85,7 +85,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             NavLink(Href: Features.Routes.GuidesIndexPage(), ActiveClass: "",
                 Class: Bs.Join("navbar-brand", Font.Semibold, Display.InlineFlex(), Flex.Align(BsAlign.Center),
                     Flex.Gap(2)))[
-                RaskLogo.Mark(24, "brandBolt"),
+                RaskLogo(Size: 24, GradientId: "brandBolt"),
                 Span()["Rask"],
                 BsBadge(Pill: true, Class: "rask-badge")["showcase"],
                 BsBadge(Color: BsColor.Secondary, Pill: true)[$"v{RaskVersion.Current}"]

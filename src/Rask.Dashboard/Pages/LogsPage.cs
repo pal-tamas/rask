@@ -137,9 +137,8 @@ public sealed partial class LogsPage(
     {
         if (!options.CaptureLogs && !HasStore)
         {
-            return DashboardParts.Empty(
-                "Log capture is off",
-                "Set CaptureLogs = true on RaskDashboardOptions to keep a tail of recent entries, or add "
+            return DashboardEmpty.Heading("Log capture is off")
+                .Detail("Set CaptureLogs = true on RaskDashboardOptions to keep a tail of recent entries, or add "
                 + "Rask.Logging to keep them across restarts.");
         }
 
@@ -149,10 +148,10 @@ public sealed partial class LogsPage(
                 Span(Class: "text-body-secondary small")[Caption()],
                 HasStore ? Div(Class: "ms-auto")[ModeTabs()] : null
             ],
-            DashboardParts.Error(LoadError),
+            DashboardError.Message(LoadError),
             Filters(),
             IsHistory ? HistoryBody() : LiveBody(),
-            DashboardParts.Parked(IsParked, ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
 
@@ -269,9 +268,8 @@ public sealed partial class LogsPage(
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         return entries.Count == 0
-            ? DashboardParts.Empty(
-                "Nothing captured yet",
-                "Entries appear here as the application logs them — subject to the app's own "
+            ? DashboardEmpty.Heading("Nothing captured yet")
+                .Detail("Entries appear here as the application logs them — subject to the app's own "
                 + "Logging:LogLevel configuration, which filters before the dashboard sees them.")
             : Table(entries.Select(ToRow), now);
     }
@@ -280,15 +278,14 @@ public sealed partial class LogsPage(
     {
         if (IsLoading)
         {
-            return DashboardParts.Loading();
+            return DashboardLoading;
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         return _history.Entries.Count == 0
-            ? DashboardParts.Empty(
-                "Nothing stored matches",
-                "Either nothing has been logged into the store yet, or no entry matches this filter. "
+            ? DashboardEmpty.Heading("Nothing stored matches")
+                .Detail("Either nothing has been logged into the store yet, or no entry matches this filter. "
                 + "Retention drops entries by age and by count.")
             : [Table(_history.Entries.Select(ToRow), now), Pager()];
     }

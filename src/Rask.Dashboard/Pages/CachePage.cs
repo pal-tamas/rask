@@ -48,14 +48,13 @@ public sealed partial class CachePage(
     {
         if (IsLoading)
         {
-            return DashboardParts.Loading();
+            return DashboardLoading;
         }
 
         if (!cache.IsAvailable)
         {
-            return DashboardParts.Empty(
-                "Cache isn't registered",
-                "Call AddRaskCache<TContext>() and modelBuilder.AddRaskCache() to see cache entries here.");
+            return DashboardEmpty.Heading("Cache isn't registered")
+                .Detail("Call AddRaskCache<TContext>() and modelBuilder.AddRaskCache() to see cache entries here.");
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -64,7 +63,7 @@ public sealed partial class CachePage(
                 H1(Class: "h4 mb-0")["Cache"],
                 Div(Class: "ms-auto")[FlushButton()]
             ],
-            DashboardParts.Error(LoadError),
+            DashboardError.Message(LoadError),
             ActionResult(),
             BsRow(Class: "g-3 mb-4")[
                 BsCol(Sm: 4)[BsStat(Value: _stats.Entries.ToString(), Label: "Entries", Icon: BsIconName.Archive)],
@@ -76,12 +75,11 @@ public sealed partial class CachePage(
                     Caption: "removed by the purge sweep")]
             ],
             _rows.Count == 0
-                ? DashboardParts.Empty(
-                    Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty",
-                    "Entries appear here as soon as something is cached.")
+                ? DashboardEmpty.Heading(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
+                    .Detail("Entries appear here as soon as something is cached.")
                 : Table(now),
             Pager(),
-            DashboardParts.Parked(IsParked, ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
 

@@ -17,7 +17,7 @@ public sealed partial class DisposalSyncDemo : Component
             _syncMounted
                 ? DisposableTimerProbe(AppendSyncLog, _nextSyncId)
                 : P(Class: "text-secondary fst-italic mb-0")["Probe not mounted."],
-            DisposalDemoLog.Render(_syncLog, "dispose-sync-log")
+            DisposalDemoLog(Entries: _syncLog, ListId: "dispose-sync-log")
         ];
 
     private void MountSync()

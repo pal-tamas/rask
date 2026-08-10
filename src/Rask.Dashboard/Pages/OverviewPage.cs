@@ -33,21 +33,20 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
     {
         if (IsLoading)
         {
-            return DashboardParts.Loading();
+            return DashboardLoading;
         }
 
         if (_queues.Count == 0)
         {
-            return DashboardParts.Empty(
-                "No batteries registered",
-                "Add Rask.Jobs, Rask.Outbox, Rask.Mail or Rask.Cache and map their tables to see them here.");
+            return DashboardEmpty.Heading("No batteries registered")
+                .Detail("Add Rask.Jobs, Rask.Outbox, Rask.Mail or Rask.Cache and map their tables to see them here.");
         }
 
         return [
-            DashboardParts.Error(LoadError),
+            DashboardError.Message(LoadError),
             FailureBanner(),
             BsRow(Class: "g-3")[_queues.SelectMany(q => Tiles(q.Panel, q.Counts))],
-            DashboardParts.Parked(IsParked, ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
 

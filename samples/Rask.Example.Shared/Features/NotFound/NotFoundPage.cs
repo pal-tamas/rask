@@ -10,9 +10,9 @@ public sealed partial class NotFoundPage(Navigator nav, RouteState route) : Comp
 
     protected override Component? Render() =>
     [
-        PageHeader.Render(
-            "Page not found",
-            $"No route is registered for {route.Path}. Pick a section from the sidebar — every showcase page is reachable from there."),
+        PageHeader(
+            Title: "Page not found",
+            Lead: $"No route is registered for {route.Path}. Pick a section from the sidebar — every showcase page is reachable from there."),
         BsStack(Gap: 2, Class: Margin.Top(3))[
             BsButton(Color: BsColor.Primary, OnClick: () => nav.NavigateTo(Routes.GuidesIndexPage()))[
                 BsIcon(Name: BsIconName.House, Class: "me-2"), "Back to guides"]

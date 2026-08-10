@@ -17,7 +17,7 @@ public sealed partial class DisposalAsyncDemo : Component
             _asyncMounted
                 ? DisposableAsyncProbe(AppendAsyncLog, _nextAsyncId)
                 : P(Class: "text-secondary fst-italic mb-0")["Probe not mounted."],
-            DisposalDemoLog.Render(_asyncLog, "dispose-async-log")
+            DisposalDemoLog(Entries: _asyncLog, ListId: "dispose-async-log")
         ];
 
     private void MountAsync()

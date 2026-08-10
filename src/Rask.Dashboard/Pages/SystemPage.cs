@@ -40,17 +40,17 @@ public sealed partial class SystemPage(
     {
         if (IsLoading)
         {
-            return DashboardParts.Loading();
+            return DashboardLoading;
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
             H1(Class: "h4 mb-3")["System"],
-            DashboardParts.Error(LoadError),
+            DashboardError.Message(LoadError),
             DatabaseCard(),
             BackupCard(now),
             RecurringCard(now),
-            DashboardParts.Parked(IsParked, ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
 

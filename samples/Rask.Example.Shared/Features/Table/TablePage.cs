@@ -77,10 +77,10 @@ public sealed partial class TablePage(Navigator nav) : Component
 
         return
         [
-            PageHeader.Render(
-                "Data table",
-                "Sortable columns, paged rows, search and a page-size selector — a BsDataGrid whose sort and " +
-                "page are owned by the URL query string."),
+            PageHeader(
+                Title: "Data table",
+                Lead: "Sortable columns, paged rows, search and a page-size selector — a BsDataGrid whose sort and " +
+                      "page are owned by the URL query string."),
             BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
                 BsCardHeader(Class: "bg-white d-flex flex-wrap gap-2 align-items-center justify-content-between")[
                     Div(Class: "input-group input-group-sm", Style: "max-width:320px;")[

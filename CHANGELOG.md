@@ -442,6 +442,30 @@ them until tagged releases begin.
   `CS0108` fires only for an inherited member the derived type can *see*, and by the same rule the base
   cannot stand in for its subclasses — each class needs its own copy, exactly as before. A non-`partial`
   abstract base is held to the same **RASK036** as any other component.
+- **The markup-building static helpers were audited, and the ones that were really components became
+  components.** A static class cannot reach the builder surface — entries are inherited members — so
+  every helper that builds markup is either a component that was never declared as one, or genuinely a
+  helper that keeps the factory. Converted, because each returns markup and nothing else: the showcase's
+  `PageHeader`, `RaskLogo`, `GuideCards` and `DisposalDemoLog`, and the dashboard's `Loading` / `Empty` /
+  `Error` / `Parked` panel states (now `DashboardLoading`, `DashboardEmpty`, `DashboardError`,
+  `DashboardParked`). `DashboardParts` keeps only its two string formatters, which build no markup at all
+  and so need nothing from either surface. Rendered HTML is unchanged — a component's `Render()` returns
+  the same factory calls the static method returned — but each part now has a positional `GetOrCreate`
+  identity of its own, which is what lets the render cache serve it.
+  Left on the factory deliberately: `DemoRegistry` (a `Dictionary<string, Func<Component>>` — a lookup
+  table, not markup), `FieldErrors.Template` (a render-fragment *delegate* handed to
+  `ValidationMessage(Template:)`; a component cannot be a `Func<…, Component>`), `TierStaticHelper` (it
+  *is* the sample that documents the tier-0 static helper), `Rask.Bootstrap`'s `PickerParts` (half of it
+  is culture-driven date math, and its markup half takes ten parameters including predicates and
+  callbacks — its natural home is `BsPickerBase<T>`, which after this release is an injection host, not a
+  set of new components), and `Generated.VirtualizeModel<T>` (it *is* the factory).
+  Two things this turned up. `PageHeader.Title` is a **CS0108** hiding the `<title>` tag's inherited
+  entry — the collision the surface creates, resolved with `new` exactly as its quick-fix does. And
+  inside `src/`, a *new* component is reachable **only** through the chain: framework projects opt out of
+  `RaskGlobalUsings`, so the generated factory is not in scope there, and the entry property is — which
+  makes `DashboardLoading()` a **CS1955** ("non-invocable member … cannot be used like a method"). The
+  dashboard's new parts are therefore written as `DashboardEmpty.Heading(…).Detail(…)`: the first
+  production code on the builder surface.
 - **RASK036 and RASK040–042 are documented.** The builder surface's own four diagnostics (a component
   must be `partial`; two components share a simple name; the shared pending-bit budget is exhausted; a
   delegate-typed property has no reachable setter) shipped with a `helpLinkUri` pointing at an anchor

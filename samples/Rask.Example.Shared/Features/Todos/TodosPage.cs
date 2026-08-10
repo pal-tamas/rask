@@ -88,9 +88,9 @@ public sealed partial class TodosPage : Component
 
     protected override Component? Render() =>
         [
-            PageHeader.Render(
-                "Todos",
-                "A small CRUD screen built on top of Rask primitives. The page declares three [Route] attributes — /todos shows the list, /todos/new opens the add dialog, /todos/{id:guid}/edit opens the edit dialog. Browser Back closes the dialog; deep links open it."),
+            PageHeader(
+                Title: "Todos",
+                Lead: "A small CRUD screen built on top of Rask primitives. The page declares three [Route] attributes — /todos shows the list, /todos/new opens the add dialog, /todos/{id:guid}/edit opens the edit dialog. Browser Back closes the dialog; deep links open it."),
             Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center),
                 Margin.Bottom(3)))[
                 Span(Class: Bs.Join(Txt.Muted, Font.Small))[

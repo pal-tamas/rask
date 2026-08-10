@@ -17,7 +17,7 @@ public sealed partial class DisposalUnmountDemo : Component
             _hookMounted
                 ? UnmountTimerProbe(AppendHookLog, _nextHookId)
                 : P(Class: "text-secondary fst-italic mb-0")["Ticker not running."],
-            DisposalDemoLog.Render(_hookLog, "unmount-hook-log")
+            DisposalDemoLog(Entries: _hookLog, ListId: "unmount-hook-log")
         ];
 
     private void MountHook()
