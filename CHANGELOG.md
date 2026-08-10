@@ -39,7 +39,13 @@ them until tagged releases begin.
   transport attached — `ReadChangesAsync` from a watermark, `ApplyChangesAsync` back — so the same log
   works over a bucket, a socket, or nothing at all; pair it with `Rask.Sync.Client` for the bucket case.
   Applying a change twice is a no-op, which is what makes re-sending safe after an upload whose outcome
-  is unknown.
+  is unknown. Two properties a transport has to build around, both verified against the real extension:
+  a replica's feed carries **every change it ever accepted**, still stamped with the originating
+  `site_id`, so `ReadLocalChangesAsync()` is what to publish or every device re-uploads every other
+  device's history; and a `db_version` belongs to the database it was read from — applying a peer's
+  change stamps it with *this* replica's next version — so a version orders your own publishing but can
+  never mean "everything peer X has after N". A batch applies in **one transaction**, so a peer's work
+  lands atomically and costs the receiver one version rather than one per column.
   The package exists for the three requirements that otherwise fail *quietly*: the extension is per
   connection rather than per process, so loading once at startup works until the pool recycles and then
   silently stops (it is now loaded on every open and finalized before every close); cr-sqlite refuses a

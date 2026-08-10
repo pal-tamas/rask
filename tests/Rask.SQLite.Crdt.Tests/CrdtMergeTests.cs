@@ -145,6 +145,107 @@ public sealed class CrdtMergeTests : IDisposable
         Assert.True(since.Count < (await alice.Feed.ReadChangesAsync()).Count);
     }
 
+    [SkippableFact]
+    public async Task An_applied_change_keeps_the_originators_site_id()
+    {
+        Skip.If(!Available(), SkipReason);
+
+        // Load-bearing for publishing: a replica's feed carries every change it ever accepted, and the
+        // only thing distinguishing "mine" from "a peer's" is that the site id travels with the change.
+        // If application re-stamped it, every device would re-upload every other device's history.
+        await using var alice = await NewReplicaAsync();
+        await using var bob = await NewReplicaAsync();
+
+        var aliceSite = await alice.Feed.GetSiteIdAsync();
+        alice.Context.Todos.Add(new Todo { Id = Guid.NewGuid(), Title = "from alice" });
+        await alice.Context.SaveChangesAsync();
+
+        await SyncAsync(from: alice, to: bob);
+
+        var inBob = await bob.Feed.ReadChangesAsync();
+        Assert.All(inBob, c => Assert.Equal(aliceSite, c.SiteId));
+        Assert.Empty(await bob.Feed.ReadLocalChangesAsync());
+    }
+
+    [SkippableFact]
+    public async Task Publishing_reads_only_what_this_replica_originated()
+    {
+        Skip.If(!Available(), SkipReason);
+
+        await using var alice = await NewReplicaAsync();
+        await using var bob = await NewReplicaAsync();
+
+        alice.Context.Todos.Add(new Todo { Id = Guid.NewGuid(), Title = "from alice" });
+        await alice.Context.SaveChangesAsync();
+        await SyncAsync(from: alice, to: bob);
+
+        bob.Context.Todos.Add(new Todo { Id = Guid.NewGuid(), Title = "from bob" });
+        await bob.Context.SaveChangesAsync();
+
+        var bobSite = await bob.Feed.GetSiteIdAsync();
+        var toPublish = await bob.Feed.ReadLocalChangesAsync();
+        var everything = await bob.Feed.ReadChangesAsync();
+
+        Assert.NotEmpty(toPublish);
+        Assert.All(toPublish, c => Assert.Equal(bobSite, c.SiteId));
+        Assert.True(toPublish.Count < everything.Count, "the unfiltered feed must still carry alice's work");
+    }
+
+    [SkippableFact]
+    public async Task A_db_version_belongs_to_the_database_it_was_read_from()
+    {
+        Skip.If(!Available(), SkipReason);
+
+        // The reason a peer watermark cannot be a db_version: applying a change stamps it with the
+        // RECEIVING replica's next version, so "everything peer X has after N" is unanswerable from
+        // versions alone and the transport has to remember what it already fetched.
+        await using var alice = await NewReplicaAsync();
+        await using var bob = await NewReplicaAsync();
+
+        // Give bob some history of his own first, so his clock is demonstrably ahead of alice's.
+        bob.Context.Todos.Add(new Todo { Id = Guid.NewGuid(), Title = "bob was here" });
+        await bob.Context.SaveChangesAsync();
+
+        alice.Context.Todos.Add(new Todo { Id = Guid.NewGuid(), Title = "from alice" });
+        await alice.Context.SaveChangesAsync();
+
+        var asAlice = await alice.Feed.ReadChangesAsync();
+        await SyncAsync(from: alice, to: bob);
+
+        var aliceSite = await alice.Feed.GetSiteIdAsync();
+        var asBob = (await bob.Feed.ReadChangesAsync()).Where(c => c.SiteId.SequenceEqual(aliceSite)).ToList();
+
+        Assert.Equal(asAlice.Count, asBob.Count);
+        Assert.True(
+            asBob.Max(c => c.DbVersion) > asAlice.Max(c => c.DbVersion),
+            "the same change carries the receiving replica's version, not the originator's");
+    }
+
+    [SkippableFact]
+    public async Task A_batch_costs_one_version_not_one_per_change()
+    {
+        Skip.If(!Available(), SkipReason);
+
+        // Applying row by row would inflate the receiver's version by the size of every batch it ever
+        // takes, which is a cost that compounds for the lifetime of the database.
+        await using var alice = await NewReplicaAsync();
+        await using var bob = await NewReplicaAsync();
+
+        alice.Context.Todos.Add(new Todo { Id = Guid.NewGuid(), Title = "wide row" });
+        await alice.Context.SaveChangesAsync();
+
+        var changes = await alice.Feed.ReadChangesAsync();
+        Assert.True(changes.Count > 1, "the model must have several columns for this to mean anything");
+
+        var before = await bob.Feed.GetDbVersionAsync();
+        await bob.Feed.ApplyChangesAsync(changes);
+        var after = await bob.Feed.GetDbVersionAsync();
+
+        Assert.True(
+            after - before <= 1,
+            $"applying {changes.Count} changes moved the version by {after - before}; expected one transaction");
+    }
+
     private static bool Available() =>
         ExtensionPath is { Length: > 0 } path && File.Exists(path);
 

@@ -54,7 +54,28 @@ await feed.ApplyChangesAsync(theirs);
 ```
 
 Reading from a watermark is what makes a sync cost what *changed* rather than what *exists*.
-`GetDbVersionAsync()` is the high-water mark to remember; `GetSiteIdAsync()` is this replica's identity.
+`GetDbVersionAsync()` is the high-water mark; `GetSiteIdAsync()` is this replica's identity.
+
+### Publish your own work, not everyone's
+
+A replica's feed carries **every change it has ever accepted**, not just the ones it made — still
+stamped with the originating replica's `site_id`, which is what makes them separable. Publishing the
+unfiltered feed would have every device re-uploading every other device's history, growing with the
+number of peers rather than with what changed. `ReadLocalChangesAsync()` is the one to publish:
+
+```csharp
+var mine = await feed.ReadLocalChangesAsync(sinceDbVersion: lastPublished);
+```
+
+### A `db_version` belongs to the database it was read from
+
+This one is easy to get wrong. Applying a peer's change stamps it with **this** replica's next version,
+not the originator's — so the same change has a different `db_version` in every database holding it.
+A version can order *your own* publishing, but it can never express "everything peer X has after N".
+Remembering what you have already fetched from a peer is the transport's job, not the feed's.
+
+Applying a batch is one transaction, so a peer's work lands atomically and costs the receiver a single
+version rather than one per column.
 
 ## The three things that fail quietly without this package
 

@@ -40,6 +40,12 @@ to be chosen.
 Applying a change twice is a no-op, so re-sending after an upload whose outcome is unknown is safe, and
 a replica never has to track what its peers already hold.
 
+Two things worth knowing before writing a transport. A replica's feed carries **every change it has ever
+accepted**, still stamped with the originating `site_id` — so publish `ReadLocalChangesAsync()`, or every
+device re-uploads every other device's history. And a `db_version` belongs to the database it was read
+from: applying a peer's change stamps it with *this* replica's next version, so a version can order your
+own publishing but can never mean "everything peer X has after N".
+
 ## The three things that fail quietly without it
 
 **The extension is per connection, not per process.** `Microsoft.Data.Sqlite` pools connections, so
