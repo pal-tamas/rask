@@ -346,6 +346,30 @@ them until tagged releases begin.
   created, a chain evaluates them after, so `Authorize(NotAuthorized: P()[…])[…]` builds the `P` first and
   `Authorize.NotAuthorized(P[…])[…]` builds it second. The markup is identical; the positional identity
   `GetOrCreate` hands out is not.
+- **A generic component's entry can infer its type argument from any property, not only a form control's
+  `Bind`.** A property cannot be generic, so a generic component's entry is a *method*, and its single
+  argument is what pins the type argument. That was reachable only through `IFormControl<T>`:
+  `CanHaveEntry`'s generic branch demanded one, and the runtime helper behind it could assign nothing but
+  `Bind`. The consequence is not hypothetical — it is the next thing on the roadmap. Making `Form`
+  generic (`Form<TModel>`, so a chain can carry the model type to its submit handler) would have given it
+  **no entry at all**, silently removing `Form` from the builder surface. Verified rather than reasoned
+  about: with `Form` made generic, the eight elements declaring `public new string? Form` immediately
+  reported CS0109 — *"does not hide an accessible member"* — because the entry they were hiding had
+  vanished.
+  The rule is now "the property that pins the type argument", and a form control's `Bind` is one way of
+  naming it rather than the only one; anything else generic uses the first factory-parameter property
+  whose type *is* one of the component's type parameters. One emission serves both, and the runtime's
+  `EntryBound` helper is gone with them — it could only ever assign `Bind`, so a second shape would have
+  meant a second helper and a second eligibility rule, which is precisely how the bound path drifted from
+  the general one before. The entry now assigns its own inference property inline, folding the change and
+  clearing the pending bit exactly as that property's own setter does, so the entry and a later
+  `.Prop(x)` cannot disagree.
+  **Nothing moves today, deliberately.** The rule matches no component that did not already have an
+  entry: `BsDataGrid<T>`'s properties are `IEnumerable<T>` and `List<BsColumn<T>>`, neither of which *is*
+  `T`. It is also deliberately not general enough to match an `Expression<Func<T>>` property on a
+  component that is not a form control — `FloatingInput<TProp>` and its two siblings in `samples/` have
+  exactly that shape, and matching them would hand them a method entry and displace their factory call
+  sites. Widening it is a migration to schedule, not a rule to relax quietly.
 - **A `required` member no longer withholds a builder entry.** `BuilderRuntime.Entry<T>` is constrained
   `where T : Component, new()`, and a type with a required member does not satisfy `new()` (CS9040) — so
   `BsToast`, `BsStat` and `FluentValidationValidator` had no builder surface at all and would have ceased

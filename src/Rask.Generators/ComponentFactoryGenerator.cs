@@ -1182,11 +1182,102 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     //
     // …and so does a name Component already declares (`Head`), which would be CS0102.
     private static bool CanHaveEntry(Candidate c, HashSet<string> taken) =>
-        (c.TypeParameters.Length == 0
-            ? c.HasParameterlessCtor || c.HasDIConstructor
-            : c.FormControl is not null && c.HasParameterlessCtor)
+        (c.TypeParameters.Length == 0 ? c.HasParameterlessCtor || c.HasDIConstructor : HasGenericEntryShape(c))
         && !c.Properties.Any(BlocksEntry)
         && !taken.Contains(c.TypeName);
+
+    /// <summary>
+    ///     Whether a <i>generic</i> component can have an entry: it must be constructible, it must have
+    ///     something to infer its type argument from, and — for now — it must declare no <c>required</c>
+    ///     member.
+    /// </summary>
+    /// <remarks>
+    ///     The required-member exclusion is not about construction (<c>EntryRequired</c> solved that) and
+    ///     not about generics either. It is that a generic component's entry is a <b>method</b>, and a
+    ///     method entry hides its same-named factory inside a component body — so handing one to
+    ///     <c>BsSelect</c>, <c>BsMultiSelect</c>, <c>BsRadioGroup</c> or <c>BsCheckboxGroup</c> breaks
+    ///     ~20 multi-argument factory call sites in <c>samples/</c> on the spot (CS1501/CS1739). That is a
+    ///     migration, not an addition, and it contradicts the premise that both surfaces compile side by
+    ///     side. Recorded here rather than pushed through.
+    /// </remarks>
+    private static bool HasGenericEntryShape(Candidate c) =>
+        c.HasParameterlessCtor && InferenceFor(c) is not null && !HasRequiredMember(c);
+
+    /// <summary>
+    ///     The single argument a generic component's method entry takes, and the property it sets — what
+    ///     pins the type argument so <c>Input(() =&gt; m.Age)</c> yields <c>Input&lt;int&gt;</c> without
+    ///     the caller writing one.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         One mechanism, two ways of naming the property: an <c>IFormControl&lt;T&gt;</c>'s
+    ///         <c>Bind</c>, whose <c>Expression&lt;Func&lt;T&gt;&gt;</c> carries the value type; or, for
+    ///         any other generic component, the first factory-parameter property whose type <i>is</i> one
+    ///         of the component's type parameters. The emission below does not care which of the two
+    ///         produced it — that is the point, and it is why this replaced the parallel bound-only path
+    ///         rather than sitting beside it.
+    ///     </para>
+    ///     <para>
+    ///         Deliberately NOT general enough to match an <c>Expression&lt;Func&lt;T&gt;&gt;</c> property
+    ///         on a component that is not a form control. <c>FloatingInput&lt;TProp&gt;</c> and its two
+    ///         siblings in <c>samples/</c> have exactly that shape, and matching them would hand them a
+    ///         method entry and displace their factory call sites — the same cost as the four generic
+    ///         controls above, paid by surprise. Widening this is a migration to schedule, not a rule to
+    ///         relax quietly.
+    ///     </para>
+    /// </remarks>
+    private static EntryInference? InferenceFor(Candidate c)
+    {
+        if (c.TypeParameters.Length == 0)
+        {
+            return null;
+        }
+
+        if (c.FormControl is { } fc)
+        {
+            return new EntryInference(
+                "Bind",
+                "global::System.Linq.Expressions.Expression<global::System.Func<" + fc.ValueTypeFqn + ">>",
+                "Bind",
+                Track: false,
+                PendingBit: -1);
+        }
+
+        var names = ParseTypeParameters(c.TypeParameters);
+        var bits = OwnPendingBits(c);
+        foreach (var p in c.Properties)
+        {
+            if (!p.IsTypeParameter || p.IsInitOnly || p.IsSharedSurfaceProp || !IsParamProperty(p))
+            {
+                continue;
+            }
+
+            var type = StripNullable(p.TypeFqn);
+            if (!names.Contains(type))
+            {
+                continue;
+            }
+
+            // The entry has to leave the property exactly as its own setter would, or the two surfaces
+            // disagree about a prop that every chain sets: the fold that reports `propsChanged`, and the
+            // pending bit that tells the deferred reset this prop was written after all.
+            return new EntryInference(
+                p.Name,
+                type,
+                p.Name,
+                FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
+                Bit(bits, p.Name));
+        }
+
+        return null;
+    }
+
+    private readonly record struct EntryInference(
+        string ParamName,
+        string ParamTypeFqn,
+        string PropertyName,
+        bool Track,
+        int PendingBit);
 
     /// <summary>
     ///     A required property the chain could never set, which is worse than having no entry: the
@@ -1307,14 +1398,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         StringBuilder sb, Candidate c, HashSet<string> taken, string visibility, string indent,
         string assemblyName, string hostTypeParameters = "", string runtimePrefix = "")
     {
-        // No bind expression to infer from, no `new T()` to build, or a member that must be set at
-        // construction (CS9040): no entry — the factory stays the way in.
-        if (!CanHaveBoundEntry(c, taken))
+        // Nothing to infer the type argument from, no `new T()` to build, or a member that must be set
+        // at construction: no entry — the factory stays the way in.
+        if (!CanHaveEntry(c, taken) || InferenceFor(c) is not { } inference)
         {
             return;
         }
-
-        var fc = c.FormControl!.Value;
 
         // A method's type parameter may not reuse an enclosing type's name (CS0693), and the consumer
         // entries are injected INTO components — including generic ones (`BsDataGrid<T>` hosting the
@@ -1322,7 +1411,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var typeParameters = c.TypeParameters;
         var constraints = c.TypeParameterConstraints;
         var self = c.FullyQualifiedName;
-        var valueType = fc.ValueTypeFqn;
+        var valueType = inference.ParamTypeFqn;
         var reserved = ParseTypeParameters(hostTypeParameters);
         if (reserved.Count != 0)
         {
@@ -1347,16 +1436,41 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        // Bound mode: Bind is the only parameter, and it is what infers the value type.
+        // Inference mode: one parameter, and it is what pins the type argument. The property is assigned
+        // AFTER the entry returns, which is after the entry's reset has run — the same ordering a setter
+        // in the chain gets, because this IS the chain's first link.
+        var param = EscapeIdentifier(inference.ParamName);
         sb.Append(indent).Append(visibility).Append(" static ").Append(self).Append(' ')
             .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters)
-            .Append("(global::System.Linq.Expressions.Expression<global::System.Func<").Append(valueType)
-            .Append(">> Bind)").Append(constraints).AppendLine();
-        sb.Append(indent).Append("    => ").Append(runtimePrefix)
-            .Append("EntryBound<").Append(self).Append(", ")
-            .Append(valueType).Append(">(Bind, ");
+            .Append('(').Append(valueType).Append(' ').Append(param).Append(')')
+            .Append(constraints).AppendLine();
+        sb.Append(indent).AppendLine("{");
+        sb.Append(indent).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c)).Append(self)
+            .Append(">(");
         EmitResetArguments(sb, c, assemblyName, typeParameters);
         sb.AppendLine(");");
+
+        // Exactly what the property's own setter would do, so the entry and a later `.Prop(x)` cannot
+        // disagree: fold the change into propsChanged when the prop folds, and clear its pending bit so
+        // the deferred reset does not put back the value the entry just set. A bound-mode `Bind` needs
+        // neither — it never folds and is reset eagerly — so this degenerates to the bare assignment
+        // that path always had.
+        if (inference.Track)
+        {
+            sb.Append(indent).Append("    global::Rask.Core.BuilderRuntime.Track(__c, __c.")
+                .Append(EscapeIdentifier(inference.PropertyName)).Append(", ").Append(param).AppendLine(");");
+        }
+
+        if (inference.PendingBit >= 0)
+        {
+            sb.Append(indent).Append("    global::Rask.Core.BuilderRuntime.Written(__c, ")
+                .Append(MaskLiteral(new[] { inference.PendingBit })).AppendLine(");");
+        }
+
+        sb.Append(indent).Append("    __c.").Append(EscapeIdentifier(inference.PropertyName)).Append(" = ")
+            .Append(param).AppendLine(";");
+        sb.Append(indent).AppendLine("    return __c;");
+        sb.Append(indent).AppendLine("}");
 
         // Plain / controlled mode: nothing to infer from, so the caller writes the type argument
         // (`Input<string>().Value(v).Change(h)`). This is the method form of the property entry every
@@ -1369,24 +1483,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         EmitResetArguments(sb, c, assemblyName, typeParameters);
         sb.AppendLine(");");
     }
-
-    // The guard EmitBoundEntry applies, named because the per-component FORWARDER has to agree with it
-    // exactly: a forwarder to a canonical entry the host class never emitted is a compile error, and one
-    // withheld where the entry does exist is a component that silently cannot be built.
-    private static bool CanHaveBoundEntry(Candidate c, HashSet<string> taken) =>
-        c.FormControl is not null && c.HasParameterlessCtor && !taken.Contains(c.TypeName)
-        && !c.Properties.Any(BlocksEntry)
-        // A required member no longer blocks CONSTRUCTION (EntryBoundDi drops the `new()` constraint), but
-        // it still blocks these four, for a reason that has nothing to do with required members and
-        // everything to do with being generic. A generic component's entry is a METHOD, and a method entry
-        // HIDES its same-named factory inside a component body. `BsSelect`, `BsMultiSelect`,
-        // `BsRadioGroup` and `BsCheckboxGroup` have ~20 multi-argument factory call sites in `samples/`
-        // that stop resolving the moment they get one (CS1501/CS1739) — so handing them an entry is not an
-        // addition, it is a migration, and it contradicts the premise that both surfaces compile side by
-        // side. `Input`/`Select`/`Textarea`/`BsInput` already paid that cost when the bound entries
-        // landed, which is why `BsCheck` reaches the controlled `Input` factory fully qualified.
-        // Unblocking these is E1 work with a decision attached, not a generator fix.
-        && !c.Properties.Any(static p => p.UserMarkedRequired);
 
     // "<TValue, TItem>" → { "TValue", "TItem" }; empty for a non-generic type.
     private static HashSet<string> ParseTypeParameters(string list)
@@ -1652,15 +1748,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (!CanHaveBoundEntry(c, EmptyNames))
+            if (InferenceFor(c) is not { } inference)
             {
                 continue;
             }
 
-            var bind = "(global::System.Linq.Expressions.Expression<global::System.Func<"
-                       + c.FormControl!.Value.ValueTypeFqn + ">> Bind)";
+            var param = EscapeIdentifier(inference.ParamName);
             refs.Add(new EntryRef(hostFqn, c.TypeName, c.FullyQualifiedName, c.TypeParameters,
-                c.TypeParameterConstraints, bind, "(Bind)"));
+                c.TypeParameterConstraints,
+                "(" + inference.ParamTypeFqn + " " + param + ")", "(" + param + ")"));
             refs.Add(new EntryRef(hostFqn, c.TypeName, c.FullyQualifiedName, c.TypeParameters,
                 c.TypeParameterConstraints, "()", "()"));
         }

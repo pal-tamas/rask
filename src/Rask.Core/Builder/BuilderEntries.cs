@@ -71,23 +71,11 @@ public abstract partial class Component
         where T : Component
         => BuilderRuntime.EntryDi<T>(reset, pendingReset, pending);
 
-    /// <summary>
-    ///     The entry for a generic <see cref="Forms.IFormControl{T}" /> in bound mode.
-    /// </summary>
-    /// <remarks>
-    ///     A property cannot be generic, so a generic control's entry is a static method — and its one
-    ///     argument is what infers the value type: <c>Input(() =&gt; model.Age)</c> yields
-    ///     <c>Input&lt;int&gt;</c>. Bind is the only parameter; the validator and the post-bind hooks are
-    ///     setters (<c>.Validate(…)</c> / <c>.AfterBind(…)</c>), which is what collapses the generated
-    ///     factory's none/sync/async overload fan-out into one entry.
-    /// </remarks>
-    protected static TControl EntryBound<TControl, TValue>(
-        System.Linq.Expressions.Expression<Func<TValue>> bind,
-        Action<Component> reset,
-        Action<Component, ulong> pendingReset,
-        ulong pending)
-        where TControl : Component, Forms.IFormControl<TValue>, new()
-        => BuilderRuntime.EntryBound<TControl, TValue>(bind, reset, pendingReset, pending);
+    // A generic component's entry used to have a helper of its own — EntryBound<TControl, TValue>, which
+    // took the Bind expression and assigned it. It is gone because the generated entry now assigns its
+    // own inference property inline, which is what lets ONE emission serve a bound form control and any
+    // other generic component: the helper could only ever assign `Bind`, so a second shape would have
+    // needed a second helper, and two helpers is how the eligibility rules drifted apart before.
 
     /// <summary>
     ///     The entry for a component that declares a <c>required</c> member.

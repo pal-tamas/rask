@@ -245,21 +245,6 @@ public static partial class BuilderRuntime
             + "inside a LiveRenderContext (e.g. via MapRask<TApp>).");
     }
 
-    /// <inheritdoc cref="Component.EntryBound{TControl,TValue}" />
-    public static TControl EntryBound<TControl, TValue>(
-        System.Linq.Expressions.Expression<Func<TValue>> bind,
-        Action<Component> reset,
-        Action<Component, ulong> pendingReset,
-        ulong pending)
-        where TControl : Component, Forms.IFormControl<TValue>, new()
-    {
-        // Bind is assigned AFTER the reset, which has just cleared it along with the rest of the bound
-        // members — the entry is the chain's first link, so this is the same ordering a setter gets.
-        var control = Entry<TControl>(reset, pendingReset, pending);
-        control.Bind = bind;
-        return control;
-    }
-
     /// <inheritdoc cref="Component.EntryRequired{T}" />
     public static T EntryRequired<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(

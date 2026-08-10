@@ -235,6 +235,66 @@ public class BuilderEntryEmissionTests
         Assert.DoesNotContain("EntryRequired<global::Demo.Optional>", host, StringComparison.Ordinal);
     }
 
+    // A generic component's entry has to be a METHOD, and its one argument is what pins the type
+    // argument. That used to be available only to an IFormControl<T>, whose `Bind` expression carried
+    // the value type — so `Form<TModel>`, the shape the migration actually needs next, would have got no
+    // entry at all and would have left the builder surface the moment it became generic.
+    //
+    // The rule is now "the property that pins the type argument", and a form control's `Bind` is one way
+    // of naming it rather than the only one. Same emission either way, which is the point: a second
+    // shape would otherwise have meant a second helper and a second eligibility rule, and two
+    // eligibility rules is exactly how the bound path drifted from the general one before.
+    [Fact]
+    public void A_generic_component_infers_its_type_argument_from_a_type_parameter_property()
+    {
+        var host = BuilderGeneratorHarness.Run("""
+                                               using Rask.Core;
+                                               namespace Demo;
+                                               public partial class Holder<T> : Component
+                                               {
+                                                   public T? Item { get; set; }
+                                                   public string? Note { get; set; }
+                                               }
+                                               """).Source("RaskBuilderEntryHost.g.cs");
+
+        Assert.Contains("Holder<T>(T Item)", host, StringComparison.Ordinal);
+
+        // …and it leaves the property exactly as the property's own setter would. Folding the change
+        // keeps propsChanged honest; clearing the pending bit stops the deferred reset putting back the
+        // value the entry just set, which would blank it on the very first render.
+        Assert.Contains("BuilderRuntime.Track(__c, __c.Item, Item)", host, StringComparison.Ordinal);
+        Assert.Contains("BuilderRuntime.Written(__c,", host, StringComparison.Ordinal);
+        Assert.Contains("__c.Item = Item;", host, StringComparison.Ordinal);
+    }
+
+    // The other half of the same rule: a generic component with nothing that pins its type argument gets
+    // no entry, because there would be no way to call it without writing the type argument by hand —
+    // which is what the zero-argument overload is already for. BsDataGrid<T> is the real one (its props
+    // are IEnumerable<T> and List<BsColumn<T>>, neither of which IS T), and this is what keeps it, and
+    // every sample call site that builds one, exactly where it was.
+    [Fact]
+    public void A_generic_component_with_nothing_to_infer_from_gets_no_entry()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using System.Collections.Generic;
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Grid<T> : Component
+                                              {
+                                                  public IEnumerable<T>? Rows { get; set; }
+                                              }
+
+                                              public partial class Plain : Component
+                                              {
+                                                  public string? Note { get; set; }
+                                              }
+                                              """);
+
+        var host = run.Source("RaskBuilderEntryHost.g.cs");
+        Assert.DoesNotContain("Grid<T>", host, StringComparison.Ordinal);
+        Assert.Contains(" Plain =>", host, StringComparison.Ordinal);
+    }
+
     // The one shape a required member still blocks, and it is not about construction: a raw delegate
     // prop is INVOCABLE, so `x.Template(fn)` binds to the property and a same-named setter can never be
     // reached (the RASK042 rule). An optional prop of that shape moves to a carrier; a required one
