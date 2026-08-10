@@ -54,12 +54,28 @@ public sealed class BakeScopedAssetsTask : Task
     ///     <c>false</c>) if the Rask registry resolved but produced zero files — i.e.
     ///     a Rask WASM project whose scoped assets silently failed to bake. Defaults to
     ///     <c>false</c>: a non-Rask project (no <c>Rask.Core</c>) still no-ops quietly,
-    ///     and the build-time bake stays non-fatal. Wired to <c>true</c> only on the
-    ///     <c>dotnet run</c> hook, where a missing bundle means the served app would
-    ///     404 on every <c>/_rask/a/</c> URL — better to fail fast than serve a broken
-    ///     standalone bundle.
+    ///     and the build-time bake stays non-fatal.
     /// </summary>
+    /// <remarks>
+    ///     <b>Nothing sets this today</b> — the single call site in <c>Rask.Wasm.targets</c> leaves it at
+    ///     its default, so the guard below never fires in a real build. It is kept because the check is
+    ///     cheap and correct for what it covers, and a future caller may want it.
+    ///     <para>
+    ///         It is deliberately <b>not</b> the guard against a published bundle missing its scoped
+    ///         assets, which is the failure that actually bites (#650/#652): there the bake runs and
+    ///         writes its files perfectly well, and the break is between staging and the published
+    ///         output — invisible from inside this task. <c>_RaskVerifyPublishedScopedAssets</c> in
+    ///         <c>Rask.Wasm.targets</c> covers that, by comparing what was staged against what shipped.
+    ///     </para>
+    /// </remarks>
     public bool FailOnEmpty { get; set; }
+
+    /// <summary>
+    ///     Assemblies skipped because this MSBuild process had already loaded one of the same simple name.
+    ///     Non-empty means the bake was working from an incomplete view of the app — see the check in
+    ///     <see cref="Execute" />.
+    /// </summary>
+    private readonly List<string> _skippedAlreadyLoaded = new();
 
     public override bool Execute()
     {
@@ -88,6 +104,27 @@ public sealed class BakeScopedAssetsTask : Task
             var written = BakeFromAssemblies(out var registryResolved);
             Log.LogMessage(MessageImportance.High,
                 $"Rask asset bake: wrote {written} file(s) under '{Path.Combine(BundleDir, "_rask", "a")}'.");
+
+            // The bake produced nothing AND we skipped an assembly because this process had already loaded
+            // one by that name. That combination is never a legitimate "this project has no scoped assets":
+            // it is the MSBuild node-reuse race (#650), where LoadFrom throws on a reused worker and the
+            // bake quietly bakes an empty bundle. Measured at roughly one publish in three, and silent —
+            // the app then boots with every /_rask/a/ URL 404ing, which reads as a broken app rather than a
+            // broken build. Failing here is what stops that shipping.
+            //
+            // Deliberately conditioned on written == 0 as well as the skip: a bake that still produced its
+            // files despite skipping something is not known to be wrong, and failing it would turn a real
+            // fix into a new source of false build breaks.
+            if (written == 0 && _skippedAlreadyLoaded.Count > 0)
+            {
+                Log.LogError(
+                    "Rask asset bake: zero /_rask/a/ files were written because " +
+                    $"{string.Join(", ", _skippedAlreadyLoaded)} could not be loaded — this MSBuild worker " +
+                    "had already loaded an assembly of that name (node reuse), so the scoped-asset registry " +
+                    "was never read. The published app would 404 on every scoped CSS/JS URL. Re-run the " +
+                    "publish with -nodeReuse:false, or from a fresh MSBuild process.");
+                return false;
+            }
 
             if (FailOnEmpty && registryResolved && written == 0)
             {
@@ -172,6 +209,18 @@ public sealed class BakeScopedAssetsTask : Task
             {
                 Log.LogMessage(MessageImportance.Low,
                     $"Rask asset bake: skipping {Path.GetFileName(dllPath)} — {ex.GetType().Name}: {ex.Message}");
+
+                // Remember the ones that were already loaded into this process. MSBuild reuses its worker
+                // nodes, so a publish can land on a node that loaded an assembly of the same simple name
+                // during an earlier build — LoadFrom then throws and we skip an assembly whose scoped
+                // assets we needed. Skipping is the right local behaviour (recovering the loaded instance
+                // would bake a PREVIOUS build's state, which is worse than baking none), but it must not
+                // pass silently when it costs us the whole bundle: see the check in Execute.
+                if (ex is FileLoadException)
+                {
+                    _skippedAlreadyLoaded.Add(Path.GetFileName(dllPath));
+                }
+
                 continue;
             }
 

@@ -62,14 +62,21 @@ dotnet publish samples/Rask.Example.Shop -c Release --no-build --no-restore --no
 # last. Clearing only obj/Release/net10.0-browser keeps obj/project.assets.json, so the restore below is
 # still incremental.
 #
-# bin/ has to go too, and leaving it behind is why the first attempt at this (#652) did not work. With the
-# no-native build still sitting in bin/Release/net10.0-browser the publish below treats the compile as up
-# to date, so it never re-runs the scoped-asset bake — and since the staged copy under obj/ has just been
-# deleted, there is now nothing at all to publish. Clearing obj alone is therefore worse than clearing
-# neither. Measured: obj only -> 0 files under publish/wwwroot/_rask; obj + bin -> 6.
+# bin/ is cleared alongside obj/. Be clear about what this does and does not do: it is NOT the fix, and
+# the gate still fails intermittently with it in place. It was added on an A/B that looked decisive at the
+# time (obj alone -> 0 files under publish/wwwroot/_rask, obj + bin -> 6) and has since been contradicted
+# by three sessions' worth of runs, including reproductions on branches that already had it. It is kept
+# only because it is cheap — one recompile of a project whose native relink dominates this step anyway.
 #
-# Note this cannot be caught by running the gate twice: both runs clear obj and both leave the same stale
-# bin, so both fail identically and look consistent. See #650.
+# What #650 actually is, per the build log: after the no-native solution build above, this native publish's
+# bake RUNS and writes ZERO files for an app that plainly has scoped assets. So no amount of cleaning here
+# can help — there is nothing stale to clear, and the deciding variable is the preceding no-native build,
+# not this project's output. The fix belongs inside the bake and is still open.
+#
+# Two traps when verifying anything in this area, both of which have already produced false confidence:
+# running the gate twice back to back does not distinguish these cases, since both runs do the same thing;
+# and `dotnet publish` does not clean its output directory, so _rask left by an earlier good publish makes
+# a broken publish look fine — delete the publish dir first.
 rm -rf samples/Rask.Example.Playground/obj/Release/net10.0-browser \
        samples/Rask.Example.Playground/bin/Release/net10.0-browser
 # It also RE-RESTORES (no --no-restore, unlike the publishes above). RaskPlaygroundData gates the EF Core /
@@ -77,7 +84,16 @@ rm -rf samples/Rask.Example.Playground/obj/Release/net10.0-browser \
 # restored in the other one. MSBuild does not error when a PackageReference appears after restore, it
 # silently ignores it: the bundle would compile with RASK_PLAYGROUND_DATA defined (chapters 5-8 unlocked)
 # while _framework shipped no EF Core at all, and the E2E would burn its full timeout on a CS0246.
-dotnet publish samples/Rask.Example.Playground -c Release --nologo
+#
+# -nodeReuse:false is the actual difference between this publish working and not. BakeScopedAssetsTask
+# inspects the built assemblies with Assembly.LoadFrom, and MSBuild reuses worker nodes between builds: a
+# publish landing on a node that already loaded an assembly of the same simple name (from the solution
+# build above) hits a FileLoadException, skips that assembly, and bakes an empty bundle while reporting
+# success. Measured here at 3 failures in 4 consecutive publishes on identical inputs — which is why this
+# looked like a stale-output problem for so long, and why neither clean below ever fixed it: the
+# conflicting state is in the process, not on disk. A fresh node per publish removes the conflict.
+# The task now also fails rather than baking nothing silently, so this is the fix and that is the net.
+dotnet publish samples/Rask.Example.Playground -c Release -nodeReuse:false --nologo
 dotnet publish samples/Rask.Example.Site -c Release --no-restore -p:WasmBuildNative=false --nologo
 # The other exception to WasmBuildNative=false, and the slowest line here (an emscripten relink, minutes
 # not seconds): this sample runs SQLite in the browser, and SQLite is a native library. Skipping the
