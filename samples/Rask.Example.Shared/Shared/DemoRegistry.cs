@@ -14,21 +14,19 @@ namespace Rask.Example.Shared;
 //   2. Every embed must mint its own fresh, independently-stateful instance.
 // The factory bodies call the generated component factories (CodeSample(...), BindingTypedDemo(),
 // …), available project-wide via the generator's `global using static …Generated`.
-// It used to be a `static class`, and a static class can derive from nothing — so it could reach no
-// builder entry, and every one of the ~320 markup sites below was stranded on the factory. Being static
-// bought one thing (the compiler refuses to instantiate it), and a sealed class with a private
-// constructor buys the same. Everything else is unchanged: the members are still static, the callers
-// still write `DemoRegistry.Build(key)`, and a lambda in a static field initializer reaches an
-// inherited `protected static` entry exactly as a component's render body does.
-public sealed partial class DemoRegistry : RaskMarkup
+// A static class can derive from nothing, so it could reach no builder entry by inheritance and every
+// one of the ~320 markup sites below was stranded on the factory. [RaskMarkup] is the opt-in that costs
+// no base slot: this stays a static class, and the framework entries are injected as its own members.
+// Everything else is unchanged — the callers still write `DemoRegistry.Build(key)`, and a lambda in a
+// static field initializer reaches a `private static` entry of the enclosing type exactly as a
+// component's render body does.
+//
+// `Map` needs no `new`: an injected entry of that name would be a SECOND member of this type (CS0102),
+// not an inherited one to hide, so the <map> entry is simply not injected here.
+[RaskMarkup]
+public static partial class DemoRegistry
 {
-    private DemoRegistry()
-    {
-    }
-
-    // `new` because `Map` is also the <map> tag's inherited entry. Joining the surface means 163 names
-    // arrive in this type's scope, and any member of yours that shares one has to say so.
-    private static new readonly IReadOnlyDictionary<string, Func<Component>> Map =
+    private static readonly IReadOnlyDictionary<string, Func<Component>> Map =
         new Dictionary<string, Func<Component>>(StringComparer.Ordinal)
         {
             // --- Routing guide (code-only samples; the running showcase *is* the live demo) ---

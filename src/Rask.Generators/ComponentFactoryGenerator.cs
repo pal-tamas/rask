@@ -1683,11 +1683,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .Append(host2.TypeName).Append(host2.TypeParameters)
                 .AppendLine(host2.Delivery == Delivery.Base ? " : global::Rask.Core.RaskMarkup" : string.Empty);
             sb.AppendLine("{");
+            var declared = host2.Delivery == Delivery.Injected
+                ? new HashSet<string>(host2.MemberNames, StringComparer.Ordinal)
+                : EmptyNames;
             if (host2.Delivery == Delivery.Injected)
             {
                 foreach (var e in frameworkRefs)
                 {
-                    if (string.Equals(e.Name, host2.TypeName, StringComparison.Ordinal))
+                    if (string.Equals(e.Name, host2.TypeName, StringComparison.Ordinal)
+                        || declared.Contains(e.Name))
                     {
                         continue;
                     }
@@ -1700,7 +1704,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             {
                 // A member may not share its enclosing type's name (CS0542) — and a component never
                 // needs an entry for itself anyway.
-                if (string.Equals(e.Name, host2.TypeName, StringComparison.Ordinal))
+                if (string.Equals(e.Name, host2.TypeName, StringComparison.Ordinal)
+                    || declared.Contains(e.Name))
                 {
                     continue;
                 }
@@ -2228,6 +2233,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             return null;
         }
 
+        var delivery = MarkupDelivery(symbol, isComponent);
+
         return new EntryHostDecl(
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             symbol.ContainingNamespace.IsGlobalNamespace ? string.Empty
@@ -2242,7 +2249,31 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             classDecl.Identifier.Span.Start,
             classDecl.Identifier.Span.Length,
             symbol.IsStatic,
-            MarkupDelivery(symbol, isComponent));
+            delivery,
+            delivery == Delivery.Injected ? ReachableMemberNames(symbol) : default);
+    }
+
+    // Every name an injected entry must leave alone: this type's own members and its whole base chain's.
+    //
+    // Only the injected delivery needs the list, and only it can be broken by the names on it. For an
+    // INHERITED entry, a same-named member of yours simply hides it and `new` says so — the compiler
+    // accepts that, and it is what FieldErrors.Template and DemoRegistry.Map used to write. An INJECTED
+    // entry has neither out: against this type's own member it is a second member of the same name
+    // (CS0102, which no modifier fixes), and against a BASE's it silently hides something belonging to a
+    // type the author does not control (CS0108, an error under warnings-as-errors). Both answers are the
+    // same one — the name stays with the member that is already there, and the entry is not injected.
+    private static EquatableArray<string> ReachableMemberNames(INamedTypeSymbol symbol)
+    {
+        var names = new SortedSet<string>(StringComparer.Ordinal);
+        for (var t = symbol; t is not null; t = t.BaseType)
+        {
+            foreach (var name in t.MemberNames)
+            {
+                names.Add(name);
+            }
+        }
+
+        return new EquatableArray<string>(names.ToArray());
     }
 
     /// <summary>
@@ -2303,7 +2334,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         int DeclSpanStart,
         int DeclSpanLength,
         bool IsStatic = false,
-        Delivery Delivery = Delivery.Inherited);
+        Delivery Delivery = Delivery.Inherited,
+        EquatableArray<string> MemberNames = default);
 
     private readonly record struct ComponentHost(
         bool DeclaresComponent,
