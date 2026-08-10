@@ -46,6 +46,21 @@ them until tagged releases begin.
   branches ([#661](https://github.com/pal-tamas/rask/issues/661)).
 
 ### Added
+- **Compaction, so a shared bucket doesn't grow forever.** A replica folds its own objects into a single
+  one holding its whole current contribution and removes the rest — automatically once its prefix passes
+  `CompactAfterObjects` (default 50), or on demand via `CompactAsync()`. What makes it cheap is a
+  property of cr-sqlite's feed worth knowing on its own: **it is current state, not history** — one entry
+  per (row, column) with the value that won, so editing a field forty times leaves *one* entry and a
+  deleted row collapses to a single tombstone. Republishing everything therefore costs the size of the
+  database rather than the number of edits ever made. No coordination is needed, because a replica only
+  ever rewrites its own prefix — the same rule that removes write conflicts makes compaction a local
+  decision. Three things keep it safe, each pinned by a test: the replacement is keyed so it sorts
+  **after** everything it replaces (a replacement that sorted earlier would silently stop reaching peers
+  that had already synced); re-reading state a peer already holds is harmless because applying twice does
+  nothing; and a peer reading an object as it is removed skips it and finds the replacement. The payoff
+  is a new device's first sync — one object per peer instead of replaying every sync those peers have
+  ever done, verified against the real extension including that a **tombstone survives compaction**, so a
+  deleted row does not come back from the dead.
 - **A working sample: three devices sharing one database with no server.**
   `samples/Rask.Example.Crdt` runs three replicas — Phone, Laptop, Tablet — each with its own SQLite
   file and its own replica identity, sharing a bucket and nothing else. Each device can be taken

@@ -59,6 +59,34 @@ silently skips changes.
 The watermark advances **after** the changes are committed locally, so an interrupted pull is retried
 rather than skipped. Skipped changes never come back — the peer has no reason to publish them again.
 
+## Compaction: why the bucket doesn't grow forever
+
+A replica folds its own objects into a single one holding its whole current contribution, and removes
+the rest — automatically once its prefix passes `CompactAfterObjects` (default 50), or on demand:
+
+```csharp
+var removed = await engine.CompactAsync();
+```
+
+What makes this cheap is a property of the change feed worth knowing on its own: **it is current state,
+not history.** cr-sqlite holds one entry per (row, column) with the value that won, so editing the same
+field forty times leaves *one* entry, and a deleted row collapses to a single tombstone. Republishing
+everything therefore costs the size of the database rather than the number of edits ever made.
+
+**No coordination is needed**, because a replica only ever rewrites its own prefix — the same rule that
+removes write conflicts makes compaction a purely local decision. Three things keep it safe:
+
+- the replacement is keyed so it sorts **after** everything it replaces, so every peer picks it up
+  whatever watermark it holds;
+- re-reading state a peer already has is harmless, because applying a change twice does nothing;
+- a peer reading an object at the moment it is removed skips it and finds the replacement — the engine
+  already treats a vanished object as ordinary.
+
+The payoff is the first sync of a **new device**: it fetches one object per peer instead of replaying
+every sync those peers have ever done.
+
+Set `CompactAfterObjects = 0` to turn it off.
+
 ## Offline is the normal case, not an error
 
 The **database is the queue.** An edit is committed to SQLite by `SaveChanges` before any of this runs,

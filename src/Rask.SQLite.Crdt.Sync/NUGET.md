@@ -35,6 +35,16 @@ sync stopped. Peers are found with a grouped listing, so discovery costs one res
 publishing it unfiltered would have each device re-uploading every other device's history. Uploads are
 batched, because object storage charges per request.
 
+## The bucket doesn't grow forever
+
+A replica folds its own objects into one holding its whole current contribution and removes the rest —
+automatically past `CompactAfterObjects` (default 50), or via `await engine.CompactAsync()`.
+
+Cheap because the change feed is **current state, not history**: one entry per (row, column) with the
+value that won, so editing a field forty times leaves one entry and a deleted row collapses to a single
+tombstone. No coordination is needed, since a replica only rewrites its own prefix. The payoff is a new
+device's first sync — one object per peer, instead of replaying every sync those peers ever did.
+
 ## Offline is the normal case, not an error
 
 The **database is the queue**. An edit is committed to SQLite before any sync is attempted, so there is
