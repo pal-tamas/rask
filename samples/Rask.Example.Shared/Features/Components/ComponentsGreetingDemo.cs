@@ -11,9 +11,9 @@ public sealed partial class Greeting : Component
     public new string? Title { get; set; }
 
     protected override Component? Render() =>
-        P(Class: "mb-0")[
+        P.Class("mb-0")[
             Title is null ? "" : $"{Title} ",
-            "Hello, ", Strong()[Name], "!"
+            "Hello, ", Strong[Name], "!"
         ];
 }
 
@@ -21,5 +21,5 @@ public sealed partial class Greeting : Component
 // visible through an auto-generated `global using static`, no using needed.
 public sealed partial class ComponentsGreetingDemo : Component
 {
-    protected override Component? Render() => Greeting("Ada", "Dr.");
+    protected override Component? Render() => Greeting.Name("Ada").Title("Dr.");
 }

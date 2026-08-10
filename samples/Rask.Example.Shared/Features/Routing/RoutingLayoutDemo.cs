@@ -12,9 +12,9 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class RoutingLayoutDemo : Component
 {
     protected override Component? Render() =>
-        Div()[
-            Nav()["sidebar"],
-            Main()[Outlet()]   // children render here
+        Div[
+            Nav["sidebar"],
+            Main[Outlet]   // children render here
         ];
 }
 
@@ -23,5 +23,5 @@ public sealed partial class RoutingLayoutDemo : Component
 public sealed partial class RoutingNestedProfile : Component
 {
     protected override Component? Render() =>
-        H1()["Profile"];
+        H1["Profile"];
 }

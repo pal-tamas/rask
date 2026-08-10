@@ -20,18 +20,26 @@ public sealed partial class BsDataGridEmptyDemo : Component
     {
         var rows = All.Where(t => t.Owner.Contains(_filter, StringComparison.OrdinalIgnoreCase)).ToList();
 
-        return Div(Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
-            Div(Class: Bs.Join(Display.Flex(), Flex.Gap(2)))[
-                BsButton(Id: "grid-filter-none", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    OnClick: () => _filter = "nobody")["Filter to nothing"],
-                BsButton(Id: "grid-filter-clear", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    OnClick: () => _filter = "")["Clear filter"]
+        return Div.Class(Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
+            Div.Class(Bs.Join(Display.Flex(), Flex.Gap(2)))[
+                BsButton
+                    .Id("grid-filter-none")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .OnClick(() => _filter = "nobody")["Filter to nothing"],
+                BsButton
+                    .Id("grid-filter-clear")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .OnClick(() => _filter = "")["Clear filter"]
             ],
             BsDataGrid(
                 Id: "bs-grid-empty",
                 Data: rows,
                 RowKey: t => t.Title,
-                Empty: BsAlert(Id: "grid-empty", Color: BsColor.Info, Class: Margin.Bottom(0))[
+                Empty: BsAlert.Id("grid-empty").Color(BsColor.Info).Class(Margin.Bottom(0))[
                     "No tasks match that filter."],
                 Columns:
                 [

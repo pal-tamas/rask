@@ -10,15 +10,15 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class GuidesIndexPage : Component
 {
-    protected override Component? Head => Title()["Guides — Rask"];
+    protected override Component? Head => Title["Guides — Rask"];
 
     protected override Component? Render() =>
     [
-        PageHeader(
-            Title: "Guides",
-            Lead: "Narrative documentation for the framework — the same guides that ship in the repo's docs/ "
+        PageHeader
+            .Title("Guides")
+            .Lead("Narrative documentation for the framework — the same guides that ship in the repo's docs/ "
                   + "folder, rendered here. Each guide embeds runnable demos inline and reads like a proper "
                   + "narrative guide, with a Chapters index, an on-this-page rail, and prev/next navigation."),
-        Div()[GuideCards()]
+        Div[GuideCards]
     ];
 }

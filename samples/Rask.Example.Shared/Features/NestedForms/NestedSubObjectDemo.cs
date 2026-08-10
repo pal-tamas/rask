@@ -10,7 +10,7 @@ public sealed partial class NestedSubObjectDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     protected override Component? Render() =>
     [
@@ -19,39 +19,39 @@ public sealed partial class NestedSubObjectDemo : Component
             m => _submission =
                 $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).",
             Class: "vstack gap-3")[
-            DataAnnotationsValidator(),
-            Div()[
-                Label("nf-name", Class: "form-label small mb-1")["Name"],
+            DataAnnotationsValidator,
+            Div[
+                Label.For("nf-name").Class("form-label small mb-1")["Name"],
                 Input(() => _model.Name).Id("nf-name").Class("form-control"),
                 ValidationMessage(() => _model.Name, FieldError)
             ],
-            Div()[
-                Label("nf-email", Class: "form-label small mb-1")["Email"],
+            Div[
+                Label.For("nf-email").Class("form-label small mb-1")["Email"],
                 Input(() => _model.Email)
                     .Id("nf-email")
                     .Type(InputType.Email)
                     .Class("form-control"),
                 ValidationMessage(() => _model.Email, FieldError)
             ],
-            Fieldset(Class: "border rounded p-3 mt-2")[
-                Legend(Class: "h6 fw-semibold")["Shipping address"],
-                Div(Class: "vstack gap-3")[
-                    Div()[
-                        Label("nf-street", Class: "form-label small mb-1")["Street"],
+            Fieldset.Class("border rounded p-3 mt-2")[
+                Legend.Class("h6 fw-semibold")["Shipping address"],
+                Div.Class("vstack gap-3")[
+                    Div[
+                        Label.For("nf-street").Class("form-label small mb-1")["Street"],
                         Input(() => _model.Address.Street)
                             .Id("nf-street")
                             .Class("form-control"),
                         ValidationMessage(() => _model.Address.Street, FieldError)
                     ],
-                    Div()[
-                        Label("nf-city", Class: "form-label small mb-1")["City"],
+                    Div[
+                        Label.For("nf-city").Class("form-label small mb-1")["City"],
                         Input(() => _model.Address.City)
                             .Id("nf-city")
                             .Class("form-control"),
                         ValidationMessage(() => _model.Address.City, FieldError)
                     ],
-                    Div()[
-                        Label("nf-country", Class: "form-label small mb-1")["Country (ISO)"],
+                    Div[
+                        Label.For("nf-country").Class("form-label small mb-1")["Country (ISO)"],
                         Input(() => _model.Address.Country)
                             .Id("nf-country")
                             .Class("form-control")
@@ -60,15 +60,15 @@ public sealed partial class NestedSubObjectDemo : Component
                     ]
                 ]
             ],
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary, Id: "nf-submit")[
-                    BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Place order"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary).Id("nf-submit")[
+                    BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Place order"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-result")[
-                BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0").Id("nf-result")[
+                BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

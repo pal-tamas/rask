@@ -20,47 +20,52 @@ public sealed partial class EventsDemo : Component
     private static string Fmt(double d) => d.ToString("0", CultureInfo.InvariantCulture);
 
     protected override Component? Render() =>
-        BsRow(Gutter: 3)[
+        BsRow.Gutter(3)[
             // Pointer tracking pad: mousemove + enter/leave + wheel, all typed.
-            BsCol(Md: 6)[
-                Div(Class: "border rounded p-4 text-center user-select-none",
-                    Style: _hovering ? "background:#eef6ff" : null,
-                    OnMouseMove: e => { _x = e.OffsetX; _y = e.OffsetY; },
-                    OnMouseEnter: _ => _hovering = true,
-                    OnMouseLeave: _ => _hovering = false,
-                    OnWheel: e => _wheel += (int)e.DeltaY)[
-                    Strong()["Move / scroll here"],
-                    Div(Class: "text-secondary mt-2")[
+            BsCol.Md(6)[
+                Div
+                    .Class("border rounded p-4 text-center user-select-none")
+                    .Style(_hovering ? "background:#eef6ff" : null)
+                    .OnMouseMove(e => { _x = e.OffsetX; _y = e.OffsetY; })
+                    .OnMouseEnter(_ => _hovering = true)
+                    .OnMouseLeave(_ => _hovering = false)
+                    .OnWheel(e => _wheel += (int)e.DeltaY)[
+                    Strong["Move / scroll here"],
+                    Div.Class("text-secondary mt-2")[
                         $"x: {Fmt(_x)}, y: {Fmt(_y)} · {(_hovering ? "inside" : "outside")} · wheel Σ {_wheel}"]
                 ]
             ],
             // Double-click + context menu (preventDefault'd client-side so the native menu is suppressed).
-            BsCol(Md: 6)[
-                Button(Class: "btn btn-outline-primary w-100 py-4", OnDoubleClick: _ => _doubleClicks++,
-                    OnContextMenu: _ => _contextMenu = !_contextMenu)[
+            BsCol.Md(6)[
+                Button
+                    .Class("btn btn-outline-primary w-100 py-4")
+                    .OnDoubleClick(_ => _doubleClicks++)
+                    .OnContextMenu(_ => _contextMenu = !_contextMenu)[
                     "Double-click or right-click me"],
-                Div(Class: "text-secondary mt-2")[
+                Div.Class("text-secondary mt-2")[
                     $"double-clicks: {_doubleClicks} · context-menu toggled: {_contextMenu}"]
             ],
             // Focus / blur + keyboard on a focusable div.
-            BsCol(Md: 6)[
-                Div(Class: "border rounded p-4",
-                    TabIndex: 0,
-                    Style: _focused ? "outline:2px solid #0d6efd" : null,
-                    OnFocus: () => _focused = true,
-                    OnBlur: () => _focused = false,
-                    OnKeyDown: e => _lastKey = e.Key)[
-                    Strong()["Click to focus, then type"],
-                    Div(Class: "text-secondary mt-2")[
+            BsCol.Md(6)[
+                Div
+                    .Class("border rounded p-4")
+                    .TabIndex(0)
+                    .Style(_focused ? "outline:2px solid #0d6efd" : null)
+                    .OnFocus(() => _focused = true)
+                    .OnBlur(() => _focused = false)
+                    .OnKeyDown(e => _lastKey = e.Key)[
+                    Strong["Click to focus, then type"],
+                    Div.Class("text-secondary mt-2")[
                         $"{(_focused ? "focused" : "blurred")} · last key: {_lastKey}"]
                 ]
             ],
             // Clipboard: paste into the box and read the text server-side.
-            BsCol(Md: 6)[
-                Div(Class: "border rounded p-4",
-                    OnPaste: e => _pasted = e.Text)[
-                    Strong()["Paste text here"],
-                    Div(Class: "text-secondary mt-2")[$"pasted: {_pasted}"]
+            BsCol.Md(6)[
+                Div
+                    .Class("border rounded p-4")
+                    .OnPaste(e => _pasted = e.Text)[
+                    Strong["Paste text here"],
+                    Div.Class("text-secondary mt-2")[$"pasted: {_pasted}"]
                 ]
             ]
         ];

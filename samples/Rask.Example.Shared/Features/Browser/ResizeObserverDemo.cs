@@ -35,17 +35,21 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "small text-secondary mb-2")[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("small text-secondary mb-2")[
                     "Observed size: ",
-                    Code(Id: "resize-value")[
+                    Code.Id("resize-value")[
                         _width > 0 ? $"{_width.ToString("0", Inv)} × {_height.ToString("0", Inv)} px" : "(measuring…)"]
                 ],
-                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "resize-toggle",
-                    OnClick: () => _wide = !_wide)["Toggle width"],
-                Div(Ref: _box, Id: "resize-box",
-                    Class: (_wide ? "w-100" : "w-50") + " p-4 rounded bg-light text-center")[
+                Button
+                    .Class("btn btn-outline-primary btn-sm mb-2")
+                    .Id("resize-toggle")
+                    .OnClick(() => _wide = !_wide)["Toggle width"],
+                Div
+                    .Ref(_box)
+                    .Id("resize-box")
+                    .Class((_wide ? "w-100" : "w-50") + " p-4 rounded bg-light text-center")[
                     "📐 observed box (resize the window too)"
                 ]
             ]

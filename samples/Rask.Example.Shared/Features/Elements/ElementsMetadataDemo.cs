@@ -9,36 +9,36 @@ public sealed partial class ElementsMetadataDemo : Component
     // why RASK019 normally flags Head()[…] children) — this composes the elements directly just to show
     // them and their serialized output, so the analyzer is suppressed here on purpose.
 #pragma warning disable RASK019
-    private static Component Shell() => Html("en", Dir: "ltr")[
+    private static Component Shell() => Html.Lang("en").Dir("ltr")[
         Head()[
-            Meta(Charset: "utf-8"),
-            Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-            Title()["My page"],
-            Base(Href: "/"),
-            Link(Rel: "stylesheet", Href: "/app.css"),
-            Style()["body{margin:0}"],
-            Script(Src: "/app.js", Defer: true),
-            Noscript()["This app needs JavaScript."]
+            Meta.Charset("utf-8"),
+            Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
+            Title["My page"],
+            Base.Href("/"),
+            Link.Rel("stylesheet").Href("/app.css"),
+            Style["body{margin:0}"],
+            Script.Src("/app.js").Defer(true),
+            Noscript["This app needs JavaScript."]
         ],
-        Body()[P()["Hello world"]]
+        Body[P["Hello world"]]
     ];
 #pragma warning restore RASK019
 
-    protected override Component? Render() => Div(Class: "vstack gap-3")[
-        Div()[
-            P(Class: "small mb-1 text-secondary")[
+    protected override Component? Render() => Div.Class("vstack gap-3")[
+        Div[
+            P.Class("small mb-1 text-secondary")[
                 "The structural elements compose a document. Here is a real shell and its serialized HTML:"],
-            Pre(Class: "bg-dark text-light rounded p-3 mb-0", Style: "white-space:pre-wrap;word-break:break-word")[
-                Code()[Shell().ToHtml()]]
+            Pre.Class("bg-dark text-light rounded p-3 mb-0").Style("white-space:pre-wrap;word-break:break-word")[
+                Code[Shell().ToHtml()]]
         ],
-        Div()[
-            P(Class: "small mb-1 text-secondary")[
+        Div[
+            P.Class("small mb-1 text-secondary")[
                 "template holds inert content (cloned by JS); slot is a shadow-DOM placeholder:"],
-            Div(Class: "border rounded p-2")[
-                Template(Id: "row-tmpl")[Li()["Inert template content"]],
-                Slot(Name: "label")["Default slot content"],
-                P(Class: "mb-0 mt-1 text-secondary small")[
-                    "(the ", Code()["template"], " content is hidden by the browser until cloned)"]
+            Div.Class("border rounded p-2")[
+                Template.Id("row-tmpl")[Li["Inert template content"]],
+                Slot.Name("label")["Default slot content"],
+                P.Class("mb-0 mt-1 text-secondary small")[
+                    "(the ", Code["template"], " content is hidden by the browser until cloned)"]
             ]
         ]
     ];

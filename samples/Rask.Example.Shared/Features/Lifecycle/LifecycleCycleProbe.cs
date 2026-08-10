@@ -25,8 +25,8 @@ public sealed partial class LifecycleCycleProbe : Component
     }
 
     protected override Component? Render() =>
-        BsStack(Gap: 2, Align: BsAlign.Center)[
-            BsBadge(Color: BsColor.Success)[$"#{InstanceId} alive"],
-            Span(Class: "text-secondary small")["Unmount me to fire OnUnmount / OnUnmountAsync."]
+        BsStack.Gap(2).Align(BsAlign.Center)[
+            BsBadge.Color(BsColor.Success)[$"#{InstanceId} alive"],
+            Span.Class("text-secondary small")["Unmount me to fire OnUnmount / OnUnmountAsync."]
         ];
 }

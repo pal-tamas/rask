@@ -20,13 +20,14 @@ public sealed partial class DownloadDemo(Navigator nav) : Component
     }
 
     protected override Component? Render() =>
-        Div()[
-            BsButton(Color: BsColor.Primary, Id: "download-report", OnClick: DownloadReport)[
-                BsIcon(Name: BsIconName.FileEarmarkText, Class: "me-2"),
+        Div[
+            BsButton.Color(BsColor.Primary).Id("download-report").OnClick(DownloadReport)[
+                BsIcon.Name(BsIconName.FileEarmarkText).Class("me-2"),
                 "Download report"
             ],
-            Div(Class: "small text-secondary mt-2",
-                Data: new Dictionary<string, string?> { ["rask-report-count"] = "true" })[
+            Div
+                .Class("small text-secondary mt-2")
+                .Data(new Dictionary<string, string?> { ["rask-report-count"] = "true" })[
                 $"Generated {_reportCount} time(s)."
             ]
         ];

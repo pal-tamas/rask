@@ -10,10 +10,10 @@ public sealed partial class TierGreeting : Component
     public required string Name { get; set; }
 
     protected override Component? Render() =>
-        P(Class: "mb-0")["Hello, ", Strong()[Name], "!"];
+        P.Class("mb-0")["Hello, ", Strong[Name], "!"];
 }
 
 public sealed partial class TierStatelessGreetingDemo : Component
 {
-    protected override Component? Render() => TierGreeting(Name: "Ada");
+    protected override Component? Render() => TierGreeting.Name("Ada");
 }

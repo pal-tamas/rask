@@ -33,36 +33,38 @@ public partial class App : Component
 
     protected override Component? Head =>
     [
-        Title()["Rask — feature showcase"],
-        Meta("utf-8"),
-        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover"),
-        Script()[Raw(ThemeInitJs)],
+        Title["Rask — feature showcase"],
+        Meta.Charset("utf-8"),
+        Meta.Name("viewport").Content("width=device-width, initial-scale=1, viewport-fit=cover"),
+        Script[Raw.Value(ThemeInitJs)],
         // Brand favicon (the purple bolt). Served from the app's own origin; PathBase keeps
         // it correct under a reverse-proxy prefix (Server) or sub-path deploy (WASM).
-        Link(Rel: "icon", Type: "image/svg+xml", Href: LiveOptions.PathBase + "/img/rask-mark.svg"),
+        Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/img/rask-mark.svg"),
         // The showcase type system: Space Grotesk (display), Inter (body), JetBrains Mono (code) — see
         // the --font-* tokens in global.css. Preconnect to the font CDN so the swap lands fast.
-        Link(Rel: "preconnect", Href: "https://fonts.googleapis.com"),
-        Link(Rel: "preconnect", Href: "https://fonts.gstatic.com", CrossOrigin: "anonymous"),
-        Link(Rel: "stylesheet",
-            Href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700"
+        Link.Rel("preconnect").Href("https://fonts.googleapis.com"),
+        Link.Rel("preconnect").Href("https://fonts.gstatic.com").CrossOrigin("anonymous"),
+        Link
+            .Rel("stylesheet")
+            .Href("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700"
                 + "&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"),
         // Bootstrap 5.3 + Bootstrap Icons, delivered by the Rask.Bootstrap package as static web
         // assets under _content/Rask.Bootstrap (PathBase-aware). This dogfoods the package's own
         // BootstrapStyles() helper instead of vendoring the CSS per app.
-        BootstrapStyles(),
+        BootstrapStyles,
         // Shared Rask design tokens (violet dark-first palette + the Bootstrap --bs-* bridge). AFTER
         // BootstrapStyles() so the bridge wins the cascade, BEFORE global.css so app CSS can override.
-        RaskTokens(),
+        RaskTokens,
         // Brand palette + global cascade. Plain wwwroot stylesheet (not a scoped {Component}.css)
         // because every rule targets :root, Bootstrap classes, or shell tags — things this
         // component never stamps a scope id on. Linked here so it loads before the scoped links.
-        Link(Rel: "stylesheet",
-            Href: LiveOptions.PathBase + "/global.css")
+        Link
+            .Rel("stylesheet")
+            .Href(LiveOptions.PathBase + "/global.css")
     ];
 
     protected override string? BodyClass => "bg-body-tertiary";
 
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
-    protected override Component? Render() => Router();
+    protected override Component? Render() => Router;
 }

@@ -9,15 +9,26 @@ public sealed partial class DisposalAsyncDemo : Component
     private int _nextAsyncId;
 
     protected override Component? Render() =>
-        Div()[
-            BsStack(Gap: 2, Class: Margin.Bottom(3))[
-                BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-async-mount", Disabled: _asyncMounted, OnClick: MountAsync)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount async probe"],
-                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-async-unmount", Disabled: !_asyncMounted, OnClick: UnmountAsync)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount async probe"]
+        Div[
+            BsStack.Gap(2).Class(Margin.Bottom(3))[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Size(BsSize.Sm)
+                    .Id("dispose-async-mount")
+                    .Disabled(_asyncMounted)
+                    .OnClick(MountAsync)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Mount async probe"],
+                BsButton
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Id("dispose-async-unmount")
+                    .Disabled(!_asyncMounted)
+                    .OnClick(UnmountAsync)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount async probe"]
             ],
             _asyncMounted
                 ? DisposableAsyncProbe(AppendAsyncLog, _nextAsyncId)
-                : P(Class: "text-secondary fst-italic mb-0")["Probe not mounted."],
-            DisposalDemoLog(Entries: _asyncLog, ListId: "dispose-async-log")
+                : P.Class("text-secondary fst-italic mb-0")["Probe not mounted."],
+            DisposalDemoLog.Entries(_asyncLog).ListId("dispose-async-log")
         ];
 
     private void MountAsync()

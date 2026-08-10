@@ -14,21 +14,28 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
-                    Button(Class: "btn btn-primary btn-sm", Id: "fs-open", OnClickAsync: Open)[
-                        I(Class: "bi bi-folder2-open me-1"), "Open file"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "fs-save", Disabled: _handle is null,
-                        OnClickAsync: Save)[I(Class: "bi bi-save me-1"), "Save"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "fs-saveas", OnClickAsync: SaveAs)[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                    Button.Class("btn btn-primary btn-sm").Id("fs-open").OnClickAsync(Open)[
+                        I.Class("bi bi-folder2-open me-1"), "Open file"],
+                    Button
+                        .Class("btn btn-outline-primary btn-sm")
+                        .Id("fs-save")
+                        .Disabled(_handle is null)
+                        .OnClickAsync(Save)[I.Class("bi bi-save me-1"), "Save"],
+                    Button.Class("btn btn-outline-primary btn-sm").Id("fs-saveas").OnClickAsync(SaveAs)[
                         "Save as…"]
                 ],
-                Div(Class: "mb-2 small text-secondary")["File: ", Code(Id: "fs-name")[_handle?.Name ?? "(none)"]],
-                Rask.Core.Components.Generated.Textarea<string>(Id: "fs-text", Class: "form-control mb-2", Rows: 8, Value: _text,
-                    Placeholder: "Open a text file, or type here and Save as…",
-                    OnInput: v => _text = v),
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "fs-status")[_status]]
+                Div.Class("mb-2 small text-secondary")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
+                Textarea<string>()
+                    .Id("fs-text")
+                    .Class("form-control mb-2")
+                    .Rows(8)
+                    .Value(_text)
+                    .Placeholder("Open a text file, or type here and Save as…")
+                    .OnInput(v => _text = v),
+                Div.Class("small text-secondary")["Status: ", Code.Id("fs-status")[_status]]
             ]
         ];
 

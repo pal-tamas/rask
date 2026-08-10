@@ -10,7 +10,7 @@ public sealed partial class TierStatefulCounterDemo : Component
     private int _count;
 
     protected override Component? Render() =>
-        BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _count++)[
+        BsButton.Color(BsColor.Primary).Size(BsSize.Sm).OnClick(() => _count++)[
             $"Clicked {_count} times"
         ];
 }

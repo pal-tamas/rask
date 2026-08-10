@@ -10,22 +10,34 @@ public sealed partial class LifecycleCycleDemo : Component
     private int _nextCycleId;
 
     protected override Component? Render() =>
-        Div()[
-            BsStack(Gap: 2, Class: Margin.Bottom(3))[
-                BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "lifecycle-cycle-mount", Disabled: _cycleMounted, OnClick: MountCycle)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount probe"],
-                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "lifecycle-cycle-unmount", Disabled: !_cycleMounted, OnClick: UnmountCycle)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount probe"]
+        Div[
+            BsStack.Gap(2).Class(Margin.Bottom(3))[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Size(BsSize.Sm)
+                    .Id("lifecycle-cycle-mount")
+                    .Disabled(_cycleMounted)
+                    .OnClick(MountCycle)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Mount probe"],
+                BsButton
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Id("lifecycle-cycle-unmount")
+                    .Disabled(!_cycleMounted)
+                    .OnClick(UnmountCycle)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount probe"]
             ],
             _cycleMounted
                 ? LifecycleCycleProbe(AppendCycleLog, _nextCycleId)
-                : P(Class: "text-secondary fst-italic mb-0")["Probe not mounted."],
-            H3(Class: "h6 text-secondary text-uppercase small mt-4")["Log"],
+                : P.Class("text-secondary fst-italic mb-0")["Probe not mounted."],
+            H3.Class("h6 text-secondary text-uppercase small mt-4")["Log"],
             _cycleLog.Count == 0
-                ? P(Class: "text-secondary small mb-0")["Empty — mount and unmount the probe."]
-                : Ol(
-                    Class: "list-group list-group-numbered list-group-flush",
-                    Id: "lifecycle-cycle-log")[
-                    _cycleLog.Select((l, i) => Li(Key: i,
-                        Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
+                ? P.Class("text-secondary small mb-0")["Empty — mount and unmount the probe."]
+                : Ol
+                    .Class("list-group list-group-numbered list-group-flush")
+                    .Id("lifecycle-cycle-log")[
+                    _cycleLog.Select((l, i) => Li
+                        .Key(i)
+                        .Class("list-group-item ps-2 small")[Code.Class("small")[l]]).ToArray()]
         ];
 
     private void MountCycle()

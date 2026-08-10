@@ -6,10 +6,10 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class BsProgressDemo : Component
 {
     protected override Component? Render() =>
-        Div(Class: "vstack gap-3")[
-            BsProgress(Value: 25),
-            BsProgress(Value: 50, Color: BsColor.Success, Label: "50%"),
-            BsProgress(Value: 75, Color: BsColor.Info, Striped: true),
-            BsProgress(Value: 100, Color: BsColor.Warning, Striped: true, Animated: true)
+        Div.Class("vstack gap-3")[
+            BsProgress.Value(25),
+            BsProgress.Value(50).Color(BsColor.Success).Label("50%"),
+            BsProgress.Value(75).Color(BsColor.Info).Striped(true),
+            BsProgress.Value(100).Color(BsColor.Warning).Striped(true).Animated(true)
         ];
 }

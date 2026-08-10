@@ -8,14 +8,14 @@ namespace Rask.Example.Shared.Features;
 /// </summary>
 public sealed partial class LazyMount : Component
 {
-    private static readonly Component Empty = Div();
+    private static readonly Component Empty = Div;
     private bool _shown;
 
     protected override Component? Render() =>
-        Div()[
-            BsButton(Color: BsColor.Secondary, Outline: true, Class: "mb-3", OnClick: () => _shown = !_shown)[
+        Div[
+            BsButton.Color(BsColor.Secondary).Outline(true).Class("mb-3").OnClick(() => _shown = !_shown)[
                 _shown ? "Hide LazyChild" : "Show LazyChild"
             ],
-            _shown ? LazyChild() : Empty
+            _shown ? LazyChild : Empty
         ];
 }

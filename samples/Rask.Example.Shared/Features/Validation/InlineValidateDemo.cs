@@ -8,7 +8,7 @@ public sealed partial class InlineValidateDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
     {
@@ -19,9 +19,9 @@ public sealed partial class InlineValidateDemo : Component
             return null;
         }
 
-        return BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
-            Ul(Class: "mb-0 ps-3")[
-                formOnly.Select((e, i) => Li(Key: i)[e.Message])
+        return BsAlert.Color(BsColor.Danger).Class("small mb-0")[
+            Ul.Class("mb-0 ps-3")[
+                formOnly.Select((e, i) => Li.Key(i)[e.Message])
             ]
         ];
     }
@@ -34,8 +34,8 @@ public sealed partial class InlineValidateDemo : Component
             Class: "vstack gap-3",
             Validate: m =>
                 m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
-            Div()[
-                Label("v4-email", Class: "form-label small mb-1")["Email"],
+            Div[
+                Label.For("v4-email").Class("form-label small mb-1")["Email"],
                 Input(() => _model.Email)
                     .Id("v4-email")
                     .Type(InputType.Email)
@@ -46,22 +46,22 @@ public sealed partial class InlineValidateDemo : Component
                             : new[] { "Email looks wrong." }),
                 ValidationMessage(() => _model.Email, FieldError)
             ],
-            Div()[
-                Label("v4-password", Class: "form-label small mb-1")["Password"],
+            Div[
+                Label.For("v4-password").Class("form-label small mb-1")["Password"],
                 Input(() => _model.Password).Id("v4-password").Type(InputType.Password).Class("form-control")
             ],
-            Div()[
-                Label("v4-confirm", Class: "form-label small mb-1")["Confirm"],
+            Div[
+                Label.For("v4-confirm").Class("form-label small mb-1")["Confirm"],
                 Input(() => _model.Confirm).Id("v4-confirm").Type(InputType.Password).Class("form-control")
             ],
             ValidationSummary(SummaryAlert),
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Sign in"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Sign in"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

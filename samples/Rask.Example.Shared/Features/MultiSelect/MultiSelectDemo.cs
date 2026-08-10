@@ -19,8 +19,8 @@ public sealed partial class MultiSelectDemo : Component
             _prefs,
             OnValidSubmit: m => _submission = $"Saved {m.Interests.Count} interest(s)",
             Class: "vstack gap-3")[
-            Div()[
-                Label(Class: "form-label fw-semibold")["Interests"],
+            Div[
+                Label.Class("form-label fw-semibold")["Interests"],
                 BsMultiSelect<string>(
                     () => _prefs.Interests,
                     AllInterests,
@@ -30,13 +30,13 @@ public sealed partial class MultiSelectDemo : Component
                     Id: "ms-interests",
                     Placeholder: "Pick a few…")
             ],
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Save"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Save"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 
     private sealed class Prefs

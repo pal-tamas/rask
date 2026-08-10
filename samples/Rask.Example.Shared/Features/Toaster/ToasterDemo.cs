@@ -10,29 +10,31 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class ToasterDemo(IToaster toast) : Component
 {
     protected override Component? Render() =>
-        Div()[
-            BsStack(Gap: 2, WrapItems: true)[
-                BsButton(Color: BsColor.Info, OnClick: () => toast.Info("Just so you know.", "Info"))["Info"],
-                BsButton(Color: BsColor.Success,
-                    OnClick: () => toast.Success("Your changes were saved.", "Saved"))["Success"],
-                BsButton(Color: BsColor.Warning,
-                    OnClick: () => toast.Warning("Double-check your input.", "Heads up"))["Warning"],
-                BsButton(Color: BsColor.Danger, OnClick: () => toast.Error("Something went wrong.", "Error"))["Error"]
+        Div[
+            BsStack.Gap(2).WrapItems(true)[
+                BsButton.Color(BsColor.Info).OnClick(() => toast.Info("Just so you know.", "Info"))["Info"],
+                BsButton
+                    .Color(BsColor.Success)
+                    .OnClick(() => toast.Success("Your changes were saved.", "Saved"))["Success"],
+                BsButton
+                    .Color(BsColor.Warning)
+                    .OnClick(() => toast.Warning("Double-check your input.", "Heads up"))["Warning"],
+                BsButton.Color(BsColor.Danger).OnClick(() => toast.Error("Something went wrong.", "Error"))["Error"]
             ],
 
             // The display half. A real app would use BsToaster (a fixed toast-container) mounted once in the
             // layout; here an inline ToastOutlet keeps the messages inside the demo card. AutoDismissAfter
             // makes each message clear itself after 5s (the × still dismisses it early).
-            Div(Class: "mt-3")[
+            Div.Class("mt-3")[
                 ToastOutlet(AutoDismissAfter: TimeSpan.FromSeconds(5), Template: (messages, dismiss) =>
-                    Div()[
-                        messages.Select(m => (Component)BsAlert(
-                            Color: ToColor(m.Level),
-                            Dismissible: true,
-                            OnClose: () => dismiss(m.Id),
-                            Class: "d-flex align-items-center",
-                            Key: m.Id.ToString())[
-                            m.Title is { } title ? Strong(Class: "me-1")[$"{title}:"] : null,
+                    Div[
+                        messages.Select(m => (Component)BsAlert
+                            .Color(ToColor(m.Level))
+                            .Dismissible(true)
+                            .OnClose(() => dismiss(m.Id))
+                            .Class("d-flex align-items-center")
+                            .Key(m.Id.ToString())[
+                            m.Title is { } title ? Strong.Class("me-1")[$"{title}:"] : null,
                             m.Message])
                     ])
             ]

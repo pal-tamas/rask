@@ -6,14 +6,14 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class BsTableDemo : Component
 {
     protected override Component? Render() =>
-        BsTable(Striped: true, Hover: true, Bordered: true)[
-            Thead()[
-                Tr()[Th()["#"], Th()["Name"], Th()["Role"]]
+        BsTable.Striped(true).Hover(true).Bordered(true)[
+            Thead[
+                Tr[Th["#"], Th["Name"], Th["Role"]]
             ],
-            Tbody()[
-                Tr()[Td()["1"], Td()["Ada Lovelace"], Td()["Engineer"]],
-                Tr()[Td()["2"], Td()["Grace Hopper"], Td()["Admiral"]],
-                Tr()[Td()["3"], Td()["Alan Turing"], Td()["Codebreaker"]]
+            Tbody[
+                Tr[Td["1"], Td["Ada Lovelace"], Td["Engineer"]],
+                Tr[Td["2"], Td["Grace Hopper"], Td["Admiral"]],
+                Tr[Td["3"], Td["Alan Turing"], Td["Codebreaker"]]
             ]
         ];
 }

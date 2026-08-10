@@ -10,12 +10,12 @@ public sealed partial class CrossFieldSummaryDemo : Component
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
         entries.Count == 0
             ? null
-            : BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
-                Ul(Class: "mb-0 ps-3")[
-                    entries.Select((e, i) => Li(Key: i)[
+            : BsAlert.Color(BsColor.Danger).Class("small mb-0")[
+                Ul.Class("mb-0 ps-3")[
+                    entries.Select((e, i) => Li.Key(i)[
                         e.Field.Length == 0
                             ? e.Message
-                            : [Strong()[e.Field], ": ", e.Message]
+                            : [Strong[e.Field], ": ", e.Message]
                     ])
                 ]
             ];
@@ -31,21 +31,21 @@ public sealed partial class CrossFieldSummaryDemo : Component
                     ? Array.Empty<string>()
                     : new[] { "Return date must be after departure." })[
             ValidationSummary(SummaryAlert),
-            Div()[
-                Label("v5-depart", Class: "form-label small mb-1")["Departure"],
+            Div[
+                Label.For("v5-depart").Class("form-label small mb-1")["Departure"],
                 Input(() => _model.Depart).Id("v5-depart").Class("form-control")
             ],
-            Div()[
-                Label("v5-return", Class: "form-label small mb-1")["Return"],
+            Div[
+                Label.For("v5-return").Class("form-label small mb-1")["Return"],
                 Input(() => _model.Return).Id("v5-return").Class("form-control")
             ],
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Airplane, Class: "me-1"), "Book"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Airplane).Class("me-1"), "Book"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

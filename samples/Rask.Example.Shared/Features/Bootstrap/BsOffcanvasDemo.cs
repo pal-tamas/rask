@@ -9,15 +9,15 @@ public sealed partial class BsOffcanvasDemo : Component
 
     protected override Component? Render() =>
     [
-        BsButton(Color: BsColor.Primary, OnClick: () => _open = true)["Open settings"],
-        BsOffcanvas(
-            Open: _open,
-            Title: "Settings",
-            Placement: BsPlacement.End,
-            OnClose: () => _open = false)[
-            P()["This drawer slides in from the end over a dimming backdrop, all through the live diff. "
+        BsButton.Color(BsColor.Primary).OnClick(() => _open = true)["Open settings"],
+        BsOffcanvas
+            .Open(_open)
+            .Title("Settings")
+            .Placement(BsPlacement.End)
+            .OnClose(() => _open = false)[
+            P["This drawer slides in from the end over a dimming backdrop, all through the live diff. "
                 + "Click the backdrop or the × to dismiss it — no bootstrap.js."],
-            BsButton(Color: BsColor.Secondary, OnClick: () => _open = false)["Done"]
+            BsButton.Color(BsColor.Secondary).OnClick(() => _open = false)["Done"]
         ]
     ];
 }

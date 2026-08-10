@@ -13,9 +13,9 @@ public sealed partial class MultiSelectControlledDemo : Component
     private ICollection<string> _topics = [];
 
     protected override Component? Render() =>
-        Div(Class: "vstack gap-3")[
-            Div()[
-                Label(Class: "form-label fw-semibold")["Topics"],
+        Div.Class("vstack gap-3")[
+            Div[
+                Label.Class("form-label fw-semibold")["Topics"],
                 BsMultiSelect<string>(
                     AllTopics,
                     Value: _topics.ToList(),
@@ -23,7 +23,7 @@ public sealed partial class MultiSelectControlledDemo : Component
                     Id: "ms-controlled",
                     Placeholder: "Choose topics…")
             ],
-            P(Class: "small text-secondary mb-0", Id: "ms-controlled-summary")[
+            P.Class("small text-secondary mb-0").Id("ms-controlled-summary")[
                 "Selected: " + (_topics.Count == 0 ? "none" : string.Join(", ", _topics))
             ]
         ];

@@ -13,7 +13,7 @@ public sealed partial class GuidePage : Component
 {
     [RouteParam] public string Slug { get; set; } = string.Empty;
 
-    protected override Component? Head => Title()[$"{GuideCatalog.TitleFor(Slug)} — Guides — Rask"];
+    protected override Component? Head => Title[$"{GuideCatalog.TitleFor(Slug)} — Guides — Rask"];
 
-    protected override Component? Render() => GuideChrome(Slug: Slug);
+    protected override Component? Render() => GuideChrome.Slug(Slug);
 }

@@ -16,7 +16,7 @@ internal static class TierStaticHelper
 public sealed partial class TierStaticHelperDemo : Component
 {
     protected override Component? Render() =>
-        BsStack(Gap: 2)[
+        BsStack.Gap(2)[
             TierStaticHelper.Badge("inlined"),
             TierStaticHelper.Badge("no state"),
             TierStaticHelper.Badge("no lifecycle")

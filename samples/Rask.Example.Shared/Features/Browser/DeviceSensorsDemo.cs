@@ -67,24 +67,24 @@ public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, ID
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Button(Class: "btn btn-sm btn-primary mb-3", Id: "sensor-start", OnClickAsync: Start)["Start"],
-                Div(Class: "small text-secondary mb-2")["Status: ", Code(Id: "sensor-status")[_status]],
-                BsRow(Gutter: 3)[
-                    BsCol(Sm: 6)[
-                        Div(Class: "fw-semibold small mb-1")["Orientation (°)"],
-                        Div(Class: "small text-secondary")[
-                            "α ", Code(Id: "sensor-alpha")[Fmt(_tilt?.Alpha)],
-                            " · β ", Code(Id: "sensor-beta")[Fmt(_tilt?.Beta)],
-                            " · γ ", Code(Id: "sensor-gamma")[Fmt(_tilt?.Gamma)]]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Button.Class("btn btn-sm btn-primary mb-3").Id("sensor-start").OnClickAsync(Start)["Start"],
+                Div.Class("small text-secondary mb-2")["Status: ", Code.Id("sensor-status")[_status]],
+                BsRow.Gutter(3)[
+                    BsCol.Sm(6)[
+                        Div.Class("fw-semibold small mb-1")["Orientation (°)"],
+                        Div.Class("small text-secondary")[
+                            "α ", Code.Id("sensor-alpha")[Fmt(_tilt?.Alpha)],
+                            " · β ", Code.Id("sensor-beta")[Fmt(_tilt?.Beta)],
+                            " · γ ", Code.Id("sensor-gamma")[Fmt(_tilt?.Gamma)]]
                     ],
-                    BsCol(Sm: 6)[
-                        Div(Class: "fw-semibold small mb-1")["Acceleration (m/s²)"],
-                        Div(Class: "small text-secondary")[
-                            "x ", Code(Id: "sensor-ax")[Fmt(_accel?.AccelerationX)],
-                            " · y ", Code(Id: "sensor-ay")[Fmt(_accel?.AccelerationY)],
-                            " · z ", Code(Id: "sensor-az")[Fmt(_accel?.AccelerationZ)]]
+                    BsCol.Sm(6)[
+                        Div.Class("fw-semibold small mb-1")["Acceleration (m/s²)"],
+                        Div.Class("small text-secondary")[
+                            "x ", Code.Id("sensor-ax")[Fmt(_accel?.AccelerationX)],
+                            " · y ", Code.Id("sensor-ay")[Fmt(_accel?.AccelerationY)],
+                            " · z ", Code.Id("sensor-az")[Fmt(_accel?.AccelerationZ)]]
                     ]
                 ]
             ]

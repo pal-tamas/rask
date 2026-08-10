@@ -17,8 +17,8 @@ public sealed partial class DisposableTimerProbe : Component, IDisposable
     }
 
     protected override Component? Render() =>
-        BsStack(Gap: 2, Align: BsAlign.Center)[
-            BsBadge(Color: BsColor.Warning, Class: "dispose-probe-pill")[$"#{InstanceId} alive"],
-            Span(Class: "text-secondary small")[$"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire Dispose()."]
+        BsStack.Gap(2).Align(BsAlign.Center)[
+            BsBadge.Color(BsColor.Warning).Class("dispose-probe-pill")[$"#{InstanceId} alive"],
+            Span.Class("text-secondary small")[$"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire Dispose()."]
         ];
 }

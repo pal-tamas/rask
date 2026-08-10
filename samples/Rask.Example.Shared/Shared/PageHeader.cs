@@ -14,8 +14,8 @@ internal sealed partial class PageHeader : Component
     public required string Lead { get; set; }
 
     protected override Component? Render() =>
-        Div(Class: "mb-4 pb-3 border-bottom")[
-            H1(Class: "h2 fw-bold mb-2")[Title],
-            P(Class: "lead text-secondary mb-0")[Lead]
+        Div.Class("mb-4 pb-3 border-bottom")[
+            H1.Class("h2 fw-bold mb-2")[Title],
+            P.Class("lead text-secondary mb-0")[Lead]
         ];
 }

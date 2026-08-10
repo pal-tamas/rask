@@ -41,8 +41,8 @@ public sealed partial class BsMultiSelectDemo : Component
                 OptionGroup: Category, SelectAll: true, OptionDisabled: i => i == "Games",
                 Label: "Interests (grouped + select all)", Placeholder: "Pick a few…", Id: "ms-grouped")
         ],
-        BsAlert(Color: BsColor.Secondary, Class: "mt-3 mb-0")[
-            Span(Id: "ms-readout")[
+        BsAlert.Color(BsColor.Secondary).Class("mt-3 mb-0")[
+            Span.Id("ms-readout")[
                 $"Basic: {Join(_m.Basic)} · Search: {Join(_m.Searchable)} · " +
                 $"Floating: {Join(_m.Floating)} · Locked: {Join(_m.Locked)} · Grouped: {Join(_m.Grouped)}"
             ]

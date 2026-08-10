@@ -39,17 +39,37 @@ public sealed partial class BsDataGridGroupDemo : Component
     private bool _showGrouped;
 
     protected override Component? Render() =>
-        Div(Id: "grid-group-demo")[
+        Div.Id("grid-group-demo")[
             // A stand-in for the drag panel: the same Grouped state, driven by buttons.
-            Div(Class: Bs.Join(Display.Flex(), "gap-2", Margin.Bottom(3)))[
-                BsButton(Id: "group-region", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    Active: Is("region"), OnClick: () => _grouped = ["region"])["By region"],
-                BsButton(Id: "group-nested", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    Active: Is("region", "rep"), OnClick: () => _grouped = ["region", "rep"])["Region ▸ rep"],
-                BsButton(Id: "group-none", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    Active: _grouped.Count == 0, OnClick: () => _grouped = [])["Ungrouped"],
-                BsButton(Id: "group-show-col", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    Active: _showGrouped, OnClick: () => _showGrouped = !_showGrouped)["Show grouped column"]
+            Div.Class(Bs.Join(Display.Flex(), "gap-2", Margin.Bottom(3)))[
+                BsButton
+                    .Id("group-region")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Active(Is("region"))
+                    .OnClick(() => _grouped = ["region"])["By region"],
+                BsButton
+                    .Id("group-nested")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Active(Is("region", "rep"))
+                    .OnClick(() => _grouped = ["region", "rep"])["Region ▸ rep"],
+                BsButton
+                    .Id("group-none")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Active(_grouped.Count == 0)
+                    .OnClick(() => _grouped = [])["Ungrouped"],
+                BsButton
+                    .Id("group-show-col")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Active(_showGrouped)
+                    .OnClick(() => _showGrouped = !_showGrouped)["Show grouped column"]
             ],
             BsDataGrid(
                 Id: "bs-grid-group",

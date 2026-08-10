@@ -16,11 +16,11 @@ public sealed partial class InlineAsyncValidateDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     private static Component Checking() =>
-        Span(Class: "validating-indicator text-muted small mt-1")[
-            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking…"
+        Span.Class("validating-indicator text-muted small mt-1")[
+            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking…"
         ];
 
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
@@ -31,8 +31,8 @@ public sealed partial class InlineAsyncValidateDemo : Component
             return null;
         }
 
-        return BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
-            Ul(Class: "mb-0 ps-3")[formOnly.Select((e, i) => Li(Key: i)[e.Message])]
+        return BsAlert.Color(BsColor.Danger).Class("small mb-0")[
+            Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]
         ];
     }
 
@@ -61,8 +61,8 @@ public sealed partial class InlineAsyncValidateDemo : Component
                     ? new[] { "Code is required." }
                     : Array.Empty<string>();
             })[
-            Div()[
-                Label("v10-code", Class: "form-label small mb-1")["Promo code"],
+            Div[
+                Label.For("v10-code").Class("form-label small mb-1")["Promo code"],
                 Input(() => _model.Code)
                     .Id("v10-code")
                     .Class("form-control")
@@ -71,13 +71,13 @@ public sealed partial class InlineAsyncValidateDemo : Component
                 ValidationMessage(() => _model.Code, FieldError)
             ],
             ValidationSummary(SummaryAlert),
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Gift, Class: "me-1"), "Redeem"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Gift).Class("me-1"), "Redeem"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

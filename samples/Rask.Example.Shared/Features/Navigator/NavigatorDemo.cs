@@ -7,15 +7,15 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class NavigatorDemo(Navigator nav) : Component
 {
     protected override Component? Render() =>
-        BsStack(Vertical: true, Gap: 2)[
-            Button(
-                OnClick: () => nav.NavigateTo("/dashboard"))["Open dashboard"],
+        BsStack.Vertical(true).Gap(2)[
+            Button
+                .OnClick(() => nav.NavigateTo("/dashboard"))["Open dashboard"],
 
             // Or update just the query, keeping the same path:
-            Rask.Core.Components.Generated.Select<string>(
-                OnChange: v => nav.SetQuery("sort", v))[
-                Option("asc")["Sort ascending"],
-                Option("desc")["Sort descending"]
+            Select<string>()
+                .OnChange(v => nav.SetQuery("sort", v))[
+                Option.Value("asc")["Sort ascending"],
+                Option.Value("desc")["Sort descending"]
             ]
         ];
 }

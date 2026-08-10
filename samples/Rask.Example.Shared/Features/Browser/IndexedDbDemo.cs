@@ -18,24 +18,31 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
     private async Task<IKeyValueStore> StoreAsync() => _store ??= await indexedDb.OpenStoreAsync("rask-demo");
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                BsRow(Gutter: 2, Class: Margin.Bottom(2))[
-                    BsCol(Sm: 4)[
-                        Rask.Core.Components.Generated.Input(Id: "idb-key", Class: "form-control form-control-sm", Value: _key, OnInput: v => _key = v)],
-                    BsCol(Sm: 8)[
-                        Rask.Core.Components.Generated.Input(Id: "idb-value", Class: "form-control form-control-sm", Value: _value,
-                            OnInput: v => _value = v)]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                BsRow.Gutter(2).Class(Margin.Bottom(2))[
+                    BsCol.Sm(4)[
+                        Input<string>()
+                            .Id("idb-key")
+                            .Class("form-control form-control-sm")
+                            .Value(_key)
+                            .OnInput(v => _key = v)],
+                    BsCol.Sm(8)[
+                        Input<string>()
+                            .Id("idb-value")
+                            .Class("form-control form-control-sm")
+                            .Value(_value)
+                            .OnInput(v => _value = v)]
                 ],
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
-                    Button(Class: "btn btn-primary btn-sm", Id: "idb-set", OnClickAsync: Set)["Set"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "idb-get", OnClickAsync: Get)["Get"],
-                    Button(Class: "btn btn-outline-secondary btn-sm", Id: "idb-keys", OnClickAsync: Keys)["List keys"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "idb-clear", OnClickAsync: Clear)["Clear"]
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                    Button.Class("btn btn-primary btn-sm").Id("idb-set").OnClickAsync(Set)["Set"],
+                    Button.Class("btn btn-outline-primary btn-sm").Id("idb-get").OnClickAsync(Get)["Get"],
+                    Button.Class("btn btn-outline-secondary btn-sm").Id("idb-keys").OnClickAsync(Keys)["List keys"],
+                    Button.Class("btn btn-outline-danger btn-sm").Id("idb-clear").OnClickAsync(Clear)["Clear"]
                 ],
-                Div(Class: "small text-secondary")["Read: ", Code(Id: "idb-read")[_read ?? "(none)"]],
-                Div(Class: "small text-secondary")["Keys: ", Code(Id: "idb-keys-value")[_keys ?? "(none)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "idb-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
+                Div.Class("small text-secondary")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("idb-status")[_status ?? "(idle)"]]
             ]
         ];
 

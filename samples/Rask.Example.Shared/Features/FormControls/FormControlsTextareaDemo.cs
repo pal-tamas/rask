@@ -10,22 +10,22 @@ public sealed partial class FormControlsTextareaDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        BsRow(Gutter: 4)[
-            BsCol(Md: 6)[
-                Label(Class: "form-label fw-semibold")["Controlled (Value + OnChange)"],
-                Rask.Core.Components.Generated.Textarea<string>(
-                    Value: _controlled,
-                    OnChange: v => _controlled = v,
-                    Class: "form-control mb-2",
-                    Rows: 3,
-                    Placeholder: "Type, then blur…",
-                    Id: "fc-textarea-controlled"),
-                P(Class: "small text-secondary mb-0", Id: "fc-textarea-controlled-out")[
-                    "Length: ", Strong()[_controlled.Length.ToString()]
+        BsRow.Gutter(4)[
+            BsCol.Md(6)[
+                Label.Class("form-label fw-semibold")["Controlled (Value + OnChange)"],
+                Textarea<string>()
+                    .Value(_controlled)
+                    .OnChange(v => _controlled = v)
+                    .Class("form-control mb-2")
+                    .Rows(3)
+                    .Placeholder("Type, then blur…")
+                    .Id("fc-textarea-controlled"),
+                P.Class("small text-secondary mb-0").Id("fc-textarea-controlled-out")[
+                    "Length: ", Strong[_controlled.Length.ToString()]
                 ]
             ],
-            BsCol(Md: 6)[
-                Label(Class: "form-label fw-semibold")["Bound (two-way)"],
+            BsCol.Md(6)[
+                Label.Class("form-label fw-semibold")["Bound (two-way)"],
                 Form(_model)[
                     Textarea(() => _model.Bio)
                         .Class("form-control mb-2")
@@ -33,8 +33,8 @@ public sealed partial class FormControlsTextareaDemo : Component
                         .Placeholder("Type…")
                         .Id("fc-textarea-bound")
                 ],
-                P(Class: "small text-secondary mb-0", Id: "fc-textarea-bound-out")[
-                    "Length: ", Strong()[_model.Bio.Length.ToString()]
+                P.Class("small text-secondary mb-0").Id("fc-textarea-bound-out")[
+                    "Length: ", Strong[_model.Bio.Length.ToString()]
                 ]
             ]
         ];

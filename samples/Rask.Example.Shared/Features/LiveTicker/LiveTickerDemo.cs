@@ -13,33 +13,37 @@ public sealed partial class LiveTickerDemo : Component
 
     protected override Component? Render() =>
     [
-        Div(Class: "btn-group mb-3", Id: "ticker-symbol-switcher")[
+        Div.Class("btn-group mb-3").Id("ticker-symbol-switcher")[
             SwitchButton("BTC"),
             SwitchButton("ETH"),
             SwitchButton("SOL")
         ],
-        BsRow(Gutter: 4)[
-            BsCol(Lg: 7)[
-                LiveTicker(_symbol, Log: AppendLog)
+        BsRow.Gutter(4)[
+            BsCol.Lg(7)[
+                LiveTicker.Symbol(_symbol).Log(AppendLog)
             ],
-            BsCol(Lg: 5)[
-                BsCard(Class: "border-0 bg-light h-100")[
-                    BsCardBody()[
-                        BsStack(Justify: BsJustify.Between, Align: BsAlign.Baseline, Class: Margin.Bottom(3))[
-                            H3(Class: "h6 text-secondary text-uppercase small mb-0")["Hook activity"],
-                            BsButton(Size: BsSize.Sm, Class: "btn-link p-0 text-decoration-none",
-                                Id: "ticker-clear-log", OnClick: ClearLog)["clear"]
+            BsCol.Lg(5)[
+                BsCard.Class("border-0 bg-light h-100")[
+                    BsCardBody[
+                        BsStack.Justify(BsJustify.Between).Align(BsAlign.Baseline).Class(Margin.Bottom(3))[
+                            H3.Class("h6 text-secondary text-uppercase small mb-0")["Hook activity"],
+                            BsButton
+                                .Size(BsSize.Sm)
+                                .Class("btn-link p-0 text-decoration-none")
+                                .Id("ticker-clear-log")
+                                .OnClick(ClearLog)["clear"]
                         ],
                         _log.Count == 0
-                            ? P(Class: "text-secondary fst-italic small mb-0")[
+                            ? P.Class("text-secondary fst-italic small mb-0")[
                                 "Empty — hooks will fire as the component mounts and ticks."]
-                            : (Component)Ol(
-                                Class: "list-group list-group-numbered list-group-flush",
-                                Id: "ticker-log",
-                                Style: "max-height: 360px; overflow-y: auto;")[
-                                _log.Select((l, i) => Li(Key: i,
-                                    Class: "list-group-item ps-2 small bg-transparent")[
-                                    Code(Class: "small")[l]]).ToArray()]
+                            : (Component)Ol
+                                .Class("list-group list-group-numbered list-group-flush")
+                                .Id("ticker-log")
+                                .Style("max-height: 360px; overflow-y: auto;")[
+                                _log.Select((l, i) => Li
+                                    .Key(i)
+                                    .Class("list-group-item ps-2 small bg-transparent")[
+                                    Code.Class("small")[l]]).ToArray()]
                     ]
                 ]
             ]
@@ -49,12 +53,12 @@ public sealed partial class LiveTickerDemo : Component
     // Internal-state switch (no URL navigation): mutating _symbol re-renders this demo, and the framework
     // auto-re-render on the click hands LiveTicker its new Symbol at the same position → OnPropsChanged.
     private Component SwitchButton(string symbol) =>
-        Button(
-            Class: _symbol == symbol
+        Button
+            .Class(_symbol == symbol
                 ? "btn btn-primary btn-sm"
-                : "btn btn-outline-primary btn-sm",
-            Id: $"ticker-switch-{symbol}",
-            OnClick: () => _symbol = symbol)[symbol];
+                : "btn btn-outline-primary btn-sm")
+            .Id($"ticker-switch-{symbol}")
+            .OnClick(() => _symbol = symbol)[symbol];
 
     // The child LiveTicker logs from its lifecycle hooks / poll loop (off the event-dispatch path), so the
     // parent must request its own render — same DeferredRerenderAsync trick the standalone page used.

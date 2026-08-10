@@ -27,7 +27,7 @@ public sealed partial class BsDataGridStickyDemo : Component
     }
 
     protected override Component? Render() =>
-        Div(Id: "grid-sticky-demo")[
+        Div.Id("grid-sticky-demo")[
             BsDataGrid(
                 Id: "bs-grid-sticky",
                 Data: Readings,

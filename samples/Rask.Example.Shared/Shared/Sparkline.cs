@@ -55,9 +55,14 @@ public sealed partial class Sparkline : Component
         if (n == 0)
         {
             return Frame()[
-                SvgText(Num(W / 2), Num(H / 2), TextAnchor: "middle",
-                    DominantBaseline: "middle", FontFamily: "sans-serif", FontSize: "12",
-                    Fill: "#adb5bd")["No data"]
+                SvgText
+                    .X(Num(W / 2))
+                    .Y(Num(H / 2))
+                    .TextAnchor("middle")
+                    .DominantBaseline("middle")
+                    .FontFamily("sans-serif")
+                    .FontSize("12")
+                    .Fill("#adb5bd")["No data"]
             ];
         }
 
@@ -104,42 +109,76 @@ public sealed partial class Sparkline : Component
         var children = new List<Component>
         {
             // Light horizontal gridlines (top / middle / baseline).
-            Line(Num(PadX), Num(PadTop), Num(W - PadX), Num(PadTop),
-                Stroke: "rgba(0,0,0,0.05)", StrokeWidth: "1"),
-            Line(Num(PadX), Num(PadTop + (plotH / 2)), Num(W - PadX), Num(PadTop + (plotH / 2)),
-                Stroke: "rgba(0,0,0,0.05)", StrokeWidth: "1"),
-            Line(Num(PadX), Num(baseY), Num(W - PadX), Num(baseY),
-                Stroke: "rgba(0,0,0,0.05)", StrokeWidth: "1"),
+            Line
+                .X1(Num(PadX))
+                .Y1(Num(PadTop))
+                .X2(Num(W - PadX))
+                .Y2(Num(PadTop))
+                .Stroke("rgba(0,0,0,0.05)")
+                .StrokeWidth("1"),
+            Line
+                .X1(Num(PadX))
+                .Y1(Num(PadTop + (plotH / 2)))
+                .X2(Num(W - PadX))
+                .Y2(Num(PadTop + (plotH / 2)))
+                .Stroke("rgba(0,0,0,0.05)")
+                .StrokeWidth("1"),
+            Line
+                .X1(Num(PadX))
+                .Y1(Num(baseY))
+                .X2(Num(W - PadX))
+                .Y2(Num(baseY))
+                .Stroke("rgba(0,0,0,0.05)")
+                .StrokeWidth("1"),
 
             // Filled area under the line: the trend points closed down to the baseline.
-            Polygon($"{Num(X(0))},{Num(baseY)} {points} {Num(lastX)},{Num(baseY)}",
-                Fill: AreaColor, Stroke: "none")
+            Polygon
+                .Points($"{Num(X(0))},{Num(baseY)} {points} {Num(lastX)},{Num(baseY)}")
+                .Fill(AreaColor)
+                .Stroke("none")
         };
 
         // A single point has no line to draw; skip the polyline and just mark the point.
         if (n > 1)
         {
-            children.Add(Polyline(points, Fill: "none", Stroke: StrokeColor,
-                StrokeWidth: "2", StrokeLinejoin: "round", StrokeLinecap: "round"));
+            children.Add(Polyline
+                .Points(points)
+                .Fill("none")
+                .Stroke(StrokeColor)
+                .StrokeWidth("2")
+                .StrokeLinejoin("round")
+                .StrokeLinecap("round"));
         }
 
         // Min / max value labels on the y-axis.
-        children.Add(SvgText(Num(PadX + 2), Num(PadTop + 10), FontFamily: "sans-serif",
-            FontSize: "11", Fill: "#6c757d")[Label(max)]);
-        children.Add(SvgText(Num(PadX + 2), Num(baseY - 3), FontFamily: "sans-serif",
-            FontSize: "11", Fill: "#6c757d")[Label(min)]);
+        children.Add(SvgText
+            .X(Num(PadX + 2))
+            .Y(Num(PadTop + 10))
+            .FontFamily("sans-serif")
+            .FontSize("11")
+            .Fill("#6c757d")[Label(max)]);
+        children.Add(SvgText
+            .X(Num(PadX + 2))
+            .Y(Num(baseY - 3))
+            .FontFamily("sans-serif")
+            .FontSize("11")
+            .Fill("#6c757d")[Label(min)]);
 
         // Last-point marker carrying a native SVG <title> tooltip (no JS).
-        children.Add(Circle(Num(lastX), Num(lastY), "3.5", Fill: StrokeColor)[
-            SvgTitle()[Label(values[n - 1])]
+        children.Add(Circle.Cx(Num(lastX)).Cy(Num(lastY)).R("3.5").Fill(StrokeColor)[
+            SvgTitle[Label(values[n - 1])]
         ]);
 
         return Frame()[children];
     }
 
     private Component Frame() =>
-        Svg("100%", "100%", $"0 0 {Num(W)} {Num(H)}",
-            "none", Class: Class);
+        Svg
+            .Width("100%")
+            .Height("100%")
+            .ViewBox($"0 0 {Num(W)} {Num(H)}")
+            .PreserveAspectRatio("none")
+            .Class(Class);
 
     private static string Num(double v) => v.ToString("0.##", Inv);
 

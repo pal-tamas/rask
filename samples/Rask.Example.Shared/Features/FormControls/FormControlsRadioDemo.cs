@@ -12,29 +12,29 @@ public sealed partial class FormControlsRadioDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        BsRow(Gutter: 4)[
-            BsCol(Md: 6, Id: "fc-radio-controlled")[
-                Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
+        BsRow.Gutter(4)[
+            BsCol.Md(6).Id("fc-radio-controlled")[
+                Label.Class("form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
                 BsRadioGroup(
                     AllPlans,
                     Value: _controlled,
                     OnChange: v => _controlled = v,
                     Name: "fc-radio-c",
                     ItemClass: "form-check-inline"),
-                P(Class: "small text-secondary mb-0", Id: "fc-radio-controlled-out")[
-                    "Plan: ", Strong()[_controlled.ToString()]
+                P.Class("small text-secondary mb-0").Id("fc-radio-controlled-out")[
+                    "Plan: ", Strong[_controlled.ToString()]
                 ]
             ],
-            BsCol(Md: 6, Id: "fc-radio-bound")[
-                Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
+            BsCol.Md(6).Id("fc-radio-bound")[
+                Label.Class("form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
                     // Label: names the group — the options render inside a <fieldset>/<legend> for the
                     // correct accessible grouping semantics.
                     BsRadioGroup(() => _model.Plan, AllPlans, Name: "fc-radio-b", Label: "Plan",
                         ItemClass: "form-check-inline")
                 ],
-                P(Class: "small text-secondary mb-0", Id: "fc-radio-bound-out")[
-                    "Plan: ", Strong()[_model.Plan.ToString()]
+                P.Class("small text-secondary mb-0").Id("fc-radio-bound-out")[
+                    "Plan: ", Strong[_model.Plan.ToString()]
                 ]
             ]
         ];

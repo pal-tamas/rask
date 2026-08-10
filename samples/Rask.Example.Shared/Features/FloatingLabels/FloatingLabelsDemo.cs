@@ -14,7 +14,7 @@ public sealed partial class FloatingLabelsDemo : Component
             _model,
             m => _submission = $"Created account for {m.FullName} <{m.Email}>",
             Class: "vstack gap-2")[
-            DataAnnotationsValidator(),
+            DataAnnotationsValidator,
             // One line per field — the Floating* components wrap Input/Select/Textarea + Label +
             // ValidationMessage in Bootstrap's .form-floating markup. The label is read from each
             // property's [Display(Name)], the input type is inferred from the property's CLR type,
@@ -24,19 +24,19 @@ public sealed partial class FloatingLabelsDemo : Component
             FloatingInput(() => _model.Email),
             FloatingInput(() => _model.Age),
             FloatingSelect(() => _model.Plan)[
-                Option("")["— choose —"],
-                Option("free")["Free"],
-                Option("pro")["Pro"],
-                Option("team")["Team"]
+                Option.Value("")["— choose —"],
+                Option.Value("free")["Free"],
+                Option.Value("pro")["Pro"],
+                Option.Value("team")["Team"]
             ],
             FloatingTextarea(() => _model.Bio),
-            Div(Class: "mt-1")[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.PersonPlus, Class: "me-1"), "Create account"]
+            Div.Class("mt-1")[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.PersonPlus).Class("me-1"), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

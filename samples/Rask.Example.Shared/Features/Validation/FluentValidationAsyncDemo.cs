@@ -12,11 +12,11 @@ public sealed partial class FluentValidationAsyncDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     private static Component Checking() =>
-        Span(Class: "validating-indicator text-muted small mt-1")[
-            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking availability..."
+        Span.Class("validating-indicator text-muted small mt-1")[
+            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking availability..."
         ];
 
     protected override Component? Render() =>
@@ -25,20 +25,20 @@ public sealed partial class FluentValidationAsyncDemo : Component
             _model,
             m => _submission = $"Reserved: {m.Code}",
             Class: "vstack gap-3")[
-            FluentValidationValidator(new TicketValidator()),
-            Div()[
-                Label("v9-code", Class: "form-label small mb-1")["Ticket code"],
+            FluentValidationValidator.Validator(new TicketValidator()),
+            Div[
+                Label.For("v9-code").Class("form-label small mb-1")["Ticket code"],
                 Input(() => _model.Code).Id("v9-code").Class("form-control"),
                 ValidatingIndicator(() => _model.Code, Checking),
                 ValidationMessage(() => _model.Code, FieldError)
             ],
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.TicketPerforated, Class: "me-1"), "Reserve"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.TicketPerforated).Class("me-1"), "Reserve"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

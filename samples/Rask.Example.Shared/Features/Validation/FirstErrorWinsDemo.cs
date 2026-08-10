@@ -12,7 +12,7 @@ public sealed partial class FirstErrorWinsDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     protected override Component? Render() =>
     [
@@ -20,9 +20,9 @@ public sealed partial class FirstErrorWinsDemo : Component
             _model,
             m => _submission = $"Activated: {m.Code}",
             Class: "vstack gap-3")[
-            DataAnnotationsValidator(),
-            Div()[
-                Label("v8-code", Class: "form-label small mb-1")["License code"],
+            DataAnnotationsValidator,
+            Div[
+                Label.For("v8-code").Class("form-label small mb-1")["License code"],
                 Input(() => _model.Code)
                     .Id("v8-code")
                     .Class("form-control")
@@ -32,13 +32,13 @@ public sealed partial class FirstErrorWinsDemo : Component
                             : Array.Empty<string>()),
                 ValidationMessage(() => _model.Code, FieldError)
             ],
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Unlock, Class: "me-1"), "Activate"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Unlock).Class("me-1"), "Activate"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

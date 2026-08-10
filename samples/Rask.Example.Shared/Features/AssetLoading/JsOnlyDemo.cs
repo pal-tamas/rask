@@ -13,10 +13,10 @@ public sealed partial class JsOnlyDemo(IJSRuntime js) : Component
     private string _clicks = "0";
 
     protected override Component? Render() =>
-        BsStack(Gap: 3, Align: BsAlign.Center)[
-            BsButton(Color: BsColor.Primary, Outline: true, Class: "js-only-btn", OnClickAsync: HandleClickAsync)[
+        BsStack.Gap(3).Align(BsAlign.Center)[
+            BsButton.Color(BsColor.Primary).Outline(true).Class("js-only-btn").OnClickAsync(HandleClickAsync)[
                 "Click to bump (via scoped JS)"],
-            Span(Class: "text-secondary")["Bumped ", Strong()[_clicks], " times"]
+            Span.Class("text-secondary")["Bumped ", Strong[_clicks], " times"]
         ];
 
     private async Task HandleClickAsync()

@@ -32,7 +32,7 @@ public sealed partial class BsDataGridColumnsDemo : Component
     private List<string> _order = [];
 
     protected override Component? Render() =>
-        Div(Id: "grid-columns-demo")[
+        Div.Id("grid-columns-demo")[
             BsDataGrid(
                 Id: "bs-grid-columns",
                 Data: Deals,

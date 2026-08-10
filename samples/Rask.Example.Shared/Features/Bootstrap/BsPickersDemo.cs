@@ -51,8 +51,8 @@ public sealed partial class BsPickersDemo : Component
             BsDateTimePicker(() => _model.WhenNative).Label("Date & time (native)").Native(true).Id("pick-datetime-native"),
             BsDateTimePicker(() => _model.WhenSeconds).Label("Date & time (with seconds)").Seconds(true).Id("pick-datetime-seconds")
         ],
-        BsAlert(Color: BsColor.Info, Class: "mt-3 mb-0")[
-            Span(Id: "pick-readout")[
+        BsAlert.Color(BsColor.Info).Class("mt-3 mb-0")[
+            Span.Id("pick-readout")[
                 $"{_model.Day:yyyy-MM-dd} · {_model.Time:HH\\:mm} · {_model.When:yyyy-MM-dd HH\\:mm}" +
                 $" · {(_model.Deadline is { } dl ? dl.ToString("yyyy-MM-dd") : "—")}"
             ]

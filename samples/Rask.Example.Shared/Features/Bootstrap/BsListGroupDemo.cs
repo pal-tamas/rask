@@ -6,25 +6,25 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class BsListGroupDemo : Component
 {
     protected override Component? Render() =>
-        BsRow(Gutter: 3)[
-            BsCol(Md: 6)[
-                BsListGroup()[
-                    BsListGroupItem(Active: true)["Active item"],
-                    BsListGroupItem()["A second item"],
-                    BsListGroupItem(Disabled: true)["A disabled item"],
-                    BsListGroupItem(Color: BsColor.Success)["A tinted item"],
-                    BsListGroupItem(Href: "#")["A linked action item"]
+        BsRow.Gutter(3)[
+            BsCol.Md(6)[
+                BsListGroup[
+                    BsListGroupItem.Active(true)["Active item"],
+                    BsListGroupItem["A second item"],
+                    BsListGroupItem.Disabled(true)["A disabled item"],
+                    BsListGroupItem.Color(BsColor.Success)["A tinted item"],
+                    BsListGroupItem.Href("#")["A linked action item"]
                 ]
             ],
-            BsCol(Md: 6, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
-                BsListGroup(Numbered: true)[
-                    BsListGroupItem()["First"],
-                    BsListGroupItem()["Second"],
-                    BsListGroupItem()["Third"]
+            BsCol.Md(6).Class(Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
+                BsListGroup.Numbered(true)[
+                    BsListGroupItem["First"],
+                    BsListGroupItem["Second"],
+                    BsListGroupItem["Third"]
                 ],
-                BsListGroup(Flush: true)[
-                    BsListGroupItem()["Flush one"],
-                    BsListGroupItem()["Flush two"]
+                BsListGroup.Flush(true)[
+                    BsListGroupItem["Flush one"],
+                    BsListGroupItem["Flush two"]
                 ]
             ]
         ];

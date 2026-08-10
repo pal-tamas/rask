@@ -10,7 +10,7 @@ public sealed partial class DragDropSortableDemo : Component
         "Apple", "Banana", "Cherry", "Date", "Elderberry"
     ];
 
-    protected override Component? Render() => DragDrop(SortableBody, ReorderFruit);
+    protected override Component? Render() => DragDrop.Body(SortableBody).OnDrop(ReorderFruit);
 
     private Component SortableBody(DragDropContext ctx)
     {
@@ -30,21 +30,21 @@ public sealed partial class DragDropSortableDemo : Component
                 cls += " dd-drop-target";
             }
 
-            rows.Add(Li(
-                Key: fruit,
-                Class: cls,
-                Draggable: true,
-                OnDragStart: ctx.DragStart("list", index),
-                OnDragOver: ctx.DragOver("list", index),
-                OnDropAsync: ctx.Drop("list", index),
-                OnDragEnd: ctx.DragEnd,
-                Data: new Dictionary<string, string?> { ["testid"] = $"fruit-{index}" })[
-                BsIcon(Name: BsIconName.GripVertical, Class: "text-secondary"),
-                Span(Class: "fw-semibold")[fruit]
+            rows.Add(Li
+                .Key(fruit)
+                .Class(cls)
+                .Draggable(true)
+                .OnDragStart(ctx.DragStart("list", index))
+                .OnDragOver(ctx.DragOver("list", index))
+                .OnDropAsync(ctx.Drop("list", index))
+                .OnDragEnd(ctx.DragEnd)
+                .Data(new Dictionary<string, string?> { ["testid"] = $"fruit-{index}" })[
+                BsIcon.Name(BsIconName.GripVertical).Class("text-secondary"),
+                Span.Class("fw-semibold")[fruit]
             ]);
         }
 
-        return Ul(Class: "list-group dd-list", Id: "dd-fruit-list")[rows];
+        return Ul.Class("list-group dd-list").Id("dd-fruit-list")[rows];
     }
 
     // Direction-aware: dragging down lands after the target, dragging up lands before it.

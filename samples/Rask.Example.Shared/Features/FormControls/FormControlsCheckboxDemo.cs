@@ -12,30 +12,30 @@ public sealed partial class FormControlsCheckboxDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        BsRow(Gutter: 4)[
-            BsCol(Md: 6, Id: "fc-checkbox-controlled")[
-                Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
+        BsRow.Gutter(4)[
+            BsCol.Md(6).Id("fc-checkbox-controlled")[
+                Label.Class("form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
                 BsCheckboxGroup<string>(
                     AllInterests,
                     Value: _controlled.ToList(),
                     OnChange: next => _controlled = next,
                     Name: "fc-checkbox-c",
                     ItemClass: "form-check-inline"),
-                P(Class: "small text-secondary mb-0", Id: "fc-checkbox-controlled-out")[
-                    "Interests: ", Strong()[_controlled.Count == 0 ? "none" : string.Join(", ", _controlled)]
+                P.Class("small text-secondary mb-0").Id("fc-checkbox-controlled-out")[
+                    "Interests: ", Strong[_controlled.Count == 0 ? "none" : string.Join(", ", _controlled)]
                 ]
             ],
-            BsCol(Md: 6, Id: "fc-checkbox-bound")[
-                Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
+            BsCol.Md(6).Id("fc-checkbox-bound")[
+                Label.Class("form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
                     // Label: names the group — the options render inside a <fieldset>/<legend> for the
                     // correct accessible grouping semantics.
                     BsCheckboxGroup(() => _model.Interests, AllInterests, Name: "fc-checkbox-b",
                         Label: "Interests", ItemClass: "form-check-inline")
                 ],
-                P(Class: "small text-secondary mb-0", Id: "fc-checkbox-bound-out")[
+                P.Class("small text-secondary mb-0").Id("fc-checkbox-bound-out")[
                     "Interests: ",
-                    Strong()[_model.Interests.Count == 0 ? "none" : string.Join(", ", _model.Interests)]
+                    Strong[_model.Interests.Count == 0 ? "none" : string.Join(", ", _model.Interests)]
                 ]
             ]
         ];

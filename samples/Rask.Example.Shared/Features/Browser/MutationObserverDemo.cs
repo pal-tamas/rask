@@ -46,26 +46,32 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(3))[
-                    Button(Class: "btn btn-sm btn-primary", Id: "mo-add", OnClick: () => _items++)["Add item"],
-                    Button(Class: "btn btn-sm btn-outline-primary", Id: "mo-remove",
-                        OnClick: () => { if (_items > 0) _items--; })["Remove item"],
-                    Button(Class: "btn btn-sm btn-outline-secondary", Id: "mo-toggle",
-                        OnClick: () => _highlight = !_highlight)["Toggle attribute"]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(3))[
+                    Button.Class("btn btn-sm btn-primary").Id("mo-add").OnClick(() => _items++)["Add item"],
+                    Button
+                        .Class("btn btn-sm btn-outline-primary")
+                        .Id("mo-remove")
+                        .OnClick(() => { if (_items > 0) _items--; })["Remove item"],
+                    Button
+                        .Class("btn btn-sm btn-outline-secondary")
+                        .Id("mo-toggle")
+                        .OnClick(() => _highlight = !_highlight)["Toggle attribute"]
                 ],
-                Div(Ref: _target, Id: "mo-target",
-                    Class: "border rounded p-3 mb-3" + (_highlight ? " border-warning bg-warning-subtle" : ""))[
-                    Ul(Class: "mb-0")[
-                        Enumerable.Range(1, _items).Select(i => Li(Key: i.ToString())[$"item {i}"])
+                Div
+                    .Ref(_target)
+                    .Id("mo-target")
+                    .Class("border rounded p-3 mb-3" + (_highlight ? " border-warning bg-warning-subtle" : ""))[
+                    Ul.Class("mb-0")[
+                        Enumerable.Range(1, _items).Select(i => Li.Key(i.ToString())[$"item {i}"])
                     ]
                 ],
-                Div(Class: "small text-secondary")[
-                    "childList changes: ", Code(Id: "mo-child")[$"{_childChanges}"],
-                    " · attribute changes: ", Code(Id: "mo-attr")[$"{_attrChanges}"]
+                Div.Class("small text-secondary")[
+                    "childList changes: ", Code.Id("mo-child")[$"{_childChanges}"],
+                    " · attribute changes: ", Code.Id("mo-attr")[$"{_attrChanges}"]
                 ],
-                Div(Class: "small text-secondary")["Last: ", Code(Id: "mo-last")[_last]]
+                Div.Class("small text-secondary")["Last: ", Code.Id("mo-last")[_last]]
             ]
         ];
 

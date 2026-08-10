@@ -10,12 +10,18 @@ public sealed partial class GeolocationDemo(IGeolocation geolocation) : Componen
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "geo-get", OnClickAsync: Get)[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Class("mb-2")
+                    .Id("geo-get")
+                    .OnClickAsync(Get)[
                     "Get current position"],
-                Div(Class: "small text-secondary")["Position: ", Code(Id: "geo-value")[_location ?? "(not requested)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "geo-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Position: ", Code.Id("geo-value")[_location ?? "(not requested)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("geo-status")[_status ?? "(idle)"]]
             ]
         ];
 

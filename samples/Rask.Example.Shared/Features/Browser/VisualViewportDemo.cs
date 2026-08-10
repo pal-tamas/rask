@@ -9,12 +9,18 @@ public sealed partial class VisualViewportDemo(IVisualViewport viewport) : Compo
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "vv-read", OnClickAsync: Read)[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Class("mb-2")
+                    .Id("vv-read")
+                    .OnClickAsync(Read)[
                     "Read visual viewport"],
-                Div(Class: "small text-secondary")["Viewport: ", Code(Id: "vv-value")[_value ?? "(not requested)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "vv-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Viewport: ", Code.Id("vv-value")[_value ?? "(not requested)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("vv-status")[_status ?? "(idle)"]]
             ]
         ];
 

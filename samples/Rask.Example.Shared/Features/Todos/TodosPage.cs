@@ -31,7 +31,7 @@ public sealed partial class TodosPage : Component
 
     [RouteParam] public Guid? Id { get; set; }
 
-    protected override Component? Head => Title()["Todos — Rask"];
+    protected override Component? Head => Title["Todos — Rask"];
 
     private bool IsAdding => _route.Path.EndsWith("/new", StringComparison.OrdinalIgnoreCase);
 
@@ -88,50 +88,58 @@ public sealed partial class TodosPage : Component
 
     protected override Component? Render() =>
         [
-            PageHeader(
-                Title: "Todos",
-                Lead: "A small CRUD screen built on top of Rask primitives. The page declares three [Route] attributes — /todos shows the list, /todos/new opens the add dialog, /todos/{id:guid}/edit opens the edit dialog. Browser Back closes the dialog; deep links open it."),
-            Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center),
+            PageHeader
+                .Title("Todos")
+                .Lead("A small CRUD screen built on top of Rask primitives. The page declares three [Route] attributes — /todos shows the list, /todos/new opens the add dialog, /todos/{id:guid}/edit opens the edit dialog. Browser Back closes the dialog; deep links open it."),
+            Div
+                .Class(Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center),
                 Margin.Bottom(3)))[
-                Span(Class: Bs.Join(Txt.Muted, Font.Small))[
+                Span.Class(Bs.Join(Txt.Muted, Font.Small))[
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
-                BsButton(Color: BsColor.Primary, OnClick: OpenAdd)[
-                    BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New todo"
+                BsButton.Color(BsColor.Primary).OnClick(OpenAdd)[
+                    BsIcon.Name(BsIconName.PlusLg).Class(Margin.End(1)), "New todo"
                 ]
             ],
             _todos.Count == 0
-                ? Div(Class: Bs.Join(Txt.Muted, Font.Small))["No todos yet — click \"New todo\" to add one."]
-                : BsListGroup()[
-                    _todos.Select(item => BsListGroupItem(Key: item.Id,
-                        Class: Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), Flex.Gap(2)))[
-                        BsCheck(Value: item.Completed, OnChange: v => Toggle(item, v),
-                            Id: $"todo-done-{item.Id}", Class: Margin.Bottom(0)),
-                        Span(Class: item.Completed ? "todo-title completed" : "todo-title")[item.Title],
-                        BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => OpenEdit(item))[
-                            BsIcon(Name: BsIconName.Pencil)
+                ? Div.Class(Bs.Join(Txt.Muted, Font.Small))["No todos yet — click \"New todo\" to add one."]
+                : BsListGroup[
+                    _todos.Select(item => BsListGroupItem
+                        .Key(item.Id)
+                        .Class(Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), Flex.Gap(2)))[
+                        BsCheck
+                            .Value(item.Completed)
+                            .OnChange(v => Toggle(item, v))
+                            .Id($"todo-done-{item.Id}")
+                            .Class(Margin.Bottom(0)),
+                        Span.Class(item.Completed ? "todo-title completed" : "todo-title")[item.Title],
+                        BsButton
+                            .Color(BsColor.Secondary)
+                            .Outline(true)
+                            .Size(BsSize.Sm)
+                            .OnClick(() => OpenEdit(item))[
+                            BsIcon.Name(BsIconName.Pencil)
                         ],
-                        BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => Delete(item))[
-                            BsIcon(Name: BsIconName.Trash)
+                        BsButton.Color(BsColor.Danger).Outline(true).Size(BsSize.Sm).OnClick(() => Delete(item))[
+                            BsIcon.Name(BsIconName.Trash)
                         ]
                     ])
                 ],
-            CodeSample(
-                ["TodosPage.cs"],
-                Title: "Source",
-                Notes:
-                "The whole CRUD screen above, verbatim — page, dialog component, and model in one file. " +
+            CodeSample
+                .Files(["TodosPage.cs"])
+                .Title("Source")
+                .Notes("The whole CRUD screen above, verbatim — page, dialog component, and model in one file. " +
                 "Three [Route] attributes drive the dialog: /todos lists, /todos/new opens add, " +
                 "/todos/{id:guid}/edit opens edit. OnPropsChanged seeds the form from the route so browser " +
                 "Back closes the dialog and deep links open it, without clobbering in-progress typing."),
             // A BsModal (zero-JS Bootstrap modal) driven by the route: Open follows ShowDialog, and
             // Escape / backdrop-click / the header close button all route back to /todos via OnCancel.
-            TodoFormDialog(
-                ShowDialog,
-                _form,
-                IsAdding,
-                Cancel,
-                Save)
+            TodoFormDialog
+                .Open(ShowDialog)
+                .Model(_form)
+                .IsAdding(IsAdding)
+                .Cancel(Cancel)
+                .Save(Save)
         ];
 }
 
@@ -152,16 +160,16 @@ public sealed partial class TodoFormDialog : Component
     // OnClose fires for Escape, a backdrop click, and the header close button — all route back to /todos
     // via OnCancel, which flips ShowDialog and closes the modal. Browser Back does the same through the URL.
     protected override Component? Render() =>
-        BsModal(Open: Open, Title: IsAdding ? "Add todo" : "Edit todo", Centered: true, OnClose: OnCancel)[
+        BsModal.Open(Open).Title(IsAdding ? "Add todo" : "Edit todo").Centered(true).OnClose(OnCancel)[
             Form(Model, OnSave, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
-                DataAnnotationsValidator(),
+                DataAnnotationsValidator,
                 // BsInput renders its own <label> + input + Bootstrap .invalid-feedback from the
                 // EditContext, so the raw Label/Input/ValidationMessage trio collapses to one call.
                 BsInput(() => Model.Title).Id("todo-title").Label("Title"),
-                Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
-                    BsButton(Color: BsColor.Secondary, Outline: true, OnClick: OnCancel)["Cancel"],
-                    BsButton(Type: "submit", Color: BsColor.Primary)[
-                        BsIcon(Name: BsIconName.Check2Circle, Class: Margin.End(1)),
+                Div.Class(Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
+                    BsButton.Color(BsColor.Secondary).Outline(true).OnClick(OnCancel)["Cancel"],
+                    BsButton.Type("submit").Color(BsColor.Primary)[
+                        BsIcon.Name(BsIconName.Check2Circle).Class(Margin.End(1)),
                         IsAdding ? "Add" : "Save"
                     ]
                 ]

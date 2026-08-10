@@ -15,20 +15,20 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsInputGroup(Size: BsSize.Sm, Class: "mb-2")[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsInputGroup.Size(BsSize.Sm).Class("mb-2")[
                     BsInput<string>()
                         .Id("storage-input")
                         .Value(_input)
                         .Placeholder("Value to persist")
                         .OnChange(v => _input = v),
-                    BsButton(Color: BsColor.Primary, Id: "storage-set", OnClickAsync: Set)["Set"],
-                    BsButton(Color: BsColor.Primary, Outline: true, Id: "storage-read", OnClickAsync: Read)["Read"],
-                    BsButton(Color: BsColor.Danger, Outline: true, Id: "storage-remove", OnClickAsync: Remove)["Remove"]
+                    BsButton.Color(BsColor.Primary).Id("storage-set").OnClickAsync(Set)["Set"],
+                    BsButton.Color(BsColor.Primary).Outline(true).Id("storage-read").OnClickAsync(Read)["Read"],
+                    BsButton.Color(BsColor.Danger).Outline(true).Id("storage-remove").OnClickAsync(Remove)["Remove"]
                 ],
-                Div(Class: "small text-secondary")["Last read: ", Code(Id: "storage-read-value")[_read ?? "(null)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "storage-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]
             ]
         ];
 

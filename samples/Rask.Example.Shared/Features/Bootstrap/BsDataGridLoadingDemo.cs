@@ -40,7 +40,7 @@ public sealed partial class BsDataGridLoadingDemo : Component
     private int _total = Source.Count;
 
     protected override Component? Render() =>
-        Div(Id: "grid-loading-demo")[
+        Div.Id("grid-loading-demo")[
             BsDataGrid(
                 Id: "bs-grid-loading",
                 Data: _rows,

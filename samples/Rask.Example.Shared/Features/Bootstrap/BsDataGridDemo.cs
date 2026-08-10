@@ -27,7 +27,7 @@ public sealed partial class BsDataGridDemo : Component
     // The wrapper exists so the whole component — table AND pager — has one addressable root: BsDataGrid's Id
     // lands on the <table>, and the pager renders as its sibling.
     protected override Component? Render() =>
-        Div(Id: "grid-demo")[
+        Div.Id("grid-demo")[
         BsDataGrid(
             Id: "bs-grid",
             Data: Products,
@@ -55,6 +55,6 @@ public sealed partial class BsDataGridDemo : Component
 
     private static Component StockBadge(Product product) =>
         product.Stock == 0
-            ? BsBadge(Color: BsColor.Danger)["Out of stock"]
-            : BsBadge(Color: product.Stock < 10 ? BsColor.Warning : BsColor.Success)[product.Stock.ToString()];
+            ? BsBadge.Color(BsColor.Danger)["Out of stock"]
+            : BsBadge.Color(product.Stock < 10 ? BsColor.Warning : BsColor.Success)[product.Stock.ToString()];
 }

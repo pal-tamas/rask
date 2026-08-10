@@ -10,6 +10,6 @@ public sealed partial class ThemeBadge : Component
     {
         var theme = Context.Required<Theme>();
         var css = theme.IsDark ? "bg-dark text-light border border-secondary" : "bg-warning-subtle text-dark";
-        return Span(Class: $"badge {css}")[theme.IsDark ? "🌙 Dark" : "☀️ Light"];
+        return Span.Class($"badge {css}")[theme.IsDark ? "🌙 Dark" : "☀️ Light"];
     }
 }

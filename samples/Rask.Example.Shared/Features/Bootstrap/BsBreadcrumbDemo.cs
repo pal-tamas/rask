@@ -6,15 +6,15 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class BsBreadcrumbDemo : Component
 {
     protected override Component? Render() =>
-        BsStack(Vertical: true, Gap: 3)[
-            BsBreadcrumb()[
-                BsBreadcrumbItem(Href: "#")["Home"],
-                BsBreadcrumbItem(Href: "#")["Library"],
-                BsBreadcrumbItem(Active: true)["Data"]
+        BsStack.Vertical(true).Gap(3)[
+            BsBreadcrumb[
+                BsBreadcrumbItem.Href("#")["Home"],
+                BsBreadcrumbItem.Href("#")["Library"],
+                BsBreadcrumbItem.Active(true)["Data"]
             ],
-            BsBreadcrumb(Label: "Docs sections")[
-                BsBreadcrumbItem(Href: "#")["Docs"],
-                BsBreadcrumbItem(Active: true)["Bootstrap"]
+            BsBreadcrumb.Label("Docs sections")[
+                BsBreadcrumbItem.Href("#")["Docs"],
+                BsBreadcrumbItem.Active(true)["Bootstrap"]
             ]
         ];
 }

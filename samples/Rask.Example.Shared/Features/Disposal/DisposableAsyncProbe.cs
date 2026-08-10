@@ -20,9 +20,9 @@ public sealed partial class DisposableAsyncProbe : Component, IAsyncDisposable
     }
 
     protected override Component? Render() =>
-        BsStack(Gap: 2, Align: BsAlign.Center)[
-            BsBadge(Color: BsColor.Info, Class: "dispose-async-pill")[$"#{InstanceId} alive"],
-            Span(Class: "text-secondary small")[
+        BsStack.Gap(2).Align(BsAlign.Center)[
+            BsBadge.Color(BsColor.Info).Class("dispose-async-pill")[$"#{InstanceId} alive"],
+            Span.Class("text-secondary small")[
                 $"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire DisposeAsync()."]
         ];
 }

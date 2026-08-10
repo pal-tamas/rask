@@ -29,14 +29,14 @@ public sealed partial class BsDataGridSelectionDemo : Component
     private string? _done;
 
     protected override Component? Render() =>
-        Div(Id: "grid-selection-demo")[
-            Div(Class: Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), "gap-2", Margin.Bottom(3)))[
-                BsButton(
-                    Id: "grid-bulk-archive",
-                    Color: BsColor.Danger,
-                    Disabled: _selected.Count == 0,
-                    OnClick: Archive)[$"Archive {_selected.Count} selected"],
-                _done is not null ? Span(Id: "grid-bulk-done", Class: Txt.Color(BsColor.Secondary))[_done] : null
+        Div.Id("grid-selection-demo")[
+            Div.Class(Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), "gap-2", Margin.Bottom(3)))[
+                BsButton
+                    .Id("grid-bulk-archive")
+                    .Color(BsColor.Danger)
+                    .Disabled(_selected.Count == 0)
+                    .OnClick(Archive)[$"Archive {_selected.Count} selected"],
+                _done is not null ? Span.Id("grid-bulk-done").Class(Txt.Color(BsColor.Secondary))[_done] : null
             ],
             BsDataGrid(
                 Id: "bs-grid-selection",
@@ -45,7 +45,7 @@ public sealed partial class BsDataGridSelectionDemo : Component
                 RowKey: t => t.Id,
                 // The full set of selected keys after every click — not a delta.
                 OnSelectionChange: keys => _selected = keys,
-                Empty: BsAlert(Id: "grid-selection-empty", Color: BsColor.Success)["Nothing left. Archived it all."],
+                Empty: BsAlert.Id("grid-selection-empty").Color(BsColor.Success)["Nothing left. Archived it all."],
                 Columns:
                 [
                     new BsColumn<Task_> { Title = "Task", Value = t => t.Title, Sortable = true },
@@ -66,10 +66,11 @@ public sealed partial class BsDataGridSelectionDemo : Component
     }
 
     private static Component StateBadge(Task_ task) =>
-        BsBadge(Color: task.State switch
-        {
-            "Done" => BsColor.Success,
-            "Doing" => BsColor.Warning,
-            _ => BsColor.Secondary,
-        })[task.State];
+        BsBadge
+            .Color(task.State switch
+            {
+                "Done" => BsColor.Success,
+                "Doing" => BsColor.Warning,
+                _ => BsColor.Secondary,
+            })[task.State];
 }

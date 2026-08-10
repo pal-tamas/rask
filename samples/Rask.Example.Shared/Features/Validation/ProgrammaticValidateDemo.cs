@@ -16,11 +16,11 @@ public sealed partial class ProgrammaticValidateDemo : Component
     }
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     private static Component Checking() =>
-        Span(Class: "validating-indicator text-muted small mt-1")[
-            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking…"
+        Span.Class("validating-indicator text-muted small mt-1")[
+            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking…"
         ];
 
     private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
@@ -32,22 +32,22 @@ public sealed partial class ProgrammaticValidateDemo : Component
             m => _submission = $"Saved task: {m.Title}",
             Context: _ctx,
             Class: "vstack gap-3")[
-            Div()[
-                Label("v6-title", Class: "form-label small mb-1")["Title"],
+            Div[
+                Label.For("v6-title").Class("form-label small mb-1")["Title"],
                 Input(() => _model.Title).Id("v6-title").Class("form-control"),
                 ValidatingIndicator(() => _model.Title, Checking),
                 ValidationMessage(() => _model.Title, FieldError)
             ],
-            BsStack(Gap: 2)[
-                BsButton(Color: BsColor.Secondary, Outline: true, Id: "v6-validate-now", OnClickAsync: ValidateNowAsync)[
-                    BsIcon(Name: BsIconName.Search, Class: "me-1"), "Validate now"
+            BsStack.Gap(2)[
+                BsButton.Color(BsColor.Secondary).Outline(true).Id("v6-validate-now").OnClickAsync(ValidateNowAsync)[
+                    BsIcon.Name(BsIconName.Search).Class("me-1"), "Validate now"
                 ],
-                BsButton(Type: "submit", Color: BsColor.Primary, Id: "v6-submit", Disabled: _ctx.IsValidatingAny)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Save"]
+                BsButton.Type("submit").Color(BsColor.Primary).Id("v6-submit").Disabled(_ctx.IsValidatingAny)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Save"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

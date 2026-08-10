@@ -10,29 +10,29 @@ public sealed partial class FormControlsInputDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        BsRow(Gutter: 4)[
-            BsCol(Md: 6)[
-                Label(Class: "form-label fw-semibold")["Controlled (Value + OnChange)"],
-                Rask.Core.Components.Generated.Input<string>(
-                    Value: _controlled,
-                    OnChange: v => _controlled = v,
-                    Class: "form-control mb-2",
-                    Placeholder: "Type, then blur…",
-                    Id: "fc-input-controlled"),
-                P(Class: "small text-secondary mb-0", Id: "fc-input-controlled-out")[
-                    "Echo: ", Strong()[_controlled.Length == 0 ? "(empty)" : _controlled]
+        BsRow.Gutter(4)[
+            BsCol.Md(6)[
+                Label.Class("form-label fw-semibold")["Controlled (Value + OnChange)"],
+                Input<string>()
+                    .Value(_controlled)
+                    .OnChange(v => _controlled = v)
+                    .Class("form-control mb-2")
+                    .Placeholder("Type, then blur…")
+                    .Id("fc-input-controlled"),
+                P.Class("small text-secondary mb-0").Id("fc-input-controlled-out")[
+                    "Echo: ", Strong[_controlled.Length == 0 ? "(empty)" : _controlled]
                 ]
             ],
-            BsCol(Md: 6)[
-                Label(Class: "form-label fw-semibold")["Bound (two-way)"],
+            BsCol.Md(6)[
+                Label.Class("form-label fw-semibold")["Bound (two-way)"],
                 Form(_model)[
                     Input(() => _model.Text)
                         .Class("form-control mb-2")
                         .Placeholder("Type…")
                         .Id("fc-input-bound")
                 ],
-                P(Class: "small text-secondary mb-0", Id: "fc-input-bound-out")[
-                    "Echo: ", Strong()[_model.Text.Length == 0 ? "(empty)" : _model.Text]
+                P.Class("small text-secondary mb-0").Id("fc-input-bound-out")[
+                    "Echo: ", Strong[_model.Text.Length == 0 ? "(empty)" : _model.Text]
                 ]
             ]
         ];

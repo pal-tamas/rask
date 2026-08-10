@@ -33,10 +33,10 @@ public sealed partial class WeatherCard(HttpClient http) : Component
 
     protected override Component? Render() =>
         _forecast is null
-            ? P()[Em()["Loading…"]]
-            : Article()[
-                H3()[City],
-                P()[$"{_forecast.Summary}, {_forecast.TemperatureC} °C"]
+            ? P[Em["Loading…"]]
+            : Article[
+                H3[City],
+                P[$"{_forecast.Summary}, {_forecast.TemperatureC} °C"]
             ];
 
     public sealed record Forecast(
@@ -47,7 +47,7 @@ public sealed partial class WeatherCard(HttpClient http) : Component
 // Call site is unchanged — ActivatorUtilities resolves `http`:
 public sealed partial class ComponentsDiDemo : Component
 {
-    protected override Component? Render() => WeatherCard(City: "Helsinki");
+    protected override Component? Render() => WeatherCard.City("Helsinki");
 }
 
 [JsonSerializable(typeof(WeatherCard.Forecast))]

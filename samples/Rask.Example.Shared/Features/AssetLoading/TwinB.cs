@@ -7,5 +7,5 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class TwinB : Component
 {
     protected override Component? Render() =>
-        Div(Class: "twin-tag")["Twin B — different colors, different hash"];
+        Div.Class("twin-tag")["Twin B — different colors, different hash"];
 }

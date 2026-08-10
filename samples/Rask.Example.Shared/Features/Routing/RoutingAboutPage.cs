@@ -10,5 +10,5 @@ namespace Rask.Example.Shared.Features;
 public sealed partial class RoutingAboutPage : Component
 {
     protected override Component? Render() =>
-        H1()["About"];
+        H1["About"];
 }

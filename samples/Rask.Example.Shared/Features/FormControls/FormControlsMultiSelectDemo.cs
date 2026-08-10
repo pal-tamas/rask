@@ -12,28 +12,28 @@ public sealed partial class FormControlsMultiSelectDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        BsRow(Gutter: 4)[
-            BsCol(Md: 6)[
-                Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
+        BsRow.Gutter(4)[
+            BsCol.Md(6)[
+                Label.Class("form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
                 BsMultiSelect<string>(
                     AllTopics,
                     Value: _controlled.ToList(),
                     OnChange: next => _controlled = next,
                     Id: "fc-multiselect-controlled",
                     Placeholder: "Choose topics…"),
-                P(Class: "small text-secondary mb-0 mt-2", Id: "fc-multiselect-controlled-out")[
-                    "Selected: ", Strong()[_controlled.Count == 0 ? "none" : string.Join(", ", _controlled)]
+                P.Class("small text-secondary mb-0 mt-2").Id("fc-multiselect-controlled-out")[
+                    "Selected: ", Strong[_controlled.Count == 0 ? "none" : string.Join(", ", _controlled)]
                 ]
             ],
-            BsCol(Md: 6)[
-                Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
+            BsCol.Md(6)[
+                Label.Class("form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
                     BsMultiSelect(() => _model.Topics, AllTopics, Id: "fc-multiselect-bound",
                         Placeholder: "Choose topics…")
                 ],
-                P(Class: "small text-secondary mb-0 mt-2", Id: "fc-multiselect-bound-out")[
+                P.Class("small text-secondary mb-0 mt-2").Id("fc-multiselect-bound-out")[
                     "Selected: ",
-                    Strong()[_model.Topics.Count == 0 ? "none" : string.Join(", ", _model.Topics)]
+                    Strong[_model.Topics.Count == 0 ? "none" : string.Join(", ", _model.Topics)]
                 ]
             ]
         ];

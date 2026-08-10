@@ -10,22 +10,23 @@ public sealed partial class BsTabsDemo : Component
 
     protected override Component? Render() =>
     [
-        Div(Class: "vstack gap-4")[
-            BsTabs(Active: _tab, Tabs:
-            [
+        Div.Class("vstack gap-4")[
+            BsTabs
+                .Active(_tab)
+                .Tabs([
                 new(Key: "home", Title: "Home", OnSelect: () => _tab = "home",
-                    Content: P(Class: "pt-3 mb-0")["The Home pane. Only the active pane is rendered."]),
+                    Content: P.Class("pt-3 mb-0")["The Home pane. Only the active pane is rendered."]),
                 new(Key: "profile", Title: "Profile", OnSelect: () => _tab = "profile",
-                    Content: P(Class: "pt-3 mb-0")["The Profile pane."]),
+                    Content: P.Class("pt-3 mb-0")["The Profile pane."]),
                 new(Key: "contact", Title: "Contact", OnSelect: () => _tab = "contact",
-                    Content: P(Class: "pt-3 mb-0")["The Contact pane."])
+                    Content: P.Class("pt-3 mb-0")["The Contact pane."])
             ]),
-            BsAccordion()[
-                BsAccordionItem(Title: "What drives these?", Open: _panel0, OnToggle: () => _panel0 = !_panel0)[
-                    P(Class: "mb-0")["Each item owns its open state — toggle it however you like (single- or multi-open)."]
+            BsAccordion[
+                BsAccordionItem.Title("What drives these?").Open(_panel0).OnToggle(() => _panel0 = !_panel0)[
+                    P.Class("mb-0")["Each item owns its open state — toggle it however you like (single- or multi-open)."]
                 ],
-                BsAccordionItem(Title: "Any JavaScript?", Open: _panel1, OnToggle: () => _panel1 = !_panel1)[
-                    P(Class: "mb-0")["None. The .show/.collapse classes are toggled by the live runtime."]
+                BsAccordionItem.Title("Any JavaScript?").Open(_panel1).OnToggle(() => _panel1 = !_panel1)[
+                    P.Class("mb-0")["None. The .show/.collapse classes are toggled by the live runtime."]
                 ]
             ]
         ]

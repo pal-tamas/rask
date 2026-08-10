@@ -23,7 +23,7 @@ public sealed partial class BsDataGridDetailDemo : Component
     ];
 
     protected override Component? Render() =>
-        Div(Id: "grid-detail-demo")[
+        Div.Id("grid-detail-demo")[
         BsDataGrid(
             Id: "bs-grid-detail",
             Data: Orders,
@@ -47,19 +47,19 @@ public sealed partial class BsDataGridDetailDemo : Component
 
     // The detail row is just a component — anything you can render belongs here.
     private static Component Lines(Order order) =>
-        BsCard(Class: Margin.Bottom(0))[
-            BsCardBody()[
-                BsCardTitle()[$"Lines for {order.Number}"],
-                BsTable(Small: true, Class: Margin.Bottom(0))[
-                    Thead()[Tr()[
-                        Th(Scope: "col")["SKU"],
-                        Th(Scope: "col", Class: Txt.End())["Qty"],
-                        Th(Scope: "col", Class: Txt.End())["Each"]
+        BsCard.Class(Margin.Bottom(0))[
+            BsCardBody[
+                BsCardTitle[$"Lines for {order.Number}"],
+                BsTable.Small(true).Class(Margin.Bottom(0))[
+                    Thead[Tr[
+                        Th.Scope("col")["SKU"],
+                        Th.Scope("col").Class(Txt.End())["Qty"],
+                        Th.Scope("col").Class(Txt.End())["Each"]
                     ]],
-                    Tbody()[order.Lines.Select(l => Tr(Key: l.Sku)[
-                        Td()[l.Sku],
-                        Td(Class: Txt.End())[l.Qty.ToString()],
-                        Td(Class: Txt.End())[l.Each.ToString("C")]
+                    Tbody[order.Lines.Select(l => Tr.Key(l.Sku)[
+                        Td[l.Sku],
+                        Td.Class(Txt.End())[l.Qty.ToString()],
+                        Td.Class(Txt.End())[l.Each.ToString("C")]
                     ])]
                 ]
             ]

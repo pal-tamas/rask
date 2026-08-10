@@ -29,24 +29,24 @@ public sealed partial class UploadDemo : Component
     }
 
     protected override Component? Render() =>
-        Div()[
-            Rask.Core.Components.Generated.Input<string>(
-                Id: "upload-input",
-                Type: InputType.File,
-                Class: "form-control mb-3",
-                OnFiles: OnFiles),
+        Div[
+            Input<string>()
+                .Id("upload-input")
+                .Type(InputType.File)
+                .Class("form-control mb-3")
+                .OnFiles(OnFiles),
             _name is null
-                ? (Component)Div(Class: "text-secondary small")["No file selected yet."]
-                : Dl(Class: "row small mb-0")[
-                    Dt(Class: "col-4 text-secondary")["Name"],
-                    Dd(Class: "col-8 text-break", Data: Meta("name"))[_name],
-                    Dt(Class: "col-4 text-secondary")["Size"],
-                    Dd(Class: "col-8", Data: Meta("size"))[_size.ToString("N0", CultureInfo.InvariantCulture),
+                ? (Component)Div.Class("text-secondary small")["No file selected yet."]
+                : Dl.Class("row small mb-0")[
+                    Dt.Class("col-4 text-secondary")["Name"],
+                    Dd.Class("col-8 text-break").Data(Meta("name"))[_name],
+                    Dt.Class("col-4 text-secondary")["Size"],
+                    Dd.Class("col-8").Data(Meta("size"))[_size.ToString("N0", CultureInfo.InvariantCulture),
                         " bytes"],
-                    Dt(Class: "col-4 text-secondary")["Type"],
-                    Dd(Class: "col-8", Data: Meta("type"))[_contentType ?? string.Empty],
-                    Dt(Class: "col-4 text-secondary")["Modified"],
-                    Dd(Class: "col-8 mb-0", Data: Meta("modified"))[
+                    Dt.Class("col-4 text-secondary")["Type"],
+                    Dd.Class("col-8").Data(Meta("type"))[_contentType ?? string.Empty],
+                    Dt.Class("col-4 text-secondary")["Modified"],
+                    Dd.Class("col-8 mb-0").Data(Meta("modified"))[
                         _modified.ToString("u", CultureInfo.InvariantCulture)]
                 ]
         ];

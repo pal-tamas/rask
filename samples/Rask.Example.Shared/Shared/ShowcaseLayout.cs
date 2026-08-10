@@ -76,45 +76,70 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     [
         // Under the native mobile shell the real UINavigationBar/MaterialToolbar takes over, so drop the web
         // navbar there. IsNative is false on Server/WASM, so the web showcase is unchanged.
-        IsNative ? null : BsNavbar(Color: BsColor.Dark, Theme: BsTheme.Dark, Sticky: true,
-            Class: Bs.Join(Border.Bottom, Shadow.Sm, "app-navbar"))[
-            Button(Type: "button", Class: Bs.Join("hamburger-btn", Display.None(Bp.Md)),
-                OnClick: () => _drawerOpen = !_drawerOpen)[
-                BsIcon(Name: _drawerOpen ? BsIconName.XLg : BsIconName.List)
+        IsNative ? null : BsNavbar
+            .Color(BsColor.Dark)
+            .Theme(BsTheme.Dark)
+            .Sticky(true)
+            .Class(Bs.Join(Border.Bottom, Shadow.Sm, "app-navbar"))[
+            Button
+                .Type("button")
+                .Class(Bs.Join("hamburger-btn", Display.None(Bp.Md)))
+                .OnClick(() => _drawerOpen = !_drawerOpen)[
+                BsIcon.Name(_drawerOpen ? BsIconName.XLg : BsIconName.List)
             ],
-            NavLink(Href: Features.Routes.GuidesIndexPage(), ActiveClass: "",
-                Class: Bs.Join("navbar-brand", Font.Semibold, Display.InlineFlex(), Flex.Align(BsAlign.Center),
+            NavLink
+                .Href(Features.Routes.GuidesIndexPage())
+                .ActiveClass("")
+                .Class(Bs.Join("navbar-brand", Font.Semibold, Display.InlineFlex(), Flex.Align(BsAlign.Center),
                     Flex.Gap(2)))[
-                RaskLogo(Size: 24, GradientId: "brandBolt"),
-                Span()["Rask"],
-                BsBadge(Pill: true, Class: "rask-badge")["showcase"],
-                BsBadge(Color: BsColor.Secondary, Pill: true)[$"v{RaskVersion.Current}"]
+                RaskLogo.Size(24).GradientId("brandBolt"),
+                Span["Rask"],
+                BsBadge.Pill(true).Class("rask-badge")["showcase"],
+                BsBadge.Color(BsColor.Secondary).Pill(true)[$"v{RaskVersion.Current}"]
             ],
-            Div(Class: Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), Flex.Gap(2), Margin.StartAuto))[
-                PathDisplay(),
+            Div.Class(Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), Flex.Gap(2), Margin.StartAuto))[
+                PathDisplay,
                 // The live playground is a separate WASM sub-app (Roslyn compiles Rask C# in the browser),
                 // deployed only to GitHub Pages alongside this showcase. This layout is shared by the
                 // Server, WASM and native showcases (and runs locally), none of which serve a /playground
                 // route — so link to the one place it actually lives (absolute), opened in a new tab.
-                BsLink(Href: "https://pal-tamas.github.io/rask/playground/", Target: "_blank", Rel: "noopener",
-                    Color: BsColor.Primary, Size: BsSize.Sm)[
-                    BsIcon(Name: BsIconName.PlayFill, Class: "me-1"), "Playground"],
-                BsLink(Href: "https://github.com/pal-tamas/rask", Target: "_blank", Rel: "noopener",
-                    Color: BsColor.Light, Outline: true, Size: BsSize.Sm)[
-                    BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"],
+                BsLink
+                    .Href("https://pal-tamas.github.io/rask/playground/")
+                    .Target("_blank")
+                    .Rel("noopener")
+                    .Color(BsColor.Primary)
+                    .Size(BsSize.Sm)[
+                    BsIcon.Name(BsIconName.PlayFill).Class("me-1"), "Playground"],
+                BsLink
+                    .Href("https://github.com/pal-tamas/rask")
+                    .Target("_blank")
+                    .Rel("noopener")
+                    .Color(BsColor.Light)
+                    .Outline(true)
+                    .Size(BsSize.Sm)[
+                    BsIcon.Name(BsIconName.Github).Class("me-1"), "GitHub"],
                 // Light/dark theme toggle — flips data-theme + data-bs-theme via the scoped module.
-                BsButton(Color: BsColor.Light, Outline: true, Size: BsSize.Sm,
-                    OnClickAsync: ToggleThemeAsync, Aria: ThemeToggleAria)[
-                    BsIcon(Name: BsIconName.CircleHalf)]
+                BsButton
+                    .Color(BsColor.Light)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .OnClickAsync(ToggleThemeAsync)
+                    .Aria(ThemeToggleAria)[
+                    BsIcon.Name(BsIconName.CircleHalf)]
             ]
         ],
-        Div(Class: Bs.Join(Display.Flex(), "app-shell"))[
-            BsOffcanvas(Responsive: Bp.Md, Placement: BsPlacement.Start, Open: _drawerOpen,
-                OnClose: () => _drawerOpen = false, Title: "Menu", Class: "side-nav")[
+        Div.Class(Bs.Join(Display.Flex(), "app-shell"))[
+            BsOffcanvas
+                .Responsive(Bp.Md)
+                .Placement(BsPlacement.Start)
+                .Open(_drawerOpen)
+                .OnClose(() => _drawerOpen = false)
+                .Title("Menu")
+                .Class("side-nav")[
                 SidebarBody()
             ],
-            Main(Class: Bs.Join(Flex.Grow(1), Padding.Y(4), Padding.X(3), Padding.X(5, Bp.Md), "page-main"))[
-                Div(Class: Bs.Join(Margin.XAuto, "page-main-inner"))[Outlet()]
+            Main.Class(Bs.Join(Flex.Grow(1), Padding.Y(4), Padding.X(3), Padding.X(5, Bp.Md), "page-main"))[
+                Div.Class(Bs.Join(Margin.XAuto, "page-main-inner"))[Outlet]
             ]
         ]
     ];
@@ -124,11 +149,11 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // position:sticky child because sticky-in-flexbox is unreliable in Safari (the filter would scroll
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
-        Div(Class: "side-nav-search")[
+        Div.Class("side-nav-search")[
             BsInput<string>().Value(_filter).OnChange(v => _filter = v ?? "").Size(BsSize.Sm)
                 .Placeholder("Filter guides & examples…").Class("side-nav-filter")
         ],
-        Div(Class: "side-nav-scroll")[BuildSections()]
+        Div.Class("side-nav-scroll")[BuildSections()]
     ];
 
     // Guides-first: the narrative guides are the primary spine (top of the sidebar, groups expanded by
@@ -181,13 +206,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 continue;
             }
 
-            children.Add(Div(Class: "side-nav-section")[section]);
+            children.Add(Div.Class("side-nav-section")[section]);
             children.AddRange(groups);
         }
 
         if (children.Count == 0)
         {
-            children.Add(Div(Class: "side-nav-empty text-secondary small")["Nothing matches that filter."]);
+            children.Add(Div.Class("side-nav-empty text-secondary small")["Nothing matches that filter."]);
         }
 
         return children;
@@ -196,14 +221,16 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     private Component GroupBlock(
         string key, string group, bool open,
         IReadOnlyList<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> items) =>
-        Div(Class: "nav-group", Key: key)[
-            Button(Type: "button", Class: Bs.Join("nav-group-toggle", open ? "open" : null),
-                OnClick: () => ToggleGroup(key))[
-                I(Class: open ? "bi bi-chevron-down nav-group-chevron" : "bi bi-chevron-right nav-group-chevron"),
-                Span(Class: "nav-group-label")[group]
+        Div.Class("nav-group").Key(key)[
+            Button
+                .Type("button")
+                .Class(Bs.Join("nav-group-toggle", open ? "open" : null))
+                .OnClick(() => ToggleGroup(key))[
+                I.Class(open ? "bi bi-chevron-down nav-group-chevron" : "bi bi-chevron-right nav-group-chevron"),
+                Span.Class("nav-group-label")[group]
             ],
-            BsCollapse(Open: open)[
-                BsNav(Vertical: true, Class: "nav-group-items")[
+            BsCollapse.Open(open)[
+                BsNav.Vertical(true).Class("nav-group-items")[
                     items.Select(i =>
                     {
                         RouteUrl? match = null;
@@ -212,11 +239,14 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                             match = mp;
                         }
 
-                        return (Component)BsNavItem(Href: i.Path, Match: match,
-                            ActiveMatch: i.MatchPrefix is null ? null : NavLinkMatch.Prefix,
-                            Key: i.Path, Class: "side-nav-link")[
-                            I(Class: $"bi {i.Icon} me-2"),
-                            Span()[i.Label]
+                        return (Component)BsNavItem
+                            .Href(i.Path)
+                            .Match(match)
+                            .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
+                            .Key(i.Path)
+                            .Class("side-nav-link")[
+                            I.Class($"bi {i.Icon} me-2"),
+                            Span[i.Label]
                         ];
                     })
                 ]

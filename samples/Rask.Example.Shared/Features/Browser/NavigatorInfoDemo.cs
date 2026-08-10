@@ -9,12 +9,18 @@ public sealed partial class NavigatorInfoDemo(INavigatorInfo navigator) : Compon
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "nav-read", OnClickAsync: Read)[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Class("mb-2")
+                    .Id("nav-read")
+                    .OnClickAsync(Read)[
                     "Read navigator info"],
-                Div(Class: "small text-secondary")["Info: ", Code(Id: "nav-value")[_value ?? "(not requested)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "nav-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Info: ", Code.Id("nav-value")[_value ?? "(not requested)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("nav-status")[_status ?? "(idle)"]]
             ]
         ];
 

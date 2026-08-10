@@ -15,8 +15,8 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
 
     protected override Component? Render() =>
     [
-        Div(Class: "mb-3")[
-            Label("bind-async-track", Class: "form-label small")["Track"],
+        Div.Class("mb-3")[
+            Label.For("bind-async-track").Class("form-label small")["Track"],
             Select(() => _model.Track)
                 .AfterBindAsync(async track =>
                 {
@@ -58,14 +58,14 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                 // re-picking the already-shown first option fires no change event, so the
                 // async load never triggers. A selected placeholder keeps the initial
                 // display honest and makes every track pick a real change.
-                Option("")["— pick a track —"],
-                Option("frontend")["Frontend"],
-                Option("backend")["Backend"],
-                Option("data")["Data"]
+                Option.Value("")["— pick a track —"],
+                Option.Value("frontend")["Frontend"],
+                Option.Value("backend")["Backend"],
+                Option.Value("data")["Data"]
             ]
         ],
-        Div(Class: "mb-3")[
-            Label("bind-async-lang", Class: "form-label small")[
+        Div.Class("mb-3")[
+            Label.For("bind-async-lang").Class("form-label small")[
                 _loading ? "Language (loading…)" : "Language"
             ],
             Select(() => _model.Language)
@@ -73,12 +73,12 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                 .Class("form-select")
                 .Disabled(_loading || _languages.Length == 0)[
                 _languages.Length == 0
-                    ? [Option("")["— pick a track —"]]
-                    : _languages.Select(l => Option(l, Key: l)[l])
+                    ? [Option.Value("")["— pick a track —"]]
+                    : _languages.Select(l => Option.Value(l).Key(l)[l])
             ]
         ],
-        Pre(Class: "small mb-0 p-3 bg-light border rounded")[
-            Code("bind-async-echo")[
+        Pre.Class("small mb-0 p-3 bg-light border rounded")[
+            Code.Id("bind-async-echo")[
                 $"Track    = {_model.Track}\n" +
                 $"Language = {_model.Language}"
             ]

@@ -14,11 +14,13 @@ internal sealed partial class DisposalDemoLog : Component
 
     protected override Component? Render() =>
         [
-            H3(Class: "h6 text-secondary text-uppercase small mt-4")["Log"],
+            H3.Class("h6 text-secondary text-uppercase small mt-4")["Log"],
             Entries.Count == 0
-                ? P(Class: "text-secondary small mb-0")["Empty — mount and unmount the probe."]
-                : Ol(Class: "list-group list-group-numbered list-group-flush",
-                    Id: ListId)[Entries.Select((line, i) => Li(Key: i,
-                    Class: "list-group-item ps-2 small")[Code(Class: "small")[line]]).ToArray()]
+                ? P.Class("text-secondary small mb-0")["Empty — mount and unmount the probe."]
+                : Ol
+                    .Class("list-group list-group-numbered list-group-flush")
+                    .Id(ListId)[Entries.Select((line, i) => Li
+                        .Key(i)
+                        .Class("list-group-item ps-2 small")[Code.Class("small")[line]]).ToArray()]
         ];
 }

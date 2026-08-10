@@ -14,8 +14,8 @@ public sealed partial class BindingAfterBindDemo : Component
 
     protected override Component? Render() =>
     [
-        Div(Class: "mb-3")[
-            Label("bind-after-country", Class: "form-label small")["Country"],
+        Div.Class("mb-3")[
+            Label.For("bind-after-country").Class("form-label small")["Country"],
             Select(() => _model.Country)
                 .AfterBind(c =>
                 {
@@ -24,21 +24,21 @@ public sealed partial class BindingAfterBindDemo : Component
                 })
                 .Id("bind-after-country")
                 .Class("form-select")[
-                Option("US")["United States"],
-                Option("DE")["Germany"],
-                Option("JP")["Japan"]
+                Option.Value("US")["United States"],
+                Option.Value("DE")["Germany"],
+                Option.Value("JP")["Japan"]
             ]
         ],
-        Div(Class: "mb-3")[
-            Label("bind-after-city", Class: "form-label small")["City"],
+        Div.Class("mb-3")[
+            Label.For("bind-after-city").Class("form-label small")["City"],
             Select(() => _model.City)
                 .Id("bind-after-city")
                 .Class("form-select")[
-                _cities.Select(c => Option(c, Key: c)[c])
+                _cities.Select(c => Option.Value(c).Key(c)[c])
             ]
         ],
-        Pre(Class: "small mb-0 p-3 bg-light border rounded")[
-            Code("bind-after-echo")[
+        Pre.Class("small mb-0 p-3 bg-light border rounded")[
+            Code.Id("bind-after-echo")[
                 $"Country = {_model.Country}\n" +
                 $"City    = {_model.City}"
             ]

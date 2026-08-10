@@ -82,9 +82,9 @@ public sealed partial class CancellationProbe : Component
             _ => "badge text-bg-secondary"
         };
 
-        return BsStack(Gap: 2, Align: BsAlign.Center)[
-            Span(Class: $"{pillClass} cancel-probe-pill")[$"#{InstanceId} {_status}"],
-            Span(Class: "text-secondary small")[
+        return BsStack.Gap(2).Align(BsAlign.Center)[
+            Span.Class($"{pillClass} cancel-probe-pill")[$"#{InstanceId} {_status}"],
+            Span.Class("text-secondary small")[
                 _status == "running"
                     ? "Awaiting Task.Delay(2500ms, CancellationToken). Click Unmount to abort."
                     : "Awaited task settled — probe is still alive."

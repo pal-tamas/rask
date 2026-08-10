@@ -22,15 +22,17 @@ public sealed partial class MetricsChart(IMetricsFeed feed) : Component
     protected override void OnUnmount() => feed.Updated -= StateHasChanged;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Sizing.H(100)))[
-            BsCardBody()[
-                H3(Class: "h6 text-secondary text-uppercase small mb-3")["CPU %, last minute"],
-                Div(Class: "metrics-chart-container", Id: "metrics-chart",
-                    Style: "position: relative; height: 160px;")[
-                    Sparkline(
-                        feed.State.Recent.Select(p => p.CpuPercent).ToList(),
-                        ValueFormat: "0.0'%'",
-                        Class: "metrics-chart-svg")
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None, Sizing.H(100)))[
+            BsCardBody[
+                H3.Class("h6 text-secondary text-uppercase small mb-3")["CPU %, last minute"],
+                Div
+                    .Class("metrics-chart-container")
+                    .Id("metrics-chart")
+                    .Style("position: relative; height: 160px;")[
+                    Sparkline
+                        .Values(feed.State.Recent.Select(p => p.CpuPercent).ToList())
+                        .ValueFormat("0.0'%'")
+                        .Class("metrics-chart-svg")
                 ]
             ]
         ];

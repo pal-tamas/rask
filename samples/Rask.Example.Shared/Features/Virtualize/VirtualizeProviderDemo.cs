@@ -16,23 +16,23 @@ public sealed partial class VirtualizeProviderDemo : Component
 
     protected override Component? Render() =>
         VirtualizeModel(
-            ctx => Div(
-                Class: "border rounded bg-white",
-                Style: "height:360px; overflow:auto;",
-                Data: new Dictionary<string, string?> { ["testid"] = "virtualize-async-scroller" },
-                OnScroll: ctx.OnScroll)[
-                Table(
-                    Class: "table table-sm mb-0",
-                    Style: "table-layout:fixed; width:100%; border-collapse:separate; border-spacing:0;")[
-                    Thead()[
-                        Tr()[
-                            Th(Style: StickyHead + "width:64px;")["#"],
-                            Th(Style: StickyHead)["Name"],
-                            Th(Style: StickyHead + "width:120px;")["City"],
-                            Th(Style: StickyHead + "width:110px; text-align:right;")["Balance"]
+            ctx => Div
+                .Class("border rounded bg-white")
+                .Style("height:360px; overflow:auto;")
+                .Data(new Dictionary<string, string?> { ["testid"] = "virtualize-async-scroller" })
+                .OnScroll(ctx.OnScroll)[
+                Table
+                    .Class("table table-sm mb-0")
+                    .Style("table-layout:fixed; width:100%; border-collapse:separate; border-spacing:0;")[
+                    Thead[
+                        Tr[
+                            Th.Style(StickyHead + "width:64px;")["#"],
+                            Th.Style(StickyHead)["Name"],
+                            Th.Style(StickyHead + "width:120px;")["City"],
+                            Th.Style(StickyHead + "width:110px; text-align:right;")["Balance"]
                         ]
                     ],
-                    Tbody()[BodyRows(ctx)]
+                    Tbody[BodyRows(ctx)]
                 ]
             ],
             ItemsProvider: FetchRowsAsync,
@@ -48,18 +48,18 @@ public sealed partial class VirtualizeProviderDemo : Component
 
         foreach (var item in ctx.VisibleItems)
         {
-            yield return Tr(
-                Style: $"height:{ctx.ItemSize}px;",
-                Data: new Dictionary<string, string?>
+            yield return Tr
+                .Style($"height:{ctx.ItemSize}px;")
+                .Data(new Dictionary<string, string?>
                 {
                     ["row-index"] = item.Index.ToString(),
                     ["rask-key"] = item.Index.ToString(),
                     ["placeholder"] = item.IsPlaceholder ? "true" : null
                 })[
-                Td()[item.IsPlaceholder ? "—" : item.Value!.Index.ToString()],
-                Td()[item.IsPlaceholder ? "—" : item.Value!.Name],
-                Td()[item.IsPlaceholder ? "—" : item.Value!.City],
-                Td(Style: "text-align:right;")[item.IsPlaceholder ? "—" : item.Value!.Balance.ToString("0.00")]
+                Td[item.IsPlaceholder ? "—" : item.Value!.Index.ToString()],
+                Td[item.IsPlaceholder ? "—" : item.Value!.Name],
+                Td[item.IsPlaceholder ? "—" : item.Value!.City],
+                Td.Style("text-align:right;")[item.IsPlaceholder ? "—" : item.Value!.Balance.ToString("0.00")]
             ];
         }
 
@@ -67,10 +67,10 @@ public sealed partial class VirtualizeProviderDemo : Component
     }
 
     private static Component Spacer(int height, string key) =>
-        Tr(
-            Style: $"height:{height}px;",
-            Data: new Dictionary<string, string?> { ["rask-key"] = key })[
-            Td(Colspan: 4)
+        Tr
+            .Style($"height:{height}px;")
+            .Data(new Dictionary<string, string?> { ["rask-key"] = key })[
+            Td.Colspan(4)
         ];
 
     private static async ValueTask<ItemsProviderResult<VirtualizeRow>> FetchRowsAsync(ItemsProviderRequest req)

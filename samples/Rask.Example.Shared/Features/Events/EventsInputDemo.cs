@@ -6,15 +6,15 @@ public sealed partial class EventsInputDemo : Component
 
     protected override Component? Render() =>
     [
-        Rask.Core.Components.Generated.Input(
-            InputType.Text,
-            Class: "form-control mb-2",
-            Placeholder: "Type something",
-            Value: _typed,
-            OnInput: v => _typed = v),
-        P(Class: "small mb-0")[
+        Input<string>()
+            .Type(InputType.Text)
+            .Class("form-control mb-2")
+            .Placeholder("Type something")
+            .Value(_typed)
+            .OnInput(v => _typed = v),
+        P.Class("small mb-0")[
             "You typed: ",
-            Code()[string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""]
+            Code[string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""]
         ]
     ];
 }

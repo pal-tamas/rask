@@ -15,11 +15,11 @@ public sealed partial class HttpRegisterDemo : Component
         new() { BaseAddress = new Uri(baseAddress()) };
 
     protected override Component? Render() =>
-        BsCard(Class: "border-0 bg-light")[
-            BsCardBody()[
-                Div(Class: "small text-secondary text-uppercase mb-1")["Configured HttpClient"],
-                P(Class: "mb-0 small")[
-                    "BaseAddress: ", Code()[CreateClient(() => "https://localhost/").BaseAddress!.ToString()],
+        BsCard.Class("border-0 bg-light")[
+            BsCardBody[
+                Div.Class("small text-secondary text-uppercase mb-1")["Configured HttpClient"],
+                P.Class("mb-0 small")[
+                    "BaseAddress: ", Code[CreateClient(() => "https://localhost/").BaseAddress!.ToString()],
                     " — relative fetches resolve against the app's own origin."
                 ]
             ]

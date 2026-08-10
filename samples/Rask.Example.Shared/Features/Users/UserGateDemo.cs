@@ -14,21 +14,24 @@ public sealed partial class UserGateDemo : Component
     protected override void OnUnmount() => _auth.Changed -= StateHasChanged;
 
     protected override Component? Render() =>
-        Div(Id: "user-gate")[
+        Div.Id("user-gate")[
             _auth.Current.Identity?.IsAuthenticated == true
                 ? [
-                    P()["Signed in as ", Strong()[_auth.Current.Identity!.Name ?? "?"]],
+                    P["Signed in as ", Strong[_auth.Current.Identity!.Name ?? "?"]],
                     // Role-gated: only an admin sees this panel.
                     _auth.Current.IsInRole("admin")
-                        ? BsAlert(Color: BsColor.Warning, Class: "py-2")["🔑 Admin-only panel"]
+                        ? BsAlert.Color(BsColor.Warning).Class("py-2")["🔑 Admin-only panel"]
                         : null,
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: _auth.SignOut)["Sign out"]]
+                    BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClick(_auth.SignOut)["Sign out"]]
                 : [
-                    P(Class: "text-secondary")["You are signed out."],
-                    BsStack(Gap: 2)[
-                        BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _auth.SignIn("alice", "user"))[
+                    P.Class("text-secondary")["You are signed out."],
+                    BsStack.Gap(2)[
+                        BsButton.Color(BsColor.Primary).Size(BsSize.Sm).OnClick(() => _auth.SignIn("alice", "user"))[
                             "Sign in as user"],
-                        BsButton(Color: BsColor.Warning, Size: BsSize.Sm, OnClick: () => _auth.SignIn("rootadmin", "admin"))[
+                        BsButton
+                            .Color(BsColor.Warning)
+                            .Size(BsSize.Sm)
+                            .OnClick(() => _auth.SignIn("rootadmin", "admin"))[
                             "Sign in as admin"]
                     ]]
         ];

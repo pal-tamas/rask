@@ -11,29 +11,29 @@ public sealed partial class FormControlsSelectDemo : Component
     private readonly Model _model = new();
 
     protected override Component? Render() =>
-        BsRow(Gutter: 4)[
-            BsCol(Md: 6)[
-                Label(Class: "form-label fw-semibold")["Controlled (Value + OnChange)"],
-                Rask.Core.Components.Generated.Select<string>(
-                    Value: _controlled,
-                    OnChange: v => _controlled = v,
-                    Class: "form-select mb-2",
-                    Id: "fc-select-controlled")[
-                    Option("Rask"), Option("Blazor"), Option("htmx")
+        BsRow.Gutter(4)[
+            BsCol.Md(6)[
+                Label.Class("form-label fw-semibold")["Controlled (Value + OnChange)"],
+                Select<string>()
+                    .Value(_controlled)
+                    .OnChange(v => _controlled = v)
+                    .Class("form-select mb-2")
+                    .Id("fc-select-controlled")[
+                    Option.Value("Rask"), Option.Value("Blazor"), Option.Value("htmx")
                 ],
-                P(Class: "small text-secondary mb-0", Id: "fc-select-controlled-out")[
-                    "Picked: ", Strong()[_controlled]
+                P.Class("small text-secondary mb-0").Id("fc-select-controlled-out")[
+                    "Picked: ", Strong[_controlled]
                 ]
             ],
-            BsCol(Md: 6)[
-                Label(Class: "form-label fw-semibold")["Bound (two-way)"],
+            BsCol.Md(6)[
+                Label.Class("form-label fw-semibold")["Bound (two-way)"],
                 Form(_model)[
                     Select(() => _model.Framework).Class("form-select mb-2").Id("fc-select-bound")[
-                        Option("Rask"), Option("Blazor"), Option("htmx")
+                        Option.Value("Rask"), Option.Value("Blazor"), Option.Value("htmx")
                     ]
                 ],
-                P(Class: "small text-secondary mb-0", Id: "fc-select-bound-out")[
-                    "Picked: ", Strong()[_model.Framework]
+                P.Class("small text-secondary mb-0").Id("fc-select-bound-out")[
+                    "Picked: ", Strong[_model.Framework]
                 ]
             ]
         ];

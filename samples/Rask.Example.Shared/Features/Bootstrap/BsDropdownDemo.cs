@@ -12,23 +12,32 @@ public sealed partial class BsDropdownDemo : Component
 
     protected override Component? Render() =>
     [
-        Div(Class: Bs.Join(Display.Flex(), Flex.Gap(3), Flex.Wrap()))[
-            BsDropdown(Id: "demo-dropdown", Label: "Actions", Color: BsColor.Primary,
-                Open: _open, OnToggle: () => _open = !_open)[
-                BsDropdownItem(Header: true)["Manage"],
-                BsDropdownItem(OnClick: () => Pick("Edit"))["Edit"],
-                BsDropdownItem(OnClick: () => Pick("Duplicate"))["Duplicate"],
-                BsDropdownItem(Divider: true),
-                BsDropdownItem(OnClick: () => Pick("Archive"))["Archive"]
+        Div.Class(Bs.Join(Display.Flex(), Flex.Gap(3), Flex.Wrap()))[
+            BsDropdown
+                .Id("demo-dropdown")
+                .Label("Actions")
+                .Color(BsColor.Primary)
+                .Open(_open)
+                .OnToggle(() => _open = !_open)[
+                BsDropdownItem.Header(true)["Manage"],
+                BsDropdownItem.OnClick(() => Pick("Edit"))["Edit"],
+                BsDropdownItem.OnClick(() => Pick("Duplicate"))["Duplicate"],
+                BsDropdownItem.Divider(true),
+                BsDropdownItem.OnClick(() => Pick("Archive"))["Archive"]
             ],
-            BsDropdown(Id: "demo-dropdown-end", Label: "Right-aligned", Color: BsColor.Secondary,
-                AlignEnd: true, Open: _alignOpen, OnToggle: () => _alignOpen = !_alignOpen)[
-                BsDropdownItem(OnClick: () => Pick("Share"))["Share"],
-                BsDropdownItem(OnClick: () => Pick("Export"))["Export"]
+            BsDropdown
+                .Id("demo-dropdown-end")
+                .Label("Right-aligned")
+                .Color(BsColor.Secondary)
+                .AlignEnd(true)
+                .Open(_alignOpen)
+                .OnToggle(() => _alignOpen = !_alignOpen)[
+                BsDropdownItem.OnClick(() => Pick("Share"))["Share"],
+                BsDropdownItem.OnClick(() => Pick("Export"))["Export"]
             ]
         ],
-        BsAlert(Color: BsColor.Info, Class: "mt-3 mb-0")[
-            Span(Id: "demo-dropdown-out")["Last action: ", Strong()[_picked]]
+        BsAlert.Color(BsColor.Info).Class("mt-3 mb-0")[
+            Span.Id("demo-dropdown-out")["Last action: ", Strong[_picked]]
         ]
     ];
 

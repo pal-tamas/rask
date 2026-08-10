@@ -8,7 +8,7 @@ public sealed partial class ValidationFieldsDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     protected override Component? Render() =>
     [
@@ -16,41 +16,41 @@ public sealed partial class ValidationFieldsDemo : Component
             _model,
             m => _submission = $"Registered: {m.Name} <{m.Email}>",
             Class: "vstack gap-3")[
-            DataAnnotationsValidator(),
-            Div()[
-                Label("v1-name", Class: "form-label small mb-1")["Name"],
+            DataAnnotationsValidator,
+            Div[
+                Label.For("v1-name").Class("form-label small mb-1")["Name"],
                 Input(() => _model.Name).Id("v1-name").Class("form-control"),
                 ValidationMessage(() => _model.Name, FieldError)
             ],
-            Div()[
-                Label("v1-email", Class: "form-label small mb-1")["Email"],
+            Div[
+                Label.For("v1-email").Class("form-label small mb-1")["Email"],
                 Input(() => _model.Email)
                     .Id("v1-email")
                     .Type(InputType.Email)
                     .Class("form-control"),
                 ValidationMessage(() => _model.Email, FieldError)
             ],
-            Div()[
-                Label("v1-age", Class: "form-label small mb-1")["Age"],
+            Div[
+                Label.For("v1-age").Class("form-label small mb-1")["Age"],
                 Input(() => _model.Age).Id("v1-age").Class("form-control"),
                 ValidationMessage(() => _model.Age, FieldError)
             ],
-            Div()[
-                Label("v1-plan", Class: "form-label small mb-1")["Plan"],
+            Div[
+                Label.For("v1-plan").Class("form-label small mb-1")["Plan"],
                 Select(() => _model.Plan).Id("v1-plan").Class("form-select")[
-                    Option("")["— choose —"],
-                    Option("free")["Free"],
-                    Option("pro")["Pro"],
-                    Option("team")["Team"]
+                    Option.Value("")["— choose —"],
+                    Option.Value("free")["Free"],
+                    Option.Value("pro")["Pro"],
+                    Option.Value("team")["Team"]
                 ],
                 ValidationMessage(() => _model.Plan, FieldError)
             ],
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Register"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Register"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }

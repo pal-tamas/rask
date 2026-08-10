@@ -9,16 +9,16 @@ public sealed partial class MultiSelectRadioDemo : Component
     private Tier _plan = Tier.Free;
 
     protected override Component? Render() =>
-        Div(Class: "vstack gap-3")[
-            Div()[
-                Label(Class: "form-label fw-semibold d-block")["Plan"],
+        Div.Class("vstack gap-3")[
+            Div[
+                Label.Class("form-label fw-semibold d-block")["Plan"],
                 BsRadioGroup(
                     AllTiers,
                     Value: _plan,
                     OnChange: v => _plan = v,
                     ItemClass: "form-check-inline")
             ],
-            P(Class: "small text-secondary mb-0", Id: "ms-radio-summary")[$"Plan: {_plan}"]
+            P.Class("small text-secondary mb-0").Id("ms-radio-summary")[$"Plan: {_plan}"]
         ];
 
     private enum Tier

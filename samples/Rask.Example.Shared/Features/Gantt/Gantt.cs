@@ -123,7 +123,7 @@ public sealed partial class Gantt : Component
 
     // A leaf: no children here, ever. See the class remarks — this is what keeps the diff out of the
     // library's DOM. The visible height comes from Gantt.css.
-    protected override Component? Render() => Div(Ref: _host, Class: "rask-gantt");
+    protected override Component? Render() => Div.Ref(_host).Class("rask-gantt");
 
     // Mount in OnRendered, not OnMount: OnMount runs *before* the first render, so the host element
     // doesn't exist yet and the ref would resolve to null on the JS side. Interop issued during a render

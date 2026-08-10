@@ -24,9 +24,9 @@ public sealed partial class BsDataGridRowDemo : Component
     private string? _opened;
 
     protected override Component? Render() =>
-        Div(Id: "grid-row-demo")[
+        Div.Id("grid-row-demo")[
             _opened is not null
-                ? BsAlert(Id: "grid-row-opened", Color: BsColor.Info, Class: Margin.Bottom(3))[$"Opened {_opened}"]
+                ? BsAlert.Id("grid-row-opened").Color(BsColor.Info).Class(Margin.Bottom(3))[$"Opened {_opened}"]
                 : null,
             BsDataGrid(
                 Id: "bs-grid-row",
@@ -53,8 +53,12 @@ public sealed partial class BsDataGridRowDemo : Component
                     new BsColumn<Invoice>
                     {
                         Title = "", Class = Txt.End(),
-                        Template = i => BsButton(Id: $"open-{i.Number}", Color: BsColor.Primary, Outline: true,
-                            Size: BsSize.Sm, OnClick: () => _opened = i.Number)["Open"],
+                        Template = i => BsButton
+                            .Id($"open-{i.Number}")
+                            .Color(BsColor.Primary)
+                            .Outline(true)
+                            .Size(BsSize.Sm)
+                            .OnClick(() => _opened = i.Number)["Open"],
                     },
                 ])];
 }

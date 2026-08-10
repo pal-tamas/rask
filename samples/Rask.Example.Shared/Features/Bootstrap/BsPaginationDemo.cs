@@ -12,16 +12,16 @@ public sealed partial class BsPaginationDemo : Component
     {
         IEnumerable<Component?> items =
         [
-            BsPageItem(Key: "prev", Disabled: _page == 1, OnClick: () => { if (_page > 1) _page--; })["Previous"],
+            BsPageItem.Key("prev").Disabled(_page == 1).OnClick(() => { if (_page > 1) _page--; })["Previous"],
             .. Enumerable.Range(1, TotalPages)
-                .Select(p => BsPageItem(Key: p.ToString(), Active: p == _page, OnClick: () => _page = p)[p.ToString()]),
-            BsPageItem(Key: "next", Disabled: _page == TotalPages, OnClick: () => { if (_page < TotalPages) _page++; })["Next"],
+                .Select(p => BsPageItem.Key(p.ToString()).Active(p == _page).OnClick(() => _page = p)[p.ToString()]),
+            BsPageItem.Key("next").Disabled(_page == TotalPages).OnClick(() => { if (_page < TotalPages) _page++; })["Next"],
         ];
 
         return
         [
-            BsPagination(Label: "Demo pages")[items],
-            P(Id: "bs-pagination-status", Class: "mt-2 mb-0 text-body-secondary")[$"Page {_page} of {TotalPages}"]
+            BsPagination.Label("Demo pages")[items],
+            P.Id("bs-pagination-status").Class("mt-2 mb-0 text-body-secondary")[$"Page {_page} of {TotalPages}"]
         ];
     }
 }
