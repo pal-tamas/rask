@@ -133,6 +133,27 @@ them until tagged releases begin.
     has no such hole because it notifies unconditionally. **Not fixed here** — the obvious repair makes
     every element in an entry-built tree allocate a `LiveState` at commit, which is the memory work this
     design exists to protect, so it needs a cheaper "this came from an entry" signal than the one it has.
+- **The seed surface's arity-2 pin is designed and works, and it needs one public name that does not exist
+  yet.** `BsSelect<TValue, TItem>` cannot be reached by a single `.Bind(…)` — C# has no partial inference,
+  so one call cannot pin both parameters. A two-stage chain does it:
+  `BsSelect.BindOn(() => m.PersonId).Options(people)` pins `TValue` at stage 1 and `TItem` at stage 2, and
+  it is **order-independent** — shared props accumulated before the first pin, between the two pins, or
+  after both replay identically. Arity-1 keeps its single pin. Verified end to end in a scratch probe.
+  The emission is mechanical. The stage-1 seed is generic over the kind, so the second copy of the 93
+  shared setters is **+93 methods once, not per component**; only own props double, and only for arity-2
+  components. The one new capability the generator needs is generalising "the inference property" to
+  "which property pins which type parameter, and in what order".
+  What blocks it is a name, and the language picked the fight: the arity-1 pin and the arity-2 stage-1 pin
+  take the **same receiver and the same parameter** and differ only in return type —
+  `error CS0111: already defines a member called 'Bind' with the same parameter types`. Making the pins
+  kind-specific does not dissolve it. That fixes the collision between *different components* (`Input` and
+  `BsSelect` can both spell it `Bind`, confirmed), but both **arities of `BsSelect` share a type name**, so
+  they share the one entry member, so they share its seed type, so they share its kind. Same receiver.
+  Two ways out, both public-API decisions: a second name for the arity-2 stage-1 pin, or retiring
+  `BsSelect<TItem>` so one arity remains — which costs the common case an explicit `.OptionValue(x => x)`,
+  since `OptionValue` is `required`. This is load-bearing rather than a nicety: the ~6 arity-2 call sites
+  have **no builder entry at all today**, so introducing the `BsSelect` seed property displaces the factory
+  they currently use and leaves them with nothing.
 - **The rewriter will not collapse a two-surface comparison any more.** It converted the factory arm of its
   own parity test into a second copy of the entry arm — a test that still passed and proved nothing, caught
   by reading the diff rather than by anything failing. Ten files were relying on a marker somebody has to
