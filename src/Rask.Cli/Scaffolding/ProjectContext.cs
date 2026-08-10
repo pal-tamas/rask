@@ -78,23 +78,43 @@ internal sealed partial class ProjectContext(
     [GeneratedRegex(@"<RootNamespace>\s*(.+?)\s*</RootNamespace>", RegexOptions.IgnoreCase)]
     private static partial Regex RootNamespaceRegex();
 
+    // A browser TFM on either the singular or plural element. Matched by the "-browser" suffix rather
+    // than the framework version, so a bump doesn't silently stop detecting it — but scoped to the
+    // element, because the bare string also occurs in comments, constants and package ids.
+    [GeneratedRegex(@"<TargetFrameworks?>[^<]*-browser", RegexOptions.IgnoreCase)]
+    private static partial Regex BrowserTargetFrameworkRegex();
+
+    // A reference to the WASM host itself, as a package (Include="Rask.Wasm") or as a project
+    // (Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj") — the repo's own samples use the latter.
+    // Anchored on the closing quote so it does NOT match Rask.Wasm.Hosting, which is the giveaway of a
+    // SERVER project, not a browser one.
+    [GeneratedRegex(@"Include=""(?:[^""]*[\\/])?Rask\.Wasm(?:\.csproj)?""", RegexOptions.IgnoreCase)]
+    private static partial Regex WasmHostReferenceRegex();
+
     /// <summary>
     /// Whether a project file describes a browser (WASM) app.
     /// </summary>
     /// <remarks>
     /// Three independent signals, because an app can be recognisably a browser app by any of them: the
     /// browser target framework, the framework's own <c>RaskWasm</c> marker, or a reference to the WASM
-    /// host. Matching any one of them is deliberate — a project that is a browser app by only one signal
-    /// is still a browser app, and the cost of a false positive here is next-steps text that mentions a
-    /// package the reader does not have, not a broken build.
+    /// host. Matching any one is deliberate — a project that is a browser app by only one signal is still
+    /// a browser app.
+    /// <para>
+    /// Each signal is matched precisely rather than as a substring, because a false positive here is not
+    /// cosmetic: it hands a server project the browser next-steps and adds <c>Rask.SQLite.Browser</c> to
+    /// it, which doesn't resolve there. The one that bites is <c>Rask.Wasm.Hosting</c> — referenced by the
+    /// <b>Server</b> half of a <c>wasm-hosted</c> solution, which is precisely the project a background
+    /// job belongs in. Keeping the closing quote on the package check is what separates the two.
+    /// </para>
     /// </remarks>
     internal static bool DetectBrowser(string csprojText)
     {
         ArgumentNullException.ThrowIfNull(csprojText);
 
-        return csprojText.Contains("-browser", StringComparison.OrdinalIgnoreCase)
-            || csprojText.Contains("<RaskWasm>", StringComparison.OrdinalIgnoreCase)
-            || csprojText.Contains("Rask.Wasm", StringComparison.OrdinalIgnoreCase);
+        return BrowserTargetFrameworkRegex().IsMatch(csprojText)
+            // The value, not just the element: <RaskWasm>false</RaskWasm> asserts the opposite.
+            || csprojText.Contains("<RaskWasm>true</RaskWasm>", StringComparison.OrdinalIgnoreCase)
+            || WasmHostReferenceRegex().IsMatch(csprojText);
     }
 
     internal static string ReadRootNamespace(IFileSystem fileSystem, string csprojPath)
