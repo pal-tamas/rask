@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Measured whether the cache and the job queue should get their own SQLite files.** They share the
+  app's file today, and SQLite's write lock is per file — so the purge sweep and the job-claim batch
+  take the lock a request needs. A new `split` workload in `benchmarks/Rask.Benchmarks.Sqlite` runs
+  identical app writers under identical battery churn against one file and against three, with the
+  batteries at their shipped defaults as the control arm. **The split does not pay for itself:** every
+  difference sits at or below the control pair's own noise floor. The result that does hold is the one
+  both arms share — the churn costs ~35% throughput at 8 VUs *whether or not the file is shared*, so the
+  cost is the writes themselves rather than lock contention. Splitting the file does not split the disk.
+  Written up in `docs/sqlite.md` under *One database file, or several?*, including the two limits on what
+  the harness can show. The remaining arguments for splitting are size, per-file pragmas and blast
+  radius — not latency; the outbox can never move, since it commits with the business change by design.
+
 ### Fixed
 - **`rask generate job` in the Server half of a `wasm-hosted` solution treated it as a browser app.**
   Browser detection matched `Rask.Wasm` as a substring, and the Server project references

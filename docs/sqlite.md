@@ -293,6 +293,70 @@ which is the point: SQLite is not the bottleneck you should be designing around.
   correct SQLite behaviour, and the reason a long-running report or a forgotten transaction is a disk-space
   incident. It truncates back the moment the reader commits.
 
+### One database file, or several?
+
+Rask maps the [cache](cache.md), the [job queue](jobs.md), [mail](mail.md) and your own tables into one
+`DbContext`, so they share one file. SQLite's write lock is per *file*, so the obvious worry is that the
+cache purge sweep and the job-claim batch take the lock a request needs. The alternative is to give the
+cache and the queue their own files. This measures what that is worth.
+
+Both arms carry **identical** background churn on their own threads — cache writes, the purge sweep,
+enqueues, and a 100-row claim batch — while app writers do the same `INSERT` as `raw-nonblocking` above.
+The only difference is whether the churn lands in the app's file or beside it. `idle` runs the batteries at
+their shipped defaults (`PollInterval` 5s, `PurgeInterval` 5min, so the sweep never fires in the window);
+`busy` is ~500 cache writes/s and ~500 enqueues/s with the sweep compressed to 2s so it is actually
+observed. 60s per level, same machine as above.
+
+**Read the `idle` pair first — it is the control.** Those two arms differ only in topology under almost no
+churn, so the gap between them *is* the noise floor, and nothing smaller than it counts as a result.
+
+| VUs | arm | ops/s | p99 | p99.9 | max |
+|----:|-----|------:|----:|------:|----:|
+| 1 | one-file-idle | 78,314 | 0.03 ms | 0.70 ms | 57.70 ms |
+| 1 | split-idle | 77,660 | 0.03 ms | 0.72 ms | 111.03 ms |
+| 1 | one-file-busy | 70,356 | 0.03 ms | 0.87 ms | 402.73 ms |
+| 1 | split-busy | 68,030 | 0.03 ms | 0.79 ms | 380.04 ms |
+| 8 | one-file-idle | 67,757 | 1.22 ms | 22.43 ms | 182.79 ms |
+| 8 | split-idle | 72,215 | 1.29 ms | 20.51 ms | 133.75 ms |
+| 8 | one-file-busy | 43,003 | 2.71 ms | 28.76 ms | 1,338 ms |
+| 8 | split-busy | 48,468 | 2.29 ms | 26.32 ms | 1,870 ms |
+| 32 | one-file-idle | 62,518 | 17.64 ms | 52.36 ms | 205.98 ms |
+| 32 | split-idle | 68,445 | 16.16 ms | 47.11 ms | 297.31 ms |
+| 32 | one-file-busy | 65,133 | 16.60 ms | 47.84 ms | 429.80 ms |
+| 32 | split-busy | 66,268 | 16.66 ms | 46.86 ms | 147.43 ms |
+
+**The split does not pay for itself here.** The control pair disagrees by up to 9.5% on throughput and by
+~2× on max, and *every* `busy` difference sits at or below that floor — 3.3% the wrong way at 1 VU, 12.7%
+in favour at 8, 1.7% in favour at 32, with the max column contradicting itself between levels. There is no
+effect to report, only variance.
+
+**The interesting number is the one both arms share.** At 8 VUs the churn costs throughput either way —
+67,757 → 43,003 on one file, 72,215 → 48,468 on three. If that cost were the shared write lock, splitting
+the file would have recovered it; splitting the file recovered nothing. So it is not lock contention. It is
+the writes themselves: the same disk, the same page cache, the same fsync budget. **Splitting the file does
+not split the disk.**
+
+Two honest limits on this. The harness is closed-loop, and its writers reach ~70k inserts/s — far above any
+real app — so the batteries are only ~1.4% of the write volume here, where in a real app the ratio inverts.
+That is exactly why the shared-cost decomposition above is the load-bearing result and the per-arm deltas
+are not: the decomposition holds whatever the ratio, because the split arm shares no lock at all and still
+paid the same price. And the app file's WAL cannot be read as evidence either way — at these write rates the
+app alone pins it at the 64 MiB `journal_size_limit` (`split-busy` @ 8 VUs does exactly that, with nothing
+but app writes in the file).
+
+What splitting *does* change is size, and that is arithmetic rather than a discovery: the cache table has to
+live somewhere, and on one file it lives in the file you replicate. The app database measured 170.5 MiB
+against 101.7 MiB on the idle pair — a ~69 MiB cache table sitting inside the thing Litestream ships and
+`rask db backup` copies. If you split, split for that, for per-file pragmas (a lost cache is a cache miss,
+so it can afford `synchronous=Off`), or to be able to delete a cache file without touching business data.
+Not for latency.
+
+One table can never move: the [outbox](outbox.md) writes on the same `DbContext` as the business change so
+the two commit together, which is the entire guarantee.
+
+Reproduce with `dotnet run -c Release --project benchmarks/Rask.Benchmarks.Sqlite -- split --vus 1,8,32
+--duration 60`.
+
 ## Continuous backup with Litestream
 
 WAL mode (now on by default) is exactly what [Litestream](https://litestream.io) needs to
