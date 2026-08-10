@@ -1,3 +1,7 @@
+// rask-rewrite: keep the factory — the parity test below compares the two surfaces and needs the factory
+// half to stay a factory. Converting it leaves two identical hosts and a test that proves nothing.
+// tools/RaskBuilderRewrite skips any file carrying this marker.
+
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
