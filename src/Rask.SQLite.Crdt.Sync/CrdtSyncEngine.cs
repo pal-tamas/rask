@@ -69,6 +69,7 @@ public sealed class CrdtSyncEngine
         try
         {
             var published = await PushAsync(cancellationToken).ConfigureAwait(false);
+            await MaybeCompactAsync(cancellationToken).ConfigureAwait(false);
             var (received, peers) = await PullAsync(cancellationToken).ConfigureAwait(false);
 
             return Report(new CrdtSyncStatus(CrdtSyncPhase.Synced, published, received, peers));
@@ -114,6 +115,109 @@ public sealed class CrdtSyncEngine
         }
 
         return uploaded;
+    }
+
+    /// <summary>
+    ///     Folds this replica's own objects into a single one holding its whole current contribution,
+    ///     then removes the rest. Returns the number of objects removed.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Cheap for a reason worth knowing: the change feed is <b>current state, not history</b>. It
+    ///         holds one entry per (row, column) with the value that won, so editing the same field a
+    ///         thousand times leaves one entry, and a deleted row collapses to a single tombstone.
+    ///         Republishing everything therefore costs the size of the database rather than the number of
+    ///         edits ever made.
+    ///     </para>
+    ///     <para>
+    ///         <b>No coordination is needed</b>, because a replica only ever rewrites its own prefix —
+    ///         the same rule that removes write conflicts also makes compaction a local decision.
+    ///     </para>
+    ///     <para>
+    ///         The replacement is keyed so it sorts <em>after</em> everything it replaces, so every peer
+    ///         picks it up whatever watermark it holds, and re-reading state a peer already has is
+    ///         harmless because applying a change twice does nothing. A peer reading an object at the
+    ///         moment it is removed simply skips it and finds the replacement.
+    ///     </para>
+    /// </remarks>
+    public async Task<int> CompactAsync(CancellationToken cancellationToken = default)
+    {
+        var site = Hex(await _feed.GetSiteIdAsync(cancellationToken).ConfigureAwait(false));
+        var folder = $"{Prefix}{site}/changes/";
+
+        var existing = await _store.ListAsync(folder, null, cancellationToken).ConfigureAwait(false);
+        if (existing.Count <= 1)
+        {
+            return 0;
+        }
+
+        var state = await _feed.ReadLocalChangesAsync(-1, cancellationToken).ConfigureAwait(false);
+        if (state.Count == 0)
+        {
+            // Everything this replica once wrote is now owned by a peer — every column it contributed
+            // has since been overwritten, or the rows were deleted and the tombstones carry the
+            // deleter's identity. The peers that own those changes publish them, so removing this
+            // replica's stale objects loses nothing.
+            return await RemoveAsync(existing.Select(e => e.Key), null, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        // Sorts at or after every object it replaces: a peer resuming from any earlier key still sees
+        // it. Keyed from the highest version present rather than the connection's current version, so
+        // the key describes exactly what the object contains.
+        var top = state.Max(c => c.DbVersion);
+        var replacement = $"{folder}{top:x16}__{top:x16}.json";
+
+        await _store.PutAsync(replacement, CrdtChangeCodec.Encode(state), cancellationToken)
+            .ConfigureAwait(false);
+        await _state.SetPublishedVersionAsync(top, cancellationToken).ConfigureAwait(false);
+
+        // Written before anything is removed: a crash between the two leaves duplicate state in the
+        // bucket, which is harmless, whereas the other order could leave a peer with neither.
+        return await RemoveAsync(existing.Select(e => e.Key), replacement, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Compacts once this replica's prefix has grown past <see cref="CrdtSyncOptions.CompactAfterObjects" />.
+    /// </summary>
+    /// <remarks>
+    ///     Counted rather than timed, because what makes a new device's first sync expensive is the
+    ///     number of objects it has to fetch, not how old they are.
+    /// </remarks>
+    private async Task MaybeCompactAsync(CancellationToken cancellationToken)
+    {
+        if (_options.CompactAfterObjects <= 0)
+        {
+            return;
+        }
+
+        var site = Hex(await _feed.GetSiteIdAsync(cancellationToken).ConfigureAwait(false));
+        var mine = await _store.ListAsync($"{Prefix}{site}/changes/", null, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (mine.Count > _options.CompactAfterObjects)
+        {
+            await CompactAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<int> RemoveAsync(
+        IEnumerable<string> keys, string? keep, CancellationToken cancellationToken)
+    {
+        var removed = 0;
+        foreach (var key in keys)
+        {
+            if (string.Equals(key, keep, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            await _store.DeleteAsync(key, cancellationToken).ConfigureAwait(false);
+            removed++;
+        }
+
+        return removed;
     }
 
     /// <summary>Applies everything peers have published since this replica last read from them.</summary>

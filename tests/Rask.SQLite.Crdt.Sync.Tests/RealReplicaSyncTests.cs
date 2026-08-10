@@ -159,9 +159,81 @@ public sealed class RealReplicaSyncTests : IDisposable
         Assert.Equal(0, (await bob.Engine.SyncAsync()).Received);
     }
 
+    [SkippableFact]
+    public async Task Compaction_costs_the_size_of_the_database_not_the_number_of_edits()
+    {
+        Skip.If(!Available(), SkipReason);
+
+        // The claim compaction rests on, and the one the fake feed cannot model: cr-sqlite's feed holds
+        // one entry per (row, column) with the value that won, so editing a field a hundred times leaves
+        // ONE entry. If it were a history log, folding a prefix into a single object would be pointless.
+        var bucket = new FakeObjectStore();
+        await using var alice = await NewReplicaAsync(bucket);
+
+        var id = Guid.NewGuid();
+        alice.Context.Todos.Add(new Todo { Id = id, Title = "v1" });
+        await alice.Context.SaveChangesAsync();
+
+        var afterInsert = (await new CrdtChangeFeed(alice.Context).ReadLocalChangesAsync()).Count;
+
+        for (var i = 2; i <= 40; i++)
+        {
+            alice.Context.ChangeTracker.Clear();
+            var todo = await alice.Context.Todos.SingleAsync(t => t.Id == id);
+            todo.Title = $"v{i}";
+            await alice.Context.SaveChangesAsync();
+        }
+
+        var afterEdits = await new CrdtChangeFeed(alice.Context).ReadLocalChangesAsync();
+
+        Assert.Equal(afterInsert, afterEdits.Count);
+        Assert.Equal("v40", Assert.Single(afterEdits, c => c.ColumnName == "Title").Value);
+    }
+
+    [SkippableFact]
+    public async Task A_new_device_reaches_the_right_state_from_a_compacted_prefix()
+    {
+        Skip.If(!Available(), SkipReason);
+
+        var bucket = new FakeObjectStore();
+        await using var alice = await NewReplicaAsync(bucket, new CrdtSyncOptions
+        {
+            MaxChangesPerObject = 1,
+            CompactAfterObjects = 0,
+        });
+
+        var kept = Guid.NewGuid();
+        var removed = Guid.NewGuid();
+
+        alice.Context.Todos.Add(new Todo { Id = kept, Title = "still here", Priority = 2 });
+        alice.Context.Todos.Add(new Todo { Id = removed, Title = "deleted later" });
+        await alice.Context.SaveChangesAsync();
+        await alice.Engine.PushAsync();
+
+        alice.Context.ChangeTracker.Clear();
+        alice.Context.Todos.Remove(await alice.Context.Todos.SingleAsync(t => t.Id == removed));
+        await alice.Context.SaveChangesAsync();
+        await alice.Engine.PushAsync();
+
+        Assert.True(bucket.Keys.Count > 1);
+        await alice.Engine.CompactAsync();
+        Assert.Single(bucket.Keys);
+
+        // A device that has never seen any of it: the surviving todo arrives, and the deleted one stays
+        // deleted — the tombstone has to survive compaction, or the row would come back from the dead.
+        await using var newcomer = await NewReplicaAsync(bucket);
+        Assert.Equal(CrdtSyncPhase.Synced, (await newcomer.Engine.SyncAsync()).Phase);
+
+        newcomer.Context.ChangeTracker.Clear();
+        var todos = await newcomer.Context.Todos.ToListAsync();
+
+        Assert.Equal("still here", Assert.Single(todos).Title);
+        Assert.Equal(2, todos[0].Priority);
+    }
+
     private static bool Available() => ExtensionPath is { Length: > 0 } p && File.Exists(p);
 
-    private async Task<Replica> NewReplicaAsync(FakeObjectStore bucket)
+    private async Task<Replica> NewReplicaAsync(FakeObjectStore bucket, CrdtSyncOptions? options = null)
     {
         var file = Path.Combine(Path.GetTempPath(), $"rask-crdt-sync-{Guid.NewGuid():N}.db");
         _files.Add(file);
@@ -181,7 +253,7 @@ public sealed class RealReplicaSyncTests : IDisposable
         await context.PromoteToCrrsAsync();
 
         var feed = new CrdtChangeFeed(context);
-        return new Replica(context, new CrdtSyncEngine(bucket, feed));
+        return new Replica(context, new CrdtSyncEngine(bucket, feed, null, options));
     }
 
     private sealed class Replica(TodoContext context, CrdtSyncEngine engine) : IAsyncDisposable
