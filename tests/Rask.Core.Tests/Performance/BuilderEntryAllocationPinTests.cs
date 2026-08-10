@@ -1,3 +1,7 @@
+// rask-rewrite: keep the factory — this file holds BOTH surfaces on purpose and asserts they agree.
+// Converting the factory half would leave a test comparing a chain to itself: still green, proving
+// nothing. tools/RaskBuilderRewrite skips any file carrying this marker.
+
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // the pin needs the very instance it hands to the render context

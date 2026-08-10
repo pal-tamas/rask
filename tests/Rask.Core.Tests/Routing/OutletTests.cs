@@ -70,38 +70,38 @@ public class OutletTests
     [SkipFactory]
     public sealed class Layout : Component
     {
-        protected override Component? Render() => Div()["layout:", Outlet()];
+        protected override Component? Render() => Div["layout:", Outlet];
     }
 
     [SkipFactory]
     public sealed class Section : Component
     {
         protected override Component? Render() =>
-            Section()["section:", Outlet()];
+            Section["section:", Outlet];
     }
 
     [SkipFactory]
     public sealed class Leaf : Component
     {
         [RouteParam] public string? Tag { get; set; }
-        protected override Component? Render() => Span()[$"leaf:{Tag}"];
+        protected override Component? Render() => Span[$"leaf:{Tag}"];
     }
 
     [SkipFactory]
     public sealed class LeafWithOutlet : Component
     {
-        protected override Component? Render() => Div()["leaf:", Outlet()];
+        protected override Component? Render() => Div["leaf:", Outlet];
     }
 
     [SkipFactory]
     public sealed class DoubleOutletLayout : Component
     {
-        protected override Component? Render() => Div()["first:", Outlet(), "second:", Outlet()];
+        protected override Component? Render() => Div["first:", Outlet, "second:", Outlet];
     }
 
     [SkipFactory]
     public sealed class LeafText : Component
     {
-        protected override Component? Render() => Span()["leaf"];
+        protected override Component? Render() => Span["leaf"];
     }
 }

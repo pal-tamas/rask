@@ -131,12 +131,12 @@ public class ComponentCancellationTests
         protected override Task OnMountAsync() =>
             OnMountAsyncImpl?.Invoke(CancellationToken) ?? Task.CompletedTask;
 
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class Root : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class TokenWatchingDisposable : Component, IDisposable
@@ -147,6 +147,6 @@ public class ComponentCancellationTests
 
         public void Dispose() => SawCancellation = CancellationToken.IsCancellationRequested;
 
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 }

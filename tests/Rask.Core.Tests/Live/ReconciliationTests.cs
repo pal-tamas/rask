@@ -153,12 +153,12 @@ public class ReconciliationTests
     private sealed class CounterStub : Component
     {
         public int Value;
-        protected override Component? Render() => Raw($"<x>{Value}</x>");
+        protected override Component? Render() => Raw.Value($"<x>{Value}</x>");
     }
 
     private sealed class OtherStub : Component
     {
-        protected override Component? Render() => Raw("<y/>");
+        protected override Component? Render() => Raw.Value("<y/>");
     }
 }
 

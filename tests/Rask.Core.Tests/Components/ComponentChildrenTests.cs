@@ -51,7 +51,7 @@ public class ComponentChildrenTests
 
     private sealed class MultiRoot : Component
     {
-        protected override Component? Render() => [Doctype(), Html()];
+        protected override Component? Render() => [Doctype, Html];
     }
 
     private sealed class RendersNothing : Component

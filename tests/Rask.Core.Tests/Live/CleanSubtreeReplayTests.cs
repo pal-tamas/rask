@@ -422,5 +422,5 @@ internal sealed partial class CounterRow : Component
     private int _count;
 
     protected override Component? Render() =>
-        Div(Class: "counter", OnClick: () => _count++)[_count.ToString()];
+        Div.Class("counter").OnClick(() => _count++)[_count.ToString()];
 }

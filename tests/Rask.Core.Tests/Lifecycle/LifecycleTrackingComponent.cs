@@ -52,6 +52,6 @@ internal sealed partial class LifecycleTrackingComponent : Component
     protected override Component? Render()
     {
         RenderCount++;
-        return Span()[Text($"r{RenderCount}")];
+        return Span[Text.Value($"r{RenderCount}")];
     }
 }

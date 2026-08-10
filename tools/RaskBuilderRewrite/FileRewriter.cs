@@ -60,8 +60,20 @@ internal sealed class FileRewriter
         IReadOnlyList<int> Converted,
         string? Bailout);
 
+    /// <summary>
+    ///     A file that says this keeps its factory calls. For the tests that hold the two surfaces side by
+    ///     side and assert they agree — converting those would delete the comparison and leave a test that
+    ///     compares a chain to itself, still green, proving nothing.
+    /// </summary>
+    public const string OptOutMarker = "rask-rewrite: keep the factory";
+
     public FileResult Rewrite(SyntaxTree tree)
     {
+        if (tree.GetText().ToString().Contains(OptOutMarker, StringComparison.Ordinal))
+        {
+            return new FileResult(null, Array.Empty<Site>(), Array.Empty<int>(), null);
+        }
+
         var model = _compilation.GetSemanticModel(tree);
         var sites = Collect(tree, model);
         var convertible = sites.Where(s => s.Verdict == SiteVerdict.Convertible).Select(s => s.Id).ToHashSet();

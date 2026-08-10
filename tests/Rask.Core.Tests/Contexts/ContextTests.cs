@@ -222,7 +222,7 @@ public class ContextTests
             RenderCount++;
             var theme = Context.Required<Theme>();
             LastSeen = theme.Name;
-            return Span()[theme.Name];
+            return Span[theme.Name];
         }
     }
 
@@ -233,7 +233,7 @@ public class ContextTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Span()["plain"];
+            return Span["plain"];
         }
     }
 
@@ -244,7 +244,7 @@ public class ContextTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Span()[Context.Has<Theme>() ? "has" : "none"];
+            return Span[Context.Has<Theme>() ? "has" : "none"];
         }
     }
 

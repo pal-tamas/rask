@@ -155,7 +155,7 @@ public class AsyncHandlerRenderingTests
         {
             RenderCount++;
             LastRendered = State;
-            return Span()[State];
+            return Span[State];
         }
     }
 

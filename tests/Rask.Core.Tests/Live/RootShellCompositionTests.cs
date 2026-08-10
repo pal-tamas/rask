@@ -136,7 +136,7 @@ public class RootShellCompositionTests
 
     private sealed class HeadApp : Component
     {
-        protected override Component? Head => Title()["from the app"];
+        protected override Component? Head => Title["from the app"];
         protected override Component? Render() => null;
     }
 
@@ -156,9 +156,9 @@ public class RootShellCompositionTests
     private sealed class CustomShellApp : Component
     {
         protected override Component Shell(Component head, Component body) =>
-            Html("en", Dir: "rtl")[head, Body(Id: "app")[Main()[body]]];
+            Html.Lang("en").Dir("rtl")[head, Body.Id("app")[Main[body]]];
 
-        protected override Component? Render() => Div()["hi"];
+        protected override Component? Render() => Div["hi"];
     }
 
     private sealed class ThrowingShellApp : Component
@@ -166,7 +166,7 @@ public class RootShellCompositionTests
         protected override Component Shell(Component head, Component body) =>
             throw new InvalidOperationException("shell went wrong");
 
-        protected override Component? Render() => Div()["hi"];
+        protected override Component? Render() => Div["hi"];
     }
 
     private sealed class ThrowingApp : Component
@@ -176,7 +176,7 @@ public class RootShellCompositionTests
 
     private sealed class NestedFailureApp : Component
     {
-        protected override Component? Head => Title()["still fine"];
+        protected override Component? Head => Title["still fine"];
 
         protected override Component? Render()
         {

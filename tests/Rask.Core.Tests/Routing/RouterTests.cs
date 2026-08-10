@@ -245,7 +245,7 @@ public class RouterTests
     {
         public int InitCount;
         protected override void OnMount() => InitCount++;
-        protected override Component? Render() => Span()[$"init:{InitCount}"];
+        protected override Component? Render() => Span[$"init:{InitCount}"];
     }
 
     [SkipFactory]
@@ -262,7 +262,7 @@ public class RouterTests
             Loaded = true;
         }
 
-        protected override Component? Render() => Span()[Loaded ? "ready" : "loading"];
+        protected override Component? Render() => Span[Loaded ? "ready" : "loading"];
     }
 
     private sealed class RecordingRenderHandle : IRenderHandle
@@ -279,14 +279,14 @@ public class RouterTests
     [SkipFactory]
     public sealed partial class HomePage : Component
     {
-        protected override Component? Render() => Span()["home"];
+        protected override Component? Render() => Span["home"];
     }
 
     [SkipFactory]
     public sealed class UserPage : Component
     {
         [RouteParam] public int Id { get; set; }
-        protected override Component? Render() => Span()[$"user:{Id}"];
+        protected override Component? Render() => Span[$"user:{Id}"];
     }
 
     [SkipFactory]
@@ -298,7 +298,7 @@ public class RouterTests
         protected override Component? Render()
         {
             Bumps++;
-            return Span()[$"{Label ?? "x"}:{Bumps}"];
+            return Span[$"{Label ?? "x"}:{Bumps}"];
         }
     }
 
@@ -313,26 +313,26 @@ public class RouterTests
         protected override Component? Render()
         {
             Renders++;
-            return Span()[$"props:{PropsChanges} renders:{Renders} path:{state.Path}"];
+            return Span[$"props:{PropsChanges} renders:{Renders} path:{state.Path}"];
         }
     }
 
     [SkipFactory]
     public sealed class DashboardPage : Component
     {
-        protected override Component? Render() => Div()[Span()["dash:"], Outlet()];
+        protected override Component? Render() => Div[Span["dash:"], Outlet];
     }
 
     [SkipFactory]
     public sealed class DashOverview : Component
     {
-        protected override Component? Render() => Span()["overview"];
+        protected override Component? Render() => Span["overview"];
     }
 
     [SkipFactory]
     public sealed class DashSettings : Component
     {
         [RouteParam] public string? Tab { get; set; }
-        protected override Component? Render() => Span()[$"settings:{Tab}"];
+        protected override Component? Render() => Span[$"settings:{Tab}"];
     }
 }

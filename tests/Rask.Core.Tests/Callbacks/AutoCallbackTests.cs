@@ -126,7 +126,7 @@ public class AutoCallbackTests
             var ctx = LiveRenderContext.Current!;
             var r = ctx.GetOrCreate(_ => Receiver);
             ctx.NotifyParameters(r, false); // stable props ⇒ Receiver caches after first render
-            return Div()[r];
+            return Div[r];
         }
     }
 
@@ -173,7 +173,7 @@ public class AutoCallbackTests
             }
 
             c.Owner = this;
-            return Span()[_mode == Mode.StringArg ? $"text={Text}" : $"count={Count}"];
+            return Span[_mode == Mode.StringArg ? $"text={Text}" : $"count={Count}"];
         }
     }
 
@@ -181,7 +181,7 @@ public class AutoCallbackTests
     {
         public Receiver? Owner;
 
-        protected override Component? Render() => Span()["x"];
+        protected override Component? Render() => Span["x"];
 
         public ValueTask Fire(int n)
         {

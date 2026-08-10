@@ -92,7 +92,7 @@ public class EventHandlerErrorBoundaryTests
                     throw new InvalidOperationException("handler-async")));
             }
 
-            return Span()[Text("owner")];
+            return Span[Text.Value("owner")];
         }
     }
 }

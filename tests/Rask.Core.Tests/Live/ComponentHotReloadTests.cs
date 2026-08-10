@@ -111,7 +111,7 @@ public class ComponentHotReloadTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Div();
+            return Div;
         }
     }
 

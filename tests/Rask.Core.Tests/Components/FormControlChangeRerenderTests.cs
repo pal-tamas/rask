@@ -155,7 +155,7 @@ public class FormControlChangeRerenderTests
             var ctx = LiveRenderContext.Current!;
             var p = ctx.GetOrCreate(_ => Picker);
             ctx.NotifyParameters(p, false); // stable props ⇒ Picker caches after first render
-            return Div()[p];
+            return Div[p];
         }
     }
 
@@ -169,11 +169,11 @@ public class FormControlChangeRerenderTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Div()[
-                Rask.Core.Components.Generated.Select<string>(OnChange: v => _pick = v)[
-                    Option("rask"), Option("blazor")
+            return Div[
+                Select<string>().OnChange(v => _pick = v)[
+                    Option.Value("rask"), Option.Value("blazor")
                 ],
-                Span()["Picked: ", _pick]
+                Span["Picked: ", _pick]
             ];
         }
     }
@@ -187,7 +187,7 @@ public class FormControlChangeRerenderTests
             var ctx = LiveRenderContext.Current!;
             var e = ctx.GetOrCreate(_ => Echo);
             ctx.NotifyParameters(e, false);
-            return Div()[e];
+            return Div[e];
         }
     }
 
@@ -199,9 +199,9 @@ public class FormControlChangeRerenderTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Div()[
-                Rask.Core.Components.Generated.Input<string>(OnChange: v => _text = v),
-                Span()["Echo: ", _text]
+            return Div[
+                Input<string>().OnChange(v => _text = v),
+                Span["Echo: ", _text]
             ];
         }
     }
@@ -215,7 +215,7 @@ public class FormControlChangeRerenderTests
             var ctx = LiveRenderContext.Current!;
             var r = ctx.GetOrCreate(_ => Rows);
             ctx.NotifyParameters(r, false); // stable props ⇒ cached unless the change dirties it
-            return Div()[r];
+            return Div[r];
         }
     }
 
@@ -237,9 +237,9 @@ public class FormControlChangeRerenderTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Div()[
-                new Wrapper { Body = [.. _names.Select((n, i) => Rask.Core.Components.Generated.Input<string>(Value: n, OnChange: v => _names[i] = v, Key: i))] },
-                Span()["Names: ", string.Join(",", _names)]
+            return Div[
+                new Wrapper { Body = [.. _names.Select((n, i) => Input<string>().Value(n).OnChange(v => _names[i] = v).Key(i))] },
+                Span["Names: ", string.Join(",", _names)]
             ];
         }
     }
@@ -250,7 +250,7 @@ public class FormControlChangeRerenderTests
     {
         public new IReadOnlyList<Component> Body { get; set; } = [];
 
-        protected override Component? Render() => Div()[Body];
+        protected override Component? Render() => Div[Body];
     }
 
     private sealed class BoundHost : Component
@@ -262,7 +262,7 @@ public class FormControlChangeRerenderTests
             var ctx = LiveRenderContext.Current!;
             var f = ctx.GetOrCreate(_ => Form);
             ctx.NotifyParameters(f, false);
-            return Div()[f];
+            return Div[f];
         }
     }
 
@@ -275,8 +275,8 @@ public class FormControlChangeRerenderTests
         {
             RenderCount++;
             return Form(_model)[
-                Select(() => _model.Color)[Option("red"), Option("blue")],
-                Span()["Bound: ", _model.Color ?? ""]
+                Select(() => _model.Color)[Option.Value("red"), Option.Value("blue")],
+                Span["Bound: ", _model.Color ?? ""]
             ];
         }
 
@@ -295,7 +295,7 @@ public class FormControlChangeRerenderTests
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Consumer);
             ctx.NotifyParameters(c, false);
-            return Div()[c];
+            return Div[c];
         }
     }
 
@@ -311,7 +311,7 @@ public class FormControlChangeRerenderTests
             RenderCount++;
             return Form(_model)[
                 new BindWrapper { Bind = () => _model.Name },
-                Span()["Name: ", _model.Name]
+                Span["Name: ", _model.Name]
             ];
         }
 

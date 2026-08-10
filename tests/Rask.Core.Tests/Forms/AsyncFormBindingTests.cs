@@ -308,8 +308,8 @@ public class AsyncFormBindingTests
         protected override Component? Render() =>
             Form<SignupModel>(_model, Context: _ctx)[
                 Input(() => _model.Username),
-                ValidatingIndicator(() => _model.Username, () => Span(Class: "spinner")["Checking..."]),
-                ValidationMessage(() => _model.Username, msgs => Div(Class: "text-danger")[msgs[0]])
+                ValidatingIndicator(() => _model.Username, () => Span.Class("spinner")["Checking..."]),
+                ValidationMessage(() => _model.Username, msgs => Div.Class("text-danger")[msgs[0]])
             ];
     }
 }

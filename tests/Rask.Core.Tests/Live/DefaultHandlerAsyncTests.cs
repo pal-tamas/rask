@@ -78,7 +78,7 @@ public class DefaultHandlerAsyncTests
             };
 
             RegisteredHandlerId = live.RegisterHandler(handler);
-            return Span()[Text("owner")];
+            return Span[Text.Value("owner")];
         }
     }
 }

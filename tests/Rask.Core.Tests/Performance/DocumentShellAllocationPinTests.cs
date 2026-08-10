@@ -87,18 +87,18 @@ public class DocumentShellAllocationPinTests
     private sealed partial class ShellBodyProbe : Component
     {
         protected override Component? Render() =>
-            Div(Id: "counter", Class: "counter")[
-                Span(Class: "value")["42"],
-                Button(Class: "inc")["+"]
+            Div.Id("counter").Class("counter")[
+                Span.Class("value")["42"],
+                Button.Class("inc")["+"]
             ];
     }
 
     private sealed partial class BigShellBodyProbe : Component
     {
         protected override Component? Render() =>
-            Div(Id: "counter", Class: "counter")[
+            Div.Id("counter").Class("counter")[
                 Enumerable.Range(0, 40)
-                    .Select(i => Div(Class: "row", Key: i)[Span()[i.ToString()], Button()["+"]])
+                    .Select(i => Div.Class("row").Key(i)[Span[i.ToString()], Button["+"]])
             ];
     }
 }

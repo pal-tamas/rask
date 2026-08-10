@@ -172,7 +172,7 @@ public class ErrorBoundaryTests
     private sealed class ThrowMidwayComponent : Component
     {
         protected override Component? Render() =>
-            Div()[Text("partial"),
+            Div[Text.Value("partial"),
                 new ThrowingRender("late")];
     }
 
@@ -182,12 +182,12 @@ public class ErrorBoundaryTests
         public ConditionalThrow(bool shouldThrow) => _throw = shouldThrow;
 
         protected override Component? Render() =>
-            _throw ? throw new InvalidOperationException("bang") : Span()[Text("ok")];
+            _throw ? throw new InvalidOperationException("bang") : Span[Text.Value("ok")];
     }
 
     private sealed class BoundaryProbe : Component
     {
         public ErrorBoundary? CapturedBoundary => Boundary;
-        protected override Component? Render() => Span()[Text("probe")];
+        protected override Component? Render() => Span[Text.Value("probe")];
     }
 }

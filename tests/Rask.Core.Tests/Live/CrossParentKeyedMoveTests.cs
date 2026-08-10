@@ -36,14 +36,14 @@ public class CrossParentKeyedMoveTests
             var children = new List<Component>();
             foreach (var id in cards)
             {
-                children.Add(Div(Key: id, Class: "card")[Div(Class: "card-body")[Span()[$"card{id}"]]]);
+                children.Add(Div.Key(id).Class("card")[Div.Class("card-body")[Span[$"card{id}"]]]);
             }
 
-            children.Add(Div(Key: $"{zone}-end", Class: "tail"));
-            return Div(Key: zone, Class: "col")[
-                Div(Class: "dd-column")[
-                    Div(Class: "dd-column-header")[Span()[zone], Span()[cards.Count.ToString()]],
-                    Div(Class: "dd-column-body")[children]
+            children.Add(Div.Key($"{zone}-end").Class("tail"));
+            return Div.Key(zone).Class("col")[
+                Div.Class("dd-column")[
+                    Div.Class("dd-column-header")[Span[zone], Span[cards.Count.ToString()]],
+                    Div.Class("dd-column-body")[children]
                 ]
             ];
         }
@@ -56,7 +56,7 @@ public class CrossParentKeyedMoveTests
                 cols.Add(Column(z));
             }
 
-            return Div(Class: "board")[cols];
+            return Div.Class("board")[cols];
         }
     }
 }
