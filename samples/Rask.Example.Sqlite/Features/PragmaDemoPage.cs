@@ -52,7 +52,7 @@ public sealed partial class PragmaDemoPage(
     private int _immediateSucceeded;
     private bool _immediateHasRun;
 
-    protected override Component? Head => Title()["SQLite pragmas — Rask"];
+    protected override Component? Head => Title["SQLite pragmas — Rask"];
 
     protected override async Task OnMountAsync() => await LoadAsync();
 
@@ -150,61 +150,63 @@ public sealed partial class PragmaDemoPage(
 
     protected override Component? Render() =>
     [
-        Div(Class: "mb-4")[
-            H1(Class: "h3 mb-1")["SQLite production pragmas"],
-            P(Class: "text-secondary mb-0")[
-                "One line — ", Code()["UseRaskSqlite"],
+        Div.Class("mb-4")[
+            H1.Class("h3 mb-1")["SQLite production pragmas"],
+            P.Class("text-secondary mb-0")[
+                "One line — ", Code["UseRaskSqlite"],
                 " — puts the production pragma set (WAL, foreign_keys, busy_timeout, …) on every connection."
             ]
         ],
 
         // Code above, live result below.
-        Div(Class: "card shadow-sm mb-4")[
-            Div(Class: "card-header bg-dark text-light py-2")[
-                I(Class: "bi bi-code-slash me-2"), "Program.cs"
+        Div.Class("card shadow-sm mb-4")[
+            Div.Class("card-header bg-dark text-light py-2")[
+                I.Class("bi bi-code-slash me-2"), "Program.cs"
             ],
-            Pre(Class: "mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
-                Code()[WiringSnippet]
+            Pre.Class("mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
+                Code[WiringSnippet]
             ]
         ],
 
         !_loaded
-            ? Div(Class: "text-secondary")[Span(Class: "spinner-border spinner-border-sm me-2"), "Loading…"]
-            : Div()[
-                Div(Class: "card shadow-sm mb-4")[
-                    Div(Class: "card-header py-2 fw-semibold")[
-                        I(Class: "bi bi-sliders me-2"), "Live pragma values on this connection"
+            ? Div.Class("text-secondary")[Span.Class("spinner-border spinner-border-sm me-2"), "Loading…"]
+            : Div[
+                Div.Class("card shadow-sm mb-4")[
+                    Div.Class("card-header py-2 fw-semibold")[
+                        I.Class("bi bi-sliders me-2"), "Live pragma values on this connection"
                     ],
-                    Table(Class: "table table-striped align-middle mb-0")[
-                        Thead()[Tr()[Th()["PRAGMA"], Th(Class: "text-end")["Value"]]],
-                        Tbody()[
-                            _pragmas.Select(p => Tr(Key: p.Name)[
-                                Td(Class: "fw-semibold font-monospace")[p.Name],
-                                Td(Class: "text-end font-monospace")[p.Value]
+                    Table.Class("table table-striped align-middle mb-0")[
+                        Thead[Tr[Th["PRAGMA"], Th.Class("text-end")["Value"]]],
+                        Tbody[
+                            _pragmas.Select(p => Tr.Key(p.Name)[
+                                Td.Class("fw-semibold font-monospace")[p.Name],
+                                Td.Class("text-end font-monospace")[p.Value]
                             ])
                         ]
                     ]
                 ],
 
-                Div(Class: "card shadow-sm")[
-                    Div(Class: "card-body")[
-                        H2(Class: "h5")["Concurrent writers"],
-                        P(Class: "text-secondary")[
+                Div.Class("card shadow-sm")[
+                    Div.Class("card-body")[
+                        H2.Class("h5")["Concurrent writers"],
+                        P.Class("text-secondary")[
                             $"Fire {Workers.ToString(CultureInfo.InvariantCulture)} writers at the database at once. ",
                             "WAL lets readers and the writer coexist, and the 5-second ",
-                            Code()["busy_timeout"],
+                            Code["busy_timeout"],
                             " absorbs the momentary write-lock contention — so every writer commits."
                         ],
-                        Button("button", Class: "btn btn-primary", OnClickAsync: RunWritersAsync)[
-                            I(Class: "bi bi-lightning-charge me-1"),
+                        Button.Type("button").Class("btn btn-primary").OnClickAsync(RunWritersAsync)[
+                            I.Class("bi bi-lightning-charge me-1"),
                             $"Run {Workers.ToString(CultureInfo.InvariantCulture)} concurrent writers"
                         ],
                         !_hasRun
-                            ? Div(Class: "text-secondary mt-3 mb-0")[
+                            ? Div.Class("text-secondary mt-3 mb-0")[
                                 $"Total rows written so far: {_rowCount.ToString(CultureInfo.InvariantCulture)}."
                             ]
-                            : Div(Class: $"alert mt-3 mb-0 {(_succeeded == _attempted ? "alert-success" : "alert-danger")}")[
-                                I(Class: $"bi me-2 {(_succeeded == _attempted ? "bi-check-circle" : "bi-exclamation-triangle")}"),
+                            : Div
+                                .Class($"alert mt-3 mb-0 {(_succeeded == _attempted ? "alert-success" : "alert-danger")}")[
+                                I
+                                    .Class($"bi me-2 {(_succeeded == _attempted ? "bi-check-circle" : "bi-exclamation-triangle")}"),
                                 $"{_succeeded.ToString(CultureInfo.InvariantCulture)} of {_attempted.ToString(CultureInfo.InvariantCulture)} writers committed. ",
                                 $"Total rows now: {_rowCount.ToString(CultureInfo.InvariantCulture)}."
                             ]
@@ -212,35 +214,37 @@ public sealed partial class PragmaDemoPage(
                 ],
 
                 // Second demo: the non-blocking BEGIN IMMEDIATE + fair-interval retry write path (raw factory).
-                Div(Class: "card shadow-sm mb-4 mt-4")[
-                    Div(Class: "card-header bg-dark text-light py-2")[
-                        I(Class: "bi bi-code-slash me-2"), "Non-blocking IMMEDIATE write"
+                Div.Class("card shadow-sm mb-4 mt-4")[
+                    Div.Class("card-header bg-dark text-light py-2")[
+                        I.Class("bi bi-code-slash me-2"), "Non-blocking IMMEDIATE write"
                     ],
-                    Pre(Class: "mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
-                        Code()[ImmediateSnippet]
+                    Pre.Class("mb-0 p-3 bg-dark text-light rounded-bottom overflow-auto")[
+                        Code[ImmediateSnippet]
                     ]
                 ],
 
-                Div(Class: "card shadow-sm")[
-                    Div(Class: "card-body")[
-                        H2(Class: "h5")["Concurrent IMMEDIATE writers (non-blocking)"],
-                        P(Class: "text-secondary")[
+                Div.Class("card shadow-sm")[
+                    Div.Class("card-body")[
+                        H2.Class("h5")["Concurrent IMMEDIATE writers (non-blocking)"],
+                        P.Class("text-secondary")[
                             $"Fire {Workers.ToString(CultureInfo.InvariantCulture)} writers through ",
-                            Code()["ExecuteInImmediateTransactionAsync"],
-                            ". Each takes the write lock with ", Code()["BEGIN IMMEDIATE"],
+                            Code["ExecuteInImmediateTransactionAsync"],
+                            ". Each takes the write lock with ", Code["BEGIN IMMEDIATE"],
                             " and, when it's contended, polls every 1 ms — yielding the thread while it waits, ",
                             "a fair-interval busy handler — so every writer commits with no thread blocked."
                         ],
-                        Button("button", Class: "btn btn-primary", OnClickAsync: RunImmediateWritersAsync)[
-                            I(Class: "bi bi-lightning-charge me-1"),
+                        Button.Type("button").Class("btn btn-primary").OnClickAsync(RunImmediateWritersAsync)[
+                            I.Class("bi bi-lightning-charge me-1"),
                             $"Run {Workers.ToString(CultureInfo.InvariantCulture)} IMMEDIATE writers"
                         ],
                         !_immediateHasRun
-                            ? Div(Class: "text-secondary mt-3 mb-0")[
+                            ? Div.Class("text-secondary mt-3 mb-0")[
                                 "One BEGIN IMMEDIATE transaction per writer, all committing via the fair-interval retry."
                             ]
-                            : Div(Class: $"alert mt-3 mb-0 {(_immediateSucceeded == _immediateAttempted ? "alert-success" : "alert-danger")}")[
-                                I(Class: $"bi me-2 {(_immediateSucceeded == _immediateAttempted ? "bi-check-circle" : "bi-exclamation-triangle")}"),
+                            : Div
+                                .Class($"alert mt-3 mb-0 {(_immediateSucceeded == _immediateAttempted ? "alert-success" : "alert-danger")}")[
+                                I
+                                    .Class($"bi me-2 {(_immediateSucceeded == _immediateAttempted ? "bi-check-circle" : "bi-exclamation-triangle")}"),
                                 $"{_immediateSucceeded.ToString(CultureInfo.InvariantCulture)} of {_immediateAttempted.ToString(CultureInfo.InvariantCulture)} IMMEDIATE writers committed. ",
                                 $"Total rows now: {_rowCount.ToString(CultureInfo.InvariantCulture)}."
                             ]
