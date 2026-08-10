@@ -18,6 +18,7 @@ public sealed class JobsDemo : Component
 
     private string _name = "world";
     private string _status = "";
+    private bool _canTakeOver;
     private List<Greeting> _greetings = [];
 
     public JobsDemo(
@@ -46,6 +47,12 @@ public sealed class JobsDemo : Component
         // for it, or the banner would never appear in the tab that needs it.
         await _ownership.Resolved;
 
+        if (_ownership.IsOwner == false)
+        {
+            // Fire-and-forget: this completes only when the other tab closes, which may be never.
+            _ = WatchForTakeoverAsync();
+        }
+
         await _ready.Ready;
         await LoadAsync();
     }
@@ -56,6 +63,15 @@ public sealed class JobsDemo : Component
     // try/catch is not optional: a bare `_ = ReloadAsync()` would swallow a query failure and leave the
     // page silently stale, which looks identical to the job never having run.
     private void OnGreetingWritten() => _ = ReloadSafelyAsync();
+
+    // Turns "close the other tab" into "reload now". Reloading is the only way to take over: this tab
+    // already opened its own empty database at boot, and the file cannot be swapped under live connections.
+    private async Task WatchForTakeoverAsync()
+    {
+        await _ownership.Available;
+        _canTakeOver = true;
+        StateHasChanged();
+    }
 
     private async Task ReloadSafelyAsync()
     {
@@ -90,10 +106,15 @@ public sealed class JobsDemo : Component
             // Only once the election has settled: `null` means "still deciding", and showing this during
             // a normal boot would be a scary banner for a non-problem.
             _ownership.IsOwner == false
-                ? Div(Class: "notice", Data: new Dictionary<string, string?> { ["testid"] = "not-owner" })[
-                    Strong()["Another tab has this database open."],
-                    " Your data is safe — it just isn't reachable from here, because only one tab may own "
-                    + "the file. Close the other tab and reload."]
+                ? _canTakeOver
+                    ? Div(Class: "notice ready", Data: new Dictionary<string, string?> { ["testid"] = "can-take-over" })[
+                        Strong()["Your data is ready."],
+                        " The other tab has closed. Reload to use the database here — reloading is what "
+                        + "takes it over, because this tab already opened an empty one at boot."]
+                    : Div(Class: "notice", Data: new Dictionary<string, string?> { ["testid"] = "not-owner" })[
+                        Strong()["Another tab has this database open."],
+                        " Your data is safe — it just isn't reachable from here, because only one tab may "
+                        + "own the file. Close the other tab and this will say so."]
                 : null,
             Div(Class: "row")[
                 Input(

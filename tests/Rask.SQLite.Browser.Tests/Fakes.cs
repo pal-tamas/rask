@@ -74,6 +74,9 @@ internal sealed class FakeWebLocks : IWebLocks
     /// <summary>Pre-hold a lock, standing in for another tab that already owns it.</summary>
     public void HoldElsewhere(string name) => _held.Add(name);
 
+    /// <summary>Drop a pre-held lock — that other tab closing.</summary>
+    public void ReleaseElsewhere(string name) => _held.Remove(name);
+
     public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(Supported);
 
     public async ValueTask RequestAsync(string name, Func<Task> work, LockMode mode = LockMode.Exclusive)
@@ -111,6 +114,41 @@ internal sealed class FakeWebLocks : IWebLocks
     public ValueTask<IReadOnlyList<LockInfo>> QueryAsync() =>
         ValueTask.FromResult<IReadOnlyList<LockInfo>>(
             [.. _held.Select(n => new LockInfo(n, "exclusive", null, true))]);
+}
+
+/// <summary>
+///     An <see cref="IStorageEstimator" /> that records whether persistence was asked for, and answers
+///     however the test says the browser would.
+/// </summary>
+internal sealed class FakeStorageEstimator : IStorageEstimator
+{
+    public bool Supported { get; set; } = true;
+
+    /// <summary>Whether the origin is already exempt — an already-persisted origin must not be asked again.</summary>
+    public bool AlreadyPersisted { get; set; }
+
+    /// <summary>What the browser answers. False covers both "declined" and "no such API".</summary>
+    public bool GrantsPersist { get; set; } = true;
+
+    public int PersistRequests { get; private set; }
+
+    public Exception? Throws { get; set; }
+
+    public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(Supported);
+
+    public ValueTask<StorageEstimate?> EstimateAsync() =>
+        ValueTask.FromResult<StorageEstimate?>(new StorageEstimate(0, 0));
+
+    public ValueTask<bool> IsPersistedAsync() =>
+        Throws is not null
+            ? ValueTask.FromException<bool>(Throws)
+            : ValueTask.FromResult(AlreadyPersisted);
+
+    public ValueTask<bool> RequestPersistAsync()
+    {
+        PersistRequests++;
+        return ValueTask.FromResult(GrantsPersist);
+    }
 }
 
 internal sealed class RecordingSnapshotter : ISqliteSnapshotter

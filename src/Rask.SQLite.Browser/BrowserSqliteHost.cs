@@ -29,6 +29,7 @@ internal sealed class BrowserSqliteHost(
     BrowserSqliteOptions options,
     IWebLocks locks,
     IIndexedDb indexedDb,
+    IStorageEstimator storage,
     ISqliteSnapshotter snapshotter,
     BrowserSqliteOwnership ownership,
     ILogger<BrowserSqliteHost> logger) : IHostedService
@@ -44,6 +45,10 @@ internal sealed class BrowserSqliteHost(
     // exactly what holds the lock; awaiting it on shutdown is what makes "released" true by the time
     // StopAsync returns, rather than at some unobservable later moment.
     private Task<bool>? _ownerHold;
+
+    // Stops the non-owner's availability watcher when the page goes away.
+    private readonly CancellationTokenSource _shutdown = new();
+    private Task? _takeoverWatch;
 
     /// <summary>Whether this tab owns the database — i.e. whether it may persist anything.</summary>
     public bool IsOwner { get; private set; }
@@ -65,10 +70,65 @@ internal sealed class BrowserSqliteHost(
                 "Another tab already owns the browser SQLite database '{Name}'. This tab starts with an empty "
                 + "in-memory database and will not persist anything, so two tabs cannot overwrite each other.",
                 options.Name);
+
+            // Not awaited: watching for the owner to go away must not hold up the boot.
+            _takeoverWatch = WatchForAvailabilityAsync(_shutdown.Token);
             return;
         }
 
+        if (options.RequestPersistentStorage)
+        {
+            await EnsurePersistentStorageAsync().ConfigureAwait(false);
+        }
+
         await RestoreAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Asks the browser not to evict this origin's storage.
+    /// </summary>
+    /// <remarks>
+    ///     The snapshots this package writes live in IndexedDB, which is evictable: under storage pressure
+    ///     a browser may discard them and the database returns empty next load, with nothing to say why.
+    ///     A refusal changes nothing about how the app runs, so this never fails the boot — it only makes
+    ///     the risk visible in the log instead of leaving it silent.
+    ///     <para>
+    ///         Checked before asked, so an origin that is already exempt never triggers a second prompt on
+    ///         the browsers that prompt.
+    ///     </para>
+    /// </remarks>
+    private async Task EnsurePersistentStorageAsync()
+    {
+        try
+        {
+            if (await storage.IsPersistedAsync().ConfigureAwait(false))
+            {
+                return;
+            }
+
+            if (await storage.RequestPersistAsync().ConfigureAwait(false))
+            {
+                logger.LogInformation(
+                    "Storage for '{Name}' is now exempt from eviction.", options.Name);
+                return;
+            }
+
+            // One branch, not two: RequestPersistAsync resolves false both when the browser declines and
+            // when it has no such API, and from here those have exactly the same consequence.
+            logger.LogWarning(
+                "The browser did not grant persistent storage, so it may evict the snapshots of '{Name}' "
+                + "under storage pressure and the database would come back empty. Chromium grants this on "
+                + "engagement; Firefox prompts, so ask from a user gesture with "
+                + "IStorageEstimator.RequestPersistAsync() and set BrowserSqliteOptions."
+                + nameof(BrowserSqliteOptions.RequestPersistentStorage) + " to false.",
+                options.Name);
+        }
+#pragma warning disable CA1031 // Durability is best-effort; a failed request must not stop the app booting.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogWarning(ex, "Could not ask for persistent storage for '{Name}'.", options.Name);
+        }
     }
 
     /// <inheritdoc />
@@ -93,6 +153,14 @@ internal sealed class BrowserSqliteHost(
             }
         }
 
+        await _shutdown.CancelAsync().ConfigureAwait(false);
+
+        if (_takeoverWatch is not null)
+        {
+            // Already swallows its own failures; awaiting only makes the stop orderly.
+            await _takeoverWatch.ConfigureAwait(false);
+        }
+
         _release.TrySetResult();
 
         if (_ownerHold is null)
@@ -109,6 +177,55 @@ internal sealed class BrowserSqliteHost(
 #pragma warning restore CA1031
         {
             logger.LogWarning(ex, "Releasing the owner lock for '{Name}' failed.", options.Name);
+        }
+    }
+
+    /// <summary>
+    ///     Watches, in a tab that is not the owner, for the database to become free.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Polls with <see cref="IWebLocks.TryRequestAsync" />, which acquires and releases within the
+    ///         call, rather than waiting on <c>RequestAsync</c>. Waiting would mean <em>holding</em> the
+    ///         lock the moment it frees — and this tab must not own the database: it opened its own empty
+    ///         one at boot, so persisting from here would overwrite the previous owner's good snapshot with
+    ///         nothing. Holding a lock it must never use would also block a tab that could actually use it.
+    ///     </para>
+    ///     <para>
+    ///         So this only ever <em>reports</em> availability, and the taking is done by a reload. That is
+    ///         also why the signal is advisory: another tab may win between the poll and the reload.
+    ///     </para>
+    /// </remarks>
+    private async Task WatchForAvailabilityAsync(CancellationToken cancellationToken)
+    {
+        var name = BrowserSqlite.OwnerLockName(options.Name);
+
+        try
+        {
+            using var timer = new PeriodicTimer(options.TakeoverPollInterval);
+
+            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+            {
+                // The callback is empty on purpose: acquiring proves the lock is free, and returning
+                // immediately hands it straight back.
+                if (await locks.TryRequestAsync(name, static () => Task.CompletedTask).ConfigureAwait(false))
+                {
+                    logger.LogInformation(
+                        "The tab that owned '{Name}' has gone; reload to use the database here.", options.Name);
+                    ownership.MarkAvailable();
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The page is going away.
+        }
+#pragma warning disable CA1031 // A watcher that dies must not take the app with it; the tab simply stops offering to take over.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogWarning(ex, "Gave up watching for '{Name}' to become available.", options.Name);
         }
     }
 

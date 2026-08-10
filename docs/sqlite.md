@@ -553,6 +553,13 @@ Three limits, stated plainly because each one is a silent failure rather than an
   for a `pagehide` handler, so a force-closed or crashed tab loses whatever changed since the last tick.
   Shorten the interval if that matters; each tick copies the whole database, so the cost scales with its
   size rather than with how much changed.
+- **Snapshots live in IndexedDB, and IndexedDB is evictable.** Under storage pressure a browser may
+  discard them, and the database would come back empty on the next load with nothing to indicate why. The
+  owning tab therefore asks for the origin to be exempted (`navigator.storage.persist()`) at startup, and
+  logs a refusal rather than failing. Chromium decides from engagement heuristics without prompting;
+  **Firefox prompts**, and this is asked during boot rather than from a click — so an app that would
+  rather pick its moment sets `o.RequestPersistentStorage = false` and calls
+  `IStorageEstimator.RequestPersistAsync()` from a user-gesture handler instead.
 - **One tab owns the database.** Every tab has its own copy of the in-memory filesystem, so two owners
   would mean two divergent databases and a last-writer-wins overwrite. The others run with their own empty,
   unpersisted database — which, left unexplained, looks exactly like the user's data having been deleted.
@@ -564,7 +571,11 @@ Three limits, stated plainly because each one is a silent failure rather than an
   // "not the owner" stay distinguishable and the banner never flashes during a normal boot.
   ```
 
-  Promoting a waiting tab when the owner closes, and proxying its writes to the owner, are not implemented.
+  When the owner closes, `await ownership.Available` completes in the waiting tab so you can offer a
+  reload. **Reloading is what takes it over** — a waiting tab already opened its own empty database at
+  boot, so the file cannot be swapped under its live connections, and a tab that started persisting its
+  empty database would overwrite the previous owner's good snapshot. Proxying a non-owner's writes to the
+  owner is not implemented.
 - **The two build settings above are not optional**: `PublishTrimmed=false`, and publishing *without*
   `-p:WasmBuildNative=false` — otherwise SQLite is not linked in and the app boots normally, then fails on
   every database call.
