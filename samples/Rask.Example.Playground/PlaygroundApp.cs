@@ -23,17 +23,17 @@ public partial class PlaygroundApp : Component
 
     protected override Component? Head =>
     [
-        Title()["Rask Playground"],
-        Meta("utf-8"),
-        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-        Script()[Raw(ThemeInitJs)],
-        Link(Rel: "icon", Type: "image/svg+xml", Href: LiveOptions.PathBase + "/icon.svg"),
+        Title["Rask Playground"],
+        Meta.Charset("utf-8"),
+        Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
+        Script[Raw.Value(ThemeInitJs)],
+        Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),
         // Typed Bootstrap + the shared design tokens (the --bs-* bridge wins over Bootstrap; global.css
         // then overrides tokens). Same order as the showcase App.cs.
-        BootstrapStyles(),
-        RaskTokens(),
-        Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/global.css")
+        BootstrapStyles,
+        RaskTokens,
+        Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/global.css")
     ];
 
-    protected override Component? Render() => PlaygroundView();
+    protected override Component? Render() => PlaygroundView;
 }

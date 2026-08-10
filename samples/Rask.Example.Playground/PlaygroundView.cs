@@ -136,58 +136,81 @@ public sealed partial class PlaygroundView : Component
     }
 
     protected override Component? Render() =>
-        Div(Class: "pg")[
-            Header(Class: "pg-bar")[
-                Div(Class: "pg-brand")[
-                    Raw(BoltSvg),
-                    Span(Class: "pg-title")["Rask Playground"],
+        Div.Class("pg")[
+            Header.Class("pg-bar")[
+                Div.Class("pg-brand")[
+                    Raw.Value(BoltSvg),
+                    Span.Class("pg-title")["Rask Playground"],
                     IdeBadge()
                 ],
-                Div(Class: "pg-actions")[
-                    Span(Class: "pg-phase")[_phase],
+                Div.Class("pg-actions")[
+                    Span.Class("pg-phase")[_phase],
                     // Reset / Run — the same Bs* button language as the docs; the pg-run class stays a hook
                     // for the Ctrl/Cmd+Enter shortcut (PlaygroundView.js) and the E2E.
-                    BsButton(Class: "pg-reset", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                        Disabled: _busy || !_editorReady, OnClickAsync: ResetAsync)["Reset"],
-                    BsButton(Class: "pg-run", Color: BsColor.Primary, Size: BsSize.Sm,
-                        Disabled: _busy || !_editorReady, OnClickAsync: RunAsync)[_busy ? "Running…" : "Run ▸"],
+                    BsButton
+                        .Class("pg-reset")
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Disabled(_busy || !_editorReady)
+                        .OnClickAsync(ResetAsync)["Reset"],
+                    BsButton
+                        .Class("pg-run")
+                        .Color(BsColor.Primary)
+                        .Size(BsSize.Sm)
+                        .Disabled(_busy || !_editorReady)
+                        .OnClickAsync(RunAsync)[_busy ? "Running…" : "Run ▸"],
                     // Cross-app links back to the docs + repo, and the shared light/dark toggle.
-                    BsLink(Href: "https://pal-tamas.github.io/rask/docs/", Target: "_blank", Rel: "noopener",
-                        Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm)[
-                        BsIcon(Name: BsIconName.Book, Class: "me-1"), "Docs"],
-                    BsLink(Href: "https://github.com/pal-tamas/rask", Target: "_blank", Rel: "noopener",
-                        Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm)[
-                        BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"],
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                        OnClickAsync: ToggleThemeAsync, Aria: ThemeToggleAria)[BsIcon(Name: BsIconName.CircleHalf)]
+                    BsLink
+                        .Href("https://pal-tamas.github.io/rask/docs/")
+                        .Target("_blank")
+                        .Rel("noopener")
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)[
+                        BsIcon.Name(BsIconName.Book).Class("me-1"), "Docs"],
+                    BsLink
+                        .Href("https://github.com/pal-tamas/rask")
+                        .Target("_blank")
+                        .Rel("noopener")
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)[
+                        BsIcon.Name(BsIconName.Github).Class("me-1"), "GitHub"],
+                    BsButton
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .OnClickAsync(ToggleThemeAsync)
+                        .Aria(ThemeToggleAria)[BsIcon.Name(BsIconName.CircleHalf)]
                 ]
             ],
-            Div(Class: "pg-body")[
-                Aside(Class: "pg-examples")[
-                    Div(Class: "pg-examples-head")["Examples"],
-                    Nav(Class: "pg-example-list")[
+            Div.Class("pg-body")[
+                Aside.Class("pg-examples")[
+                    Div.Class("pg-examples-head")["Examples"],
+                    Nav.Class("pg-example-list")[
                         PlaygroundSamples.All.Select(s =>
-                            Button(
-                                Key: s.Id,
-                                Class: s.Id == _activeSampleId ? "pg-example is-active" : "pg-example",
-                                Disabled: _busy,
-                                OnClickAsync: () => SelectSampleAsync(s))[
-                                Span(Class: "pg-example-title")[s.Title],
-                                Span(Class: "pg-example-blurb")[s.Blurb]
+                            Button
+                                .Key(s.Id)
+                                .Class(s.Id == _activeSampleId ? "pg-example is-active" : "pg-example")
+                                .Disabled(_busy)
+                                .OnClickAsync(() => SelectSampleAsync(s))[
+                                Span.Class("pg-example-title")[s.Title],
+                                Span.Class("pg-example-blurb")[s.Blurb]
                             ])
                     ]
                 ],
-                Section(Class: "pg-editor")[
+                Section.Class("pg-editor")[
                     // Monaco mounts into this host in OnRenderedAsync(firstRender). The host renders childless,
                     // so the positional diff never addresses inside it — but a *morph* (every full-HTML frame)
                     // compares live children against the rendered ones and would strip Monaco's DOM. mountEditor
                     // tags the nodes Monaco creates with data-rask-managed, which takes them out of the live-side
                     // comparison; the marker belongs on those library-created children, never on this host.
-                    Div(Ref: _editorHost, Class: "pg-code-host")
+                    Div.Ref(_editorHost).Class("pg-code-host")
                 ],
-                Section(Class: "pg-output")[
-                    Div(Class: "pg-preview-head")["Preview"],
-                    Div(Class: "pg-preview", Key: _runId)[PreviewBody()],
+                Section.Class("pg-output")[
+                    Div.Class("pg-preview-head")["Preview"],
+                    Div.Class("pg-preview").Key(_runId)[PreviewBody()],
                     Diagnostics()
                 ]
             ]
@@ -206,7 +229,7 @@ public sealed partial class PlaygroundView : Component
         // the workspace has its references, and a colour is not a thing a locator can wait for. See
         // IdeBadgeState — the mapping is pinned by a unit test precisely because losing it fails as a
         // three-minute Playwright timeout rather than as anything that names the cause (#593).
-        return BsBadge(Color: color, Pill: true, Class: $"pg-ide {IdeBadgeState.ClassFor(_ide)}")[text];
+        return BsBadge.Color(color).Pill(true).Class($"pg-ide {IdeBadgeState.ClassFor(_ide)}")[text];
     }
 
     private Component PreviewBody()
@@ -215,10 +238,10 @@ public sealed partial class PlaygroundView : Component
         {
             // The compiled component runs inside a boundary so a throwing Render() shows a message instead
             // of blanking the playground. Keyed via the parent container so each run is a fresh mount.
-            return ErrorBoundary(Fallback: RenderPreviewError)[component];
+            return ErrorBoundary.Fallback(RenderPreviewError)[component];
         }
 
-        return Div(Class: "pg-preview-empty")[
+        return Div.Class("pg-preview-empty")[
             _result is null
                 ? "Your component renders here."
                 : "Fix the errors below to see the preview."
@@ -226,10 +249,10 @@ public sealed partial class PlaygroundView : Component
     }
 
     private static Component RenderPreviewError(Exception error, Callback recover) =>
-        Div(Class: "pg-preview-error")[
-            Strong()["The component threw while rendering:"],
-            Pre()[error.Message],
-            Button(Class: "pg-retry", OnClick: recover)["Retry"]
+        Div.Class("pg-preview-error")[
+            Strong["The component threw while rendering:"],
+            Pre[error.Message],
+            Button.Class("pg-retry").OnClick(recover)["Retry"]
         ];
 
     private Component? Diagnostics()
@@ -239,12 +262,12 @@ public sealed partial class PlaygroundView : Component
             return null;
         }
 
-        return Div(Class: "pg-diagnostics")[
+        return Div.Class("pg-diagnostics")[
             _result.Diagnostics.Select((d, i) =>
-                Div(Key: i, Class: $"pg-diag pg-diag-{Severity(d.Severity)}")[
-                    Span(Class: "pg-diag-id")[d.Id],
-                    Span(Class: "pg-diag-loc")[$"({d.StartLine},{d.StartColumn})"],
-                    Span(Class: "pg-diag-msg")[d.Message]
+                Div.Key(i).Class($"pg-diag pg-diag-{Severity(d.Severity)}")[
+                    Span.Class("pg-diag-id")[d.Id],
+                    Span.Class("pg-diag-loc")[$"({d.StartLine},{d.StartColumn})"],
+                    Span.Class("pg-diag-msg")[d.Message]
                 ])
         ];
     }
