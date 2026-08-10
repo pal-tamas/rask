@@ -156,7 +156,7 @@ mistake, the rule notes the ID.
 - **A faulted async hook is silent** — the framework logs to `Console.Error` and does *not* re-render
   or surface an error. The classic symptom is a component stuck on its loading placeholder. Wrap
   risky hook work in `try/catch` to render your own error state, or use an `ErrorBoundary`. See
-  [lifecycle → gotchas](lifecycle.md#gotcha-faulted-async-hooks-are-silent).
+  [lifecycle → gotchas](lifecycle.md#gotcha-a-faulted-async-hook-takes-the-page-not-the-component).
 - **Never `StateHasChanged()` in unmount** — the component is already leaving the tree, so it's a
   no-op by design. Use `OnUnmount` to tear down subscriptions, nothing more. Compose nested layouts
   with `[ParentRoute]` + `Outlet()`.

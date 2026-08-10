@@ -52,7 +52,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 }
 ```
 
-> **Skip the wiring:** [`rask generate email <Name>`](cli.md#rask-generate--scaffold-into-a-project) scaffolds
+> **Skip the wiring:** [`rask generate email <Name>`](cli.md#rask-generate--scaffold-code) scaffolds
 > the body component **and** does both of the above for you — it registers `AddRaskMail<Ctx>` in `Program.cs`
 > and adds `modelBuilder.AddRaskMail()` to your context (when it finds a single `DbContext`, or with
 > `--context <Name>`). You're left with just the SMTP config and the migration.

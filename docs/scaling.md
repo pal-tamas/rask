@@ -55,7 +55,7 @@ your user count.** Splitting a 200-row grid into pages of 20 buys more than a bi
 | --- | --- |
 | Brief network blip | Nothing. The socket reconnects against the intact session within `SessionGracePeriod` (30 s). |
 | Tab backgrounded past the grace period | The session is gone, but the page is [rebuilt from the client's resume record](configuration.md#surviving-a-restart-or-a-redeploy) — same route, whatever state the app declared. |
-| Deploy or restart | The departing host [hands clients over](deployment.md#connected-clients-are-handed-over-not-dropped): they reconnect immediately and rebuild, rather than sitting out a backoff and reloading. |
+| Deploy or restart | The departing host [hands clients over](deployment.md#the-shutdown-ladder): they reconnect immediately and rebuild, rather than sitting out a backoff and reloading. |
 | Host at capacity | New sessions get `503` + `Retry-After`; `/health` reports Degraded at 80% of `MaxSessions` so an orchestrator sheds first. |
 | Host killed outright | Whatever was in flight is lost. Sessions rebuild on the next reconnect if their record is still valid. |
 
