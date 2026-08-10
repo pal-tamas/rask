@@ -98,6 +98,24 @@ teams** — not multi-tenant apps. Anyone who can read the bucket can read every
 Give each device its own credentials if the store supports it, so one can be revoked without rotating
 the rest.
 
+## A working sample
+
+[`samples/Rask.Example.Crdt`](../samples/Rask.Example.Crdt) runs three devices — Phone, Laptop,
+Tablet — each with its own database, sharing a bucket and nothing else. Each can be taken offline
+independently:
+
+```bash
+RASK_CRSQLITE_PATH=/path/to/crsqlite.dylib dotnet run --project samples/Rask.Example.Crdt
+```
+
+The thing to try: take two devices offline, edit **different fields of the same todo** on each — the
+priority on one, the done flag on the other — then bring both back and press *Sync everyone*. Both
+edits survive. Do the same with a `LastModified` column and one of them is gone.
+
+The bucket there is a [`FolderObjectStore`](object-storage.md#a-folder-as-a-bucket) so it runs with no
+credentials; swapping in `S3ObjectStore` is the only change needed to put the same three devices on the
+internet.
+
 ## See also
 
 - [Multi-writer SQLite](sqlite-crdt.md) — the merge itself, and the EF Core integration.
