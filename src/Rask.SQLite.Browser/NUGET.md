@@ -46,11 +46,18 @@ builder.Services.AddRaskBrowserSqlite("app", o =>
   `Microsoft.Data.Sqlite` on its own is reflection-free and trims fine.
 - **The durability window is the snapshot interval, not the page-hide flush.** The browser does not wait
   for a `pagehide` handler, so a force-closed or crashed tab loses whatever changed since the last tick.
+- **Snapshots live in IndexedDB, which is evictable.** The owning tab asks the browser to exempt the
+  origin (`navigator.storage.persist()`) at startup; a refusal is logged and changes nothing else.
+  Chromium decides on engagement without prompting, **Firefox prompts** — so an app that would rather
+  choose its moment sets `o.RequestPersistentStorage = false` and calls
+  `IStorageEstimator.RequestPersistAsync()` from a user-gesture handler instead.
 - **Non-owner tabs are not read-only — they are separate.** They get their own empty in-memory database
   and never persist, which looks like data loss unless you say otherwise. Inject `BrowserSqliteOwnership`
   and tell the user: `await ownership.Resolved` gives the answer, and `ownership.IsOwner` is `null` while
-  the election is still running so a normal boot never flashes a banner. Promoting a waiting tab when the
-  owner closes, and proxying writes to the owner, are not implemented.
+  the election is still running so a normal boot never flashes a banner. When the owner closes,
+  `await ownership.Available` completes so you can offer a reload — reloading is what takes ownership,
+  since a waiting tab already opened its own empty database and the file cannot be swapped under live
+  connections. Proxying a non-owner's writes to the owner is not implemented.
 - Snapshots cost their full database size in the origin's storage quota, times `Retain`.
 - Add `<NoWarn>$(NoWarn);WASM0001</NoWarn>` if you build with warnings as errors: the SQLite native build
   reports two varargs functions (`sqlite3_config`, `sqlite3_db_config`) that WASM cannot call. Neither is

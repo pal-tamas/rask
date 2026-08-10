@@ -61,6 +61,14 @@ public sealed class BrowserJobsWasmExampleTests
 
             // And the owner is not told anything of the sort.
             await Expect(owner.Locator("[data-testid=not-owner]")).ToHaveCountAsync(0);
+
+            // Close the owner: the second tab should notice and say the data is reachable again, rather
+            // than leaving the user to guess when "close the other tab" has been satisfied.
+            await owner.CloseAsync();
+
+            await Expect(second.Locator("[data-testid=can-take-over]"))
+                .ToBeVisibleAsync(new() { Timeout = 30_000 });
+            await Expect(second.Locator("[data-testid=not-owner]")).ToHaveCountAsync(0);
         }
         finally
         {

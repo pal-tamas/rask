@@ -14,15 +14,22 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
     private BrowserSqliteOptions Options(string name = "app")
     {
-        var options = new BrowserSqliteOptions { Name = name, DatabasePath = Path.Combine(_temp, $"{name}.db") };
+        var options = new BrowserSqliteOptions
+        {
+            Name = name,
+            DatabasePath = Path.Combine(_temp, $"{name}.db"),
+            // Short, so the takeover tests do not spend seconds waiting on a poll.
+            TakeoverPollInterval = TimeSpan.FromMilliseconds(10),
+        };
         options.Validate();
         return options;
     }
 
     private readonly BrowserSqliteOwnership _ownership = new();
+    private readonly FakeStorageEstimator _storage = new();
 
     private BrowserSqliteHost Host(BrowserSqliteOptions options) =>
-        new(options, _locks, _db, _snapshotter, _ownership, NullLogger<BrowserSqliteHost>.Instance);
+        new(options, _locks, _db, _storage, _snapshotter, _ownership, NullLogger<BrowserSqliteHost>.Instance);
 
     private void Seed(string name, string snapshotName, string content) =>
         _db.Store(BrowserSqlite.SnapshotStoreName(name)).Values[snapshotName] = Encoding.UTF8.GetBytes(content);
@@ -105,6 +112,154 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
         Assert.True(host.IsOwner);
         await host.StopAsync(CancellationToken.None);
+    }
+
+    // IndexedDB is evictable, so without asking, a browser under storage pressure can discard the
+    // snapshots and the database comes back empty with nothing to say why.
+    [Fact]
+    public async Task Start_AsksForPersistentStorage()
+    {
+        var host = Host(Options());
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.Equal(1, _storage.PersistRequests);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    // Asking again would prompt a second time on the browsers that prompt, for something already granted.
+    [Fact]
+    public async Task Start_AlreadyPersisted_DoesNotAskAgain()
+    {
+        _storage.AlreadyPersisted = true;
+        var host = Host(Options());
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.Equal(0, _storage.PersistRequests);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    // A refusal changes nothing about how the app runs — it must not fail the boot, only be visible.
+    [Fact]
+    public async Task Start_PersistDeclined_StillBootsAndRestores()
+    {
+        _storage.GrantsPersist = false;
+        var options = Options();
+        Seed(options.Name, "app-20260808-140000000.db", "restored");
+        var host = Host(options);
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.True(host.IsOwner);
+        Assert.Equal("restored", await File.ReadAllTextAsync(options.DatabasePath));
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Start_PersistThrows_StillBoots()
+    {
+        _storage.Throws = new InvalidOperationException("interop failed");
+        var host = Host(Options());
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.True(host.IsOwner);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Start_PersistDisabled_NeverAsks()
+    {
+        var options = Options();
+        options.RequestPersistentStorage = false;
+        var host = Host(options);
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.Equal(0, _storage.PersistRequests);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    // A non-owner persists nothing, so a prompt there would buy the user nothing.
+    [Fact]
+    public async Task Start_NonOwner_NeverAsksForPersistentStorage()
+    {
+        var options = Options();
+        _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+
+        await Host(options).StartAsync(CancellationToken.None);
+
+        Assert.Equal(0, _storage.PersistRequests);
+    }
+
+    // A second tab is otherwise stuck: told to close the other one, with no way to know when that
+    // happened. This is the signal that turns "close the other tab" into "reload now".
+    [Fact]
+    public async Task NonOwner_SignalsWhenTheDatabaseBecomesAvailable()
+    {
+        var options = Options();
+        var lockName = BrowserSqlite.OwnerLockName(options.Name);
+        _locks.HoldElsewhere(lockName);
+        var host = Host(options);
+
+        await host.StartAsync(CancellationToken.None);
+
+        Assert.False(_ownership.Available.IsCompleted);   // the owner is still there
+
+        _locks.ReleaseElsewhere(lockName);               // that tab closes
+
+        await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5));
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    // Reporting availability must not take the lock: this tab already opened its own EMPTY database, so
+    // owning it would mean snapshotting nothing over the previous owner's good snapshot.
+    [Fact]
+    public async Task NonOwner_DoesNotHoldTheLockItReportsAsFree()
+    {
+        var options = Options();
+        var lockName = BrowserSqlite.OwnerLockName(options.Name);
+        _locks.HoldElsewhere(lockName);
+        var host = Host(options);
+        await host.StartAsync(CancellationToken.None);
+
+        _locks.ReleaseElsewhere(lockName);
+        await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Free for a tab that can actually use it — a reloaded page, or another tab.
+        Assert.DoesNotContain(await _locks.QueryAsync(), l => l.Name == lockName);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Owner_NeverSignalsAvailability()
+    {
+        var host = Host(Options());
+
+        await host.StartAsync(CancellationToken.None);
+        await Task.Delay(60);
+
+        // The owner has nothing to wait for; completing here would tell an app to reload for no reason.
+        Assert.False(_ownership.Available.IsCompleted);
+        await host.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Stop_EndsTheAvailabilityWatch()
+    {
+        var options = Options();
+        var lockName = BrowserSqlite.OwnerLockName(options.Name);
+        _locks.HoldElsewhere(lockName);
+        var host = Host(options);
+        await host.StartAsync(CancellationToken.None);
+
+        // Returns only once the watcher has stopped — a watcher still polling after shutdown would hang it.
+        await host.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+
+        _locks.ReleaseElsewhere(lockName);
+        await Task.Delay(60);
+        Assert.False(_ownership.Available.IsCompleted);
     }
 
     [Fact]

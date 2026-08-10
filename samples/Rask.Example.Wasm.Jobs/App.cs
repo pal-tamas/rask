@@ -72,6 +72,12 @@ public class App : Component
             color: #e8d9b0;
             font-size: .92rem;
         }
+        /* Green once it is actionable: the same box, but now it is good news. */
+        .notice.ready {
+            background: #12251a;
+            border-color: #1f5c33;
+            color: #b6e8c6;
+        }
         ul { list-style: none; padding: 0; margin: 1rem 0 0; }
         li {
             padding: .6rem .8rem;

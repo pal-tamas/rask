@@ -28,6 +28,37 @@ public sealed class BrowserSqliteOptions
     public int Retain { get; set; } = 2;
 
     /// <summary>
+    ///     How often a tab that is not the owner checks whether the database has become free, so it can
+    ///     tell the user to reload. Defaults to 2 seconds.
+    /// </summary>
+    /// <remarks>
+    ///     Each check is one Web Locks round-trip that acquires and immediately releases, so this is cheap
+    ///     — but it only runs in a non-owner tab, and stops for good the first time it succeeds.
+    /// </remarks>
+    public TimeSpan TakeoverPollInterval { get; set; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    ///     Whether the owning tab asks the browser to exempt this origin's storage from eviction
+    ///     (<c>navigator.storage.persist()</c>). Defaults to <see langword="true" />.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Worth asking, because the snapshots this package writes live in IndexedDB, and IndexedDB is
+    ///         evictable: under storage pressure a browser may discard them, and the database would come
+    ///         back empty on the next load with nothing to indicate why. A refusal costs nothing — the app
+    ///         works exactly as before — so the default is to ask.
+    ///     </para>
+    ///     <para>
+    ///         Chromium decides from engagement heuristics without prompting. <b>Firefox shows a permission
+    ///         prompt</b>, and this is asked during startup rather than from a click, so an app that would
+    ///         rather choose its moment should set this to <see langword="false" /> and call
+    ///         <c>IStorageEstimator.RequestPersistAsync()</c> from a user-gesture handler instead.
+    ///     </para>
+    ///     <para>Only the owning tab asks: the others persist nothing, so a prompt there would buy nothing.</para>
+    /// </remarks>
+    public bool RequestPersistentStorage { get; set; } = true;
+
+    /// <summary>
     ///     Where the database file lives, resolved from <see cref="Name" /> when the options are validated.
     /// </summary>
     /// <remarks>
@@ -54,6 +85,12 @@ public sealed class BrowserSqliteOptions
         if (Retain < 1)
         {
             throw new InvalidOperationException($"{nameof(Retain)} must be at least 1 (was {Retain}).");
+        }
+
+        if (TakeoverPollInterval <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(TakeoverPollInterval)} must be positive (was {TakeoverPollInterval}).");
         }
     }
 }
