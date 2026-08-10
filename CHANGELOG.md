@@ -27,6 +27,34 @@ them until tagged releases begin.
   **identical markup**, so nothing downstream would notice. No fixed source can do that; a `Render()`
   whose branches were converted unevenly can. The rewriter therefore converts a whole call site, and
   reverts a whole one, never half of a conditional.
+- **Stage E, first pass: every call site that is already inside a markup host is on the builder surface.**
+  Twenty-two projects, one commit each — the samples, `Rask.Bootstrap`, `Rask.Dashboard`, `Rask.Core`'s own
+  markup, the component probes in the test projects, and the benchmark trees. `dotnet format` is clean,
+  the solution builds warnings-as-errors clean, and the 5,969 unit tests pass.
+  The evidence that matters is not the compile. `Rask.Example.Shop` was left **untouched** — it is the
+  committed output of `rask new` and `ShopProvenanceTests` pins it to the CLI's templates, so it cannot
+  move until the CLI and the `RaskBuilderSurface` default move with it — which makes its golden
+  transcript an *independent* instrument: the whole document, byte for byte, across sixteen render paths,
+  over a Bootstrap library that moved 252 sites and a Core that moved 23. It never changed.
+  What is left, and why, because a named gap is worth more than a silent conversion:
+  - **~2,350 sites in test classes and static helpers**, which are not markup hosts. Their own pass.
+  - **~190 `Form` sites**, excluded outright: `Form` is becoming generic and every one of them moves again.
+  - **~100 generic-component sites** whose entry is a *method* with a required argument (the
+    `ValidationMessage<T>` / `BsDataGrid<T>` forwarders). A method entry displaces its own same-named
+    factory, so those sites move with the entry rather than before it. Generic components that have a
+    parameterless entry overload did convert — `Input<string>().Id(…)`, with the fully-qualified
+    `Rask.Core.Components.Generated.Input(…)` the displacement used to force gone with them.
+  - **~20 properties with no reachable setter at all** — every one a raw delegate whose name the
+    generator's setter rule leaves unchanged (`Template` on the gesture-bridge triggers, on
+    `ValidationSummary` and `ToastOutlet`; `Log` on the lifecycle probes). RASK042's shape, and a real
+    gap in the surface rather than a limit of the rewriter.
+  - **~15 sites where the entry name binds to something else** — a component's own `Label` property over
+    the `<label>` entry, `Component.Head` over the `<head>` entry. Reverted by the tool, not by hand.
+  Nine files opt out by marker (`rask-rewrite: keep the factory`): they hold both surfaces on purpose and
+  assert the two agree, and converting the factory half would leave a test comparing a chain to itself —
+  still green, proving nothing. That was found the hard way, when the first run over
+  `tests/Rask.Core.Tests` turned the deliberately-mixed host in `BuilderHoistTests` into two identical
+  branches and the test that pins the renumbering went red.
 - **A committed Stage E rewriter** (`tools/RaskBuilderRewrite`), because ~6,600 call sites is past
   hand-editing and the migration has to be re-runnable rather than remembered. It resolves each site
   against the **real generated factory signature** — a purely syntactic pass cannot; positional arguments
