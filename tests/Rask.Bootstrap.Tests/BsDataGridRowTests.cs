@@ -6,7 +6,7 @@ namespace Rask.Bootstrap.Tests;
 
 // Row-level presentation and interaction for BsDataGrid<T>: RowClass, OnRowClick (and the RowClickable rule
 // that keeps interactive template cells alive), StickyHeader and MaxHeight.
-public class BsDataGridRowTests
+public partial class BsDataGridRowTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -42,7 +42,7 @@ public class BsDataGridRowTests
         // not inherit the class — a table-warning band bleeding across the detail's colspan would be wrong.
         var grid = RaskTest.Render(BsDataGrid(Id: "g", Data: Rows, Columns: Columns(), RowKey: r => r.Name,
             RowClass: _ => "table-warning",
-            ExpandedContent: r => Div()[$"detail-{r.Name}"]));
+            ExpandedContent: r => Div[$"detail-{r.Name}"]));
 
         // Non-sortable columns, no row click: the only click handlers are the per-row expanders; [0] = Banana.
         var html = await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
@@ -101,7 +101,7 @@ public class BsDataGridRowTests
         var columns = new[]
         {
             new BsColumn<Row> { Title = "Name", Value = r => r.Name },
-            new BsColumn<Row> { Title = "Open", Template = r => A(Href: "/x")[r.Name] },
+            new BsColumn<Row> { Title = "Open", Template = r => A.Href("/x")[r.Name] },
         };
 
         var html = RaskTest.Render(BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
@@ -121,7 +121,7 @@ public class BsDataGridRowTests
             // A Value column carved out of the row click (e.g. it holds the row's own action).
             new BsColumn<Row> { Title = "Name", Value = r => r.Name, RowClickable = false },
             // A non-interactive template (a badge) opted back in.
-            new BsColumn<Row> { Title = "Qty", Template = r => BsBadge()[r.Qty.ToString()], RowClickable = true },
+            new BsColumn<Row> { Title = "Qty", Template = r => BsBadge[r.Qty.ToString()], RowClickable = true },
         };
 
         var html = RaskTest.Render(BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
@@ -138,7 +138,7 @@ public class BsDataGridRowTests
         // The expander's own button must keep working: it is a leading cell and never gets the row handler,
         // so nothing sits above the button to cancel its click.
         var html = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            OnRowClick: _ => { }, ExpandedContent: r => Div()[r.Name])).Html;
+            OnRowClick: _ => { }, ExpandedContent: r => Div[r.Name])).Html;
 
         Assert.DoesNotMatch("<td[^>]*data-rask-on-click[^>]*><button", html);
         Assert.Contains("<td><button", html, StringComparison.Ordinal);

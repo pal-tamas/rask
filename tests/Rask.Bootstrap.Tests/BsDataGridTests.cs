@@ -5,7 +5,7 @@ namespace Rask.Bootstrap.Tests;
 // Static-render assertions for BsDataGrid<T>. ToHtml() renders the initial state (first page, unsorted),
 // which is enough to check the header/cell structure and the sortable-header control. The sort/page/expand
 // state transitions are driven by click handlers and are covered in BsDataGridInteractionTests.
-public class BsDataGridTests
+public partial class BsDataGridTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -56,7 +56,7 @@ public class BsDataGridTests
     [Fact]
     public void EmptyData_RendersTheEmptyPlaceholder()
     {
-        var html = BsDataGrid<Row>(Data: [], Columns: Columns(), Empty: BsAlert(Color: BsColor.Info)["No rows"]).ToHtml();
+        var html = BsDataGrid<Row>(Data: [], Columns: Columns(), Empty: BsAlert.Color(BsColor.Info)["No rows"]).ToHtml();
 
         Assert.Contains("No rows", html);
         Assert.DoesNotContain("<table", html);
@@ -119,7 +119,7 @@ public class BsDataGridTests
             new BsColumn<Row>
             {
                 Title = "Qty", Class = "text-end", Value = r => r.Qty,
-                FooterTemplate = rows => BsBadge()[rows.Sum(r => r.Qty).ToString()],
+                FooterTemplate = rows => BsBadge[rows.Sum(r => r.Qty).ToString()],
             },
         ];
 
@@ -141,7 +141,7 @@ public class BsDataGridTests
             {
                 Title = "Qty", Class = "text-end", Value = r => r.Qty,
                 Footer = rows => rows.Sum(r => r.Qty), // text total 9, must be overridden
-                FooterTemplate = _ => BsBadge()["total"],
+                FooterTemplate = _ => BsBadge["total"],
             },
         ];
 
@@ -157,7 +157,7 @@ public class BsDataGridTests
     {
         var html = BsDataGrid<Row>(Data: Rows, Columns: Columns(),
             RowKey: r => r.Name,
-            ExpandedContent: r => BsAlert(Color: BsColor.Info)[$"detail-{r.Name}"]).ToHtml();
+            ExpandedContent: r => BsAlert.Color(BsColor.Info)[$"detail-{r.Name}"]).ToHtml();
 
         // A collapsed chevron toggle renders per row; the detail content stays hidden until expanded.
         Assert.Contains("bi-chevron-right", html);
@@ -197,7 +197,7 @@ public class BsDataGridTests
     public void Expander_HasAnAccessibleName_AndNoDanglingAriaControls()
     {
         var html = BsDataGrid<Row>(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            ExpandedContent: r => BsAlert(Color: BsColor.Info)[$"detail-{r.Name}"]).ToHtml();
+            ExpandedContent: r => BsAlert.Color(BsColor.Info)[$"detail-{r.Name}"]).ToHtml();
 
         // The toggle is icon-only, so it needs a name. aria-controls is absent while collapsed: the row it
         // would point at is not in the document yet.

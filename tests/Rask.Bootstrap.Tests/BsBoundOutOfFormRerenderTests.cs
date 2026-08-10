@@ -13,7 +13,7 @@ namespace Rask.Bootstrap.Tests;
 // Regression for the Todos checkbox: a wrapper control re-renders only itself, so the framework records
 // the control's creating parent (the authoring component) as the bind owner and re-renders it on a
 // two-way write. Without the fix the sibling's derived class stayed stale.
-public class BsBoundOutOfFormRerenderTests
+public partial class BsBoundOutOfFormRerenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task BoundCheck_OutsideForm_LoopLocalBind_RerendersAuthoringConsumer()
@@ -51,7 +51,7 @@ public class BsBoundOutOfFormRerenderTests
         }
     }
 
-    private sealed class Consumer : Component
+    private sealed partial class Consumer : Component
     {
         private readonly Item _item = new();
         public int RenderCount;
@@ -61,7 +61,7 @@ public class BsBoundOutOfFormRerenderTests
             RenderCount++;
             var item = _item; // local ⇒ the bind root is a closure, not `this` (mirrors a foreach loop var)
             return Div[
-                BsCheck(() => item.Done, Id: "chk"),
+                BsCheck.Bind(() => item.Done).Id("chk"),
                 Span.Class(item.Done ? "done" : "todo")["x"]
             ];
         }

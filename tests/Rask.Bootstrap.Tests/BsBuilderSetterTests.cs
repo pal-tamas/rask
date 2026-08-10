@@ -6,13 +6,13 @@ namespace Rask.Bootstrap.Tests;
 // of the Element/Component chain the generator writes once as constrained generic extensions. Those
 // props used to get no setter at all — the chain simply would not compile — so these pin that a Bs
 // control can be built end to end without falling back to the factory.
-public class BsBuilderSetterTests
+public partial class BsBuilderSetterTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void A_prop_inherited_from_BsBlock_gets_a_setter() =>
         Assert.Equal(
             "<span id=\"tag\" class=\"badge text-bg-success\">New</span>",
-            BsBadge().Id("tag").Color(BsColor.Success)["New"].ToHtml());
+            BsBadge.Id("tag").Color(BsColor.Success)["New"].ToHtml());
 
     // The receiver stays the concrete component, so an inherited setter can be chained into an own
     // one and back — a BsBlock-typed extension would return the base and end the chain.
@@ -20,7 +20,7 @@ public class BsBuilderSetterTests
     public void An_inherited_setter_chains_with_the_components_own() =>
         Assert.Equal(
             "<button class=\"btn btn-primary btn-lg w-100\" type=\"button\">Save</button>",
-            BsButton().Color(BsColor.Primary).Class("w-100").Size(BsSize.Lg)["Save"].ToHtml());
+            BsButton.Color(BsColor.Primary).Class("w-100").Size(BsSize.Lg)["Save"].ToHtml());
 
     // BsFormControl<T> sits between the control and BsBlock, so its props are two levels up — and the
     // control is generic, so the setter carries the type parameter through.
@@ -29,7 +29,7 @@ public class BsBuilderSetterTests
     {
         var model = new CheckModel();
 
-        var html = BsCheck(() => model.Done).Label("Agree").Disabled(true).ToHtml();
+        var html = BsCheck.Bind(() => model.Done).Label("Agree").Disabled(true).ToHtml();
 
         Assert.Contains("form-check-input", html, StringComparison.Ordinal);
         Assert.Contains("Agree", html, StringComparison.Ordinal);
@@ -44,16 +44,16 @@ public class BsBuilderSetterTests
     [Fact]
     public void A_bs_callback_stays_auto_wrapped_on_both_surfaces()
     {
-        var host = Generated.ClickHost();
+        var host = ClickHost;
         var raw = (Rask.Core.Callback)host.Bump;
 
-        Assert.NotSame(raw, BsButton(OnClick: raw).OnClick?.Fn);
-        Assert.NotSame(raw, BsButton().OnClick(raw).OnClick?.Fn);
+        Assert.NotSame(raw, BsButton.OnClick(raw).OnClick?.Fn);
+        Assert.NotSame(raw, BsButton.OnClick(raw).OnClick?.Fn);
 
         // …and an unowned handler is still handed through untouched, so the wrap is genuinely
         // AutoCallback's decision rather than an unconditional closure per render.
         Rask.Core.Callback orphan = Noop;
-        Assert.Same(orphan, BsButton().OnClick(orphan).OnClick?.Fn);
+        Assert.Same(orphan, BsButton.OnClick(orphan).OnClick?.Fn);
     }
 
     // An omitted callback must read back as unset: BsToast starts its auto-hide timer only when OnClose
@@ -63,9 +63,9 @@ public class BsBuilderSetterTests
     {
         Rask.Core.Callback? maybe = null;
 
-        Assert.Null(BsButton().OnClick);
-        Assert.Null(BsButton(OnClick: maybe).OnClick);
-        Assert.Null(BsButton().OnClick(maybe).OnClick);
+        Assert.Null(BsButton.OnClick);
+        Assert.Null(BsButton.OnClick(maybe).OnClick);
+        Assert.Null(BsButton.OnClick(maybe).OnClick);
     }
 
     // The carrier rule the `On` prefix never reached. A raw delegate prop is INVOCABLE, so
@@ -84,7 +84,7 @@ public class BsBuilderSetterTests
         var html = BsDataGrid(Data: Suppliers, Columns: columns)
             .RowKey(s => s.Id)
             .RowClass(s => s.Name == "Acme" ? "table-warning" : null)
-            .ExpandedContent(s => Div()[s.Name])
+            .ExpandedContent(s => Div[s.Name])
             .ToHtml();
 
         Assert.Contains("table-warning", html, StringComparison.Ordinal);
@@ -114,7 +114,7 @@ public class BsBuilderSetterTests
             BsDataGrid(Data: Suppliers, Columns: columns).ToHtml(),
             BsDataGrid(Data: Suppliers, Columns: columns, ExpandedContent: none).ToHtml());
         Assert.Contains("<th scope=\"col\"></th>",
-            BsDataGrid(Data: Suppliers, Columns: columns, ExpandedContent: s => Div()[s.Name]).ToHtml(),
+            BsDataGrid(Data: Suppliers, Columns: columns, ExpandedContent: s => Div[s.Name]).ToHtml(),
             StringComparison.Ordinal);
     }
 
@@ -126,7 +126,7 @@ public class BsBuilderSetterTests
     [Fact]
     public void The_three_controls_with_a_required_prop_build_through_a_chain()
     {
-        var html = Generated.BsRequiredPropProbe().ToHtml();
+        var html = BsRequiredPropProbe.ToHtml();
 
         Assert.Contains("bi bi-star", html, StringComparison.Ordinal);
         Assert.Contains("aria-valuenow=\"42\"", html, StringComparison.Ordinal);
@@ -146,7 +146,7 @@ public class BsBuilderSetterTests
     // its comment always claimed is what makes that true — the same default the control renders anyway.
     [Fact]
     public void A_bound_check_defaults_Value_rather_than_requiring_it() =>
-        Assert.Equal(BsCheck(Value: false).ToHtml(), BsCheck().ToHtml());
+        Assert.Equal(BsCheck.Value(false).ToHtml(), BsCheck.ToHtml());
 
     private static readonly Supplier[] Suppliers = [new(1, "Acme"), new(2, "Globex")];
 

@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // Caller-owned state: a controlled Page/Sort (the grid reports what the user clicked instead of moving itself)
 // and TotalCount (Data is one already-paged slice from a query). Together these are server-side paging and
 // sorting, so the tests assert what the grid REPORTS as much as what it renders.
-public class BsDataGridControlledTests
+public partial class BsDataGridControlledTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -234,7 +234,7 @@ public class BsDataGridControlledTests
     public void TotalCount_OfZero_RendersTheEmptyState()
     {
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: [], TotalCount: 0, Columns: Columns(), PageSize: 2, Empty: Div()["nothing"])));
+            Data: [], TotalCount: 0, Columns: Columns(), PageSize: 2, Empty: Div["nothing"])));
 
         Assert.Contains("<div>nothing</div>", grid.Html);
         Assert.DoesNotContain("<table", grid.Html);

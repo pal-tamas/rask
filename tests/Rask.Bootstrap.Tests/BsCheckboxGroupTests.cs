@@ -8,7 +8,7 @@ namespace Rask.Bootstrap.Tests;
 // labelable checkbox whose <label for> associates by id; selection reflects ICollection membership. A
 // group Label wraps the set in a <fieldset> named by a <legend>; without it the bare per-item fragment
 // is kept. Validation surfaces as a role="alert" live region the boxes point at via aria-describedby.
-public class BsCheckboxGroupTests
+public partial class BsCheckboxGroupTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void CheckboxGroup_Controlled_ReflectsMembershipWithPerItemLabels()

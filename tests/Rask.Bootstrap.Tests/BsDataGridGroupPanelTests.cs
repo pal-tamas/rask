@@ -6,7 +6,7 @@ namespace Rask.Bootstrap.Tests;
 
 // The group panel. The point of these is keyboard parity: every drag gesture has a real <button> doing the
 // same thing, so the whole feature works with no pointer at all. Drag is the accelerator, not the feature.
-public class BsDataGridGroupPanelTests
+public partial class BsDataGridGroupPanelTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, string Region, string Rep, int Amount);
 
@@ -251,7 +251,7 @@ public class BsDataGridGroupPanelTests
     {
         // Grouping down to nothing must not strand the user: the panel is how they got here and how they leave.
         var html = BsDataGrid<Row>(Data: [], Columns: Columns(), RowKey: r => r.Name, GroupPanel: true,
-            Grouped: ["region"], OnGroupedChange: _ => { }, Empty: Div(Id: "none")["No rows."]).ToHtml();
+            Grouped: ["region"], OnGroupedChange: _ => { }, Empty: Div.Id("none")["No rows."]).ToHtml();
 
         Assert.Contains("bs-grid-grouppanel", html, StringComparison.Ordinal);
         Assert.Contains("No rows.", html, StringComparison.Ordinal);

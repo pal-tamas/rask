@@ -7,7 +7,7 @@ namespace Rask.Bootstrap.Tests;
 // The column chooser (show/hide) and reordering. Like the group panel, the point is keyboard parity: every
 // drag gesture has a real <button> or checkbox doing the same thing, and the whole feature funnels through the
 // one VisibleColumns list so hide/reorder compose with grouping, sort and footers for free.
-public class BsDataGridColumnsTests
+public partial class BsDataGridColumnsTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, string Region, int Amount);
 
@@ -34,7 +34,10 @@ public class BsDataGridColumnsTests
         },
     ];
 
-    private static string Thead(string html) =>
+    // `new`: the <thead> tag entry arrives with the markup host and this helper hides it (CS0108). The
+    // attribute form does not avoid that — an attributed type with a free base slot is given `: RaskMarkup`
+    // in its generated partial, so the entry is inherited either way.
+    private static new string Thead(string html) =>
         Regex.Match(html, "<thead>.*?</thead>", RegexOptions.Singleline).Value;
 
     private static string FirstBodyRow(string html)

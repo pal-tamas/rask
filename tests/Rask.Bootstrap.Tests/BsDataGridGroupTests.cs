@@ -6,7 +6,7 @@ namespace Rask.Bootstrap.Tests;
 
 // Grouping: the Field-derived column name, banding over consecutive rows, the ordering that makes the bands
 // whole, nesting, collapse and subtotals.
-public class BsDataGridGroupTests
+public partial class BsDataGridGroupTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, string Category, string Supplier, int Qty);
 
@@ -354,7 +354,7 @@ public class BsDataGridGroupTests
             new BsColumn<Row>
             {
                 Title = "Qty", Value = r => r.Qty,
-                FooterTemplate = rs => BsBadge()[rs.Sum(x => x.Qty).ToString()],
+                FooterTemplate = rs => BsBadge[rs.Sum(x => x.Qty).ToString()],
             },
         ];
 
@@ -419,7 +419,7 @@ public class BsDataGridGroupTests
             new BsColumn<Row>
             {
                 Title = "Category", Value = r => r.Category, Field = r => r.Category, Groupable = true,
-                GroupHeader = (key, band) => Span(Class: "custom")[$"{key} has {band.Count}"],
+                GroupHeader = (key, band) => Span.Class("custom")[$"{key} has {band.Count}"],
             },
         ];
 

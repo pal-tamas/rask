@@ -5,12 +5,12 @@ using Rask.Core;
 
 namespace Rask.Bootstrap.Tests;
 
-public class BsFormControlTests
+public partial class BsFormControlTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Input_Controlled_RendersFormControlLabelAndValue()
     {
-        var html = BsInput<string>(Value: "hi", Label: "Name", Id: "n").ToHtml();
+        var html = BsInput<string>().Value("hi").Label("Name").Id("n").ToHtml();
         Assert.Contains("<label class=\"form-label\" for=\"n\">Name</label>", html);
         Assert.Contains("class=\"form-control\"", html);
         Assert.Contains("value=\"hi\"", html);
@@ -18,11 +18,11 @@ public class BsFormControlTests
 
     [Fact]
     public void Input_Size_AddsFormControlSize() =>
-        Assert.Contains("form-control form-control-lg", BsInput<string>(Value: "x", Size: BsSize.Lg).ToHtml());
+        Assert.Contains("form-control form-control-lg", BsInput<string>().Value("x").Size(BsSize.Lg).ToHtml());
 
     [Fact]
     public void Input_HelpText_RendersFormText() =>
-        Assert.Contains("<div class=\"form-text\">Hint</div>", BsInput<string>(Value: "x", HelpText: "Hint").ToHtml());
+        Assert.Contains("<div class=\"form-text\">Hint</div>", BsInput<string>().Value("x").HelpText("Hint").ToHtml());
 
     [Fact]
     public void Select_Native_RendersFormSelectWithOptions()
@@ -36,34 +36,38 @@ public class BsFormControlTests
 
     [Fact]
     public void Textarea_RendersFormControl() =>
-        Assert.Contains("class=\"form-control\"", BsTextarea<string>(Value: "hi", Rows: 3).ToHtml());
+        Assert.Contains("class=\"form-control\"", BsTextarea<string>().Value("hi").Rows(3).ToHtml());
 
     [Fact]
     public void Input_NumericConstraints_ForwardMinMaxStepToCoreInput() =>
         Assert.Contains("min=\"0\" max=\"120\" step=\"1\"",
-            BsInput<int>(Value: 5, Min: "0", Max: "120", Step: "1").ToHtml());
+            BsInput<int>().Value(5).Min("0").Max("120").Step("1").ToHtml());
 
     [Fact]
     public void Input_DecimalWithoutAnExplicitStep_GetsStepAny() =>
         // BsInput renders through Input<string> with a pre-formatted value, so Input<T>'s own default step
         // never sees the decimal — BsInput has to derive it from its own T. Without it the browser silently
         // refuses to submit a fractional price.
-        Assert.Contains("step=\"any\"", BsInput<decimal>(Value: 12.50m).ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("step=\"any\"", BsInput<decimal>().Value(12.50m).ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void Input_IntWithoutAnExplicitStep_KeepsTheWholeNumberConstraint() =>
-        Assert.DoesNotContain("step=", BsInput<int>(Value: 5).ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("step=", BsInput<int>().Value(5).ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void Input_TextConstraints_ForwardPatternAndLengths() =>
         Assert.Contains("pattern=\"[a-z]&#x2B;\" maxlength=\"10\" minlength=\"2\"",
-            BsInput<string>(Value: "x", Pattern: "[a-z]+", MaxLength: 10, MinLength: 2).ToHtml());
+            BsInput<string>().Value("x").Pattern("[a-z]+").MaxLength(10).MinLength(2).ToHtml());
 
     [Fact]
     public void Input_File_ForwardsAcceptCaptureAndMultiple()
     {
-        var html = BsInput<string>(Value: "", Type: InputType.File, Accept: ".png,.jpg", Capture: "user",
-            Multiple: true).ToHtml();
+        var html = BsInput<string>()
+            .Value("")
+            .Type(InputType.File)
+            .Accept(".png,.jpg")
+            .Capture("user")
+            .Multiple(true).ToHtml();
         Assert.Contains("type=\"file\"", html);
         Assert.Contains("multiple accept=\".png,.jpg\" capture=\"user\"", html);
     }
@@ -71,7 +75,7 @@ public class BsFormControlTests
     [Fact]
     public void Input_ForwardsListAndInputMode()
     {
-        var html = BsInput<string>(Value: "", List: "cities", InputMode: "search").ToHtml();
+        var html = BsInput<string>().Value("").List("cities").InputMode("search").ToHtml();
         Assert.Contains("inputmode=\"search\"", html);
         Assert.Contains("list=\"cities\"", html);
     }
@@ -79,12 +83,12 @@ public class BsFormControlTests
     [Fact]
     public void Textarea_ForwardsColsAndLengthConstraints() =>
         Assert.Contains("cols=\"40\" maxlength=\"200\" minlength=\"10\"",
-            BsTextarea<string>(Value: "hi", Cols: 40, MaxLength: 200, MinLength: 10).ToHtml());
+            BsTextarea<string>().Value("hi").Cols(40).MaxLength(200).MinLength(10).ToHtml());
 
     [Fact]
     public void Check_Switch_RendersFormSwitchAndRole()
     {
-        var html = BsCheck(Value: true, Switch: true, Label: "On", Id: "s").ToHtml();
+        var html = BsCheck.Value(true).Switch(true).Label("On").Id("s").ToHtml();
         Assert.Contains("<div class=\"form-check form-switch\">", html);
         Assert.Contains("class=\"form-check-input\"", html);
         Assert.Contains("role=\"switch\"", html);
@@ -94,21 +98,21 @@ public class BsFormControlTests
     [Fact]
     public void Input_Required_MarksLabelWithAsterisk()
     {
-        var html = BsInput<string>(Value: "x", Label: "Name", Id: "n", Required: true).ToHtml();
+        var html = BsInput<string>().Value("x").Label("Name").Id("n").Required(true).ToHtml();
         Assert.Contains("Name<span class=\"text-danger ms-1\">*</span>", html);
         Assert.Contains("required", html);
     }
 
     [Fact]
     public void Input_NotRequired_LabelHasNoAsterisk() =>
-        Assert.DoesNotContain("text-danger", BsInput<string>(Value: "x", Label: "Name", Id: "n").ToHtml());
+        Assert.DoesNotContain("text-danger", BsInput<string>().Value("x").Label("Name").Id("n").ToHtml());
 
     [Fact]
     public void Field_WrapsControlAndFeedbackInOneContainer()
     {
         // The label/control/feedback live inside a single wrapper <div> so a flex/grid form keeps the
         // .invalid-feedback tight under its input instead of gap-spacing it a row below.
-        var html = BsInput<string>(Value: "x", Label: "Name", Id: "n", HelpText: "Hint").ToHtml();
+        var html = BsInput<string>().Value("x").Label("Name").Id("n").HelpText("Hint").ToHtml();
         Assert.StartsWith("<div>", html);
         Assert.Contains("<label class=\"form-label\" for=\"n\">Name</label>", html);
         // Help text now carries the id the control's aria-describedby points at.
@@ -119,7 +123,7 @@ public class BsFormControlTests
     public void Input_HelpText_WiresAriaDescribedbyToHelp()
     {
         // A control with help text is described by it (announced by screen readers) even when valid.
-        var html = BsInput<string>(Value: "x", Id: "n", HelpText: "Hint").ToHtml();
+        var html = BsInput<string>().Value("x").Id("n").HelpText("Hint").ToHtml();
         Assert.Contains("aria-describedby=\"n-help\"", html);
         Assert.Contains("<div id=\"n-help\" class=\"form-text\">Hint</div>", html);
         // No error → no aria-invalid.
@@ -129,7 +133,7 @@ public class BsFormControlTests
     [Fact]
     public void Input_Valid_EmitsNoAriaInvalidOrDescribedby()
     {
-        var html = BsInput<string>(Value: "x", Id: "n").ToHtml();
+        var html = BsInput<string>().Value("x").Id("n").ToHtml();
         Assert.DoesNotContain("aria-invalid", html);
         Assert.DoesNotContain("aria-describedby", html);
     }
@@ -142,8 +146,9 @@ public class BsFormControlTests
         // rendered as a role="alert" live region with the matching id.
         var model = new Model { Name = "" };
         var view = new StubComponent(() => Form(model)[
-            BsInput(() => model.Name, Label: "Name",
-                Validate: v => v.Length < 3 ? new[] { "too short" } : Array.Empty<string>())
+            BsInput(() => model.Name)
+                .Label("Name")
+                .Validate(v => v.Length < 3 ? new[] { "too short" } : Array.Empty<string>())
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -165,8 +170,10 @@ public class BsFormControlTests
     {
         var model = new Terms { Accept = false };
         var view = new StubComponent(() => Form(model)[
-            BsCheck(() => model.Accept, Label: "Accept",
-                Validate: v => v ? Array.Empty<string>() : new[] { "required" })
+            BsCheck
+                .Bind(() => model.Accept)
+                .Label("Accept")
+                .Validate(v => v ? Array.Empty<string>() : new[] { "required" })
         ]);
 
         var html = view.RenderAsLiveRoot();

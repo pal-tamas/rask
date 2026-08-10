@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // Passing an IQueryable as Data: the grid orders, counts and pages it in the store rather than in memory.
 // These use a LINQ-to-Objects queryable, which exercises the same Queryable.OrderBy/Count/Skip/Take
 // composition an EF provider translates to SQL; the real-SQL proof is the EF Core sample.
-public class BsDataGridQueryTests
+public partial class BsDataGridQueryTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -139,7 +139,7 @@ public class BsDataGridQueryTests
     public void Query_EmptyResult_RendersTheEmptyState()
     {
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: new List<Row>().AsQueryable(), Columns: Columns(), PageSize: 2, Empty: Div()["nothing"])));
+            Data: new List<Row>().AsQueryable(), Columns: Columns(), PageSize: 2, Empty: Div["nothing"])));
 
         Assert.Contains("<div>nothing</div>", grid.Html);
         Assert.DoesNotContain("<table", grid.Html);

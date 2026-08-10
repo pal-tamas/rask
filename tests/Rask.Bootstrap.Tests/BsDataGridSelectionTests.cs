@@ -7,7 +7,7 @@ namespace Rask.Bootstrap.Tests;
 // Row selection: the checkbox column, select-all-this-page, and the controlled/uncontrolled split. Several of
 // these guard failures that are invisible in a screenshot — a vacuously-checked select-all over an empty page,
 // a <tfoot> off by one, a selection that follows positions instead of rows.
-public class BsDataGridSelectionTests
+public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -79,7 +79,7 @@ public class BsDataGridSelectionTests
     [Fact]
     public void TheRowCheckbox_FallsBackWhenThereIsNoTextToBorrow()
     {
-        BsColumn<Row>[] templatesOnly = [new BsColumn<Row> { Title = "N", Template = r => Span()[r.Name] }];
+        BsColumn<Row>[] templatesOnly = [new BsColumn<Row> { Title = "N", Template = r => Span[r.Name] }];
 
         var html = BsDataGrid(Data: Rows, Columns: templatesOnly, RowKey: r => r.Name, Selectable: true).ToHtml();
 
@@ -248,7 +248,7 @@ public class BsDataGridSelectionTests
     {
         // The colspan and the three leading-cell sites are where an extra leading column goes wrong.
         var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Selectable: true, ExpandedContent: r => Div()[r.Name]));
+            Selectable: true, ExpandedContent: r => Div[r.Name]));
 
         // Expand the first row: [0]/[1] are the sortable headers, so the expanders start at [2].
         var expander = Regex.Matches(grid.Html, "data-rask-on-click=\"([^\"]+)\"")
@@ -270,7 +270,7 @@ public class BsDataGridSelectionTests
         ];
 
         var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name, Selectable: true,
-            ExpandedContent: r => Div()[r.Name]).ToHtml();
+            ExpandedContent: r => Div[r.Name]).ToHtml();
 
         var tfoot = Regex.Match(html, "<tfoot>(.*?)</tfoot>", RegexOptions.Singleline).Groups[1].Value;
 

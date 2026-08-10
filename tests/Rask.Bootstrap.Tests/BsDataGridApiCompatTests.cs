@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // The call sites below mirror the shapes a consuming app actually uses (typed and inferred, array and List
 // columns, with and without paging/detail/footers). They are compile-time assertions first — if the generated
 // factory changes shape, this file stops building.
-public class BsDataGridApiCompatTests
+public partial class BsDataGridApiCompatTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Supplier(Guid Id, string Name, string VatNumber);
 
@@ -26,7 +26,7 @@ public class BsDataGridApiCompatTests
             [
                 new BsColumn<Supplier> { Title = "Name", Value = s => s.Name, Sortable = true, Class = "fw-semibold" },
                 new BsColumn<Supplier> { Title = "VAT", Value = s => s.VatNumber, Sortable = true },
-                new BsColumn<Supplier> { Title = "", Class = "text-end", Template = s => Span()[s.Name] },
+                new BsColumn<Supplier> { Title = "", Class = "text-end", Template = s => Span[s.Name] },
             ]).ToHtml();
 
         Assert.Contains("Acme", html);
@@ -42,7 +42,7 @@ public class BsDataGridApiCompatTests
         ];
 
         var html = BsDataGrid(Data: Suppliers, Columns: columns, RowKey: s => s.Id, PageSize: 50, Small: true,
-            Empty: Div()["Nothing found."]).ToHtml();
+            Empty: Div["Nothing found."]).ToHtml();
 
         Assert.Contains("table-sm", html);
     }
@@ -55,12 +55,12 @@ public class BsDataGridApiCompatTests
             new BsColumn<Supplier>
             {
                 Title = "Name", Class = "text-end", Value = s => s.Name,
-                FooterTemplate = rows => Span(Class: "fw-bold")[rows.Count.ToString()],
+                FooterTemplate = rows => Span.Class("fw-bold")[rows.Count.ToString()],
             },
         ];
 
         var html = BsDataGrid(Data: Suppliers, Columns: columns, RowKey: s => s.Id, PageSize: 50, Small: true,
-            Empty: Div()["Nothing."], ExpandedContent: s => Div()[s.Name]).ToHtml();
+            Empty: Div["Nothing."], ExpandedContent: s => Div[s.Name]).ToHtml();
 
         Assert.Contains("<tfoot>", html);
     }

@@ -12,7 +12,7 @@ namespace Rask.Bootstrap.Tests;
 // code paths — Queried() leads the ORDER BY with the group columns (BsDataGrid.cs), and BodyRows bands the
 // page regardless of where it came from — so they get their own functional coverage rather than riding on the
 // in-memory tests.
-public class BsDataGridGroupServerTests
+public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, string Category, string Supplier, int Qty);
 

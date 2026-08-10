@@ -7,7 +7,7 @@ namespace Rask.Bootstrap.Tests;
 // BsDataGrid<T>'s busy state. Most of what matters here is invisible to a casual markup check — the nullable
 // tri-state, where aria-busy sits relative to the spinner's live region, and the fact that the wrapper does
 // not come and go — so each is asserted directly.
-public class BsDataGridLoadingTests
+public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -108,14 +108,14 @@ public class BsDataGridLoadingTests
         // A fetch in flight is not "no results". Without this the first load flashes the placeholder before
         // the rows land.
         var busy = BsDataGrid<Row>(Data: [], Columns: Columns(), Loading: true,
-            Empty: Div(Id: "nothing")["Nothing found."]).ToHtml();
+            Empty: Div.Id("nothing")["Nothing found."]).ToHtml();
 
         Assert.DoesNotContain("Nothing found.", busy, StringComparison.Ordinal);
         Assert.Contains("bs-grid-overlay", busy, StringComparison.Ordinal);
 
         // ...and it returns the moment the load finishes with nothing.
         var idle = BsDataGrid<Row>(Data: [], Columns: Columns(), Loading: false,
-            Empty: Div(Id: "nothing")["Nothing found."]).ToHtml();
+            Empty: Div.Id("nothing")["Nothing found."]).ToHtml();
 
         Assert.Contains("Nothing found.", idle, StringComparison.Ordinal);
     }
@@ -126,7 +126,7 @@ public class BsDataGridLoadingTests
         // "Loading finished, no results" is the most common transition this feature creates. If the Empty
         // branch returned unwrapped, the wrapper would disappear underneath the differ at exactly that moment.
         var html = BsDataGrid<Row>(Data: [], Columns: Columns(), Loading: false,
-            Empty: Div(Id: "nothing")["Nothing found."]).ToHtml();
+            Empty: Div.Id("nothing")["Nothing found."]).ToHtml();
 
         Assert.StartsWith("<div class=\"position-relative\">", html, StringComparison.Ordinal);
     }

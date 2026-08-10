@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // set in a <fieldset> named by a <legend> (the accessible name for the group); without it the bare
 // per-item fragment is kept. Validation surfaces as a role="alert" live region the radios point at
 // via aria-describedby, with aria-invalid on each input.
-public class BsRadioGroupTests
+public partial class BsRadioGroupTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void RadioGroup_Controlled_RendersRadiosWithPerItemLabelAssociation()
@@ -52,7 +52,7 @@ public class BsRadioGroupTests
     public void RadioGroup_OptionLabel_RendersRichLabels() =>
         Assert.Contains("<label class=\"form-check-label\" for=\"plan-0\"><strong>Free</strong></label>",
             BsRadioGroup(Options: ["Free"], Value: "Free", Name: "plan",
-                OptionLabel: p => Strong()[p], OnChange: _ => { }).ToHtml());
+                OptionLabel: p => Strong[p], OnChange: _ => { }).ToHtml());
 
     [Fact]
     public async Task RadioGroup_Bound_Invalid_WiresAriaInvalidDescribedbyAndAlertFeedback()

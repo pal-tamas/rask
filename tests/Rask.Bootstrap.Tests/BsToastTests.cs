@@ -2,7 +2,7 @@ namespace Rask.Bootstrap.Tests;
 
 // Rendered-HTML assertions for BsToast's two layouts (headerless colored vs header). ToHtml() renders
 // static markup; the auto-hide timer only starts under a live context (OnMount), so it's inert here.
-public class BsToastTests
+public partial class BsToastTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Toast_DefaultLayout_RendersHeaderOverBody() =>
@@ -14,7 +14,7 @@ public class BsToastTests
             "</div>" +
             "<div class=\"toast-body\">Hi</div>" +
             "</div>",
-            BsToast(Id: 2, Title: "Note", Message: "Hi").ToHtml());
+            BsToast.Id(2).Title("Note").Message("Hi").ToHtml());
 
     [Fact]
     public void Toast_Colored_RendersHeaderlessColorScheme() =>
@@ -26,7 +26,7 @@ public class BsToastTests
             "<button class=\"btn-close btn-close-white me-2 m-auto\" aria-label=\"Close\" type=\"button\"></button>" +
             "</div>" +
             "</div>",
-            BsToast(Id: 1, Message: "Saved", Color: BsColor.Success).ToHtml());
+            BsToast.Id(1).Message("Saved").Color(BsColor.Success).ToHtml());
 
     [Fact]
     public void Toast_WithTimestamp_AddsSmallText() =>
@@ -39,5 +39,5 @@ public class BsToastTests
             "</div>" +
             "<div class=\"toast-body\">Hi</div>" +
             "</div>",
-            BsToast(Id: 3, Title: "Note", Message: "Hi", Timestamp: "now").ToHtml());
+            BsToast.Id(3).Title("Note").Message("Hi").Timestamp("now").ToHtml());
 }

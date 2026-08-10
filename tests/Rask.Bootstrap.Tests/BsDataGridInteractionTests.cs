@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // BsDataGrid<T>'s state transitions, driven through real click handlers. These were previously untested
 // anywhere: the static suite renders only the initial frame, and the sort/page/expand paths are reachable
 // only by clicking. RaskTest dispatches handlers in-process and re-renders, so none of this needs a browser.
-public class BsDataGridInteractionTests
+public partial class BsDataGridInteractionTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -159,7 +159,7 @@ public class BsDataGridInteractionTests
     public async Task ClickingTheExpander_OpensAndClosesTheDetailRow()
     {
         var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: Rows, Columns: Columns(),
-            RowKey: r => r.Name, ExpandedContent: r => Div()[$"detail-{r.Name}"]));
+            RowKey: r => r.Name, ExpandedContent: r => Div[$"detail-{r.Name}"]));
         Assert.DoesNotContain("<div>detail-Banana</div>", grid.Html);
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]); // first row's expander
@@ -188,7 +188,7 @@ public class BsDataGridInteractionTests
         // (RowKey: p => p.Name) hits this immediately.
         List<Row> rows = [new("Two Words", 1)];
         var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: rows, Columns: Columns(),
-            RowKey: r => r.Name, ExpandedContent: _ => Div()["d"]));
+            RowKey: r => r.Name, ExpandedContent: _ => Div["d"]));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]);
 
@@ -203,7 +203,7 @@ public class BsDataGridInteractionTests
     {
         // Each detail row is a keyed insert, so opening a second must not disturb the first.
         var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: Rows, Columns: Columns(),
-            RowKey: r => r.Name, ExpandedContent: r => Div()[$"detail-{r.Name}"]));
+            RowKey: r => r.Name, ExpandedContent: r => Div[$"detail-{r.Name}"]));
 
         await grid.InvokeAsync(grid.HandlerIds("click")[2]); // Banana
         // Banana's detail row shifts the handler list, so Apple's expander is now at [3].
@@ -221,7 +221,7 @@ public class BsDataGridInteractionTests
     {
         // Keyed by RowKey rather than position, so re-ordering keeps the same row open.
         var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: Rows, Columns: Columns(),
-            RowKey: r => r.Name, ExpandedContent: r => Div()[$"detail-{r.Name}"]));
+            RowKey: r => r.Name, ExpandedContent: r => Div[$"detail-{r.Name}"]));
 
         await grid.InvokeAsync(grid.HandlerIds("click")[2]);            // open Banana (first row)
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]); // sort -> Apple, Banana, Cherry

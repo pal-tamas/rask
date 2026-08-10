@@ -8,7 +8,7 @@ namespace Rask.Bootstrap.Tests;
 // chips (BsBadge + BsCloseButton) or a placeholder; each option row is a dropdown-item button with a
 // checkbox reflecting selection. Supplying a Filter predicate adds a search field in the dropdown (only
 // present while open, so absent from this static closed markup). ToHtml() renders with the menu closed.
-public class BsMultiSelectTests
+public partial class BsMultiSelectTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void MultiSelect_Empty_ShowsPlaceholderBoxAndUncheckedOptions()

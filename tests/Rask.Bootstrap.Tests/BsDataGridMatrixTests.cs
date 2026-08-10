@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // The feature-by-feature suites each cover one axis. This one covers where the axes CROSS — an IQueryable with
 // a controlled sort, footers over a store-side page, master-detail over a query, a page index out of range —
 // plus the degenerate inputs a real app eventually passes. Combinations are where a grid actually breaks.
-public class BsDataGridMatrixTests
+public partial class BsDataGridMatrixTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(int Id, string Name, int Qty);
 
@@ -121,7 +121,7 @@ public class BsDataGridMatrixTests
     {
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
             Id: "g", Data: All.AsQueryable(), Columns: Columns(), PageSize: 2,
-            RowKey: r => r.Id, ExpandedContent: r => Div()[$"detail-{r.Name}"])));
+            RowKey: r => r.Id, ExpandedContent: r => Div[$"detail-{r.Name}"])));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]); // first row's expander
 
@@ -277,7 +277,7 @@ public class BsDataGridMatrixTests
         // RowKey is documented as required for master-detail. Without it rows key by index, so a sort moves
         // the open row. This pins the documented consequence rather than pretending it works.
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Id: "g", Data: All, Columns: Columns(), ExpandedContent: r => Div()[$"detail-{r.Name}"])));
+            Id: "g", Data: All, Columns: Columns(), ExpandedContent: r => Div[$"detail-{r.Name}"])));
 
         await grid.InvokeAsync(grid.HandlerIds("click")[2]);            // open row 0 (Banana)
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]); // sort by Name -> Apple is row 0
@@ -291,11 +291,11 @@ public class BsDataGridMatrixTests
     {
         // The ids must be unique across grids, or aria-controls on one resolves into the other.
         var grid = RaskTest.Render(new Host(() =>
-            Div()[
+            Div[
                 BsDataGrid<Row>(Data: All.Take(1).ToList(), Columns: Columns(),
-                    RowKey: r => r.Id, ExpandedContent: _ => Div()["a"]),
+                    RowKey: r => r.Id, ExpandedContent: _ => Div["a"]),
                 BsDataGrid<Row>(Data: All.Take(1).ToList(), Columns: Columns(),
-                    RowKey: r => r.Id, ExpandedContent: _ => Div()["b"])
+                    RowKey: r => r.Id, ExpandedContent: _ => Div["b"])
             ]));
 
         var ids = Regex.Matches(grid.Html, "aria-controls=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToArray();
@@ -340,7 +340,7 @@ public class BsDataGridMatrixTests
             [new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Footer = rows => rows.Sum(r => r.Qty) }];
 
         var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All, Columns: columns, RowKey: r => r.Id, ExpandedContent: _ => Div()["d"])));
+            Data: All, Columns: columns, RowKey: r => r.Id, ExpandedContent: _ => Div["d"])));
 
         // One spacer for the expander column, then the total.
         Assert.Contains("<tfoot><tr><td></td><td>25</td></tr></tfoot>", grid.Html);

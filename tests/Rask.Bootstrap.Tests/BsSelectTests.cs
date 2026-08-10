@@ -4,7 +4,7 @@ namespace Rask.Bootstrap.Tests;
 // combobox `<div>` (showing the selected option's rich label, or a placeholder) that opens a `.dropdown-menu`
 // listbox of role=option buttons; supplying a Filter predicate adds a search field in the dropdown (only
 // present while open, so not in this static closed markup). Native: true drops to the plain `<select>`.
-public class BsSelectTests
+public partial class BsSelectTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Select_Empty_RendersComboboxBoxWithPlaceholderAndOptionButtons()
@@ -101,7 +101,7 @@ public class BsSelectTests
         // selected object's label, and the option whose OptionValue equals the bound value is marked active.
         var teams = new[] { new Team(1, "Platform"), new Team(2, "Growth") };
         var html = BsSelect<int?, Team>(Options: teams, OptionValue: t => t.Id,
-            OptionLabel: t => Text(t.Name), Value: 2, Id: "s").ToHtml();
+            OptionLabel: t => Text.Value(t.Name), Value: 2, Id: "s").ToHtml();
         Assert.Contains("aria-controls=\"s-list\">Growth</div>", html);
         Assert.Contains(
             "<button id=\"s-opt-1\" class=\"dropdown-item active\" data-rask-key=\"1\" role=\"option\" " +
@@ -113,7 +113,7 @@ public class BsSelectTests
         // The native <select> option values are the projected values, so binding round-trips the id.
         Assert.Contains("value=\"2\">Growth</option>",
             BsSelect<int?, Team>(Options: new[] { new Team(1, "Platform"), new Team(2, "Growth") },
-                OptionValue: t => t.Id, OptionLabel: t => Text(t.Name), Value: 1, Native: true, Id: "s").ToHtml());
+                OptionValue: t => t.Id, OptionLabel: t => Text.Value(t.Name), Value: 1, Native: true, Id: "s").ToHtml());
 
     [Fact]
     public void Select_Native_RendersPlainSelectWithSelectedOptionAndPlaceholder() =>
