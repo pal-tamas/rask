@@ -204,8 +204,50 @@ internal sealed partial class AllocHeadFactoryProbe : Component
     protected override Component? Render() => Div(Id: "page")[Span()["42"]];
 }
 
+// A component that overrides a lifecycle hook is the one shape the entry surface now claims a LiveState
+// for at build time — it has to, because the deferred commit reads a missing LiveState as "not mine to
+// notify" and a chain that names no folding prop would otherwise never mount. That claim is a real
+// allocation, so it is pinned here rather than argued: the FACTORY already pays it (NotifyParameters is
+// unconditional), and this asserts the entry pays no more. Ten of them, so a per-child difference cannot
+// hide inside the harness noise.
+internal sealed partial class AllocLifecycleLeaf : Component
+{
+    protected override void OnMount()
+    {
+    }
+
+    protected override Component? Render() => Span["leaf"];
+}
+
+internal sealed partial class AllocLifecycleEntryProbe : Component
+{
+    protected override Component? Render() => Div[
+        AllocLifecycleLeaf, AllocLifecycleLeaf, AllocLifecycleLeaf, AllocLifecycleLeaf, AllocLifecycleLeaf,
+        AllocLifecycleLeaf, AllocLifecycleLeaf, AllocLifecycleLeaf, AllocLifecycleLeaf, AllocLifecycleLeaf
+    ];
+}
+
+internal sealed partial class AllocLifecycleFactoryProbe : Component
+{
+    protected override Component? Render() => Div()[
+        Generated.AllocLifecycleLeaf(), Generated.AllocLifecycleLeaf(), Generated.AllocLifecycleLeaf(),
+        Generated.AllocLifecycleLeaf(), Generated.AllocLifecycleLeaf(), Generated.AllocLifecycleLeaf(),
+        Generated.AllocLifecycleLeaf(), Generated.AllocLifecycleLeaf(), Generated.AllocLifecycleLeaf(),
+        Generated.AllocLifecycleLeaf()
+    ];
+}
+
 public class BuilderEntryAllocationPinTests
 {
+    [Fact]
+    public void An_entry_built_lifecycle_component_does_not_allocate_more_per_render_than_the_factory()
+    {
+        var entry = Measure(static () => new AllocLifecycleEntryProbe());
+        var factory = Measure(static () => new AllocLifecycleFactoryProbe());
+
+        AssertNoWorseThan(entry, factory);
+    }
+
     [Fact]
     public void An_entry_built_tree_does_not_allocate_more_per_render_than_the_factory()
     {

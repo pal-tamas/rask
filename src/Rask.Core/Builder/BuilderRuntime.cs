@@ -209,7 +209,8 @@ public static partial class BuilderRuntime
     public static T Entry<T>(
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
-        ulong pending)
+        ulong pending,
+        bool hasLifecycle = true)
         where T : Component, new()
     {
         if (Live.LiveRenderContext.Current is not { } ctx)
@@ -217,7 +218,7 @@ public static partial class BuilderRuntime
             return new T();
         }
 
-        var component = ctx.GetOrCreateEntry<T>(static _ => new T(), pendingReset, pending);
+        var component = ctx.GetOrCreateEntry<T>(static _ => new T(), pendingReset, pending, hasLifecycle);
         reset(component);
         return component;
     }
@@ -227,7 +228,8 @@ public static partial class BuilderRuntime
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
-        ulong pending)
+        ulong pending,
+        bool hasLifecycle = true)
         where T : Component
     {
         if (Live.LiveRenderContext.Current is { } ctx)
@@ -235,7 +237,8 @@ public static partial class BuilderRuntime
             var component = ctx.GetOrCreateEntry<T>(
                 static sp => Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(sp),
                 pendingReset,
-                pending);
+                pending,
+                hasLifecycle);
             reset(component);
             return component;
         }
@@ -250,7 +253,8 @@ public static partial class BuilderRuntime
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
-        ulong pending)
+        ulong pending,
+        bool hasLifecycle = true)
         where T : Component
     {
         if (Live.LiveRenderContext.Current is not { } ctx)
@@ -259,7 +263,7 @@ public static partial class BuilderRuntime
         }
 
         var component = ctx.GetOrCreateEntry<T>(
-            static _ => Activator.CreateInstance<T>(), pendingReset, pending);
+            static _ => Activator.CreateInstance<T>(), pendingReset, pending, hasLifecycle);
         reset(component);
         return component;
     }

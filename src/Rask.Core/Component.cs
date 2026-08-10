@@ -1047,6 +1047,11 @@ public abstract partial class Component : RaskMarkup
     // Armed by LiveRenderContext.GetOrCreateEntry on the component whose Render() is building the tree.
     internal void ArmEntryCommitInternal() => Live.HasEntryChildren = true;
 
+    // Claims the LiveState for an entry-built child that has a lifecycle to run, so the commit below can
+    // keep using "no LiveState" to mean "not mine to notify". See GetOrCreateEntry for why the two are
+    // not the same question and why a handle-less render is where they came apart.
+    internal void EnsureLiveStateInternal() => _ = Live;
+
     /// <summary>
     ///     Records that a builder setter wrote a value different from the one already on this component,
     ///     so the deferred commit reports <c>propsChanged: true</c>.

@@ -1456,6 +1456,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             sb.Append(" | ").Append(MaskLiteral(own.Values));
         }
+
+        // The fourth argument: does this component have a lifecycle to run when the parent's deferred
+        // commit reaches it. Only the `false` is written — the runtime defaults to true, so generated
+        // code from an older version stays correct rather than fast.
+        if (!c.HasLifecycle)
+        {
+            sb.Append(", false");
+        }
     }
 
     private static void EmitBoundEntry(
@@ -2468,6 +2476,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             classDecl.Modifiers.Any(SyntaxKind.PartialKeyword),
             symbol.ContainingType is not null,
             InheritsFromElement(symbol),
+            OverridesLifecycleHook(symbol),
             classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
             classDecl.Identifier.Span.Start,
             classDecl.Identifier.Span.Length);
@@ -2821,6 +2830,67 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     {
         var name = type.OriginalDefinition.ToDisplayString();
         return name == ElementFullName || name == ComponentFullName;
+    }
+
+    /// <summary>
+    ///     Whether the component overrides any of <c>Component</c>'s own lifecycle hooks.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This is what a builder entry hands to <c>Entry&lt;T&gt;</c> so the runtime knows whether the
+    ///         child has anything to run when the deferred commit reaches it. A component that does gets
+    ///         its <c>LiveState</c> claimed at build time, because the commit uses "no LiveState" to mean
+    ///         "not mine to notify" and a handle-less render leaves one unallocated; a component that does
+    ///         not is left alone, which is what keeps a page of plain tags from paying a LiveState apiece.
+    ///     </para>
+    ///     <para>
+    ///         The hook set is read off the <c>Component</c> symbol rather than hard-coded — every virtual
+    ///         <c>On*</c> it declares — so adding a hook to the framework cannot silently leave a component
+    ///         uncommitted. <c>Element</c>-derived types are NOT exempt: <c>NavLink</c> is an Element and
+    ///         overrides <c>OnMount</c>.
+    ///     </para>
+    /// </remarks>
+    private static bool OverridesLifecycleHook(INamedTypeSymbol symbol)
+    {
+        INamedTypeSymbol? componentType = null;
+        for (var t = symbol; t is not null; t = t.BaseType)
+        {
+            if (t.OriginalDefinition.ToDisplayString() == ComponentFullName)
+            {
+                componentType = t;
+                break;
+            }
+        }
+
+        // Not a component at all, or a shape this walk cannot see the base of: assume it has a lifecycle,
+        // because the cost of being wrong that way is one allocation and the cost of the other way is a
+        // component that never mounts.
+        if (componentType is null)
+        {
+            return true;
+        }
+
+        var hooks = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var member in componentType.GetMembers())
+        {
+            if (member is IMethodSymbol { IsVirtual: true } m && m.Name.StartsWith("On", StringComparison.Ordinal))
+            {
+                hooks.Add(m.Name);
+            }
+        }
+
+        for (var t = symbol; t is not null && !SymbolEqualityComparer.Default.Equals(t, componentType); t = t.BaseType)
+        {
+            foreach (var member in t.GetMembers())
+            {
+                if (member is IMethodSymbol { IsOverride: true } m && hooks.Contains(m.Name))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static bool InheritsFromElement(INamedTypeSymbol symbol)
@@ -4233,6 +4303,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // Drives which shared reset the builder entry hands to Entry<T>: an Element gets the whole
         // universal HTML/event surface put back, a plain Component only Component's own props.
         bool IsElement,
+        // Whether the component overrides any of Component's own On* hooks. Handed to Entry<T> so an
+        // entry-built child that has a lifecycle claims its LiveState at build time and the deferred
+        // commit can still read "no LiveState" as "not mine to notify" — see OverridesLifecycleHook.
+        bool HasLifecycle,
         // File path + span rather than a Location: Location is not value-equatable, so caching it on
         // the candidate would defeat the incremental generator's comparison (same reason PropInfo
         // stores DeclaringFilePath/Span and rebuilds via MakeLocation).

@@ -7,6 +7,37 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **An auth gate built by a builder entry rendered as if nobody were signed in.** `Authorize[content]` and
+  `Authorize.Authorized(user => …)` produced an empty page on a server-rendered first paint — the shape at
+  the top of every gated route, failing silently and open-ended: no exception, no diagnostic, just missing
+  content.
+  The chain is the trigger and the commit is the cause. A chain writes only what it names, and only a
+  *folding* prop goes through `BuilderRuntime.Track` — a chain that names nothing, or names only `Children`
+  or a carrier-typed callback, never marks the child prop-changed. Marking is what allocated the child's
+  `LiveState`, and `CommitEntry` read a missing `LiveState` as *"this child never reached `GetOrCreate`, so
+  there is nothing to notify"*. So the deferred `NotifyParameters` that stands in for the factory's inline
+  one never fired, `OnMount` never ran, and `Authorize` — which resolves its `IUserProvider` in `OnMount` —
+  saw an anonymous principal.
+  That guard's premise only holds when the render carries a **handle**: a live session gives every
+  `GetOrCreate`'d child one, and setting a handle allocates the state. A handle-less render does not, and
+  the two that matter are `ToHtml()` and the server-rendered first paint. The factory has no such hole
+  because it calls `NotifyParameters` unconditionally.
+  The fix is a cheaper signal rather than the obvious repair. Letting a null `LiveState` through would make
+  **every element in an entry-built tree** allocate one at commit, which is the per-node memory the builder
+  surface exists to save. Instead the generator now computes, per component, whether it overrides any of
+  `Component`'s own `On*` hooks — read off the `Component` symbol itself, not a hard-coded list, so adding a
+  hook to the framework cannot silently leave a component uncommitted — and hands the answer to
+  `Entry<T>` / `EntryDi<T>` / `EntryRequired<T>`. A component that has a lifecycle claims its `LiveState`
+  when the entry builds it; one that does not is left exactly as it was. **160 of Rask.Core's 166 entries
+  opt out**, and `Element`-derived types are not exempt as a class — `NavLink` is an `Element` and overrides
+  `OnMount`.
+  The parameter defaults to `true`, so generated code from an older version is *correct* rather than fast.
+  Measured: `BuilderSurfaceBenchmarks` is unchanged at **19.7 KB/op on both surfaces** (alloc ratio 1.00,
+  the entry 14% faster in time), the absolute and relative allocation pins pass untouched, and a new pin
+  covers the shape the fix actually acts on — ten lifecycle-bearing children, entry versus factory — so
+  "it costs what the factory costs" is asserted rather than argued.
+
 ### Added
 - **The migration does not have to hoist anything — and here is the test that says so.** A factory
   evaluates its arguments *before* it builds the component; a setter chain builds the receiver first and

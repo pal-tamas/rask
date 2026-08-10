@@ -50,9 +50,10 @@ public abstract partial class Component
     protected static T Entry<T>(
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
-        ulong pending)
+        ulong pending,
+        bool hasLifecycle = true)
         where T : Component, new()
-        => BuilderRuntime.Entry<T>(reset, pendingReset, pending);
+        => BuilderRuntime.Entry<T>(reset, pendingReset, pending, hasLifecycle);
 
     /// <summary>
     ///     The entry for a component whose only constructor takes injected services.
@@ -67,9 +68,10 @@ public abstract partial class Component
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
-        ulong pending)
+        ulong pending,
+        bool hasLifecycle = true)
         where T : Component
-        => BuilderRuntime.EntryDi<T>(reset, pendingReset, pending);
+        => BuilderRuntime.EntryDi<T>(reset, pendingReset, pending, hasLifecycle);
 
     // A generic component's entry used to have a helper of its own — EntryBound<TControl, TValue>, which
     // took the Bind expression and assigned it. It is gone because the generated entry now assigns its
@@ -101,7 +103,8 @@ public abstract partial class Component
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
-        ulong pending)
+        ulong pending,
+        bool hasLifecycle = true)
         where T : Component
-        => BuilderRuntime.EntryRequired<T>(reset, pendingReset, pending);
+        => BuilderRuntime.EntryRequired<T>(reset, pendingReset, pending, hasLifecycle);
 }
