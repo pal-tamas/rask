@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Performance;
 // Pinned ceilings catch regression in CI; the diagnostic Trait test prints exact deltas
 // for manual inspection. Run the diagnostic via:
 //   dotnet test Rask.Core.Tests --filter "FullyQualifiedName~CounterAllocation_Diagnostic"
-public class CounterAllocationPinTests
+public partial class CounterAllocationPinTests : global::Rask.Core.RaskMarkup
 {
     private readonly ITestOutputHelper _output;
 
@@ -62,21 +62,21 @@ public class CounterAllocationPinTests
 
     private static Component BuildFullPageShell() =>
         [
-            Doctype(),
-            Html()[
-                Body()[
-                    Div(Class: "counter", Id: "counter")[
-                        Span(Class: "value")["42"],
-                        Button(Class: "inc")["+"]
+            Doctype,
+            Html[
+                Body[
+                    Div.Class("counter").Id("counter")[
+                        Span.Class("value")["42"],
+                        Button.Class("inc")["+"]
                     ]
                 ]
             ]
         ];
 
     private static Component BuildInner() =>
-        Div(Class: "counter", Id: "counter")[
-            Span(Class: "value")["42"],
-            Button(Class: "inc")["+"]
+        Div.Class("counter").Id("counter")[
+            Span.Class("value")["42"],
+            Button.Class("inc")["+"]
         ];
 
     private static void WarmUp(Func<Component> build)

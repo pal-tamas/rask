@@ -6,7 +6,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Components;
 
-public class FormTests
+public partial class FormTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>

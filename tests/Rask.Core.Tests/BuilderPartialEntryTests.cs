@@ -31,11 +31,11 @@ internal sealed partial class ChipHost
     internal static Type Probe() => typeof(Chip);
 }
 
-public class BuilderPartialEntryTests
+public partial class BuilderPartialEntryTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void A_user_component_is_an_entry_without_a_base_class() =>
-        Assert.Equal("<div><strong>new</strong></div>", ChipHost().ToHtml());
+        Assert.Equal("<div><strong>new</strong></div>", ChipHost.ToHtml());
 
     // The injected entry must not shadow the type: `Chip` still names a type in the same class.
     [Fact]

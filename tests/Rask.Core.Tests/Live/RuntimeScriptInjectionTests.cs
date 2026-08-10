@@ -4,22 +4,22 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Core.Tests.Live;
 
-public class RuntimeScriptInjectionTests
+public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
 {
     private const string ScriptHtml = "<script src=\"/rask/rask.js\"></script>";
 
     private static ServiceProvider WithProvider() =>
         new ServiceCollection()
-            .AddSingleton<IRaskRuntimeScript>(new StubRuntimeScriptProvider(Raw(ScriptHtml)))
+            .AddSingleton<IRaskRuntimeScript>(new StubRuntimeScriptProvider(Raw.Value(ScriptHtml)))
             .BuildServiceProvider();
 
     private static Component Shell(params Component[] bodyChildren) =>
-        [Doctype(), Html("en")[Head(), Body()[bodyChildren]]];
+        [Doctype, Html.Lang("en")[Head(), Body[bodyChildren]]];
 
     [Fact]
     public void Body_ProviderRegistered_InjectsScriptAsLastBodyChild()
     {
-        var view = new StubComponent(() => Shell(P()["hi"]));
+        var view = new StubComponent(() => Shell(P["hi"]));
 
         var html = view.RenderAsLiveRoot(WithProvider());
 
@@ -30,7 +30,7 @@ public class RuntimeScriptInjectionTests
     [Fact]
     public void Body_NoProvider_InjectsNothing()
     {
-        var view = new StubComponent(() => Shell(P()["hi"]));
+        var view = new StubComponent(() => Shell(P["hi"]));
 
         var html = view.RenderAsLiveRoot(RenderHarness.EmptyServices());
 
@@ -42,7 +42,7 @@ public class RuntimeScriptInjectionTests
     public void Body_LegacyRaskRuntimeScriptStillInTree_EmitsExactlyOneScript()
     {
         // RaskRuntimeScript() is a no-op; the framework injects one script at body close.
-        var view = new StubComponent(() => Shell(P()["hi"], RaskRuntimeScript()));
+        var view = new StubComponent(() => Shell(P["hi"], RaskRuntimeScript));
 
         var html = view.RenderAsLiveRoot(WithProvider());
 
@@ -55,7 +55,7 @@ public class RuntimeScriptInjectionTests
     public void NonLiveToHtml_DoesNotInject()
     {
         // Body().ToHtml() outside a live render must stay bare (no provider reachable anyway).
-        Assert.Equal("<body></body>", Body().ToHtml());
+        Assert.Equal("<body></body>", Body.ToHtml());
     }
 
     private sealed class StubRuntimeScriptProvider : IRaskRuntimeScript

@@ -1,6 +1,6 @@
 namespace Rask.Core.Tests.Components;
 
-public class HeadTests
+public partial class HeadTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() => Assert.Equal("<head></head>", Head().ToHtml());

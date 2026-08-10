@@ -309,6 +309,17 @@ internal sealed class SurfaceModel
             .OfType<IMethodSymbol>()
             .Any(m => m is { Parameters.Length: 1, IsStatic: true } && m.Parameters[0].Name == "Bind");
 
+    /// <summary>
+    ///     Whether the type declares a nested component — which makes it unable to become a markup host.
+    /// </summary>
+    /// <remarks>
+    ///     Consumer entries are injected into the host's own <c>partial</c>, one member per reachable
+    ///     component, named after the component. A component nested inside the would-be host is therefore
+    ///     both a type it declares and a member it is about to be given: CS0102, in generated source.
+    /// </remarks>
+    public bool DeclaresNestedComponent(INamedTypeSymbol type) =>
+        type.GetTypeMembers().Any(nested => DerivesFromComponent(nested) || DeclaresNestedComponent(nested));
+
     /// <summary>The enclosing type of a node, or null when it has none.</summary>
     public static INamedTypeSymbol? EnclosingType(SemanticModel model, SyntaxNode node)
     {

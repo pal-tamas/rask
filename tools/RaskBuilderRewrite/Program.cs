@@ -86,6 +86,11 @@ foreach (var projectPath in projects)
         foreach (var tree in project.UserTrees)
         {
             var host = converter.Convert(tree);
+            foreach (var name in host.Blocked)
+            {
+                report.Add($"blocked {name} — declares a nested component (CS0102 on the injected entry)");
+            }
+
             if (host.Rewritten is null)
             {
                 continue;

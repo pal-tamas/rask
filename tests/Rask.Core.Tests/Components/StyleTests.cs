@@ -1,9 +1,9 @@
 namespace Rask.Core.Tests.Components;
 
-public class StyleTests
+public partial class StyleTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() => Assert.Equal("<style></style>", Style().ToHtml());
+    public void Render_NullProps_ReturnsOpenAndCloseTags() => Assert.Equal("<style></style>", Style.ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
@@ -13,12 +13,19 @@ public class StyleTests
         // type/media/nonce, where it used to sit as a redeclared property.
         Assert.Equal(
             "<style id=\"i\" class=\"c\" style=\"s\" title=\"main\" data-k=\"v\" type=\"text/css\" media=\"all\" nonce=\"abc\"></style>",
-            Style("text/css", "all", "abc", "i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" },
-                    Title: "main")
+            Style
+                .Type("text/css")
+                .Media("all")
+                .Nonce("abc")
+                .Id("i")
+                .Class("c")
+                .Style("s")
+                .Data(new Dictionary<string, string?> { ["k"] = "v" })
+                .Title("main")
                 .ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<style>&lt;x&gt;</style>", Style()["<x>"].ToHtml());
+        Assert.Equal("<style>&lt;x&gt;</style>", Style["<x>"].ToHtml());
 }

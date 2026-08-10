@@ -5,13 +5,13 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Components;
 
-public class ValidationMessageTests
+public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void OutsideEditContext_RendersNothing()
     {
         var p = new Person();
-        var html = ValidationMessage(() => p.Name, msgs => Div(Class: "validation-message")[msgs[0]]).ToHtml();
+        var html = ValidationMessage(() => p.Name, msgs => Div.Class("validation-message")[msgs[0]]).ToHtml();
         Assert.Equal("", html);
     }
 
@@ -20,7 +20,7 @@ public class ValidationMessageTests
     {
         var p = new Person { Name = "Ada" };
         var view = new StubComponent(() => Form(p)[
-            ValidationMessage(() => p.Name, msgs => Div(Class: "validation-message")[msgs[0]])
+            ValidationMessage(() => p.Name, msgs => Div.Class("validation-message")[msgs[0]])
         ]);
         var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("validation-message", html);
@@ -34,7 +34,7 @@ public class ValidationMessageTests
         ctx.AddValidationMessage(new FieldIdentifier(p, nameof(Person.Name)), "Name is required");
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidationMessage(() => p.Name, msgs => Div(Class: "validation-message")[msgs[0]])
+            ValidationMessage(() => p.Name, msgs => Div.Class("validation-message")[msgs[0]])
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -56,7 +56,7 @@ public class ValidationMessageTests
         var field = new FieldIdentifier(p, nameof(Person.Name));
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidationMessage(() => p.Name, msgs => Div(Class: "validation-message")[msgs[0]])
+            ValidationMessage(() => p.Name, msgs => Div.Class("validation-message")[msgs[0]])
         ]);
 
         var first = view.RenderAsLiveRoot();
@@ -84,8 +84,8 @@ public class ValidationMessageTests
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
             ValidationSummary(entries =>
-                Ul(Class: "validation-summary")[
-                    entries.Select((e, i) => Li(Key: i)[e.Message])
+                Ul.Class("validation-summary")[
+                    entries.Select((e, i) => Li.Key(i)[e.Message])
                 ])
         ]);
 
@@ -109,8 +109,8 @@ public class ValidationMessageTests
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
             ValidationSummary(entries =>
-                Ul(Class: "validation-summary")[
-                    entries.Select((e, i) => Li(Key: i)[e.Message])
+                Ul.Class("validation-summary")[
+                    entries.Select((e, i) => Li.Key(i)[e.Message])
                 ])
         ]);
         var html = view.RenderAsLiveRoot();
@@ -130,7 +130,7 @@ public class ValidationMessageTests
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
             ValidatingIndicator(() => p.Name,
-                () => Div(Class: "validating-indicator")["Checking..."])
+                () => Div.Class("validating-indicator")["Checking..."])
         ]);
 
         // Kick off validation so PendingCount > 0.
@@ -160,7 +160,7 @@ public class ValidationMessageTests
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
             ValidatingIndicator(() => p.Name,
-                () => Div(Class: "validating-indicator")["Checking..."])
+                () => Div.Class("validating-indicator")["Checking..."])
         ]);
 
         var task = ctx.ValidateFieldAsync(fid);
@@ -192,7 +192,7 @@ public class ValidationMessageTests
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
             ValidatingIndicator(() => p.Name,
-                () => Div(Class: "validating-indicator")["Checking..."])
+                () => Div.Class("validating-indicator")["Checking..."])
         ]);
 
         var task = ctx.ValidateFieldAsync(fid);
@@ -219,7 +219,7 @@ public class ValidationMessageTests
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
             ValidatingIndicator(() => p.Name,
-                () => Div(Class: "validating-indicator")["Checking..."])
+                () => Div.Class("validating-indicator")["Checking..."])
         ]);
 
         var task = ctx.ValidateFieldAsync(fid);

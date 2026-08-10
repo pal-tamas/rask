@@ -14,7 +14,7 @@ namespace Rask.Core.Tests.Diagnostics;
 ///     Each case asserts the two things that were missing — enough context to find the offending thing,
 ///     and a concrete instruction — rather than the exact sentence, so rewording stays free.
 /// </remarks>
-public class ActionableExceptionMessageTests
+public partial class ActionableExceptionMessageTests : global::Rask.Core.RaskMarkup
 {
     // #611 calls this "the worst one", and it turned out to be unreachable: both callers of
     // ResolveContext already gate on `Model is not null || Context is not null`, which is exactly the
@@ -24,7 +24,7 @@ public class ActionableExceptionMessageTests
     [Fact]
     public void A_form_with_neither_a_model_nor_a_context_renders_as_a_plain_form()
     {
-        var view = new StubComponent(() => Form(Id: "plain")[Div()]);
+        var view = new StubComponent(() => Form(Id: "plain")[Div]);
 
         var html = view.RenderAsLiveRoot();
 
@@ -87,7 +87,7 @@ public class ActionableExceptionMessageTests
     [Fact]
     public void DragDrop_without_a_body_shows_the_delegate_shape()
     {
-        var view = new StubComponent(() => DragDrop());
+        var view = new StubComponent(() => DragDrop);
 
         var ex = Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
 

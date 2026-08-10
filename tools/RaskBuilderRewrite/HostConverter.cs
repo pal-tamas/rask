@@ -47,19 +47,23 @@ internal sealed class HostConverter
         _surface = surface;
     }
 
-    public sealed record HostResult(SyntaxTree? Rewritten, IReadOnlyList<string> Hosts);
+    public sealed record HostResult(
+        SyntaxTree? Rewritten,
+        IReadOnlyList<string> Hosts,
+        IReadOnlyList<string> Blocked);
 
     public HostResult Convert(SyntaxTree tree)
     {
         if (tree.GetText().ToString().Contains(FileRewriter.OptOutMarker, StringComparison.Ordinal))
         {
-            return new HostResult(null, Array.Empty<string>());
+            return new HostResult(null, Array.Empty<string>(), Array.Empty<string>());
         }
 
         var model = _compilation.GetSemanticModel(tree);
 
         // Every outermost type in this file that holds a factory call site and is not already a host.
         var candidates = new Dictionary<TypeDeclarationSyntax, INamedTypeSymbol>();
+        var blocked = new List<string>();
         foreach (var node in tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>())
         {
             if (model.GetSymbolInfo(node).Symbol is not IMethodSymbol method || !_surface.IsFactory(method))
@@ -73,15 +77,30 @@ internal sealed class HostConverter
                 continue;
             }
 
-            if (model.GetDeclaredSymbol(outermost) is { } symbol && !_surface.IsInMarkupHost(symbol))
+            if (model.GetDeclaredSymbol(outermost) is not { } symbol || _surface.IsInMarkupHost(symbol))
             {
-                candidates[outermost] = symbol;
+                continue;
             }
+
+            // A type that declares a nested COMPONENT cannot become a host: the generator injects one
+            // entry per reachable component into the host's own partial, named after the component — and
+            // `DependencyInjectionTests.GreetingComponent` the entry collides with
+            // `DependencyInjectionTests.GreetingComponent` the nested class. CS0102, in generated source,
+            // out of a one-line opt-in. That is the generator's to fix (it should skip a name the host
+            // already declares, the way injection already skips a name the host already reaches); until
+            // it does, these types stay off the surface and are counted.
+            if (_surface.DeclaresNestedComponent(symbol))
+            {
+                blocked.Add(symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                continue;
+            }
+
+            candidates[outermost] = symbol;
         }
 
         if (candidates.Count == 0)
         {
-            return new HostResult(null, Array.Empty<string>());
+            return new HostResult(null, Array.Empty<string>(), blocked);
         }
 
         var applied = new List<string>();
@@ -109,7 +128,7 @@ internal sealed class HostConverter
                 return canDeriveFrom ? Derive(Partial(current)) : Attribute(Partial(current));
             });
 
-        return new HostResult(tree.WithRootAndOptions(root, tree.Options), applied);
+        return new HostResult(tree.WithRootAndOptions(root, tree.Options), applied, blocked);
     }
 
     private static TypeDeclarationSyntax Partial(TypeDeclarationSyntax declaration) =>

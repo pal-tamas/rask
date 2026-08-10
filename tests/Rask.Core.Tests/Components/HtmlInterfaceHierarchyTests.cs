@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Components;
 // that mirrors their DOM interface (HTMLMediaElement, HTMLTableCellElement, …), and every base must
 // remain an Element. If a tag is accidentally reparented back onto Element, the shared attributes
 // would silently duplicate again — these assertions catch that.
-public class HtmlInterfaceHierarchyTests
+public partial class HtmlInterfaceHierarchyTests : global::Rask.Core.RaskMarkup
 {
     [Theory]
     [InlineData(typeof(Audio), typeof(HtmlMediaElement))]
@@ -40,5 +40,5 @@ public class HtmlInterfaceHierarchyTests
     [Fact]
     public void Audio_IsMediaElement_WithNoBodyOfItsOwn() =>
         // Audio carries no attributes of its own — they live entirely on the shared base.
-        Assert.IsAssignableFrom<HtmlMediaElement>(Audio());
+        Assert.IsAssignableFrom<HtmlMediaElement>(Audio);
 }

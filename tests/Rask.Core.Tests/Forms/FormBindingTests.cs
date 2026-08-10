@@ -6,7 +6,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Forms;
 
-public class FormBindingTests
+public partial class FormBindingTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void BoundInput_RendersValueFromGetter_AndAutoNamesField()

@@ -18,7 +18,7 @@ namespace Rask.Core.Tests.Forms;
 //   4b. Empty input on a non-nullable value type sets default(T) so a cleared number/date
 //       input doesn't snap back to its prior value on the next render.
 //   5. Invalid input (non-empty, unparseable) leaves the prior value alone.
-public class PrimitiveBindingTests
+public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
 {
     [Theory]
     // Integer family — every signed/unsigned width plus native int.
