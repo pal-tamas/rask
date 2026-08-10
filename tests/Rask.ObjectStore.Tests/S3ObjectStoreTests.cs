@@ -213,6 +213,34 @@ public class S3ObjectStoreTests
         Assert.Contains("prefix=clients%2Fa%2Fops%2F", handler.Last.Uri.Query);
     }
 
+    // A client that remembers the last key it read resumes from there instead of re-reading the whole log.
+    // S3 does this server-side, so the objects never leave the bucket.
+    [Fact]
+    public async Task List_ResumesFromStartAfter_ServerSide()
+    {
+        var (store, handler) = Create();
+        handler.Respond(HttpStatusCode.OK, ListXml(false, ("ops/9", 1)));
+
+        await store.ListAsync("ops/", startAfter: "ops/5");
+
+        Assert.Contains("start-after=ops%2F5", handler.Last.Uri.Query);
+    }
+
+    // Sending both would be contradictory: a continuation token already resumes where the service stopped.
+    [Fact]
+    public async Task List_DropsStartAfter_OnceContinuing()
+    {
+        var (store, handler) = Create();
+        handler
+            .Respond(HttpStatusCode.OK, ListXml(true, ("ops/6", 1)))
+            .Respond(HttpStatusCode.OK, ListXml(false, ("ops/7", 1)));
+
+        await store.ListAsync("ops/", startAfter: "ops/5");
+
+        Assert.Contains("continuation-token=next-page", handler.Last.Uri.Query);
+        Assert.DoesNotContain("start-after", handler.Last.Uri.Query);
+    }
+
     [Fact]
     public async Task EveryRequest_IsSigned()
     {

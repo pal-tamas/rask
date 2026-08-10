@@ -118,7 +118,7 @@ public sealed class AzureBlobObjectStore : IObjectStore
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ObjectEntry>> ListAsync(
-        string prefix, CancellationToken cancellationToken = default)
+        string prefix, string? startAfter = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(prefix);
 
@@ -138,9 +138,18 @@ public sealed class AzureBlobObjectStore : IObjectStore
             // Azure's blob list is in no namespace, unlike S3's.
             foreach (var blob in root.Element("Blobs")?.Elements("Blob") ?? [])
             {
+                var name = blob.Element("Name")!.Value;
+
+                // Azure has no start-after, so the skip happens here. The listing still costs the same —
+                // only the caller is spared re-reading objects it already has.
+                if (startAfter is { Length: > 0 } && string.CompareOrdinal(name, startAfter) <= 0)
+                {
+                    continue;
+                }
+
                 var properties = blob.Element("Properties");
                 entries.Add(new ObjectEntry(
-                    blob.Element("Name")!.Value,
+                    name,
                     long.Parse(properties?.Element("Content-Length")?.Value ?? "0", CultureInfo.InvariantCulture),
                     DateTimeOffset.Parse(
                         properties?.Element("Last-Modified")?.Value ?? "1970-01-01T00:00:00Z",
@@ -154,6 +163,42 @@ public sealed class AzureBlobObjectStore : IObjectStore
         while (marker is { Length: > 0 });
 
         return entries;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> ListPrefixesAsync(
+        string prefix, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(prefix);
+
+        var prefixes = new List<string>();
+        string? marker = null;
+
+        do
+        {
+            using var response = await _http
+                .GetAsync(
+                    await ListUriAsync(prefix, marker, cancellationToken, delimiter: true).ConfigureAwait(false),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            response.EnsureSuccessStatusCode();
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var root = XDocument.Parse(body).Root!;
+
+            foreach (var blobPrefix in root.Element("Blobs")?.Elements("BlobPrefix") ?? [])
+            {
+                if (blobPrefix.Element("Name")?.Value is { Length: > 0 } value)
+                {
+                    prefixes.Add(value);
+                }
+            }
+
+            marker = root.Element("NextMarker")?.Value;
+        }
+        while (marker is { Length: > 0 });
+
+        return prefixes;
     }
 
     /// <inheritdoc />
@@ -208,10 +253,16 @@ public sealed class AzureBlobObjectStore : IObjectStore
         return new Uri($"{ContainerBase()}/{path}?{sas}");
     }
 
-    private async Task<Uri> ListUriAsync(string prefix, string? marker, CancellationToken cancellationToken)
+    private async Task<Uri> ListUriAsync(
+        string prefix, string? marker, CancellationToken cancellationToken, bool delimiter = false)
     {
         var sas = await RequireSasAsync(cancellationToken).ConfigureAwait(false);
         var query = $"restype=container&comp=list&prefix={Uri.EscapeDataString(prefix)}";
+        if (delimiter)
+        {
+            query += "&delimiter=%2F";
+        }
+
         if (marker is { Length: > 0 })
         {
             query += $"&marker={Uri.EscapeDataString(marker)}";

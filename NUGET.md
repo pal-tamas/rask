@@ -67,6 +67,7 @@ dotnet add package Rask.Dashboard         # the /_ops operator dashboard over ev
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
 dotnet add package Rask.ObjectStore       # S3 / Azure Blob client, server-side or straight from the browser
 dotnet add package Rask.Sync              # offline-first merge engine (HLC + op log, no I/O)
+dotnet add package Rask.Sync.Client       # sync it between devices through a bucket, with no server
 ```
 
 **Database** — SQLite is the production default; Postgres and SQL Server are drop-in alternatives:

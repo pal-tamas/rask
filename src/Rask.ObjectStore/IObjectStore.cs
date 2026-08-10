@@ -81,7 +81,28 @@ public interface IObjectStore
     ///     Every object whose key starts with <paramref name="prefix" />, oldest key first. Pagination is
     ///     followed internally, so the result is complete.
     /// </summary>
-    Task<IReadOnlyList<ObjectEntry>> ListAsync(string prefix, CancellationToken cancellationToken = default);
+    /// <param name="prefix">Only keys starting with this are returned.</param>
+    /// <param name="startAfter">
+    ///     When given, only keys ordering strictly after it are returned — so a caller that remembers the
+    ///     last key it read can resume rather than re-reading everything. S3 does this server-side
+    ///     (<c>start-after</c>); <b>Azure Blob has no equivalent</b>, so there it is applied to the results
+    ///     and the listing itself still costs the same. The behaviour is identical either way, only the
+    ///     price differs.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the listing.</param>
+    Task<IReadOnlyList<ObjectEntry>> ListAsync(
+        string prefix, string? startAfter = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///     The immediate "folders" under <paramref name="prefix" /> — the distinct next path segments,
+    ///     each returned with its trailing <c>/</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A grouped listing (S3's and Azure's <c>delimiter</c>), so discovering how many participants
+    ///     exist costs one response listing <em>them</em> rather than one listing every object they have
+    ///     ever written. Without it, finding peers means reading the whole bucket.
+    /// </remarks>
+    Task<IReadOnlyList<string>> ListPrefixesAsync(string prefix, CancellationToken cancellationToken = default);
 
     /// <summary>Removes <paramref name="key" />. Deleting an object that isn't there is not an error.</summary>
     Task DeleteAsync(string key, CancellationToken cancellationToken = default);
