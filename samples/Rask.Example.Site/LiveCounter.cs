@@ -10,18 +10,18 @@ public sealed partial class LiveCounter : Component
     private int _count;
 
     protected override Component? Render() =>
-        Div(Class: "card live")[
-            Div(Class: "card-bar")[
-                Span(Class: "traf", Style: "background:var(--accent)"),
-                Span(Class: "fn")["running · /counter"]
+        Div.Class("card live")[
+            Div.Class("card-bar")[
+                Span.Class("traf").Style("background:var(--accent)"),
+                Span.Class("fn")["running · /counter"]
             ],
-            Div(Class: "live-body")[
-                H3()["Current count"],
-                Div(Class: "count")[_count],
-                Button(Class: "count-btn", Type: "button", OnClick: () => _count++)["Click me"]
+            Div.Class("live-body")[
+                H3["Current count"],
+                Div.Class("count")[_count],
+                Button.Class("count-btn").Type("button").OnClick(() => _count++)["Click me"]
             ],
-            Div(Class: "live-note")[
-                "Each click ships a ", B()["~41-byte diff"], " — not a re-render of the page."
+            Div.Class("live-note")[
+                "Each click ships a ", B["~41-byte diff"], " — not a re-render of the page."
             ]
         ];
 }
