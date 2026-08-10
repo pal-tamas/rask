@@ -34,7 +34,7 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask043 = new(
         "RASK043",
         "Component factory is not imported here",
-        "'{0}' names the component TYPE here, not a call, so this does not compile (CS0119). '{0}' is only a builder entry inside a component or a 'RaskMarkup' host — entries are inherited members — and '{1}' is neither. Derive '{1}' from 'Rask.Core.RaskMarkup' to reach the entry, or add 'using static {2};' to reach the factory.",
+        "'{0}' names the component TYPE here, not a call, so this does not compile (CS0119). '{0}' is only a builder entry inside a component or a markup host — entries are members of the enclosing type — and '{1}' is neither. Derive '{1}' from 'Rask.Core.RaskMarkup', or mark it '[Rask.Core.RaskMarkup]' when its base is already taken or it is a 'static class', to reach the entry; or add 'using static {2};' to reach the factory.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
@@ -43,7 +43,9 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
                      + "scope (CS0119) while a member of the enclosing type wins. A component is one such type; "
                      + "so is anything deriving from 'Rask.Core.RaskMarkup', which is Component's own base and "
                      + "carries the framework entries and nothing else — that is the answer for a test class, a "
-                     + "fixture or a factory of demo components. Code that is neither reaches components through "
+                     + "fixture or a factory of demo components. A type that cannot spend its base slot — one whose "
+                     + "base belongs to someone else, or a 'static class' — says the same thing with the "
+                     + "'[RaskMarkup]' attribute instead. Code that is neither reaches components through "
                      + "the generated factory instead. A factory is a METHOD, so C#'s invocable-member rule lets "
                      + "it share its component's name; that is why it works in these positions where an entry "
                      + "cannot. Without the import, the name binds to the type and the compiler reports CS0119, "

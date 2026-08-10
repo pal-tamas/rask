@@ -557,6 +557,111 @@ public class BuilderEntryEmissionTests
         Assert.Contains(run.WithId("RASK036"), d => d.GetMessage().Contains("CardTests", StringComparison.Ordinal));
     }
 
+    // [RaskMarkup] on a type whose base slot is still free costs nothing extra: the generated partial
+    // writes `: RaskMarkup` for it, so the framework tags arrive by the same inheritance the base-class
+    // form uses, and the attribute is only a way of saying it without spending the slot YOURSELF. What
+    // must NOT happen is the expensive delivery — forwarding to a name you already inherit is CS0108.
+    [Fact]
+    public void An_attributed_host_with_a_free_base_slot_is_given_the_base_rather_than_the_entries()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public partial class Card : Component { }
+                                                  [RaskMarkup]
+                                                  public partial class CardTests { }
+                                                  """).Source(Entries);
+
+        Assert.Contains("partial class CardTests : global::Rask.Core.RaskMarkup", entries,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("global::RaskEntriesRask_Core.", entries, StringComparison.Ordinal);
+        Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
+    }
+
+    // The shape the attribute exists for: the base slot belongs to someone else, so no amount of
+    // generated source can make this type inherit anything. The framework tags are injected as members
+    // instead, forwarding to the `RaskEntriesRaskCore` class Rask.Core publishes for exactly this.
+    [Fact]
+    public void An_attributed_host_whose_base_is_taken_receives_the_framework_entries_as_members()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public abstract class TestBed { }
+                                                  public partial class Card : Component { }
+                                                  [RaskMarkup]
+                                                  public partial class CardTests : TestBed { }
+                                                  """).Source(Entries);
+
+        Assert.Contains("partial class CardTests\n", entries.Replace("\r\n", "\n", StringComparison.Ordinal),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "private static global::Rask.Core.Components.Div Div => global::RaskEntriesRask_Core.Div;", entries,
+            StringComparison.Ordinal);
+        // The consumer's own components come the usual way, alongside them.
+        Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
+    }
+
+    // A `static class` can derive from nothing at all, which is why DemoRegistry had to stop being one.
+    // With the attribute it does not: the generated partial repeats the `static` modifier and carries
+    // the same injected surface.
+    [Fact]
+    public void An_attributed_static_class_is_a_host_and_stays_static()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public partial class Card : Component { }
+                                                  [RaskMarkup]
+                                                  public static partial class Demos { }
+                                                  """).Source(Entries);
+
+        Assert.Contains("static partial class Demos", entries, StringComparison.Ordinal);
+        Assert.DoesNotContain("static partial class Demos : ", entries, StringComparison.Ordinal);
+        Assert.Contains(
+            "private static global::Rask.Core.Components.Div Div => global::RaskEntriesRask_Core.Div;", entries,
+            StringComparison.Ordinal);
+    }
+
+    // The contagion rule, restated for the attribute. It holds by construction rather than by policy:
+    // GetAttributes() reports what was written on THIS declaration, so a subclass of an attributed host
+    // is never one — no 'partial' is demanded of it, and no RASK036 lands in a file that names no markup.
+    [Fact]
+    public void A_subclass_of_an_attributed_host_is_not_itself_a_host()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public abstract class TestBed { }
+                                              public partial class Card : Component { }
+                                              [RaskMarkup]
+                                              public partial class TestBase : TestBed { }
+                                              public class ConcreteTests : TestBase { }
+                                              """);
+
+        Assert.Empty(run.WithId("RASK036"));
+        Assert.DoesNotContain("partial class ConcreteTests", run.Source(Entries), StringComparison.Ordinal);
+    }
+
+    // Same rule again, and a harder consequence: an attributed host with no partial loses the framework
+    // tags too, because the generated partial is where its base would have come from. RASK036 has to say
+    // so rather than repeating the sentence written for a component.
+    [Fact]
+    public void A_non_partial_attributed_host_is_told_it_loses_the_framework_tags_as_well()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Card : Component { }
+                                              [RaskMarkup]
+                                              public class CardTests { }
+                                              """);
+
+        var message = Assert.Single(run.WithId("RASK036")).GetMessage();
+        Assert.Contains("CardTests", message, StringComparison.Ordinal);
+        Assert.Contains("framework tags", message, StringComparison.Ordinal);
+    }
+
     private static int Count(string haystack, string needle)
     {
         var count = 0;

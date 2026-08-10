@@ -17,6 +17,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 {
     private const string ComponentFullName = "Rask.Core.Component";
     private const string RaskMarkupFullName = "Rask.Core.RaskMarkup";
+    private const string RaskMarkupAttributeFullName = "Rask.Core.RaskMarkupAttribute";
     private const string ElementFullName = "Rask.Core.Element";
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
@@ -60,17 +61,19 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask036 = new(
         "RASK036",
         "A builder-entry host must be partial",
-        "'{0}' is not declared 'partial', so the builder entries for this project's and its referenced libraries' components cannot be injected into it; writing one of their names unqualified inside it will not compile. Add the 'partial' modifier.",
+        "'{0}' is not declared 'partial', so {1} cannot be injected into it; writing one of their names unqualified inside it will not compile. Add the 'partial' modifier.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         description: "A generator cannot add members to a type in a referenced assembly, so the entry for each "
                      + "component that is not Rask.Core's is injected into every type that might name one — every "
-                     + "component of yours, and every 'RaskMarkup' host (a test class, a fixture, a factory of demo "
-                     + "components). That needs somewhere to inject it, and only a 'partial' class has one. "
-                     + "Rask.Core's own entries are unaffected: those are inherited from 'RaskMarkup' and need "
-                     + "nothing injected. Without 'partial' the type still compiles and every factory still works; "
-                     + "what is lost is naming a non-framework component unqualified inside it.",
+                     + "component of yours, and every markup host (a test class, a fixture, a factory of demo "
+                     + "components, marked by deriving from 'RaskMarkup' or by the '[RaskMarkup]' attribute). That "
+                     + "needs somewhere to inject it, and only a 'partial' class has one. For a host that DERIVES "
+                     + "from 'RaskMarkup', Rask.Core's own entries are unaffected — those are inherited and need "
+                     + "nothing injected — so all that is lost is naming a non-framework component unqualified. An "
+                     + "'[RaskMarkup]' host has no such fallback: the generated partial is where its base or its "
+                     + "framework entries would have come from, so without 'partial' it gets no surface at all.",
         helpLinkUri: DiagnosticHelp.Link("RASK036"));
 
     private static readonly DiagnosticDescriptor Rask040 = new(
@@ -137,12 +140,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         //  * an ABSTRACT component. Nothing can construct it, so it gets no factory and no entry, but it
         //    is still a component, and an abstract base that composes other components (BsBlock,
         //    BsFormControl<T>, PollingPanel) could otherwise name no entry at all.
-        //  * a MARKUP host: a type deriving from Rask.Core.RaskMarkup that is not a Component. This is
-        //    how the surface reaches code that is not inside a component — a test class, a fixture, a
-        //    factory of demo components — which is a quarter of every call site in this repo.
+        //  * a MARKUP host: a type deriving from Rask.Core.RaskMarkup, or carrying [RaskMarkup], that is
+        //    not a Component. This is how the surface reaches code that is not inside a component — a
+        //    test class, a fixture, a factory of demo components — which is a quarter of every call site
+        //    in this repo. The attribute is the form for a type that cannot spend its base slot.
         var extraHosts = context.SyntaxProvider
             .CreateSyntaxProvider(
-                static (node, _) => node is ClassDeclarationSyntax { BaseList.Types.Count: > 0 },
+                static (node, _) => node is ClassDeclarationSyntax c
+                                    && (c.BaseList is { Types.Count: > 0 } || c.AttributeLists.Count > 0),
                 static (ctx, _) => GetExtraHost(ctx))
             .Where(static h => h is not null)
             .Select(static (h, _) => h!.Value)
@@ -203,8 +208,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // Each assembly publishes its own entries as a public `RaskEntries{Assembly}` class, which is what
         // this finds. CompilationProvider yields a fresh Compilation per keystroke, so the result is
         // wrapped in an EquatableArray and the emission only re-runs when the entry SET changes.
-        var externalEntries = context.CompilationProvider.Select(
-            static (c, _) => new EquatableArray<EntryRef>(ScanExternalEntries(c)));
+        var externalEntries = context.CompilationProvider.Select(static (c, _) => ScanExternalEntries(c));
 
         context.RegisterSourceOutput(
             grouped.Combine(builderEnabled).Combine(componentHost).Combine(externalEntries)
@@ -1149,6 +1153,25 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("public abstract partial class RaskMarkup");
         sb.AppendLine("{");
 
+        // …and the same entries a second time, as the public `RaskEntriesRaskCore` class every other
+        // assembly's own components already publish. Inheritance is how a host normally reaches the
+        // framework tags, and it is the cheap way — but a `[RaskMarkup]` host whose base slot is taken
+        // (or that is `static`) cannot inherit anything, so its entries have to be injected as members,
+        // and a member has to forward to something nameable from another assembly. `protected` is not
+        // that; this is. Written from the SAME EntryCandidates list, in the same loop, so the two cannot
+        // disagree about which components have an entry or about what it resets.
+        var shared = new StringBuilder();
+        shared.AppendLine("// <auto-generated />");
+        shared.AppendLine("#nullable enable");
+        shared.AppendLine();
+        shared.AppendLine("/// <summary>");
+        shared.AppendLine("///     Rask.Core's builder entries, one per framework component, in the form a");
+        shared.AppendLine("///     REFERENCING assembly can name. Almost every host reaches these by inheriting");
+        shared.AppendLine("///     'Rask.Core.RaskMarkup' instead; this is for the hosts that cannot inherit.");
+        shared.AppendLine("/// </summary>");
+        shared.Append("public static class ").AppendLine(EntryHostName(host.AssemblyName));
+        shared.AppendLine("{");
+
         foreach (var c in EntryCandidates(spc, candidates, taken))
         {
             // A property may not be generic, so a generic component's entry has to be a static METHOD —
@@ -1158,6 +1181,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             if (c.TypeParameters.Length != 0)
             {
                 EmitBoundEntry(sb, c, taken, c.IsPublic ? "protected" : "private protected", indent: "    ",
+                    host.AssemblyName, runtimePrefix: runtime);
+                EmitBoundEntry(shared, c, taken, c.IsPublic ? "public" : "internal", indent: "    ",
                     host.AssemblyName, runtimePrefix: runtime);
                 continue;
             }
@@ -1170,10 +1195,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, host.AssemblyName);
             sb.AppendLine(");");
+
+            shared.Append(c.IsPublic ? "    public static " : "    internal static ")
+                .Append(c.FullyQualifiedName).Append(' ')
+                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime).Append(EntryMethod(c))
+                .Append(c.FullyQualifiedName).Append(">(");
+            EmitResetArguments(shared, c, host.AssemblyName);
+            shared.AppendLine(");");
         }
 
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+
+        shared.AppendLine("}");
+        spc.AddSource("RaskBuilderEntryHost.g.cs", SourceText.From(shared.ToString(), Encoding.UTF8));
     }
 
     // Which components get a builder entry, and the single place that decides it. Both emissions
@@ -1581,7 +1616,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         ImmutableArray<Candidate> candidates,
         bool enabled,
         ComponentHost host,
-        EquatableArray<EntryRef> external,
+        ExternalEntrySet external,
         ImmutableArray<EntryHostDecl> extraHosts)
     {
         // A test project is the shape that needs the second half of this condition: it may declare no
@@ -1596,8 +1631,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         EmitEntryHost(spc, entries, host);
 
         var refs = OwnEntryRefs(entries, "global::" + EntryHostName(host.AssemblyName));
-        refs.AddRange(UsableExternalEntries(spc, external, refs, host));
-        if (refs.Count == 0)
+        refs.AddRange(UsableExternalEntries(spc, external.Libraries, refs, host));
+
+        var hosts = EntryHostDecls(candidates, extraHosts);
+        // The framework tags, for the one host shape that cannot inherit them. Read off Rask.Core's own
+        // `RaskEntriesRaskCore` rather than re-derived, exactly as a referenced library's are — and only
+        // materialised when some host actually needs them, because for everyone else this list is not
+        // merely unnecessary but wrong (forwarding to a name you inherit is CS0108).
+        var frameworkRefs = hosts.Any(static h => h.Delivery == Delivery.Injected)
+            ? FrameworkEntriesFor(external.Framework, refs)
+            : new List<EntryRef>();
+        if (refs.Count == 0 && frameworkRefs.Count == 0
+                            && !hosts.Any(static h => h.Delivery == Delivery.Base))
         {
             return;
         }
@@ -1606,7 +1651,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("// <auto-generated />");
         sb.AppendLine("#nullable enable");
 
-        foreach (var host2 in EntryHostDecls(candidates, extraHosts))
+        foreach (var host2 in hosts)
         {
             if (host2.IsNested)
             {
@@ -1616,7 +1661,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             if (!host2.IsPartial)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask036, MakeDeclLocation(host2), host2.TypeName));
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    Rask036, MakeDeclLocation(host2), host2.TypeName, Rask036Loses(host2.Delivery)));
                 continue;
             }
 
@@ -1630,8 +1676,26 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 sb.AppendLine("{");
             }
 
-            sb.Append("partial class ").Append(host2.TypeName).AppendLine(host2.TypeParameters);
+            // A partial declaration may name the base class as long as only one of them does — so an
+            // attributed type with a free base slot gets `: RaskMarkup` written here and inherits the
+            // framework entries, which is the cheap delivery. The author never had to choose.
+            sb.Append(host2.IsStatic ? "static partial class " : "partial class ")
+                .Append(host2.TypeName).Append(host2.TypeParameters)
+                .AppendLine(host2.Delivery == Delivery.Base ? " : global::Rask.Core.RaskMarkup" : string.Empty);
             sb.AppendLine("{");
+            if (host2.Delivery == Delivery.Injected)
+            {
+                foreach (var e in frameworkRefs)
+                {
+                    if (string.Equals(e.Name, host2.TypeName, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    EmitEntryForwarder(sb, e, host2.TypeParameters);
+                }
+            }
+
             foreach (var e in refs)
             {
                 // A member may not share its enclosing type's name (CS0542) — and a component never
@@ -1652,6 +1716,38 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         spc.AddSource("RaskBuilderConsumerEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    // What a non-partial host loses, which is not the same for every host: an inheriting one still has
+    // the framework tags and loses only the injected half, while an attributed one that cannot inherit
+    // loses the entire surface — including the base the generated partial would have given it.
+    private static string Rask036Loses(Delivery delivery) =>
+        delivery == Delivery.Inherited
+            ? "the builder entries for this project's and its referenced libraries' components"
+            : "the builder surface — the framework tags as well as this project's and its referenced "
+              + "libraries' components";
+
+    // Rask.Core's entries, minus every name this compilation already spends on one of its own or a
+    // referenced library's component. A framework tag and a local component cannot both be the member
+    // named `Card` (CS0102), and the local one is the name the author wrote.
+    private static List<EntryRef> FrameworkEntriesFor(EquatableArray<EntryRef> framework, List<EntryRef> refs)
+    {
+        var taken = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var e in refs)
+        {
+            taken.Add(e.Name);
+        }
+
+        var result = new List<EntryRef>();
+        foreach (var e in framework)
+        {
+            if (!taken.Contains(e.Name))
+            {
+                result.Add(e);
+            }
+        }
+
+        return result;
     }
 
     // The one canonical entry per component in this assembly, public so a REFERENCING assembly's
@@ -1902,31 +1998,30 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // `using static` emission can surface a satellite factory family, which is exactly the mechanism the
     // builder surface exists to remove. It says nothing about which types in that namespace are
     // entry-eligible, and a library that never declared it (Rask.Bootstrap) would stay invisible.
-    private static ImmutableArray<EntryRef> ScanExternalEntries(Compilation compilation)
+    // Rask.Core's own entries come back in a SEPARATE list, because almost nothing wants them: a
+    // component, and any host that derives from RaskMarkup, already has them by inheritance, and
+    // forwarding to them as well would hide the inherited member (CS0108). Only a `[RaskMarkup]` host
+    // that cannot inherit — its base slot spent, or it is `static` — needs them injected.
+    private static ExternalEntrySet ScanExternalEntries(Compilation compilation)
     {
         var component = compilation.GetTypeByMetadataName(ComponentFullName);
         if (component is null)
         {
-            return ImmutableArray<EntryRef>.Empty;
+            return default;
         }
 
-        // Rask.Core's own components are entries ON Component, inherited by every component in every
-        // assembly. Forwarding to them as well would hide the inherited member (CS0108).
         var declaring = component.ContainingAssembly;
-        var result = new List<EntryRef>();
+        var libraries = new List<EntryRef>();
+        var framework = new List<EntryRef>();
         foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
         {
-            if (SymbolEqualityComparer.Default.Equals(assembly, declaring))
-            {
-                continue;
-            }
-
             var hostType = assembly.GetTypeByMetadataName(EntryHostName(SanitizeIdentifier(assembly.Name)));
             if (hostType is null || hostType.DeclaredAccessibility != Accessibility.Public)
             {
                 continue;
             }
 
+            var into = SymbolEqualityComparer.Default.Equals(assembly, declaring) ? framework : libraries;
             var hostFqn = hostType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             foreach (var member in hostType.GetMembers())
             {
@@ -1938,22 +2033,32 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 switch (member)
                 {
                     case IPropertySymbol { IsIndexer: false } p:
-                        result.Add(new EntryRef(hostFqn, p.Name, p.Type.ToDisplayString(FullyQualifiedNullable),
+                        into.Add(new EntryRef(hostFqn, p.Name, p.Type.ToDisplayString(FullyQualifiedNullable),
                             string.Empty, string.Empty, string.Empty, string.Empty));
                         break;
                     case IMethodSymbol { MethodKind: MethodKind.Ordinary } m:
-                        result.Add(ExternalMethodEntry(hostFqn, m));
+                        into.Add(ExternalMethodEntry(hostFqn, m));
                         break;
                 }
             }
         }
 
-        if (result.Count == 0)
+        return new ExternalEntrySet(SortedEntries(libraries), SortedEntries(framework));
+    }
+
+    // What a referenced assembly publishes, split by whether this compilation's hosts already inherit it.
+    private readonly record struct ExternalEntrySet(
+        EquatableArray<EntryRef> Libraries,
+        EquatableArray<EntryRef> Framework);
+
+    private static EquatableArray<EntryRef> SortedEntries(List<EntryRef> entries)
+    {
+        if (entries.Count == 0)
         {
-            return ImmutableArray<EntryRef>.Empty;
+            return default;
         }
 
-        result.Sort(static (a, b) =>
+        entries.Sort(static (a, b) =>
         {
             var byName = string.CompareOrdinal(a.Name, b.Name);
             if (byName != 0)
@@ -1964,7 +2069,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             var byHost = string.CompareOrdinal(a.HostFqn, b.HostFqn);
             return byHost != 0 ? byHost : string.CompareOrdinal(a.Parameters, b.Parameters);
         });
-        return result.ToImmutableArray();
+        return new EquatableArray<EntryRef>(entries.ToImmutableArray());
     }
 
     private static EntryRef ExternalMethodEntry(string hostFqn, IMethodSymbol m)
@@ -2082,7 +2187,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     //  * an abstract component — a concrete one is already a candidate and gets its host decl from there;
     //  * anything deriving from RaskMarkup that is not a Component, abstract or not. That is the opt-in
     //    for code outside a component: a test class writes `: RaskMarkup` and the framework entries come
-    //    by inheritance, while its own assembly's and its referenced libraries' come from here.
+    //    by inheritance, while its own assembly's and its referenced libraries' come from here;
+    //  * anything carrying [RaskMarkup]. Same host, opted in by an attribute instead of a base — for the
+    //    two shapes that cannot spend a base slot at all: one whose base belongs to someone else, and a
+    //    `static class`. See MarkupDelivery for how the attribute picks between inheriting and injecting.
     private static EntryHostDecl? GetExtraHost(GeneratorSyntaxContext ctx)
     {
         if (ctx.Node is not ClassDeclarationSyntax classDecl)
@@ -2113,8 +2221,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         // A concrete component is a candidate; only its abstract bases need collecting here. A markup
         // host is never a component, so `abstract` says nothing about it either way.
-        var isMarkupHost = !InheritsFromComponent(symbol) && DeclaresRaskMarkup(symbol);
-        if (!isMarkupHost && !(symbol.IsAbstract && InheritsFromComponent(symbol)))
+        var isComponent = InheritsFromComponent(symbol);
+        var isMarkupHost = !isComponent && (DeclaresRaskMarkup(symbol) || HasRaskMarkupAttribute(symbol));
+        if (!isMarkupHost && !(symbol.IsAbstract && isComponent))
         {
             return null;
         }
@@ -2131,7 +2240,54 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             symbol.ContainingType is not null,
             classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
             classDecl.Identifier.Span.Start,
-            classDecl.Identifier.Span.Length);
+            classDecl.Identifier.Span.Length,
+            symbol.IsStatic,
+            MarkupDelivery(symbol, isComponent));
+    }
+
+    /// <summary>
+    ///     How a host gets the <i>framework</i> entries — the 166 tags Rask.Core emits onto
+    ///     <c>RaskMarkup</c>. Three answers, and the point of the attribute is that it picks the cheapest
+    ///     one the type can actually use rather than making the author pick.
+    /// </summary>
+    private enum Delivery
+    {
+        /// <summary>
+        ///     Already inherited: a component, an abstract component base, or a type that wrote
+        ///     <c>: RaskMarkup</c> itself. Nothing to emit, and emitting anything would hide the
+        ///     inherited member (CS0108).
+        /// </summary>
+        Inherited,
+
+        /// <summary>
+        ///     <c>[RaskMarkup]</c> on a type whose base slot is still free: the generated <c>partial</c>
+        ///     writes <c>: RaskMarkup</c> for it. Identical to having typed it — a partial declaration may
+        ///     name the base class as long as only one does — so the cost is the same ~77 forwarders any
+        ///     other host pays, and the attribute is never the expensive choice when it does not have to be.
+        /// </summary>
+        Base,
+
+        /// <summary>
+        ///     <c>[RaskMarkup]</c> on a type that cannot inherit: the base slot is spent on someone else's
+        ///     type, or the type is <c>static</c>. All 166 framework entries are injected as forwarders
+        ///     onto <c>RaskEntriesRaskCore</c> — several times the generated source of the other two, which
+        ///     is why this is the fallback and not the mechanism.
+        /// </summary>
+        Injected,
+    }
+
+    private static Delivery MarkupDelivery(INamedTypeSymbol symbol, bool isComponent)
+    {
+        if (isComponent || DeclaresRaskMarkup(symbol) || !HasRaskMarkupAttribute(symbol))
+        {
+            return Delivery.Inherited;
+        }
+
+        // A static class can derive from nothing; anything else with an untouched base slot can be given
+        // one. `object` is what "untouched" looks like on the symbol, and interfaces do not spend it.
+        return !symbol.IsStatic && symbol.BaseType is null or { SpecialType: SpecialType.System_Object }
+            ? Delivery.Base
+            : Delivery.Injected;
     }
 
     // A type that builder entries are injected into. Value-equatable, like Candidate, because it is an
@@ -2145,7 +2301,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsNested,
         string DeclFilePath,
         int DeclSpanStart,
-        int DeclSpanLength);
+        int DeclSpanLength,
+        bool IsStatic = false,
+        Delivery Delivery = Delivery.Inherited);
 
     private readonly record struct ComponentHost(
         bool DeclaresComponent,
@@ -2589,6 +2747,23 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // surface, so it follows the declaration that opted in.
     private static bool DeclaresRaskMarkup(INamedTypeSymbol symbol) =>
         symbol.BaseType?.OriginalDefinition.ToDisplayString() == RaskMarkupFullName;
+
+    // The attribute form of the same opt-in, for a type that cannot spend its base slot. Direct by
+    // construction and not merely by policy: GetAttributes() returns what was written on THIS type's
+    // declarations, never what a base carries — so the contagion the base-class form had to rule out by
+    // hand cannot arise here at all.
+    private static bool HasRaskMarkupAttribute(INamedTypeSymbol symbol)
+    {
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            if (attribute.AttributeClass?.ToDisplayString() == RaskMarkupAttributeFullName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool InheritsFromComponent(INamedTypeSymbol symbol)
     {

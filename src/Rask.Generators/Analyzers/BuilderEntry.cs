@@ -24,6 +24,8 @@ internal static class BuilderEntry
 
     private const string RaskMarkupFullName = "Rask.Core.RaskMarkup";
 
+    private const string RaskMarkupAttributeFullName = "Rask.Core.RaskMarkupAttribute";
+
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
 
     private const string GlobalPrefix = "global::";
@@ -66,10 +68,34 @@ internal static class BuilderEntry
     /// </summary>
     public static bool IsEntryHost(ITypeSymbol? type, INamedTypeSymbol component)
     {
+        // The attribute form, for a type that cannot spend its base slot: when the generator could not
+        // give it `RaskMarkup` as a base it injected the framework entries as members instead, so nothing
+        // in the base chain says this is a host. The attribute is the only trace, and it is a direct one —
+        // read off this type, never inherited, exactly as the generator reads it.
+        if (type is INamedTypeSymbol named && HasMarkupAttribute(named))
+        {
+            return true;
+        }
+
         for (var current = type; current is not null; current = current.BaseType)
         {
             if (SymbolEqualityComparer.Default.Equals(current, component)
                 || string.Equals(current.ToDisplayString(), RaskMarkupFullName, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasMarkupAttribute(INamedTypeSymbol type)
+    {
+        foreach (var attribute in type.GetAttributes())
+        {
+            if (string.Equals(
+                    attribute.AttributeClass?.ToDisplayString(), RaskMarkupAttributeFullName,
+                    StringComparison.Ordinal))
             {
                 return true;
             }
