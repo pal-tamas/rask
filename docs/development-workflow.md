@@ -48,6 +48,14 @@ Every change passes this gate before a PR (the `rask-ship` skill):
    (`--filter FullyQualifiedName~ATests`) while iterating. The build runs in parallel by default —
    don't add `-m:1` (the former WASM copy-race workaround is fixed at the source in
    `Rask.Wasm.Hosting.targets`).
+
+   `Directory.Build.rsp` turns **MSBuild node reuse off** for every build started from the repository
+   root. That is deliberate and load-bearing: the scoped-asset bake is not safe across reused workers
+   ([#650](https://github.com/pal-tamas/rask/issues/650)), so with reuse on, publishing two different
+   WASM samples in a row fails the second one. It costs about a fifth of a second per incremental
+   build. If you are working on `Rask.Wasm.Tasks` itself, note that a reused node also pins the **task**
+   assembly — run `dotnet build-server shutdown` before judging any change to it, or you are measuring
+   the previous build's DLL.
 4. **Benchmarks** — any render/live-runtime hot-path change runs `benchmarks/Rask.Benchmarks`
    before/after and quotes the `Allocated` delta in the PR.
 5. **Docs & examples** — user-facing changes update a `samples/` app, the relevant `docs/*.md`,
