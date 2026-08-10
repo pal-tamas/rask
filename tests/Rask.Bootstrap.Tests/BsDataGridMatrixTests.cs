@@ -172,7 +172,7 @@ public class BsDataGridMatrixTests
 
         protected override Component? Render() =>
         [
-            Button(Type: "button", OnClick: () => _filtered = !_filtered)["filter"],
+            Button.Type("button").OnClick(() => _filtered = !_filtered)["filter"],
             BsDataGrid<Row>(
                 Data: (_filtered ? All.Where(r => r.Qty > 5) : All).AsQueryable(),
                 Columns: Columns(), PageSize: 5)

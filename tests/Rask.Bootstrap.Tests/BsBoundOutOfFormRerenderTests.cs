@@ -47,7 +47,7 @@ public class BsBoundOutOfFormRerenderTests
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Consumer);
             ctx.NotifyParameters(c, false);
-            return Div()[c];
+            return Div[c];
         }
     }
 
@@ -60,9 +60,9 @@ public class BsBoundOutOfFormRerenderTests
         {
             RenderCount++;
             var item = _item; // local ⇒ the bind root is a closure, not `this` (mirrors a foreach loop var)
-            return Div()[
+            return Div[
                 BsCheck(() => item.Done, Id: "chk"),
-                Span(Class: item.Done ? "done" : "todo")["x"]
+                Span.Class(item.Done ? "done" : "todo")["x"]
             ];
         }
 

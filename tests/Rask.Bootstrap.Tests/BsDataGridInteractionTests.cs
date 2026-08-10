@@ -259,8 +259,8 @@ public class BsDataGridInteractionTests
 
         protected override Component? Render() =>
         [
-            Button(Type: "button", OnClick: () => _empty = !_empty)["filter"],
-            BsDataGrid<Row>(Data: _empty ? [] : Rows, Columns: Columns(), Empty: Div()["none"])
+            Button.Type("button").OnClick(() => _empty = !_empty)["filter"],
+            BsDataGrid<Row>(Data: _empty ? [] : Rows, Columns: Columns(), Empty: Div["none"])
         ];
     }
 }
