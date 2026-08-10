@@ -22,20 +22,23 @@ internal static class BuilderEntry
 {
     public const string ComponentFullName = "Rask.Core.Component";
 
+    private const string RaskMarkupFullName = "Rask.Core.RaskMarkup";
+
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
 
     private const string GlobalPrefix = "global::";
 
     /// <summary>
     ///     The component type an entry hands back, or <c>null</c> when <paramref name="member" /> is not
-    ///     an entry. Entries are emitted <c>protected static</c> onto <c>Rask.Core.Component</c> (the
-    ///     framework tags) or onto a consuming component's own <c>partial</c> (everything else), so the
-    ///     declaring type has to be a component as well — that is what keeps the generated factory
-    ///     class, whose methods have the very same name-is-its-type shape, out of this.
+    ///     an entry. Entries are emitted <c>protected static</c> onto <c>Rask.Core.RaskMarkup</c> (the
+    ///     framework tags) or onto a consuming component's or markup host's own <c>partial</c>
+    ///     (everything else), so the declaring type has to be on the markup surface as well — that is
+    ///     what keeps the generated factory class, whose methods have the very same
+    ///     name-is-its-type shape, out of this.
     /// </summary>
     public static INamedTypeSymbol? EntryTypeOf(ISymbol member, INamedTypeSymbol component)
     {
-        if (!DerivesFromComponent(member.ContainingType, component))
+        if (!IsEntryHost(member.ContainingType, component))
         {
             return null;
         }
@@ -52,6 +55,27 @@ internal static class BuilderEntry
                && DerivesFromComponent(named, component)
             ? named
             : null;
+    }
+
+    /// <summary>
+    ///     Whether <paramref name="type" /> is somewhere entries can live: a component, or a
+    ///     <c>RaskMarkup</c> host (which a component also is — <c>Component</c> derives from
+    ///     <c>RaskMarkup</c>, and that is where the framework tags are emitted). Matched by name rather
+    ///     than by symbol because every caller already resolves <c>Component</c> and nothing else needs
+    ///     the second lookup threaded through it.
+    /// </summary>
+    public static bool IsEntryHost(ITypeSymbol? type, INamedTypeSymbol component)
+    {
+        for (var current = type; current is not null; current = current.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, component)
+                || string.Equals(current.ToDisplayString(), RaskMarkupFullName, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static bool DerivesFromComponent(ITypeSymbol? type, INamedTypeSymbol component)

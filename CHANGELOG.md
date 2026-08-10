@@ -8,6 +8,43 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **BREAKING — the builder surface has a base a test class can derive from, and the entries moved onto
+  it.** Entries are *inherited* members, which is the design (a static-imported property loses to a
+  same-named type — CS0119 — while a member of the enclosing type wins), and its consequence was that
+  the surface was reachable only from **inside a component**. A quarter of this repo's call sites are
+  not in one: 1,399 in test classes, plus the static markup helpers. The framework entries now land on
+  **`Rask.Core.RaskMarkup`**, and `Component` derives from *it* — the same 163 members, one extra link
+  in the chain, and a type that is not a component reaches them by deriving from the half of `Component`
+  that is only the markup. `RaskMarkup` has no members of its own: no `Render()`, no lifecycle, no
+  positional identity, no render cache. Emitting the surface a *second* time onto a separate base was
+  the alternative, and two emissions of one surface are two things free to drift.
+  A consuming assembly's own components still cannot ride there — a generator cannot add members to a
+  type it does not declare — so those are injected into a markup host's own `partial`, exactly as they
+  are into a component's. Measured on `Rask.Core.Tests`: a markup host costs **77 forwarder lines
+  (~8 KB)** of generated source, *the same as a component host*, because the 163 framework entries
+  arrive by inheritance and not by injection. Injecting them instead would be ~240 lines / ~25 KB per
+  host — 3× — which is the price of the alternative design where the host is marked by an attribute
+  rather than a base class, and needs no base slot.
+  A markup host is one that names `RaskMarkup` **directly**. Not transitively, and that is not a
+  detail: making a shared test base derive from it turned all fourteen of its subclasses into hosts and
+  demanded `partial` of every one — an error, under warnings-as-errors, in files that name no markup at
+  all, out of a one-line edit to something else.
+- **`static class` is the one shape that cannot join, and it does not have to.** A static class cannot
+  derive from anything. Both of its uses in this repo turned out to need nothing from Rask to fix:
+  `DemoRegistry` (~320 markup sites in lambdas) and `FieldErrors.Template` (a render-fragment
+  *delegate*, which a component cannot be) became **sealed classes with a private constructor** — which
+  is the whole of what `static` bought them — and their members stayed static. A static field
+  initializer, a delegate field and a lambda all reach an inherited `protected static` entry. The
+  second escape hatch needs even less: a static class **nested inside** a markup host sees the host's
+  entries, because C# simple-name lookup walks out through enclosing types.
+- **RASK036 speaks about a host, not a component**, and covers markup hosts; **RASK043** now names
+  `RaskMarkup` as the fix rather than only the `using static` that disappears when the factory does.
+  `docs/diagnostics.md` updated for both.
+  Two of the five files in the migration slice needed `new` on a member whose name a tag entry
+  occupies (`FieldErrors.Template` → `<template>`, `DemoRegistry.Map` → `<map>`). Across the repo,
+  **15 of 211** markup-building test files declare at least one such member — the standing cost of
+  putting 163 names into a type's scope.
+
 - **Experimental — a builder surface that needs no `using` at all (spike).** `Div[...]` /
   `H1.Class("t")["x"]` alongside today's `Div()` factories, as a compiling proof of the design
   rather than a shipped feature. Entry points are `protected static` members whose name *is* their

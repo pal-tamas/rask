@@ -15,7 +15,7 @@ namespace Rask.Core.Tests;
 // A user's own components still cannot ride on it (a generator cannot add members to a referenced
 // assembly's type), so those are injected into the markup host's own `partial`, exactly as they are
 // into a component's — which is why the host is `partial`.
-internal sealed partial class Badge : Component
+internal sealed partial class MarkupChip : Component
 {
     public new string? Text { get; set; }
 
@@ -29,7 +29,7 @@ public partial class BuilderMarkupHostTests : RaskMarkup
     // static context, which reaches an inherited `protected static` entry the same as any other.
     private static readonly Dictionary<string, Func<Component>> _demos = new(StringComparer.Ordinal)
     {
-        ["badge"] = () => Div.Class("wrap")[Badge.Text("new")],
+        ["badge"] = () => Div.Class("wrap")[MarkupChip.Text("new")],
     };
 
     // The render-fragment shape: a delegate, which a component cannot be.
@@ -61,10 +61,10 @@ public partial class BuilderMarkupHostTests : RaskMarkup
     public void A_nested_static_class_reaches_the_enclosing_hosts_entries() =>
         Assert.Equal("<div><strong>nested</strong></div>", Nested.Build().ToHtml());
 
-    // The entry must not shadow the type: `Badge` still names a type here, next to the entry that
+    // The entry must not shadow the type: `MarkupChip` still names a type here, next to the entry that
     // builds one. That is the whole reason entries are properties rather than the factory's methods.
     [Fact]
-    public void The_type_stays_nameable_alongside_its_entry() => Assert.Equal(typeof(Badge), Probe());
+    public void The_type_stays_nameable_alongside_its_entry() => Assert.Equal(typeof(MarkupChip), Probe());
 
-    private static Type Probe() => typeof(Badge);
+    private static Type Probe() => typeof(MarkupChip);
 }

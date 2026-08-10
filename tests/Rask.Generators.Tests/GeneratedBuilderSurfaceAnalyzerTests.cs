@@ -27,7 +27,9 @@ public class GeneratedBuilderSurfaceAnalyzerTests
     public async Task Alias_hidden_by_a_real_entry_on_Rask_Cores_Component_is_reported()
     {
         // Nothing here declares `B`: the entry is the `protected static Rask.Core.Components.B B` the
-        // generator emitted into Rask.Core.Component, read back out of the referenced assembly.
+        // generator emitted into Rask.Core.RaskMarkup — Component's base, and where the framework
+        // entries live so a type that is not a component can inherit them too — read back out of the
+        // referenced assembly.
         var diagnostics = await AnalyzeAsync("""
             using B = Demo.Bench;
 
@@ -43,7 +45,7 @@ public class GeneratedBuilderSurfaceAnalyzerTests
             """);
 
         var d = Assert.Single(diagnostics.Where(x => x.Id == "RASK037"));
-        Assert.Contains("Rask.Core.Component", d.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("Rask.Core.RaskMarkup", d.GetMessage(), StringComparison.Ordinal);
     }
 
     // The other half of the emission: a component the consumer declares gets its entry injected into

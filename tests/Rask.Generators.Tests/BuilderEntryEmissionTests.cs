@@ -503,6 +503,60 @@ public class BuilderEntryEmissionTests
         Assert.Contains(run.WithId("RASK036"), d => d.GetMessage().Contains("PanelBase", StringComparison.Ordinal));
     }
 
+    // A type that is NOT a component reaches the surface by deriving from RaskMarkup — Component's own
+    // base, where the framework tags are emitted. That inheritance is the whole of the framework half;
+    // the consumer's own components still have to be injected, exactly as they are into a component,
+    // which is what this pins.
+    [Fact]
+    public void A_RaskMarkup_host_receives_the_consumers_own_entries()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public partial class Card : Component { }
+                                                  public partial class CardTests : RaskMarkup { }
+                                                  """).Source(Entries);
+
+        // Card itself cannot carry an entry named Card (CS0542) and does not need one, so the markup
+        // host is the only place the forwarder lands.
+        Assert.Contains("partial class CardTests", entries, StringComparison.Ordinal);
+        Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
+    }
+
+    // A markup host is one that names RaskMarkup DIRECTLY. A subclass of one already has the framework
+    // entries by ordinary inheritance, and making it a host as well would mean demanding `partial` of
+    // every subclass of a shared test base — an error, under warnings-as-errors, in files that name no
+    // markup at all, produced by a one-line edit to something else. Injection follows the declaration
+    // that opted in.
+    [Fact]
+    public void A_subclass_of_a_markup_host_is_not_itself_a_host()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Card : Component { }
+                                              public partial class TestBase : RaskMarkup { }
+                                              public class ConcreteTests : TestBase { }
+                                              """);
+
+        Assert.Empty(run.WithId("RASK036"));
+        Assert.DoesNotContain("partial class ConcreteTests", run.Source(Entries), StringComparison.Ordinal);
+    }
+
+    // Same rule as a component: no partial, nowhere to inject.
+    [Fact]
+    public void A_non_partial_markup_host_is_reported_as_RASK036()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Card : Component { }
+                                              public class CardTests : RaskMarkup { }
+                                              """);
+
+        Assert.Contains(run.WithId("RASK036"), d => d.GetMessage().Contains("CardTests", StringComparison.Ordinal));
+    }
+
     private static int Count(string haystack, string needle)
     {
         var count = 0;

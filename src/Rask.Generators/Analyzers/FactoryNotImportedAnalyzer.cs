@@ -34,19 +34,20 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask043 = new(
         "RASK043",
         "Component factory is not imported here",
-        "'{0}' names the component TYPE here, not a call, so this does not compile (CS0119). '{0}' is only a builder entry inside a component — entries are inherited members — and '{1}' is not one. Add 'using static {2};' to reach the factory, or move this code into a component.",
+        "'{0}' names the component TYPE here, not a call, so this does not compile (CS0119). '{0}' is only a builder entry inside a component or a 'RaskMarkup' host — entries are inherited members — and '{1}' is neither. Derive '{1}' from 'Rask.Core.RaskMarkup' to reach the entry, or add 'using static {2};' to reach the factory.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "The builder surface is reachable only from inside a component: entries are inherited "
-                     + "members, because a static-imported property loses to a same-named type in scope "
-                     + "(CS0119) while a member of the enclosing type wins. Code that is not a component — a "
-                     + "test class, a static markup helper, an abstract base the injection cannot reach — has "
-                     + "no entries, and reaches components through the generated factory instead. A factory is "
-                     + "a METHOD, so C#'s invocable-member rule lets it share its component's name; that is "
-                     + "why it works in these positions where an entry cannot. Without the import, the name "
-                     + "binds to the type and the compiler reports CS0119, CS0120 or CS0021 — none of which "
-                     + "mentions the missing 'using static'.",
+        description: "The builder surface is reachable only from inside a type that HAS the entries: entries "
+                     + "are inherited members, because a static-imported property loses to a same-named type in "
+                     + "scope (CS0119) while a member of the enclosing type wins. A component is one such type; "
+                     + "so is anything deriving from 'Rask.Core.RaskMarkup', which is Component's own base and "
+                     + "carries the framework entries and nothing else — that is the answer for a test class, a "
+                     + "fixture or a factory of demo components. Code that is neither reaches components through "
+                     + "the generated factory instead. A factory is a METHOD, so C#'s invocable-member rule lets "
+                     + "it share its component's name; that is why it works in these positions where an entry "
+                     + "cannot. Without the import, the name binds to the type and the compiler reports CS0119, "
+                     + "CS0120 or CS0021 — none of which mentions the missing 'using static'.",
         helpLinkUri: DiagnosticHelp.Link("RASK043"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
@@ -93,10 +94,11 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // Inside a component this cannot happen — the entry is a member of the enclosing type and wins
-        // the lookup outright — and if it somehow did, the answer there is the chain, not an import.
+        // Inside a component — or any other RaskMarkup host — this cannot happen: the entry is a member
+        // of the enclosing type and wins the lookup outright, and if it somehow did, the answer there is
+        // the chain, not an import.
         var enclosing = context.ContainingSymbol?.ContainingType;
-        if (enclosing is null || BuilderEntry.DerivesFromComponent(enclosing, component))
+        if (enclosing is null || BuilderEntry.IsEntryHost(enclosing, component))
         {
             return;
         }

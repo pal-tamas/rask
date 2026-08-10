@@ -837,12 +837,13 @@ the property is only ever set through the factory or by assignment.
 ## RASK043
 **Component factory is not imported here** · Warning
 
-The builder surface is reachable only from **inside** a component. Its entries are *inherited
+The builder surface is reachable only from **inside a type that has the entries**. They are *inherited
 members* — that is the whole design, because a static-imported property loses to a same-named type
-(CS0119) while a member of the enclosing type wins. Code that is not a component (a test class, a
-static markup helper, a fixture) therefore has no entries and reaches components through the
-generated **factory**, which is a *method* and so may share its component's name under C#'s
-invocable-member rule. That is exactly why the factory works in these positions and an entry cannot.
+(CS0119) while a member of the enclosing type wins. A component is such a type; so is anything
+deriving from **`Rask.Core.RaskMarkup`**, which is `Component`'s own base and carries the framework
+entries and nothing else. Code that is neither reaches components through the generated **factory**,
+which is a *method* and so may share its component's name under C#'s invocable-member rule. That is
+exactly why the factory works in these positions and an entry cannot.
 
 Leave the `using static` out and the simple name binds to the component **type** instead:
 
@@ -852,6 +853,19 @@ using Rask.Core.Components;
 internal static class Parts
 {
     public static Component Loading() => Div(Class: "spinner")["…"];   // ✗ RASK043 — CS0119
+}
+```
+
+```csharp
+using Rask.Core;
+
+// ✓ a sealed class with a private constructor holds static members as well as a static class did,
+//   and — unlike a static class — it can derive, so the entries are in scope.
+internal sealed partial class Parts : RaskMarkup
+{
+    private Parts() { }
+
+    public static Component Loading() => Div.Class("spinner")["…"];
 }
 ```
 
@@ -869,8 +883,11 @@ The compiler's own report is **CS0119** ("'Div' is a type, which is not valid in
 often with a **CS0021** on the `[…]` that would have carried the children, or a **CS0120** in a static
 context — none of which mentions Rask, the factory, or the one line that fixes it.
 
-**Fix:** add the `using static …Generated;` the message names — or move the code into a component, if
-it was really a component all along, and use the chain. Suppress with
+**Fix:** derive the enclosing type from `Rask.Core.RaskMarkup` (a `static class` cannot derive from
+anything — make it a sealed class with a private constructor, or nest it inside a host, since
+simple-name lookup walks out through enclosing types) — or, if it was really a component all along,
+make it one. The `using static …Generated;` the message names is the third option, and the one that
+disappears when the factory does. Suppress with
 `#pragma warning disable RASK043` / `.editorconfig`
 (`dotnet_diagnostic.RASK043.severity = none`).
 
