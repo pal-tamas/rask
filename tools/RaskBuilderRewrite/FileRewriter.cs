@@ -26,6 +26,7 @@ internal sealed record Site(
     SiteVerdict Verdict,
     string? Detail,
     IReadOnlyList<string> Setters,
+    int BindArgument,
     bool NeedsInjectedEntry);
 
 /// <summary>
@@ -201,7 +202,8 @@ internal sealed class FileRewriter
 
         foreach (var node in tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>())
         {
-            if (model.GetSymbolInfo(node).Symbol is not IMethodSymbol method || !_surface.IsFactory(method))
+            var method = Resolve(model, node);
+            if (method is null)
             {
                 continue;
             }
@@ -213,11 +215,13 @@ internal sealed class FileRewriter
             var file = tree.FilePath;
 
             var typeArguments = "";
+            var bindArgument = -1;
 
             Site Make(SiteVerdict verdict, string? detail, IReadOnlyList<string>? setters = null) =>
                 new(siteId, node, name, Fqn(component), name + typeArguments, file, line,
                     verdict, detail,
                     setters ?? Array.Empty<string>(),
+                    bindArgument,
                     !SymbolEqualityComparer.Default.Equals(
                         component.ContainingAssembly, _surface.FrameworkAssembly));
 
@@ -242,25 +246,59 @@ internal sealed class FileRewriter
             // does not have) moves with the entry, not before it.
             if (method.IsGenericMethod || component.IsGenericType)
             {
-                if (!SurfaceModel.HasParameterlessEntry(model, node.SpanStart, name))
+                // A bound control's entry takes exactly one argument, `Bind`, and that argument is what
+                // infers T — so a site that passes one keeps it in place and turns the rest into setters.
+                // Reading `Input(() => m.Name).Class("x")` rather than `Input<string>().Bind(…)`, and
+                // working where the type argument was inferred rather than written.
+                var bind = method.Parameters.FirstOrDefault(p => p.Name == "Bind");
+                if (bind is not null
+                    && SurfaceModel.HasBindEntry(model, node.SpanStart, name)
+                    && ArgumentIndexFor(node, method, bind) is >= 0 and var index)
+                {
+                    bindArgument = index;
+                }
+                else if (!SurfaceModel.HasParameterlessEntry(model, node.SpanStart, name))
                 {
                     sites.Add(Make(SiteVerdict.GenericFactory, "no parameterless entry"));
                     continue;
                 }
 
-                typeArguments = "<" + string.Join(", ", component.TypeArguments.Select(t =>
-                    t.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))) + ">()";
+                if (bindArgument < 0)
+                {
+                    // Prefer what the call site wrote. A factory found by NAME rather than by binding —
+                    // which is how a displaced site is found — is the unbound definition, so its type
+                    // arguments are still `T`; only the syntax knows the site meant `<string>`. When the
+                    // site inferred them and binding could not supply them either, there is nothing to
+                    // write and the site waits.
+                    var written = (node.Expression as GenericNameSyntax)?.TypeArgumentList.ToString();
+                    if (written is null && component.TypeArguments.Any(t => t.TypeKind == TypeKind.TypeParameter))
+                    {
+                        sites.Add(Make(SiteVerdict.GenericFactory, "type argument is neither written nor bound"));
+                        continue;
+                    }
+
+                    typeArguments = (written ?? "<" + string.Join(", ", component.TypeArguments.Select(t =>
+                        t.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))) + ">") + "()";
+                }
             }
 
             var setters = new List<string>();
             string? missing = null;
-            foreach (var argument in node.ArgumentList.Arguments)
+            for (var i = 0; i < node.ArgumentList.Arguments.Count; i++)
             {
+                var argument = node.ArgumentList.Arguments[i];
                 var parameter = ParameterFor(method, node, argument);
                 if (parameter is null)
                 {
                     missing = "?";
                     break;
+                }
+
+                // The Bind argument stays where it is — it is the entry's own parameter, not a setter.
+                if (i == bindArgument)
+                {
+                    setters.Add("");
+                    continue;
                 }
 
                 var setter = _surface.SetterFor(component, parameter);
@@ -279,6 +317,49 @@ internal sealed class FileRewriter
         }
 
         return sites;
+    }
+
+    // The factory this invocation names — by binding when it still binds, and by name when it does not.
+    // It stops binding the moment its type becomes a markup host: the entry displaces it, which is the
+    // very state the host pass leaves behind for this one to repair.
+    private IMethodSymbol? Resolve(SemanticModel model, InvocationExpressionSyntax node)
+    {
+        var info = model.GetSymbolInfo(node);
+        if (info.Symbol is IMethodSymbol bound)
+        {
+            return _surface.IsFactory(bound) ? bound : null;
+        }
+
+        if (node.Expression is not SimpleNameSyntax simple || info.CandidateSymbols.Length == 0)
+        {
+            return null;
+        }
+
+        // Only when the thing that WON the lookup is this component's own entry — otherwise the call is
+        // broken for some reason of its own and is none of this tool's business.
+        if (!info.CandidateSymbols.All(c => c.Name == simple.Identifier.ValueText && c.IsStatic))
+        {
+            return null;
+        }
+
+        return _surface.FindDisplacedFactory(
+            simple.Identifier.ValueText,
+            node.ArgumentList.Arguments.Select(a => a.NameColon?.Name.Identifier.ValueText).ToList());
+    }
+
+    // Where in the argument list a given parameter's value was written, or -1 when it was omitted.
+    private static int ArgumentIndexFor(
+        InvocationExpressionSyntax node, IMethodSymbol method, IParameterSymbol parameter)
+    {
+        for (var i = 0; i < node.ArgumentList.Arguments.Count; i++)
+        {
+            if (ReferenceEquals(ParameterFor(method, node, node.ArgumentList.Arguments[i]), parameter))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private static IParameterSymbol? ParameterFor(
@@ -373,18 +454,26 @@ internal sealed class FileRewriter
 
             var indent = IndentOf(node);
             var parts = new List<string>();
+            var receiver = site.Receiver;
             for (var i = 0; i < visited.ArgumentList.Arguments.Count; i++)
             {
-                parts.Add($".{site.Setters[i]}({visited.ArgumentList.Arguments[i].Expression.ToFullString().Trim()})");
+                var text = visited.ArgumentList.Arguments[i].Expression.ToFullString().Trim();
+                if (i == site.BindArgument)
+                {
+                    receiver = $"{site.ComponentName}({text})";
+                    continue;
+                }
+
+                parts.Add($".{site.Setters[i]}({text})");
             }
 
-            var single = site.Receiver + string.Concat(parts);
+            var single = receiver + string.Concat(parts);
             var multiline = node.ArgumentList.Span.Length > 0
                             && (node.ToString().Contains('\n') || indent.Length + single.Length > 116);
 
             var code = parts.Count == 0 || !multiline
                 ? single
-                : site.Receiver + string.Concat(parts.Select(p => "\n" + indent + "    " + p));
+                : receiver + string.Concat(parts.Select(p => "\n" + indent + "    " + p));
 
             return ParseExpression(code)
                 .WithTriviaFrom(visited)

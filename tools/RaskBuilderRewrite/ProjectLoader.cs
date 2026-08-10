@@ -235,8 +235,12 @@ internal sealed class ProjectLoader
         var stderr = process.StandardError.ReadToEnd();
         process.WaitForExit();
 
+        // A non-zero exit is tolerated as long as the requested items came back. Hostifying a type
+        // DISPLACES the factories it now has entries for, so between the host pass and the rewrite the
+        // project deliberately does not compile — and the rewrite is what fixes it. CoreCompile still
+        // runs the generators and still writes their output, which is all this needs.
         var start = stdout.IndexOf('{');
-        if (process.ExitCode != 0 || start < 0)
+        if (start < 0)
         {
             throw new InvalidOperationException(
                 $"msbuild query failed for {projectPath} (exit {process.ExitCode}):\n{stdout}\n{stderr}");

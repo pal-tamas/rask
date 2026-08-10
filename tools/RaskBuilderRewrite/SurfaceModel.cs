@@ -19,6 +19,10 @@ internal sealed class SurfaceModel
     private readonly Dictionary<string, List<IMethodSymbol>> _setters =
         new(StringComparer.Ordinal);
 
+    // factory name -> every generated factory carrying it, for the sites binding cannot reach.
+    private readonly Dictionary<string, List<IMethodSymbol>> _factories =
+        new(StringComparer.Ordinal);
+
     private SurfaceModel(
         CSharpCompilation compilation,
         INamedTypeSymbol component,
@@ -47,6 +51,30 @@ internal sealed class SurfaceModel
                 list.Add(method);
             }
         }
+
+        foreach (var generated in AllNamespaces(compilation.GlobalNamespace)
+                     .SelectMany(n => n.GetTypeMembers("Generated"))
+                     .Where(t => t.IsStatic))
+        {
+            foreach (var method in generated.GetMembers().OfType<IMethodSymbol>().Where(IsFactory))
+            {
+                if (!_factories.TryGetValue(method.Name, out var list))
+                {
+                    _factories[method.Name] = list = new List<IMethodSymbol>();
+                }
+
+                list.Add(method);
+            }
+        }
+    }
+
+    private static IEnumerable<INamespaceSymbol> AllNamespaces(INamespaceSymbol root)
+    {
+        yield return root;
+        foreach (var child in root.GetNamespaceMembers().SelectMany(AllNamespaces))
+        {
+            yield return child;
+        }
     }
 
     public static SurfaceModel? TryCreate(CSharpCompilation compilation)
@@ -62,6 +90,46 @@ internal sealed class SurfaceModel
 
     /// <summary>The assembly that declares <c>RaskMarkup</c> — its components arrive by inheritance.</summary>
     public IAssemblySymbol FrameworkAssembly => _raskMarkup.ContainingAssembly;
+
+    /// <summary>
+    ///     The names the 166 framework entries occupy. A type that already has a member with one of these
+    ///     names cannot take <c>: RaskMarkup</c> without a <c>new</c> on it (CS0108).
+    /// </summary>
+    public HashSet<string> FrameworkEntryNames() =>
+        _raskMarkup.GetMembers()
+            .Where(m => m is IPropertySymbol or IMethodSymbol { MethodKind: MethodKind.Ordinary })
+            .Select(m => m.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    ///     The factory a call site MEANT, when the call no longer binds to anything.
+    /// </summary>
+    /// <remarks>
+    ///     Making a type a markup host displaces every factory whose component has a METHOD entry — a
+    ///     generic or bound control — because member lookup finds the entry and stops, and a
+    ///     <c>using static … Generated</c> import is never consulted after that. The call site is then a
+    ///     compile error until it is rewritten, which is exactly the state the rewrite runs in. Binding
+    ///     gives nothing there, so the factory is found by name and by the argument names the site used.
+    /// </remarks>
+    public IMethodSymbol? FindDisplacedFactory(string name, IReadOnlyList<string?> argumentNames)
+    {
+        if (!_factories.TryGetValue(name, out var candidates))
+        {
+            return null;
+        }
+
+        var named = argumentNames.Where(n => n is not null).ToList();
+        var applicable = candidates
+            .Where(m => m.Parameters.Length >= argumentNames.Count
+                        && named.All(n => m.Parameters.Any(p => p.Name == n)))
+            .ToList();
+
+        // A bound control has three factory overloads, one per validator shape, and they agree on every
+        // parameter NAME they share — which is all this is read for. The narrowest applicable one is
+        // therefore as good as any, and demanding a unique match instead silently skipped every bound
+        // site that named a validator.
+        return applicable.OrderBy(m => m.Parameters.Length).FirstOrDefault();
+    }
 
     /// <summary>
     ///     A generated factory is a static method on a static <c>Generated</c> class that hands back a
@@ -230,6 +298,16 @@ internal sealed class SurfaceModel
         model.LookupSymbols(position, name: name)
             .OfType<IMethodSymbol>()
             .Any(m => m is { Parameters.Length: 0, IsStatic: true } && m.TypeParameters.Length > 0);
+
+    /// <summary>
+    ///     Whether a bound control's one-argument entry — <c>Input&lt;T&gt;(Expression&lt;Func&lt;T&gt;&gt;
+    ///     Bind)</c> — is reachable here. That argument is what infers <c>T</c>, so a site already passing
+    ///     one keeps it and turns everything else into setters.
+    /// </summary>
+    public static bool HasBindEntry(SemanticModel model, int position, string name) =>
+        model.LookupSymbols(position, name: name)
+            .OfType<IMethodSymbol>()
+            .Any(m => m is { Parameters.Length: 1, IsStatic: true } && m.Parameters[0].Name == "Bind");
 
     /// <summary>The enclosing type of a node, or null when it has none.</summary>
     public static INamedTypeSymbol? EnclosingType(SemanticModel model, SyntaxNode node)

@@ -13,6 +13,7 @@ using Rask.Tools.BuilderRewrite;
 
 var projects = new List<string>();
 var apply = false;
+var hostify = false;
 string? reportPath = null;
 var configuration = "Debug";
 
@@ -22,6 +23,9 @@ for (var i = 0; i < args.Length; i++)
     {
         case "--apply":
             apply = true;
+            break;
+        case "--hostify":
+            hostify = true;
             break;
         case "--report":
             reportPath = args[++i];
@@ -44,7 +48,22 @@ if (projects.Count == 0)
 var report = new List<string>();
 var totals = new Dictionary<SiteVerdict, int>();
 var convertedTotal = 0;
+var hostTotal = 0;
 var loader = new ProjectLoader(configuration);
+
+// Keep the file's byte-order mark exactly as it was. Writing one in unconditionally turns every
+// rewritten file into a one-extra-byte diff on line 1 that has nothing to do with the migration, and
+// hides in a diff that is already large.
+static void Write(string path, Microsoft.CodeAnalysis.SyntaxTree tree)
+{
+    var head = new byte[3];
+    using (var probe = File.OpenRead(path))
+    {
+        _ = probe.Read(head, 0, 3);
+    }
+
+    File.WriteAllText(path, tree.GetText().ToString(), new System.Text.UTF8Encoding(head is [0xEF, 0xBB, 0xBF]));
+}
 
 foreach (var projectPath in projects)
 {
@@ -55,6 +74,35 @@ foreach (var projectPath in projects)
     if (surface is null)
     {
         Console.WriteLine("   no Rask.Core reference — nothing to do");
+        continue;
+    }
+
+    // Hostifying only opts types IN. Making a type a host changes what every name inside it resolves to,
+    // so the rewrite has to run against a fresh compilation afterwards — a second invocation of the tool,
+    // not a second phase of this one.
+    if (hostify)
+    {
+        var converter = new HostConverter(project.Compilation, surface);
+        foreach (var tree in project.UserTrees)
+        {
+            var host = converter.Convert(tree);
+            if (host.Rewritten is null)
+            {
+                continue;
+            }
+
+            hostTotal += host.Hosts.Count;
+            foreach (var name in host.Hosts)
+            {
+                report.Add($"host {name}");
+            }
+
+            if (apply)
+            {
+                Write(tree.FilePath, host.Rewritten);
+            }
+        }
+
         continue;
     }
 
@@ -93,23 +141,17 @@ foreach (var projectPath in projects)
 
         if (apply)
         {
-            // Keep the file's byte-order mark exactly as it was. Writing one in unconditionally turns
-            // every rewritten file into a one-extra-byte diff on line 1 that has nothing to do with the
-            // migration — and hides in a diff that is already large.
-            var head = new byte[3];
-            using (var probe = File.OpenRead(tree.FilePath))
-            {
-                _ = probe.Read(head, 0, 3);
-            }
-
-            var bom = head is [0xEF, 0xBB, 0xBF];
-            File.WriteAllText(
-                tree.FilePath, result.Rewritten.GetText().ToString(), new System.Text.UTF8Encoding(bom));
+            Write(tree.FilePath, result.Rewritten);
         }
     }
 }
 
 Console.WriteLine();
+if (hostify)
+{
+    Console.WriteLine($"hosts:     {hostTotal}{(apply ? "" : " (dry run)")}");
+}
+
 Console.WriteLine($"converted: {convertedTotal}{(apply ? "" : " (dry run)")}");
 foreach (var (verdict, count) in totals.OrderByDescending(p => p.Value))
 {
