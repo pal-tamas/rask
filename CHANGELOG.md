@@ -8,6 +8,40 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The migration does not have to hoist anything — and here is the test that says so.** A factory
+  evaluates its arguments *before* it builds the component; a setter chain builds the receiver first and
+  evaluates the argument after. `GetOrCreateChild` hands out identity positionally — one counter per
+  parent, keyed `(Type, position)` — so `SlotHost(Payload: Leaf(...))` and `SlotHost.Payload(Leaf...)`
+  give the same two children **different positions**. The open question was whether the rewriter had to
+  hoist every component-valued argument into a local to preserve the old numbering, which would have
+  meant converting expression-bodied `Render()` members to block bodies across the repo.
+  It does not. `BuilderHoistTests` pins why: positional identity only has to be **stable render to
+  render**, never equal to the numbering some other spelling of the same tree would have produced. A
+  chain keeps every child instance across renders; the two orders are equivalent in HTML *and* in
+  lifecycle; and a half-rewritten tree — a factory whose argument is already a chain, or a chain whose
+  argument is still a factory — is stable in both nesting directions, which is what lets the rewrite land
+  one project at a time.
+  What it also pins is the one shape that *does* break, because that is the rewriter's rule: a `Render()`
+  that emits the same subtree through the factory on one render and through a chain on the next
+  renumbers its children, so the leaf is not found in the previous frame and mounts a second time — with
+  **identical markup**, so nothing downstream would notice. No fixed source can do that; a `Render()`
+  whose branches were converted unevenly can. The rewriter therefore converts a whole call site, and
+  reverts a whole one, never half of a conditional.
+- **A committed Stage E rewriter** (`tools/RaskBuilderRewrite`), because ~6,600 call sites is past
+  hand-editing and the migration has to be re-runnable rather than remembered. It resolves each site
+  against the **real generated factory signature** — a purely syntactic pass cannot; positional arguments
+  have no names in the source — by rebuilding the project with `EmitCompilerGeneratedFiles` and reading
+  the generator's own output back as ordinary source, which also gives it the entry and setter surfaces
+  to check against. Deliberately not MSBuildWorkspace: the compilation must contain generator output, and
+  reading what the compiler read is the more honest way to get it.
+  Its safety net is a verification loop rather than a rule set. Every rewritten site carries a syntax
+  annotation, the rewritten tree goes back into the compilation, and each resulting error is walked up to
+  the site that caused it and reverted — so a shadowed entry, a non-`partial` host or a factory call
+  standing where a statement has to be all come back as a *named* gap. An error it cannot attribute to a
+  site abandons the whole file. It leaves `Form` alone entirely (`Form<TModel>` is pending, and every one
+  of those sites moves again when it lands), leaves generic components alone (their entry is a *method*,
+  which displaces its own factory inside a markup host — those sites move with the entry, not before it),
+  and leaves anything outside a markup host alone.
 - **BREAKING — the builder surface has a base a test class can derive from, and the entries moved onto
   it.** Entries are *inherited* members, which is the design (a static-imported property loses to a
   same-named type — CS0119 — while a member of the enclosing type wins), and its consequence was that
