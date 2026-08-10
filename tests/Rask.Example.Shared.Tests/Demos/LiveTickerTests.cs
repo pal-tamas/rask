@@ -12,7 +12,7 @@ namespace Rask.Example.Shared.Tests.Demos;
 // (see LiveTicker.PollOnceAsync) and the chart is a server-rendered SVG (Sparkline)
 // emitted straight from Render(), so the tests observe state through the rendered
 // HTML rather than through an IJSRuntime stub.
-public sealed class LiveTickerTests
+public sealed partial class LiveTickerTests : global::Rask.Core.RaskMarkup
 {
     // These are background-async lifecycle waits: OnMountAsync spins up a poll loop
     // whose first tick lands only after a 50 ms Task.Delay, and WaitFor polls the
@@ -219,7 +219,7 @@ public sealed class LiveTickerTests
         var mounted = new Box<bool>(true);
         var page = RaskTest.Render(
             () => mounted.Value
-                ? LiveTicker(symbol.Value, interval, log.Add, priceSource)
+                ? LiveTicker.Symbol(symbol.Value).Interval(interval).Log(log.Add).PriceSource(priceSource)
                 : null,
             LiveHost.Services());
         return (page, log, mounted);
@@ -245,7 +245,7 @@ public sealed class LiveTickerTests
     // RenderAsLiveRoot path App uses). [SkipFactory] keeps the generator from
     // emitting a colliding Generated.TwoTickerRoot() factory.
     [SkipFactory]
-    private sealed class TwoTickerRoot(Callback<string> log) : Component
+    private sealed partial class TwoTickerRoot(Callback<string> log) : Component
     {
         protected override Component? Render() =>
         [
@@ -253,8 +253,8 @@ public sealed class LiveTickerTests
             Html.Lang("en")[
                 Head(),
                 Body[
-                    LiveTicker("BTC", 5000, log),
-                    LiveTicker("ETH", 5000, log)
+                    LiveTicker.Symbol("BTC").Interval(5000).Log(log),
+                    LiveTicker.Symbol("ETH").Interval(5000).Log(log)
                 ]
             ]
         ];
