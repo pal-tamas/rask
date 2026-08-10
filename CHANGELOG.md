@@ -466,6 +466,18 @@ them until tagged releases begin.
   makes `DashboardLoading()` a **CS1955** ("non-invocable member … cannot be used like a method"). The
   dashboard's new parts are therefore written as `DashboardEmpty.Heading(…).Detail(…)`: the first
   production code on the builder surface.
+- **RASK043 — the factory is not imported here.** The discovery migration's largest failure mode
+  produced roughly 3,000 compiler errors and **not one Rask diagnostic**: 1,700 × CS0119, 694 × CS0120,
+  656 × CS0021, none of which names Rask, the factory, or the one line that fixes it. The cause is the
+  design working as intended — entries are *inherited members*, so the builder surface is reachable only
+  from **inside** a component, and a quarter of the repo's call sites (test classes, static markup
+  helpers, fixtures) are not in one. Those keep the **factory**: a factory is a *method*, so C#'s
+  invocable-member rule lets it share its component's name where an entry property cannot, which is
+  exactly why it works in these positions. Leave the `using static …Generated;` out and the simple name
+  binds to the component TYPE instead — CS0119. RASK043 says so at the call, names the enclosing type
+  that has no entries, and prints the `using static` to add. It stays quiet inside a component (where
+  the entry wins the lookup outright and the answer would be the chain, not an import) and on a
+  qualified call. Pinned against the real `Rask.Core.Components.Div`, not a stand-in.
 - **RASK036 and RASK040–042 are documented.** The builder surface's own four diagnostics (a component
   must be `partial`; two components share a simple name; the shared pending-bit budget is exhausted; a
   delegate-typed property has no reachable setter) shipped with a `helpLinkUri` pointing at an anchor

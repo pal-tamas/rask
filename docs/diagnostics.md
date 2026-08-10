@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK042)
+# Rask diagnostics (RASK001–RASK043)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -78,6 +78,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK040](#rask040) | Warning | Two components share a simple name, so neither can have a builder entry |
 | [RASK041](#rask041) | Warning | The builder surface's shared pending-bit budget is exhausted |
 | [RASK042](#rask042) | Warning | Delegate-typed property cannot receive a builder setter |
+| [RASK043](#rask043) | Warning | Component factory is not imported in a type that has no builder entries |
 
 ---
 
@@ -824,6 +825,46 @@ carrier would only cost it its non-nullness.
 **Fix:** declare the property as the carrier named in the message. Suppress with
 `#pragma warning disable RASK042` / `.editorconfig` (`dotnet_diagnostic.RASK042.severity = none`) if
 the property is only ever set through the factory or by assignment.
+
+## RASK043
+**Component factory is not imported here** · Warning
+
+The builder surface is reachable only from **inside** a component. Its entries are *inherited
+members* — that is the whole design, because a static-imported property loses to a same-named type
+(CS0119) while a member of the enclosing type wins. Code that is not a component (a test class, a
+static markup helper, a fixture) therefore has no entries and reaches components through the
+generated **factory**, which is a *method* and so may share its component's name under C#'s
+invocable-member rule. That is exactly why the factory works in these positions and an entry cannot.
+
+Leave the `using static` out and the simple name binds to the component **type** instead:
+
+```csharp
+using Rask.Core.Components;
+
+internal static class Parts
+{
+    public static Component Loading() => Div(Class: "spinner")["…"];   // ✗ RASK043 — CS0119
+}
+```
+
+```csharp
+using Rask.Core.Components;
+using static Rask.Core.Components.Generated;                          // ✓ the factory is a method
+
+internal static class Parts
+{
+    public static Component Loading() => Div(Class: "spinner")["…"];
+}
+```
+
+The compiler's own report is **CS0119** ("'Div' is a type, which is not valid in the given context"),
+often with a **CS0021** on the `[…]` that would have carried the children, or a **CS0120** in a static
+context — none of which mentions Rask, the factory, or the one line that fixes it.
+
+**Fix:** add the `using static …Generated;` the message names — or move the code into a component, if
+it was really a component all along, and use the chain. Suppress with
+`#pragma warning disable RASK043` / `.editorconfig`
+(`dotnet_diagnostic.RASK043.severity = none`).
 
 ## CS0108 (a member hides a builder entry)
 
