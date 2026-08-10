@@ -8,6 +8,21 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A second build in the same session no longer fails on the scoped-asset bake.** MSBuild keeps its
+  worker nodes alive between invocations, and the bake is not safe across them: it loads bundle
+  assemblies with `Assembly.LoadFrom`, so a node that already loaded one of that simple name from
+  *another* project's output throws and the bake produces an empty bundle
+  ([#650](https://github.com/pal-tamas/rask/issues/650)). Since the guard added in #652 that is a build
+  error rather than a silently 404-ing app — correct, but it means publishing two different WASM samples
+  in a row **breaks the second one**, and an ordinary `dotnet build` after a publish can break too. A
+  repository-level `Directory.Build.rsp` now passes `-nodeReuse:false`, so every build starts from fresh
+  workers and the collision cannot arise. Measured cost on this repo: a no-op incremental build of
+  `Rask.Core` goes 0.68s → 0.89s.
+  Explicitly a **mitigation, not the fix** — consumers building their own apps are unaffected by the
+  response file. The fix needs a load context that intercepts *dependency* resolution rather than only
+  top-level loads; `Assembly.Load(byte[])` and a bare `AssemblyLoadContext` both look like they work and
+  do not, because `AssemblyResolve` is last-chance and the pre-loaded copy wins, splitting the registry
+  the bake reads from the one the registrations write to. Diagnosis recorded on #650.
 - **`rask generate job` in the Server half of a `wasm-hosted` solution treated it as a browser app.**
   Browser detection matched `Rask.Wasm` as a substring, and the Server project references
   **`Rask.Wasm.Hosting`** — so the one project a background job actually belongs in got the browser

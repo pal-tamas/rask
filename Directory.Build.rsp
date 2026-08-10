@@ -1,0 +1,18 @@
+# MSBuild reads this response file for every build started from the repository root, so these options
+# apply to `dotnet build` / `test` / `publish` / `pack` without anyone having to remember them.
+#
+# -nodeReuse:false — MSBuild keeps its worker nodes alive between invocations, and the scoped-asset bake
+# is not safe across them: the task loads bundle assemblies with Assembly.LoadFrom, so a node that
+# already loaded one of that simple name from ANOTHER project's output throws FileLoadException and the
+# bake produces an empty bundle (#650). Since #652 that is a build error rather than a silently broken
+# app, which means an ordinary second build in the same session FAILS — publish two different WASM
+# samples in a row and the second one breaks.
+#
+# This is a mitigation, not the fix. The fix has to give the bake a load context that intercepts
+# DEPENDENCY resolution, not just top-level loads, and that needs Rask.Wasm.Tasks multi-targeted off
+# netstandard2.0 (which exists so full-framework MSBuild in Visual Studio can load it). Tracked in #650;
+# remove this line when that lands.
+#
+# Cost, measured on this repo: a no-op incremental build of Rask.Core goes 0.68s → 0.89s, since every
+# invocation pays worker startup. Worth roughly a fifth of a second to not have the build fail.
+-nodeReuse:false
