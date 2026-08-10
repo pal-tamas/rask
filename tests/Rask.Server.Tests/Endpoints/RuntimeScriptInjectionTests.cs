@@ -66,6 +66,6 @@ public sealed class RuntimeScriptInjectionTests
     {
         protected override string? HtmlLang => null;
 
-        protected override Component? Render() => [new H1()[$"path={routeState.Path}"], RaskRuntimeScript()];
+        protected override Component? Render() => [new H1()[$"path={routeState.Path}"], RaskRuntimeScript];
     }
 }

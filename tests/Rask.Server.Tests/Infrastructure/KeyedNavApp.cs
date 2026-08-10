@@ -52,10 +52,10 @@ public sealed partial class KeyedNavApp : Component
     protected override Component? Render() =>
     [
         new H1()[$"path={_route.Path} count={_items.Count}"],
-        Ul()[
-            _items.Select(i => Li(
-                Class: "row",
-                Data: new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[
+        Ul[
+            _items.Select(i => Li
+                .Class("row")
+                .Data(new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[
                 $"item {i}"])
         ]
     ];

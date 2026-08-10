@@ -14,9 +14,9 @@ namespace Rask.Server.Tests.Authentication;
 // auth navigation mounts the destination under the NEW identity, not the pre-SignIn snapshot.
 public sealed partial class DeferredAuthNavTestApp : Component
 {
-    protected override Component? Head => Title()["deferred-auth-nav"];
+    protected override Component? Head => Title["deferred-auth-nav"];
 
-    protected override Component? Render() => Router();
+    protected override Component? Render() => Router;
 }
 
 [Route("/start")]
@@ -24,7 +24,7 @@ public sealed partial class DeferredAuthNavTestApp : Component
 public sealed partial class DeferredNavStartPage(AuthSignIn auth) : Component
 {
     protected override Component? Render() =>
-        Div(Id: "start")[Button(OnClickAsync: SignInAsync)["sign-in"]];
+        Div.Id("start")[Button.OnClickAsync(SignInAsync)["sign-in"]];
 
     private Task SignInAsync()
     {
@@ -52,5 +52,5 @@ public sealed partial class DeferredNavDashboardPage(IUserProvider userProvider)
             ? userProvider.Current.Identity.Name ?? "?"
             : "anon";
 
-    protected override Component? Render() => Div(Id: "dash")["mountUser=", _mountUser];
+    protected override Component? Render() => Div.Id("dash")["mountUser=", _mountUser];
 }

@@ -77,7 +77,7 @@ public sealed class RuntimeSignalTests
 
         protected override string? HtmlLang => null;
 
-        protected override Component? Render() => Button(OnClick: () => _count++)[$"n={_count}"];
+        protected override Component? Render() => Button.OnClick(() => _count++)[$"n={_count}"];
     }
 
     /// <summary>

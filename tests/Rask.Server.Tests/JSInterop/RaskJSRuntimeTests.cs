@@ -221,7 +221,7 @@ internal sealed partial class JsRoundTripApp : Component
     protected override Component? Head => new Title()["t"];
     protected override string? HtmlLang => null;
 
-    protected override Component? Render() => Text("ready");
+    protected override Component? Render() => Text.Value("ready");
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {
@@ -254,7 +254,7 @@ internal sealed partial class JsClickApp : Component
     protected override Component? Head => new Title()["t"];
     protected override string? HtmlLang => null;
 
-    protected override Component? Render() => Button(OnClickAsync: SetAsync)["set"];
+    protected override Component? Render() => Button.OnClickAsync(SetAsync)["set"];
 
     private async Task SetAsync()
     {
@@ -273,7 +273,7 @@ internal sealed partial class JsRenderStormApp : Component
     protected override Component? Head => new Title()["t"];
     protected override string? HtmlLang => null;
 
-    protected override Component? Render() => Text("ready");
+    protected override Component? Render() => Text.Value("ready");
 
     // Intentionally NO firstRender guard — the whole point is to assert the framework
     // doesn't loop even with this anti-pattern. Mirrors the original CodeSample shape
@@ -294,7 +294,7 @@ internal sealed partial class JsErrorApp : Component
     protected override Component? Head => new Title()["t"];
     protected override string? HtmlLang => null;
 
-    protected override Component? Render() => Text("ready");
+    protected override Component? Render() => Text.Value("ready");
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {

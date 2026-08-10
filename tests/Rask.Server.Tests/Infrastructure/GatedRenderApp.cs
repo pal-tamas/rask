@@ -45,7 +45,7 @@ public sealed partial class GatedRenderApp : Component
         return
         [
             new P()["gated-render"],
-            Button(OnClickAsync: GateAsync)["go"]
+            Button.OnClickAsync(GateAsync)["go"]
         ];
     }
 

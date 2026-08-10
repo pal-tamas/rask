@@ -19,7 +19,8 @@ public sealed partial class CooperativeTimeoutApp : Component
 
     protected override Component? Render() =>
     [
-        Button(OnClickAsync: async () =>
+        Button
+            .OnClickAsync(async () =>
         {
             try
             {

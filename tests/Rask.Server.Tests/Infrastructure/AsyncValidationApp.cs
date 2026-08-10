@@ -33,10 +33,10 @@ public sealed partial class AsyncValidationApp : Component
             Input(() => _model.Username),
             ValidatingIndicator(
                 () => _model.Username,
-                () => Span(Class: "spinner")["Checking..."]),
+                () => Span.Class("spinner")["Checking..."]),
             ValidationMessage(
                 () => _model.Username,
-                msgs => Div(Class: "text-danger")[msgs[0]])
+                msgs => Div.Class("text-danger")[msgs[0]])
         ]
     ];
 

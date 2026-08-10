@@ -17,8 +17,8 @@ public sealed partial class SignInTestApp(AuthSignIn auth, RouteState routeState
     [
         new H1()[$"path={routeState.Path}"],
         new P()[$"user={(userProvider.Current.Identity?.IsAuthenticated == true ? userProvider.Current.Identity.Name : "anon")}"],
-        Button(OnClickAsync: SignInAsync)["sign-in"],
-        Button(OnClickAsync: SignOutAsync)["sign-out"]
+        Button.OnClickAsync(SignInAsync)["sign-in"],
+        Button.OnClickAsync(SignOutAsync)["sign-out"]
     ];
 
     private Task SignInAsync()

@@ -130,10 +130,10 @@ public class HelloMessageTests
             AwaitCompleted.TrySetResult();
         }
 
-        protected override Component? Head => Title()["mount-async-app"];
+        protected override Component? Head => Title["mount-async-app"];
         protected override string? HtmlLang => null;
 
-        protected override Component? Render() => P()[_loaded ? "loaded" : "loading"];
+        protected override Component? Render() => P[_loaded ? "loaded" : "loading"];
     }
 #pragma warning restore RASK019
 }

@@ -23,7 +23,8 @@ public sealed partial class DrainGateApp : Component
     protected override Component? Render() =>
     [
         new P()[$"count={Counter}"],
-        Button(OnClickAsync: async () =>
+        Button
+            .OnClickAsync(async () =>
         {
             await Gate.Task;
             Counter++;

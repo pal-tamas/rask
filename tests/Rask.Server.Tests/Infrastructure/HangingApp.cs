@@ -17,5 +17,5 @@ public sealed partial class HangingApp : Component
     protected override Component? Head => new Title()["hang"];
     protected override string? HtmlLang => null;
 
-    protected override Component? Render() => Button(OnClickAsync: async () => await Gate.Task)["hang"];
+    protected override Component? Render() => Button.OnClickAsync(async () => await Gate.Task)["hang"];
 }

@@ -15,7 +15,7 @@ public sealed partial class ThrowingApp : Component
     protected override Component? Render() =>
     [
         new P()[$"count={Counter}"],
-        Button(OnClick: () => throw new InvalidOperationException("boom"))["throw"],
-        Button(OnClick: () => Counter++)["bump"]
+        Button.OnClick(() => throw new InvalidOperationException("boom"))["throw"],
+        Button.OnClick(() => Counter++)["bump"]
     ];
 }

@@ -18,6 +18,6 @@ public sealed partial class NoOpApp : Component
     protected override Component? Render() =>
     [
         new H1()["static"],
-        Button(OnClick: () => Hidden++)["noop"]
+        Button.OnClick(() => Hidden++)["noop"]
     ];
 }

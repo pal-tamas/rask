@@ -20,6 +20,6 @@ public sealed partial class TestApp : Component
     [
         new H1()[$"path={_routeState.Path}"],
         new P()[$"count={Counter}"],
-        Button(OnClick: () => Counter++)["bump"]
+        Button.OnClick(() => Counter++)["bump"]
     ];
 }

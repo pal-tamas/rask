@@ -107,9 +107,9 @@ public sealed class M2Counter
 
 public sealed partial class M2App : Component
 {
-    protected override Component? Head => Title()["m2"];
+    protected override Component? Head => Title["m2"];
 
-    protected override Component? Render() => Router();
+    protected override Component? Render() => Router;
 }
 
 [Route("/m2/protected")]
@@ -117,8 +117,8 @@ public sealed partial class M2App : Component
 public sealed partial class M2ProtectedPage(M2Counter counter) : Component
 {
     protected override Component? Render() =>
-        Div(Id: "m2")[
-            Span()[$"count={counter.Count}"],
-            Button(OnClick: () => counter.Count++)["bump"]
+        Div.Id("m2")[
+            Span[$"count={counter.Count}"],
+            Button.OnClick(() => counter.Count++)["bump"]
         ];
 }

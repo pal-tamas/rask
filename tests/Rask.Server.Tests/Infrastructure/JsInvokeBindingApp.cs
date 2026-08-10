@@ -26,7 +26,7 @@ public sealed partial class JsInvokeBindingApp(IJSRuntime js) : Component
 
     protected override Component? Render() =>
     [
-        Rask.Core.Components.Generated.Input(Value: _typed, OnInput: v => _typed = v),
+        Input<string>().Value(_typed).OnInput(v => _typed = v),
         new P()[$"Echo: {_typed}"]
     ];
 }
