@@ -73,6 +73,39 @@ internal sealed partial class ResetElementFactoryHost : Component
         Full ? Div(Id: "x", Class: "c", Title: "t", OnClick: () => { }) : Div();
 }
 
+// The shape the Shop migration pilot broke on, reduced to its bones: a property whose SETTER DERIVES
+// its value rather than storing what it was handed. `Router.Routes` is the real one — assigning null
+// resolves `RouteRegistry.BuildTree()` and flattens the route leaves, so the factory passing
+// `Routes: null` every render is what builds the routing table at all.
+//
+// For a prop like this, "already reads as the default" and "the setter has run" are different
+// statements, and the reset used to conflate them: it skipped the write whenever the value already
+// equalled the default, which on a never-assigned prop is always. `App.Render() => Router` — the shape
+// at the root of every Rask app — rendered an empty <body>, with nothing to report it, because a
+// nullable prop is not a required one and RASK038 has no claim on it.
+internal sealed partial class DerivedSetterLeaf : Component
+{
+    private string? _resolved;
+
+    public string? Origin
+    {
+        get => _resolved;
+        set => _resolved = value ?? "built";
+    }
+
+    protected override Component? Render() => Span[_resolved ?? "nothing was built"];
+}
+
+internal sealed partial class DerivedSetterBuilderHost : Component
+{
+    protected override Component? Render() => Div[DerivedSetterLeaf];
+}
+
+internal sealed partial class DerivedSetterFactoryHost : Component
+{
+    protected override Component? Render() => Div()[Generated.DerivedSetterLeaf()];
+}
+
 // Both surfaces in one tree: a factory-built component must not be touched by the entry machinery —
 // it re-assigns every parameter itself, and a stray reset would fight it.
 internal sealed partial class ResetMixedHost : Component
@@ -127,6 +160,31 @@ public class BuilderResetTests
 
         var expected = Render(factory, sp);
         Assert.Equal("<div><span>-|n/a|7|off</span></div>", expected);
+        Assert.Equal(expected, Render(builder, sp));
+    }
+
+    // The regression the migration pilot found, at the size it can be reasoned about. A bare entry has
+    // to leave a derived setter having RUN, which means the reset assigns unconditionally rather than
+    // only when the value differs from the literal default.
+    [Fact]
+    public void A_setter_that_derives_its_value_runs_even_when_the_chain_never_names_it()
+    {
+        var sp = RenderHarness.EmptyServices();
+        var builder = new DerivedSetterBuilderHost();
+        var factory = new DerivedSetterFactoryHost();
+
+        var expected = Render(factory, sp);
+        Assert.Equal("<div><span>built</span></div>", expected);
+        Assert.Equal(expected, Render(builder, sp));
+
+        // And again: the second render is the one where the value is already there, so it is where an
+        // unconditional write has to stay a write and must not start reporting a prop change for it.
+        // (The FACTORY does report one here — it folds last render's derived value against the null it
+        // passes, which never compare equal — so this is the one place the entry is deliberately better
+        // than what it replaces rather than identical to it. `Router()` has been marking itself
+        // prop-changed on every render since it was written; it is invisible only because Router opts
+        // out of the render cache.)
+        Assert.Equal(expected, Render(factory, sp));
         Assert.Equal(expected, Render(builder, sp));
     }
 

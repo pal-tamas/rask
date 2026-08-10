@@ -252,7 +252,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     // reference prop take it under warnings-as-errors.
                     isRequired ? defaultLiteral + "!" : defaultLiteral,
                     string.Equals(owner, elementFqn, StringComparison.Ordinal),
-                    isRequired));
+                    isRequired,
+                    HasDerivedSetter(p)));
             }
         }
 
@@ -539,7 +540,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitReceiverCast(sb, receiver, "        ");
                 foreach (var s in pending)
                 {
-                    EmitPendingReset(sb, s.Name, s.TypeFqn, s.DefaultLiteral, bits[s.Name], "        ");
+                    EmitPendingReset(sb, s.Name, s.TypeFqn, s.DefaultLiteral, bits[s.Name], "        ", s.HasDerivedSetter);
                 }
             }
 
@@ -571,17 +572,86 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // test and a comparison rather than a write — Element's Ref/Role/TabIndex/Aria setters would
     // otherwise force a LiveState allocation onto every element that never used them.
     private static void EmitPendingReset(
-        StringBuilder sb, string name, string typeFqn, string defaultLiteral, int bit, string indent)
+        StringBuilder sb,
+        string name,
+        string typeFqn,
+        string defaultLiteral,
+        int bit,
+        string indent,
+        bool derivedSetter)
     {
+        var escaped = EscapeIdentifier(name);
+
+        // A prop whose setter DERIVES state has to be assigned even when it already reads as its default,
+        // because for that prop "reads as the default" is not the same statement as "the setter has run".
+        // Router.Routes is the case that proves it: assigning null resolves RouteRegistry.BuildTree() and
+        // flattens the route leaves, so the factory's `Routes: null` on every render is what builds the
+        // routing table at all. Skipping the write because Routes is already null leaves the leaves empty,
+        // nothing matches, and the whole page renders as nothing — with no diagnostic, because a nullable
+        // prop is not a required one and RASK038 has no claim on it.
+        //
+        // The fold still has to mean what it meant, so the comparison moves to the other side of the
+        // assignment: what changed is `before` vs `after`, not `before` vs the literal. For an ordinary
+        // auto-property those two are the same question, which is why the cheaper form below stays the
+        // default — this one costs a redundant write per unnamed prop per render, and the shared
+        // Element/Component surface is ~90 of them on every element in the tree.
+        if (derivedSetter)
+        {
+            sb.Append(indent).Append("if ((__p & ").Append(MaskLiteral(new[] { bit })).AppendLine(") != 0UL)");
+            sb.Append(indent).AppendLine("{");
+            sb.Append(indent).Append("    var __was = __c.").Append(escaped).AppendLine(";");
+            sb.Append(indent).Append("    __c.").Append(escaped).Append(" = ").Append(defaultLiteral).AppendLine(";");
+            sb.Append(indent).Append("    if (!global::System.Collections.Generic.EqualityComparer<")
+                .Append(typeFqn).Append(">.Default.Equals(__was, __c.").Append(escaped).AppendLine("))");
+            sb.Append(indent).AppendLine("    {");
+            sb.Append(indent).AppendLine("        global::Rask.Core.BuilderRuntime.MarkChanged(__c);");
+            sb.Append(indent).AppendLine("    }");
+            sb.Append(indent).AppendLine("}");
+            return;
+        }
+
         sb.Append(indent).Append("if ((__p & ").Append(MaskLiteral(new[] { bit }))
             .Append(") != 0UL && !global::System.Collections.Generic.EqualityComparer<").Append(typeFqn)
-            .Append(">.Default.Equals(__c.").Append(EscapeIdentifier(name)).Append(", ").Append(defaultLiteral)
+            .Append(">.Default.Equals(__c.").Append(escaped).Append(", ").Append(defaultLiteral)
             .AppendLine("))");
         sb.Append(indent).AppendLine("{");
         sb.Append(indent).AppendLine("    global::Rask.Core.BuilderRuntime.MarkChanged(__c);");
-        sb.Append(indent).Append("    __c.").Append(EscapeIdentifier(name)).Append(" = ")
+        sb.Append(indent).Append("    __c.").Append(escaped).Append(" = ")
             .Append(defaultLiteral).AppendLine(";");
         sb.Append(indent).AppendLine("}");
+    }
+
+    /// <summary>
+    ///     Whether <paramref name="p" />'s <c>set</c> accessor has a body — i.e. it derives state rather
+    ///     than storing what it was handed. <c>Router.Routes</c> turns a <c>null</c> into
+    ///     <c>RouteRegistry.BuildTree()</c>; <c>Form.Model</c> and <c>Form.Context</c> register with the
+    ///     ambient <c>EditContext</c> and walk the model graph.
+    /// </summary>
+    /// <remarks>
+    ///     Answered from syntax, which is always available where it is asked: an assembly emits the resets
+    ///     for the components it DECLARES. A prop inherited from an intermediate base in a REFERENCED
+    ///     assembly has no syntax here and reads as <c>false</c> — the same blind spot a member
+    ///     initializer has (see <c>PublishedRequiredProperties</c>), and unreached by anything in this
+    ///     repo, since the bases that cross an assembly boundary (<c>BsBlock</c>,
+    ///     <c>BsFormControl&lt;T&gt;</c>) are auto-properties throughout.
+    /// </remarks>
+    private static bool HasDerivedSetter(IPropertySymbol p)
+    {
+        if (p.SetMethod is not { } setter)
+        {
+            return false;
+        }
+
+        foreach (var reference in setter.DeclaringSyntaxReferences)
+        {
+            if (reference.GetSyntax() is AccessorDeclarationSyntax accessor
+                && (accessor.Body is not null || accessor.ExpressionBody is not null))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string MaskLiteral(IEnumerable<int> bits)
@@ -641,7 +711,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitReceiverCast(sb, c.FullyQualifiedName, "        ");
                 foreach (var p in pending)
                 {
-                    EmitPendingReset(sb, p.Name, p.TypeFqn, ResetLiteralFor(p), bits[p.Name], "        ");
+                    EmitPendingReset(sb, p.Name, p.TypeFqn, ResetLiteralFor(p), bits[p.Name], "        ", p.HasDerivedSetter);
                 }
             }
 
@@ -973,7 +1043,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsDelegate,
         string DefaultLiteral,
         bool IsElementOwned,
-        bool IsRequired);
+        bool IsRequired,
+        bool HasDerivedSetter);
 
     // The names already declared on Rask.Core.Component. In the compilation that DECLARES it, an entry
     // whose name matches one would be CS0102 ("already contains a definition") — `Head` is the real case:
@@ -2509,7 +2580,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     isDelegate,
                     initializerDefault,
                     prop.SetMethod?.IsInitOnly == true,
-                    IsSharedSurfaceType(current)));
+                    IsSharedSurfaceType(current),
+                    HasDerivedSetter(prop)));
             }
         }
 
@@ -3674,7 +3746,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsDelegate,
         string? InitializerDefault,
         bool IsInitOnly,
-        bool IsSharedSurfaceProp)
+        bool IsSharedSurfaceProp,
+        bool HasDerivedSetter)
     {
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
         public string Escaped => EscapeIdentifier(Name);

@@ -277,24 +277,37 @@ them until tagged releases begin.
   required in the first place. `BsCheck` is the only control affected: `Value` on `BsSelect`,
   `BsMultiSelect`, `BsRadioGroup`, `BsCheckboxGroup`, `BsFormControl<T>`, `Input<T>`, `Select<T>` and
   `Textarea<T>` is nullable already, so their bound chains were never asked for it.
-- **The builder-surface migration was piloted on `Rask.Example.Shop` and is not viable yet — three
-  blockers, one of them silent.** The RASK038/039 survey had come back "fires at zero sites", but every
+- **The builder-surface migration was piloted on `Rask.Example.Shop` — three blockers, one of them
+  silent and now fixed.** The RASK038/039 survey had come back "fires at zero sites", but every
   call site in the repo was still a factory call, so no chain existed for either analyzer to walk;
   converting one app by hand is what makes the exposure real. All 211 call sites in the sample were
   converted, the result was compared against a new whole-document transcript of every one of its render
   paths, and then reverted. What it found:
-  - **`Router` renders an empty page, and nothing reports it.** `App.Render() => Router` — the shape at
-    the root of every Rask app — produces an empty `<body>`. `Router.Routes` is a property whose *setter
-    manufactures the default*: assigning `null` resolves `RouteRegistry.BuildTree()` and flattens the
-    route leaves, and the factory gets there by passing `Routes: null` on every render. A chain writes
-    only what it names, and the deferred reset that stands in for the factory's re-assignment is guarded
-    by "is this already the default" — which a never-assigned `Routes` trivially is — so the setter never
-    runs, no route matches, and the page disappears. `Routes` is nullable, so it is not a required
-    property and RASK038 has nothing to say. **The shape, not the component, is the bug**: any property
-    whose setter derives state is broken by "only write what the chain names". `Form.Model` and
-    `Form.Context` are the same shape — both register with the ambient `EditContext`, and `Model`'s own
-    comment states it depends on the factory re-applying it every render — and survive only while a chain
-    happens to name them.
+  - **`Router` rendered an empty page, and nothing reported it — now fixed.** `App.Render() => Router` —
+    the shape at the root of every Rask app — produced an empty `<body>`. `Router.Routes` is a property
+    whose *setter manufactures the default*: assigning `null` resolves `RouteRegistry.BuildTree()` and
+    flattens the route leaves, and the factory gets there by passing `Routes: null` on every render. A
+    chain writes only what it names, and the deferred reset that stands in for the factory's
+    re-assignment was guarded by "is this already the default" — which a never-assigned `Routes`
+    trivially is — so the setter never ran, no route matched, and the page disappeared. `Routes` is
+    nullable, so it is not a required property and RASK038 had nothing to say.
+    **The shape, not the component, was the bug**, so the fix is on the shape: for a property whose
+    `set` accessor has a *body*, the reset now assigns unconditionally, because for that prop "reads as
+    the default" and "the setter has run" are not the same statement. The fold keeps its meaning by
+    comparing across the assignment — `before` against `after` rather than `before` against the literal —
+    which is the same question for an ordinary auto-property and the right one here. Auto-properties keep
+    the cheaper guarded form, so the ~90-prop shared `Element` surface pays nothing extra per element per
+    render; the five props that do take the new form (`Draggable`, `Role`, `TabIndex`, `Aria`, `Ref`,
+    all thin forwarders onto the lazy `LiveState`) are no-ops when they write a null. `Form.Model` and
+    `Form.Context` — the same shape, both registering with the ambient `EditContext`, and `Model`'s own
+    comment says it depends on the factory re-applying it every render — are covered by the same rule
+    rather than by happening to be named.
+    Measured, since the reset is the one part of this surface that costs per *render* rather than per
+    call site: a new `BuilderSurfaceBenchmarks` renders the same 50-row tree through both surfaces as a
+    live root, steady-state. **Allocation is identical between the two surfaces and unchanged by this
+    fix — 19.7 KB either way** — and the entry stays slightly ahead on time (Entry/Factory 0.97 → 0.95,
+    both inside the noise). That is also the first half of the entry-vs-factory parity number the design
+    had never measured.
   - **An async form submit has no setter.** `Form`'s generic factory is a forwarder: it folds the typed
     `OnValidSubmit` and `OnValidSubmitAsync` parameters into one untyped `Delegate? OnValidSubmit`
     property, wrapping each in `AutoCallback`. Setters are emitted from properties, so the builder
