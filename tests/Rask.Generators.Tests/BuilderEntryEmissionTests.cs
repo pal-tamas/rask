@@ -164,12 +164,14 @@ public class BuilderEntryEmissionTests
     }
 
     // A non-nullable prop with no member initializer is a REQUIRED factory parameter (RASK001): the
-    // factory demands it on every call and re-assigns it on every render. An entry has no argument to
-    // carry it and no default to reset it to, so `Widget.Title("x")` on one render and a bare `Widget`
-    // on the next would silently keep the title — and the very first render would leave it `null!`.
-    // Those components stay on their factory, exactly as a `required` member's do.
+    // factory demands it on every call and re-assigns it on every render. That used to withhold the
+    // entry, because an entry has no argument to carry the value and nothing was putting it back —
+    // `Widget.Title("x")` on one render and a bare `Widget` on the next silently kept the title. Both
+    // halves have an answer now (RASK038 at the call site, `default!` in the reset), so the component
+    // gets its entry, and this pins that the reset comes with it: an entry without one is the silent
+    // failure, and the two are emitted from different passes.
     [Fact]
-    public void A_component_with_a_required_factory_param_gets_no_entry()
+    public void A_component_with_a_required_factory_param_gets_an_entry_and_a_reset_for_it()
     {
         var run = BuilderGeneratorHarness.Run("""
                                               using Rask.Core;
@@ -187,10 +189,37 @@ public class BuilderEntryEmissionTests
                                               """);
 
         var entries = run.Source(Entries);
-        Assert.DoesNotContain(" Widget =>", entries, StringComparison.Ordinal);
+        Assert.Contains(" Widget =>", entries, StringComparison.Ordinal);
+        Assert.Contains(" Optional =>", entries, StringComparison.Ordinal);
 
-        // …and a component whose props are all optional still gets one, so this is the required prop
-        // doing the work rather than the emission having stopped.
+        // A folding prop's reset is deferred to the end of the parent's Render(), so it reads as a
+        // pending-bit test rather than a bare assignment — `default!`, not `default`, because the
+        // property is non-nullable by definition.
+        var setters = run.Source(Setters);
+        Assert.Contains("__c.Title = default!;", setters, StringComparison.Ordinal);
+    }
+
+    // A `required` MEMBER still withholds the entry, and for a reason no analyzer or reset touches:
+    // BuilderRuntime.Entry<T> is constrained `where T : Component, new()`, and a type with a required
+    // member does not satisfy `new()` at all (CS9040 — CrossAssemblyRequiredPropertyTests).
+    [Fact]
+    public void A_component_with_a_required_member_still_gets_no_entry()
+    {
+        var entries = BuilderGeneratorHarness.Run("""
+                                                  using Rask.Core;
+                                                  namespace Demo;
+                                                  public partial class Widget : Component
+                                                  {
+                                                      public required string Title { get; set; }
+                                                  }
+
+                                                  public partial class Optional : Component
+                                                  {
+                                                      public string? Note { get; set; }
+                                                  }
+                                                  """).Source(Entries);
+
+        Assert.DoesNotContain(" Widget =>", entries, StringComparison.Ordinal);
         Assert.Contains(" Optional =>", entries, StringComparison.Ordinal);
     }
 

@@ -110,16 +110,15 @@ public class GeneratedBuilderSurfaceAnalyzerTests
     /// <summary>
     ///     The seam between the two halves of the builder surface, pinned so it cannot move silently.
     ///     <para>
-    ///         <c>CanHaveEntry</c>/<c>BlocksEntry</c> withhold an entry from any component with a
-    ///         RASK001-required property, because an entry has no argument to carry the value and no
-    ///         default to reset it to. RASK038 exists to police exactly that property set in a chain — so
-    ///         while the generator keeps withholding, RASK038 has nothing to fire on in generated code
-    ///         and is only reachable through a hand-written entry. Lifting the restriction is what turns
-    ///         it on; this asserts the state of that seam rather than assuming either side of it.
+    ///         A RASK001-required property used to withhold the entry outright, which left RASK038 with
+    ///         nothing to fire on in generated code at all. It no longer does: the value is enforced at
+    ///         the chain (here) and put back by the generated reset (the test below), which is the half
+    ///         no call-site analyzer can reach. This asserts the two halves meet rather than assuming
+    ///         either side of the seam.
     ///     </para>
     /// </summary>
     [Fact]
-    public async Task A_component_with_a_required_property_gets_no_entry__so_RASK038_has_nothing_to_walk()
+    public async Task A_component_with_a_required_property_gets_an_entry__and_RASK038_walks_it()
     {
         const string source = """
             namespace Demo
@@ -132,14 +131,35 @@ public class GeneratedBuilderSurfaceAnalyzerTests
 
                 public sealed partial class Page : Rask.Core.Component
                 {
-                    protected override Rask.Core.Component? Render() => null;
+                    protected override Rask.Core.Component? Render() => Card.Note("n");
                 }
             }
             """;
 
         var run = BuilderGeneratorHarness.Run(source);
-        Assert.DoesNotContain(" Card =>", run.Source("RaskBuilderConsumerEntries.g.cs"), StringComparison.Ordinal);
-        Assert.Empty((await AnalyzeGeneratedAsync(source)).Where(d => d.Id is "RASK038" or "RASK039"));
+        Assert.Contains(" Card =>", run.Source("RaskBuilderConsumerEntries.g.cs"), StringComparison.Ordinal);
+
+        var d = Assert.Single((await AnalyzeGeneratedAsync(source)).Where(x => x.Id is "RASK038" or "RASK039"));
+        Assert.Equal("RASK038", d.Id);
+        Assert.Contains("'Title'", d.GetMessage(), StringComparison.Ordinal);
+    }
+
+    // The other half: the reset that stands in for the factory's required ARGUMENT. `default!` rather
+    // than `default` because the property is non-nullable by definition — that is what the rule is.
+    [Fact]
+    public void A_required_property_is_put_back_by_the_generated_reset()
+    {
+        var setters = BuilderGeneratorHarness.Run("""
+                                                  namespace Demo
+                                                  {
+                                                      public sealed partial class Card : Rask.Core.Component
+                                                      {
+                                                          public string Title { get; set; }
+                                                      }
+                                                  }
+                                                  """).Source("RaskBuilderSetters.g.cs");
+
+        Assert.Contains("__c.Title = default!;", setters, StringComparison.Ordinal);
     }
 
     // A chain over the generated `Card` entry, stored nowhere — one expression, so RASK038's walk is

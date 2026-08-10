@@ -247,7 +247,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     p.Type.ToDisplayString(FullyQualifiedNullable),
                     owner,
                     isDelegate,
-                    defaultLiteral,
+                    // Same rule as ResetLiteralFor: a required prop has no default on either surface, so
+                    // the reset writes the constructed state and `!` is what lets a non-nullable
+                    // reference prop take it under warnings-as-errors.
+                    isRequired ? defaultLiteral + "!" : defaultLiteral,
                     string.Equals(owner, elementFqn, StringComparison.Ordinal),
                     isRequired));
             }
@@ -391,8 +394,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var next = 0;
         foreach (var s in host.Shared)
         {
-            if (next < OwnPendingBit && !s.IsRequired
-                                     && FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false))
+            if (next < OwnPendingBit
+                && FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false))
             {
                 bits[s.Name] = next++;
             }
@@ -410,7 +413,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         SourceProductionContext spc, SetterHost host, Dictionary<string, int> bits)
     {
         var folding = host.Shared
-            .Where(s => !s.IsRequired && FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false))
+            .Where(s => FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false))
             .ToList();
         if (folding.Count <= OwnPendingBit)
         {
@@ -438,10 +441,24 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             !p.IsSharedSurfaceProp && !p.IsInitOnly && p.Name != "Children" && !p.IsBoundInterfaceProp
             && IsParamProperty(p));
 
-    // What the reset may put back: a prop the factory would re-apply from a parameter DEFAULT. A prop
-    // with a non-constant initializer (`= new List<>()`) is not a factory parameter at all, and a
-    // required one has no default — the caller has to name it every render either way.
-    private static bool IsResettableProp(PropInfo p) => IsParamProperty(p) && !IsRequiredFactoryParam(p);
+    // What the reset may put back: every prop the factory re-applies each render. A prop with a
+    // non-constant initializer (`= new List<>()`) is not a factory parameter at all, so the factory can
+    // neither set it nor put it back and neither may the builder.
+    //
+    // A REQUIRED prop is in here, and used not to be. The factory re-applies it from a required
+    // ARGUMENT, so it is never stale there; a chain that stops naming it has nothing to re-apply, and
+    // because the entry hands back the same instance, `BsIcon.Name(Star)` on one render and a bare
+    // `BsIcon` on the next still rendered the star. That staleness is a SEPARATE half of the problem
+    // from the missing setter RASK038 reports — the analyzer says the value is absent, this says the
+    // OLD one must not survive — and withholding the entry was what covered both at once.
+    private static bool IsResettableProp(PropInfo p) => IsParamProperty(p);
+
+    // The literal that reset writes. An optional prop goes back to the default its factory parameter
+    // carries; a required one has no default on either surface, so the entry writes `default!` — the
+    // state the component would have been constructed in. The `!` is what lets a non-nullable reference
+    // prop take it without CS8600 under warnings-as-errors, and it is a no-op on a value type.
+    private static string ResetLiteralFor(PropInfo p) =>
+        IsRequiredFactoryParam(p) ? "default!" : DefaultLiteralFor(p);
 
     private static Dictionary<string, int> OwnPendingBits(Candidate c)
     {
@@ -479,9 +496,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             var kind = elementOwned ? "Element" : "Component";
             var receiver = elementOwned ? host.ElementFqn : "global::Rask.Core.Component";
-            // A required factory parameter has no default at all — the caller must name it every
-            // render, and the factory has nothing to put back either — so it is never reset.
-            var props = host.Shared.Where(s => s.IsElementOwned == elementOwned && !s.IsRequired).ToList();
+            // Required props are reset here too, on the same rule as a component's own (IsResettableProp):
+            // the factory re-applies one from a required ARGUMENT every render, and a chain that stops
+            // naming it has nothing to re-apply, so leaving it alone is what makes a prop stale. There are
+            // none on Element/Component today — one would have blocked every tag from having an entry back
+            // when a required prop did that — which is exactly why the two halves must not drift.
+            var props = host.Shared.Where(s => s.IsElementOwned == elementOwned).ToList();
             var pending = props.Where(s => bits.ContainsKey(s.Name)).ToList();
 
             sb.Append("    /// <summary>Puts <c>").Append(kind)
@@ -603,7 +623,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitReceiverCast(sb, c.FullyQualifiedName, "        ");
                 foreach (var p in eager)
                 {
-                    sb.Append("        __c.").Append(p.Escaped).Append(" = ").Append(DefaultLiteralFor(p))
+                    sb.Append("        __c.").Append(p.Escaped).Append(" = ").Append(ResetLiteralFor(p))
                         .AppendLine(";");
                 }
             }
@@ -621,7 +641,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitReceiverCast(sb, c.FullyQualifiedName, "        ");
                 foreach (var p in pending)
                 {
-                    EmitPendingReset(sb, p.Name, p.TypeFqn, DefaultLiteralFor(p), bits[p.Name], "        ");
+                    EmitPendingReset(sb, p.Name, p.TypeFqn, ResetLiteralFor(p), bits[p.Name], "        ");
                 }
             }
 
@@ -1046,24 +1066,26 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // supply at construction rules it out:
     //
     //  * no usable constructor at all;
-    //  * a `required` member — the entry's `new T()` cannot even compile (CS9040);
-    //  * a RASK001-required prop (non-nullable, no member initializer). The factory makes it a required
-    //    PARAMETER, so every render names it and every render re-assigns it. An entry hands back the
-    //    same instance and there is nothing to reset it to, so the prop keeps LAST render's value —
-    //    `Widget.Title("x")` on one render and a bare `Widget` on the next still has the title — and on
-    //    the very first render it is `null!`. Both silently. Those components stay on their factory
-    //    until the chain-walking required-props analyzer can enforce them at the call site.
+    //  * a `required` member — the entry's `new T()` cannot even compile (CS9040).
     //
-    // Both of those blockers are worse than "write the analyzer" makes them sound, and the shape of the
-    // fix is different for each — see CrossAssemblyRequiredPropertyTests, which pins both:
+    // A RASK001-required prop (non-nullable, no member initializer) used to be the third, and no longer
+    // is. It cost two things, and each now has its own answer rather than one shared veto:
     //
-    //  * `required` cannot ride on Entry<T> at all: it is constrained `where T : Component, new()` and a
-    //    type with a required member does not satisfy `new()` (CS9040). Policing the call site does not
-    //    help; the entry needs a construction path that is not `new T()`.
-    //  * a RASK001 prop is invisible to RASK038 across an assembly boundary — a member initializer does
-    //    not survive into metadata, so from a consumer's side `double Value` and `double Value = 0` are
-    //    the same symbol. The requiredness has to be PUBLISHED by the assembly that compiled the
-    //    component (this compilation already computes it, right here) for a consumer to read it back.
+    //  * nothing enforced it at the call site — a factory makes it a required PARAMETER and the language
+    //    reports an omitted one, while a chain just doesn't call that setter. RASK038 walks the chain
+    //    and reports it now, including for a REFERENCED library's component, whose requiredness the
+    //    owning assembly publishes as [assembly: RaskRequiredProperties] because metadata destroys it
+    //    (CrossAssemblyRequiredPropertyTests);
+    //  * and nothing put it back — a factory re-assigns every parameter each render, an entry hands back
+    //    the same instance, so `Widget.Title("x")` then a bare `Widget` still had the title. The reset
+    //    covers required props now, writing `default!` (IsResettableProp / ResetLiteralFor). That is the
+    //    half a call-site analyzer cannot reach, and it is why the two had to land together.
+    //
+    // `required` is a different problem with a different shape, not a stricter version of the same one:
+    // it cannot ride on Entry<T> AT ALL, which is constrained `where T : Component, new()`, and a type
+    // with a required member does not satisfy `new()` (CS9040). Policing the call site does not help —
+    // the entry would need a construction path that is not `new T()`, which is a decision for the
+    // component's own API, not for this generator.
     //
     // …and so does a name Component already declares (`Head`), which would be CS0102.
     private static bool CanHaveEntry(Candidate c, HashSet<string> taken) =>
@@ -1073,11 +1095,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         && !c.Properties.Any(BlocksEntry)
         && !taken.Contains(c.TypeName);
 
-    // A prop the caller must name on every render. `required` has to be set at construction; the rest
-    // are the factory's required parameters, which have no default for anything to put back.
-    private static bool BlocksEntry(PropInfo p) =>
-        p.UserMarkedRequired
-        || (IsParamProperty(p) && !p.IsBoundInterfaceProp && IsRequiredFactoryParam(p));
+    // A prop that has to be set at CONSTRUCTION, which is the one thing an entry has no room for.
+    private static bool BlocksEntry(PropInfo p) => p.UserMarkedRequired;
 
     // The entries to emit, with same-name collisions removed and reported.
     //

@@ -171,10 +171,11 @@ them until tagged releases begin.
   excludes a prop from the factory's parameters entirely, so the factory can neither set it nor put it
   back, while the builder could set it once and have it survive every later render — the same staleness
   bug the deferred reset exists to prevent, pointed the other way. *A component with a required factory
-  parameter* (non-nullable, no initializer — RASK001) now keeps its factory instead of getting an entry,
-  exactly as a `required` member already did: an entry has no argument to carry the value and no default
-  to reset it to, so `Widget.Title("x")` followed by a bare `Widget` silently kept the title and the
-  first render left it `null!`. *And the `On`-prefix rule left a gap*: a delegate property whose name
+  parameter* (non-nullable, no initializer — RASK001) briefly kept its factory instead of getting an
+  entry, exactly as a `required` member does: an entry has no argument to carry the value and nothing
+  was resetting it, so `Widget.Title("x")` followed by a bare `Widget` silently kept the title and the
+  first render left it `null!`. That restriction is lifted again below, once RASK038 could enforce the
+  value and the reset could put it back. *And the `On`-prefix rule left a gap*: a delegate property whose name
   does not start with `On` got a setter of its own name, which C#'s invocable-member rule can never
   bind to — the property wins and the setter is unreachable dead code. `BsDataGrid`'s
   `RowKey`/`RowClass`/`ExpandedContent`, the `OptionLabel`/`OptionDisabled`/`OptionGroup`/`Filter` of
@@ -244,6 +245,30 @@ them until tagged releases begin.
   `typeof` on purpose — a `System.Type` in an attribute blob is an assembly-qualified name the trimmer
   resolves and marks, which would root every component of a referenced component library in every
   trimmed app.
+  **With that in place, a RASK001-required property no longer withholds the entry.** `BsIcon`,
+  `BsProgress` and `BsCheck` can be built through a chain now, and are no longer components that would
+  simply cease to exist when the factory is deleted. The restriction was covering two different
+  problems with one veto, and they now have one answer each: *nothing enforced the property at the call
+  site* — a factory makes it a required parameter and the language reports an omitted one, a chain just
+  doesn't call that setter — which is RASK038's job, cross-assembly included; and *nothing put it back*
+  — the factory re-assigns every parameter each render, the entry hands back the same instance, so
+  `BsIcon.Name(Star)` on one render and a bare `BsIcon` on the next still rendered the star. The reset
+  now covers required props, writing `default!`. That second half is the one no call-site analyzer can
+  reach — RASK038 says the value is *absent*, the reset says last render's must not survive in its
+  place — and it is why the two had to land together. The `required` **modifier** still withholds an
+  entry, and this does not change that: `BuilderRuntime.Entry<T>` is constrained
+  `where T : Component, new()` and a type with a required member does not satisfy `new()` at all
+  (CS9040), so `BsToast`, `BsStat`, `BsSelect`, `BsMultiSelect`, `BsRadioGroup` and `BsCheckboxGroup`
+  need a construction path that is not `new T()` before they can follow — a decision for those
+  components' own API. No call site changed: all three get a *property* entry, and a property is not
+  invocable, so the same-named factory still wins an invocation (only a method entry hides one).
+  **Known gap:** `BsCheck.Value` is required on the control's *controlled* factory and excluded from
+  its *bound* one, and RASK038 does not model that split — it reads a single entry, so
+  `BsCheck.Bind(() => model.Done)` is reported as never setting `Value` even though the control does
+  not read it when `Bind` is set. A controlled chain (`BsCheck.Value(true)`) is clean. Closing it is
+  either a Bootstrap change (give `Value` the `= false` initializer its own source comment already
+  claims it has) or an analyzer one (exempt the controlled `Value`/`OnChange`/`OnChangeAsync` members
+  when a chain sets `Bind`, mirroring `EmitBoundOverload`); neither is taken here.
 - **Three diagnostics for the builder surface, where the compiler stops being able to speak for us.**
   Entries are members named after their component type, so they interact with name lookup in ways the
   factory never did — and the two failures that produces both surface as compiler errors that name
@@ -266,10 +291,10 @@ them until tagged releases begin.
     can be continued anywhere — and reports the gap in the analysis rather than a wrong answer. RASK001
     stays: both surfaces exist side by side during the migration.
 
-  RASK038 and RASK039 are for now the surface's **hand-written** half: the generator withholds an entry
-  from exactly the components that have a required property (an entry has no argument to carry the value
-  and no default to reset it to), so a chain over a *generated* entry has nothing for RASK038 to find.
-  Lifting that restriction is what switches it on, and the analyzer is the precondition for lifting it.
+  RASK038 and RASK039 bound to nothing at first: the generator withheld an entry from exactly the
+  components that have a required property, so a chain over a *generated* entry had nothing for them to
+  find. They are what made lifting that restriction safe, and they are live now — `BsIcon`, `BsProgress`
+  and `BsCheck` have entries, and their properties are enforced at the chain.
   All three, plus the `CS0108` fix, are now pinned against the emission itself — the real
   `protected static` entries in `Rask.Core`, and the `private static` ones the generator injects into a
   consumer's `partial` — rather than only against hand-written stand-ins for them.

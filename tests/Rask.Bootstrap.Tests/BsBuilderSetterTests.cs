@@ -118,6 +118,22 @@ public class BsBuilderSetterTests
             StringComparison.Ordinal);
     }
 
+    // The three Bootstrap components a RASK001-required prop used to lock out of the builder surface
+    // entirely: BsIcon.Name (an enum), BsProgress.Value and BsCheck.Value. "No entry" meant "no way to
+    // build it at all" once the factory goes, so this is the shape that had to compile before stage E
+    // could proceed — and it is the only place the entries themselves are exercised, since an entry is
+    // a member of Component and only in scope inside a component body.
+    [Fact]
+    public void The_three_controls_with_a_required_prop_build_through_a_chain()
+    {
+        var html = Generated.BsRequiredPropProbe().ToHtml();
+
+        Assert.Contains("bi bi-star", html, StringComparison.Ordinal);
+        Assert.Contains("aria-valuenow=\"42\"", html, StringComparison.Ordinal);
+        Assert.Contains("form-check-input", html, StringComparison.Ordinal);
+        Assert.Contains("Agree", html, StringComparison.Ordinal);
+    }
+
     private static readonly Supplier[] Suppliers = [new(1, "Acme"), new(2, "Globex")];
 
     private sealed record Supplier(int Id, string Name);
@@ -129,6 +145,25 @@ public class BsBuilderSetterTests
         public bool Done { get; set; }
     }
 
+}
+
+// Builds the three required-prop controls through their entries. Every setter here names a prop the
+// chain must set, so RASK038 stays quiet — which is the other half of the same change, and the half
+// that only works because Rask.Bootstrap PUBLISHES its requiredness: from here BsIcon.Name is a
+// metadata symbol whose member initializer, if it had one, would be invisible.
+//
+// BsCheck is CONTROLLED here rather than bound, deliberately. `Value` is required on its controlled
+// factory and excluded from its bound one, and RASK038 does not model that split — it reads one entry,
+// so `BsCheck.Bind(…)` is reported as missing `Value` even though the control never reads it when Bind
+// is set. That is an open decision (see the CHANGELOG), not something this test should paper over.
+internal sealed partial class BsRequiredPropProbe : Rask.Core.Component
+{
+    protected override Rask.Core.Component? Render() =>
+        Div[
+            BsIcon.Name(BsIconName.Star),
+            BsProgress.Value(42),
+            BsCheck.Value(true).Label("Agree")
+        ];
 }
 
 // A Component so DelegateOwner can resolve an owner for the method group — which is the precondition

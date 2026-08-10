@@ -198,6 +198,42 @@ public class BuilderResetTests
         Assert.DoesNotContain("id=\"last\"", html, StringComparison.Ordinal);
     }
 
+    // The half of the required-prop problem that no call-site analyzer reaches. RASK038 says the value
+    // is ABSENT; this says last render's must not survive in its place. Withholding the entry used to
+    // cover both at once, so relaxing that without this would have left `RequiredResetLeaf.Word("w")`
+    // on one render and a bare `RequiredResetLeaf` on the next still rendering "w" — silently, and
+    // forever, because the entry hands back the same instance.
+    [Fact]
+    public void A_required_prop_the_second_render_omits_goes_back_to_its_constructed_state()
+    {
+        var sp = RenderHarness.EmptyServices();
+        var host = new RequiredResetHost();
+
+        Assert.Equal("<div><span>w|3</span></div>", Render(host, sp));
+        host.Full = false;
+
+        Assert.Equal("<div><span>-|0</span></div>", Render(host, sp));
+        Assert.Null(host.Leaf!.Word);
+        Assert.Equal(0, host.Leaf.Count);
+    }
+
+    // …and it must not cost the fold: a required prop re-supplied unchanged is still no change, the
+    // same way an optional one is. Blanking it eagerly would have made Track compare "w" against null
+    // every frame and no entry-built component with a required prop would ever hit the render cache.
+    [Fact]
+    public void Re_supplying_the_same_required_prop_still_reports_no_change()
+    {
+        var sp = RenderHarness.EmptyServices();
+        var host = new RequiredResetHost();
+
+        for (var i = 0; i < 3; i++)
+        {
+            Render(host, sp);
+        }
+
+        Assert.Equal("<div><span>w|3</span></div>", Render(host, sp));
+    }
+
     // Key is a reconciliation identity rather than a reactive prop, so it is reset with the non-folding
     // half — but it still has to be reset, because the factory assigns it every render too.
     [Fact]
@@ -220,6 +256,39 @@ internal sealed partial class KeyedResetHost : Component
     internal ResetLeaf? Leaf;
 
     protected override Component? Render() => Div[Leaf = Keyed ? ResetLeaf.Key(7) : ResetLeaf];
+}
+
+// A RASK001-required prop: non-nullable, no member initializer. The generated factory makes it a
+// required ARGUMENT and re-applies it every render, so it can never go stale there — which is why the
+// generator used to withhold the entry from any component that had one, and why nothing had to reset
+// it. Now that those components DO get an entry, the reset is what stands in for the argument: a chain
+// that stops naming the prop has nothing to re-apply, and the entry hands back the same instance.
+//
+// RASK038 reports the omission at the call site, but only for a chain it can read end to end. This is
+// the shape it explicitly cannot (RASK039) — and the whole reason the two halves are separate.
+#pragma warning disable CS8618 // the point of the test is a non-nullable prop with no initializer
+internal sealed partial class RequiredResetLeaf : Component
+{
+    public string Word { get; set; }
+
+    public int Count { get; set; }
+
+    protected override Component? Render() => Span[$"{Word ?? "-"}|{Count}"];
+}
+#pragma warning restore CS8618
+
+internal sealed partial class RequiredResetHost : Component
+{
+    internal bool Full = true;
+    internal RequiredResetLeaf? Leaf;
+
+    protected override Component? Render()
+    {
+#pragma warning disable RASK039 // deliberately the split chain the analyzer cannot answer
+        var leaf = RequiredResetLeaf;
+#pragma warning restore RASK039
+        return Div[Leaf = Full ? leaf.Word("w").Count(3) : leaf];
+    }
 }
 
 // A Render() that serializes another component in the MIDDLE of building its own tree — the shape

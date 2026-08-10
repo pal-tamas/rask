@@ -51,11 +51,13 @@ public class BuilderSetterEmissionTests
         Assert.Contains("public static void __RaskResetPending_Demo_Widget(", output, StringComparison.Ordinal);
         Assert.Contains("__c.Title, null))", output, StringComparison.Ordinal);
 
-        // `int Count` is non-nullable with no initializer — a REQUIRED factory parameter, which has no
-        // default for the factory to re-apply either. It claims no bit and is never reset.
+        // `int Count` is non-nullable with no initializer — a REQUIRED factory parameter. The factory
+        // re-applies it from the caller's argument every render; a chain that stops naming it has
+        // nothing to re-apply, so it claims a bit and resets like any other folding prop, to `default!`.
         var count = output.Split('\n').Single(l => l.Contains(" Count(this ", StringComparison.Ordinal));
-        Assert.DoesNotContain("BuilderRuntime.Written", count, StringComparison.Ordinal);
-        Assert.DoesNotContain("__c.Count, default", output, StringComparison.Ordinal);
+        Assert.Contains("BuilderRuntime.Written(__c, 0x20000UL)", count, StringComparison.Ordinal);
+        Assert.Contains("__c.Count, default!)", output, StringComparison.Ordinal);
+        Assert.Contains("__c.Count = default!;", output, StringComparison.Ordinal);
     }
 
     // A non-folding prop is defaulted the moment the entry is created instead: it never calls Track, so
