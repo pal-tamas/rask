@@ -8,7 +8,7 @@ namespace Rask.Core;
 ///     <para>
 ///         Every framework entry (<c>Div</c>, <c>Span</c>, <c>Input</c>, …) is a <c>protected static</c>
 ///         member emitted onto <i>this</i> class, and <see cref="Component" /> derives from it — so the
-///         167 entries exist once, in one place, and a component and a test class reach the same ones by
+///         166 entries exist once, in one place, and a component and a test class reach the same ones by
 ///         the same rule. That is the whole reason the entries moved here rather than being emitted a
 ///         second time: two emissions of the same surface are two things free to drift.
 ///     </para>

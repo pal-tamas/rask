@@ -13,7 +13,7 @@ them until tagged releases begin.
   same-named type — CS0119 — while a member of the enclosing type wins), and its consequence was that
   the surface was reachable only from **inside a component**. A quarter of this repo's call sites are
   not in one: 1,399 in test classes, plus the static markup helpers. The framework entries now land on
-  **`Rask.Core.RaskMarkup`**, and `Component` derives from *it* — the same 163 members, one extra link
+  **`Rask.Core.RaskMarkup`**, and `Component` derives from *it* — the same 166 members (163 distinct names), one extra link
   in the chain, and a type that is not a component reaches them by deriving from the half of `Component`
   that is only the markup. `RaskMarkup` has no members of its own: no `Render()`, no lifecycle, no
   positional identity, no render cache. Emitting the surface a *second* time onto a separate base was
@@ -21,7 +21,7 @@ them until tagged releases begin.
   A consuming assembly's own components still cannot ride there — a generator cannot add members to a
   type it does not declare — so those are injected into a markup host's own `partial`, exactly as they
   are into a component's. Measured on `Rask.Core.Tests`: a markup host costs **77 forwarder lines
-  (~8 KB)** of generated source, *the same as a component host*, because the 163 framework entries
+  (~8 KB)** of generated source, *the same as a component host*, because the 166 framework entries
   arrive by inheritance and not by injection. Injecting them instead would be ~240 lines / ~25 KB per
   host — 3× — which is the price of the alternative design where the host is marked by an attribute
   rather than a base class, and needs no base slot.
