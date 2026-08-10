@@ -277,6 +277,45 @@ them until tagged releases begin.
   required in the first place. `BsCheck` is the only control affected: `Value` on `BsSelect`,
   `BsMultiSelect`, `BsRadioGroup`, `BsCheckboxGroup`, `BsFormControl<T>`, `Input<T>`, `Select<T>` and
   `Textarea<T>` is nullable already, so their bound chains were never asked for it.
+- **The builder-surface migration was piloted on `Rask.Example.Shop` and is not viable yet — three
+  blockers, one of them silent.** The RASK038/039 survey had come back "fires at zero sites", but every
+  call site in the repo was still a factory call, so no chain existed for either analyzer to walk;
+  converting one app by hand is what makes the exposure real. All 211 call sites in the sample were
+  converted, the result was compared against a new whole-document transcript of every one of its render
+  paths, and then reverted. What it found:
+  - **`Router` renders an empty page, and nothing reports it.** `App.Render() => Router` — the shape at
+    the root of every Rask app — produces an empty `<body>`. `Router.Routes` is a property whose *setter
+    manufactures the default*: assigning `null` resolves `RouteRegistry.BuildTree()` and flattens the
+    route leaves, and the factory gets there by passing `Routes: null` on every render. A chain writes
+    only what it names, and the deferred reset that stands in for the factory's re-assignment is guarded
+    by "is this already the default" — which a never-assigned `Routes` trivially is — so the setter never
+    runs, no route matches, and the page disappears. `Routes` is nullable, so it is not a required
+    property and RASK038 has nothing to say. **The shape, not the component, is the bug**: any property
+    whose setter derives state is broken by "only write what the chain names". `Form.Model` and
+    `Form.Context` are the same shape — both register with the ambient `EditContext`, and `Model`'s own
+    comment states it depends on the factory re-applying it every render — and survive only while a chain
+    happens to name them.
+  - **An async form submit has no setter.** `Form`'s generic factory is a forwarder: it folds the typed
+    `OnValidSubmit` and `OnValidSubmitAsync` parameters into one untyped `Delegate? OnValidSubmit`
+    property, wrapping each in `AutoCallback`. Setters are emitted from properties, so the builder
+    surface has one setter taking a bare `Delegate?` — no async sibling, no wrapping, and no method-group
+    conversion — leaving `.OnValidSubmit(AutoCallback.Wrap((CallbackAsync<T>)SubmitAsync))` at every form
+    in the app and in everything `rask generate feature` writes. It works, but it is stage A4's job and
+    A4 is not done.
+  - **The sample cannot move before the CLI does, and the CLI cannot move yet.** `Rask.Example.Shop` is
+    the committed output of `rask new`, and `ShopProvenanceTests` re-runs the real generators and
+    compares — 14 of the 16 files touched are CLI-owned, so migrating the sample alone turns the README's
+    provenance claim into a lie. Migrating `src/Rask.Cli`'s templates with it is not available either:
+    `RaskBuilderSurface` defaults to **false** outside this repo, so a scaffolded app has no entries and
+    builder-surface output would not compile for anyone. Sample, CLI and the default all have to move in
+    one step.
+
+  What the pilot cleared: the other 204 call sites converted mechanically and rendered byte-identically,
+  and neither RASK038, RASK039, RASK037 nor the `CS0108` hiding fix fired once. One structural change to
+  know before the rewriter is written — a factory evaluates its arguments *before* the component is
+  created, a chain evaluates them after, so `Authorize(NotAuthorized: P()[…])[…]` builds the `P` first and
+  `Authorize.NotAuthorized(P[…])[…]` builds it second. The markup is identical; the positional identity
+  `GetOrCreate` hands out is not.
 - **Three diagnostics for the builder surface, where the compiler stops being able to speak for us.**
   Entries are members named after their component type, so they interact with name lookup in ways the
   factory never did — and the two failures that produces both surface as compiler errors that name

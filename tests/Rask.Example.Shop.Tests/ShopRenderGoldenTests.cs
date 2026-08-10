@@ -162,6 +162,25 @@ public sealed class ShopRenderGoldenTests : IDisposable
         Assert.Equal(Normalize(File.ReadAllText(path)), Normalize(text));
     }
 
+    // The transcript proves the markup, and markup is where `data-rask-on-submit="h0"` looks identical
+    // whether the delegate behind it is the right one or a wrapper around nothing. That is precisely the
+    // substitution the builder-surface migration makes at every scaffolded form: `Form`'s typed
+    // `OnValidSubmitAsync` factory parameter has no setter of its own, so a chain has to reach the same
+    // place through the untyped `OnValidSubmit` property. Byte-identical HTML would not notice. So: fill
+    // the form, submit it, and look in the database.
+    [Fact]
+    public async Task Submitting_the_scaffolded_form_still_runs_its_command()
+    {
+        var page = RaskTest.Render(() => ProductsGen.CreateProduct(), _provider);
+        await page.On("#name").InputAsync("Latte cups");
+        await page.On("form").SubmitAsync();
+
+        await using var db = await _provider.GetRequiredService<IDbContextFactory<AppDbContext>>()
+            .CreateDbContextAsync();
+        // Filtered after materialising: Name is a value object, so the comparison has no SQL translation.
+        Assert.Single(await db.Products.ToListAsync(), p => p.Name.Value == "Latte cups");
+    }
+
     private const string GoldenFile = "ShopRender.golden.txt";
 
     // The golden lives next to the source, and the build copies it to the output directory. Writing the
