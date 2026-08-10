@@ -59,16 +59,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static readonly DiagnosticDescriptor Rask036 = new(
         "RASK036",
-        "Component must be partial to receive builder entries",
-        "Component '{0}' is not declared 'partial', so the builder entries for the project's other components cannot be injected into it; writing another component's name unqualified in its render body will not compile. Add the 'partial' modifier.",
+        "A builder-entry host must be partial",
+        "'{0}' is not declared 'partial', so the builder entries for this project's and its referenced libraries' components cannot be injected into it; writing one of their names unqualified inside it will not compile. Add the 'partial' modifier.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "A generator cannot add members to 'Rask.Core.Component' from your compilation, so the entry "
-                     + "for each of your own components is injected into every OTHER component of yours instead — "
-                     + "which needs somewhere to inject it. Only a 'partial' class has one. Without it the component "
-                     + "still renders and its own factory still works; what is lost is writing a sibling component's "
-                     + "name unqualified inside its render body.",
+        description: "A generator cannot add members to a type in a referenced assembly, so the entry for each "
+                     + "component that is not Rask.Core's is injected into every type that might name one — every "
+                     + "component of yours, and every 'RaskMarkup' host (a test class, a fixture, a factory of demo "
+                     + "components). That needs somewhere to inject it, and only a 'partial' class has one. "
+                     + "Rask.Core's own entries are unaffected: those are inherited from 'RaskMarkup' and need "
+                     + "nothing injected. Without 'partial' the type still compiles and every factory still works; "
+                     + "what is lost is naming a non-framework component unqualified inside it.",
         helpLinkUri: DiagnosticHelp.Link("RASK036"));
 
     private static readonly DiagnosticDescriptor Rask040 = new(
@@ -2111,7 +2113,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         // A concrete component is a candidate; only its abstract bases need collecting here. A markup
         // host is never a component, so `abstract` says nothing about it either way.
-        var isMarkupHost = !InheritsFromComponent(symbol) && InheritsFromRaskMarkup(symbol);
+        var isMarkupHost = !InheritsFromComponent(symbol) && DeclaresRaskMarkup(symbol);
         if (!isMarkupHost && !(symbol.IsAbstract && InheritsFromComponent(symbol)))
         {
             return null;
@@ -2576,20 +2578,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     }
 
     // Rask.Core.RaskMarkup is the builder surface and nothing else — Component's own base. A type that
-    // derives from it but is NOT a Component is a markup host: it wants to name markup without being a
-    // component, which is what a test class, a fixture or a demo factory is.
-    private static bool InheritsFromRaskMarkup(INamedTypeSymbol symbol)
-    {
-        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
-        {
-            if (t.OriginalDefinition.ToDisplayString() == RaskMarkupFullName)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    // names it DIRECTLY is a markup host: it wants to name markup without being a component, which is
+    // what a test class, a fixture or a demo factory is.
+    //
+    // Directly, not transitively, and that is not a detail. A shared test base that derives from
+    // RaskMarkup passes the framework entries down to every subclass by ordinary inheritance — but if
+    // each of those subclasses were a host too, every one of them would need 'partial' (RASK036) the day
+    // the base was changed, in files that name no markup at all. One edit to a base is not allowed to
+    // become an error in fourteen untouched files. Injection is the expensive, opt-in half of the
+    // surface, so it follows the declaration that opted in.
+    private static bool DeclaresRaskMarkup(INamedTypeSymbol symbol) =>
+        symbol.BaseType?.OriginalDefinition.ToDisplayString() == RaskMarkupFullName;
 
     private static bool InheritsFromComponent(INamedTypeSymbol symbol)
     {

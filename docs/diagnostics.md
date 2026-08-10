@@ -71,7 +71,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
 | [RASK034](#rask034) | Warning | BsDataGrid column has no Field, so the column chooser can't show/hide or reorder it |
 | [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
-| [RASK036](#rask036) | Warning | Component must be `partial` to receive builder entries |
+| [RASK036](#rask036) | Warning | A builder-entry host must be `partial` |
 | [RASK037](#rask037) | Warning | `using` alias is hidden by a builder entry |
 | [RASK038](#rask038) | Error | Builder chain does not set a required property |
 | [RASK039](#rask039) | Warning | Builder chain is split across statements, so its required properties can't be checked |
@@ -634,16 +634,18 @@ non-generic — nesting inside a plain `static class` is the usual way to keep e
 you never enqueue that type.
 
 ## RASK036
-**Component must be `partial` to receive builder entries** · Warning
+**A builder-entry host must be `partial`** · Warning
 
-Rask's own components (`Div`, `BsCard`, …) get their entries from `Rask.Core.Component`, which every
-component inherits. **Your** components cannot: a source generator can only add members to types in
-the compilation it is running in, and `Component` lives in a referenced assembly. `using static`
-is not a way out either — a static-imported member loses to a same-named type in scope (CS0119),
-which is the whole reason the entries are inherited rather than imported.
+Rask's own components (`Div`, `BsCard`, …) get their entries from `Rask.Core.RaskMarkup`, which
+`Component` derives from — so every component inherits them, and so does anything else that derives
+from `RaskMarkup` (a test class, a fixture, a factory of demo components). **Your** components cannot
+ride there: a source generator can only add members to types in the compilation it is running in, and
+`RaskMarkup` lives in a referenced assembly. `using static` is not a way out either — a static-imported
+member loses to a same-named type in scope (CS0119), which is the whole reason the entries are
+inherited rather than imported.
 
-So the entry for each of your components is injected into every *other* component of yours — which
-needs a `partial` to inject it into:
+So the entry for each of your components is injected into every *other* type of yours that might name
+one — every component, and every `RaskMarkup` host — which needs a `partial` to inject it into:
 
 ```csharp
 public sealed class Dashboard : Component        // ✗ RASK036 — no partial to inject into
@@ -654,6 +656,12 @@ public sealed class Dashboard : Component        // ✗ RASK036 — no partial t
 public sealed partial class Dashboard : Component   // ✓
 {
     protected override Component? Render() => Div[SalesCard];
+}
+
+public partial class DashboardTests : RaskMarkup     // ✓ — same rule outside a component
+{
+    [Fact]
+    public void It_renders() => Assert.Equal("<div>…</div>", Div[SalesCard].ToHtml());
 }
 ```
 

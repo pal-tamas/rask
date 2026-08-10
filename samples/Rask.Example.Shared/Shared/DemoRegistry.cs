@@ -14,9 +14,21 @@ namespace Rask.Example.Shared;
 //   2. Every embed must mint its own fresh, independently-stateful instance.
 // The factory bodies call the generated component factories (CodeSample(...), BindingTypedDemo(),
 // …), available project-wide via the generator's `global using static …Generated`.
-public static class DemoRegistry
+// It used to be a `static class`, and a static class can derive from nothing — so it could reach no
+// builder entry, and every one of the ~320 markup sites below was stranded on the factory. Being static
+// bought one thing (the compiler refuses to instantiate it), and a sealed class with a private
+// constructor buys the same. Everything else is unchanged: the members are still static, the callers
+// still write `DemoRegistry.Build(key)`, and a lambda in a static field initializer reaches an
+// inherited `protected static` entry exactly as a component's render body does.
+public sealed partial class DemoRegistry : RaskMarkup
 {
-    private static readonly IReadOnlyDictionary<string, Func<Component>> Map =
+    private DemoRegistry()
+    {
+    }
+
+    // `new` because `Map` is also the <map> tag's inherited entry. Joining the surface means 163 names
+    // arrive in this type's scope, and any member of yours that shares one has to say so.
+    private static new readonly IReadOnlyDictionary<string, Func<Component>> Map =
         new Dictionary<string, Func<Component>>(StringComparer.Ordinal)
         {
             // --- Routing guide (code-only samples; the running showcase *is* the live demo) ---
@@ -48,19 +60,20 @@ public static class DemoRegistry
                 + "back/forward. Visit /table to see it live."),
 
             // --- Forms guide: two-way binding ---
-            ["binding-manual"] = () => CodeSample(
-                ["BindingManualDemo.cs"],
-                Notes:
-                "The low-level path: wire Value and the event handler yourself. Works for any input "
-                + "type, but you parse and re-render manually.",
-                Result: BindingManualDemo()),
-            ["binding-typed"] = () => CodeSample(
-                ["BindingTypedDemo.cs"],
-                Notes:
-                "Bind reads the expression — the property name becomes the input name, the property "
-                + "type picks the input type, and string fields update on every keystroke. One call "
-                + "replaces Value + OnInput + parsing.",
-                Result: BindingTypedDemo()),
+            // These two are on the BUILDER surface — the same lambda, in the same static field
+            // initializer, in what used to be a static class. Everything below is still the factory;
+            // the two compile side by side, which is what makes the migration incremental.
+            ["binding-manual"] = () => CodeSample
+                .Files(["BindingManualDemo.cs"])
+                .Notes("The low-level path: wire Value and the event handler yourself. Works for any input "
+                       + "type, but you parse and re-render manually.")
+                .Result(BindingManualDemo),
+            ["binding-typed"] = () => CodeSample
+                .Files(["BindingTypedDemo.cs"])
+                .Notes("Bind reads the expression — the property name becomes the input name, the property "
+                       + "type picks the input type, and string fields update on every keystroke. One call "
+                       + "replaces Value + OnInput + parsing.")
+                .Result(BindingTypedDemo),
             ["binding-multi"] = () => CodeSample(
                 ["BindingMultiDemo.cs"],
                 Notes:
