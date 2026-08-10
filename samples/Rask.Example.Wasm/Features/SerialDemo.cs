@@ -22,14 +22,14 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
             Div.Class("card-body")[
                 Div.Class("d-flex gap-2 flex-wrap align-items-center mb-2")[
                     Label.Class("small text-secondary mb-0").For("serial-baud")["Baud"],
-                    Rask.Core.Components.Generated.Input(
-                        Id: "serial-baud",
-                        Type: InputType.Number,
-                        Class: "form-control form-control-sm",
-                        Style: "width: 7rem",
-                        Value: _baudRate.ToString(),
-                        Disabled: _port is not null,
-                        OnInput: v => int.TryParse(v, out _baudRate)),
+                    Input<string>()
+                        .Id("serial-baud")
+                        .Type(InputType.Number)
+                        .Class("form-control form-control-sm")
+                        .Style("width: 7rem")
+                        .Value(_baudRate.ToString())
+                        .Disabled(_port is not null)
+                        .OnInput(v => int.TryParse(v, out _baudRate)),
                     Button
                         .Class("btn btn-primary btn-sm")
                         .Id("serial-connect")
@@ -42,13 +42,13 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         .OnClickAsync(Disconnect)["Disconnect"]
                 ],
                 Div.Class("input-group input-group-sm mb-2")[
-                    Rask.Core.Components.Generated.Input(
-                        Id: "serial-outgoing",
-                        Class: "form-control",
-                        Value: _outgoing,
-                        Placeholder: "Line to send",
-                        Disabled: _port is null,
-                        OnInput: v => _outgoing = v),
+                    Input<string>()
+                        .Id("serial-outgoing")
+                        .Class("form-control")
+                        .Value(_outgoing)
+                        .Placeholder("Line to send")
+                        .Disabled(_port is null)
+                        .OnInput(v => _outgoing = v),
                     Button
                         .Class("btn btn-primary")
                         .Id("serial-send")
