@@ -15,18 +15,19 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     and that the per-element attribute-diff loop doesn't spuriously emit ops on
 ///     unchanged siblings.
 /// </summary>
-internal static class FormInputTyping
+[global::Rask.Core.RaskMarkup]
+internal static partial class FormInputTyping
 {
     public static Component BuildRask(string a, string b, string c)
     {
         return C.Form()[
-            C.Label()["Field A"],
-            C.Input<string>(InputType.Text, "a", a),
-            C.Label()["Field B"],
-            C.Input<string>(InputType.Text, "b", b),
-            C.Label()["Field C"],
-            C.Input<string>(InputType.Text, "c", c),
-            C.Button("submit")["Save"]
+            Label["Field A"],
+            Input<string>().Type(InputType.Text).Name("a").Value(a),
+            Label["Field B"],
+            Input<string>().Type(InputType.Text).Name("b").Value(b),
+            Label["Field C"],
+            Input<string>().Type(InputType.Text).Name("c").Value(c),
+            Button.Type("submit")["Save"]
         ];
     }
 
