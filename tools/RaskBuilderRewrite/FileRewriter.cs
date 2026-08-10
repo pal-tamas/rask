@@ -13,6 +13,7 @@ internal enum SiteVerdict
     GenericFactory,
     NoSetter,
     CompilerRejected,
+    MixedSurface,
 }
 
 internal sealed record Site(
@@ -195,9 +196,48 @@ internal sealed class FileRewriter
 
     // ---- collection ------------------------------------------------------------------------------
 
+    /// <summary>
+    ///     The components this file ALREADY builds through a builder entry.
+    /// </summary>
+    /// <remarks>
+    ///     A file that builds the same component both ways is almost always a comparison: two spellings of
+    ///     one tree, with an assertion that they agree. Converting the factory half leaves two identical
+    ///     halves and a test that passes while proving nothing — which is exactly what happened to this
+    ///     tool's own parity test, and was caught by reading the diff rather than by anything failing.
+    ///     <para>
+    ///     So the refusal is per COMPONENT, not per file: a file may hold `Div` chains and a leftover
+    ///     `Form(…)` factory without either being a comparison, and that still converts. Only a component
+    ///     spelled both ways in one file is held back — and reported, so the choice is a person's.
+    ///     </para>
+    /// </remarks>
+    private HashSet<string> EntryBuiltComponents(SyntaxTree tree, SemanticModel model)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in tree.GetRoot().DescendantNodes().OfType<SimpleNameSyntax>())
+        {
+            var text = name.Identifier.ValueText;
+
+            // An entry is a member named after its own component type — that is the whole shape, and it
+            // is what separates `Div` the entry from `Div` the type or `Div` the factory (excluded
+            // explicitly, since a factory is also a static member returning its own name).
+            switch (model.GetSymbolInfo(name).Symbol)
+            {
+                case IPropertySymbol { IsStatic: true } p when p.Name == text && p.Type.Name == text:
+                case IMethodSymbol { IsStatic: true } m when m.Name == text
+                                                             && m.ReturnType.Name == text
+                                                             && !_surface.IsFactory(m):
+                    names.Add(text);
+                    break;
+            }
+        }
+
+        return names;
+    }
+
     private List<Site> Collect(SyntaxTree tree, SemanticModel model)
     {
         var sites = new List<Site>();
+        var entryBuilt = EntryBuiltComponents(tree, model);
         var id = 0;
 
         foreach (var node in tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>())
@@ -236,6 +276,15 @@ internal sealed class FileRewriter
             if (!_surface.IsInMarkupHost(SurfaceModel.EnclosingType(model, node)))
             {
                 sites.Add(Make(SiteVerdict.NotInMarkupHost, null));
+                continue;
+            }
+
+            // This file already builds this very component through an entry. Converting would collapse
+            // the two spellings into one, and if they were there to be compared the comparison goes with
+            // them — silently, because the test still passes.
+            if (entryBuilt.Contains(name))
+            {
+                sites.Add(Make(SiteVerdict.MixedSurface, "already built by an entry in this file"));
                 continue;
             }
 

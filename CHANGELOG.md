@@ -119,6 +119,17 @@ them until tagged releases begin.
     has no such hole because it notifies unconditionally. **Not fixed here** — the obvious repair makes
     every element in an entry-built tree allocate a `LiveState` at commit, which is the memory work this
     design exists to protect, so it needs a cheaper "this came from an entry" signal than the one it has.
+- **The rewriter will not collapse a two-surface comparison any more.** It converted the factory arm of its
+  own parity test into a second copy of the entry arm — a test that still passed and proved nothing, caught
+  by reading the diff rather than by anything failing. Ten files were relying on a marker somebody has to
+  remember to add.
+  The refusal is per **component**, not per file: a file may hold `Div` chains and a leftover `Form(…)`
+  factory without either being a comparison, and that still converts. Only a component spelled **both ways
+  in one file** is held back, and it is reported rather than skipped in silence. Across the four largest
+  projects it fires once, on a true positive nobody had noticed —
+  `LiveRenderRoundTripBenchmarks.DeepNode` builds itself through the entry at one site and through the
+  factory at another, and converting the second would have changed what that benchmark measures. The
+  `rask-rewrite: keep the factory` marker stays as the explicit, whole-file override.
 - **A committed Stage E rewriter** (`tools/RaskBuilderRewrite`), because ~6,600 call sites is past
   hand-editing and the migration has to be re-runnable rather than remembered. It resolves each site
   against the **real generated factory signature** — a purely syntactic pass cannot; positional arguments
