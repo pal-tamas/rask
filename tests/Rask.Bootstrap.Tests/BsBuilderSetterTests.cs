@@ -132,7 +132,17 @@ public class BsBuilderSetterTests
         Assert.Contains("aria-valuenow=\"42\"", html, StringComparison.Ordinal);
         Assert.Contains("form-check-input", html, StringComparison.Ordinal);
         Assert.Contains("Agree", html, StringComparison.Ordinal);
+
+        // The bound half of the same probe. Its only real assertion is that the file compiles: RASK038
+        // is an Error, so a chain it wrongly flags cannot reach a test body at all.
+        Assert.Contains("Bound", html, StringComparison.Ordinal);
     }
+
+    // A bound chain must not be asked for `Value`, and giving BsCheck.Value the `= false` initializer
+    // its comment always claimed is what makes that true — the same default the control renders anyway.
+    [Fact]
+    public void A_bound_check_defaults_Value_rather_than_requiring_it() =>
+        Assert.Equal(BsCheck(Value: false).ToHtml(), BsCheck().ToHtml());
 
     private static readonly Supplier[] Suppliers = [new(1, "Acme"), new(2, "Globex")];
 
@@ -152,18 +162,28 @@ public class BsBuilderSetterTests
 // that only works because Rask.Bootstrap PUBLISHES its requiredness: from here BsIcon.Name is a
 // metadata symbol whose member initializer, if it had one, would be invisible.
 //
-// BsCheck is CONTROLLED here rather than bound, deliberately. `Value` is required on its controlled
-// factory and excluded from its bound one, and RASK038 does not model that split — it reads one entry,
-// so `BsCheck.Bind(…)` is reported as missing `Value` even though the control never reads it when Bind
-// is set. That is an open decision (see the CHANGELOG), not something this test should paper over.
+// BsCheck appears twice, controlled and BOUND, because those two chains name different props. `Value`
+// is required on the controlled factory and excluded from the bound one, and RASK038 reads a single
+// entry, so it cannot model that split: it used to report `BsCheck.Bind(…)` as never setting `Value`
+// even though Render only reads Value when Bind is null. The fix is on this side rather than in the
+// analyzer — Value carries the `= false` initializer its own comment already described, which makes it
+// optional on both chains. Delete that initializer and this file stops compiling.
 internal sealed partial class BsRequiredPropProbe : Rask.Core.Component
 {
+    private readonly BoundModel _model = new();
+
     protected override Rask.Core.Component? Render() =>
         Div[
             BsIcon.Name(BsIconName.Star),
             BsProgress.Value(42),
-            BsCheck.Value(true).Label("Agree")
+            BsCheck.Value(true).Label("Agree"),
+            BsCheck.Bind(() => _model.Done).Label("Bound")
         ];
+
+    internal sealed class BoundModel
+    {
+        public bool Done { get; set; }
+    }
 }
 
 // A Component so DelegateOwner can resolve an owner for the method group — which is the precondition

@@ -262,13 +262,21 @@ them until tagged releases begin.
   need a construction path that is not `new T()` before they can follow — a decision for those
   components' own API. No call site changed: all three get a *property* entry, and a property is not
   invocable, so the same-named factory still wins an invocation (only a method entry hides one).
-  **Known gap:** `BsCheck.Value` is required on the control's *controlled* factory and excluded from
-  its *bound* one, and RASK038 does not model that split — it reads a single entry, so
-  `BsCheck.Bind(() => model.Done)` is reported as never setting `Value` even though the control does
-  not read it when `Bind` is set. A controlled chain (`BsCheck.Value(true)`) is clean. Closing it is
-  either a Bootstrap change (give `Value` the `= false` initializer its own source comment already
-  claims it has) or an analyzer one (exempt the controlled `Value`/`OnChange`/`OnChangeAsync` members
-  when a chain sets `Bind`, mirroring `EmitBoundOverload`); neither is taken here.
+- **`BsCheck.Value` defaults to `false` instead of being required.** It was the one property where
+  RASK038 was wrong rather than strict: `Value` is required on the control's *controlled* factory and
+  excluded from its *bound* one, and RASK038 reads a single entry, so `BsCheck.Bind(() => model.Done)`
+  was reported as never setting `Value` even though `Render` only reads it when `Bind` is `null`. The
+  fix is on the Bootstrap side rather than in the analyzer, because the property was mis-declared:
+  every other control's `Value` is nullable and therefore optional, and `BsCheck`'s cannot be (the
+  interface's `T?` collapses to `bool` for `T = bool`), so it needs the `= false` initializer its own
+  source comment already described to reach the same place. An unchecked box is what the control
+  renders for an unset `Value` anyway, so nothing renders differently. Source-compatible on the factory
+  too — `Value` moves from a required parameter to one defaulting to `false`, and every call site names
+  its arguments. Teaching the analyzer the controlled/bound split instead was the alternative, and it
+  would have been a special case in a general rule for a single property that should not have been
+  required in the first place. `BsCheck` is the only control affected: `Value` on `BsSelect`,
+  `BsMultiSelect`, `BsRadioGroup`, `BsCheckboxGroup`, `BsFormControl<T>`, `Input<T>`, `Select<T>` and
+  `Textarea<T>` is nullable already, so their bound chains were never asked for it.
 - **Three diagnostics for the builder surface, where the compiler stops being able to speak for us.**
   Entries are members named after their component type, so they interact with name lookup in ways the
   factory never did — and the two failures that produces both surface as compiler errors that name

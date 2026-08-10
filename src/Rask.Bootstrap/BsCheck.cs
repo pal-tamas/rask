@@ -20,8 +20,11 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
     public Carrier<Func<bool, Task>>? AfterBindAsync { get; set; }
 
     // IFormControl<bool> — controlled mode. Value is plain bool (the interface's `T?` resolves to
-    // `bool` for the value type T=bool); the generator gives it a `= default` (false) factory default.
-    public bool Value { get; set; }
+    // `bool` for the value type T=bool), so it cannot be nullable to opt out of requiredness the way
+    // every other control's Value does. The `= false` initializer is what makes it optional instead:
+    // an unchecked box is the meaningful default, and Render only reads Value when Bind is null, so a
+    // bound chain that never names it is correct — without the initializer RASK038 reports it anyway.
+    public bool Value { get; set; } = false;
     public Handler<bool>? OnChange { get; set; }
     public HandlerAsync<bool>? OnChangeAsync { get; set; }
 
