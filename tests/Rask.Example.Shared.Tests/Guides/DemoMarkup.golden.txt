@@ -2292,6 +2292,8 @@ div .mb-1 .small .text-secondary
 code
 div .mb-1 .small .text-secondary
 code
+div .mb-1 .small .text-secondary
+code
 div .small .text-secondary
 code
 
