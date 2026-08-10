@@ -17,6 +17,36 @@ them until tagged releases begin.
   `samples/Rask.Example.Wasm.Jobs` shows one, covered by an E2E that opens two real tabs.
 
 ### Fixed
+- **A WASM publish that drops its scoped assets now fails the build instead of shipping.** The bake stages
+  scoped CSS/JS into `obj/…/rask-scoped` and registers them as computed static web assets in the build
+  pass, trusting them to flow into the publish manifest. When that link breaks — most reliably by building
+  one project in both `WasmBuildNative` modes through a single `obj/` — the published bundle simply has no
+  `/_rask/a/` and **nothing says so**: the app builds, publishes, boots and renders, with only its scoped
+  CSS/JS absent. Every scoped URL 404s, and for an app whose scoped JS owns something load-bearing that
+  presents as a hung page, sending you to debug the app rather than the build. The publish now compares
+  what was staged against what shipped and errors with the cause and the fix.
+
+  It also catches a second shape — **the bake not running at all**. With the staging directory absent,
+  "this project has no scoped assets" and "the bake was skipped" are the same observation, so the
+  comparison above has nothing to compare and stays quiet. The bake now records that it ran, and a publish
+  that never baked *and* shipped no scoped assets fails. A project that genuinely has none bakes zero,
+  records the run, and is unaffected — verified against `samples/Rask.Example.Wasm.Jobs`, which has no
+  scoped assets; an incremental publish that skips the build pass while its assets already sit in
+  `wwwroot` stays quiet too.
+
+  **Neither covers what #650 actually is**, so that issue stays open. Two sessions have now reproduced it
+  and the build log is unambiguous: after a no-native solution build, the native publish's bake *runs* and
+  writes **zero** files for an app that plainly has scoped assets. Nothing outside the bake can see the
+  difference between that and a project with none, so no publish-time check can catch it —
+  `FailOnEmpty` can't either, since its `registryResolved` is true whenever `Rask.Core` merely loads and
+  would fail every WASM app without scoped assets. The fix has to be inside the bake, once the binlog
+  shows what its inputs looked like on the failing run.
+
+  `BakeScopedAssetsTask.FailOnEmpty` could not have caught this and — despite its own documentation
+  claiming otherwise — has never been wired to anything: it fires only when the bake *runs* and writes
+  zero, whereas here the bake runs perfectly well and the break is downstream of it. Its docs now say so.
+
+### Fixed
 - **Playground: picking a chapter or an example before the editor had mounted silently kept the starter
   code.** Run and Reset waited for the editor; the controls that *load* code did not — they only guarded
   against a compile being in flight. Loading a chapter is a round-trip to `setEditorValue`, and before the
