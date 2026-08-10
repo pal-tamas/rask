@@ -9,12 +9,12 @@ namespace Rask.Example.Auth.WasmJwt.Features;
 public sealed partial class MembersPage : Component
 {
     protected override Component? Render() =>
-        Div(Id: "members", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
-            Div(Class: "card-body")[
-                Authorize(
-                    Authorizing: P("members-authorizing", "text-secondary mb-0")["Loading…"],
-                    NotAuthorized: P("members-anon", "mb-0")[
-                        "Please ", NavLink(Routes.LoginPage())["sign in"], "."])[MemberContent()]
+        Div.Id("members").Class("card shadow-sm mx-auto").Style("max-width:34rem")[
+            Div.Class("card-body")[
+                Authorize
+                    .Authorizing(P.Id("members-authorizing").Class("text-secondary mb-0")["Loading…"])
+                    .NotAuthorized(P.Id("members-anon").Class("mb-0")[
+                        "Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
             ]
         ];
 }
@@ -23,9 +23,9 @@ public sealed partial class MemberContent(JwtLoginService login, IUserProvider u
 {
     protected override Component? Render() =>
         [
-            H1("members-greeting", "h3 mb-3")[$"Welcome, {userProvider.Current.Identity?.Name}"],
-            Authorize(["admin"])[
-                Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."]],
-            Button(Id: "logout", OnClickAsync: login.LogoutAsync, Class: "btn btn-outline-primary")["Sign out"]
+            H1.Id("members-greeting").Class("h3 mb-3")[$"Welcome, {userProvider.Current.Identity?.Name}"],
+            Authorize.Roles(["admin"])[
+                Div.Id("admin-note").Class("alert alert-warning py-2")["🔑 You have admin access."]],
+            Button.Id("logout").OnClickAsync(login.LogoutAsync).Class("btn btn-outline-primary")["Sign out"]
         ];
 }
