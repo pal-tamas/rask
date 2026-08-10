@@ -190,6 +190,8 @@ public static class GuideCatalog
             "bi-phone-fill", "Mobile & devices"),
         new("sync", "Offline-first merge", "Hybrid logical clock, op log, per-field merge — and why conflicts are reported.",
             "bi-arrow-repeat", "Mobile & devices"),
+        new("sync-client", "Syncing between devices", "SyncEngine over a bucket: own-prefix writes, watermarks, offline queue, status.",
+            "bi-cloud-arrow-up", "Mobile & devices"),
         new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPushSender, delivery results.",
             "bi-send", "Mobile & devices"),
         new("object-storage", "Object storage", "S3 and Azure Blob with no cloud SDK — ranged reads, streaming writes, conditional create.",
