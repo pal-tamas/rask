@@ -259,4 +259,23 @@ public static partial class BuilderRuntime
         control.Bind = bind;
         return control;
     }
+
+    /// <inheritdoc cref="Component.EntryRequired{T}" />
+    public static T EntryRequired<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(
+        Action<Component> reset,
+        Action<Component, ulong> pendingReset,
+        ulong pending)
+        where T : Component
+    {
+        if (Live.LiveRenderContext.Current is not { } ctx)
+        {
+            return Activator.CreateInstance<T>();
+        }
+
+        var component = ctx.GetOrCreateEntry<T>(
+            static _ => Activator.CreateInstance<T>(), pendingReset, pending);
+        reset(component);
+        return component;
+    }
 }

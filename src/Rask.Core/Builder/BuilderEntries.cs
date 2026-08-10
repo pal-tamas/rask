@@ -88,4 +88,32 @@ public abstract partial class Component
         ulong pending)
         where TControl : Component, Forms.IFormControl<TValue>, new()
         => BuilderRuntime.EntryBound<TControl, TValue>(bind, reset, pendingReset, pending);
+
+    /// <summary>
+    ///     The entry for a component that declares a <c>required</c> member.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <see cref="Entry{T}" /> in every respect but one: it does not carry the <c>new()</c>
+    ///         constraint, because a type with a required member does not satisfy it (CS9040). That single
+    ///         constraint used to withhold an entry outright from <c>BsToast</c>, <c>BsStat</c> and
+    ///         <c>FluentValidationValidator</c> — components that would simply cease to exist the day the
+    ///         factory is deleted.
+    ///     </para>
+    ///     <para>
+    ///         Requiredness is a compile-time check with no runtime enforcement, so
+    ///         <see cref="Activator.CreateInstance{T}" /> is allowed to build what <c>new T()</c> may not.
+    ///         What enforces the value afterwards is RASK038 on the chain — the same trade the builder
+    ///         surface already makes for a RASK001-required property, and the reason the two land together.
+    ///     </para>
+    /// </remarks>
+    // The annotation the trimmer needs to keep the parameterless constructor of every type that flows
+    // through here; without it the WASM publish reports IL2091.
+    protected static T EntryRequired<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(
+        Action<Component> reset,
+        Action<Component, ulong> pendingReset,
+        ulong pending)
+        where T : Component
+        => BuilderRuntime.EntryRequired<T>(reset, pendingReset, pending);
 }

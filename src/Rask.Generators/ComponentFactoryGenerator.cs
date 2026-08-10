@@ -1137,7 +1137,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // Component (CS0053); `private protected` keeps it to derived types in this assembly.
             sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
                 .Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(NeedsDiEntry(c) ? " => EntryDi<" : " => Entry<")
+                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, host.AssemblyName);
             sb.AppendLine(");");
@@ -1171,11 +1171,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     //    covers required props now, writing `default!` (IsResettableProp / ResetLiteralFor). That is the
     //    half a call-site analyzer cannot reach, and it is why the two had to land together.
     //
-    // `required` is a different problem with a different shape, not a stricter version of the same one:
-    // it cannot ride on Entry<T> AT ALL, which is constrained `where T : Component, new()`, and a type
-    // with a required member does not satisfy `new()` (CS9040). Policing the call site does not help —
-    // the entry would need a construction path that is not `new T()`, which is a decision for the
-    // component's own API, not for this generator.
+    // `required` used to withhold an entry outright, because it cannot ride on Entry<T> — constrained
+    // `where T : Component, new()`, and a type with a required member does not satisfy `new()` (CS9040).
+    // That is a CONSTRUCTION problem and it has a construction answer: requiredness is a compile-time
+    // check, so ActivatorUtilities is allowed to build what `new T()` may not, and EntryDi / EntryBoundDi
+    // (neither constrained `new()`) are the paths that do it. What enforces the value afterwards is
+    // RASK038 at the chain — the same trade already made for a RASK001-required property.
+    //
+    // One shape still blocks, and it is not about construction at all: see BlocksEntry.
     //
     // …and so does a name Component already declares (`Head`), which would be CS0102.
     private static bool CanHaveEntry(Candidate c, HashSet<string> taken) =>
@@ -1185,8 +1188,27 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         && !c.Properties.Any(BlocksEntry)
         && !taken.Contains(c.TypeName);
 
-    // A prop that has to be set at CONSTRUCTION, which is the one thing an entry has no room for.
-    private static bool BlocksEntry(PropInfo p) => p.UserMarkedRequired;
+    /// <summary>
+    ///     A required property the chain could never set, which is worse than having no entry: the
+    ///     component would be constructible and permanently incomplete.
+    /// </summary>
+    /// <remarks>
+    ///     A raw delegate property is INVOCABLE, so <c>x.Template(fn)</c> binds to the property and a
+    ///     same-named setter can never be reached — the RASK042 rule. Optional props of that shape are
+    ///     reported and moved to a carrier; a <c>required</c> one cannot follow, because a carrier built
+    ///     from a null delegate is a non-null carrier wrapping null and that is exactly the state
+    ///     <c>required</c> exists to forbid. So <c>ValidationMessage</c>, <c>ValidatingIndicator</c>,
+    ///     <c>ValidationSummary</c>, <c>ToastOutlet</c>, <c>Shareable</c>, the <c>GestureTrigger</c> family
+    ///     and <c>BsSelect&lt;TValue, TItem&gt;</c> (its <c>OptionValue</c>) still have no entry. Their
+    ///     required member is a <c>Template</c>-shaped callback, and giving them one needs a decision
+    ///     about their public API rather than a change here.
+    /// </remarks>
+    private static bool BlocksEntry(PropInfo p) =>
+        p.UserMarkedRequired && p.IsDelegate && SetterName(p.Name, p.IsDelegate) == p.Name;
+
+    // Construction that cannot be `new T()`: no parameterless constructor, or a required member the
+    // language will not let `new()` satisfy.
+    private static bool HasRequiredMember(Candidate c) => c.Properties.Any(static p => p.UserMarkedRequired);
 
     // The entries to emit, with same-name collisions removed and reported.
     //
@@ -1330,7 +1352,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters)
             .Append("(global::System.Linq.Expressions.Expression<global::System.Func<").Append(valueType)
             .Append(">> Bind)").Append(constraints).AppendLine();
-        sb.Append(indent).Append("    => ").Append(runtimePrefix).Append("EntryBound<").Append(self).Append(", ")
+        sb.Append(indent).Append("    => ").Append(runtimePrefix)
+            .Append("EntryBound<").Append(self).Append(", ")
             .Append(valueType).Append(">(Bind, ");
         EmitResetArguments(sb, c, assemblyName, typeParameters);
         sb.AppendLine(");");
@@ -1341,7 +1364,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(indent).Append(visibility).Append(" static ").Append(self).Append(' ')
             .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters).Append("()").Append(constraints)
             .AppendLine();
-        sb.Append(indent).Append("    => ").Append(runtimePrefix).Append("Entry<").Append(self).Append(">(");
+        sb.Append(indent).Append("    => ").Append(runtimePrefix)
+            .Append(EntryMethod(c)).Append(self).Append(">(");
         EmitResetArguments(sb, c, assemblyName, typeParameters);
         sb.AppendLine(");");
     }
@@ -1351,6 +1375,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // withheld where the entry does exist is a component that silently cannot be built.
     private static bool CanHaveBoundEntry(Candidate c, HashSet<string> taken) =>
         c.FormControl is not null && c.HasParameterlessCtor && !taken.Contains(c.TypeName)
+        && !c.Properties.Any(BlocksEntry)
+        // A required member no longer blocks CONSTRUCTION (EntryBoundDi drops the `new()` constraint), but
+        // it still blocks these four, for a reason that has nothing to do with required members and
+        // everything to do with being generic. A generic component's entry is a METHOD, and a method entry
+        // HIDES its same-named factory inside a component body. `BsSelect`, `BsMultiSelect`,
+        // `BsRadioGroup` and `BsCheckboxGroup` have ~20 multi-argument factory call sites in `samples/`
+        // that stop resolving the moment they get one (CS1501/CS1739) — so handing them an entry is not an
+        // addition, it is a migration, and it contradicts the premise that both surfaces compile side by
+        // side. `Input`/`Select`/`Textarea`/`BsInput` already paid that cost when the bound entries
+        // landed, which is why `BsCheck` reaches the controlled `Input` factory fully qualified.
+        // Unblocking these is E1 work with a decision attached, not a generator fix.
         && !c.Properties.Any(static p => p.UserMarkedRequired);
 
     // "<TValue, TItem>" → { "TValue", "TItem" }; empty for a non-generic type.
@@ -1527,7 +1562,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
                 .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime)
-                .Append(NeedsDiEntry(c) ? "EntryDi<" : "Entry<")
+                .Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, host.AssemblyName);
             sb.AppendLine(");");
@@ -1841,6 +1876,21 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // `new T()` needs a public parameterless ctor; anything else goes through ActivatorUtilities —
     // the same split the factory emission makes via canUseObjectInit.
     private static bool NeedsDiEntry(Candidate c) => !c.HasParameterlessCtor;
+
+    /// <summary>
+    ///     The <c>BuilderRuntime</c> construction helper an entry for <paramref name="c" /> routes through,
+    ///     as a name ready to be followed by its type argument list.
+    /// </summary>
+    /// <remarks>
+    ///     <c>new T()</c> is the cheap default. A component with no parameterless constructor needs the
+    ///     service provider (<c>EntryDi</c>). One that has a parameterless constructor but declares a
+    ///     <c>required</c> member needs a construction the LANGUAGE forbids to <c>new T()</c> (CS9040) and
+    ///     which is legal reflectively, since requiredness carries no runtime enforcement
+    ///     (<c>EntryRequired</c>) — that is the whole of what used to keep those components off the
+    ///     builder surface.
+    /// </remarks>
+    private static string EntryMethod(Candidate c) =>
+        NeedsDiEntry(c) ? "EntryDi<" : HasRequiredMember(c) ? "EntryRequired<" : "Entry<";
 
     private static Location MakeDeclLocation(Candidate c) =>
         string.IsNullOrEmpty(c.DeclFilePath)

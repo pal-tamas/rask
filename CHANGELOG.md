@@ -346,6 +346,36 @@ them until tagged releases begin.
   created, a chain evaluates them after, so `Authorize(NotAuthorized: P()[…])[…]` builds the `P` first and
   `Authorize.NotAuthorized(P[…])[…]` builds it second. The markup is identical; the positional identity
   `GetOrCreate` hands out is not.
+- **A `required` member no longer withholds a builder entry.** `BuilderRuntime.Entry<T>` is constrained
+  `where T : Component, new()`, and a type with a required member does not satisfy `new()` (CS9040) — so
+  `BsToast`, `BsStat` and `FluentValidationValidator` had no builder surface at all and would have ceased
+  to exist the day the factory is deleted. That is a *construction* problem with a construction answer:
+  requiredness is a compile-time check with no runtime enforcement, so `EntryRequired<T>` builds through
+  `Activator.CreateInstance<T>()` and drops the constraint. It is a separate helper rather than the
+  default precisely so every other component keeps the cheap `new T()`. What enforces the value
+  afterwards is RASK038 on the chain, the same trade the surface already makes for a RASK001-required
+  property — and the two are pinned together, since removing a setter from the probe now fails the build.
+  Construction happens once per (parent, position), not per render, so nothing on the render path
+  changes; the WASM Release publish stays at zero IL warnings, with the trimmer annotation on the type
+  parameter that flows into the reflective construction.
+  **Two things this does *not* unblock, both worth knowing before E3 counts on it.**
+  - **A required *delegate* member still blocks, and cannot be unblocked here.** A raw delegate property
+    is invocable, so `x.Template(fn)` binds to the property and a same-named setter can never be reached
+    (the RASK042 rule). An optional property of that shape moves to a carrier; a required one cannot,
+    because a carrier built from a null delegate is a non-null carrier wrapping null — exactly the state
+    `required` exists to forbid. So `ValidationMessage`, `ValidatingIndicator`, `ValidationSummary`,
+    `ToastOutlet`, `Shareable`, the `GestureTrigger` family and `BsSelect<TValue, TItem>` still have no
+    entry. An entry for them would be constructible and never completable, which is worse than none.
+  - **`BsSelect`, `BsMultiSelect`, `BsRadioGroup` and `BsCheckboxGroup` are held back deliberately**, for
+    a reason that turns out to have nothing to do with required members: they are *generic*, a generic
+    component's entry is a **method**, and a method entry hides its same-named factory inside a component
+    body. Handing them one breaks ~20 multi-argument factory call sites in `samples/` on the spot
+    (CS1501/CS1739). That is not an addition, it is a migration — and it contradicts the premise that
+    both surfaces compile side by side, which is what E1 is resting on. `Input`/`Select`/`Textarea`/
+    `BsInput` already paid that cost when the bound entries landed, which is why `BsCheck` reaches the
+    controlled `Input` factory fully qualified.
+  Also fixed on the way: `CanHaveBoundEntry` carried its own copy of the eligibility rule, which is the
+  exact divergence its own comment warns about — both halves consult one predicate now.
 - **Three diagnostics for the builder surface, where the compiler stops being able to speak for us.**
   Entries are members named after their component type, so they interact with name lookup in ways the
   factory never did — and the two failures that produces both surface as compiler errors that name

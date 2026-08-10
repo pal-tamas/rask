@@ -77,7 +77,7 @@ public class BuilderEntryEmissionTests
                                               {
                                                   public partial class Card : Component
                                                   {
-                                                      public required string Label { get; set; }
+                                                      public required System.Func<Component> Template { get; set; }
                                                       public string? Note { get; set; }
                                                   }
                                               }
@@ -90,7 +90,8 @@ public class BuilderEntryEmissionTests
                                               }
                                               """);
 
-        // Products.Card has a `required` member, so only Orders.Card is eligible — no collision.
+        // Products.Card's required member is a raw DELEGATE, which no chain could ever set, so it is
+        // still withheld an entry and only Orders.Card is eligible — no collision.
         Assert.Empty(run.WithId("RASK040"));
 
         // The canonical entry — the one place the reset triple is written — and the member injected into
@@ -199,18 +200,56 @@ public class BuilderEntryEmissionTests
         Assert.Contains("__c.Title = default!;", setters, StringComparison.Ordinal);
     }
 
-    // A `required` MEMBER still withholds the entry, and for a reason no analyzer or reset touches:
-    // BuilderRuntime.Entry<T> is constrained `where T : Component, new()`, and a type with a required
-    // member does not satisfy `new()` at all (CS9040 — CrossAssemblyRequiredPropertyTests).
+    // A `required` MEMBER used to withhold the entry outright, because BuilderRuntime.Entry<T> is
+    // constrained `where T : Component, new()` and a type with a required member does not satisfy
+    // `new()` (CS9040). That is a construction problem with a construction answer: requiredness carries
+    // no runtime enforcement, so EntryRequired<T> builds through Activator instead and drops the
+    // constraint. What enforces the value is RASK038 on the chain.
     [Fact]
-    public void A_component_with_a_required_member_still_gets_no_entry()
+    public void A_component_with_a_required_member_is_built_through_Activator()
+    {
+        var run = BuilderGeneratorHarness.Run("""
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Widget : Component
+                                              {
+                                                  public required string Title { get; set; }
+                                              }
+
+                                              public partial class Optional : Component
+                                              {
+                                                  public string? Note { get; set; }
+                                              }
+                                              """);
+
+        // The consumer forwarders say the entry exists at all; the host is where the construction path
+        // is chosen, so that is where the two have to differ.
+        Assert.Contains(" Widget =>", run.Source(Entries), StringComparison.Ordinal);
+
+        var host = run.Source("RaskBuilderEntryHost.g.cs");
+        Assert.Contains("EntryRequired<global::Demo.Widget>", host, StringComparison.Ordinal);
+
+        // …and a component without a required member keeps the cheap `new T()` path, which is the whole
+        // reason the reflective construction is a separate helper rather than the default.
+        Assert.Contains("Entry<global::Demo.Optional>", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("EntryRequired<global::Demo.Optional>", host, StringComparison.Ordinal);
+    }
+
+    // The one shape a required member still blocks, and it is not about construction: a raw delegate
+    // prop is INVOCABLE, so `x.Template(fn)` binds to the property and a same-named setter can never be
+    // reached (the RASK042 rule). An optional prop of that shape moves to a carrier; a required one
+    // cannot, because a carrier built from a null delegate is a non-null carrier wrapping null — exactly
+    // the state `required` exists to forbid. An entry here would be constructible and never completable.
+    [Fact]
+    public void A_component_with_a_required_delegate_still_gets_no_entry()
     {
         var entries = BuilderGeneratorHarness.Run("""
+                                                  using System;
                                                   using Rask.Core;
                                                   namespace Demo;
-                                                  public partial class Widget : Component
+                                                  public partial class Templated : Component
                                                   {
-                                                      public required string Title { get; set; }
+                                                      public required Func<Component> Template { get; set; }
                                                   }
 
                                                   public partial class Optional : Component
@@ -219,7 +258,7 @@ public class BuilderEntryEmissionTests
                                                   }
                                                   """).Source(Entries);
 
-        Assert.DoesNotContain(" Widget =>", entries, StringComparison.Ordinal);
+        Assert.DoesNotContain(" Templated =>", entries, StringComparison.Ordinal);
         Assert.Contains(" Optional =>", entries, StringComparison.Ordinal);
     }
 

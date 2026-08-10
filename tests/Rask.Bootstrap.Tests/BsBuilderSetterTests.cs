@@ -136,6 +136,10 @@ public class BsBuilderSetterTests
         // The bound half of the same probe. Its only real assertion is that the file compiles: RASK038
         // is an Error, so a chain it wrongly flags cannot reach a test body at all.
         Assert.Contains("Bound", html, StringComparison.Ordinal);
+
+        // …and the two whose `required` modifier used to withhold an entry entirely.
+        Assert.Contains("Saved", html, StringComparison.Ordinal);
+        Assert.Contains("Orders", html, StringComparison.Ordinal);
     }
 
     // A bound chain must not be asked for `Value`, and giving BsCheck.Value the `= false` initializer
@@ -177,7 +181,16 @@ internal sealed partial class BsRequiredPropProbe : Rask.Core.Component
             BsIcon.Name(BsIconName.Star),
             BsProgress.Value(42),
             BsCheck.Value(true).Label("Agree"),
-            BsCheck.Bind(() => _model.Done).Label("Bound")
+            BsCheck.Bind(() => _model.Done).Label("Bound"),
+
+            // The `required` MODIFIER, which used to withhold an entry outright: a type with a required
+            // member does not satisfy `new()` (CS9040), so these two had no builder surface at all and
+            // would have ceased to exist the day the factory is deleted. Construction goes through
+            // ActivatorUtilities now — requiredness is a compile-time check, so it may build what `new T()`
+            // may not — and what enforces the value is RASK038 on this very chain. Drop either setter and
+            // this file stops compiling.
+            BsToast.Id(1).Message("Saved"),
+            BsStat.Value("42").Label("Orders")
         ];
 
     internal sealed class BoundModel
