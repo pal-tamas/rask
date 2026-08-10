@@ -343,8 +343,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate, p.IsAutoRerenderDelegate, generic: false,
-                    FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
+                var folded = IsFoldedCallback(c, p.Name);
+                EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate,
+                    p.IsAutoRerenderDelegate || folded, generic: false,
+                    !folded && FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
                     c.TypeParameters, c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name));
             }
 
@@ -467,7 +469,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var next = OwnPendingBit;
         foreach (var p in OwnSetterProps(c))
         {
-            if (next >= 64 || !IsResettableProp(p)
+            if (next >= 64 || !IsResettableProp(p) || IsFoldedCallback(c, p.Name)
                            || !FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate))
             {
                 continue;
@@ -860,6 +862,23 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // auto-wrapped callbacks and raw delegates are a fresh closure every render, so folding them would
     // force propsChanged: true on every frame and defeat the render cache for any callback-taking
     // component; a carrier prop wraps one of those.
+    /// <summary>
+    ///     Whether <paramref name="propName" /> is a property a <c>[FactoryGeneric]</c> component folds a
+    ///     <i>typed</i> callback into — <c>Form.OnValidSubmit</c> and <c>OnInvalidSubmit</c>, whose generic
+    ///     factory takes <c>Callback&lt;TModel&gt;</c>/<c>CallbackAsync&lt;TModel&gt;</c>, wraps whichever it
+    ///     was handed in <c>AutoCallback</c>, and stores the result as a bare <c>Delegate?</c>.
+    /// </summary>
+    /// <remarks>
+    ///     The builder setter is generated from the PROPERTY, so it sees only the folded
+    ///     <c>Delegate?</c> and did neither half: no wrap, and — because a bare <c>Delegate</c> is not a
+    ///     delegate-typed symbol — it folded into <c>propsChanged</c> as if it were an ordinary value. Both
+    ///     halves are decided here so they cannot drift apart: a wrapped callback is a fresh closure on
+    ///     every render, so folding one would report a prop change every frame and defeat the render cache
+    ///     for the whole subtree. Same rule the auto-wrapped callbacks have always followed.
+    /// </remarks>
+    private static bool IsFoldedCallback(Candidate c, string propName) =>
+        c.GenericFactory is { } gf && gf.TypedDelegateProperties.Contains(propName);
+
     private static bool FoldsIntoPropsChanged(string name, string typeFqn, bool isDelegate, bool autoRerender) =>
         !string.Equals(name, "Key", StringComparison.Ordinal)
         && !isDelegate

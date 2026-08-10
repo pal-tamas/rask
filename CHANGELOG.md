@@ -308,13 +308,30 @@ them until tagged releases begin.
     fix — 19.7 KB either way** — and the entry stays slightly ahead on time (Entry/Factory 0.97 → 0.95,
     both inside the noise). That is also the first half of the entry-vs-factory parity number the design
     had never measured.
-  - **An async form submit has no setter.** `Form`'s generic factory is a forwarder: it folds the typed
-    `OnValidSubmit` and `OnValidSubmitAsync` parameters into one untyped `Delegate? OnValidSubmit`
-    property, wrapping each in `AutoCallback`. Setters are emitted from properties, so the builder
-    surface has one setter taking a bare `Delegate?` — no async sibling, no wrapping, and no method-group
-    conversion — leaving `.OnValidSubmit(AutoCallback.Wrap((CallbackAsync<T>)SubmitAsync))` at every form
-    in the app and in everything `rask generate feature` writes. It works, but it is stage A4's job and
-    A4 is not done.
+  - **A submit handler set through a chain never repainted the component that owned it — now fixed.**
+    `Form` folds a typed submit callback into one untyped `Delegate?` property, and its *generic*
+    factory — the overload every real call site uses — wraps whatever it is handed in `AutoCallback` on
+    the way in. A builder setter is generated from the *property*, so it saw only the `Delegate?` and did
+    neither half. A method group reaches it through its C# natural type, so
+    `Form.Model(m).OnValidSubmit(SaveAsync)` compiled, read correctly, and silently skipped the wrap.
+    The reasoning that this was harmless — a submit already arrives through a DOM handler whose owner
+    resolution re-renders — is wrong, and the test that proves it is the shape where the two owners
+    differ: a `Form` rendered by a *child*, with the handler belonging to an *ancestor* whose own markup
+    is what changes. The typed factory repaints it; the chain left it stale.
+    `AutoCallback.Wrap` gained an untyped `Delegate?` overload for the folded properties (sync stays
+    sync, async stays async, and it costs the one `DynamicInvoke` the call site was already making), and
+    the setters for a `[FactoryGeneric]` component's `TypedDelegateProperties` now wrap. They also stop
+    folding into `propsChanged` — a wrapped callback is a fresh closure on every render, so folding one
+    would report a change every frame and defeat the render cache for the whole subtree, which is the
+    rule the auto-wrapped callbacks have always followed and which the bare `Delegate` shape had slipped
+    past. As a side effect the pilot's workaround collapses:
+    `.OnValidSubmit(AutoCallback.Wrap((CallbackAsync<T>)SubmitAsync))` is now just
+    `.OnValidSubmit(SubmitAsync)`, for a sync or an async handler alike.
+    What is still open in A4 is narrower than the pilot claimed: the *name* (there is no
+    `OnValidSubmitAsync` setter, because one untyped setter takes both), and the compile-time tie between
+    the model type and the handler type, which a fluent chain over a non-generic `Form` cannot carry. A
+    generic setter cannot recover it — C# will not infer a type parameter that appears in a delegate's
+    *parameter* position from a method group (CS0411), confirmed against a negative control.
   - **The sample cannot move before the CLI does, and the CLI cannot move yet.** `Rask.Example.Shop` is
     the committed output of `rask new`, and `ShopProvenanceTests` re-runs the real generators and
     compares — 14 of the 16 files touched are CLI-owned, so migrating the sample alone turns the README's

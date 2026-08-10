@@ -199,4 +199,64 @@ public static class AutoCallback
             r.StateHasChanged();
         };
     }
+
+    /// <summary>
+    ///     Wrap a one-argument callback whose delegate type is only known at run time, so it re-renders its
+    ///     owner after running — awaiting first when it is asynchronous.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         For the properties that <em>fold</em> a typed callback into a bare <see cref="Delegate" />.
+    ///         <c>Form.OnValidSubmit</c> is the case: its generic factory takes
+    ///         <c>Callback&lt;TModel&gt;</c> and <c>CallbackAsync&lt;TModel&gt;</c>, wraps whichever it was
+    ///         given, and stores the result untyped — and <c>Form</c> calls it back with
+    ///         <c>DynamicInvoke(model)</c>. A builder chain reaches the same property through a setter that
+    ///         has only the property's own type to work with, so without this the wrap silently did not
+    ///         happen and the component that owns the handler was never repainted.
+    ///     </para>
+    ///     <para>
+    ///         Sync stays sync: an <see cref="Action{T}" /> wrapper for a void-returning delegate, a
+    ///         <see cref="Func{T, TResult}" /> returning <see cref="Task" /> for a task-returning one, so a
+    ///         synchronous submit does not acquire an asynchronous hop it did not have. Both are shaped to
+    ///         take one argument, which is what the folded call site invokes them with.
+    ///     </para>
+    ///     <para>
+    ///         This is the one <c>Wrap</c> that costs a <c>DynamicInvoke</c> per call, because the typed
+    ///         overloads above have a delegate type to invoke directly and this one does not. It is
+    ///         confined to folded properties, which are submit-shaped — one invocation per user action, not
+    ///         a render hot path — and the call it replaces was already a <c>DynamicInvoke</c>.
+    ///     </para>
+    /// </remarks>
+    public static Delegate? Wrap(Delegate? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (DelegateOwner.Resolve(d) is not { } r)
+        {
+            return d;
+        }
+
+        if (typeof(Task).IsAssignableFrom(d.Method.ReturnType))
+        {
+            return new Func<object?, Task>(async arg =>
+            {
+                r.MarkDirtyForAsyncHandler();
+                if (d.DynamicInvoke(arg) is Task t)
+                {
+                    await t.ConfigureAwait(false);
+                }
+
+                r.StateHasChanged();
+            });
+        }
+
+        return new Action<object?>(arg =>
+        {
+            d.DynamicInvoke(arg);
+            r.StateHasChanged();
+        });
+    }
 }
