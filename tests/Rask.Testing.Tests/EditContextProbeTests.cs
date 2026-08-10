@@ -4,7 +4,7 @@ namespace Rask.Testing.Tests;
 
 // Validation state (messages, IsModified, IsValidating) never reaches the markup, so without a way to reach
 // the form's EditContext a consumer simply cannot assert it. These pin that the probe does.
-public class EditContextProbeTests
+public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
 {
     private sealed class Model
     {
@@ -61,7 +61,7 @@ public class EditContextProbeTests
     {
         var captured = false;
 
-        RaskTest.Render(() => Div()[RaskTest.EditContextProbe(_ => captured = true)]);
+        RaskTest.Render(() => Div[RaskTest.EditContextProbe(_ => captured = true)]);
 
         // There is no ambient context to hand over — placing the probe outside the form is a test bug, and
         // it stays silent rather than inventing a context.
