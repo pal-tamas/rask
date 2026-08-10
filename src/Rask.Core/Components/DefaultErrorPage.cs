@@ -97,9 +97,9 @@ public sealed class DefaultErrorPage : Component
     protected override Component? Head => OwnsDocument
         ?
         [
-            Generated.Meta("utf-8"),
-            Generated.Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-            Generated.Title()["Application error"]
+            Meta.Charset("utf-8"),
+            Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
+            Title["Application error"]
         ]
         : null;
 
@@ -107,7 +107,7 @@ public sealed class DefaultErrorPage : Component
     {
         var children = new List<Component>
         {
-            Generated.H1(Style: "margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"]
+            H1.Style("margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"]
         };
 
         // Try again first, when the boundary handed us a way to: it keeps the session, the state and the
@@ -116,19 +116,19 @@ public sealed class DefaultErrorPage : Component
         // and then a reload is what you want.
         if (_recover is { } recover)
         {
-            children.Add(Generated.Button(
-                Type: "button",
-                Style: ReloadButtonStyle,
-                OnClick: recover)["Try again"]);
+            children.Add(Button
+                .Type("button")
+                .Style(ReloadButtonStyle)
+                .OnClick(recover)["Try again"]);
         }
 
         // In-app recovery so the user isn't stranded on the fault: the runtime wires data-rask-reload
         // to location.reload() (CSP-clean, both hosts). If the runtime never loaded, the browser's own
         // reload is the fallback.
-        children.Add(Generated.Button(
-            Type: "button",
-            Style: ReloadButtonStyle,
-            Data: new Dictionary<string, string?> { ["rask-reload"] = "" })["Reload this page"]);
+        children.Add(Button
+            .Type("button")
+            .Style(ReloadButtonStyle)
+            .Data(new Dictionary<string, string?> { ["rask-reload"] = "" })["Reload this page"]);
 
         var chain = Unwind(_error);
 
@@ -141,19 +141,18 @@ public sealed class DefaultErrorPage : Component
         {
             for (var i = 1; i < chain.Count; i++)
             {
-                children.Add(Generated.Details(Open: true)[
-                    Generated.Summary(Style: CausedByStyle)[
+                children.Add(Details.Open(true)[
+                    Summary.Style(CausedByStyle)[
                         $"Caused by: {TypeName(chain[i])}"],
-                    Generated.Div(Style: "padding-left:0.75rem;border-left:2px solid #f5c2c0;margin-top:0.5rem;")[
+                    Div.Style("padding-left:0.75rem;border-left:2px solid #f5c2c0;margin-top:0.5rem;")[
                         RenderException(chain[i])]
                 ]);
             }
         }
 
-        return Generated.Div(
-                Class: "rask-error-boundary",
-                Style:
-                "max-width:720px;margin:4rem auto;padding:1.5rem;font-family:system-ui,sans-serif;color:#1f2937;"
+        return Div
+            .Class("rask-error-boundary")
+            .Style("max-width:720px;margin:4rem auto;padding:1.5rem;font-family:system-ui,sans-serif;color:#1f2937;"
                 + "border:1px solid #f5c2c0;background:#fff5f5;border-radius:0.5rem;")
             [children];
     }
@@ -163,8 +162,8 @@ public sealed class DefaultErrorPage : Component
     // never inject markup.
     private IEnumerable<Component> RenderException(Exception ex)
     {
-        yield return Generated.P(Style: TypeStyle)[TypeName(ex)];
-        yield return Generated.Pre(Style: MessageStyle)[ex.Message];
+        yield return P.Style(TypeStyle)[TypeName(ex)];
+        yield return Pre.Style(MessageStyle)[ex.Message];
 
         if (!_isDevelopment)
         {
@@ -187,7 +186,7 @@ public sealed class DefaultErrorPage : Component
         {
             if (!string.IsNullOrEmpty(ex.StackTrace))
             {
-                yield return Generated.Pre(Style: FrameStyle)[ex.StackTrace];
+                yield return Pre.Style(FrameStyle)[ex.StackTrace];
             }
 
             yield break;
@@ -199,12 +198,12 @@ public sealed class DefaultErrorPage : Component
             var file = frame.GetFileName();
             var line = frame.GetFileLineNumber();
 
-            yield return Generated.Div(Style: FrameStyle)[
+            yield return Div.Style(FrameStyle)[
                 file is not null && line > 0 ? $"at {method}  in {file}:line {line}" : $"at {method}"];
 
             if (file is not null && line > 0 && ReadSourceExcerpt(file, line, SourceRadius) is { } excerpt)
             {
-                yield return Generated.Pre(Style: ExcerptStyle)[excerpt];
+                yield return Pre.Style(ExcerptStyle)[excerpt];
             }
         }
     }

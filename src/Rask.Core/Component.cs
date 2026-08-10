@@ -393,7 +393,7 @@ public abstract partial class Component : RaskMarkup
     ///     </para>
     /// </summary>
     protected virtual Component Shell(Component head, Component body) =>
-        F.Html(HtmlLang)[head, F.Body(Class: BodyClass)[body]];
+        Html.Lang(HtmlLang)[head, Body.Class(BodyClass)[body]];
 
     // The host's entry into the escape hatch above: RootErrorBoundary composes the document around the
     // App, so it needs to reach the App's override. Kept internal because Shell is a user-facing
