@@ -34,7 +34,7 @@ public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> 
 
     public void Dispose() => _db.Dispose();
 
-    protected override Component? Head => Title()["Product grid — Rask EF Core"];
+    protected override Component? Head => Title["Product grid — Rask EF Core"];
 
     protected override async Task OnMountAsync() => await LoadAsync();
 
@@ -71,16 +71,16 @@ public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> 
 
     protected override Component? Render() =>
     [
-        Div(Class: "mb-3")[
-            H1(Class: "h3 mb-1")["Product grid"],
-            P(Class: "text-secondary mb-0")[
+        Div.Class("mb-3")[
+            H1.Class("h3 mb-1")["Product grid"],
+            P.Class("text-secondary mb-0")[
                 "Two ways to let SQLite do the paging and sorting. Both issue ORDER BY / COUNT / LIMIT — "
                 + "neither ever loads the whole table."
             ]
         ],
 
-        H2(Class: "h5")["An IQueryable as Data"],
-        P(Class: "text-secondary small")[
+        H2.Class("h5")["An IQueryable as Data"],
+        P.Class("text-secondary small")[
             "Hand the grid the query itself. It orders by each column's SortBy expression, counts, and "
             + "materialises only the current page. It runs inside the synchronous render, so it blocks a "
             + "request thread — fine for an admin screen — and needs a DbContext that outlives the render."
@@ -109,8 +109,8 @@ public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> 
                 new BsColumn<Product> { Title = "Price", Class = Txt.End(), Value = p => p.Price.ToString() },
             ]),
 
-        H2(Class: "h5 mt-4")["A fetched page + TotalCount"],
-        P(Class: "text-secondary small")[
+        H2.Class("h5 mt-4")["A fetched page + TotalCount"],
+        P.Class("text-secondary small")[
             "The same result, fully async. This page awaits CountAsync/ToListAsync in the handler the grid "
             + "awaits, then hands over one page plus the real total. Nothing blocks, and each load uses a "
             + "short-lived DbContext."
@@ -126,7 +126,7 @@ public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> 
             Sort: _sort,
             SortDescending: _desc,
             OnSortChangeAsync: SortAsync,
-            Empty: Div(Class: "text-secondary")["No products yet."],
+            Empty: Div.Class("text-secondary")["No products yet."],
             Columns:
             [
                 // SortField names the column in OnSortChange; the handler maps it to an OrderBy.

@@ -15,7 +15,7 @@ public sealed partial class CreateProductPage(IDbContextFactory<CatalogDbContext
 {
     private readonly CreateProductForm _form = new();
 
-    protected override Component? Head => Title()["New product — Rask EF Core"];
+    protected override Component? Head => Title["New product — Rask EF Core"];
 
     private async Task SubmitAsync(CreateProductForm form)
     {
@@ -30,20 +30,20 @@ public sealed partial class CreateProductPage(IDbContextFactory<CatalogDbContext
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
-            Div(Class: "card-body")[
-                H1(Class: "h4 mb-3")["New product"],
+        Div.Class("card shadow-sm border-0 mx-auto").Style("max-width: 32rem")[
+            Div.Class("card-body")[
+                H1.Class("h4 mb-3")["New product"],
                 Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
-                    Div()[
-                        Label("p-name", Class: "form-label small mb-1")["Name"],
+                    Div[
+                        Label.For("p-name").Class("form-label small mb-1")["Name"],
                         Input(() => _form.Name)
                             .Validate(ProductName.Validate)
                             .Id("p-name")
                             .Class("form-control"),
                         ValidationMessage(() => _form.Name, FieldErrors.Template)
                     ],
-                    Div()[
-                        Label("p-price", Class: "form-label small mb-1")["Price"],
+                    Div[
+                        Label.For("p-price").Class("form-label small mb-1")["Price"],
                         Input(() => _form.Price)
                             .Validate(Money.Validate)
                             .Id("p-price")
@@ -51,18 +51,18 @@ public sealed partial class CreateProductPage(IDbContextFactory<CatalogDbContext
                             .Step("0.01"),
                         ValidationMessage(() => _form.Price, FieldErrors.Template)
                     ],
-                    Div()[
-                        Label("p-stock", Class: "form-label small mb-1")["Stock"],
+                    Div[
+                        Label.For("p-stock").Class("form-label small mb-1")["Stock"],
                         Input(() => _form.Stock)
                             .Validate(StockLevel.Validate)
                             .Id("p-stock")
                             .Class("form-control"),
                         ValidationMessage(() => _form.Stock, FieldErrors.Template)
                     ],
-                    Div(Class: "d-flex justify-content-end gap-2 pt-2")[
-                        NavLink("/products", Class: "btn btn-outline-secondary")["Cancel"],
-                        Button("submit", Class: "btn btn-primary")[
-                            I(Class: "bi bi-check2-circle me-1"), "Add product"
+                    Div.Class("d-flex justify-content-end gap-2 pt-2")[
+                        NavLink.Href("/products").Class("btn btn-outline-secondary")["Cancel"],
+                        Button.Type("submit").Class("btn btn-primary")[
+                            I.Class("bi bi-check2-circle me-1"), "Add product"
                         ]
                     ]
                 ]
