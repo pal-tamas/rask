@@ -19,6 +19,7 @@ internal sealed record Site(
     int Id,
     InvocationExpressionSyntax Node,
     string ComponentName,
+    string ComponentFullName,
     string Receiver,
     string File,
     int Line,
@@ -83,7 +84,35 @@ internal sealed class FileRewriter
 
             var root = rewritten.GetRoot();
             var rejected = new HashSet<int>();
+            var hijacked = new HashSet<int>();
             var unattributable = new List<Diagnostic>();
+
+            // "It compiles" is not the test. `F.Head()` rewritten to `Head` compiles perfectly inside a
+            // component — and binds to `Component.Head`, the virtual `Component?` a page overrides to add
+            // metadata, not to the <head> tag entry it hides. Nothing in the diagnostics says so; the
+            // only thing that does is the TYPE of what the chain produced. So every rewritten site is
+            // asked what it built, and a site that did not build its own component is reverted whether or
+            // not the compiler complained.
+            var model2 = candidate.GetSemanticModel(rewritten);
+            foreach (var node in root.DescendantNodes().Where(n => n.HasAnnotations(AnnotationKind)))
+            {
+                var annotation = node.GetAnnotations(AnnotationKind).First();
+                if (!int.TryParse(annotation.Data, out var siteId) || !byNode.Values.Any(s => s.Id == siteId))
+                {
+                    continue;
+                }
+
+                var site = byNode.Values.First(s => s.Id == siteId);
+                // By NAME, not by symbol identity: `candidate` is a different CSharpCompilation, and a
+                // source symbol from one is never reference-equal to the same source symbol in another.
+                var produced = model2.GetTypeInfo(node).Type;
+                if (produced is null || Fqn(produced) != site.ComponentFullName)
+                {
+                    rejected.Add(siteId);
+                    hijacked.Add(siteId);
+                }
+            }
+
             foreach (var error in errors)
             {
                 if (baseline.Contains(Key(error)))
@@ -124,7 +153,13 @@ internal sealed class FileRewriter
             }
 
             sites = sites.Select(s => rejected.Contains(s.Id)
-                ? s with { Verdict = SiteVerdict.CompilerRejected, Detail = "compiler rejected the chain" }
+                ? s with
+                {
+                    Verdict = SiteVerdict.CompilerRejected,
+                    Detail = hijacked.Contains(s.Id)
+                        ? "the entry name binds to something else here"
+                        : "compiler rejected the chain",
+                }
                 : s).ToList();
             byNode = sites.ToDictionary(s => s.Node);
 
@@ -141,6 +176,9 @@ internal sealed class FileRewriter
         diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(Key).ToHashSet(StringComparer.Ordinal);
 
     private static string Key(Diagnostic d) => d.Id + "|" + d.GetMessage();
+
+    private static string Fqn(ITypeSymbol type) =>
+        type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
     // ---- collection ------------------------------------------------------------------------------
 
@@ -165,7 +203,8 @@ internal sealed class FileRewriter
             var typeArguments = "";
 
             Site Make(SiteVerdict verdict, string? detail, IReadOnlyList<string>? setters = null) =>
-                new(siteId, node, name, name + typeArguments, file, line, verdict, detail,
+                new(siteId, node, name, Fqn(component), name + typeArguments, file, line,
+                    verdict, detail,
                     setters ?? Array.Empty<string>(),
                     !SymbolEqualityComparer.Default.Equals(
                         component.ContainingAssembly, _surface.FrameworkAssembly));
