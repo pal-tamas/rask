@@ -23,6 +23,7 @@ whole-object stream, write, conditional create, prefix list, delete.
 | Google Cloud Storage | `AddRaskS3ObjectStore` against `storage.googleapis.com` | S3 interop HMAC keys |
 | MinIO / Backblaze B2 / Spaces | `AddRaskS3ObjectStore` | access key + secret |
 | Azure Blob Storage | `AddRaskAzureBlobObjectStore` | SAS token |
+| A folder on disk | `new FolderObjectStore(path)` | none |
 
 ```csharp
 builder.Services.AddRaskS3ObjectStore(o =>
@@ -35,6 +36,28 @@ builder.Services.AddRaskS3ObjectStore(o =>
 
 `UsePathStyle` defaults to `true` (`host/bucket/key`) because R2, MinIO and most S3-compatible stores
 require it. AWS accepts both; set it to `false` for virtual-host addressing.
+
+### A folder as a bucket
+
+`FolderObjectStore` implements the same interface over a directory:
+
+```csharp
+IObjectStore store = new FolderObjectStore("/var/lib/myapp/bucket");
+```
+
+Useful in three places, and it is the same code for all of them: running a sample or a test with no
+cloud credentials, a single-machine deployment that has no reason to pay for object storage, and — the
+interesting one — **a folder something else already replicates**. Point it at a Syncthing share and
+devices converge with no central server at all; point it at iCloud Drive, Dropbox or OneDrive and the
+replication is somebody else's problem.
+
+Objects are written beside their key and moved into place, so a reader listing the folder concurrently
+sees either nothing or the whole object — which matters most when another process is replicating the
+folder while it is being written. Keys that would escape the root are refused rather than normalised,
+because a key can come from a listing of a folder other people also write to.
+
+`TryCreateAsync` maps to the filesystem's own atomic create, so the [mutual-exclusion](#mutual-exclusion-without-a-lock-service)
+pattern below works here too.
 
 ## Ranged reads are the point
 

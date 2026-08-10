@@ -46,6 +46,22 @@ them until tagged releases begin.
   branches ([#661](https://github.com/pal-tamas/rask/issues/661)).
 
 ### Added
+- **A working sample: three devices sharing one database with no server.**
+  `samples/Rask.Example.Crdt` runs three replicas — Phone, Laptop, Tablet — each with its own SQLite
+  file and its own replica identity, sharing a bucket and nothing else. Each device can be taken
+  offline independently, so the demo exercises the real offline path rather than a special case: edit
+  **different fields of the same todo** on two offline devices, bring both back, sync, and both edits
+  survive. That is the claim per-column merging makes, and it is asserted by an E2E that drives it
+  through a browser. cr-sqlite's native binary is per-platform and not redistributed, so without
+  `RASK_CRSQLITE_PATH` the page explains what to download instead of failing at the first query with
+  "no such function" — and *that* state is asserted too, so one of the two always runs.
+- **`FolderObjectStore` — a bucket backed by a directory.** The same `IObjectStore` over a folder, which
+  is what lets the sample run with no cloud credentials. It also covers a single-machine deployment
+  with no reason to pay for object storage, and — the interesting case — **a folder something else
+  already replicates**: pointed at a Syncthing share, devices converge with no central server at all.
+  Objects are written beside their key and moved into place, so a concurrent reader sees either nothing
+  or the whole object, and keys that would escape the root are refused rather than normalised, because
+  a key can come from a listing of a folder other people also write to.
 - **`Rask.SQLite.Crdt.Sync` — share those replicas through a bucket, with no server between them.**
   Ships the change feed over `Rask.ObjectStore`: `new CrdtSyncEngine(objectStore, feed)` then
   `SyncAsync()`, with a status a UI can render (published / received / peers / offline). The design
