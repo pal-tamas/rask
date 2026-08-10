@@ -7,11 +7,11 @@ public sealed partial class BsButtonGroup : BsBlock
     public bool? Vertical { get; set; }
     public BsSize? Size { get; set; }
 
-    protected override Component? Render() => Div(
-        Id: Id,
-        Class: BsClass.Join(
+    protected override Component? Render() => Div
+        .Id(Id)
+        .Class(BsClass.Join(
             Vertical is true ? "btn-group-vertical" : "btn-group",
             Size is { } s && s.Suffix() is { } suffix ? $"btn-group-{suffix}" : null,
-            Class),
-        Role: "group")[Items];
+            Class))
+        .Role("group")[Items];
 }

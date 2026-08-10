@@ -27,7 +27,7 @@ public sealed partial class BsNavbar : BsBlock
             : null;
 
         return Container is false
-            ? Nav(Id: Id, Class: cls, Data: theme)[Items]
-            : Nav(Id: Id, Class: cls, Data: theme)[Div(Class: "container-fluid")[Items]];
+            ? Nav.Id(Id).Class(cls).Data(theme)[Items]
+            : Nav.Id(Id).Class(cls).Data(theme)[Div.Class("container-fluid")[Items]];
     }
 }

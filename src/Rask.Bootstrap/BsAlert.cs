@@ -24,10 +24,10 @@ public sealed partial class BsAlert : BsBlock
 
         if (!dismissible)
         {
-            return Div(Id: Id, Class: cls, Role: "alert")[Items];
+            return Div.Id(Id).Class(cls).Role("alert")[Items];
         }
 
-        return Div(Id: Id, Class: cls, Role: "alert")[
-            ItemsWith(BsCloseButton(OnClick: OnClose?.Fn, OnClickAsync: OnCloseAsync?.Fn))];
+        return Div.Id(Id).Class(cls).Role("alert")[
+            ItemsWith(BsCloseButton.OnClick(OnClose?.Fn).OnClickAsync(OnCloseAsync?.Fn))];
     }
 }

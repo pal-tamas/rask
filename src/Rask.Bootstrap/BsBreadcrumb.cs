@@ -10,7 +10,7 @@ public sealed partial class BsBreadcrumb : BsBlock
     protected override Component? Render()
     {
         var navAria = new Dictionary<string, string?> { ["label"] = Label ?? "breadcrumb" };
-        return Nav(Id: Id, Aria: navAria)[Ol(Class: BsClass.Join("breadcrumb", Class))[Items]];
+        return Nav.Id(Id).Aria(navAria)[Ol.Class(BsClass.Join("breadcrumb", Class))[Items]];
     }
 }
 
@@ -28,7 +28,7 @@ public sealed partial class BsBreadcrumbItem : BsBlock
         var aria = active ? new Dictionary<string, string?> { ["current"] = "page" } : null;
 
         return Href is not null && !active
-            ? Li(Id: Id, Class: cls, Aria: aria)[A(Href: Href)[Items]]
-            : Li(Id: Id, Class: cls, Aria: aria)[Items];
+            ? Li.Id(Id).Class(cls).Aria(aria)[A.Href(Href)[Items]]
+            : Li.Id(Id).Class(cls).Aria(aria)[Items];
     }
 }

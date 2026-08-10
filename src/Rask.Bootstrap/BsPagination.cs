@@ -17,7 +17,7 @@ public sealed partial class BsPagination : BsBlock
             Class);
 
         var navAria = new Dictionary<string, string?> { ["label"] = Label ?? "Page navigation" };
-        return Nav(Id: Id, Aria: navAria)[Ul(Class: cls)[Items]];
+        return Nav.Id(Id).Aria(navAria)[Ul.Class(cls)[Items]];
     }
 }
 
@@ -63,10 +63,14 @@ public sealed partial class BsPageItem : BsBlock
             : Aria;
 
         Component link = Href is not null
-            ? A(Class: "page-link", Href: Href, Aria: linkAria)[Items]
-            : Button(Type: "button", Class: "page-link", Aria: linkAria, OnClick: OnClick?.Fn,
-                OnClickAsync: OnClickAsync?.Fn)[Items];
+            ? A.Class("page-link").Href(Href).Aria(linkAria)[Items]
+            : Button
+                .Type("button")
+                .Class("page-link")
+                .Aria(linkAria)
+                .OnClick(OnClick?.Fn)
+                .OnClickAsync(OnClickAsync?.Fn)[Items];
 
-        return Li(Id: Id, Class: BsClass.Join(liCls, Class), Aria: liAria)[[link]];
+        return Li.Id(Id).Class(BsClass.Join(liCls, Class)).Aria(liAria)[[link]];
     }
 }

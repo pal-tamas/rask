@@ -41,8 +41,16 @@ public sealed partial class BsButton : BsBlock
         // Both handlers forward straight through to the native Button (the consumer sets at most one;
         // RASK027 enforces that at their call site). The set delegate passes raw to the DOM element,
         // whose handler-owner resolution re-renders the parent.
-        return Button(Id: Id, Class: cls, Style: Style, Type: Type ?? "button",
-            Disabled: Disabled, Name: Name, Value: Value, Aria: aria,
-            OnClick: OnClick?.Fn, OnClickAsync: OnClickAsync?.Fn)[Items];
+        return Button
+            .Id(Id)
+            .Class(cls)
+            .Style(Style)
+            .Type(Type ?? "button")
+            .Disabled(Disabled)
+            .Name(Name)
+            .Value(Value)
+            .Aria(aria)
+            .OnClick(OnClick?.Fn)
+            .OnClickAsync(OnClickAsync?.Fn)[Items];
     }
 }

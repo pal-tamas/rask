@@ -43,14 +43,14 @@ public sealed partial class BsTable : BsBlock
             StickyHeader is true ? "bs-table-sticky" : null,
             Class);
 
-        var table = Table(Id: Id, Class: cls, Aria: Aria)[Items];
+        var table = Table.Id(Id).Class(cls).Aria(Aria)[Items];
 
         // MaxHeight implies the wrapper even when Responsive is off: the height has to bound a scroll
         // container, and without one it would just clip. .table-responsive declares only overflow-x, but
         // a non-visible overflow on one axis computes the other to auto — so max-height on that same
         // element is what actually makes the body scroll vertically.
         return Responsive is true || MaxHeight is not null
-            ? Div(Class: "table-responsive", Style: MaxHeight is not null ? $"max-height:{MaxHeight}" : null)[table]
+            ? Div.Class("table-responsive").Style(MaxHeight is not null ? $"max-height:{MaxHeight}" : null)[table]
             : table;
     }
 }

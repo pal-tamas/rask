@@ -84,16 +84,17 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
         // valid — while everything else (aria-label on a label-less check) passes through untouched.
         var aria = Merge(Aria, BsClass.FieldAria(invalid, errorId));
 
-        var input = Rask.Core.Components.Generated.Input<string>(
-            Type: InputType.Checkbox,
-            Name: Name ?? acc?.PropertyName,
-            Checked: current,
-            Disabled: Disabled, Required: Required,
-            Role: Switch is true ? "switch" : null,
-            Aria: aria,
-            Class: BsClass.Join("form-check-input", invalid ? "is-invalid" : null),
-            Id: controlId,
-            OnChangeAsync: Disabled == true ? null : change);
+        var input = Input<string>()
+            .Type(InputType.Checkbox)
+            .Name(Name ?? acc?.PropertyName)
+            .Checked(current)
+            .Disabled(Disabled)
+            .Required(Required)
+            .Role(Switch is true ? "switch" : null)
+            .Aria(aria)
+            .Class(BsClass.Join("form-check-input", invalid ? "is-invalid" : null))
+            .Id(controlId)
+            .OnChangeAsync(Disabled == true ? null : change);
 
         var wrapperCls = BsClass.Join("form-check",
             Switch is true ? "form-switch" : null,
@@ -102,12 +103,12 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
             Class);
 
         // Id lands on the input (so the label's `for` resolves), not the wrapper.
-        return Div(Class: wrapperCls)[
+        return Div.Class(wrapperCls)[
             input,
             Label is not null
                 ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-check-label")[Label]
                 : null,
-            invalid ? Div(Id: errorId, Class: "invalid-feedback d-block", Role: "alert")[messages[0]] : null];
+            invalid ? Div.Id(errorId).Class("invalid-feedback d-block").Role("alert")[messages[0]] : null];
     }
 
     // Neither, either or both may be present, and the common case is neither — so return null rather than an

@@ -46,17 +46,33 @@ public sealed partial class BsInput<T> : BsFormControl<T>
         // value, so `typeof(T)` in there is `string` and its own default step would never see the decimal.
         var derivedType = DeriveType();
 
-        var control = Rask.Core.Components.Generated.Input<string>(
-            Type: derivedType,
-            Name: Name ?? b.Accessor?.PropertyName,
-            Value: BindingHelpers.FormatValue(b.Current),
-            Placeholder: placeholder, Disabled: Disabled, ReadOnly: ReadOnly, Required: Required,
-            Min: Min, Max: Max, Pattern: Pattern, MaxLength: MaxLength, MinLength: MinLength,
-            Step: Step ?? (derivedType == InputType.Number ? BindingHelpers.DefaultStep(typeof(T)) : null),
-            Multiple: Multiple, Accept: Accept, Capture: Capture, List: List, Autofocus: Autofocus,
-            Autocomplete: Autocomplete, InputMode: InputMode, EnterKeyHint: EnterKeyHint, Spellcheck: Spellcheck,
-            Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
-            OnInputAsync: Disabled == true ? null : StringChangeHandler(b));
+        var control = Input<string>()
+            .Type(derivedType)
+            .Name(Name ?? b.Accessor?.PropertyName)
+            .Value(BindingHelpers.FormatValue(b.Current))
+            .Placeholder(placeholder)
+            .Disabled(Disabled)
+            .ReadOnly(ReadOnly)
+            .Required(Required)
+            .Min(Min)
+            .Max(Max)
+            .Pattern(Pattern)
+            .MaxLength(MaxLength)
+            .MinLength(MinLength)
+            .Step(Step ?? (derivedType == InputType.Number ? BindingHelpers.DefaultStep(typeof(T)) : null))
+            .Multiple(Multiple)
+            .Accept(Accept)
+            .Capture(Capture)
+            .List(List)
+            .Autofocus(Autofocus)
+            .Autocomplete(Autocomplete)
+            .InputMode(InputMode)
+            .EnterKeyHint(EnterKeyHint)
+            .Spellcheck(Spellcheck)
+            .Class(cls)
+            .Id(controlId)
+            .Aria(FieldAria(b, controlId))
+            .OnInputAsync(Disabled == true ? null : StringChangeHandler(b));
 
         return Field(controlId, b, control);
     }

@@ -30,21 +30,21 @@ public sealed partial class BsStat : BsBlock
 
     protected override Component? Render()
     {
-        var body = BsCardBody(Class: "py-3")[
-            Div(Class: "d-flex align-items-center gap-2 text-body-secondary text-uppercase small fw-semibold")[
-                Icon is { } icon ? BsIcon(Name: icon) : null,
-                Span()[Label]
+        var body = BsCardBody.Class("py-3")[
+            Div.Class("d-flex align-items-center gap-2 text-body-secondary text-uppercase small fw-semibold")[
+                Icon is { } icon ? BsIcon.Name(icon) : null,
+                Span[Label]
             ],
-            Div(Class: BsClass.Join("fs-3 fw-semibold lh-1 mt-2", Tone is { } t ? t.Text() : null))[Value],
-            Caption is { } caption ? Div(Class: "small text-body-secondary mt-1")[caption] : null
+            Div.Class(BsClass.Join("fs-3 fw-semibold lh-1 mt-2", Tone is { } t ? t.Text() : null))[Value],
+            Caption is { } caption ? Div.Class("small text-body-secondary mt-1")[caption] : null
         ];
 
         // A linked tile must not look like body text, and must not lose the card's own affordances —
         // stretched-link would need positioning on the card, so the anchor wraps it instead.
         return Href is { } href
-            ? A(href, Class: BsClass.Join("text-decoration-none text-reset d-block h-100", Class), Id: Id)[
-                BsCard(Class: "h-100")[body]
+            ? A.Href(href).Class(BsClass.Join("text-decoration-none text-reset d-block h-100", Class)).Id(Id)[
+                BsCard.Class("h-100")[body]
             ]
-            : BsCard(Id: Id, Class: BsClass.Join("h-100", Class))[body];
+            : BsCard.Id(Id).Class(BsClass.Join("h-100", Class))[body];
     }
 }

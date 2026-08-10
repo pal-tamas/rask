@@ -6,9 +6,9 @@ public sealed partial class BsInputGroup : BsBlock
 {
     public BsSize? Size { get; set; }
 
-    protected override Component? Render() => Div(
-        Id: Id,
-        Class: BsClass.Join(
+    protected override Component? Render() => Div
+        .Id(Id)
+        .Class(BsClass.Join(
             "input-group",
             Size is { } s && s.Suffix() is { } suffix ? $"input-group-{suffix}" : null,
             Class))[Items];
@@ -18,5 +18,5 @@ public sealed partial class BsInputGroup : BsBlock
 public sealed partial class BsInputGroupText : BsBlock
 {
     protected override Component? Render() =>
-        Span(Id: Id, Class: BsClass.Join("input-group-text", Class))[Items];
+        Span.Id(Id).Class(BsClass.Join("input-group-text", Class))[Items];
 }

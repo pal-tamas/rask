@@ -53,7 +53,7 @@ public sealed partial class BsTimePicker<T> : BsPickerBase<T>
             ["controls"] = gridId,
         };
 
-        var popover = Div(Id: gridId, Class: MenuClass())[
+        var popover = Div.Id(gridId).Class(MenuClass())[
             PickerParts.TimeColumns(selected, step, showSeconds, secStep, Min, Max, Culture, PickerLabels,
                 hour => WriteTimeAsync(acc, ctx, fid, selected, hour, null, null),
                 minute => WriteTimeAsync(acc, ctx, fid, selected, null, minute, null),

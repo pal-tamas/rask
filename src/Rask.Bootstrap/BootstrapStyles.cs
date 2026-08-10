@@ -17,13 +17,13 @@ public sealed partial class BootstrapStyles : Component
     protected override Component? Render()
     {
         var prefix = LiveOptions.PathBase;
-        var core = Link(Rel: "stylesheet", Href: prefix + Base + "css/bootstrap.min.css");
+        var core = Link.Rel("stylesheet").Href(prefix + Base + "css/bootstrap.min.css");
         // Rask's own fixes for the Popper-less components; must come after Bootstrap to win the cascade.
-        var fixes = Link(Rel: "stylesheet", Href: prefix + Base + "css/rask-bootstrap.css");
+        var fixes = Link.Rel("stylesheet").Href(prefix + Base + "css/rask-bootstrap.css");
 
         return Icons is false
             ? [core, fixes]
-            : [core, Link(Rel: "stylesheet", Href: prefix + Base + "icons/bootstrap-icons.min.css"), fixes];
+            : [core, Link.Rel("stylesheet").Href(prefix + Base + "icons/bootstrap-icons.min.css"), fixes];
     }
 }
 
@@ -34,5 +34,5 @@ public sealed partial class BootstrapStyles : Component
 public sealed partial class RaskTokens : Component
 {
     protected override Component? Render() =>
-        Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/_content/Rask.Bootstrap/tokens.css");
+        Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/_content/Rask.Bootstrap/tokens.css");
 }

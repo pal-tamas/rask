@@ -30,14 +30,18 @@ public sealed partial class BsTabs : BsBlock
             var isActive = Equals(tab.Key, Active);
             var selected = new Dictionary<string, string?> { ["selected"] = isActive ? "true" : "false" };
 
-            navItems.Add(Li(Class: "nav-item", Role: "presentation", Key: tab.Key)[
-                Button(Type: "button", Role: "tab", Aria: selected,
-                    Class: BsClass.Join("nav-link", isActive ? "active" : null, tab.Disabled ? "disabled" : null),
-                    OnClick: tab.OnSelect, OnClickAsync: tab.OnSelectAsync)[tab.Title]]);
+            navItems.Add(Li.Class("nav-item").Role("presentation").Key(tab.Key)[
+                Button
+                    .Type("button")
+                    .Role("tab")
+                    .Aria(selected)
+                    .Class(BsClass.Join("nav-link", isActive ? "active" : null, tab.Disabled ? "disabled" : null))
+                    .OnClick(tab.OnSelect)
+                    .OnClickAsync(tab.OnSelectAsync)[tab.Title]]);
 
             if (isActive)
             {
-                pane = Div(Class: "tab-pane show active", Role: "tabpanel")[tab.Content];
+                pane = Div.Class("tab-pane show active").Role("tabpanel")[tab.Content];
             }
         }
 
@@ -46,8 +50,8 @@ public sealed partial class BsTabs : BsBlock
             Fill is true ? "nav-fill" : null,
             Class);
 
-        return Div(Id: Id)[
-            Ul(Class: navCls, Role: "tablist")[navItems],
-            Div(Class: "tab-content")[pane]];
+        return Div.Id(Id)[
+            Ul.Class(navCls).Role("tablist")[navItems],
+            Div.Class("tab-content")[pane]];
     }
 }

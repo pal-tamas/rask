@@ -11,12 +11,12 @@ public sealed partial class BsBadge : BsBlock
 
     public new string? Style { get; set; }
 
-    protected override Component? Render() => Span(
-        Id: Id,
-        Class: BsClass.Join(
+    protected override Component? Render() => Span
+        .Id(Id)
+        .Class(BsClass.Join(
             "badge",
             Color is { } c ? c.TextBg() : null,
             Pill is true ? "rounded-pill" : null,
-            Class),
-        Style: Style)[Items];
+            Class))
+        .Style(Style)[Items];
 }

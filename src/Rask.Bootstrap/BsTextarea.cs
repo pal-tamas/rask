@@ -24,14 +24,23 @@ public sealed partial class BsTextarea<T> : BsFormControl<T>
         var controlId = ControlId(b);
         var cls = BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null, Class);
 
-        var control = Rask.Core.Components.Generated.Textarea<string>(
-            Name: Name ?? b.Accessor?.PropertyName,
-            Value: BindingHelpers.FormatValue(b.Current),
-            Placeholder: Placeholder, Rows: Rows, Cols: Cols, Disabled: Disabled, ReadOnly: ReadOnly,
-            Required: Required, MaxLength: MaxLength, MinLength: MinLength,
-            Autocomplete: Autocomplete, Autofocus: Autofocus,
-            Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
-            OnInputAsync: Disabled == true ? null : StringChangeHandler(b));
+        var control = Textarea<string>()
+            .Name(Name ?? b.Accessor?.PropertyName)
+            .Value(BindingHelpers.FormatValue(b.Current))
+            .Placeholder(Placeholder)
+            .Rows(Rows)
+            .Cols(Cols)
+            .Disabled(Disabled)
+            .ReadOnly(ReadOnly)
+            .Required(Required)
+            .MaxLength(MaxLength)
+            .MinLength(MinLength)
+            .Autocomplete(Autocomplete)
+            .Autofocus(Autofocus)
+            .Class(cls)
+            .Id(controlId)
+            .Aria(FieldAria(b, controlId))
+            .OnInputAsync(Disabled == true ? null : StringChangeHandler(b));
 
         return Field(controlId, b, control);
     }

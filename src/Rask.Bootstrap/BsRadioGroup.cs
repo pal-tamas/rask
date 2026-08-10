@@ -93,12 +93,17 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
             var isChecked = current is not null && comparer.Equals(optionValue, current);
             Component label = OptionLabel?.Fn is { } render ? render(option) : option?.ToString() ?? string.Empty;
 
-            children.Add(Div(Class: wrapperClass, Key: index)[
-                Rask.Core.Components.Generated.Input<string>(
-                    InputType.Radio, groupName, BindingHelpers.FormatValue(option),
-                    Checked: isChecked, Disabled: Disabled, Class: "form-check-input", Id: optionId,
-                    Aria: optionAria,
-                    OnChangeAsync: disabled ? null : _ => SelectAsync(acc, ctx, fid, optionValue)),
+            children.Add(Div.Class(wrapperClass).Key(index)[
+                Input<string>()
+                    .Type(InputType.Radio)
+                    .Name(groupName)
+                    .Value(BindingHelpers.FormatValue(option))
+                    .Checked(isChecked)
+                    .Disabled(Disabled)
+                    .Class("form-check-input")
+                    .Id(optionId)
+                    .Aria(optionAria)
+                    .OnChangeAsync(disabled ? null : _ => SelectAsync(acc, ctx, fid, optionValue)),
                 Rask.Core.Components.Generated.Label(Class: "form-check-label", For: optionId)[label]
             ]);
             index++;
@@ -106,16 +111,16 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
 
         if (invalid)
         {
-            children.Add(Div(Id: errorId, Class: "invalid-feedback d-block", Role: "alert")[messages[0]]);
+            children.Add(Div.Id(errorId).Class("invalid-feedback d-block").Role("alert")[messages[0]]);
         }
 
         if (Label is not null)
         {
-            var content = new List<Component> { Legend(Class: "form-label fs-6")[Label] };
+            var content = new List<Component> { Legend.Class("form-label fs-6")[Label] };
             content.AddRange(children);
             // Disabled is NOT set on the fieldset: a disabled fieldset disables ALL descendants, which would
             // also disable interactive content in a rich OptionLabel. The radios carry their own Disabled.
-            return Fieldset(Class: "border-0 p-0 m-0")[content];
+            return Fieldset.Class("border-0 p-0 m-0")[content];
         }
 
         return [.. children];

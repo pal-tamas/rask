@@ -55,7 +55,7 @@ public sealed partial class BsDatePicker<T> : BsPickerBase<T>
             boxAria["activedescendant"] = PickerParts.CellId(prefix, _cursor);
         }
 
-        var popover = Div(Class: MenuClass())[
+        var popover = Div.Class(MenuClass())[
             PickerParts.MonthHeader(_cursor, Culture,
                 () => _cursor = Clamp(_cursor.AddMonths(-1)),
                 () => _cursor = Clamp(_cursor.AddMonths(1)),

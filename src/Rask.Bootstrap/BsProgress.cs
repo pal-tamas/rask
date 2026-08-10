@@ -34,8 +34,8 @@ public sealed partial class BsProgress : BsBlock
 
         var style = $"width:{BsClass.Num(pct)}%";
         var bar = Label is { } l
-            ? Div(Class: barCls, Style: style)[l]
-            : Div(Class: barCls, Style: style);
+            ? Div.Class(barCls).Style(style)[l]
+            : Div.Class(barCls).Style(style);
 
         var aria = new Dictionary<string, string?>
         {
@@ -44,6 +44,6 @@ public sealed partial class BsProgress : BsBlock
             ["valuemax"] = BsClass.Num(max),
         };
 
-        return Div(Id: Id, Class: BsClass.Join("progress", Class), Role: "progressbar", Aria: aria)[bar];
+        return Div.Id(Id).Class(BsClass.Join("progress", Class)).Role("progressbar").Aria(aria)[bar];
     }
 }

@@ -19,7 +19,7 @@ public sealed partial class BsRow : BsBlock
 {
     public int? Gutter { get; set; }
 
-    protected override Component? Render() => Div(
-        Id: Id,
-        Class: BsClass.Join(Grid.Row, Gutter is { } gutter ? Grid.Gutter(gutter) : null, Class))[Items];
+    protected override Component? Render() => Div
+        .Id(Id)
+        .Class(BsClass.Join(Grid.Row, Gutter is { } gutter ? Grid.Gutter(gutter) : null, Class))[Items];
 }

@@ -22,11 +22,20 @@ public sealed partial class BsDropdown : BsBlock
         var open = Open is true;
         var expanded = new Dictionary<string, string?> { ["expanded"] = open ? "true" : "false" };
 
-        return Div(Id: Id, Class: BsClass.Join("dropdown", Class),
-            Data: BsPopover.WrapperFor(AlignEnd is true))[
-            BsButton(Color: Color, Outline: Outline, Size: Size, Class: "dropdown-toggle",
-                Aria: expanded, OnClick: OnToggle?.Fn, OnClickAsync: OnToggleAsync?.Fn)[Label ?? ""],
-            Ul(Class: BsClass.Join("dropdown-menu", AlignEnd is true ? "dropdown-menu-end" : null,
+        return Div
+            .Id(Id)
+            .Class(BsClass.Join("dropdown", Class))
+            .Data(BsPopover.WrapperFor(AlignEnd is true))[
+            BsButton
+                .Color(Color)
+                .Outline(Outline)
+                .Size(Size)
+                .Class("dropdown-toggle")
+                .Aria(expanded)
+                .OnClick(OnToggle?.Fn)
+                .OnClickAsync(OnToggleAsync?.Fn)[Label ?? ""],
+            Ul
+                .Class(BsClass.Join("dropdown-menu", AlignEnd is true ? "dropdown-menu-end" : null,
                 open ? "show" : null))[Items]];
     }
 }
@@ -47,12 +56,12 @@ public sealed partial class BsDropdownItem : BsBlock
     {
         if (Divider is true)
         {
-            return Li(Id: Id)[Hr(Class: "dropdown-divider")];
+            return Li.Id(Id)[Hr.Class("dropdown-divider")];
         }
 
         if (Header is true)
         {
-            return Li(Id: Id)[H6(Class: BsClass.Join("dropdown-header", Class))[Items]];
+            return Li.Id(Id)[H6.Class(BsClass.Join("dropdown-header", Class))[Items]];
         }
 
         var cls = BsClass.Join("dropdown-item",
@@ -61,9 +70,9 @@ public sealed partial class BsDropdownItem : BsBlock
             Class);
 
         Component item = Href is not null
-            ? A(Class: cls, Href: Href)[Items]
-            : Button(Type: "button", Class: cls, OnClick: OnClick?.Fn, OnClickAsync: OnClickAsync?.Fn)[Items];
+            ? A.Class(cls).Href(Href)[Items]
+            : Button.Type("button").Class(cls).OnClick(OnClick?.Fn).OnClickAsync(OnClickAsync?.Fn)[Items];
 
-        return Li(Id: Id)[item];
+        return Li.Id(Id)[item];
     }
 }

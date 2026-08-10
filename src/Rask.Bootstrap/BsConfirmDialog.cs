@@ -31,15 +31,23 @@ public sealed partial class BsConfirmDialog : BsBlock
     protected override Component? Render() =>
         Open is not true
             ? null
-            : BsModal(Id: Id, Class: Class, Open: true, Title: Title, Centered: true,
-                StaticBackdrop: StaticBackdrop, OnClose: OnCancel?.Fn, OnCloseAsync: OnCancelAsync?.Fn, Footer: Footer())[Body()];
+            : BsModal
+                .Id(Id)
+                .Class(Class)
+                .Open(true)
+                .Title(Title)
+                .Centered(true)
+                .StaticBackdrop(StaticBackdrop)
+                .OnClose(OnCancel?.Fn)
+                .OnCloseAsync(OnCancelAsync?.Fn)
+                .Footer(Footer())[Body()];
 
     private new Component Footer() =>
     [
-        BsButton(Color: BsColor.Secondary, OnClick: OnCancel?.Fn, OnClickAsync: OnCancelAsync?.Fn)[CancelText],
-        BsButton(Color: ConfirmColor, OnClick: OnConfirm?.Fn, OnClickAsync: OnConfirmAsync?.Fn)[ConfirmText]
+        BsButton.Color(BsColor.Secondary).OnClick(OnCancel?.Fn).OnClickAsync(OnCancelAsync?.Fn)[CancelText],
+        BsButton.Color(ConfirmColor).OnClick(OnConfirm?.Fn).OnClickAsync(OnConfirmAsync?.Fn)[ConfirmText]
     ];
 
     private new IEnumerable<Component?> Body() =>
-        Message is not null ? [P(Class: Margin.Bottom(0))[Message]] : Items;
+        Message is not null ? [P.Class(Margin.Bottom(0))[Message]] : Items;
 }

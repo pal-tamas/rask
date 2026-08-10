@@ -64,22 +64,25 @@ public sealed partial class BsToast : Component
 
     protected override Component? Render()
     {
-        var close = BsCloseButton(
-            White: Color is not null,
-            Class: Color is not null ? "me-2 m-auto" : null,
-            OnClick: OnClose?.Fn is null ? null : () => OnClose?.Invoke(Id),
-            OnClickAsync: OnCloseAsync?.Fn is null
+        var close = BsCloseButton
+            .White(Color is not null)
+            .Class(Color is not null ? "me-2 m-auto" : null)
+            .OnClick(OnClose?.Fn is null ? null : () => OnClose?.Invoke(Id))
+            .OnClickAsync(OnCloseAsync?.Fn is null
                 ? null
                 : () => OnCloseAsync?.InvokeAsync(Id) ?? Task.CompletedTask);
 
         // Colored "Color schemes" layout — headerless, body + white × in a flex row.
         if (Color is { } color)
         {
-            return Div(Id: Id.ToString(), Class: BsClass.Join("toast show align-items-center", color.TextBg(), "border-0", Class),
-                Role: "alert", Aria: ToastAria)[
-                Div(Class: "d-flex")[
-                    Div(Class: "toast-body")[
-                        Icon is { } glyph ? BsIcon(Name: glyph, Class: "me-2") : null,
+            return Div
+                .Id(Id.ToString())
+                .Class(BsClass.Join("toast show align-items-center", color.TextBg(), "border-0", Class))
+                .Role("alert")
+                .Aria(ToastAria)[
+                Div.Class("d-flex")[
+                    Div.Class("toast-body")[
+                        Icon is { } glyph ? BsIcon.Name(glyph).Class("me-2") : null,
                         Message
                     ],
                     close
@@ -88,14 +91,14 @@ public sealed partial class BsToast : Component
         }
 
         // Default layout — header (icon + title + timestamp + ×) over the body.
-        return Div(Id: Id.ToString(), Class: BsClass.Join("toast show", Class), Role: "alert", Aria: ToastAria)[
-            Div(Class: "toast-header")[
-                Icon is { } headerGlyph ? BsIcon(Name: headerGlyph, Class: "me-2") : null,
-                Strong(Class: "me-auto")[Title ?? ""],
-                Timestamp is { } ts ? Small(Class: "text-secondary")[ts] : null,
+        return Div.Id(Id.ToString()).Class(BsClass.Join("toast show", Class)).Role("alert").Aria(ToastAria)[
+            Div.Class("toast-header")[
+                Icon is { } headerGlyph ? BsIcon.Name(headerGlyph).Class("me-2") : null,
+                Strong.Class("me-auto")[Title ?? ""],
+                Timestamp is { } ts ? Small.Class("text-secondary")[ts] : null,
                 close
             ],
-            Div(Class: "toast-body")[Message]
+            Div.Class("toast-body")[Message]
         ];
     }
 }

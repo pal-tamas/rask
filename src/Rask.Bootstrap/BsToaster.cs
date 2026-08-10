@@ -26,16 +26,16 @@ public sealed partial class BsToaster : Component
 
     protected override Component? Render() =>
         ToastOutlet(Template: (messages, dismiss) =>
-            Div(Class: $"toast-container position-fixed {Placement} p-3")[
-                messages.Select(m => (Component)BsToast(
-                    Id: m.Id,
-                    Title: m.Title,
-                    Message: m.Message,
-                    Color: ToColor(m.Level),
-                    Icon: ToIcon(m.Level),
-                    AutoHideMs: AutoHideMs,
-                    OnClose: id => dismiss(id),
-                    Key: m.Id.ToString()))
+            Div.Class($"toast-container position-fixed {Placement} p-3")[
+                messages.Select(m => (Component)BsToast
+                    .Id(m.Id)
+                    .Title(m.Title)
+                    .Message(m.Message)
+                    .Color(ToColor(m.Level))
+                    .Icon(ToIcon(m.Level))
+                    .AutoHideMs(AutoHideMs)
+                    .OnClose(id => dismiss(id))
+                    .Key(m.Id.ToString()))
             ]);
 
     private static BsColor ToColor(ToastLevel level) => level switch

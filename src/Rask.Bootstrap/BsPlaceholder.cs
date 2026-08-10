@@ -21,11 +21,11 @@ public sealed partial class BsPlaceholder : BsBlock
             Col is { } col ? $"col-{col}" : null,
             Class);
 
-        var placeholder = Span(Id: Id, Class: cls)[Items];
+        var placeholder = Span.Id(Id).Class(cls)[Items];
         var animation = Animation ?? BsPlaceholderAnimation.None;
 
         return animation == BsPlaceholderAnimation.None
             ? placeholder
-            : Span(Class: animation == BsPlaceholderAnimation.Wave ? "placeholder-wave" : "placeholder-glow")[placeholder];
+            : Span.Class(animation == BsPlaceholderAnimation.Wave ? "placeholder-wave" : "placeholder-glow")[placeholder];
     }
 }

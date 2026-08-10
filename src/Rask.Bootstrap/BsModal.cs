@@ -73,22 +73,29 @@ public sealed partial class BsModal : BsBlock
             data["rask-dismiss"] = "";
         }
 
-        var content = Div(Class: "modal-content")[
+        var content = Div.Class("modal-content")[
             showHeader
-                ? Div(Class: "modal-header")[
-                    Title is not null ? H5(Id: titleId, Class: "modal-title")[Title] : null,
+                ? Div.Class("modal-header")[
+                    Title is not null ? H5.Id(titleId).Class("modal-title")[Title] : null,
                     HideClose is not true
-                        ? BsCloseButton(OnClick: OnClose?.Fn, OnClickAsync: OnCloseAsync?.Fn)
+                        ? BsCloseButton.OnClick(OnClose?.Fn).OnClickAsync(OnCloseAsync?.Fn)
                         : null]
                 : null,
-            Div(Class: "modal-body")[Items],
-            Footer is { } footer ? Div(Class: "modal-footer")[footer] : null];
+            Div.Class("modal-body")[Items],
+            Footer is { } footer ? Div.Class("modal-footer")[footer] : null];
 
-        var modal = Div(Id: Id, Class: "modal fade show", Style: "display:block", TabIndex: -1,
-            Role: "dialog", Aria: aria, Data: data,
-            OnClick: staticBackdrop ? null : OnClose?.Fn, OnClickAsync: staticBackdrop ? null : OnCloseAsync?.Fn)[
-                Div(Class: dialogCls, OnClick: staticBackdrop ? null : Shield)[content]];
+        var modal = Div
+            .Id(Id)
+            .Class("modal fade show")
+            .Style("display:block")
+            .TabIndex(-1)
+            .Role("dialog")
+            .Aria(aria)
+            .Data(data)
+            .OnClick(staticBackdrop ? null : OnClose?.Fn)
+            .OnClickAsync(staticBackdrop ? null : OnCloseAsync?.Fn)[
+                Div.Class(dialogCls).OnClick(staticBackdrop ? null : Shield)[content]];
 
-        return [modal, Div(Class: "modal-backdrop fade show")];
+        return [modal, Div.Class("modal-backdrop fade show")];
     }
 }

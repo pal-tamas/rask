@@ -36,6 +36,6 @@ public sealed partial class BsLink : BsBlock
 
         var aria = Active is true ? BsClass.WithAria(Aria, "pressed", "true") : Aria;
 
-        return A(Id: Id, Class: cls, Style: Style, Href: Href, Target: Target, Rel: Rel, Aria: aria)[Items];
+        return A.Id(Id).Class(cls).Style(Style).Href(Href).Target(Target).Rel(Rel).Aria(aria)[Items];
     }
 }

@@ -24,7 +24,7 @@ public sealed partial class BsSpinner : BsBlock
             Color is { } c ? c.Text() : null,
             Class);
 
-        var content = Children ?? [Span(Class: "visually-hidden")[Label ?? "Loading…"]];
-        return Div(Id: Id, Class: cls, Role: "status")[content];
+        var content = Children ?? [Span.Class("visually-hidden")[Label ?? "Loading…"]];
+        return Div.Id(Id).Class(cls).Role("status")[content];
     }
 }

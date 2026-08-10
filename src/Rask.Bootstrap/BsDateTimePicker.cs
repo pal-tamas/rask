@@ -77,12 +77,12 @@ public sealed partial class BsDateTimePicker<T> : BsPickerBase<T>
         var maxTime = Max is { } mxv && timeDate == DateOnly.FromDateTime(mxv)
             ? TimeOnly.FromDateTime(mxv) : (TimeOnly?)null;
 
-        var popover = Div(Class: MenuClass())[
+        var popover = Div.Class(MenuClass())[
             PickerParts.MonthHeader(_cursor, Culture,
                 () => _cursor = ClampCursor(_cursor.AddMonths(-1)),
                 () => _cursor = ClampCursor(_cursor.AddMonths(1)),
                 PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor), PickerLabels),
-            Div(Class: BsClass.Join("bs-datetime", Display.Flex(), Flex.Gap(2)))[
+            Div.Class(BsClass.Join("bs-datetime", Display.Flex(), Flex.Gap(2)))[
                 PickerParts.CalendarGrid(_cursor, _cursor, selDate, minDate, maxDate, Disable?.Fn, Culture,
                     prefix, gridId, day => PickDayAsync(acc, ctx, fid, selected, offset, day)),
                 PickerParts.TimeColumns(selTime, step, showSeconds, secStep, minTime, maxTime, Culture,

@@ -19,8 +19,13 @@ public sealed partial class BsCloseButton : BsBlock
     protected override Component? Render()
     {
         var aria = new Dictionary<string, string?> { ["label"] = AriaLabel ?? "Close" };
-        return Button(Id: Id, Type: "button", Disabled: Disabled,
-            Class: BsClass.Join("btn-close", White is true ? "btn-close-white" : null, Class),
-            Aria: aria, OnClick: OnClick?.Fn, OnClickAsync: OnClickAsync?.Fn)[Items];
+        return Button
+            .Id(Id)
+            .Type("button")
+            .Disabled(Disabled)
+            .Class(BsClass.Join("btn-close", White is true ? "btn-close-white" : null, Class))
+            .Aria(aria)
+            .OnClick(OnClick?.Fn)
+            .OnClickAsync(OnClickAsync?.Fn)[Items];
     }
 }

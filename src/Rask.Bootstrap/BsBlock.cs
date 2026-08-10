@@ -28,7 +28,7 @@ public abstract partial class BsBlock : Component
     // Renders a <div class="{baseClass} {Class}" id="{Id}"> wrapper around the children — the shape
     // most container parts share (card sections, etc.).
     private protected Component Wrap(string baseClass) =>
-        Div(Id: Id, Class: BsClass.Join(baseClass, Class))[Items];
+        Div.Id(Id).Class(BsClass.Join(baseClass, Class))[Items];
 
     // The children followed by extra trailing children (e.g. an alert's close button), as one
     // sequence for the children indexer (the `..` spread is unsupported — pass an enumerable).

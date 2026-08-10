@@ -40,21 +40,26 @@ public sealed partial class BsOffcanvas : BsBlock
         var hideAbove = Responsive is { } hbp ? Display.None(hbp) : null;
 
         var showHeader = Title is not null || HideClose is not true;
-        var panel = Div(Id: Id, Class: BsClass.Join(baseCls, placementCls, open ? "show" : null, Class),
-            TabIndex: -1, Role: "dialog")[
+        var panel = Div
+            .Id(Id)
+            .Class(BsClass.Join(baseCls, placementCls, open ? "show" : null, Class))
+            .TabIndex(-1)
+            .Role("dialog")[
                 showHeader
-                    ? Div(Class: BsClass.Join("offcanvas-header", hideAbove))[
-                        Title is not null ? H5(Class: "offcanvas-title")[Title] : null,
+                    ? Div.Class(BsClass.Join("offcanvas-header", hideAbove))[
+                        Title is not null ? H5.Class("offcanvas-title")[Title] : null,
                         HideClose is not true
-                            ? BsCloseButton(OnClick: OnClose?.Fn, OnClickAsync: OnCloseAsync?.Fn)
+                            ? BsCloseButton.OnClick(OnClose?.Fn).OnClickAsync(OnCloseAsync?.Fn)
                             : null]
                     : null,
-                Div(Class: "offcanvas-body")[Items]];
+                Div.Class("offcanvas-body")[Items]];
 
         return open && Backdrop is not false
             ? [panel,
-                Div(Class: BsClass.Join("offcanvas-backdrop", "fade", "show", hideAbove),
-                    OnClick: OnClose?.Fn, OnClickAsync: OnCloseAsync?.Fn)]
+                Div
+                    .Class(BsClass.Join("offcanvas-backdrop", "fade", "show", hideAbove))
+                    .OnClick(OnClose?.Fn)
+                    .OnClickAsync(OnCloseAsync?.Fn)]
             : panel;
     }
 }

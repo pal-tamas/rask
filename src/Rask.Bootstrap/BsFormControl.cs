@@ -121,15 +121,15 @@ public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
         // Help text and error feedback carry the ids the control's aria-describedby points at, and the
         // error container is a role="alert" live region so a screen reader announces the message the
         // moment validation fails (on submit/blur), associated with — not detached from — the field.
-        var help = HelpText is not null ? Div(Id: HelpTextId(controlId), Class: "form-text")[HelpText] : null;
+        var help = HelpText is not null ? Div.Id(HelpTextId(controlId)).Class("form-text")[HelpText] : null;
         var feedback = b.Invalid
-            ? Div(Id: ErrorId(controlId, b), Class: "invalid-feedback d-block", Role: "alert")[b.Messages[0]]
+            ? Div.Id(ErrorId(controlId, b)).Class("invalid-feedback d-block").Role("alert")[b.Messages[0]]
             : null;
 
         if (Floating is true && Label is not null)
         {
-            return Div()[
-                Div(Class: "form-floating")[
+            return Div[
+                Div.Class("form-floating")[
                     control,
                     RequiredLabel(controlId, null)
                 ],
@@ -138,7 +138,7 @@ public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
             ];
         }
 
-        return Div()[
+        return Div[
             Label is not null ? RequiredLabel(controlId, "form-label") : null,
             control,
             help,
@@ -152,6 +152,6 @@ public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
     private Component RequiredLabel(string? controlId, string? cls) =>
         Rask.Core.Components.Generated.Label(For: controlId, Class: cls)[
             Label,
-            Required is true ? Span(Class: "text-danger ms-1")["*"] : null
+            Required is true ? Span.Class("text-danger ms-1")["*"] : null
         ];
 }

@@ -11,6 +11,6 @@ public sealed partial class BsNavbarBrand : BsBlock
 
     protected override Component? Render() =>
         Href is { } href
-            ? NavLink(Href: href, ActiveClass: "", Class: BsClass.Join("navbar-brand", Class))[Items]
-            : Span(Id: Id, Class: BsClass.Join("navbar-brand", Class))[Items];
+            ? NavLink.Href(href).ActiveClass("").Class(BsClass.Join("navbar-brand", Class))[Items]
+            : Span.Id(Id).Class(BsClass.Join("navbar-brand", Class))[Items];
 }

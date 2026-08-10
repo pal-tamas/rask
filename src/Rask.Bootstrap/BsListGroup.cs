@@ -16,8 +16,8 @@ public sealed partial class BsListGroup : BsBlock
             Class);
 
         return Numbered is true
-            ? Ol(Id: Id, Class: cls)[Items]
-            : Ul(Id: Id, Class: cls)[Items];
+            ? Ol.Id(Id).Class(cls)[Items]
+            : Ul.Id(Id).Class(cls)[Items];
     }
 }
 
@@ -47,7 +47,7 @@ public sealed partial class BsListGroupItem : BsBlock
             : null;
 
         return action
-            ? A(Id: Id, Class: cls, Href: Href, Aria: aria)[Items]
-            : Li(Id: Id, Class: cls, Aria: aria)[Items];
+            ? A.Id(Id).Class(cls).Href(Href).Aria(aria)[Items]
+            : Li.Id(Id).Class(cls).Aria(aria)[Items];
     }
 }

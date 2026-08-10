@@ -7,9 +7,9 @@ public sealed partial class BsAccordion : BsBlock
     // Removes the default background/borders (.accordion-flush).
     public bool? Flush { get; set; }
 
-    protected override Component? Render() => Div(
-        Id: Id,
-        Class: BsClass.Join("accordion", Flush is true ? "accordion-flush" : null, Class))[Items];
+    protected override Component? Render() => Div
+        .Id(Id)
+        .Class(BsClass.Join("accordion", Flush is true ? "accordion-flush" : null, Class))[Items];
 }
 
 // One accordion item. Open shows the panel; OnToggle is wired to the header button (forwarded to the
@@ -26,14 +26,17 @@ public sealed partial class BsAccordionItem : BsBlock
         var open = Open is true;
         var expanded = new Dictionary<string, string?> { ["expanded"] = open ? "true" : "false" };
 
-        return Div(Id: Id, Class: BsClass.Join("accordion-item", Class))[
-            H2(Class: "accordion-header")[
-                Button(Type: "button",
-                    Class: BsClass.Join("accordion-button", open ? null : "collapsed"),
-                    Aria: expanded, OnClick: OnToggle?.Fn, OnClickAsync: OnToggleAsync?.Fn)[Title ?? ""]
+        return Div.Id(Id).Class(BsClass.Join("accordion-item", Class))[
+            H2.Class("accordion-header")[
+                Button
+                    .Type("button")
+                    .Class(BsClass.Join("accordion-button", open ? null : "collapsed"))
+                    .Aria(expanded)
+                    .OnClick(OnToggle?.Fn)
+                    .OnClickAsync(OnToggleAsync?.Fn)[Title ?? ""]
             ],
-            Div(Class: BsClass.Join("accordion-collapse", "collapse", open ? "show" : null))[
-                Div(Class: "accordion-body")[Items]
+            Div.Class(BsClass.Join("accordion-collapse", "collapse", open ? "show" : null))[
+                Div.Class("accordion-body")[Items]
             ]
         ];
     }
