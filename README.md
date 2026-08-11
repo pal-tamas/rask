@@ -209,6 +209,7 @@ The [`rask` CLI](docs/cli.md) (`Rask.Cli`, a global .NET tool) owns all scaffold
 ```bash
 dotnet tool install -g Rask.Cli          # one-time: install the CLI
 
+rask                                      # a wizard: name, project type, styling, Docker, batteries
 rask new MyApp                            # ASP.NET live-server app (the default template)
 rask new MyApp --template wasm            # standalone browser-WASM SPA
 rask new MyApp --template wasm-hosted     # browser-WASM client + ASP.NET host
@@ -216,6 +217,10 @@ rask new MyApp --template native          # native iOS + Android app (WebView hy
 
 cd MyApp && rask dev                       # run with hot reload (--open for a browser; native: dotnet build -t:Run -f net10.0-android)
 ```
+
+Run `rask` with no arguments on a terminal and it asks its way to a project, skipping any question you
+already answered on the command line. Every project comes with a `.gitignore`, an `.editorconfig`, a
+`.slnx` solution and a git repository with one commit.
 
 Add `--auth` for a cookie/JWT-wired starter, `--pwa` (WASM) for an installable offline app, or
 `--docker` (the three web templates) for a production multi-stage Dockerfile — see

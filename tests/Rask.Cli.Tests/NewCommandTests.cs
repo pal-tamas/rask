@@ -178,7 +178,7 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--host' does not accept 'cloud'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: local, server.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: local, server, wasm-hosted.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -203,13 +203,13 @@ public sealed class NewCommandTests
         Assert.Equal(0, exit);
         Assert.Empty(console.ErrorText);
         // A three-project solution is written directly under ./HostedApp.
-        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.sln"));
+        Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.slnx"));
         Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Client/HostedApp.Client.csproj"));
         Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Server/HostedApp.Server.csproj"));
         Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Shared/HostedApp.Shared.csproj"));
         Assert.True(fs.FileExists("/proj/HostedApp/HostedApp.Server/Features/Auth/CredentialStore.cs")); // --auth
         // It restores the solution, and never shells to `dotnet new` / installs Rask.Templates.
-        Assert.Contains(runner.Invocations, i => i.Arguments is ["restore", "/proj/HostedApp/HostedApp.sln"]);
+        Assert.Contains(runner.Invocations, i => i.Arguments is ["restore", "/proj/HostedApp/HostedApp.slnx"]);
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("new"));
     }
 
@@ -217,7 +217,7 @@ public sealed class NewCommandTests
     public async Task WasmHosted_generation_refuses_to_overwrite_an_existing_solution()
     {
         var (console, fs, runner, command) = Build();
-        fs.Seed("/proj/HostedApp/HostedApp.sln", "solution");
+        fs.Seed("/proj/HostedApp/HostedApp.slnx", "solution");
 
         var exit = await command.ExecuteAsync(["HostedApp", "--template", "wasm-hosted"], CancellationToken.None);
 
@@ -315,7 +315,7 @@ public sealed class NewCommandTests
         var (console, _, runner, command) = Build();
         runner.RunExitCode = 1; // would fail if it ran
 
-        var exit = await command.ExecuteAsync(["MyApp", "--no-restore"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--no-restore", "--no-git"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Empty(runner.Invocations);
@@ -340,9 +340,15 @@ public sealed class NewCommandTests
     public async Task No_name_on_a_terminal_walks_the_wizard_and_scaffolds()
     {
         var (console, fs, runner, command) = Build();
-        // Simulate a terminal (InputLines flips the console to interactive) and script the answers:
-        // name → template select (2 = wasm) → --auth? no → --pwa? yes → --docker? no.
-        console.InputLines = ["Spa", "2", "n", "y", "n"];
+
+        // Typing/pressing flips the console to interactive. The flow, in order:
+        //   name → project type (down = wasm) → styling (enter = Rask.Bootstrap) → Dockerfile? no
+        //   → batteries, offered as [auth, pwa] (down to pwa, space to tick it, enter).
+        console.Type("Spa")
+            .Press(ConsoleKey.DownArrow, ConsoleKey.Enter)
+            .Press(ConsoleKey.Enter)
+            .Type("n")
+            .Press(ConsoleKey.DownArrow, ConsoleKey.Spacebar, ConsoleKey.Enter);
 
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
@@ -350,7 +356,8 @@ public sealed class NewCommandTests
         Assert.True(fs.FileExists("/proj/Spa/Spa.csproj"));
         Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html")); // wasm template
         Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg"));   // --pwa answered yes
-        Assert.False(fs.FileExists("/proj/Spa/Features/Auth/Auth.cs")); // --auth answered no
+        Assert.False(fs.FileExists("/proj/Spa/Features/Auth/Auth.cs")); // --auth left unticked
+        Assert.False(fs.FileExists("/proj/Spa/Dockerfile"));            // Dockerfile answered no
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
     }
 

@@ -13,6 +13,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <!-- Spectre's own test doubles: `TestConsoleInput` scripts the key presses an interactive
+         SelectionPrompt reads, which a StringReader of whole lines cannot express. -->
+    <PackageReference Include="Spectre.Console.Testing"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="Xunit.SkippableFact"/>
     <PackageReference Include="xunit.runner.visualstudio">

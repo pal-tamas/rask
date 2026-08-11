@@ -18,8 +18,8 @@ internal static partial class ProjectGenerator
         {
             ($"{NameToken}.csproj", ServerCsproj(batteries, version)),
             ("Program.cs", ServerProgram(batteries)),
-            ("Features/Shared/App.cs", AppShellCs),
-            ("Features/Home/HomePage.cs", HomePageCs),
+            ("Features/Shared/App.cs", AppShellCs(batteries.Bootstrap)),
+            ("Features/Home/HomePage.cs", HomePageCs(batteries.Bootstrap)),
             ("Properties/launchSettings.json", LaunchSettings),
             ("appsettings.json", AppSettings),
             ("appsettings.Production.json", AppSettingsProduction),
@@ -42,7 +42,7 @@ internal static partial class ProjectGenerator
             files.Add(("Features/Push/PushSubscriptions.cs", PushSubscriptionsCs));
         }
 
-        files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs));
+        files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs(batteries.Bootstrap)));
 
         if (batteries.Pwa)
         {
@@ -56,6 +56,8 @@ internal static partial class ProjectGenerator
             files.Add((".dockerignore", DockerIgnore));
         }
 
+        files.AddRange(ProjectHygiene($"{NameToken}.csproj"));
+
         var scaffoldFiles = Materialize(targetDirectory, name, files);
 
         return new ScaffoldResult(scaffoldFiles, ServerNextSteps(name, batteries))
@@ -67,7 +69,12 @@ internal static partial class ProjectGenerator
     // The package list, in the same order the csproj emits them, so `rask new`'s summary matches the file.
     private static List<string> ServerPackages(ServerBatteries batteries)
     {
-        var packages = new List<string> { "Rask.Server", "Rask.Bootstrap" };
+        var packages = new List<string> { "Rask.Server" };
+        if (batteries.Bootstrap)
+        {
+            packages.Add("Rask.Bootstrap");
+        }
+
         if (batteries.Cqrs)
         {
             packages.Add("Rask.Cqrs");
@@ -138,7 +145,7 @@ internal static partial class ProjectGenerator
         // and pulls its EF Core provider transitively; `rask db` adds EF's Design package on the first
         // migration, so the base app builds and runs with no design-time dependency.
         var refs = new StringBuilder();
-        foreach (var package in ServerPackages(batteries).Skip(2))
+        foreach (var package in ServerPackages(batteries).Skip(1))
         {
             refs.Append($"\n    <PackageReference Include=\"{package}\" Version=\"{version}\"/>");
         }
@@ -162,8 +169,7 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
 
           <ItemGroup>
-            <PackageReference Include="Rask.Server" Version="{version}"/>
-            <PackageReference Include="Rask.Bootstrap" Version="{version}"/>{refs}
+            <PackageReference Include="Rask.Server" Version="{version}"/>{refs}
           </ItemGroup>
 
         </Project>
@@ -813,7 +819,12 @@ internal static partial class ProjectGenerator
 
     // The production error page. UseExceptionHandler re-executes the pipeline at this route, so it renders
     // through the app shell like any other page rather than looking like a framework error.
-    private const string ErrorPageCs =
+    // The error page's body, in Bs* components or plain elements — the only part of the page that
+    // depends on whether the project took the component library.
+    private static string ErrorPageCs(bool bootstrap) =>
+        ErrorPageTemplate.Replace("{{body}}", bootstrap ? ErrorPageBootstrapBody : ErrorPageBaselineBody, StringComparison.Ordinal);
+
+    private const string ErrorPageTemplate =
         """
         using System.Diagnostics;
         using Microsoft.AspNetCore.Authorization;
@@ -834,6 +845,15 @@ internal static partial class ProjectGenerator
             protected override Component? Head => [Title()["Something went wrong"]];
 
             protected override Component? Render() =>
+        {{body}}
+        }
+
+        """;
+
+    // The correlation id is the only detail either body renders — and the comment saying why travels with
+    // the generated code, because that is where someone is standing when they consider adding more.
+    private static readonly string ErrorPageBootstrapBody =
+        """
                 Div(Class: "mx-auto my-5", Style: "max-width:540px")[
                     BsCard(Class: "shadow-sm")[
                         BsCardBody()[
@@ -855,9 +875,27 @@ internal static partial class ProjectGenerator
                         ]
                     ]
                 ];
-        }
+        """.Trim('\n');
 
-        """;
+    private static readonly string ErrorPageBaselineBody =
+        """
+                Main()[
+                    Div(Class: "card")[
+                        H1()["Something went wrong"],
+                        P()["The request couldn't be completed. The error has been logged."],
+                        // The correlation id, and deliberately nothing else. Never render the exception,
+                        // its message, or a stack trace here — this page is served to whoever hit the
+                        // error, and the detail already went to ILogger where you can match it by this id.
+                        Activity.Current?.Id is { Length: > 0 } traceId
+                            ? P(Class: "small")[
+                                "Reference: ",
+                                Code()[traceId]
+                            ]
+                            : null,
+                        NavLink(HomeRoutes.HomePage())["Back to the app"]
+                    ]
+                ];
+        """.Trim('\n');
 
     // ---- --push template files ----
 

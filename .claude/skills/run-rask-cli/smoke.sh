@@ -95,7 +95,9 @@ echo "==> Generate into it (real write: a page — no packages, no network)"
 have "$WORK/Shop/Features/Dashboard/DashboardPage.cs"
 
 echo "==> Generate a CRUD feature (dry-run: hermetic, shows the plan, no nuget)"
-featureout="$( cd "$WORK/Shop" && rask generate feature Product Name:string Price:decimal --dry-run 2>&1 )"
+# --verbose is what makes --dry-run print each file's contents; without it this only ever sees the
+# plan, and the Entity<Guid> assertion below could not pass (the two split apart in #623).
+featureout="$( cd "$WORK/Shop" && rask generate feature Product Name:string Price:decimal --dry-run --verbose 2>&1 )"
 if echo "$featureout" | grep -q "would write Features/Products/Product.cs" \
    && echo "$featureout" | grep -q "Entity<Guid>"; then
   echo "  PASS  generate feature --dry-run (CRUD plan)"; PASS=$((PASS+1))
