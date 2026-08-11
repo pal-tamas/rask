@@ -2,7 +2,7 @@
 
 > **Goal:** react to "an order was placed" reliably — the reaction runs even if the process crashes right
 > after the sale.
-> **You'll run:** `rask generate feature Order … --outbox`
+> **You'll write:** `IOutboxEvent`s, the `Raise` calls, and a handler.
 
 In Chapter 4 we enqueued a job explicitly. Sometimes you'd rather have the *domain* announce that something
 happened and let any number of handlers react — without the code that placed the order knowing who's
@@ -13,21 +13,67 @@ processor delivers it after commit — retrying until it succeeds.
 
 ## 1. Scaffold the slice with events
 
-Chapter 3 created the Orders feature. Regenerate it with `--outbox` (or pass the flag the first time):
+Chapter 3 created the Orders feature. Turning it into an event source is three small additions.
 
-```bash
-rask generate feature Order Customer:string Total:decimal --outbox --force
+**The events.** `Features/Orders/OrderEvents.cs` — one record per thing that happened:
+
+```csharp
+namespace Shop.Features.Orders;
+
+public sealed record OrderCreated(Guid Id) : IOutboxEvent;
+
+public sealed record OrderUpdated(Guid Id) : IOutboxEvent;
+
+public sealed record OrderDeleted(Guid Id) : IOutboxEvent;
 ```
 
-That emits the pieces you'd otherwise write by hand:
+**Raising them.** In `Order.cs`, announce the change from the same method that makes it, so an order can
+never be created without saying so:
 
-- `Features/Orders/OrderEvents.cs` — `OrderCreated` / `OrderUpdated` / `OrderDeleted`, each an `IOutboxEvent`;
-- the `Raise(...)` calls on the entity, so *creating* an order always announces it;
-- `Features/Orders/OrderCreatedHandler.cs` — a handler to fill in;
-- and the DI: `AddRaskOutbox<AppDbContext>()`, plus the one line below that people get wrong.
+```csharp
+public static Order Create(string customer, decimal total)
+{
+    var entity = new Order(customer, total);
+    entity.Raise(new OrderCreated(entity.Id));
+    return entity;
+}
 
-`--events` gives you plain in-process domain events without the durable outbox, if losing one on a crash is
-acceptable.
+public void Update(string customer, decimal total)
+{
+    this.Customer = customer;
+    this.Total = total;
+    Raise(new OrderUpdated(Id));
+}
+
+public void RaiseDeleted() => Raise(new OrderDeleted(Id));
+```
+
+`Raise` comes from `Entity<TId>`. The events sit on the entity until `SaveChanges`, which is what makes
+the next part atomic.
+
+**Reacting.** `Features/Orders/OrderCreatedHandler.cs` — auto-registered by `AddRaskCqrs()`:
+
+```csharp
+using Microsoft.Extensions.Logging;
+using Shop.Features.Shared;
+
+namespace Shop.Features.Orders;
+
+public sealed class OrderCreatedHandler(ILogger<OrderCreatedHandler> logger)
+    : INotificationHandler<OrderCreated>
+{
+    public Task HandleAsync(OrderCreated notification, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Order {Id} created", notification.Id);
+        return Task.CompletedTask;
+    }
+}
+```
+
+Plus the DI — `AddRaskOutbox<AppDbContext>()`, and the one line below that people get wrong.
+
+If losing an event on a crash is acceptable, plain in-process domain events need no outbox at all —
+`AddRaskData()` alone dispatches them.
 
 ## 2. The one line that matters
 

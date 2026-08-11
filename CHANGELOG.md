@@ -45,6 +45,25 @@ them until tagged releases begin.
   line and the per-target-framework compile guards, which are emitted only when there is more than one
   target to keep apart.
 
+### Removed
+- **`rask generate` is gone — the CLI no longer scaffolds code inside a project.** All six artifacts
+  (`page`, `component`, `feature`, `job`, `email`, `cache`) and the ~3,400 lines of generators behind
+  them are deleted, along with `.rask/generate.json` and the feature flag surface (`--fields`,
+  `--bs`, `--modal`, `--soft-delete`, `--concurrency`, `--events`, `--outbox`, `--tests`, `--id`,
+  `--plural`, `--validation`, `--save-defaults`). `rask` is now `new`, `dev`, `db`, `deploy`, `info`,
+  `doctor`, `completion`.
+
+  **The code did not go away — it moved into the guides.** Every artifact the scaffolder used to emit is
+  now written out as copyable code: [tutorial ch.2](docs/tutorial/02-first-feature.md) builds a full CRUD
+  slice (entity, form model, EF configuration, CQRS commands/queries, list/create/edit pages), and
+  ch.4–7 do the same for jobs, email, cache and outbox events. The finished app remains committed as
+  `samples/Rask.Example.Shop`, so a snippet always has somewhere to be read in full.
+
+  Scaffolded code is read far more often than it is written, and a generator's output has to be
+  understood line by line the first time you meet it anyway. Teaching it in the guides means there is one
+  version of that code — the one you can read, adapt and keep — instead of a generated one plus a
+  document describing it, drifting apart.
+
 ### Changed
 - **The CLI's terminal output is rendered by [Spectre.Console](https://spectreconsole.net).** The help
   pages, `rask deploy status`, `rask doctor`, the deploy and host-setup spinners and every prompt were

@@ -29,7 +29,6 @@ internal sealed class CliApplication
         {
             new NewCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new DevCommand(console, process, fileSystem, new BrowserLauncher(process), Environment.CurrentDirectory),
-            new GenerateCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new DbCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new DeployCommand(console, fileSystem, process, Environment.CurrentDirectory),
             new InfoCommand(console, process),

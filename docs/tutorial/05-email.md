@@ -1,19 +1,15 @@
 # Chapter 5 — Transactional email
 
 > **Goal:** email the customer an order receipt — with the email body written as a Rask component.
-> **You'll run:** `rask generate email OrderReceipt`
+> **You'll write:** an email component and wire it into the job from chapter 4.
 
 `Rask.Mail` is the same story as jobs: durable rows in your `app.db`, a background sender that delivers them
 over SMTP and retries on failure. The nice part is the body — it's a **Rask component**, so you write your
 email in C# with the same `Div()`/`H1()` you already know, no templating language.
 
-## 1. Generate an email
+## 1. Write an email
 
-```bash
-rask generate email OrderReceipt
-```
-
-That writes `Features/Shared/OrderReceipt.cs` — a component whose `Render()` is the email body:
+Create `Features/Shared/OrderReceipt.cs` — a component whose `Render()` is the email body:
 
 ```csharp
 public sealed class OrderReceipt : Component
@@ -45,9 +41,8 @@ public sealed class OrderReceipt : Component
 
 ## 2. It's already wired
 
-`--all-batteries` already registered mail in Chapter 1, so `rask generate email` finds it there and leaves
-it alone. Had you scaffolded without it, the generator would have done the plumbing itself — the same "no
-manual paste" treatment `generate feature` gives its DbContext:
+`--all-batteries` already registered mail in Chapter 1, so there is nothing to add. Had you scaffolded
+without it, these are the two lines to add yourself:
 
 - `builder.Services.AddRaskMail<AppDbContext>(…)` in `Program.cs`, and
 - the mail table mapped with `modelBuilder.AddRaskMail();` in `OnModelCreating`.
@@ -74,9 +69,8 @@ rask db update
 > **Zero-config in development.** If you omit `o.Smtp`, Rask.Mail doesn't try to reach a server — it writes
 > messages to a pickup directory (or logs them), so you can build and test the flow with no mail account.
 >
-> **No database yet?** If you run `rask generate email` before you have a `DbContext` (or you have several),
-> it can't pick one to wire into — it prints the two lines above for you to add by hand. Target a specific
-> context with `--context <Name>`.
+> **No database yet?** `AddRaskMail<TContext>` needs a `DbContext` to queue into — add the two lines above
+> once you have one (chapter 2 writes it).
 
 ## 3. Send it from the job
 

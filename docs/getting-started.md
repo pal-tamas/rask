@@ -343,7 +343,7 @@ You now have a running, routed, interactive app. From here, the One Person Frame
 shipped product — and the **[zero-to-deploy tutorial](tutorial/00-overview.md)** walks that whole path
 step by step (database, auth, jobs, email, cache, events, and deployment). In short:
 
-1. **Scaffold a feature** → [`rask generate feature`](cli.md) emits a full CQRS + EF Core CRUD vertical
+1. **Build a feature** → [tutorial chapter 2](tutorial/02-first-feature.md) writes a full CQRS + EF Core CRUD vertical
    slice (entity, value objects, validation, list/create/edit pages — and, with `--tests`, a test project)
    in one command, wiring the DI into `Program.cs` for you.
 2. **Make SQLite production-ready** → [Why one server, no PaaS](sqlite.md) — WAL, busy-timeout, and

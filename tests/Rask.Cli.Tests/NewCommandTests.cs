@@ -239,6 +239,73 @@ public sealed class NewCommandTests
     }
 
     [Fact]
+    public async Task An_unquoted_multi_word_name_is_refused_and_the_joined_name_suggested()
+    {
+        // `rask new My App` is the mistake this guards. Taking the first positional and dropping the rest
+        // scaffolded a project called "My" and said nothing — silent, wrong, and only visible once the
+        // files were on disk. Every sibling command already rejected a stray positional.
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["My", "App"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.False(fs.FileExists("/proj/My/My.csproj"));
+        Assert.Contains("takes one project name", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("did you mean 'MyApp'?", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Two_different_names_are_refused_rather_than_one_silently_winning()
+    {
+        var (console, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["Pos", "--name", "Named"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("Two different project names", console.ErrorText, StringComparison.Ordinal);
+
+        // The same name twice is agreement, not a conflict.
+        var (_, fs, _, ok) = Build();
+        Assert.Equal(0, await ok.ExecuteAsync(["Shop", "--name", "Shop", "--no-restore", "--no-git"], CancellationToken.None));
+        Assert.True(fs.FileExists("/proj/Shop/Shop.csproj"));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task An_empty_output_is_refused_rather_than_scaffolding_into_the_current_directory(string output)
+    {
+        // An empty --output resolved to the working directory, so the project was written into wherever
+        // the user was standing instead of a folder of its own — with no error and nothing to notice.
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["Shop", "--output", output], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.False(fs.FileExists("/proj/Shop.csproj"));
+        Assert.Contains("--output needs a directory", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_output_naming_an_existing_file_fails_before_any_work_starts()
+    {
+        // This used to get as far as printing "Creating …" before the first write threw, and the resulting
+        // "The file '…' already exists." never said what the command wanted with it.
+        var (console, fs, runner, command) = Build();
+        fs.Seed("/proj/notadir", "i am a file");
+
+        var exit = await command.ExecuteAsync(["Shop", "--output", "notadir"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.DoesNotContain("Creating", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("is a file", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Unknown_template_fails()
     {
         var (console, _, runner, command) = Build();

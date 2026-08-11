@@ -86,18 +86,6 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
-    public async Task Command_alias_g_resolves_to_generate()
-    {
-        var (console, app) = Build();
-
-        // `rask g` with no artifact reaches GenerateCommand, which asks what to generate.
-        var exit = await app.RunAsync(["g"], CancellationToken.None);
-
-        Assert.Equal(CliCommand.UsageExitCode, exit);
-        Assert.Contains("Specify a 'rask generate' action", console.ErrorText, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task Unknown_command_fails_with_usage()
     {
         var (console, app) = Build();
@@ -120,7 +108,6 @@ public sealed class CliApplicationTests
     }
 
     [Theory]
-    [InlineData("genrate", "generate")]
     [InlineData("deloy", "deploy")]
     [InlineData("nwe", "new")]
     public async Task A_mistyped_command_names_the_one_you_meant(string typed, string meant)
@@ -131,18 +118,6 @@ public sealed class CliApplicationTests
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Contains($"Unknown command '{typed}'. Did you mean '{meant}'?", console.ErrorText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task A_mistyped_alias_suggests_the_command_it_stands_for()
-    {
-        var (console, app) = Build();
-
-        // 'g' is generate's alias; the suggestion has to name the command, not the alias.
-        var exit = await app.RunAsync(["gg"], CancellationToken.None);
-
-        Assert.Equal(CliCommand.UsageExitCode, exit);
-        Assert.Contains("Did you mean 'generate'?", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -206,12 +181,11 @@ public sealed class CliApplicationTests
     [Fact]
     public void Every_project_scoped_command_offers_an_escape_hatch()
     {
-        // generate was the only one of the four without --project, so when project resolution failed —
-        // which it does whenever a directory holds more than one .csproj — its error had nothing to
-        // suggest (#601).
+        // Every command that resolves a project from the working directory needs a way to say which one,
+        // because resolution fails whenever a directory holds more than one .csproj (#601).
         var app = CliApplication.CreateDefault(new StringConsole(), new FakeProcessRunner(), new FakeFileSystem());
 
-        foreach (var name in new[] { "dev", "db", "deploy", "generate" })
+        foreach (var name in new[] { "dev", "db", "deploy" })
         {
             var command = app.Commands.Single(c => c.Name == name);
             var project = command.OptionSchema?.Declared.FirstOrDefault(o => o.LongName == "project");
