@@ -27,12 +27,19 @@ public sealed class ProjectGeneratorTests
         "LocalWeatherForecastService.cs", "README.md", "AGENTS.md",
     ];
 
+    /// <summary>
+    /// A template's own files plus the hygiene set every template writes regardless of flags — the
+    /// .gitignore, the .editorconfig and the solution (see ProjectGenerator.ProjectHygiene).
+    /// </summary>
+    private static string[] WithHygiene(IEnumerable<string> files) =>
+        [.. files, ".gitignore", ".editorconfig", "App.slnx"];
+
     [Fact]
     public void Base_project_emits_the_core_files_and_packages_with_no_flags()
     {
         var (files, result) = Generate();
 
-        Assert.Equal(AlwaysPresent.Order(), files.Keys.Order());
+        Assert.Equal(WithHygiene(AlwaysPresent).Order(), files.Keys.Order());
 
         Assert.Equal(["Rask.Server", "Rask.Bootstrap"], result.Packages);
         // No opt-in artifacts leak in.
@@ -465,7 +472,7 @@ public sealed class ProjectGeneratorTests
         var result = ProjectGenerator.GenerateWasm(Root, "App", auth: false, pwa: false, docker: false, Version);
         var files = Index(result);
 
-        Assert.Equal(WasmAlwaysPresent.Order(), files.Keys.Order());
+        Assert.Equal(WithHygiene(WasmAlwaysPresent).Order(), files.Keys.Order());
 
         Assert.Equal(["Rask.Wasm", "Rask.Bootstrap"], result.Packages);
         Assert.Contains("Microsoft.NET.Sdk.WebAssembly", files["App.csproj"], StringComparison.Ordinal);
@@ -610,6 +617,78 @@ public sealed class ProjectGeneratorTests
         }
     }
 
+    [Fact]
+    public void Native_wasm_hosted_is_the_same_shell_named_for_what_it_points_at()
+    {
+        // Both remote modes scaffold the same heads — RaskServerWebView takes a trusted origin and never
+        // asks what serves it — so what must differ is only the guidance someone reads when they replace
+        // the placeholder URL. If the file lists diverged, one of the two modes would be scaffolding
+        // something that was never tested.
+        var server = GenerateNative("server");
+        var wasmHosted = GenerateNative("wasm-hosted");
+
+        Assert.Equal(server.Keys.Order(), wasmHosted.Keys.Order());
+
+        foreach (var head in NativeServerOnly)
+        {
+            Assert.Contains("Rask Server", server[head], StringComparison.Ordinal);
+            Assert.Contains("wasm-hosted Rask app", wasmHosted[head], StringComparison.Ordinal);
+            Assert.DoesNotContain("{{", wasmHosted[head], StringComparison.Ordinal);
+            Assert.DoesNotContain("{{", server[head], StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData(true, false, "net10.0-ios", "iOS")]
+    [InlineData(false, true, "net10.0-android", "Android")]
+    public void Native_targeting_one_platform_carries_nothing_of_the_other(
+        bool ios, bool android, string expectedTarget, string expectedLabel)
+    {
+        // An unselected platform must leave no trace: no TFM, no head, no manifest, and no MSBuild group
+        // conditioned on a target framework the project does not build. Files that never compile are the
+        // kind of thing that survives for years because nobody is sure whether they matter.
+        var result = ProjectGenerator.GenerateNative(Root, "App", "local", Version, ios, android);
+        var files = Index(result);
+        var csproj = files["App.csproj"];
+
+        Assert.Contains($"<TargetFrameworks>{expectedTarget}</TargetFrameworks>", csproj, StringComparison.Ordinal);
+        Assert.Contains($"A native {expectedLabel} app", csproj, StringComparison.Ordinal);
+
+        var absent = ios ? "Android" : "iOS";
+        Assert.DoesNotContain(files.Keys, k => k.Contains($"Platforms/{absent}", StringComparison.Ordinal));
+        Assert.DoesNotContain($"-{absent.ToLowerInvariant()}", csproj, StringComparison.Ordinal);
+
+        // The per-TFM compile guards only make sense when there is more than one target.
+        Assert.DoesNotContain("Each platform head compiles only for its own TFM", csproj, StringComparison.Ordinal);
+
+        // The next steps must not send someone to a workload or a run command this project cannot use.
+        Assert.DoesNotContain(absent.ToLowerInvariant(), result.Notes!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Native_targets_both_platforms_by_default()
+    {
+        var files = GenerateNative("local");
+        var csproj = files["App.csproj"];
+
+        Assert.Contains("<TargetFrameworks>net10.0-ios;net10.0-android</TargetFrameworks>", csproj, StringComparison.Ordinal);
+        Assert.Contains("Each platform head compiles only for its own TFM", csproj, StringComparison.Ordinal);
+        Assert.True(files.ContainsKey("Platforms/iOS/Main.cs"));
+        Assert.True(files.ContainsKey("Platforms/Android/AndroidManifest.xml"));
+    }
+
+    [Fact]
+    public void Native_generated_csproj_has_no_doubled_blank_lines()
+    {
+        // The per-platform blocks are optional, and an optional block that carries its own blank line
+        // leaves one behind when it is omitted — or doubles up when it isn't.
+        foreach (var (ios, android) in new[] { (true, true), (true, false), (false, true) })
+        {
+            var csproj = Index(ProjectGenerator.GenerateNative(Root, "App", "local", Version, ios, android))["App.csproj"];
+            Assert.DoesNotContain("\n\n\n", csproj.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
+        }
+    }
+
     // The geolocation backend was a device-API demo; it went with the rest of the sample content. Its
     // permissions and registrations have to go with it, or the heads request a grant nothing consumes and
     // register a type that is not scaffolded (which would not compile).
@@ -695,7 +774,6 @@ public sealed class ProjectGeneratorTests
     // (SPA shell + welcome page + host), and the ASP.NET Server. Slim by default — no demo pages.
     private static readonly string[] WasmHostedAlwaysPresent =
     [
-        "App.sln",
         "App.Shared/App.Shared.csproj", "App.Shared/Contracts.cs",
         "App.Client/App.Client.csproj", "App.Client/Program.cs",
         "App.Client/Features/Shared/App.cs", "App.Client/Features/Home/HomePage.cs",
@@ -713,10 +791,10 @@ public sealed class ProjectGeneratorTests
         var result = ProjectGenerator.GenerateWasmHosted(Root, "App", auth: false, pwa: false, docker: false, Version);
         var files = Index(result);
 
-        Assert.Equal(WasmHostedAlwaysPresent.Order(), files.Keys.Order());
+        Assert.Equal(WithHygiene(WasmHostedAlwaysPresent).Order(), files.Keys.Order());
 
         // Restore targets the solution (no root csproj), which pulls all three projects.
-        Assert.Equal("App.sln", result.RestoreTarget);
+        Assert.Equal("App.slnx", result.RestoreTarget);
         Assert.Equal(["Rask.Wasm", "Rask.Bootstrap", "Rask.Wasm.Hosting"], result.Packages);
 
         // No opt-in artifacts leak in, and no demo content survives the slimming.
@@ -753,11 +831,12 @@ public sealed class ProjectGeneratorTests
         // The static-file host serves the bundle without running components — non-generic UseRask.
         Assert.Contains("app.UseRask();", files["App.Server/Program.cs"], StringComparison.Ordinal);
 
-        // The sln lists all three projects.
-        var sln = files["App.sln"];
+        // The solution lists all three projects, in the .slnx format the SDK reads directly.
+        var solution = files["App.slnx"];
+        Assert.StartsWith("<Solution>", solution, StringComparison.Ordinal);
         foreach (var proj in new[] { "App.Client", "App.Server", "App.Shared" })
         {
-            Assert.Contains(proj, sln, StringComparison.Ordinal);
+            Assert.Contains($"<Project Path=\"{proj}/{proj}.csproj\" />", solution, StringComparison.Ordinal);
         }
     }
 

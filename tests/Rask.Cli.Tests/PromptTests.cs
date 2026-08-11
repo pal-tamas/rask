@@ -64,29 +64,83 @@ public sealed class PromptTests
     }
 
     [Fact]
-    public void Select_accepts_a_number()
+    public void Select_moves_through_the_options_with_the_arrow_keys()
     {
-        var console = new StringConsole { InputLines = ["2"] };
+        var console = new StringConsole { InputKeys = [ConsoleKey.DownArrow, ConsoleKey.Enter] };
         var options = new[] { ("server", "Server"), ("wasm", "WASM") };
 
         Assert.Equal("wasm", new Prompt(console).Select("Template", options, "server"));
     }
 
     [Fact]
-    public void Select_accepts_the_value_by_name()
+    public void Select_takes_the_default_when_enter_is_pressed_straight_away()
     {
-        var console = new StringConsole { InputLines = ["wasm"] };
-        var options = new[] { ("server", "Server"), ("wasm", "WASM") };
-
-        Assert.Equal("wasm", new Prompt(console).Select("Template", options, "server"));
-    }
-
-    [Fact]
-    public void Select_falls_back_to_the_default_on_empty()
-    {
-        var console = new StringConsole { InputLines = [""] };
+        var console = new StringConsole { InputKeys = [ConsoleKey.Enter] };
         var options = new[] { ("server", "Server"), ("wasm", "WASM") };
 
         Assert.Equal("server", new Prompt(console).Select("Template", options, "server"));
+    }
+
+    [Fact]
+    public void Select_starts_on_the_default_even_when_it_is_not_listed_first()
+    {
+        // Pressing enter has to mean the same thing as omitting the flag, whatever order the catalog is in.
+        var console = new StringConsole { InputKeys = [ConsoleKey.Enter] };
+        var options = new[] { ("postgres", "PostgreSQL"), ("sqlite", "SQLite"), ("sqlserver", "SQL Server") };
+
+        Assert.Equal("sqlite", new Prompt(console).Select("Database", options, "sqlite"));
+    }
+
+    [Fact]
+    public void Select_falls_back_to_the_default_when_the_input_ends()
+    {
+        // A list prompt that runs out of keys must yield the default rather than throw or spin.
+        var console = new StringConsole { InputKeys = [] };
+        var options = new[] { ("server", "Server"), ("wasm", "WASM") };
+
+        Assert.Equal("server", new Prompt(console).Select("Template", options, "server"));
+    }
+
+    [Fact]
+    public void Select_returns_the_default_without_asking_when_there_is_no_terminal()
+    {
+        var options = new[] { ("server", "Server"), ("wasm", "WASM") };
+
+        Assert.Equal("server", new Prompt(new StringConsole()).Select("Template", options, "server"));
+    }
+
+    [Fact]
+    public void MultiSelect_toggles_with_space_and_returns_them_in_the_offered_order()
+    {
+        // Toggle the second, move up, toggle the first, accept — the result must still read first-then-second.
+        var console = new StringConsole
+        {
+            InputKeys =
+            [
+                ConsoleKey.DownArrow, ConsoleKey.Spacebar,
+                ConsoleKey.UpArrow, ConsoleKey.Spacebar,
+                ConsoleKey.Enter,
+            ],
+        };
+        var options = new[] { ("data", "--data"), ("auth", "--auth"), ("docker", "--docker") };
+
+        Assert.Equal(["data", "auth"], new Prompt(console).MultiSelect("Batteries", options));
+    }
+
+    [Fact]
+    public void MultiSelect_selecting_nothing_is_allowed()
+    {
+        var console = new StringConsole { InputKeys = [ConsoleKey.Enter] };
+        var options = new[] { ("data", "--data"), ("auth", "--auth") };
+
+        Assert.Empty(new Prompt(console).MultiSelect("Batteries", options));
+    }
+
+    [Fact]
+    public void MultiSelect_returns_nothing_when_there_is_no_terminal()
+    {
+        var options = new[] { ("data", "--data"), ("auth", "--auth") };
+
+        Assert.Empty(new Prompt(new StringConsole()).MultiSelect("Batteries", options));
     }
 }

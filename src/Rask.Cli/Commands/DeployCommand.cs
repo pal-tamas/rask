@@ -713,25 +713,27 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     private async Task<bool> WaitUntilRunningAsync(string host, string container, CancellationToken cancellationToken)
     {
-        // The poll is otherwise silent for up to ReadinessAttempts × ReadinessDelay — spin so an
+        // The poll is otherwise silent for up to ReadinessAttempts × ReadinessDelay — show a status so an
         // interactive user sees it's working (a no-op when stdout is redirected/piped).
-        await using var spinner = Spinner.Start(Console, $"Waiting for {container} to become healthy…");
-        for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
+        return await Activity.RunAsync(Console, $"Waiting for {container} to become healthy…", async () =>
         {
-            // Inspect first, then wait only between retries — a container that's already up returns immediately.
-            if (attempt > 0 && ReadinessDelay > TimeSpan.Zero)
+            for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
             {
-                await Task.Delay(ReadinessDelay, cancellationToken).ConfigureAwait(false);
+                // Inspect first, then wait only between retries — a container that's already up returns immediately.
+                if (attempt > 0 && ReadinessDelay > TimeSpan.Zero)
+                {
+                    await Task.Delay(ReadinessDelay, cancellationToken).ConfigureAwait(false);
+                }
+
+                var result = await Capture(BuildInspectRunningArguments(host, container), cancellationToken).ConfigureAwait(false);
+                if (result.ExitCode == 0 && result.StandardOutput.Trim().Equals("true", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
             }
 
-            var result = await Capture(BuildInspectRunningArguments(host, container), cancellationToken).ConfigureAwait(false);
-            if (result.ExitCode == 0 && result.StandardOutput.Trim().Equals("true", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
+            return false;
+        }).ConfigureAwait(false);
     }
 
     // Probe the app over HTTP from an ephemeral curl container sharing the target's network namespace, so

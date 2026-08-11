@@ -8,22 +8,44 @@ internal static partial class ProjectGenerator
     /// <summary>
     /// Generates the <c>native</c> template (a WebView-hybrid iOS + Android app hosting a Rask app) into
     /// <paramref name="targetDirectory"/>. <paramref name="host"/> is <c>"local"</c> (the Rask component code
-    /// runs in-process on the device) or <c>"server"</c> (a thin native shell over a remote Rask Server).
+    /// runs in-process on the device), or <c>"server"</c> / <c>"wasm-hosted"</c> — a thin native shell over a
+    /// Rask app you host, named for which kind it points at.
     /// </summary>
-    public static ScaffoldResult GenerateNative(string targetDirectory, string name, string host, string version)
+    public static ScaffoldResult GenerateNative(
+        string targetDirectory, string name, string host, string version, bool ios = true, bool android = true)
     {
+        // Neither platform is a project with nothing in it, so an empty selection is read as "both" rather
+        // than scaffolded literally. The command line rejects it before this; this is the belt.
+        if (!ios && !android)
+        {
+            (ios, android) = (true, true);
+        }
+
+        // Anything that isn't "local" is a thin shell over a Rask app you host. The two remote modes
+        // ("server", "wasm-hosted") scaffold the same heads — RaskServerWebView is handed a trusted origin
+        // and never asks what serves it — and differ only in the guidance baked into the file.
         var isLocal = string.Equals(host, "local", StringComparison.Ordinal);
 
-        // Shared files (both hosts): the multi-targeted csproj, both platform manifests and the iOS entry
-        // point. The Android manifest carries an inline IsLocal conditional (the notification permission the
-        // native backends need) resolved per host — see NativeAndroidManifest.
+        // The csproj, plus each selected platform's manifest and entry point. An unselected platform
+        // contributes no TFM and no files at all — a Platforms/iOS folder in an Android-only app is code
+        // that never compiles and never runs, which is the kind of thing people keep around for years.
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.csproj", NativeCsproj(version)),
-            ("Platforms/Android/AndroidManifest.xml", NativeAndroidManifest(isLocal)),
-            ("Platforms/iOS/Info.plist", NativeInfoPlist()),
-            ("Platforms/iOS/Main.cs", NativeMainCs),
+            ($"{NameToken}.csproj", NativeCsproj(version, ios, android)),
         };
+
+        if (android)
+        {
+            // The Android manifest carries an inline IsLocal conditional (the notification permission the
+            // native backends need) resolved per host — see NativeAndroidManifest.
+            files.Add(("Platforms/Android/AndroidManifest.xml", NativeAndroidManifest(isLocal)));
+        }
+
+        if (ios)
+        {
+            files.Add(("Platforms/iOS/Info.plist", NativeInfoPlist()));
+            files.Add(("Platforms/iOS/Main.cs", NativeMainCs));
+        }
 
         if (isLocal)
         {
@@ -31,43 +53,74 @@ internal static partial class ProjectGenerator
             // plus the in-process platform heads, each of which boots a NativeAppHost + RunLocalAsync<App>.
             files.Add(("Features/Shared/App.cs", NativeAppShell));
             files.Add(("Features/Home/HomePage.cs", NativeHomePage));
-            files.Add(("Platforms/iOS/AppDelegate.cs", NativeIosAppDelegate));
-            files.Add(("Platforms/Android/MainActivity.cs", NativeAndroidMainActivity));
+
+            if (ios)
+            {
+                files.Add(("Platforms/iOS/AppDelegate.cs", NativeIosAppDelegate));
+            }
+
+            if (android)
+            {
+                files.Add(("Platforms/Android/MainActivity.cs", NativeAndroidMainActivity));
+            }
         }
         else
         {
-            // Native + Server: a thin shell — just the two platform heads that point RaskServerWebView at a
-            // remote Rask Server. No shared component code runs on the device.
-            files.Add(("Platforms/iOS/ServerAppDelegate.cs", NativeIosServerAppDelegate));
-            files.Add(("Platforms/Android/ServerActivity.cs", NativeAndroidServerActivity));
+            // Native + remote: a thin shell — just the platform heads that point RaskServerWebView at a
+            // Rask app you host. No shared component code runs on the device.
+            if (ios)
+            {
+                files.Add(("Platforms/iOS/ServerAppDelegate.cs", NativeIosServerAppDelegate(host)));
+            }
+
+            if (android)
+            {
+                files.Add(("Platforms/Android/ServerActivity.cs", NativeAndroidServerActivity(host)));
+            }
         }
+
+        files.AddRange(ProjectHygiene($"{NameToken}.csproj"));
 
         var scaffoldFiles = Materialize(targetDirectory, name, files);
 
-        return new ScaffoldResult(scaffoldFiles, NativeNextSteps(name, host))
+        return new ScaffoldResult(scaffoldFiles, NativeNextSteps(name, host, ios, android))
         {
             Packages = ["Rask.Native"],
         };
     }
 
-    private static string NativeCsproj(string version) =>
-        $"""
+    private static string NativeCsproj(string version, bool ios, bool android)
+    {
+        var targets = string.Join(';', NativeTargetFrameworks(ios, android));
+        var platforms = ios && android ? "iOS + Android" : ios ? "iOS" : "Android";
+        var workloads = string.Join(' ', NativeWorkloads(ios, android));
+        var runCommands = string.Join('\n', NativeRunLines(ios, android).Select(line => "        " + line));
+
+        // The per-platform blocks are assembled rather than interpolated inline: each is optional, and a
+        // placeholder that is sometimes empty either leaves a blank line behind or has to carry its own,
+        // which is how a generated file ends up with two blank lines in the middle of it.
+        var sections = string.Concat(
+            NativeIosProjectGroups(ios),
+            NativeAndroidProjectGroups(android));
+
+        var headGuards = NativeHeadGuards(ios, android);
+
+        return $"""
         <Project Sdk="Microsoft.NET.Sdk">
 
           <!--
-            A native iOS + Android app that hosts a Rask app in-process inside a platform WebView (the WebView
-            hybrid — C# runs natively, the view is a WebView). Multi-targets the two native TFMs; the shared
-            component code (App.cs) compiles for both, and each platform head under
-            Platforms/ provides the INativeWebView implementation for its WebView control.
+            A native {platforms} app that hosts a Rask app in-process inside a platform WebView (the WebView
+            hybrid — C# runs natively, the view is a WebView). The shared component code (App.cs) compiles for
+            every target below, and each platform head under Platforms/ provides the INativeWebView
+            implementation for its WebView control.
 
-            Requires the iOS and/or Android SDK workloads:
-                dotnet workload install ios android
+            Requires the SDK workload(s):
+                dotnet workload install {workloads}
             Run on a simulator/emulator:
-                dotnet build -t:Run -f net10.0-android
-                dotnet build -t:Run -f net10.0-ios
+        {runCommands}
           -->
           <PropertyGroup>
-            <TargetFrameworks>net10.0-ios;net10.0-android</TargetFrameworks>
+            <TargetFrameworks>{targets}</TargetFrameworks>
             <OutputType>Exe</OutputType>
             <Nullable>enable</Nullable>
             <ImplicitUsings>enable</ImplicitUsings>
@@ -78,6 +131,21 @@ internal static partial class ProjectGenerator
             <ApplicationVersion>1</ApplicationVersion>
           </PropertyGroup>
 
+        {sections}  <ItemGroup>
+            <PackageReference Include="Rask.Native" Version="{version}"/>
+          </ItemGroup>
+        {headGuards}
+        </Project>
+
+        """;
+    }
+
+    /// <summary>
+    /// The iOS-only project configuration, omitted entirely when iOS is not a target. Each block ends with
+    /// the blank line that separates it from what follows, so an omitted block leaves nothing behind.
+    /// </summary>
+    private static string NativeIosProjectGroups(bool ios) => ios
+        ? """
           <PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
             <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
           </PropertyGroup>
@@ -90,14 +158,28 @@ internal static partial class ProjectGenerator
             <None Include="Platforms/iOS/Info.plist" Link="Info.plist"/>
           </ItemGroup>
 
+
+        """
+        : "";
+
+    private static string NativeAndroidProjectGroups(bool android) => android
+        ? """
           <PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
             <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
             <AndroidManifest>Platforms/Android/AndroidManifest.xml</AndroidManifest>
           </PropertyGroup>
 
-          <ItemGroup>
-            <PackageReference Include="Rask.Native" Version="{version}"/>
-          </ItemGroup>
+
+        """
+        : "";
+
+    /// <summary>
+    /// The per-TFM compile guards, emitted only for a multi-targeted project. With one target there is
+    /// nothing to keep apart, and a guard naming a platform the project doesn't build reads as a promise
+    /// that it could.
+    /// </summary>
+    private static string NativeHeadGuards(bool ios, bool android) => ios && android
+        ? """
 
           <!-- Each platform head compiles only for its own TFM. -->
           <ItemGroup Condition="!$(TargetFramework.Contains('-ios'))">
@@ -107,9 +189,50 @@ internal static partial class ProjectGenerator
             <Compile Remove="Platforms/Android/**/*.cs"/>
           </ItemGroup>
 
-        </Project>
+        """
+        : "";
 
-        """;
+    /// <summary>The target frameworks for the selected platforms, iOS first (the order the SDK lists them).</summary>
+    private static IEnumerable<string> NativeTargetFrameworks(bool ios, bool android)
+    {
+        if (ios)
+        {
+            yield return "net10.0-ios";
+        }
+
+        if (android)
+        {
+            yield return "net10.0-android";
+        }
+    }
+
+    /// <summary>The SDK workloads the selected platforms need, for the `dotnet workload install` line.</summary>
+    private static IEnumerable<string> NativeWorkloads(bool ios, bool android)
+    {
+        if (ios)
+        {
+            yield return "ios";
+        }
+
+        if (android)
+        {
+            yield return "android";
+        }
+    }
+
+    /// <summary>The on-device run commands for the selected platforms.</summary>
+    private static IEnumerable<string> NativeRunLines(bool ios, bool android)
+    {
+        if (android)
+        {
+            yield return $"{Commands.NativeRunCommands.Android}     # Android emulator";
+        }
+
+        if (ios)
+        {
+            yield return $"{Commands.NativeRunCommands.IOS}         # iOS simulator (macOS + Xcode)";
+        }
+    }
 
     private static string NativeInfoPlist() =>
         """
@@ -170,15 +293,21 @@ internal static partial class ProjectGenerator
         """;
     }
 
-    private static string NativeNextSteps(string name, string host)
+    private static string NativeNextSteps(string name, string host, bool ios, bool android)
     {
+        var platforms = ios && android ? "iOS + Android" : ios ? "iOS" : "Android";
+
         var steps = new StringBuilder();
-        steps.Append("Created ").Append(name).Append(" (Rask native mobile app, ").Append(host).Append(" host).\n\nNext steps:\n");
+        steps.Append("Created ").Append(name).Append(" (Rask native ").Append(platforms)
+            .Append(" app, ").Append(host).Append(" host).\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
-        steps.Append("  dotnet workload install ios android   # once, if not already installed\n");
-        // Shared with the `rask dev` native refusal, which points at these same two commands — the
-        // two would otherwise drift and start telling people different things.
-        foreach (var line in Commands.NativeRunCommands.Lines)
+        steps.Append("  dotnet workload install ").Append(string.Join(' ', NativeWorkloads(ios, android)))
+            .Append("   # once, if not already installed\n");
+
+        // The same command strings the `rask dev` native refusal points at (Commands.NativeRunCommands),
+        // so the two cannot drift and start telling people different things — filtered to what this
+        // project actually targets, because a run command for a platform it doesn't build is a dead end.
+        foreach (var line in NativeRunLines(ios, android))
         {
             steps.Append("  ").Append(line).Append('\n');
         }
@@ -342,7 +471,36 @@ internal static partial class ProjectGenerator
 
         """;
 
-    private const string NativeIosServerAppDelegate =
+    /// <summary>
+    /// The remote-mode heads, worded for what <paramref name="host"/> points at. The code is identical
+    /// either way — only the comment above the origin differs, and it is the line someone reads when they
+    /// come to replace the placeholder URL.
+    /// </summary>
+    private static string NativeIosServerAppDelegate(string host) =>
+        NativeIosServerAppDelegateTemplate
+            .Replace("{{target}}", RemoteTargetName(host), StringComparison.Ordinal)
+            .Replace("{{origin-note}}", RemoteOriginNote(host), StringComparison.Ordinal);
+
+    private static string NativeAndroidServerActivity(string host) =>
+        NativeAndroidServerActivityTemplate
+            .Replace("{{target}}", RemoteTargetName(host), StringComparison.Ordinal)
+            .Replace("{{origin-note}}", RemoteOriginNote(host), StringComparison.Ordinal);
+
+    /// <summary>How the thing the shell points at is named in the generated comments.</summary>
+    private static string RemoteTargetName(string host) =>
+        string.Equals(host, "wasm-hosted", StringComparison.Ordinal) ? "wasm-hosted Rask app" : "Rask Server";
+
+    /// <summary>
+    /// What is worth knowing about the origin, per mode. A live server renders over a WebSocket, so the
+    /// device needs to reach it continuously; a wasm-hosted bundle is static once loaded, which is the
+    /// difference that decides whether a flaky connection is a blank screen or a working app.
+    /// </summary>
+    private static string RemoteOriginNote(string host) =>
+        string.Equals(host, "wasm-hosted", StringComparison.Ordinal)
+            ? "The published bundle runs in the WebView, so the app keeps working once it has loaded."
+            : "The server renders over a WebSocket, so the device needs to reach it while the app is open.";
+
+    private const string NativeIosServerAppDelegateTemplate =
         """
         using Foundation;
         using Rask.Native;
@@ -350,14 +508,15 @@ internal static partial class ProjectGenerator
 
         namespace Company.RaskServer;
 
-        // Native + Server mode (iOS): a thin native shell over a REMOTE Rask Server. The WebView machinery — the
+        // Native + remote mode (iOS): a thin native shell over a {{target}} you host. The WebView machinery — the
         // native capability bridge (so the remote page's Shareable / IShare reach the device's native backends),
         // the trusted-origin gating, and the off-origin-to-Safari diversion — lives in Rask.Native's
-        // RaskServerViewController. This head just points it at your server and supplies the native share backend.
+        // RaskServerViewController. This head just points it at your app and supplies the native share backend.
         [Register("AppDelegate")]
         public class AppDelegate : UIApplicationDelegate
         {
-            // Your remote Rask Server (a real deployment is https).
+            // Your {{target}} (a real deployment is https).
+            // {{origin-note}}
             private static readonly Uri ServerOrigin = new("https://app.example.com/");
 
             public override UIWindow? Window { get; set; }
@@ -452,7 +611,7 @@ internal static partial class ProjectGenerator
 
         """;
 
-    private const string NativeAndroidServerActivity =
+    private const string NativeAndroidServerActivityTemplate =
         """
         using Android.App;
         using Android.OS;
@@ -460,16 +619,17 @@ internal static partial class ProjectGenerator
 
         namespace Company.RaskServer;
 
-        // Native + Server mode: a thin native shell over a REMOTE Rask Server. The WebView machinery — the native
+        // Native + remote mode: a thin native shell over a {{target}} you host. The WebView machinery — the native
         // capability bridge (so the remote page's Shareable / IShare reach the device's native backends), the
         // trusted-origin gating, and the off-origin-to-system-browser diversion — lives in Rask.Native's
-        // RaskServerWebView. This head just points it at your server and supplies the native share backend.
+        // RaskServerWebView. This head just points it at your app and supplies the native share backend.
         [Activity(Label = "Rask App", MainLauncher = true, Exported = true,
             Theme = "@android:style/Theme.Material.Light.NoActionBar")]
         public class ServerActivity : Activity
         {
-            // Your remote Rask Server. (Android emulator → host machine is http://10.0.2.2:<port>; a real
+            // Your {{target}}. (Android emulator → host machine is http://10.0.2.2:<port>; a real
             // deployment is https. For http during development, allow cleartext in AndroidManifest.xml.)
+            // {{origin-note}}
             private static readonly Uri ServerOrigin = new("https://app.example.com/");
 
             protected override void OnCreate(Bundle? savedInstanceState)

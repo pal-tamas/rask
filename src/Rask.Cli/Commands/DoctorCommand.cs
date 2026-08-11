@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Rask.Cli.Scaffolding;
+using Spectre.Console;
 
 namespace Rask.Cli.Commands;
 
@@ -69,22 +70,34 @@ internal sealed class DoctorCommand(
             return failed == 0 ? 0 : 1;
         }
 
-        var width = checks.Max(c => c.Name.Length);
+        // status | name | detail, with each fix on its own row under the detail it belongs to — the grid
+        // keeps that hanging indent aligned without the caller counting spaces.
+        var grid = new Grid();
+        grid.AddColumn(new GridColumn().NoWrap().PadRight(2));
+        grid.AddColumn(new GridColumn().NoWrap().PadRight(3));
+        grid.AddColumn();
+
         foreach (var check in checks)
         {
             var (mark, style) = check.Status switch
             {
-                DoctorStatus.Ok => ("ok  ", ConsoleStyle.Success),
+                DoctorStatus.Ok => ("ok", ConsoleStyle.Success),
                 DoctorStatus.Warn => ("warn", ConsoleStyle.Warning),
                 _ => ("fail", ConsoleStyle.Error),
             };
 
-            Console.WriteLine($"  {mark}  {check.Name.PadRight(width)}   {check.Detail}", style);
+            grid.AddRow(
+                new Text(mark, ConsoleStyling.Of(style)),
+                new Text(check.Name, ConsoleStyling.Of(style)),
+                new Text(check.Detail, ConsoleStyling.Of(style)));
+
             if (check.Fix is { Length: > 0 } fix)
             {
-                Console.WriteLine($"        {new string(' ', width)}   {fix}", ConsoleStyle.Dim);
+                grid.AddRow(Text.Empty, Text.Empty, new Text(fix, ConsoleStyling.Of(ConsoleStyle.Dim)));
             }
         }
+
+        Console.Ansi.Write(new RaggedRight(new Padder(grid, new Padding(2, 0, 0, 0))));
 
         Console.Out.WriteLine();
         Console.WriteLine(

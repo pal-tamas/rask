@@ -14,7 +14,7 @@
 
     <PackageId>Rask.Cli</PackageId>
     <Title>Rask.Cli — the `rask` command-line tool</Title>
-    <Description>The `rask` .NET tool: a productivity front-door for the Rask framework. Scaffold a new project (`rask new`), run it with hot reload (`rask dev`), manage EF Core migrations and back the database up (`rask db`), and deploy to a single host over SSH with auto-HTTPS (`rask deploy`) — a thin wrapper over the .NET SDK, with SQLite as its only dependency. Install with `dotnet tool install -g Rask.Cli`.</Description>
+    <Description>The `rask` .NET tool: a productivity front-door for the Rask framework. Scaffold a new project (`rask new`), run it with hot reload (`rask dev`), manage EF Core migrations and back the database up (`rask db`), and deploy to a single host over SSH with auto-HTTPS (`rask deploy`) — a thin wrapper over the .NET SDK. Run it with no arguments for an interactive new-project wizard. Install with `dotnet tool install -g Rask.Cli`.</Description>
     <PackageTags>rask cli dotnet-tool scaffolding tooling dotnet net10</PackageTags>
 
     <!-- This is an executable tool, not a consumed library: no public API surface to document. -->
@@ -40,6 +40,17 @@
          pins (CVE-2025-6965). A direct reference is the only lever under CPM — transitive pinning does
          not move it. See Directory.Packages.props. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+    <!-- Spectre.Console renders every human-facing surface the tool has: the help pages, the
+         `deploy status` and `doctor` tables, the deploy/bootstrap spinners, and the `rask new` wizard.
+         Unlike the SQLite reference above, this one is not something that *cannot* be hand-rolled — the
+         CLI did hand-roll it, in ~270 lines of ANSI escapes, `\r` overwrites and `PadRight` columns that
+         never learned terminal width, wrapping or arrow-key selection. This is a deliberate trade of a
+         dependency we pin for terminal-rendering code we would otherwise keep growing badly.
+
+         Measured, not assumed: a self-contained `PublishTrimmed` build of this tool succeeds with zero IL
+         warnings and runs, with Spectre.Console + Spectre.Console.Ansi trimming to ~0.7 MB. Nothing in the
+         repo enforces trimming today (see the note in JsonOutput.cs), but the option stays open. -->
+    <PackageReference Include="Spectre.Console"/>
   </ItemGroup>
 
   <ItemGroup>

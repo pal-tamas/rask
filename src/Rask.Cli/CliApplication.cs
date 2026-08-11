@@ -46,6 +46,14 @@ internal sealed class CliApplication
     {
         if (args.Count == 0)
         {
+            // Bare `rask` on a terminal is someone with nothing yet, so start the thing they came for: the
+            // new-project wizard asks its way to a scaffolded app. Off a terminal it stays a help page —
+            // `rask | head`, a Dockerfile line, and CI all expect text and an exit code, not a question.
+            if (!_console.IsInputRedirected && TryGetCommand("new", out var wizard))
+            {
+                return await wizard.ExecuteAsync([], cancellationToken).ConfigureAwait(false);
+            }
+
             CommandHelp.RenderTopLevel(_console, _commands, toError: false);
             return 0;
         }

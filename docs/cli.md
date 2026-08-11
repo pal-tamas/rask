@@ -22,19 +22,20 @@ That puts a `rask` command on your `PATH`. Update it later with `dotnet tool upd
 
 ## Getting help
 
-`rask` on its own lists the commands. `rask <command> --help` (or `-h`) prints that command's full
-reference — its arguments, an aligned table of every option with a one-line description, and
-copy-pasteable examples:
+`rask <command> --help` (or `-h`) prints that command's full reference — its arguments, an aligned
+table of every option with a one-line description, and copy-pasteable examples:
 
 ```bash
-rask                       # list all commands
+rask                       # on a terminal: the new-project wizard. Piped: the command list.
+rask --help                # the command list, always
 rask new --help            # arguments, options, and examples for `new`
 rask generate feature --help
 ```
 
 Help (and other output) is colorized when `rask` is writing to a terminal, and falls back to plain
 text when the output is piped or when the [`NO_COLOR`](https://no-color.org) environment variable is
-set — so `rask info | cat` and CI logs stay clean.
+set — so `rask info | cat` and CI logs stay clean. Long descriptions wrap to the terminal's width;
+piped output is never reflowed, so a line you grep for stays on one line.
 
 ## Short names mean one thing
 
@@ -90,19 +91,37 @@ machine with no SDK simply has no `dotnetSdk` key, where the human report prints
 ## `rask new` — scaffold a project
 
 ```bash
-rask new                             # interactive: prompts for name, template, and features
+rask                                 # the wizard, from a blank slate
+rask new                             # the same wizard
 rask new MyApp                       # a server-rendered app (the default template)
 rask new MyApp --auth --docker       # + cookie auth + a production Dockerfile
 rask new Blog --data --docker        # + a SQLite database ready for `rask generate feature`
 rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Field --template native     # a native iOS + Android app
+rask new Kiosk --template native --platform android   # Android only
 ```
 
-Run `rask new` on its own (no name) and — on a terminal — it walks you through a short wizard: the
-project name, a numbered template picker, and a yes/no for each feature the template supports. It then
-scaffolds exactly as if you'd passed the flags. Piped or in a script (no terminal), a missing name is a
-plain error instead, so automation stays predictable.
+Run `rask` (or `rask new`) with no project name and — on a terminal — it walks you through a short
+wizard: the project name, an arrow-key **project type** picker, **styling** (Rask.Bootstrap or plain
+elements), whether to add a **Dockerfile**, and a checklist of **batteries** you toggle with space. A
+database picker follows if anything you ticked needs one. It then scaffolds exactly as if you'd passed
+the flags.
+
+Picking `native` asks its own two questions instead: where the UI comes from, and which platforms to
+target. Everything else on that path is skipped, because the native template has no component library,
+no Dockerfile and no batteries — and the summary lists only what was actually decided, rather than
+reporting defaults for questions it never asked.
+
+The wizard **fills gaps rather than re-asking**: anything already on the command line is kept and its
+question skipped, so `rask new --template wasm --auth` asks only for the name. Piped or in a script (no
+terminal), a missing name is a plain error instead, and bare `rask` prints the command list — so
+automation stays predictable.
+
+Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` solution, and is initialized
+as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
+existing repository. `--no-bootstrap` swaps the `Bs*` components for plain elements against a small
+stylesheet in the app shell, and drops the `Rask.Bootstrap` reference.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
@@ -148,7 +167,8 @@ Add pages and components to taste — `rask generate` is the fast path.
 | `--ops` | An [operator dashboard](dashboard.md) at `/_ops` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
 | `--all-batteries` | Every battery above — the full One Person Framework stack in one app. |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
-| `--host` | `local` (default) or `server` — which native mode to scaffold (the `native` template only). |
+| `--platform` | The `native` template only, repeatable: `ios`, `android`, or both (the default when omitted). Only the platforms you name get a target framework, a manifest and a head — an unselected platform leaves no files behind. |
+| `--host` | The `native` template only: **where the UI comes from**. `local` (default) runs your components on the device, so the app works offline. `server` and `wasm-hosted` scaffold a thin native shell whose WebView points at a Rask app you host, so the UI ships when you deploy rather than when the store approves — they emit the same shell (the WebView takes a trusted origin and doesn't care what serves it) and differ only in the guidance they carry, because a live server renders over a WebSocket while a published WASM bundle keeps working once loaded. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore`). |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
@@ -162,6 +182,27 @@ everything outside it, which would otherwise be a bare 500 with an empty body. T
 your app shell and shows a **correlation id and nothing else** — the exception goes to `ILogger`, where you
 match it by that id. Locally the handler stays off, because the developer exception page is strictly more
 useful than a page designed to reveal nothing.
+
+### Which template supports which flag
+
+| Flag | `server` | `wasm` | `wasm-hosted` | `native` |
+| --- | :-: | :-: | :-: | :-: |
+| `--auth` | ✅ | ✅ | ✅ | — |
+| `--pwa` | ✅ | ✅ | ✅ | — |
+| `--docker` | ✅ | ✅ | ✅ | — |
+| `--cqrs`, `--data` (+ `--database`) | ✅ | — | — | — |
+| `--jobs`, `--mail`, `--cache`, `--outbox`, `--push`, `--snapshots`, `--logs`, `--ops` | ✅ | — | — | — |
+| `--all-batteries` | ✅ | — | — | — |
+| `--host`, `--platform` (see below) | — | — | — | ✅ |
+
+The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
+combination that is then rejected. On the command line, asking for one is a usage error that names both
+halves rather than silently dropping the flag:
+
+```console
+$ rask new X --template wasm --data
+Template 'wasm' does not support: --data. Supported flags: --auth, --docker, --pwa.
+```
 
 The battery flags are **server-only** — they all ride the app's own database, and only the `server`
 template has one. Each implies what it needs (`--jobs` implies `--data` implies `--cqrs`), so you can ask
