@@ -1,7 +1,7 @@
 # Rask.Data
 
 A tiny, provider-agnostic data layer for **Entity Framework Core** apps — the DDD building blocks the
-[`rask generate feature`](https://github.com/pal-tamas/rask) scaffolder emits, packaged for reuse.
+[Rask tutorial](https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md) builds its CRUD slices on, packaged for reuse.
 
 - **`Entity<TId>`** — a base entity with `Id`, audit stamps (`CreatedAt`/`UpdatedAt`), and a
   domain-events buffer.

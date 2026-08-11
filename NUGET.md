@@ -37,7 +37,6 @@ public sealed class Counter : Component
 ```bash
 dotnet tool install -g Rask.Cli          # the rask CLI — scaffold, migrate, run, deploy
 rask new MyApp                            # or: --template wasm | wasm-hosted | native
-rask generate feature Product Name:string Price:decimal   # CQRS + EF CRUD, pages included
 rask db add Initial && rask db update     # migrations, via dotnet-ef
 rask dev                                  # run with hot reload
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH

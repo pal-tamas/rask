@@ -4,31 +4,28 @@ This is the app [`docs/one-person-framework.md`](../../docs/one-person-framework
 auth, background work, email, cache, durable events, backups and push — one C# codebase, one SQLite file,
 one server.
 
-It is **the CLI's output, not a hand-written lookalike.** Every file here was produced by running:
+The project itself came from the CLI:
 
 ```bash
 rask new Rask.Example.Shop --all-batteries --auth --docker
-rask generate feature Product Name:string Price:decimal InStock:bool --soft-delete --concurrency
-rask generate feature Order Customer:string Total:decimal --outbox
-rask generate job PurgeStaleCarts --feature Orders
-rask generate email OrderConfirmation --feature Orders
-rask generate cache PopularProducts --feature Products
 ```
 
-That matters: if the CLI ever stops producing something that works, this sample stops building, and
-`tests/Rask.Example.Shop.Tests` re-runs the generators to check the committed files still match what the
-CLI writes today.
+Everything inside it — the `Product` and `Order` slices, the job, the email, the cache and the ops page —
+is ordinary C# written the way the [tutorial](../../docs/tutorial/00-overview.md) teaches it. This app is
+the tutorial's finished state, so it is the place to look when a snippet there needs its surroundings.
 
-## What was written by hand
+`tests/Rask.Cli.Tests/ShopProvenanceTests` still checks the **scaffolded** files against what `rask new`
+writes today, so the parts the CLI does own can't drift.
 
-Four things, each of them what the tutorial tells a reader to type:
+## Worth reading first
 
-| File | Why it isn't generated |
-|------|------------------------|
-| `Features/Shared/DbInitializer.cs` | A real app runs `rask db add Init` / `rask db update`. This one uses `EnsureCreated` so it can be cloned, run, and E2E-tested with no migration step. |
-| `Features/Orders/OrderCreatedHandler.cs` | The generator scaffolds a handler that logs. This is the body — queue the confirmation email, schedule the follow-up job. |
-| `Features/Orders/OrderConfirmation.cs` | The generator scaffolds an empty email body; this is the actual content. |
-| `Features/Ops/OpsPage.cs` | A dashboard over every pillar's table, so the batteries are visible rather than merely wired. |
+| File | What it shows |
+|------|---------------|
+| `Features/Products/` | a complete CRUD slice — entity, request, EF configuration, CQRS handlers, pages ([ch. 2](../../docs/tutorial/02-first-feature.md)) |
+| `Features/Orders/OrderCreatedHandler.cs` | reacting to a domain event: queue the confirmation email, schedule the follow-up job ([ch. 7](../../docs/tutorial/07-outbox-events.md)) |
+| `Features/Orders/OrderConfirmation.cs` | an email body that is just a Rask component ([ch. 5](../../docs/tutorial/05-email.md)) |
+| `Features/Ops/OpsPage.cs` | a dashboard over every pillar's table, so the batteries are visible rather than merely wired |
+| `Features/Shared/DbInitializer.cs` | `EnsureCreated` instead of migrations, so the sample can be cloned and run with no `rask db` step |
 
 Plus one line in `Program.cs` calling `DbInitializer`, and `SnapshotOnStartup = true` so the Ops page has a
 backup to show without waiting six hours.

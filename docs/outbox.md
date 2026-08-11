@@ -4,7 +4,7 @@
 
 `Rask.Outbox` gives [`Rask.Data`](data.md) aggregates **durable, crash-safe domain-event delivery** on the
 app's own database — no message broker, no Redis. It's the durable counterpart to `Rask.Data`'s in-process
-publisher, and what `rask generate feature --outbox` wires up.
+publisher, and what [tutorial chapter 7](tutorial/07-outbox-events.md) wires up.
 
 ```bash
 dotnet add package Rask.Outbox

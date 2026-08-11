@@ -61,8 +61,8 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 
 | Battery | What it does |
 |---------|--------------|
-| **[The `rask` CLI](cli.md)** | `rask new` (scaffold), `rask dev` (watch + hot reload), `rask generate` (page/component/feature). The front door. |
-| **[`rask generate feature`](cli.md)** | One command emits a full CQRS + EF Core CRUD vertical slice — encapsulated entity, value objects, validation, list/create/edit pages (and, with `--tests`, a test project) — and wires the DI into `Program.cs`. |
+| **[The `rask` CLI](cli.md)** | `rask new` (scaffold), `rask dev` (watch + hot reload), `rask db`, `rask deploy`. The front door. |
+| **[A CRUD vertical slice](tutorial/02-first-feature.md)** | Encapsulated entity, form model, EF mapping, CQRS commands/queries, and list/create/edit pages — written once in the tutorial and repeated per feature. |
 | **[`Rask.Data`](data.md)** | `Entity<TId>` + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, domain events. |
 | **[`Rask.Cqrs`](cqrs.md)** | Source-generated, reflection-free CQRS/mediator — trim/AOT-safe, zero runtime scanning. |
 | **[`Rask.Jobs`](jobs.md)** | Durable background jobs on the app's own database — enqueue, delayed, and recurring, run by a hosted worker. |
@@ -81,7 +81,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 
 [`samples/Rask.Example.Shop`](../samples/Rask.Example.Shop) wires **every battery above into one app** —
 and it is the CLI's own output, not a hand-written showcase: `rask new Shop --all-batteries --auth --docker`
-plus a handful of `rask generate` commands. Place an order and watch `/ops`: the domain event commits with
+plus the slices from the tutorial. Place an order and watch `/ops`: the domain event commits with
 the order through the outbox, the relay queues the confirmation email and schedules a follow-up job, and
 every pillar's state sits in the same SQLite file.
 

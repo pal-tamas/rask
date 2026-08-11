@@ -7,7 +7,7 @@ your entities a shared base with identity, audit stamps, and a domain-events buf
 production concerns — auditing, soft delete, optimistic concurrency, and domain-event publication —
 through EF Core interceptors and a one-line model convention, so no feature has to re-implement them.
 
-It is the foundation the [`rask generate feature`](cli.md) scaffolder emits for its
+It is the foundation the [tutorial](tutorial/02-first-feature.md) builds its slices on — its
 `--soft-delete` / `--concurrency` / `--events` flags, packaged for direct use.
 
 ```bash
