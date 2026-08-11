@@ -18,6 +18,22 @@ internal static partial class ProjectGenerator
     private const string NameToken = "Company.RaskServer";
 
     /// <summary>
+    /// The files every template emits regardless of what was asked for: a <c>.gitignore</c>, an
+    /// <c>.editorconfig</c>, and a <c>.slnx</c> over <paramref name="projectPaths"/>.
+    /// <para>
+    /// These are defaults rather than options because the cost of not having them is paid later and by
+    /// someone else — a committed <c>bin/</c> or <c>app.db</c>, a formatting-only diff, a solution nobody
+    /// can open. Anyone who doesn't want one can delete it; nobody remembers to add one.
+    /// </para>
+    /// </summary>
+    private static IEnumerable<(string Path, string Content)> ProjectHygiene(params IReadOnlyList<string> projectPaths) =>
+    [
+        (".gitignore", GitIgnore),
+        (".editorconfig", EditorConfig),
+        ($"{NameToken}.slnx", Slnx(projectPaths)),
+    ];
+
+    /// <summary>
     /// Materialise a single-project template: the placeholder namespace becomes <paramref name="name"/> in
     /// every file's content, and in the paths too (so <c>{NameToken}.csproj</c> becomes <c>{name}.csproj</c>).
     /// </summary>

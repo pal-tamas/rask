@@ -1,18 +1,29 @@
 using System.Collections.Concurrent;
 using Rask.Cli.Scaffolding;
+using Spectre.Console;
+using Spectre.Console.Rendering;
+using Spectre.Console.Testing;
 
 namespace Rask.Cli.Tests;
 
 /// <summary>
 /// An <see cref="IConsole"/> that captures everything written, for assertions. Both output streams
 /// report as redirected so styling stays off and captured text is plain — substring assertions hold
-/// regardless of the styling layer. Seed <see cref="InputLines"/> to script interactive prompts.
+/// regardless of the styling layer. Seed <see cref="InputLines"/> or <see cref="InputKeys"/> to script
+/// interactive prompts.
+/// <para>
+/// The renderers write into the very same <see cref="StringWriter"/>s as <see cref="Out"/> and
+/// <see cref="Error"/>, so styled and raw writes interleave in exactly the order the code made them.
+/// </para>
 /// </summary>
 internal sealed class StringConsole : IConsole
 {
     private readonly StringWriter _out = new();
     private readonly StringWriter _error = new();
+    private readonly TestConsoleInput _input = new();
     private TextReader _in = new StringReader(string.Empty);
+    private IAnsiConsole? _ansi;
+    private IAnsiConsole? _ansiError;
 
     public TextWriter Out => _out;
 
@@ -27,6 +38,12 @@ internal sealed class StringConsole : IConsole
 
     public bool IsInputRedirected { get; set; } = true;
 
+    // Built on first use, not in the constructor: a test sets the redirection flags first, and those
+    // decide the profile the renderer is pinned to.
+    public IAnsiConsole Ansi => _ansi ??= Create(_out, IsOutputRedirected);
+
+    public IAnsiConsole AnsiError => _ansiError ??= Create(_error, IsErrorRedirected);
+
     public string OutText => _out.ToString();
 
     public string ErrorText => _error.ToString();
@@ -37,9 +54,95 @@ internal sealed class StringConsole : IConsole
         set
         {
             _in = new StringReader(string.Join(Environment.NewLine, value) + Environment.NewLine);
+            foreach (var line in value)
+            {
+                _input.PushTextWithEnter(line);
+            }
+
             IsInputRedirected = false;
         }
     }
+
+    /// <summary>
+    /// Script raw key presses, for the arrow-key list prompts that a line of text cannot express.
+    /// Use <see cref="ConsoleKey.DownArrow"/> to move, <see cref="ConsoleKey.Spacebar"/> to toggle a
+    /// multi-select item, and <see cref="ConsoleKey.Enter"/> to accept.
+    /// </summary>
+    public IReadOnlyList<ConsoleKey> InputKeys
+    {
+        set
+        {
+            foreach (var key in value)
+            {
+                _input.PushKey(key);
+            }
+
+            IsInputRedirected = false;
+        }
+    }
+
+    /// <summary>
+    /// Type a line into the next text prompt. Together with <see cref="Press"/> this scripts a whole
+    /// wizard in call order, which the two set-once properties above cannot express — a flow that asks
+    /// for a name and then shows a list needs typed text and key presses interleaved.
+    /// </summary>
+    public StringConsole Type(string line)
+    {
+        _input.PushTextWithEnter(line);
+        IsInputRedirected = false;
+        return this;
+    }
+
+    /// <summary>Press keys into the next list prompt, in order.</summary>
+    public StringConsole Press(params ConsoleKey[] keys)
+    {
+        foreach (var key in keys)
+        {
+            _input.PushKey(key);
+        }
+
+        IsInputRedirected = false;
+        return this;
+    }
+
+    private IAnsiConsole Create(TextWriter writer, bool redirected)
+    {
+        // Color follows the redirection flag, so captured text stays plain and substring assertions hold.
+        // ANSI and interactivity follow the *input* flag instead: a test that scripts answers is standing
+        // in for a terminal, and an arrow-key list can only move if it may redraw. A test that scripts no
+        // input gets neither, which is the piped-run shape the rest of the suite asserts against.
+        var console = AnsiConsoleFactory.Create(
+            writer,
+            ansi: !redirected || !IsInputRedirected,
+            color: ConsoleStyling.ColorEnabled(redirected),
+            interactive: !IsInputRedirected);
+
+        return new ScriptedInputConsole(console, _input);
+    }
+}
+
+/// <summary>
+/// An <see cref="IAnsiConsole"/> that renders through <paramref name="inner"/> but reads its keys from a
+/// scripted queue. Spectre's own <c>TestConsole</c> would do both, but it owns its output buffer — and the
+/// point of <see cref="StringConsole"/> is that rendered and raw writes land in one buffer, in order.
+/// </summary>
+internal sealed class ScriptedInputConsole(IAnsiConsole inner, IAnsiConsoleInput input) : IAnsiConsole
+{
+    public Profile Profile => inner.Profile;
+
+    public IAnsiConsoleCursor Cursor => inner.Cursor;
+
+    public IAnsiConsoleInput Input => input;
+
+    public IExclusivityMode ExclusivityMode => inner.ExclusivityMode;
+
+    public RenderPipeline Pipeline => inner.Pipeline;
+
+    public void Clear(bool home) => inner.Clear(home);
+
+    public void Write(IRenderable renderable) => inner.Write(renderable);
+
+    public void WriteAnsi(Action<AnsiWriter> write) => inner.WriteAnsi(write);
 }
 
 /// <summary>A recorded invocation of the process runner.</summary>

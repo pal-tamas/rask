@@ -7,6 +7,57 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`rask` on its own opens a new-project wizard.** Typing `rask` with nothing else used to print the
+  command list — a reasonable answer to a question nobody asked, since someone typing it has no project
+  yet. On a terminal it now walks the wizard: project name, an arrow-key **project type** picker,
+  **styling** (Rask.Bootstrap or plain elements), a **Dockerfile** question, and a checklist of
+  **batteries** toggled with space instead of thirteen consecutive yes/no prompts. A database picker
+  follows when something you ticked needs one. Piped or scripted, bare `rask` still prints the command
+  list, so `rask | head` and CI are unchanged.
+- **The wizard fills gaps instead of re-asking.** Anything already given on the command line is kept
+  verbatim and its question skipped, so `rask new --template wasm --auth` asks only for the name.
+  Questions that cannot apply are skipped too — no database question without a battery that needs one,
+  no snapshots question for a database that isn't a file.
+- **Every scaffolded project gets a `.gitignore`, an `.editorconfig`, and a `.slnx` solution, and is
+  initialized as a git repository with one commit.** These are the things whose absence is paid for
+  later and by someone else: a committed `bin/` or `app.db`, a formatting-only diff, a solution nobody
+  can open. `--no-git` skips the repository, and it is skipped automatically when the target is already
+  inside one. The `wasm-hosted` template's hand-written `.sln` — three projects, six GUIDs and a
+  configuration matrix — is now a nine-line `.slnx`.
+- **`rask new --no-bootstrap`.** Renders the generated pages with plain elements against a small
+  stylesheet carried in the app shell, and drops the `Rask.Bootstrap` reference, for projects bringing
+  their own CSS. The wizard asks for it as a styling choice. Covered by the CLI build gate, which packs
+  this commit's packages and runs a real `-warnaserror` build over the result — the one flag where the
+  generated *code* differs rather than the wiring is the one a string assertion proves least about.
+- **`--host wasm-hosted` for the native template**, alongside `local` and `server`. Picking `native` in
+  the wizard now asks where the UI comes from: the device, a Rask server, or a wasm-hosted app. The two
+  remote modes scaffold the same shell — `RaskServerWebView` takes a trusted origin and never asks what
+  serves it — and differ in the guidance they carry, because a live server renders over a WebSocket
+  while a published bundle keeps working once loaded. The wizard's summary now lists only what was
+  actually decided, so a native app is no longer told it chose Rask.Bootstrap and declined Docker.
+- **`rask new --template native --platform ios|android`** (repeatable; both by default), and a matching
+  wizard checklist. The native template used to multi-target both platforms unconditionally, so an
+  Android-only app still carried a `Platforms/iOS/` folder, an iOS target framework, an
+  `Info.plist` wiring block and a run command for a simulator it would never launch — files that never
+  compile, which is the kind of thing that survives for years because nobody is sure whether they
+  matter. Naming one platform now leaves no trace of the other, down to the `dotnet workload install`
+  line and the per-target-framework compile guards, which are emitted only when there is more than one
+  target to keep apart.
+
+### Changed
+- **The CLI's terminal output is rendered by [Spectre.Console](https://spectreconsole.net).** The help
+  pages, `rask deploy status`, `rask doctor`, the deploy and host-setup spinners and every prompt were
+  ~270 lines of hand-rolled ANSI escapes, `\r` overwrites and `PadRight` columns that had never learned
+  terminal width, word wrap or arrow-key selection. Long option descriptions now wrap under themselves
+  instead of running off the edge, lists are navigated with the arrow keys, and the tool wears its own
+  purple. Two behaviours are held exactly as they were, and tested: piped output carries **no escape
+  codes, no logo and no reflowing** — a line you grep for stays on one line — and progress spinners
+  write **nothing at all** off a terminal. `NO_COLOR` now removes only color, where before it also
+  disabled the cursor control the spinner and the list prompts need.
+- Emoji and the block-glyph logo are drawn only on a terminal that reports Unicode support, so a console
+  on a legacy code page gets plain text rather than mojibake.
+
 ### Fixed
 - **A second build in the same session no longer fails on the scoped-asset bake.** MSBuild keeps its
   worker nodes alive between invocations, and the bake is not safe across them: it loads bundle

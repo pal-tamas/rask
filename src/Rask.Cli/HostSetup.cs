@@ -282,15 +282,13 @@ internal sealed class HostSetup(IConsole console, IProcessRunner process)
 
     private async Task<bool> RunStepAsync(SshTarget target, BootstrapStep step, CancellationToken cancellationToken)
     {
-        ProcessResult result;
-
-        // Scoped so the spinner's line is cleared before anything else is written — otherwise a failing
-        // step's stderr interleaves with the animation.
-        await using (Spinner.Start(console, step.Description + "…"))
+        // Scoped so the status line is gone before anything else is written — otherwise a failing step's
+        // stderr interleaves with the animation.
+        var result = await Activity.RunAsync(console, step.Description + "…", async () =>
         {
             var args = new List<string>(target.ConnectionArguments()) { step.Script };
-            result = await CaptureAsync(args, cancellationToken).ConfigureAwait(false);
-        }
+            return await CaptureAsync(args, cancellationToken).ConfigureAwait(false);
+        }).ConfigureAwait(false);
 
         if (result.ExitCode == 0)
         {

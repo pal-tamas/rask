@@ -63,6 +63,52 @@ public sealed class ProjectGeneratorBuildE2ETests
     }
 
     /// <summary>
+    /// <c>--no-bootstrap</c> swaps every generated page body for plain elements and drops the
+    /// Rask.Bootstrap reference. That is the one flag where the *code* differs rather than the wiring, so
+    /// it is the one a string assertion proves least about: the Bs-free bodies have to compile without the
+    /// package that supplies <c>BsCard</c> and <c>BootstrapStyles</c>, on both the welcome page and the
+    /// error page, and the reference has to actually be gone rather than merely unused.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Generated_project_without_bootstrap_builds(bool auth)
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        var name = auth ? "E2ENoBsAuth" : "E2ENoBs";
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var result = ProjectGenerator.GenerateServer(
+                projectDir, name, new ServerBatteries { Bootstrap = false, Auth = auth }, version);
+
+            Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            Assert.DoesNotContain("Rask.Bootstrap", fs.ReadAllText(Path.Combine(projectDir, name + ".csproj")), StringComparison.Ordinal);
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
+            Assert.True(exit == 0, $"[auth={auth}] --no-bootstrap project failed to build.{CliBuildE2E.Diagnostics(output)}");
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(temp);
+        }
+    }
+
+    /// <summary>
     /// <c>--data</c> pre-wires the AppDbContext + AddRaskData + a UseRaskSqlite DbContext factory, and pulls
     /// Rask.Data / Rask.SQLite.EntityFrameworkCore into the csproj. Only a real compile proves the generated
     /// Program.cs (the config-driven connection string, the ISaveChangesInterceptor injection) and the
