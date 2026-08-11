@@ -105,6 +105,30 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail(parsed.Errors);
         }
 
+        // A second positional is almost always an unquoted multi-word name — `rask new My App`. Taking the
+        // first and dropping the rest would scaffold a project called "My" and say nothing, which is the
+        // worst outcome available: silent, wrong, and only noticed after the files are on disk. Every other
+        // command in this CLI rejects a stray positional; this one used to be the exception.
+        if (parsed.Positionals.Count > 1)
+        {
+            var joined = string.Concat(parsed.Positionals);
+            return Fail(
+                $"'rask new' takes one project name, but got {parsed.Positionals.Count.ToString(CultureInfo.InvariantCulture)}: "
+                + $"{string.Join(", ", parsed.Positionals.Select(p => $"'{p}'"))}. "
+                + (Identifiers.IsValidNamespaceName(joined)
+                    ? $"A project name can't contain spaces — did you mean '{joined}'?"
+                    : "A project name can't contain spaces."));
+        }
+
+        // Both spellings of the same answer, disagreeing. Preferring one silently means the command did
+        // something the user can read the opposite of straight off their own command line.
+        if (parsed.Option("name") is { } named
+            && parsed.Positionals.FirstOrDefault() is { } positional
+            && !named.Equals(positional, StringComparison.Ordinal))
+        {
+            return Fail($"Two different project names given: '{positional}' and --name '{named}'. Pass one.");
+        }
+
         var name = parsed.Option("name") ?? parsed.Positionals.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -117,6 +141,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
 
             return Fail("A project name is required, e.g. 'rask new Shop'.");
+        }
+
+        if (ValidateOutput(parsed.Option("output")) is { } outputError)
+        {
+            return Fail(outputError);
         }
 
         // The name becomes the root namespace and the csproj filename, so an invalid one (a dash, a leading
@@ -615,6 +644,34 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Why <paramref name="output"/> can't be used, or null when it can.
+    /// </summary>
+    /// <remarks>
+    /// Both failures used to surface late and badly. An empty (or whitespace) value resolved to the current
+    /// directory, so the project was written <em>into wherever you were standing</em> instead of a folder of
+    /// its own — no error, no clue. A value naming an existing file got as far as printing "Creating …"
+    /// before the first write threw, and the resulting "The file '…' already exists." named the path without
+    /// saying what the command had wanted with it.
+    /// </remarks>
+    private string? ValidateOutput(string? output)
+    {
+        if (output is null)
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return "--output needs a directory. Leave it off to scaffold into ./<name>.";
+        }
+
+        var resolved = Path.GetFullPath(Path.Combine(_workingDirectory, output));
+        return _fileSystem.FileExists(resolved)
+            ? $"--output '{output}' is a file. Point it at a directory (it's created if missing)."
+            : null;
     }
 
     /// <summary>

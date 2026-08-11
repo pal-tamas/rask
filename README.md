@@ -57,8 +57,8 @@ product, by one person in one sitting:
 ```bash
 dotnet tool install -g Rask.Cli
 
-rask new Shop --auth --docker                              # scaffold: UI + cookie auth + a Dockerfile
-rask generate feature Product Name:string Price:decimal    # a full CQRS + EF Core CRUD slice — DI wired for you
+rask new Shop --auth --docker --data                       # scaffold: UI + cookie auth + Dockerfile + SQLite
+# …write a Products slice — docs/tutorial/02-first-feature.md has the code
 rask db add InitialCreate && rask db update                # create + apply the SQLite migration
 rask dev                                                   # run it, hot-reloading, at /products
 rask deploy --host root@box --domain shop.example.com      # ship it: bare box → Docker + auto-HTTPS, zero-downtime
@@ -114,7 +114,7 @@ no separate server to run. Add one with a package reference and a line of DI; th
 | Pillar | What one command / one line gives you | |
 |---|---|---|
 | **The `rask` CLI** | `new` · `generate` · `db` · `dev` · `deploy` — the whole lifecycle, one tool. | [→](docs/cli.md) |
-| **CRUD scaffolder** | `rask generate feature` emits an encapsulated entity, CQRS commands/queries, and list/create/edit pages — and **writes the DI into `Program.cs`**. | [→](docs/cli.md) |
+| **A CRUD slice** | An encapsulated entity, CQRS commands/queries, and list/create/edit pages — written once in the tutorial and repeated per feature. | [→](docs/tutorial/02-first-feature.md) |
 | **Data** (`Rask.Data`) | `Entity<TId>` + EF interceptors: audit stamps, soft delete, optimistic concurrency, domain events. | [→](docs/data.md) |
 | **CQRS** (`Rask.Cqrs`) | Source-generated, trim-safe queries / commands / notifications via `IDispatcher`. | [→](docs/cqrs.md) |
 | **Auth** | Cookie & JWT, Server & WASM, a declarative `Authorize` gate + route guards. | [→](docs/authentication.md) |
@@ -163,10 +163,10 @@ iOS/Android app** — a WebView hybrid where your C# runs natively on the device
 Building a product used to mean assembling a stack: a frontend framework in another language, a backend, a
 managed database, a queue, a cache, a blob store, a deploy pipeline — each rented, glued, and maintained. For
 a team that's overhead; for one person it's the whole job. Rask collapses it into **one C# codebase on one
-server**: scaffold a feature, store it in SQLite, ship it to a box — no PaaS, no glue, no second language.
+server**: write a feature, store it in SQLite, ship it to a box — no PaaS, no glue, no second language.
 
-- **You write the product, not the plumbing.** `rask generate feature` emits the vertical slice *and* wires
-  the DI; the pillars register in a line; `rask deploy` even prepares the bare server for you.
+- **You write the product, not the plumbing.** A vertical slice is a handful of small files; the pillars
+  register in a line; `rask deploy` even prepares the bare server for you.
 - **DB-backed by default.** Jobs, mail, cache, outbox — all persist to the app's own SQLite DB. Adding one is
   a package reference, not a new service to operate.
 - **Correct, concurrent, backed-up SQLite.** WAL, busy-timeout, non-blocking write retries, and continuous

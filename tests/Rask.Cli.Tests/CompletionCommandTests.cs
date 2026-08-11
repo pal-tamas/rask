@@ -20,7 +20,7 @@ public sealed class CompletionCommandTests
 
         Assert.Equal(0, exit);
         var script = console.OutText;
-        Assert.Contains("generate", script, StringComparison.Ordinal); // a command name
+        Assert.Contains("deploy", script, StringComparison.Ordinal); // a command name
         // Option names appear as `--template` (bash/zsh) or `-l template` (fish) — match the bare name.
         Assert.Contains("template", script, StringComparison.Ordinal); // an option from `new`'s schema
         Assert.Contains("outbox", script, StringComparison.Ordinal);   // a feature-only option
@@ -71,7 +71,7 @@ public sealed class CompletionCommandTests
         await app.RunAsync(["completion", shell], CancellationToken.None);
 
         var script = console.OutText;
-        foreach (var verb in new[] { "backup", "restore", "rollback", "component" })
+        foreach (var verb in new[] { "backup", "restore", "rollback", "cache" })
         {
             Assert.Contains(verb, script, StringComparison.Ordinal);
         }

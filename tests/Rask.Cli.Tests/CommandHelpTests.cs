@@ -37,27 +37,11 @@ public sealed class CommandHelpTests
     }
 
     [Fact]
-    public async Task Generate_help_surfaces_the_feature_only_flags()
-    {
-        var (console, app) = Build();
-
-        // These flags were previously undiscoverable — not in usage, not in help.
-        await app.RunAsync(["generate", "--help"], CancellationToken.None);
-
-        var text = console.OutText;
-        Assert.Contains("Feature options (rask generate feature)", text, StringComparison.Ordinal);
-        foreach (var flag in new[] { "--bs", "--modal", "--soft-delete", "--concurrency", "--events", "--outbox", "--tests", "--no-restore" })
-        {
-            Assert.Contains(flag, text, StringComparison.Ordinal);
-        }
-    }
-
-    [Fact]
     public async Task Help_output_is_uncolored_when_stdout_is_redirected()
     {
         var (console, app) = Build();
 
-        await app.RunAsync(["generate", "--help"], CancellationToken.None);
+        await app.RunAsync(["db", "--help"], CancellationToken.None);
 
         Assert.DoesNotContain('\x1b', console.OutText);
     }
@@ -70,7 +54,7 @@ public sealed class CommandHelpTests
         await app.RunAsync([], CancellationToken.None);
 
         var text = console.OutText;
-        foreach (var name in new[] { "new", "dev", "generate", "db", "deploy", "info" })
+        foreach (var name in new[] { "new", "dev", "db", "deploy", "info" })
         {
             Assert.Contains(name, text, StringComparison.Ordinal);
         }
@@ -102,18 +86,6 @@ public sealed class CommandHelpTests
         {
             Assert.Contains(action, text, StringComparison.Ordinal);
         }
-    }
-
-    [Fact]
-    public async Task An_actions_aliases_are_documented_beside_it()
-    {
-        var (console, app) = Build();
-
-        // 'ca' → cache was reachable but named nowhere, in help or in the unknown-action error.
-        await app.RunAsync(["generate", "--help"], CancellationToken.None);
-
-        Assert.Contains("cache (ca)", console.OutText, StringComparison.Ordinal);
-        Assert.Contains("feature (f)", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]

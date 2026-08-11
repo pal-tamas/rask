@@ -172,21 +172,14 @@ internal sealed class DoctorCommand(
         checks.Add(new DoctorCheck(
             "rask packages", DoctorStatus.Ok, NewCommand.ResolvePackageVersion(CliMetadata.Version), null));
 
-        // The bug this command exists to make visible: both config loaders catch JsonException and return
-        // defaults, so a typo'd file looked exactly like no file and the remembered host or flags
-        // vanished with nothing said anywhere.
-        foreach (var (name, problem) in new[]
-                 {
-                     (".rask/deploy.json", DeployConfig.DescribeProblem(_fileSystem, _workingDirectory)),
-                     (".rask/generate.json", GenerateConfig.DescribeProblem(_fileSystem, project.ProjectDirectory)),
-                 })
+        // The bug this command exists to make visible: the config loader catches JsonException and returns
+        // defaults, so a typo'd file looked exactly like no file and the remembered host vanished with
+        // nothing said anywhere. (`.rask/generate.json` went with the feature scaffolder that wrote it.)
+        if (DeployConfig.DescribeProblem(_fileSystem, _workingDirectory) is { } deployProblem)
         {
-            if (problem is not null)
-            {
-                checks.Add(new DoctorCheck(
-                    name, DoctorStatus.Fail, problem,
-                    "Until it parses, its remembered settings are silently ignored."));
-            }
+            checks.Add(new DoctorCheck(
+                ".rask/deploy.json", DoctorStatus.Fail, deployProblem,
+                "Until it parses, its remembered settings are silently ignored."));
         }
 
         return checks;

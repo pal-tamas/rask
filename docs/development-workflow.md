@@ -103,7 +103,7 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 - **The CLI build gate runs locally, enforced before push.** `scripts/run-cli-build-e2e.sh` is the only
   thing proving the code the CLI *writes* actually compiles — every other CLI test asserts on generated
   strings. It packs this commit's Rask packages to a local feed, scaffolds every `rask new` flag
-  combination plus a multi-entity `rask generate feature` and the whole [tutorial](tutorial/00-overview.md)
+  combination (see the [tutorial](tutorial/00-overview.md)
   walk-through, then builds each one with `-warnaserror`. Because it packs 15 packages and runs several
   full builds it is too slow for the pre-commit loop, so the `.githooks/pre-push` hook runs it instead
   (bypass with `git push --no-verify` or `RASK_SKIP_CLI_BUILD_E2E=1`). The gates are opted into by

@@ -1,13 +1,13 @@
 ---
 name: run-rask-cli
-description: Build and drive the `rask` CLI (src/Rask.Cli) — the framework's scaffolding front door (rask new / generate / db / dev / deploy / info). Use to run, build, smoke-test, or exercise the CLI, or to confirm a change to `rask new` or `rask generate` actually scaffolds a real project on disk (not just that a unit test passes). Driven by a committed bash smoke script.
+description: Build and drive the `rask` CLI (src/Rask.Cli) — the framework's scaffolding front door (rask new / db / dev / deploy / info / doctor). Use to run, build, smoke-test, or exercise the CLI, or to confirm a change to `rask new` actually scaffolds a real project on disk (not just that a unit test passes). Driven by a committed bash smoke script.
 ---
 
 # Run / drive the `rask` CLI
 
-`src/Rask.Cli` is the `rask` command-line tool: `rask new` scaffolds a project, `rask generate`
-scaffolds pages/components/CRUD features/jobs/emails into it, and `rask info|db|dev|deploy` wrap the
-.NET SDK. It ships as a .NET tool (`ToolCommandName=rask`), but from this repo you drive it from
+`src/Rask.Cli` is the `rask` command-line tool: `rask new` scaffolds a project and
+`rask info|db|dev|deploy|doctor` wrap the .NET SDK. Code *inside* a project is written by hand — the
+CLI has no `generate` verb. It ships as a .NET tool (`ToolCommandName=rask`), but from this repo you drive it from
 source with `dotnet run --project src/Rask.Cli -- <args>`.
 
 The thing worth *driving* (vs. unit-testing) is the two commands that write artifacts end-to-end —
@@ -22,8 +22,7 @@ All paths below are relative to the repo root (the unit).
 
 - **.NET 10 SDK** — `dotnet --version` → `10.0.302` here. Nothing else for the smoke (it uses
   `--dry-run` for the package-adding step, so it needs no network).
-- **Network** is required only for the *full* `rask generate feature` (no `--dry-run`) and for
-  `rask new`'s restore — they hit nuget.org. See Gotchas.
+- **Network** is required only for `rask new`'s restore — it hits nuget.org. See Gotchas.
 
 ## Build
 

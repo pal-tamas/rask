@@ -101,7 +101,7 @@ once you get it to compile — your edits included, since the tick means *it bui
 **Chapters 5–8 run real EF Core against a real SQLite database, inside the tab.** Not a mock and not an
 in-memory provider: `e_sqlite3` is linked into the published WebAssembly runtime, so `SaveChangesAsync`
 writes rows a later `Where(...)` reads back through actual SQL. They use the same
-[`Rask.Data`](data.md) conventions `rask generate feature` scaffolds into a real project — `Entity<Guid>`
+[`Rask.Data`](data.md) conventions a real project uses — `Entity<Guid>`
 for identity and audit stamps, `ApplyRaskConventions()` for the soft-delete filter, and the auditing /
 soft-delete interceptors — so what you learn here is what you will write on your machine.
 

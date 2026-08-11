@@ -37,6 +37,14 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
             return Task.FromResult(FailUnknownVerb(args.FirstOrDefault(), CreateSchema()));
         }
 
+        // A stray argument here is a typo, and this command's output gets piped straight into a shell rc
+        // file — the one place a silently-ignored word is least likely to be noticed. Every other command
+        // rejects one; so does this.
+        if (args.Count > 1)
+        {
+            return Task.FromResult(Fail($"Unexpected argument '{args[1]}'. `rask completion` takes one shell."));
+        }
+
         // Exclude self from the completed command list — but keep it a valid word so `rask compl<tab>` works.
         var named = commands.Select(c => c.Name).ToArray();
         var script = shell switch
