@@ -18,10 +18,17 @@ namespace Rask.Cli.Tests;
 /// package. A reader following the chapter exactly got four compiler errors.
 /// </para>
 /// <para>
-/// Extending it to chapter 4 found a fifth: the job handler used <c>IDbContextFactory</c> and
-/// <c>AppDbContext</c> with no <c>using</c> and no namespace, so the file the chapter names did not
-/// compile. The chapters build on each other — chapter 4's handler reads <c>db.Orders</c>, which only
-/// exists after chapter 3 — so they are walked cumulatively rather than in isolation.
+/// Extending it found more of the same. Chapter 4's job handler used <c>IDbContextFactory</c> and
+/// <c>AppDbContext</c> with no <c>using</c> and no namespace. Chapter 7 told the reader to give
+/// <c>Order</c> a <c>Customer</c> field it never had — its snippets came from a generator run with
+/// different fields than chapter 3 used, which the old <c>--force</c> regeneration papered over and a
+/// reader patching by hand cannot.
+/// </para>
+/// <para>
+/// The chapters build on each other — chapter 4's handler reads <c>db.Orders</c>, which only exists
+/// after chapter 3; chapter 7 rewrites the <c>Order</c> chapter 3 wrote — so they are walked
+/// cumulatively rather than in isolation. Chapter 6 is absent because its accessor snippet is elided
+/// (<c>…</c>), leaving no complete file to write.
 /// </para>
 /// <para>
 /// Opt-in with the rest of the build gates (<c>RASK_CLI_BUILD_E2E=1</c>) because it packs the framework
@@ -39,6 +46,8 @@ public sealed partial class TutorialChapterBuildE2ETests
         var ch2 = Fences("02-first-feature.md");
         var ch3 = Fences("03-orders-and-auth.md");
         var ch4 = Fences("04-background-jobs.md");
+        var ch5 = Fences("05-email.md");
+        var ch7 = Fences("07-outbox-events.md");
 
         string Fence(string contains) => Pick(ch2, contains, "2");
 
@@ -114,6 +123,21 @@ public sealed partial class TutorialChapterBuildE2ETests
                 + jobHandler[jobHandler.IndexOf("public sealed class", StringComparison.Ordinal)..]);
 
             await Build(csproj, "chapter 4");
+
+            // --- Chapter 5: the email body, a plain component ---
+            Write(fs, shared, "OrderReceipt.cs", Pick(ch5, "Thanks for your order!", "5"));
+
+            await Build(csproj, "chapter 5");
+
+            // --- Chapter 7: domain events through the outbox ---
+            // The chapter shows the revised Order.cs whole rather than as a patch, which is both what a
+            // reader needs (the Raise calls have to go somewhere specific) and what lets this walk apply
+            // it — a fragment could not replace the file chapter 3 wrote.
+            Write(fs, orders, "OrderEvents.cs", Pick(ch7, "record OrderCreated", "7"));
+            Write(fs, orders, "Order.cs", Pick(ch7, "entity.Raise(new OrderCreated", "7"));
+            Write(fs, orders, "OrderCreatedHandler.cs", Pick(ch7, "INotificationHandler<OrderCreated>", "7"));
+
+            await Build(csproj, "chapter 7");
         }
         finally
         {

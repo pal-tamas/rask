@@ -27,29 +27,53 @@ public sealed record OrderUpdated(Guid Id) : IOutboxEvent;
 public sealed record OrderDeleted(Guid Id) : IOutboxEvent;
 ```
 
-**Raising them.** In `Order.cs`, announce the change from the same method that makes it, so an order can
-never be created without saying so:
+**Raising them.** Announce the change from the same method that makes it, so an order can never be
+created without saying so. Here is chapter 3's `Features/Orders/Order.cs` with the three `Raise` calls
+added — the whole file, so you can see where they go:
 
 ```csharp
-public static Order Create(string customer, decimal total)
-{
-    var entity = new Order(customer, total);
-    entity.Raise(new OrderCreated(entity.Id));
-    return entity;
-}
+namespace Shop.Features.Orders;
 
-public void Update(string customer, decimal total)
+public sealed class Order : Entity<Guid>
 {
-    this.Customer = customer;
-    this.Total = total;
-    Raise(new OrderUpdated(Id));
-}
+    private Order() { } // EF Core materialization
 
-public void RaiseDeleted() => Raise(new OrderDeleted(Id));
+    private Order(decimal total, Guid productId, DateTime placed)
+    {
+        Id = Guid.NewGuid();
+        this.Total = total;
+        this.ProductId = productId;
+        this.Placed = placed;
+    }
+
+    public decimal Total { get; private set; }
+
+    public Guid ProductId { get; private set; }
+
+    public DateTime Placed { get; private set; }
+
+    public static Order Create(decimal total, Guid productId, DateTime placed)
+    {
+        var entity = new Order(total, productId, placed);
+        entity.Raise(new OrderCreated(entity.Id));
+        return entity;
+    }
+
+    public void Update(decimal total, Guid productId, DateTime placed)
+    {
+        this.Total = total;
+        this.ProductId = productId;
+        this.Placed = placed;
+        Raise(new OrderUpdated(Id));
+    }
+
+    public void RaiseDeleted() => Raise(new OrderDeleted(Id));
+}
 ```
 
-`Raise` comes from `Entity<TId>`. The events sit on the entity until `SaveChanges`, which is what makes
-the next part atomic.
+`Create` changed from an expression body to a block so it can raise before returning; the fields are
+chapter 3's, untouched. `Raise` comes from `Entity<TId>`, and the events sit on the entity until
+`SaveChanges` — which is what makes the next part atomic.
 
 **Reacting.** `Features/Orders/OrderCreatedHandler.cs` — auto-registered by `AddRaskCqrs()`:
 
