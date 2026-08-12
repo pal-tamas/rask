@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The tutorial's C# snippets are now checked by a test.** Since the code moved out of `rask generate`
+  and into the guides, nothing compiled it — a snippet could rot into something that never builds and
+  the first person to find out would be a reader typing it. `TutorialSnippetTests` parses every fenced
+  C# block in `docs/tutorial/` and verifies that every `override` inside a `Component` names a member
+  that actually exists on `Component`. That second check is the one that matters: it catches a snippet
+  calling a lifecycle hook from a different framework, which parses perfectly and never compiles.
+
+### Added
 - **`rask` on its own opens a new-project wizard.** Typing `rask` with nothing else used to print the
   command list — a reasonable answer to a question nobody asked, since someone typing it has no project
   yet. On a terminal it now walks the wizard: project name, an arrow-key **project type** picker,
