@@ -47,11 +47,14 @@ files, and the list page. They're the chapter 2 files with `Product` swapped for
 change the type, or read them in the
 [sample](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop/Features/Orders).
 
-The one line that ties it to the existing database goes in `Features/Shared/AppDbContext.cs`, next to
-`Products`:
+What ties it to the existing database goes in `Features/Shared/AppDbContext.cs`, next to `Products` —
+the slice's namespace, and the set:
 
 ```csharp
-public DbSet<Order> Orders => Set<Order>();
+using Shop.Features.Orders;   // at the top, beside the Products one
+```
+```csharp
+public DbSet<Order> Orders => Set<Order>();   // inside the class
 ```
 
 That's the whole of "sharing a database": one context, one connection string, one migration history,
