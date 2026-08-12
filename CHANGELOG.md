@@ -97,10 +97,29 @@ them until tagged releases begin.
   strongly-typed children collections and properties typed as a particular component all take a chain with
   no cast.
 
-  It is a `readonly struct` over one reference, and `BuilderSurfaceBenchmarks` says that costs nothing:
-  a 50-row re-render (one entry plus three setter calls per row, 150 setter calls a frame) allocates
-  **19.7 KB on both surfaces — Alloc Ratio 1.00**. The wall-clock arms overlap within noise and no claim
-  is made about them.
+  It is a `readonly struct` over one reference, and on ALLOCATION that costs exactly nothing: a 50-row
+  re-render (one entry plus three setter calls per row, 150 setter calls a frame) allocates **19.7 KB
+  on both surfaces — Alloc Ratio 1.00**.
+
+  **On wall-clock it currently costs 18%**, and that is a regression inside this branch rather than a
+  property of the surface — the same benchmark had the chain slightly AHEAD earlier (Entry/Factory
+  0.95–0.97):
+
+  ```
+  Factory   21.89 us   19.7 KB   1.00
+  Entry     25.88 us   19.7 KB   1.00   (time ratio 1.18 ± 0.02)
+  ```
+
+  The cause is named in `BuilderSurfaceBenchmarks`' own comment, written when the change went in and
+  before anyone measured it: the deferred reset grew a second, more expensive form, where a property
+  whose setter has a BODY is assigned unconditionally instead of being skipped when it already reads
+  as its default (`Router.Routes` derives the routing table from being handed a null, so skipping the
+  write rendered an empty page). Five props on the shared `Element`/`Component` surface take that form
+  — `Draggable`, `Role`, `TabIndex`, `Aria`, `Ref` — so every element in every entry-built tree pays
+  for it. "It is only a field write" was a claim; this is the measurement, and it is not free.
+
+  The ratio is recorded here because dropping the generated factory removes the arm that produces it,
+  so this comparison cannot be reproduced afterwards.
 
   Two consequences worth stating, because neither is reachable by reading the happy path:
   - **A component's static members are no longer reachable by simple name inside a markup host.** C#'s
