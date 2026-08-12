@@ -8,6 +8,19 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **Tutorial chapter 7 contradicted chapter 3.** It told the reader to write `Create(string customer,
+  decimal total)` on an `Order` that chapter 3 gave `Total`/`ProductId`/`Placed` and no `Customer` —
+  the snippets came from a generator run with different fields, which the old `--force` regeneration
+  papered over. Chapter 7 now shows the revised `Order.cs` whole, with chapter 3's fields intact. The
+  build gate walks chapters 2 → 3 → 4 → 5 → 7.
+- **The CLI build gate's intermittent wasm-hosted failures were MSBuild node reuse
+  ([#650](https://github.com/pal-tamas/rask/issues/650)), not flakiness.** A worker node kept alive
+  from an earlier run had already loaded `Rask.Wasm.Tasks.dll` from that run's temp directory, so the
+  next run's publish silently baked nothing. `Directory.Build.rsp` sets `-nodeReuse:false` for in-repo
+  builds but these projects are generated outside it; the harness now sets `MSBUILDDISABLENODEREUSE=1`,
+  which the nested `dotnet publish` inherits. Three consecutive gate runs are now 27/27.
+
+### Fixed
 - **Tutorial chapter 4 didn't compile either.** The job handler used `IDbContextFactory<AppDbContext>`
   with no `using` and no namespace, so the file the chapter names failed with two `CS0246`s as soon as
   a reader filled the handler in. Chapter 5's email component gained the namespace every other file in
