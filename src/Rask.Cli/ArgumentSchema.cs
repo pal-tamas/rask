@@ -106,7 +106,7 @@ internal sealed class ArgumentSchema
 
     /// <summary>
     /// Declare a subcommand. <paramref name="aliases"/> resolve to the same verb, so <c>rask g f</c> and
-    /// <c>rask generate feature</c> take one path and both are documented.
+    /// <c>rask db backup</c> take one path and both are documented.
     /// </summary>
     public ArgumentSchema Verb(string name, string description, params string[] aliases)
     {

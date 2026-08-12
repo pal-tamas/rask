@@ -26,7 +26,7 @@ rask deploy --host root@box --domain shop.example.com   # bare box → live HTTP
 rask deploy                           # redeploy (host/domain remembered), zero-downtime
 rask deploy --github-actions          # write .github/workflows/deploy.yml
 rask deploy status                    # what's running, and on which color
-rask deploy logs --follow             # tail the deployed app
+rask deploy logs -f                  # tail the deployed app (--follow)
 rask deploy rollback                  # put the previous image back
 
 # tab completion

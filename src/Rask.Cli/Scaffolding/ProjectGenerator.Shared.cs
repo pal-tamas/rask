@@ -138,12 +138,11 @@ internal static partial class ProjectGenerator
                     BsCard(Class: "shadow-sm")[
                         BsCardBody()[
                             BsCardTitle()["Hello, Rask! 👋"],
-                            BsCardText(Class: "text-body-secondary")["Your app is ready. Scaffold the rest with the rask CLI:"],
+                            BsCardText(Class: "text-body-secondary")["Your app is ready. What to do next:"],
                             Ul(Class: "mb-3")[
-                                Li()[Code()["rask generate feature Product Name:string Price:decimal"], " — a full CRUD slice (entity, pages, tests)"],
-                                Li()[Code()["rask generate page About"], " — a routed page"],
-                                Li()[Code()["rask generate component Card"], " — a reusable component"],
-                                Li()[Code()["rask dev"], " — run with hot reload"]
+                                Li()[Code()["rask dev"], " — run with hot reload"],
+                                Li()[Code()["rask db add Init"], " then ", Code()["rask db update"], " — create the database"],
+                                Li()[A(Href: "https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
                             ],
                             P(Class: "mb-0 small text-body-secondary")[
                                 "Edit this page in ",
@@ -176,12 +175,11 @@ internal static partial class ProjectGenerator
                 Main()[
                     Div(Class: "card")[
                         H1()["Hello, Rask! 👋"],
-                        P()["Your app is ready. Scaffold the rest with the rask CLI:"],
+                        P()["Your app is ready. What to do next:"],
                         Ul()[
-                            Li()[Code()["rask generate feature Product Name:string Price:decimal"], " — a full CRUD slice (entity, pages, tests)"],
-                            Li()[Code()["rask generate page About"], " — a routed page"],
-                            Li()[Code()["rask generate component Card"], " — a reusable component"],
-                            Li()[Code()["rask dev"], " — run with hot reload"]
+                            Li()[Code()["rask dev"], " — run with hot reload"],
+                            Li()[Code()["rask db add Init"], " then ", Code()["rask db update"], " — create the database"],
+                            Li()[A(Href: "https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
                         ],
                         P(Class: "small")[
                             "Edit this page in ",
