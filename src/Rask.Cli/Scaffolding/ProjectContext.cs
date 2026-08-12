@@ -34,7 +34,7 @@ internal sealed partial class ProjectContext(
     /// </summary>
     /// <remarks>
     /// Detected, not configured: the provider was already decided by <c>rask new --database</c>, and a
-    /// second source of truth is a second thing to get out of sync — a <c>rask generate feature</c> that
+    /// second source of truth is a second thing to get out of sync — a command that
     /// emitted SQLite wiring into a PostgreSQL app would not fail until runtime.
     /// </remarks>
     public DatabaseProvider Provider { get; } = provider;

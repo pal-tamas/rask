@@ -31,21 +31,6 @@ internal static class Identifiers
     public static bool IsValidNamespaceName(string value) =>
         !string.IsNullOrEmpty(value) && value.Split('.').All(IsValidTypeName);
 
-    /// <summary>
-    /// <paramref name="value"/> with its first character upper-cased — the whole of the PascalCase
-    /// convention that a scaffolder can apply without guessing.
-    /// </summary>
-    /// <remarks>
-    /// Deliberately only the first character. Splitting <c>my_thing</c> or <c>myThing</c> into words would
-    /// be guessing at intent, and a scaffolder that renames more than the user can predict is worse than
-    /// one that renames nothing. <c>product</c> → <c>Product</c>; <c>AppDbContext</c> and <c>_internal</c>
-    /// are already fine and come back unchanged.
-    /// </remarks>
-    public static string Capitalize(string value) =>
-        string.IsNullOrEmpty(value) || !char.IsLower(value[0])
-            ? value
-            : char.ToUpperInvariant(value[0]) + value[1..];
-
     /// <summary>True if <paramref name="value"/> is a valid, non-keyword C# identifier (a usable type name).</summary>
     public static bool IsValidTypeName(string value)
     {

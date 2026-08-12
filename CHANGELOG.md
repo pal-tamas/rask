@@ -7,6 +7,24 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **`rask deploy logs -f` works.** `--follow` had no short name because `-f` was `--fields` CLI-wide,
+  and the comment explaining that named the cost: `docker logs -f` muscle memory. `--fields` went with
+  `rask generate`, so the letter is free and the tail of a log now reads the way every other tool
+  spells it. A test already enforces one meaning per short name across the CLI, which is what makes
+  reclaiming a freed letter safe rather than a guess.
+
+### Removed
+- **Dead code the `rask generate` removal left behind.** Eight properties on `ScaffoldResult` (the
+  DbContext splice points, the `Program.cs` registrations, the sibling test-project wiring), the
+  `TestProjectWiring` record, `Identifiers.Capitalize`, and `Scaffold.IsInside` with its private
+  path-comparison helper. Nothing warns about an unused property on an internal record, so they would
+  have sat there looking like part of the design.
+- **Stale references to `rask generate` in the CLI itself.** The scaffolded welcome page told every new
+  project to run three commands that no longer exist, `rask new`'s next steps printed a fourth, and the
+  generated `Program.cs` and `AppDbContext` carried comments describing a generator. They now point at
+  the tutorial.
+
 ### Added
 - **The tutorial's C# snippets are now checked by a test.** Since the code moved out of `rask generate`
   and into the guides, nothing compiled it — a snippet could rot into something that never builds and

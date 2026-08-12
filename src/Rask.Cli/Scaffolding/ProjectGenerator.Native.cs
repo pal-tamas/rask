@@ -384,8 +384,7 @@ internal static partial class ProjectGenerator
                     H1(Style: "font-size:1.5rem;margin:0 0 .5rem")["Hello, Rask! 👋"],
                     P(Style: "margin:0 0 1rem;color:#374151")["Your native app is ready. Scaffold the rest with the rask CLI:"],
                     Ul(Style: "margin:0 0 1rem;padding-left:1.1rem;line-height:1.75;color:#374151")[
-                        Li()[Code()["rask generate page About"], " — a routed page"],
-                        Li()[Code()["rask generate component Card"], " — a reusable component"]
+                        Li()[A(Href: "https://github.com/pal-tamas/rask/blob/main/docs/tutorial/00-overview.md")["The tutorial"], " — pages, components and features, step by step"]
                     ],
                     P(Style: "margin:0;font-size:.9rem;color:#6b7280")[
                         "Edit this page in ",
