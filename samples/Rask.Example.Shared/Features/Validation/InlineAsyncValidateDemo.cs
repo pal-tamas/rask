@@ -49,11 +49,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<PromoModel>(
-            _model,
-            OnValidSubmit: m => _submission = $"Redeemed: {m.Code}",
-            Class: "vstack gap-3",
-            Validate: async (m, ct) =>
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Redeemed: {m.Code}").Class("vstack gap-3").ValidateAsync(async (m, ct) =>
             {
                 await Task.Yield();
                 ct.ThrowIfCancellationRequested();
@@ -63,14 +59,14 @@ public sealed partial class InlineAsyncValidateDemo : Component
             })[
             Div[
                 Label.For("v10-code").Class("form-label small mb-1")["Promo code"],
-                Input(() => _model.Code)
+                Input.Bind(() => _model.Code)
                     .Id("v10-code")
                     .Class("form-control")
                     .ValidateAsync(CheckCodeAsync),
-                ValidatingIndicator(() => _model.Code, Checking),
-                ValidationMessage(() => _model.Code, FieldError)
+                ValidatingIndicator.Template(Checking).For(() => _model.Code),
+                ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
-            ValidationSummary(SummaryAlert),
+            ValidationSummary.Template(SummaryAlert),
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Gift).Class("me-1"), "Redeem"]
             ]

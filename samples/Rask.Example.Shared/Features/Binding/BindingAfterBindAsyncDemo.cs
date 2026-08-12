@@ -17,7 +17,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
     [
         Div.Class("mb-3")[
             Label.For("bind-async-track").Class("form-label small")["Track"],
-            Select(() => _model.Track)
+            Select.Bind(() => _model.Track)
                 .AfterBindAsync(async track =>
                 {
                     // Re-selecting the placeholder (or any unknown track) clears the
@@ -68,7 +68,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
             Label.For("bind-async-lang").Class("form-label small")[
                 _loading ? "Language (loading…)" : "Language"
             ],
-            Select(() => _model.Language)
+            Select.Bind(() => _model.Language)
                 .Id("bind-async-lang")
                 .Class("form-select")
                 .Disabled(_loading || _languages.Length == 0)[

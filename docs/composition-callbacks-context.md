@@ -8,9 +8,9 @@ Sending events up from a child and passing values down to deep consumers without
 
 **For parent callbacks, Rask has no Blazor-style `EventCallback` wrapper.** A child raises an
 event up to its parent with a plain delegate property — `Action`, `Action<T>`, `Func<Task>`, or
-`Func<T, Task>`. (DOM event handlers further down use the named `Callback<T>` / `CallbackAsync<T>`
-delegate types, but you still never *construct* one — see below.) The generated factory wraps the delegate so that **invoking it
-re-renders the parent that owns it**, with no `StateHasChanged` threaded through by hand.
+`Func<T, Task>`. DOM event handlers further down use the same four shapes. The chain step wraps the
+delegate so that **invoking it re-renders the parent that owns it**, with no `StateHasChanged` threaded
+through by hand.
 
 ```csharp
 // Component: declares the event as a delegate prop and invokes it.
@@ -50,22 +50,17 @@ returns unchanged and does **not** trigger a re-render.
 Auto-wrapped delegates are excluded from the `propsChanged` diff — changing only the
 lambda identity between renders does not refire `OnPropsChanged`.
 
-**Carriers on framework components.** Rask's own component callbacks (`BsButton.OnClick`,
-`BsDataGrid.OnSortChange`, `Input.OnInput`, `DragDrop.OnDrop`, `NativeBarButton.OnClick`, …) declare a
-**carrier** rather than the bare delegate — `Handler?` / `HandlerAsync?` and their argument-taking
-siblings `Handler<T>?` / `HandlerAsync<T>?`, or `Carrier<TDelegate>?` for any other shape. Nothing
-changes at the call site: `OnClick: Save` and `OnClick = Save` still take a bare lambda or method
-group, because the carrier converts implicitly. It exists so the property and its builder setter can
-share a name — a delegate-typed property *is* invocable, so `.OnClick(Save)` would try to call the
-handler (CS1593). Two consequences: calling the callback back is `Invoke` — `button.OnClick?.Invoke()`,
-`grid.OnSortChange?.Invoke(sort)`, `await form.OnSubmitAsync?.InvokeAsync(data)` — which is null-safe
-whether the carrier is unset or wraps nothing (the carried delegate itself is internal to the
-framework; `Carrier<TDelegate>` is the one exception, and exposes `.Fn`, because a delegate named only
-by a type parameter has no signature to offer an `Invoke` for). And the implicit conversion accepts a
-null delegate, so build an optional one with `Handler.From(h)` (or cast the unset branch,
-`: (Handler?)null`) rather than letting `cond ? new Handler(h) : null` hand back a non-null carrier
-wrapping null. **Wrapping is unchanged:** a component callback is still auto-wrapped,
-a DOM handler still is not — the carrier carries no opinion about it.
+**Callbacks on framework components are plain delegates.** `BsButton.OnClick` is an `Action?`,
+`Input.OnInputAsync` a `Func<string, Task>?`, `BsDataGrid.RowClass` a `Func<T, string?>?` — declared as
+what they are, called back as what they are: `button.OnClick?.Invoke()`,
+`await (form.OnSubmitAsync?.Invoke(data) ?? Task.CompletedTask)`.
+
+They briefly were not. While a chain's receiver was the component itself, a delegate-typed property was
+*invocable*, so `.OnClick(Save)` bound to the property and tried to call the handler (CS1593) instead of
+reaching the setter of the same name — so every callback property wrapped its delegate in a non-invocable
+carrier struct to get out of the way. A chain receives on `Build<TComponent>` now: the property is not on
+the receiver, the lookup never finds it, and the wrappers are gone from the surface entirely.
+**Wrapping is unchanged:** a component callback is still auto-wrapped, a DOM handler still is not.
 
 Your own delegate props need none of this; they keep working exactly as above, and their builder setter
 simply drops the `On` (`.Rate(…)` for `OnRate`). Declare the prop as a carrier if you want the setter
@@ -73,12 +68,11 @@ to keep the property's name.
 
 **DOM events on elements.** `Element` exposes the full DOM **`GlobalEventHandlers`** surface — so
 **every** element (not a hand-picked few) carries the complete event set, just like the real DOM
-mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Handler<TArgs>`, the
-carrier over `Callback<TArgs>`) and an asynchronous `OnXxxAsync` (`HandlerAsync<TArgs>` over
-`CallbackAsync<TArgs>`); set **at most one** per event (wiring both
+mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Action<TArgs>`)
+and an asynchronous `OnXxxAsync` (`Func<TArgs, Task>`); set **at most one** per event (wiring both
 is a compile error, [RASK027](diagnostics.md#rask027) — the runtime would keep the sync one and drop
 the async). Pass a **bare lambda or method group** — `OnMouseMove: e => { _x = e.OffsetX; }`,
-`OnKeyDown: OnKey` — never `new Callback<T>(…)`: the named parameter already gives the lambda its
+`OnKeyDown: OnKey` — never `new Action<T>(…)`: the step already gives the lambda its
 type, exactly like `OnClick: () => _count++`. The surface:
 
 - **Mouse** — `OnClick` (parameterless), `OnDoubleClick`, `OnContextMenu`, `OnMouseDown`/`Up`/`Move`/
@@ -97,7 +91,7 @@ type, exactly like `OnClick: () => _count++`. The surface:
 - **Scroll & drag** — `OnScroll` (`ScrollEvent`, rAF-coalesced); `OnDragStart`/`Over`/`Drop`/`End`
   plus `OnDrag`/`OnDragEnter`/`OnDragLeave` (parameterless — the dragged item's identity rides the
   handler's closure).
-- **Forms** — `OnBeforeInput` (`Callback<string>`), `OnSelect`, `OnInvalid`, `OnReset`.
+- **Forms** — `OnBeforeInput` (`Action<string>`), `OnSelect`, `OnInvalid`, `OnReset`.
 - **Media** — `Audio`/`Video` add the `HTMLMediaElement` events `OnPlay`/`OnPause`/`OnEnded`/
   `OnTimeUpdate`/`OnVolumeChange`/… (`MediaEventArgs`: current time, duration, paused, volume, …).
 

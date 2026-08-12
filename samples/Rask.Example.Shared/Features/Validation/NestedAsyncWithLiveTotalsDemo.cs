@@ -79,48 +79,48 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
 
         return
         [
-            Form(
-                _model,
-                m => _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}",
-                Class: "vstack gap-3")[
+            Form.Model(_model)
+                .OnValidSubmit(m =>
+                    _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}")
+                .Class("vstack gap-3")[
                 Div[
                     Label.For("v-nlive-name").Class("form-label small mb-1")["Customer name"],
-                    Input(() => _model.CustomerName)
+                    Input.Bind(() => _model.CustomerName)
                         .Id("v-nlive-name")
                         .Class("form-control")
                         .Validate(v =>
                             string.IsNullOrWhiteSpace(v)
                                 ? new[] { "Name is required." }
                                 : Array.Empty<string>()),
-                    ValidationMessage(() => _model.CustomerName, FieldError)
+                    ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Div[
                     Label.For("v-nlive-postal").Class("form-label small mb-1")[
                         "Postal code ", Span.Class("text-muted")["(try 12345, 99999, or any 5-digit code)"]
                     ],
-                    Input(() => _model.Address.PostalCode)
+                    Input.Bind(() => _model.Address.PostalCode)
                         .Id("v-nlive-postal")
                         .Class("form-control")
                         .ValidateAsync(ValidatePostalAsync),
-                    ValidatingIndicator(() => _model.Address.PostalCode, Checking),
-                    ValidationMessage(() => _model.Address.PostalCode, FieldError)
+                    ValidatingIndicator.Template(Checking).For(() => _model.Address.PostalCode),
+                    ValidationMessage.Template(FieldError).For(() => _model.Address.PostalCode)
                 ],
                 Div.Class("border rounded p-3")[
                     Div.Class("fw-semibold small mb-2")["Items"],
                     BsRow.Gutter(2).Class(Bs.Join(Margin.Bottom(2), Flex.Align(BsAlign.Center)))[
                         BsCol.Span(6)[
-                            Input(() => _model.Items[0].Name)
+                            Input.Bind(() => _model.Items[0].Name)
                                 .Id("v-nlive-item0-name")
                                 .Class("form-control form-control-sm")
                         ],
                         BsCol.Span(3)[
-                            Input(() => _model.Items[0].Quantity)
+                            Input.Bind(() => _model.Items[0].Quantity)
                                 .Id("v-nlive-item0-qty")
                                 .Class("form-control form-control-sm")
                                 .Min("0")
                         ],
                         BsCol.Span(3)[
-                            Input(() => _model.Items[0].UnitPrice)
+                            Input.Bind(() => _model.Items[0].UnitPrice)
                                 .Id("v-nlive-item0-price")
                                 .Class("form-control form-control-sm")
                                 .Step("0.01")
@@ -128,18 +128,18 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ],
                     BsRow.Gutter(2).Class(Flex.Align(BsAlign.Center))[
                         BsCol.Span(6)[
-                            Input(() => _model.Items[1].Name)
+                            Input.Bind(() => _model.Items[1].Name)
                                 .Id("v-nlive-item1-name")
                                 .Class("form-control form-control-sm")
                         ],
                         BsCol.Span(3)[
-                            Input(() => _model.Items[1].Quantity)
+                            Input.Bind(() => _model.Items[1].Quantity)
                                 .Id("v-nlive-item1-qty")
                                 .Class("form-control form-control-sm")
                                 .Min("0")
                         ],
                         BsCol.Span(3)[
-                            Input(() => _model.Items[1].UnitPrice)
+                            Input.Bind(() => _model.Items[1].UnitPrice)
                                 .Id("v-nlive-item1-price")
                                 .Class("form-control form-control-sm")
                                 .Step("0.01")
@@ -150,7 +150,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     Label.For("v-nlive-promo").Class("form-label small mb-1")[
                         "Promo code ", Span.Class("text-muted")["(try SAVE10 or SAVE25)"]
                     ],
-                    Input(() => _model.DiscountCode).Id("v-nlive-promo").Class("form-control")
+                    Input.Bind(() => _model.DiscountCode).Id("v-nlive-promo").Class("form-control")
                 ],
                 Div.Id("v-nlive-totals").Class("bg-light rounded p-3 small")[
                     BsStack.Justify(BsJustify.Between)[

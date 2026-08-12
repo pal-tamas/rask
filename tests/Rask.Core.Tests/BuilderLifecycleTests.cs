@@ -48,7 +48,7 @@ internal sealed partial class BuilderLifecycleHost : Component
     internal string Seed = "a";
     internal LifecycleLeaf? Leaf;
 
-    protected override Component? Render() => Div[Leaf = LifecycleLeaf.Word(Seed).Ping(() => { })];
+    protected override Component? Render() => Div[Leaf = LifecycleLeaf.Word(Seed).OnPing(() => { })];
 }
 
 internal sealed partial class FactoryLifecycleHost : Component

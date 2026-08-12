@@ -14,14 +14,14 @@ namespace Rask.Example.Shop.Features.Shared;
 [AllowAnonymous]
 public sealed partial class ErrorPage : Component
 {
-    protected override Component? Head => [Title()["Something went wrong"]];
+    protected override Component? HeadAssets => [Title["Something went wrong"]];
 
     protected override Component? Render() =>
-        Div(Class: "mx-auto my-5", Style: "max-width:540px")[
-            BsCard(Class: "shadow-sm")[
-                BsCardBody()[
-                    BsCardTitle()["Something went wrong"],
-                    BsCardText(Class: "text-body-secondary")[
+        Div.Class("mx-auto my-5").Style("max-width:540px")[
+            BsCard.Class("shadow-sm")[
+                BsCardBody[
+                    BsCardTitle["Something went wrong"],
+                    BsCardText.Class("text-body-secondary")[
                         "The request couldn't be completed. The error has been logged."
                     ],
                     // The correlation id, and deliberately nothing else. Never render the
@@ -29,12 +29,12 @@ public sealed partial class ErrorPage : Component
                     // whoever hit the error, and the detail already went to ILogger where you can
                     // match it by this id.
                     Activity.Current?.Id is { Length: > 0 } traceId
-                        ? P(Class: "mb-3 small text-body-secondary")[
+                        ? P.Class("mb-3 small text-body-secondary")[
                             "Reference: ",
-                            Code()[traceId]
+                            Code[traceId]
                         ]
                         : null,
-                    NavLink(HomeRoutes.HomePage(), Class: "btn btn-primary")["Back to the app"]
+                    NavLink.Href(HomeRoutes.HomePage()).Class("btn btn-primary")["Back to the app"]
                 ]
             ]
         ];

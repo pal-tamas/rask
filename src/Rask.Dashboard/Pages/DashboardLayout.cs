@@ -13,7 +13,7 @@ namespace Rask.Dashboard.Pages;
 /// protected by construction rather than by remembering to annotate it.
 /// </para>
 /// <para>
-/// The layout contributes its own stylesheet links via <see cref="Head" />. Head contributions are
+/// The layout contributes its own stylesheet links via <see cref="HeadAssets" />. Head-asset contributions are
 /// collected from every component in the tree and deduplicated by rendered HTML, so the dashboard is
 /// styled correctly inside a host that never linked Bootstrap, without double-linking in one that did —
 /// and they drop out again when the operator navigates back into the app.
@@ -26,7 +26,7 @@ public sealed partial class DashboardLayout(
     RouteState route,
     DashboardSecurityState security) : Component
 {
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Ops"],
         // An operator surface has no business in a search index, even behind a policy.

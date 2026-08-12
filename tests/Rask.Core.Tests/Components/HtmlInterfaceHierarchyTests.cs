@@ -40,5 +40,5 @@ public partial class HtmlInterfaceHierarchyTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Audio_IsMediaElement_WithNoBodyOfItsOwn() =>
         // Audio carries no attributes of its own — they live entirely on the shared base.
-        Assert.IsAssignableFrom<HtmlMediaElement>(Audio);
+        Assert.IsAssignableFrom<HtmlMediaElement>(Audio.Value);
 }

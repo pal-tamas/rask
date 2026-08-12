@@ -234,12 +234,12 @@ public sealed partial class LogsPage(
     }
 
     private Component SearchBox() =>
-        Input<string>()
+        Input
+            .Value(Query)
             .Type(InputType.Search)
             .Class("form-control form-control-sm")
             .Style("max-width:18rem")
             .Placeholder("Search message or exception")
-            .Value(Query)
             .OnChangeAsync(SearchAsync);
 
     private async Task SearchAsync(string value)

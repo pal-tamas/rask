@@ -12,7 +12,7 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class SerialPage : Component
 {
-    protected override Component? Head => Title["Web Serial — Rask"];
+    protected override Component? HeadAssets => Title["Web Serial — Rask"];
 
     protected override Component? Render() =>
     [

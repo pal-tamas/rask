@@ -41,5 +41,5 @@ public sealed partial class DeleteOrder(IDispatcher dispatcher) : Component
     }
 
     protected override Component? Render() =>
-        Button("button", OnClickAsync: DeleteAsync)["Delete"];
+        Button.Type("button").OnClickAsync(DeleteAsync)["Delete"];
 }

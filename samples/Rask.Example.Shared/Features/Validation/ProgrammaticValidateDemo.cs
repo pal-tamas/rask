@@ -27,16 +27,12 @@ public sealed partial class ProgrammaticValidateDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<TaskModel>(
-            _model,
-            m => _submission = $"Saved task: {m.Title}",
-            Context: _ctx,
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("vstack gap-3")[
             Div[
                 Label.For("v6-title").Class("form-label small mb-1")["Title"],
-                Input(() => _model.Title).Id("v6-title").Class("form-control"),
-                ValidatingIndicator(() => _model.Title, Checking),
-                ValidationMessage(() => _model.Title, FieldError)
+                Input.Bind(() => _model.Title).Id("v6-title").Class("form-control"),
+                ValidatingIndicator.Template(Checking).For(() => _model.Title),
+                ValidationMessage.Template(FieldError).For(() => _model.Title)
             ],
             BsStack.Gap(2)[
                 BsButton.Color(BsColor.Secondary).Outline(true).Id("v6-validate-now").OnClickAsync(ValidateNowAsync)[

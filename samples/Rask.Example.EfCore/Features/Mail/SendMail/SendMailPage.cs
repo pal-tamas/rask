@@ -13,7 +13,7 @@ public sealed partial class SendMailPage(IMailQueue mail) : Component
     private readonly SendMailForm _form = new();
     private string? _queuedFor;
 
-    protected override Component? Head => Title["Send email — Rask EF Core"];
+    protected override Component? HeadAssets => Title["Send email — Rask EF Core"];
 
     private async Task SubmitAsync(SendMailForm form)
     {
@@ -42,18 +42,18 @@ public sealed partial class SendMailPage(IMailQueue mail) : Component
                         "Queued for ", Strong[to], " — the processor will deliver it shortly."
                     ]
                     : null,
-                Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
+                Form.Model(_form).OnValidSubmitAsync(SubmitAsync).Class("vstack gap-3")[
                     Div[
                         Label.For("mail-to").Class("form-label small mb-1")["To"],
-                        Input(() => _form.To).Id("mail-to").Class("form-control").Placeholder("jane@example.com")
+                        Input.Bind(() => _form.To).Id("mail-to").Class("form-control").Placeholder("jane@example.com")
                     ],
                     Div[
                         Label.For("mail-subject").Class("form-label small mb-1")["Subject"],
-                        Input(() => _form.Subject).Id("mail-subject").Class("form-control")
+                        Input.Bind(() => _form.Subject).Id("mail-subject").Class("form-control")
                     ],
                     Div[
                         Label.For("mail-body").Class("form-label small mb-1")["Body"],
-                        Input(() => _form.Body).Id("mail-body").Class("form-control")
+                        Input.Bind(() => _form.Body).Id("mail-body").Class("form-control")
                     ],
                     Div.Class("d-flex justify-content-end pt-2")[
                         Button.Type("submit").Class("btn btn-primary").Id("mail-send")[

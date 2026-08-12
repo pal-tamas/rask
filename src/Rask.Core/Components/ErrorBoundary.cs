@@ -2,7 +2,7 @@ namespace Rask.Core.Components;
 
 /// <summary>Where the exception a boundary caught came from.</summary>
 /// <remarks>
-///     The distinction is load-bearing for the development error overlay: after a <see cref="Handler" />
+///     The distinction is load-bearing for the development error overlay: after a <see cref="Action" />
 ///     or <see cref="Lifecycle" /> fault the component tree is intact and the next render succeeds, so the
 ///     app can stay on screen with the error painted over it. After a <see cref="Render" /> fault it is
 ///     not — re-rendering the subtree that just threw would only throw again — so the fallback must
@@ -14,7 +14,7 @@ internal enum ErrorSource
     Render,
 
     /// <summary>Thrown by an event handler. The tree is intact.</summary>
-    Handler,
+    Action,
 
     /// <summary>Thrown by an async lifecycle hook, off the dispatch's call stack. The tree is intact.</summary>
     Lifecycle,
@@ -22,7 +22,7 @@ internal enum ErrorSource
 
 public sealed class ErrorBoundary : Component
 {
-    public Carrier<Func<Exception, Callback, Component>>? Fallback { get; set; }
+    public Func<Exception, Action, Component>? Fallback { get; set; }
 
     internal Exception? Error { get; private set; }
 
@@ -44,10 +44,10 @@ public sealed class ErrorBoundary : Component
     // props in one call.
     internal void SetProps(
         IEnumerable<Component>? children,
-        Func<Exception, Callback, Component>? fallback)
+        Func<Exception, Action, Component>? fallback)
     {
         Children = children;
-        Fallback = Carrier<Func<Exception, Callback, Component>>.From(fallback);
+        Fallback = fallback;
     }
 
     internal void Trip(Exception ex, ErrorSource source = ErrorSource.Render)
@@ -105,7 +105,7 @@ public sealed class ErrorBoundary : Component
             return new Fragment(Children);
         }
 
-        if (Fallback?.Fn is { } fallback)
+        if (Fallback is { } fallback)
         {
             // Pass Recover as a captured Action so the fallback subtree can register it as
             // an event handler (e.g. `Button(OnClick: recover)`) without the user needing

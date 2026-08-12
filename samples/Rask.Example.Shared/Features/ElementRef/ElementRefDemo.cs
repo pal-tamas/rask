@@ -16,7 +16,7 @@ public sealed partial class ElementRefDemo : Component
 
     protected override Component? Render() =>
         Div[
-            Input<string>()
+            Input.Value<string>(null)
                 .Type(InputType.Text)
                 .Class("form-control mb-2")
                 .Placeholder("Focus me from C#")

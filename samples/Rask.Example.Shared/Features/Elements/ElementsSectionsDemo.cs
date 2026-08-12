@@ -15,7 +15,7 @@ public sealed partial class ElementsSectionsDemo : Component
             ]
         ],
         Search.Class("my-2")[
-            Input<string>().Type(InputType.Search).Class("form-control form-control-sm").Placeholder("Search…")
+            Input.Value<string>(null).Type(InputType.Search).Class("form-control form-control-sm").Placeholder("Search…")
         ],
         BsRow[
             Main.Class("col-8")[

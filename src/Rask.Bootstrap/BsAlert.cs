@@ -10,8 +10,8 @@ public sealed partial class BsAlert : BsBlock
     // Renders a close button (.alert-dismissible + .btn-close). Pair with OnClose to remove the alert.
     public bool? Dismissible { get; set; }
 
-    public Handler? OnClose { get; set; }
-    public HandlerAsync? OnCloseAsync { get; set; }
+    public Action? OnClose { get; set; }
+    public Func<Task>? OnCloseAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -28,6 +28,6 @@ public sealed partial class BsAlert : BsBlock
         }
 
         return Div.Id(Id).Class(cls).Role("alert")[
-            ItemsWith(BsCloseButton.OnClick(OnClose?.Fn).OnClickAsync(OnCloseAsync?.Fn))];
+            ItemsWith(BsCloseButton.OnClick(OnClose).OnClickAsync(OnCloseAsync))];
     }
 }

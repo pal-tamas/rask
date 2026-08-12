@@ -20,12 +20,12 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
     {
         // Draggable is backed by two flag bits (present + value) rather than a Nullable<bool> field;
         // the getter must still distinguish unset / false / true faithfully.
-        Assert.Null(Div.Draggable);
-        Assert.False(Div.Draggable(false).Draggable);
-        Assert.True(Div.Draggable(true).Draggable);
+        Assert.Null(Div.Value.Draggable);
+        Assert.False(Div.Draggable(false).Value.Draggable);
+        Assert.True(Div.Draggable(true).Value.Draggable);
 
         // Re-setting flips the value without leaking the previous state.
-        var d = Div.Draggable(true);
+        var d = Div.Draggable(true).Value;
         d.Draggable = false;
         Assert.False(d.Draggable);
         d.Draggable = null;
@@ -91,7 +91,7 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
         // Drag handlers are hoisted into the lazy LiveState (like the keyboard handlers and
         // Ref/Role/Aria), so an element that wires none of them keeps every slot null and pays no
         // per-instance footprint.
-        var div = Div;
+        var div = Div.Value;
         Assert.Null(div.OnDragStart);
         Assert.Null(div.OnDragStartAsync);
         Assert.Null(div.OnDragOver);

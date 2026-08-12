@@ -16,7 +16,7 @@ public sealed partial class CacheReportPage(ICache cache) : Component
     private Report? _report;
     private bool _servedFromCache;
 
-    protected override Component? Head => Title["Cache — Rask EF Core"];
+    protected override Component? HeadAssets => Title["Cache — Rask EF Core"];
 
     private async Task LoadAsync()
     {

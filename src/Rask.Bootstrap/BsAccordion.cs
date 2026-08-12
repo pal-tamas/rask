@@ -18,8 +18,8 @@ public sealed partial class BsAccordionItem : BsBlock
 {
     public new string? Title { get; set; }
     public bool? Open { get; set; }
-    public Handler? OnToggle { get; set; }
-    public HandlerAsync? OnToggleAsync { get; set; }
+    public Action? OnToggle { get; set; }
+    public Func<Task>? OnToggleAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -32,8 +32,8 @@ public sealed partial class BsAccordionItem : BsBlock
                     .Type("button")
                     .Class(BsClass.Join("accordion-button", open ? null : "collapsed"))
                     .Aria(expanded)
-                    .OnClick(OnToggle?.Fn)
-                    .OnClickAsync(OnToggleAsync?.Fn)[Title ?? ""]
+                    .OnClick(OnToggle)
+                    .OnClickAsync(OnToggleAsync)[Title ?? ""]
             ],
             Div.Class(BsClass.Join("accordion-collapse", "collapse", open ? "show" : null))[
                 Div.Class("accordion-body")[Items]

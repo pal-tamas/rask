@@ -14,17 +14,17 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
 
     // Controlled mode (no Bind).
     public ICollection<TItem>? Value { get; set; }
-    public Handler<ICollection<TItem>>? OnChange { get; set; }
-    public HandlerAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
+    public Action<ICollection<TItem>>? OnChange { get; set; }
+    public Func<ICollection<TItem>, Task>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
-    public Carrier<Validate<ICollection<TItem>>>? Validate { get; set; }
-    public Carrier<ValidateAsync<ICollection<TItem>>>? ValidateAsync { get; set; }
-    public Carrier<Action<ICollection<TItem>>>? AfterBind { get; set; }
-    public Carrier<Func<ICollection<TItem>, Task>>? AfterBindAsync { get; set; }
+    public Validate<ICollection<TItem>>? Validate { get; set; }
+    public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
+    public Action<ICollection<TItem>>? AfterBind { get; set; }
+    public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
-    public Carrier<Func<TItem, Component>>? OptionLabel { get; set; }
+    public Func<TItem, Component>? OptionLabel { get; set; }
     public string? Name { get; set; }
 
     // The group's accessible name. When set, the checkboxes are wrapped in a <fieldset> named by a <legend>
@@ -87,22 +87,13 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
             var optionValue = option;
             var optionId = $"{groupName}-{index}";
             var isChecked = selected is not null && selected.Contains(optionValue, comparer);
-            Component label = OptionLabel?.Fn is { } render ? render(option) : option?.ToString() ?? string.Empty;
+            Component label = OptionLabel is { } render ? render(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div.Class(wrapperClass).Key(index)[
-                Input<string>()
-                    .Type(InputType.Checkbox)
-                    .Name(groupName)
-                    .Value(BindingHelpers.FormatValue(option))
-                    .Checked(isChecked)
-                    .Disabled(Disabled)
-                    .Class("form-check-input")
-                    .Id(optionId)
-                    .Aria(optionAria)
-                    .OnChangeAsync(disabled
+                Input.Value(BindingHelpers.FormatValue(option)).Type(InputType.Checkbox).Name(groupName).Checked(isChecked).Disabled(Disabled).Class("form-check-input").Id(optionId).Aria(optionAria).OnChangeAsync(disabled
                         ? null
                         : value => ToggleAsync(acc, ctx, fid, optionValue, comparer, bool.TryParse(value, out var b) && b)),
-                Rask.Core.Components.Generated.Label(Class: "form-check-label", For: optionId)[label]
+                global::RaskEntriesRask_Core.Label.Class("form-check-label").For(optionId)[label]
             ]);
             index++;
         }

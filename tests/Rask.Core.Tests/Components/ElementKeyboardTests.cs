@@ -53,7 +53,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
             .TabIndex(-1));
 
         // Documented universal order: id, class, style, data-* (incl. event hooks: drag then
-        // keyboard), role, tabindex, aria-*. Handler ids follow registration order:
+        // keyboard), role, tabindex, aria-*. Action ids follow registration order:
         // dragstart=h0, keydown=h1, keyup=h2.
         Assert.Equal(
             "<div id=\"d\" class=\"x\" draggable=\"true\" " +
@@ -68,7 +68,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
         // Hoisted into the lazy LiveState: a plain element keeps the key handlers null and never
         // forces a LiveState allocation just by leaving them unset (the allocation-pin tests guard
         // the per-render cost; this asserts the property contract directly).
-        var div = Div;
+        var div = Div.Value;
         Assert.Null(div.OnKeyDown);
         Assert.Null(div.OnKeyDownAsync);
         Assert.Null(div.OnKeyUp);

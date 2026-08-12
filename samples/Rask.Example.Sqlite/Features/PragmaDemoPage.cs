@@ -52,7 +52,7 @@ public sealed partial class PragmaDemoPage(
     private int _immediateSucceeded;
     private bool _immediateHasRun;
 
-    protected override Component? Head => Title["SQLite pragmas — Rask"];
+    protected override Component? HeadAssets => Title["SQLite pragmas — Rask"];
 
     protected override async Task OnMountAsync() => await LoadAsync();
 

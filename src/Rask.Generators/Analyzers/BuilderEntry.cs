@@ -52,7 +52,9 @@ internal static class BuilderEntry
             _ => null,
         };
 
-        return produced is INamedTypeSymbol named
+        // An entry hands back the CHAIN over its component, so unwrap before asking whether the member is
+        // named after what it produces — `Build` is never the name of anything an author wrote.
+        return ChainedComponent(produced) is INamedTypeSymbol named
                && string.Equals(member.Name, named.Name, StringComparison.Ordinal)
                && DerivesFromComponent(named, component)
             ? named
@@ -104,9 +106,26 @@ internal static class BuilderEntry
         return false;
     }
 
+    /// <summary>
+    ///     The component a chain is building, for a <c>Rask.Core.Build&lt;T&gt;</c>; otherwise the type
+    ///     unchanged.
+    /// </summary>
+    /// <remarks>
+    ///     Every analyzer here asks "is this expression a component?" of something that is now usually a
+    ///     CHAIN over one — the entry, and every step after it, hand back <c>Build&lt;T&gt;</c>. Unwrapping
+    ///     in one place is what keeps RASK025/038/044 answering about the component rather than about the
+    ///     struct carrying it; each of them went quiet when the receiver changed, which is the failure mode
+    ///     an analyzer cannot report on its own.
+    /// </remarks>
+    public static ITypeSymbol? ChainedComponent(ITypeSymbol? type) =>
+        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 } named
+        && string.Equals(named.ConstructedFrom.ToDisplayString(), "Rask.Core.Build<T>", StringComparison.Ordinal)
+            ? named.TypeArguments[0]
+            : type;
+
     public static bool DerivesFromComponent(ITypeSymbol? type, INamedTypeSymbol component)
     {
-        for (var current = type; current is not null; current = current.BaseType)
+        for (var current = ChainedComponent(type); current is not null; current = current.BaseType)
         {
             if (SymbolEqualityComparer.Default.Equals(current, component))
             {
@@ -238,22 +257,17 @@ internal static class BuilderEntry
     public static string TypeKey(INamedTypeSymbol type) =>
         TypeKey(type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
-    /// <summary>
-    ///     Whether <paramref name="chain" /> named <paramref name="prop" />. A delegate prop's setter
-    ///     drops the <c>On</c> prefix (<c>OnSave</c> → <c>.Save(…)</c>), so both spellings count.
-    /// </summary>
-    public static bool NamedBy(IPropertySymbol prop, HashSet<string> chain)
-    {
-        if (chain.Contains(prop.Name))
-        {
-            return true;
-        }
-
-        return prop.Type is INamedTypeSymbol { TypeKind: TypeKind.Delegate }
-               && prop.Name.Length > 2
-               && prop.Name.StartsWith("On", StringComparison.Ordinal)
-               && chain.Contains(prop.Name.Substring(2));
-    }
+    /// <summary>Whether <paramref name="chain" /> named <paramref name="prop" />.</summary>
+    /// <remarks>
+    ///     One spelling, because a setter is named after the property it writes — including a delegate
+    ///     property. That was not always so: an extension could not share a delegate prop's name while
+    ///     the chain received on the component, so the setter dropped a leading <c>On</c>
+    ///     (<c>OnSave</c> → <c>.Save(…)</c>) and this had to accept both. The <c>Build&lt;T&gt;</c>
+    ///     receiver removed the collision, and keeping the old rule here would be worse than useless:
+    ///     RASK038 both looks for the setter in the chain and NAMES it in its message, so a stale rule
+    ///     points the reader at a method that does not exist.
+    /// </remarks>
+    public static bool NamedBy(IPropertySymbol prop, HashSet<string> chain) => chain.Contains(prop.Name);
 
     // The filter the setter emission uses: a public settable instance property that is not the Children
     // slot, not opted out, and not init-only (an init-only prop can only be assigned in an object

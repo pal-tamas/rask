@@ -72,7 +72,9 @@ public sealed partial class GuideChrome : Component
             ];
         }
 
-        var headings = Markdown.Headings(source);
+        // Qualified: `Markdown` the entry is in scope here and wins the simple name, so the static
+        // helper on the component type has to be named through its namespace.
+        var headings = global::Rask.Example.Shared.Markdown.Headings(source);
         var (prev, next) = Adjacent(Slug);
 
         return Div.Ref(_root).Class("guide")[

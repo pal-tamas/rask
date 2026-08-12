@@ -70,7 +70,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         // comma-decimal locale ("3,14") and a period-decimal raw value ("3.14"), only the
         // invariant parser produces 3.14f. Asserting the round-trip pins both sides.
         var p = new NumericHolder { F = 1.5f };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.F)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.F)]);
         var html = page.Html;
 
         Assert.Contains("type=\"number\"", html);
@@ -86,7 +86,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task DoubleProperty_OnChange_ParsesScientificNotation()
     {
         var p = new NumericHolder { D = 0d };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.D)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.D)]);
 
         await page.ChangeAsync("{\"value\":\"6.022e23\"}");
 
@@ -97,7 +97,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task DecimalProperty_OnChange_PreservesPrecision()
     {
         var p = new NumericHolder { M = 0m };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.M)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.M)]);
 
         await page.ChangeAsync("{\"value\":\"12345.6789\"}");
 
@@ -111,7 +111,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task ByteProperty_OnChange_RoundTrips(string raw, byte expected)
     {
         var p = new NumericHolder { B = 1 };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.B)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.B)]);
         var html = page.Html;
         var changeId = Markup.Attr(html, "data-rask-on-change");
 
@@ -126,7 +126,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         // Specific to ulong: long.MaxValue + 1 must round-trip. If we accidentally routed
         // through long.TryParse this would fail.
         var p = new NumericHolder { Ul = 0ul };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.Ul)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Ul)]);
         await page.ChangeAsync("{\"value\":\"9223372036854775808\"}");
 
         Assert.Equal(9223372036854775808ul, p.Ul);
@@ -136,7 +136,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task HalfProperty_OnChange_RoundTrips()
     {
         var p = new NumericHolder { H = (Half)0 };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.H)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.H)]);
         await page.ChangeAsync("{\"value\":\"2.5\"}");
 
         Assert.Equal((Half)2.5, p.H);
@@ -146,7 +146,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task GuidProperty_OnChange_RoundTrips()
     {
         var p = new IdentityHolder { Token = Guid.Empty };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.Token)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Token)]);
         var html = page.Html;
         var changeId = Markup.Attr(html, "data-rask-on-change");
 
@@ -160,7 +160,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task CharProperty_OnChange_AcceptsSingleCharacter()
     {
         var p = new IdentityHolder { Letter = 'a' };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.Letter)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Letter)]);
         await page.ChangeAsync("{\"value\":\"Z\"}");
 
         Assert.Equal('Z', p.Letter);
@@ -171,7 +171,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     {
         var known = Guid.NewGuid();
         var p = new IdentityHolder { Token = known };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.Token)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Token)]);
 
         await page.ChangeAsync("{\"value\":\"not-a-guid\"}");
 
@@ -183,7 +183,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task CharProperty_MultiCharInput_LeavesPriorValue()
     {
         var p = new IdentityHolder { Letter = 'a' };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.Letter)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Letter)]);
         var changeId = page.HandlerId("change");
 
         // char.TryParse only accepts a single character — a two-char string fails to parse.
@@ -196,7 +196,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task EnumProperty_OnChange_RoundTripsCaseInsensitively()
     {
         var p = new IdentityHolder { Level = Priority.Low };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.Level)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Level)]);
         var changeId = page.HandlerId("change");
 
         // Enum binding goes through Enum.TryParse(ignoreCase: true), so a lower-cased member name binds.
@@ -209,7 +209,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task EnumProperty_InvalidInput_LeavesPriorValue()
     {
         var p = new IdentityHolder { Level = Priority.High };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.Level)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Level)]);
         var changeId = page.HandlerId("change");
 
         // A string that is not a member name leaves the model untouched.
@@ -222,7 +222,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task NullableNumericProperty_EmptyInput_SetsNull()
     {
         var p = new NumericHolder { OptionalDouble = 9.9 };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.OptionalDouble)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalDouble)]);
         await page.ChangeAsync("{\"value\":\"\"}");
 
         Assert.Null(p.OptionalDouble);
@@ -232,7 +232,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task NumericProperty_InvalidInput_LeavesPriorValue()
     {
         var p = new NumericHolder { D = 1.5 };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.D)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.D)]);
         await page.ChangeAsync("{\"value\":\"not-a-number\"}");
 
         // Invalid input (non-empty, unparseable) must NOT silently zero the field — TrySetTyped
@@ -245,7 +245,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     public async Task NumericProperty_EmptyInput_SetsDefault()
     {
         var p = new NumericHolder { D = 1.5 };
-        var page = RaskTest.Render(() => Form(p)[Input(() => p.D)]);
+        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.D)]);
         await page.ChangeAsync("{\"value\":\"\"}");
 
         // Empty input on a non-nullable value type clears to default(T) so the user can

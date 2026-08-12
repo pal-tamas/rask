@@ -26,7 +26,8 @@ public sealed partial class ToasterDemo(IToaster toast) : Component
             // layout; here an inline ToastOutlet keeps the messages inside the demo card. AutoDismissAfter
             // makes each message clear itself after 5s (the × still dismisses it early).
             Div.Class("mt-3")[
-                ToastOutlet(AutoDismissAfter: TimeSpan.FromSeconds(5), Template: (messages, dismiss) =>
+                ToastOutlet
+                    .Template((messages, dismiss) =>
                     Div[
                         messages.Select(m => (Component)BsAlert
                             .Color(ToColor(m.Level))
@@ -37,6 +38,7 @@ public sealed partial class ToasterDemo(IToaster toast) : Component
                             m.Title is { } title ? Strong.Class("me-1")[$"{title}:"] : null,
                             m.Message])
                     ])
+                    .AutoDismissAfter(TimeSpan.FromSeconds(5))
             ]
         ];
 

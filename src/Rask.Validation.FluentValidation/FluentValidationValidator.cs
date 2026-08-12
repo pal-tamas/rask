@@ -10,7 +10,7 @@ namespace Rask.Validation.FluentValidation;
 //
 //   Form<SignupModel>(_model, OnValidSubmit: ...)[
 //       FluentValidationValidator(new SignupModelValidator()),
-//       Input(() => _model.Username),
+//       Input.Bind(() => _model.Username),
 //       ValidationMessage(() => _model.Username, ...)
 //   ]
 //

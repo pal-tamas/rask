@@ -22,8 +22,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(model);
         ctx.AddValidator(new TaggingAsyncValidator("Username", "no good"));
 
-        var page = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
-            Input(() => model.Username)
+        var page = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+            Input.Bind(() => model.Username)
         ]);
 
         var changeId = page.HandlerId("change");
@@ -43,8 +43,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var validator = new GatedAsyncValidator();
         ctx.AddValidator(validator);
 
-        var page = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
-            Input(() => model.Username)
+        var page = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+            Input.Bind(() => model.Username)
         ]);
         var changeId = page.HandlerId("change");
 
@@ -70,8 +70,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(model);
         ctx.AddValidator(new RejectIfEqualsValidator("admin", "Already taken."));
 
-        var page = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
-            Input(() => model.Username)
+        var page = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+            Input.Bind(() => model.Username)
         ]);
 
         // Mirror the browser: OnInput sets the value, OnChange (blur) touches and validates.
@@ -106,10 +106,10 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(model) { ValidatingStickyMs = 0 };
         ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
 
-        var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
-            Input(() => model.Username),
-            ValidatingIndicator(() => model.Username, () => Span(Class: "spinner")["Checking..."]),
-            ValidationMessage(() => model.Username, msgs => Div(Class: "text-danger")[msgs[0]])
+        var view = new StubComponent(() => Form.Model(model).Context(ctx)[
+            Input.Bind(() => model.Username),
+            ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username),
+            ValidationMessage.Template(msgs => Div.Class("text-danger")[msgs[0]]).For(() => model.Username)
         ]);
         var handle = new RenderingHandle(view);
         view.RenderHandle = handle;
@@ -181,8 +181,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         _ = ctx.ValidateFieldAsync(fid);
         Assert.True(ctx.IsValidating(fid));
 
-        var html = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
-            ValidatingIndicator(() => model.Username, () => Span(Class: "spinner")["Checking..."])
+        var html = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+            ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username)
         ]).Html;
 
         Assert.Contains("<span class=\"spinner\">", html);
@@ -195,8 +195,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var model = new SignupModel { Username = "ada" };
         var ctx = new EditContext(model);
 
-        var html = RaskTest.Render(() => Form<SignupModel>(model, Context: ctx)[
-            ValidatingIndicator(() => model.Username, () => Span(Class: "spinner")["Checking..."])
+        var html = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+            ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username)
         ]).Html;
 
         Assert.DoesNotContain("Checking...", html);
@@ -306,10 +306,10 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         }
 
         protected override Component? Render() =>
-            Form<SignupModel>(_model, Context: _ctx)[
-                Input(() => _model.Username),
-                ValidatingIndicator(() => _model.Username, () => Span.Class("spinner")["Checking..."]),
-                ValidationMessage(() => _model.Username, msgs => Div.Class("text-danger")[msgs[0]])
+            Form.Model(_model).Context(_ctx)[
+                Input.Bind(() => _model.Username),
+                ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => _model.Username),
+                ValidationMessage.Template(msgs => Div.Class("text-danger")[msgs[0]]).For(() => _model.Username)
             ];
     }
 }

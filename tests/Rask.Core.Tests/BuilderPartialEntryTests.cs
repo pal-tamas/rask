@@ -37,8 +37,10 @@ public partial class BuilderPartialEntryTests : global::Rask.Core.RaskMarkup
     public void A_user_component_is_an_entry_without_a_base_class() =>
         Assert.Equal("<div><strong>new</strong></div>", ChipHost.ToHtml());
 
-    // The injected entry must not shadow the type: `Chip` still names a type in the same class.
+    // The entry DOES shadow the type's static members now, because it hands back `Build<ChipHost>`
+    // rather than a `ChipHost` — C#'s "Color Color" rule only merges the two when the property's type
+    // IS the type. `Chip` still names a type, so the fix is to say which one is meant.
     [Fact]
     public void The_type_stays_usable_alongside_its_entry() =>
-        Assert.Equal(typeof(Chip), ChipHost.Probe());
+        Assert.Equal(typeof(Chip), global::Rask.Core.Tests.ChipHost.Probe());
 }

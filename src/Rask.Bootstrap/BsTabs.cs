@@ -6,8 +6,8 @@ public sealed record BsTabItem(
     object Key,
     string Title,
     Component Content,
-    Callback? OnSelect = null,
-    CallbackAsync? OnSelectAsync = null,
+    Action? OnSelect = null,
+    Func<Task>? OnSelectAsync = null,
     bool Disabled = false);
 
 // A Bootstrap tabs control driven by Rask's live runtime (no JS). Active is the key of the selected

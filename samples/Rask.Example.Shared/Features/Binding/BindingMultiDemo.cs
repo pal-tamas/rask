@@ -9,14 +9,14 @@ public sealed partial class BindingMultiDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3 form-check")[
-            Input(() => _model.Subscribe)
+            Input.Bind(() => _model.Subscribe)
                 .Id("bind-subscribe")
                 .Class("form-check-input"),
             Label.For("bind-subscribe").Class("form-check-label ms-1")["Subscribe to the newsletter"]
         ],
         Div.Class("mb-3")[
             Label.For("bind-age").Class("form-label small")["Age"],
-            Input(() => _model.Age)
+            Input.Bind(() => _model.Age)
                 .Id("bind-age")
                 .Class("form-control")
                 .Min("0")
@@ -24,13 +24,13 @@ public sealed partial class BindingMultiDemo : Component
         ],
         Div.Class("mb-3")[
             Label.For("bind-start").Class("form-label small")["Start date"],
-            Input(() => _model.StartDate)
+            Input.Bind(() => _model.StartDate)
                 .Id("bind-start")
                 .Class("form-control")
         ],
         Div.Class("mb-3")[
             Label.For("bind-favorite").Class("form-label small")["Favourite colour"],
-            Select(() => _model.Favorite)
+            Select.Bind(() => _model.Favorite)
                 .Id("bind-favorite")
                 .Class("form-select")[
                 Option.Value("Red")["Red"],

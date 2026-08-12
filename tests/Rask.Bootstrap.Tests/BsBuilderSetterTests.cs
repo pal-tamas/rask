@@ -36,24 +36,24 @@ public partial class BsBuilderSetterTests : global::Rask.Core.RaskMarkup
         Assert.Contains("disabled", html, StringComparison.Ordinal);
     }
 
-    // A Bs callback prop rides a carrier now (so its setter is `.OnClick(…)`, not `.Click(…)`), and the
-    // one thing that must NOT change with it: a non-Element component's callback stays AutoCallback-
+    // A Bs callback prop's setter is `.OnClick(…)`, not the `.Click(…)` the old name-shifting rule
+    // produced, and the thing that must NOT change with it: a non-Element component's callback stays AutoCallback-
     // wrapped. A Bs control is not an Element, so there is no DOM handler-owner resolution to re-render
     // the consumer — drop the wrapper and the handler runs, the state changes, and nothing repaints,
     // with byte-identical markup. Both surfaces, because they have to agree.
     [Fact]
     public void A_bs_callback_stays_auto_wrapped_on_both_surfaces()
     {
-        var host = ClickHost;
-        var raw = (Rask.Core.Callback)host.Bump;
+        var host = ClickHost.Value;
+        var raw = (Action)host.Bump;
 
-        Assert.NotSame(raw, BsButton.OnClick(raw).OnClick?.Fn);
-        Assert.NotSame(raw, BsButton.OnClick(raw).OnClick?.Fn);
+        Assert.NotSame(raw, BsButton.OnClick(raw).Value.OnClick);
+        Assert.NotSame(raw, BsButton.OnClick(raw).Value.OnClick);
 
         // …and an unowned handler is still handed through untouched, so the wrap is genuinely
         // AutoCallback's decision rather than an unconditional closure per render.
-        Rask.Core.Callback orphan = Noop;
-        Assert.Same(orphan, BsButton.OnClick(orphan).OnClick?.Fn);
+        Action orphan = Noop;
+        Assert.Same(orphan, BsButton.OnClick(orphan).Value.OnClick);
     }
 
     // An omitted callback must read back as unset: BsToast starts its auto-hide timer only when OnClose
@@ -61,18 +61,17 @@ public partial class BsBuilderSetterTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_omitted_bs_callback_reads_back_as_unset()
     {
-        Rask.Core.Callback? maybe = null;
+        Action? maybe = null;
 
-        Assert.Null(BsButton.OnClick);
-        Assert.Null(BsButton.OnClick(maybe).OnClick);
-        Assert.Null(BsButton.OnClick(maybe).OnClick);
+        Assert.Null(BsButton.Value.OnClick);
+        Assert.Null(BsButton.OnClick(maybe).Value.OnClick);
+        Assert.Null(BsButton.OnClick(maybe).Value.OnClick);
     }
 
-    // The carrier rule the `On` prefix never reached. A raw delegate prop is INVOCABLE, so
-    // `grid.RowClass(fn)` bound to the property — the same-named setter could not be reached at all,
-    // and the prop had no way to be set from a chain. These props ride a carrier now, which is exactly
-    // what makes this call compile: it is the setter, not an attempt to invoke `Func<Supplier, string?>`
-    // with a `Func<Supplier, string?>`.
+    // The case the old `On`-dropping rule never reached. While the chain received on the component,
+    // `grid.RowClass(fn)` bound to the property — the same-named setter could not be reached at all, so
+    // the prop had no way in. The `Build<TComponent>` receiver is what makes this call the setter rather
+    // than an attempt to invoke `Func<Supplier, string?>` with a `Func<Supplier, string?>`.
     [Fact]
     public void A_non_On_delegate_prop_can_be_set_from_the_chain()
     {
@@ -81,7 +80,7 @@ public partial class BsBuilderSetterTests : global::Rask.Core.RaskMarkup
             new BsColumn<Supplier> { Title = "Name", Value = s => s.Name },
         ];
 
-        var html = BsDataGrid(Data: Suppliers, Columns: columns)
+        var html = BsDataGrid.Data(Suppliers).Columns(columns)
             .RowKey(s => s.Id)
             .RowClass(s => s.Name == "Acme" ? "table-warning" : null)
             .ExpandedContent(s => Div[s.Name])
@@ -90,10 +89,10 @@ public partial class BsBuilderSetterTests : global::Rask.Core.RaskMarkup
         Assert.Contains("table-warning", html, StringComparison.Ordinal);
     }
 
-    // …and the half of the carrier that fails silently: an OMITTED delegate must read back as unset.
-    // The carrier's implicit conversion accepts a null delegate and hands back a NON-null carrier
-    // wrapping null, so a factory call with no ExpandedContent would answer `Expandable` true and grow
-    // an expander column on every row. `From` is what keeps null null; every generated assignment goes
+    // …and the half that fails silently: an OMITTED delegate must read back as null, or a grid with no
+    // ExpandedContent answers `Expandable` true and grows an expander column on every row. It took a
+    // `From` helper on every assignment to hold while these props were carriers, whose implicit
+    // conversion accepted a null delegate and handed back a NON-null wrapper; assigning a delegate goes
     // through it.
     [Fact]
     public void An_omitted_non_On_delegate_prop_reads_back_as_unset()
@@ -104,17 +103,17 @@ public partial class BsBuilderSetterTests : global::Rask.Core.RaskMarkup
         ];
         Func<Supplier, Rask.Core.Component?>? none = null;
 
-        Assert.Null(BsDataGrid(Data: Suppliers, Columns: columns).ExpandedContent);
-        Assert.Null(BsDataGrid(Data: Suppliers, Columns: columns, ExpandedContent: none).ExpandedContent);
-        Assert.Null(BsDataGrid(Data: Suppliers, Columns: columns).ExpandedContent(none).ExpandedContent);
+        Assert.Null(BsDataGrid.Data(Suppliers).Columns(columns).Value.ExpandedContent);
+        Assert.Null(BsDataGrid.Data(Suppliers).Columns(columns).ExpandedContent(none).Value.ExpandedContent);
+        Assert.Null(BsDataGrid.Data(Suppliers).Columns(columns).ExpandedContent(none).Value.ExpandedContent);
 
-        // The expander column is gated on that answer, so a non-null carrier wrapping null would grow
-        // a leading header cell nobody asked for — visible in the markup, invisible in the type.
+        // The expander column is gated on that answer, so a delegate that reads back non-null when
+        // nothing was wired would grow a leading header cell nobody asked for.
         Assert.Equal(
-            BsDataGrid(Data: Suppliers, Columns: columns).ToHtml(),
-            BsDataGrid(Data: Suppliers, Columns: columns, ExpandedContent: none).ToHtml());
+            BsDataGrid.Data(Suppliers).Columns(columns).ToHtml(),
+            BsDataGrid.Data(Suppliers).Columns(columns).ExpandedContent(none).ToHtml());
         Assert.Contains("<th scope=\"col\"></th>",
-            BsDataGrid(Data: Suppliers, Columns: columns, ExpandedContent: s => Div[s.Name]).ToHtml(),
+            BsDataGrid.Data(Suppliers).Columns(columns).ExpandedContent(s => Div[s.Name]).ToHtml(),
             StringComparison.Ordinal);
     }
 

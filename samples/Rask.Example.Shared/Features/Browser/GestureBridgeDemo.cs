@@ -23,47 +23,49 @@ public sealed partial class GestureBridgeDemo : Component
             BsCardBody[
                 BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true).Class(Margin.Bottom(3))[
                     // Headless: we render our own buttons; the triggers just supply the gesture attribute.
-                    FullscreenTrigger(g =>
+                    FullscreenTrigger
+                        .Template(g =>
                         Button.Type("button").Class("btn btn-primary btn-sm").Id("fullscreen-btn").Data(g)[
                             "Enter fullscreen"]),
-                    ScreenOrientationTrigger(Orientation: "landscape",
-                        Template: g =>
+                    ScreenOrientationTrigger
+                        .Orientation("landscape")
+                        .Template(g =>
                             Button
                                 .Type("button")
                                 .Class("btn btn-outline-primary btn-sm")
                                 .Id("orientation-btn")
                                 .Data(g)["Lock landscape"]),
-                    InstallTrigger(
-                        OnOutcome: outcome =>
-                        {
-                            _install = outcome;
-                            StateHasChanged(); // sanctioned pattern for an externally-pushed result
-                            return Task.CompletedTask;
-                        },
-                        Template: g =>
+                    InstallTrigger
+                        .Template(g =>
                             Button
                                 .Type("button")
                                 .Class("btn btn-outline-success btn-sm")
                                 .Id("install-btn")
-                                .Data(g)["Install app"]),
+                                .Data(g)["Install app"])
+                        .OnOutcome(outcome =>
+                        {
+                            // No StateHasChanged: the trigger is a Component rather than an Element, so its
+                            // callback is auto-wrapped and this demo repaints when the handler returns.
+                            _install = outcome;
+                            return Task.CompletedTask;
+                        }),
                     _install is null
                         ? Span.Class("small text-secondary")["not prompted"]
                         : Span.Class("small")["install: ", Code.Id("install-outcome")[_install]]
                 ],
                 BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true).Class(Margin.Bottom(2))[
-                    EyeDropperTrigger(
-                        OnColor: hex =>
-                        {
-                            _color = hex;
-                            StateHasChanged();
-                            return Task.CompletedTask;
-                        },
-                        Template: g =>
+                    EyeDropperTrigger
+                        .Template(g =>
                             Button
                                 .Type("button")
                                 .Class("btn btn-outline-secondary btn-sm")
                                 .Id("eyedropper-btn")
-                                .Data(g)["Pick a colour"]),
+                                .Data(g)["Pick a colour"])
+                        .OnColor(hex =>
+                        {
+                            _color = hex;
+                            return Task.CompletedTask;
+                        }),
                     _color is null
                         ? Span.Class("small text-secondary")["no colour picked"]
                         : Span.Class("d-inline-flex align-items-center gap-2 small")[
@@ -76,15 +78,19 @@ public sealed partial class GestureBridgeDemo : Component
                 // MediaCaptureTrigger fills this <video> from the camera; PictureInPictureTrigger then pops
                 // that same element out — both resolve the element from its ElementRef.
                 BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true)[
-                    MediaCaptureTrigger(For: _preview, Video: true, FacingMode: "user",
-                        Template: g =>
+                    MediaCaptureTrigger
+                        .For(_preview)
+                        .Template(g =>
                             Button
                                 .Type("button")
                                 .Class("btn btn-outline-secondary btn-sm")
                                 .Id("camera-btn")
-                                .Data(g)["Start camera"]),
-                    PictureInPictureTrigger(For: _preview,
-                        Template: g =>
+                                .Data(g)["Start camera"])
+                        .Video(true)
+                        .FacingMode("user"),
+                    PictureInPictureTrigger
+                        .For(_preview)
+                        .Template(g =>
                             Button
                                 .Type("button")
                                 .Class("btn btn-outline-secondary btn-sm")

@@ -20,8 +20,8 @@ public sealed partial class BsOffcanvas : BsBlock
     // Renders the dimming backdrop while open (default true).
     public bool? Backdrop { get; set; }
 
-    public Handler? OnClose { get; set; }
-    public HandlerAsync? OnCloseAsync { get; set; }
+    public Action? OnClose { get; set; }
+    public Func<Task>? OnCloseAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -49,7 +49,7 @@ public sealed partial class BsOffcanvas : BsBlock
                     ? Div.Class(BsClass.Join("offcanvas-header", hideAbove))[
                         Title is not null ? H5.Class("offcanvas-title")[Title] : null,
                         HideClose is not true
-                            ? BsCloseButton.OnClick(OnClose?.Fn).OnClickAsync(OnCloseAsync?.Fn)
+                            ? BsCloseButton.OnClick(OnClose).OnClickAsync(OnCloseAsync)
                             : null]
                     : null,
                 Div.Class("offcanvas-body")[Items]];
@@ -58,8 +58,8 @@ public sealed partial class BsOffcanvas : BsBlock
             ? [panel,
                 Div
                     .Class(BsClass.Join("offcanvas-backdrop", "fade", "show", hideAbove))
-                    .OnClick(OnClose?.Fn)
-                    .OnClickAsync(OnCloseAsync?.Fn)]
+                    .OnClick(OnClose)
+                    .OnClickAsync(OnCloseAsync)]
             : panel;
     }
 }

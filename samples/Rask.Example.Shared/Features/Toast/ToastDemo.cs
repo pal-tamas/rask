@@ -115,8 +115,8 @@ public sealed partial class ToastDemo : Component
                 Div.Class($"toast-container position-absolute {_placement} p-3")[
                     toasts.Select(t => (Component)BsToast
                         .Id(t.Id)
-                        .Title(t.Title)
                         .Message(t.Message)
+                        .Title(t.Title)
                         .Color(t.Color)
                         .Icon(t.Icon)
                         .Timestamp("just now")

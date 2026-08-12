@@ -11,10 +11,10 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
     protected override Component? Render() =>
         BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody[
-                Input<string>()
+                Input
+                    .Value(_text)
                     .Id("speech-text")
                     .Class("form-control form-control-sm mb-2")
-                    .Value(_text)
                     .OnInput(v => _text = v),
                 BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
                     BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Id("speech-speak").OnClickAsync(Speak)["Speak"],

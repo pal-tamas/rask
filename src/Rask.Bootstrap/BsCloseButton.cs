@@ -13,8 +13,8 @@ public sealed partial class BsCloseButton : BsBlock
 
     public bool? Disabled { get; set; }
 
-    public Handler? OnClick { get; set; }
-    public HandlerAsync? OnClickAsync { get; set; }
+    public Action? OnClick { get; set; }
+    public Func<Task>? OnClickAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -25,7 +25,7 @@ public sealed partial class BsCloseButton : BsBlock
             .Disabled(Disabled)
             .Class(BsClass.Join("btn-close", White is true ? "btn-close-white" : null, Class))
             .Aria(aria)
-            .OnClick(OnClick?.Fn)
-            .OnClickAsync(OnClickAsync?.Fn)[Items];
+            .OnClick(OnClick)
+            .OnClickAsync(OnClickAsync)[Items];
     }
 }

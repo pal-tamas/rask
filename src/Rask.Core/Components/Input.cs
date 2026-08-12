@@ -18,7 +18,7 @@ namespace Rask.Core.Components;
 // (no `type` attribute unless Type is set); bound mode and non-string T default the type from T.
 //
 // Plain usage stays string-shaped: `Input<string>("text", Value: …, OnInput: …)`. Bound usage infers T from
-// the expression: `Input(() => model.Age)` → Input<int> → <input type="number">.
+// the expression: `Input.Bind(() => model.Age)` → Input<int> → <input type="number">.
 public sealed class Input<T> : Element, IFormControl<T>
 {
     protected override string TagName => "input";
@@ -71,23 +71,20 @@ public sealed class Input<T> : Element, IFormControl<T>
     // DOM event handlers in the legacy declaration order so positional factory calls keep working.
     // OnChange/OnChangeAsync are the IFormControl<T> controlled callbacks (typed T); OnInput/OnFiles are the
     // string/file DOM handlers, not part of the interface.
-    // All six are carrier-typed (Handler<>/HandlerAsync<>, not Callback<>/CallbackAsync<>) so the builder
-    // setter keeps the property's own name: a delegate-typed member is invocable, so `.OnInput(handler)`
-    // would bind to the property (CS1593). Assignment and every generated `OnInput:` argument are
-    // unchanged; calling one back is `OnInput?.Invoke(value)` (the carried delegate is internal).
-    public Handler<string>? OnInput { get; set; }
-    public Handler<T>? OnChange { get; set; }
-    public HandlerAsync<string>? OnInputAsync { get; set; }
-    public HandlerAsync<T>? OnChangeAsync { get; set; }
-    public Handler<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
-    public HandlerAsync<IReadOnlyList<RaskFileType>>? OnFilesAsync { get; set; }
+    // Calling one back is `OnInput?.Invoke(value)`.
+    public Action<string>? OnInput { get; set; }
+    public Action<T>? OnChange { get; set; }
+    public Func<string, Task>? OnInputAsync { get; set; }
+    public Func<T, Task>? OnChangeAsync { get; set; }
+    public Action<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+    public Func<IReadOnlyList<RaskFileType>, Task>? OnFilesAsync { get; set; }
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).
     public Expression<Func<T>>? Bind { get; set; }
-    public Carrier<Validate<T>>? Validate { get; set; }
-    public Carrier<ValidateAsync<T>>? ValidateAsync { get; set; }
-    public Carrier<Action<T>>? AfterBind { get; set; }
-    public Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
+    public Validate<T>? Validate { get; set; }
+    public ValidateAsync<T>? ValidateAsync { get; set; }
+    public Action<T>? AfterBind { get; set; }
+    public Func<T, Task>? AfterBindAsync { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -325,7 +322,7 @@ public sealed class Input<T> : Element, IFormControl<T>
         if (acc is not null)
         {
             // Bound: write the model on input (immediate for string) / change, validate.
-            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind?.Fn, AfterBindAsync?.Fn);
+            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
             if (isCheckbox)
             {
@@ -348,7 +345,7 @@ public sealed class Input<T> : Element, IFormControl<T>
         else
         {
             // Plain / controlled.
-            var input = (Delegate?)OnInput?.Fn ?? OnInputAsync?.Fn;
+            var input = (Delegate?)OnInput ?? OnInputAsync;
             if (input is not null)
             {
                 AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
@@ -361,7 +358,7 @@ public sealed class Input<T> : Element, IFormControl<T>
             }
         }
 
-        var files = (Delegate?)OnFiles?.Fn ?? OnFilesAsync?.Fn;
+        var files = (Delegate?)OnFiles ?? OnFilesAsync;
         if (files is not null)
         {
             AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));

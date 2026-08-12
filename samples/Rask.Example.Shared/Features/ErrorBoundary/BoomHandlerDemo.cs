@@ -16,7 +16,7 @@ public sealed partial class BoomHandlerDemo : Component
             ]
         ];
 
-    private static Component BoundaryFallback(Exception ex, Callback recover) =>
+    private static Component BoundaryFallback(Exception ex, Action recover) =>
         BsAlert.Color(BsColor.Danger).Class("d-flex align-items-start").Id("boom-fallback")[
             BsIcon.Name(BsIconName.ExclamationOctagonFill).Class("me-3 fs-4"),
             Div[

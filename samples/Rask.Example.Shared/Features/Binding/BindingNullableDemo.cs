@@ -10,20 +10,20 @@ public sealed partial class BindingNullableDemo : Component
     [
         Div.Class("mb-3")[
             Label.For("bind-null-age").Class("form-label small")["Optional age (int?)"],
-            Input(() => _model.OptionalAge)
+            Input.Bind(() => _model.OptionalAge)
                 .Id("bind-null-age")
                 .Class("form-control")
                 .Placeholder("leave empty for null")
         ],
         Div.Class("mb-3")[
             Label.For("bind-null-start").Class("form-label small")["Optional start date (DateOnly?)"],
-            Input(() => _model.StartDate)
+            Input.Bind(() => _model.StartDate)
                 .Id("bind-null-start")
                 .Class("form-control")
         ],
         Div.Class("mb-3")[
             Label.For("bind-null-color").Class("form-label small")["Optional colour (Color?)"],
-            Select(() => _model.Favorite)
+            Select.Bind(() => _model.Favorite)
                 .Id("bind-null-color")
                 .Class("form-select")[
                 Option.Value("")["— none —"], Option.Value("Red")["Red"], Option.Value("Green")["Green"], Option.Value("Blue")["Blue"]
@@ -31,7 +31,7 @@ public sealed partial class BindingNullableDemo : Component
         ],
         Div.Class("mb-3")[
             Label.For("bind-null-nick").Class("form-label small")["Nickname (string?)"],
-            Input(() => _model.Nickname)
+            Input.Bind(() => _model.Nickname)
                 .Id("bind-null-nick")
                 .Class("form-control")
                 .Placeholder("clear me for null")

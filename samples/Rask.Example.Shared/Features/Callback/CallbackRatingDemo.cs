@@ -8,7 +8,7 @@ public sealed partial class CallbackRatingDemo : Component
         Div.Id("callback-rating")[
             // The lambda captures `this`, so it owns this demo — the framework wraps it so clicking
             // a star in the child re-renders the line below, with no extra ceremony.
-            RatingStars.Value(_rating).Rate(n => _rating = n),
+            RatingStars.Value(_rating).OnRate(n => _rating = n),
             P.Class("mt-2 mb-0 small text-secondary")[
                 _rating == 0 ? "Click a star to rate." : $"You rated: {_rating}/5"
             ]

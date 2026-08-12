@@ -12,7 +12,7 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class UsbPage : Component
 {
-    protected override Component? Head => Title["WebUSB — Rask"];
+    protected override Component? HeadAssets => Title["WebUSB — Rask"];
 
     protected override Component? Render() =>
     [

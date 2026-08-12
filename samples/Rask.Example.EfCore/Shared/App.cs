@@ -5,7 +5,7 @@ namespace Rask.Example.EfCore;
 // document around it is the framework's (RASK021).
 public sealed partial class App : Component
 {
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Rask — EF Core + SQLite"],
         Meta.Charset("utf-8"),

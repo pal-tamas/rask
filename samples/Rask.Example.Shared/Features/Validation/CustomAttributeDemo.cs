@@ -21,25 +21,22 @@ public sealed partial class CustomAttributeDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<CustomAttributeModel>(
-            _model,
-            m => _submission = $"Welcome, {m.Username}!",
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Welcome, {m.Username}!").Class("vstack gap-3")[
             DataAnnotationsValidator,
             Div[
                 Label.For("v12-username").Class("form-label small mb-1")["Username"],
-                Input(() => _model.Username).Id("v12-username").Class("form-control"),
-                ValidationMessage(() => _model.Username, FieldError)
+                Input.Bind(() => _model.Username).Id("v12-username").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Username)
             ],
             Div[
                 Label.For("v12-password").Class("form-label small mb-1")["Password"],
-                Input(() => _model.Password).Id("v12-password").Type(InputType.Password).Class("form-control"),
-                ValidationMessage(() => _model.Password, FieldError)
+                Input.Bind(() => _model.Password).Id("v12-password").Type(InputType.Password).Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Password)
             ],
             Div[
                 Label.For("v12-confirm").Class("form-label small mb-1")["Confirm password"],
-                Input(() => _model.ConfirmPassword).Id("v12-confirm").Type(InputType.Password).Class("form-control"),
-                ValidationMessage(() => _model.ConfirmPassword, FieldError)
+                Input.Bind(() => _model.ConfirmPassword).Id("v12-confirm").Type(InputType.Password).Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.ShieldCheck).Class("me-1"), "Create account"]

@@ -25,31 +25,31 @@ public sealed partial class BsPickersDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<Booking>(_model, Class: "vstack gap-3")[
+        Form.Model(_model).Class("vstack gap-3")[
             // Date — default, floating, native, and range-constrained (next 30 days, no weekends).
-            BsDatePicker(() => _model.Day).Label("Date").Id("pick-date"),
-            BsDatePicker(() => _model.DayFloat).Label("Date (floating)").Floating(true).Id("pick-date-float"),
-            BsDatePicker(() => _model.DayNative).Label("Date (native)").Native(true).Id("pick-date-native"),
-            BsDatePicker(() => _model.DayRange).Label("Date (next 30 days, weekdays only)")
+            BsDatePicker.Bind(() => _model.Day).Label("Date").Id("pick-date"),
+            BsDatePicker.Bind(() => _model.DayFloat).Label("Date (floating)").Floating(true).Id("pick-date-float"),
+            BsDatePicker.Bind(() => _model.DayNative).Label("Date (native)").Native(true).Id("pick-date-native"),
+            BsDatePicker.Bind(() => _model.DayRange).Label("Date (next 30 days, weekdays only)")
                 .Min(Today).Max(Today.AddDays(30))
                 .Disable(d => d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday).Id("pick-date-range"),
-            BsDatePicker<DateOnly?>(() => _model.Deadline).Label("Deadline (nullable, clearable)").Id("pick-deadline"),
+            BsDatePicker.Bind(() => _model.Deadline).Label("Deadline (nullable, clearable)").Id("pick-deadline"),
             // Custom accessible names for the month-nav buttons (Labels also covers the time columns + clear).
-            BsDatePicker(() => _model.DayLabels).Label("Date (custom labels)")
+            BsDatePicker.Bind(() => _model.DayLabels).Label("Date (custom labels)")
                 .Labels(new BsPickerLabels { PreviousMonth = "Go back a month", NextMonth = "Go forward a month" })
                 .Id("pick-date-labels"),
 
             // Time — stepped, floating, native, and a range-constrained picker with a seconds column.
-            BsTimePicker(() => _model.Time).Label("Time (15-min steps)").MinuteStep(15).Id("pick-time"),
-            BsTimePicker(() => _model.TimeNative).Label("Time (native)").Native(true).Id("pick-time-native"),
-            BsTimePicker(() => _model.Alarm).Label("Time (09:00–17:00, with seconds)")
+            BsTimePicker.Bind(() => _model.Time).Label("Time (15-min steps)").MinuteStep(15).Id("pick-time"),
+            BsTimePicker.Bind(() => _model.TimeNative).Label("Time (native)").Native(true).Id("pick-time-native"),
+            BsTimePicker.Bind(() => _model.Alarm).Label("Time (09:00–17:00, with seconds)")
                 .Min(new TimeOnly(9, 0)).Max(new TimeOnly(17, 0)).Seconds(true).SecondStep(15).Id("pick-time-seconds"),
 
             // Date & time — default, floating, native, and one with a seconds column.
-            BsDateTimePicker(() => _model.When).Label("Date & time").Id("pick-datetime"),
-            BsDateTimePicker(() => _model.WhenFloat).Label("Date & time (floating)").Floating(true).Id("pick-datetime-float"),
-            BsDateTimePicker(() => _model.WhenNative).Label("Date & time (native)").Native(true).Id("pick-datetime-native"),
-            BsDateTimePicker(() => _model.WhenSeconds).Label("Date & time (with seconds)").Seconds(true).Id("pick-datetime-seconds")
+            BsDateTimePicker.Bind(() => _model.When).Label("Date & time").Id("pick-datetime"),
+            BsDateTimePicker.Bind(() => _model.WhenFloat).Label("Date & time (floating)").Floating(true).Id("pick-datetime-float"),
+            BsDateTimePicker.Bind(() => _model.WhenNative).Label("Date & time (native)").Native(true).Id("pick-datetime-native"),
+            BsDateTimePicker.Bind(() => _model.WhenSeconds).Label("Date & time (with seconds)").Seconds(true).Id("pick-datetime-seconds")
         ],
         BsAlert.Color(BsColor.Info).Class("mt-3 mb-0")[
             Span.Id("pick-readout")[

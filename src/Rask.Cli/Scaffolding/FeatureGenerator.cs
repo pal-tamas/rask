@@ -447,7 +447,7 @@ internal static class FeatureGenerator
     // The inline error banner rendered above a mutation form (as a conditional child; null when there's no
     // error). Bootstrap gets a BsAlert; plain HTML gets a semantic role="alert" div.
     private static string ErrorAlert(bool useBs) => useBs
-        ? "_error is null ? null : BsAlert(Color: BsColor.Danger)[_error],"
+        ? "_error is null ? null : BsAlert.Color(BsColor.Danger)[_error],"
         : "_error is null ? null : Div(Role: \"alert\")[_error],";
 
     // The delete command handler body. Always load + Remove + SaveChanges (never set-based ExecuteDelete),
@@ -506,13 +506,13 @@ internal static class FeatureGenerator
     private static string RowActions(string entity, bool useBs, bool useModal, bool useSoftDelete)
     {
         var edit = useModal
-            ? $"BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: () => OpenEditAsync(x.Id))[BsIcon(Name: BsIconName.Pencil)]"
+            ? $"BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClickAsync(() => OpenEditAsync(x.Id))[BsIcon.Name(BsIconName.Pencil)]"
             : useBs
-                ? $"BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => navigator.NavigateTo(Routes.Update{entity}(x.Id)))[BsIcon(Name: BsIconName.Pencil)]"
+                ? $"BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClick(() => navigator.NavigateTo(Routes.Update{entity}(x.Id)))[BsIcon.Name(BsIconName.Pencil)]"
                 : $"NavLink(Routes.Update{entity}(x.Id))[\"Edit\"]";
         var delete = $"Delete{entity}(Id: x.Id, OnDeleted: LoadAsync)";
 
-        // The continuation indent below matches the generated Td()[ … ] cell (32 spaces).
+        // The continuation indent below matches the generated Td[ … ] cell (32 spaces).
         if (!useSoftDelete)
         {
             return $"{edit},\n                                {delete}";
@@ -533,7 +533,7 @@ internal static class FeatureGenerator
         }
 
         return useBs
-            ? "BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: ToggleDeletedAsync)[_showDeleted ? \"Hide deleted\" : \"Show deleted\"],"
+            ? "BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClickAsync(ToggleDeletedAsync)[_showDeleted ? \"Hide deleted\" : \"Show deleted\"],"
             : "Button(\"button\", OnClickAsync: ToggleDeletedAsync)[_showDeleted ? \"Hide deleted\" : \"Show deleted\"],";
     }
 
@@ -917,13 +917,13 @@ internal static class FeatureGenerator
         string.Join(", ", fields.Select(f => $"{source}.{f.Name}"));
 
     private static string TableHeaders(IReadOnlyList<FieldSpec> fields) =>
-        string.Join("\n", fields.Select(f => $"                            Th()[\"{f.Name}\"],"));
+        string.Join("\n", fields.Select(f => $"                            Th[\"{f.Name}\"],"));
 
     private static string TableCells(IReadOnlyList<FieldSpec> fields, bool useValueObjects) =>
         string.Join("\n", fields.Select(f =>
         {
             var access = IsValueObject(f, useValueObjects) ? $"x.{f.Name}.Value" : f.IsString ? $"x.{f.Name}" : $"$\"{{x.{f.Name}}}\"";
-            return $"                            Td()[{access}],";
+            return $"                            Td[{access}],";
         }));
 
     private static string CopyToForm(IReadOnlyList<FieldSpec> fields, bool useValueObjects, bool useConcurrency)
@@ -974,7 +974,7 @@ internal static class FeatureGenerator
         {
             // A hidden input round-trips the optimistic-concurrency token through the form (create submits 0,
             // which the create handler ignores; edit submits the loaded value).
-            sb.Append("                    Input(() => _form.Version).Type(InputType.Hidden),\n");
+            sb.Append("                    Input.Bind(() => _form.Version).Type(InputType.Hidden),\n");
         }
 
         foreach (var field in fields)
@@ -982,24 +982,23 @@ internal static class FeatureGenerator
             var id = field.Name.ToLowerInvariant();
             // A value-object field wires its built-in Validate into the bound input; the dataannotations /
             // fluent modes validate through the form-level validator component instead.
-            var validate = IsValueObject(field, useValueObjects) ? $", Validate: {ValueObjectName(entity, field)}.Validate" : "";
             var chainedValidate = IsValueObject(field, useValueObjects)
                 ? $".Validate({ValueObjectName(entity, field)}.Validate)"
                 : "";
             if (useBs)
             {
-                // Bs form controls render their own label + input + validation feedback. BsInput reaches the
-                // app through its builder entry — a referenced assembly's entries are injected into the
-                // consumer's components — so it takes only the bind expression and everything else chains.
-                // BsCheck has a required property, so it has no entry and stays on its factory.
+                // Bs form controls render their own label + input + validation feedback. They reach the app
+                // through their builder entries — a referenced assembly's entries are injected into the
+                // consumer's components — so the bind expression opens the chain and the rest are steps.
                 if (field.CsType == "bool")
                 {
-                    sb.Append("                    BsCheck(() => _form.").Append(field.Name).Append(validate)
-                        .Append(", Id: \"").Append(id).Append("\", Label: \"").Append(field.Name).Append("\"),\n");
+                    sb.Append("                    BsCheck.Bind(() => _form.").Append(field.Name).Append(')')
+                        .Append(chainedValidate).Append(".Id(\"").Append(id).Append("\").Label(\"")
+                        .Append(field.Name).Append("\"),\n");
                     continue;
                 }
 
-                sb.Append("                    BsInput(() => _form.").Append(field.Name).Append(')')
+                sb.Append("                    BsInput.Bind(() => _form.").Append(field.Name).Append(')')
                     .Append(chainedValidate).Append(".Id(\"").Append(id).Append("\").Label(\"").Append(field.Name)
                     .Append("\"),\n");
             }
@@ -1007,9 +1006,9 @@ internal static class FeatureGenerator
             {
                 // Plain, unstyled HTML: a label + the bound input (a bool renders as a checkbox). The bound
                 // control is the builder entry — it takes only the bind expression; everything else chains.
-                sb.Append("                    Div()[\n")
+                sb.Append("                    Div[\n")
                     .Append("                        Label(\"").Append(id).Append("\")[\"").Append(field.Name).Append("\"],\n")
-                    .Append("                        Input(() => _form.").Append(field.Name).Append(')').Append(chainedValidate)
+                    .Append("                        Input.Bind(() => _form.").Append(field.Name).Append(')').Append(chainedValidate)
                     .Append(".Id(\"").Append(id).Append("\")\n")
                     .Append("                    ],\n");
             }
@@ -1264,7 +1263,7 @@ internal static class FeatureGenerator
             private IReadOnlyList<__ENTITY__> _items = [];
             private bool _loaded;__LISTSTATE__
 
-            protected override Component? Head => Title()["__PLURAL__"];
+            protected override Component? HeadAssets => Title["__PLURAL__"];
 
             protected override async Task OnMountAsync() => await LoadAsync();
 
@@ -1276,28 +1275,28 @@ internal static class FeatureGenerator
 
             protected override Component? Render() =>
             [
-                Div()[
-                    H1()["__PLURAL__"],
+                Div[
+                    H1["__PLURAL__"],
                     __TOGGLEBUTTON__
                     NavLink(Routes.Create__ENTITY__())["New __ENTITY__"]
                 ],
                 !_loaded
-                    ? Div()["Loading…"]
+                    ? Div["Loading…"]
                     : _items.Count == 0
-                        ? Div()["No __PLURAL__ yet."]
-                        : Table()[
-                            Thead()[
-                                Tr()[
-                                    Th()["#"],
+                        ? Div["No __PLURAL__ yet."]
+                        : Table[
+                            Thead[
+                                Tr[
+                                    Th["#"],
         __HEADERS__
-                                    Th()[""]
+                                    Th[""]
                                 ]
                             ],
-                            Tbody()[
-                                _items.Select(x => Tr(Key: x.Id)[
-                                    Td()[$"{x.Id}"],
+                            Tbody[
+                                _items.Select(x => Tr.Key(x.Id)[
+                                    Td[$"{x.Id}"],
         __CELLS__
-                                    Td()[
+                                    Td[
                                         __ROWACTIONS__
                                     ]
                                 ])
@@ -1440,7 +1439,7 @@ internal static class FeatureGenerator
             }
 
             protected override Component? Render() =>
-                BsButton(Color: BsColor.Success, Outline: true, Size: BsSize.Sm, OnClickAsync: RestoreAsync)[BsIcon(Name: BsIconName.ArrowCounterclockwise)];
+                BsButton.Color(BsColor.Success).Outline(true).Size(BsSize.Sm).OnClickAsync(RestoreAsync)[BsIcon.Name(BsIconName.ArrowCounterclockwise)];
         }
 
         """;
@@ -1473,7 +1472,7 @@ internal static class FeatureGenerator
             private readonly __ENTITY__Request _form = new();
             private string? _error;
 
-            protected override Component? Head => Title()["New __ENTITY__"];
+            protected override Component? HeadAssets => Title["New __ENTITY__"];
 
             private async Task SubmitAsync(__ENTITY__Request form)
             {
@@ -1489,15 +1488,15 @@ internal static class FeatureGenerator
             }
 
             protected override Component? Render() =>
-                Div()[
-                    Div()[
-                        H1()["New __ENTITY__"],
+                Div[
+                    Div[
+                        H1["New __ENTITY__"],
                         __ERRORALERT__
                         Form(_form, OnValidSubmitAsync: SubmitAsync)[
         __VALIDATOR____FORMFIELDS__
-                            Div()[
+                            Div[
                                 NavLink(Routes.__PLURAL__Page())["Cancel"],
-                                Button("submit")["Save"]
+                                Button.Type("submit")["Save"]
                             ]
                         ]
                     ]
@@ -1554,7 +1553,7 @@ internal static class FeatureGenerator
 
             [RouteParam] public __IDTYPE__ Id { get; set; }
 
-            protected override Component? Head => Title()["Edit __ENTITY__"];
+            protected override Component? HeadAssets => Title["Edit __ENTITY__"];
 
             protected override async Task OnPropsChangedAsync()
             {
@@ -1586,23 +1585,23 @@ internal static class FeatureGenerator
             {
                 if (!_loaded)
                 {
-                    return Div()["Loading…"];
+                    return Div["Loading…"];
                 }
 
                 if (!_found)
                 {
-                    return Div()["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
+                    return Div["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
                 }
 
-                return Div()[
-                    Div()[
-                        H1()["Edit __ENTITY__"],
+                return Div[
+                    Div[
+                        H1["Edit __ENTITY__"],
                         __ERRORALERT__
                         Form(_form, OnValidSubmitAsync: SubmitAsync)[
         __VALIDATOR____FORMFIELDS__
-                            Div()[
+                            Div[
                                 NavLink(Routes.__PLURAL__Page())["Cancel"],
-                                Button("submit")["Save changes"]
+                                Button.Type("submit")["Save changes"]
                             ]
                         ]
                     ]
@@ -1629,7 +1628,7 @@ internal static class FeatureGenerator
             private IReadOnlyList<__ENTITY__> _items = [];
             private bool _loaded;__LISTSTATE__
 
-            protected override Component? Head => Title()["__PLURAL__"];
+            protected override Component? HeadAssets => Title["__PLURAL__"];
 
             protected override async Task OnMountAsync() => await LoadAsync();
 
@@ -1641,32 +1640,32 @@ internal static class FeatureGenerator
 
             protected override Component? Render() =>
             [
-                Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center), Margin.Bottom(3)))[
-                    H1(Class: "h3 mb-0")["__PLURAL__"],
-                    Div(Class: Bs.Join(Display.Flex(), Flex.Gap(2)))[
+                Div.Class(Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center), Margin.Bottom(3)))[
+                    H1.Class("h3 mb-0")["__PLURAL__"],
+                    Div.Class(Bs.Join(Display.Flex(), Flex.Gap(2)))[
                         __TOGGLEBUTTON__
-                        BsButton(Color: BsColor.Primary, OnClick: () => navigator.NavigateTo(Routes.Create__ENTITY__()))[
-                            BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New __ENTITY__"
+                        BsButton.Color(BsColor.Primary).OnClick(() => navigator.NavigateTo(Routes.Create__ENTITY__()))[
+                            BsIcon.Name(BsIconName.PlusLg).Class(Margin.End(1)), "New __ENTITY__"
                         ]
                     ]
                 ],
                 !_loaded
-                    ? Div(Class: Bs.Join(Txt.Muted))["Loading…"]
+                    ? Div.Class(Bs.Join(Txt.Muted))["Loading…"]
                     : _items.Count == 0
-                        ? Div(Class: "alert alert-info")["No __PLURAL__ yet."]
-                        : BsTable(Striped: true, Hover: true, Responsive: true)[
-                            Thead()[
-                                Tr()[
-                                    Th()["#"],
+                        ? Div.Class("alert alert-info")["No __PLURAL__ yet."]
+                        : BsTable.Striped(true).Hover(true).Responsive(true)[
+                            Thead[
+                                Tr[
+                                    Th["#"],
         __HEADERS__
-                                    Th()[""]
+                                    Th[""]
                                 ]
                             ],
-                            Tbody()[
-                                _items.Select(x => Tr(Key: x.Id)[
-                                    Td()[$"{x.Id}"],
+                            Tbody[
+                                _items.Select(x => Tr.Key(x.Id)[
+                                    Td[$"{x.Id}"],
         __CELLS__
-                                    Td(Class: Bs.Join(Txt.End(), Txt.Nowrap))[
+                                    Td.Class(Bs.Join(Txt.End(), Txt.Nowrap))[
                                         __ROWACTIONS__
                                     ]
                                 ])
@@ -1711,7 +1710,7 @@ internal static class FeatureGenerator
             }
 
             protected override Component? Render() =>
-                BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClickAsync: DeleteAsync)[BsIcon(Name: BsIconName.Trash)];
+                BsButton.Color(BsColor.Danger).Outline(true).Size(BsSize.Sm).OnClickAsync(DeleteAsync)[BsIcon.Name(BsIconName.Trash)];
         }
 
         """;
@@ -1744,7 +1743,7 @@ internal static class FeatureGenerator
             private readonly __ENTITY__Request _form = new();
             private string? _error;
 
-            protected override Component? Head => Title()["New __ENTITY__"];
+            protected override Component? HeadAssets => Title["New __ENTITY__"];
 
             private async Task SubmitAsync(__ENTITY__Request form)
             {
@@ -1760,15 +1759,15 @@ internal static class FeatureGenerator
             }
 
             protected override Component? Render() =>
-                BsCard(Class: Bs.Join(Shadow.Sm, Border.None, "mx-auto"))[
-                    BsCardBody()[
-                        H1(Class: "h4 mb-3")["New __ENTITY__"],
+                BsCard.Class(Bs.Join(Shadow.Sm, Border.None, "mx-auto"))[
+                    BsCardBody[
+                        H1.Class("h4 mb-3")["New __ENTITY__"],
                         __ERRORALERT__
                         Form(_form, OnValidSubmitAsync: SubmitAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
         __VALIDATOR____FORMFIELDS__
-                            Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
-                                BsButton(Color: BsColor.Secondary, Outline: true, OnClick: () => navigator.NavigateTo(Routes.__PLURAL__Page()))["Cancel"],
-                                BsButton(Type: "submit", Color: BsColor.Primary)["Save"]
+                            Div.Class(Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
+                                BsButton.Color(BsColor.Secondary).Outline(true).OnClick(() => navigator.NavigateTo(Routes.__PLURAL__Page()))["Cancel"],
+                                BsButton.Type("submit").Color(BsColor.Primary)["Save"]
                             ]
                         ]
                     ]
@@ -1825,7 +1824,7 @@ internal static class FeatureGenerator
 
             [RouteParam] public __IDTYPE__ Id { get; set; }
 
-            protected override Component? Head => Title()["Edit __ENTITY__"];
+            protected override Component? HeadAssets => Title["Edit __ENTITY__"];
 
             protected override async Task OnPropsChangedAsync()
             {
@@ -1857,23 +1856,23 @@ internal static class FeatureGenerator
             {
                 if (!_loaded)
                 {
-                    return Div(Class: Bs.Join(Txt.Muted))["Loading…"];
+                    return Div.Class(Bs.Join(Txt.Muted))["Loading…"];
                 }
 
                 if (!_found)
                 {
-                    return Div(Class: "alert alert-warning")["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
+                    return Div.Class("alert alert-warning")["__ENTITY__ not found. ", NavLink(Routes.__PLURAL__Page())["Back to the list"], "."];
                 }
 
-                return BsCard(Class: Bs.Join(Shadow.Sm, Border.None, "mx-auto"))[
-                    BsCardBody()[
-                        H1(Class: "h4 mb-3")["Edit __ENTITY__"],
+                return BsCard.Class(Bs.Join(Shadow.Sm, Border.None, "mx-auto"))[
+                    BsCardBody[
+                        H1.Class("h4 mb-3")["Edit __ENTITY__"],
                         __ERRORALERT__
                         Form(_form, OnValidSubmitAsync: SubmitAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
         __VALIDATOR____FORMFIELDS__
-                            Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
-                                BsButton(Color: BsColor.Secondary, Outline: true, OnClick: () => navigator.NavigateTo(Routes.__PLURAL__Page()))["Cancel"],
-                                BsButton(Type: "submit", Color: BsColor.Primary)["Save changes"]
+                            Div.Class(Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
+                                BsButton.Color(BsColor.Secondary).Outline(true).OnClick(() => navigator.NavigateTo(Routes.__PLURAL__Page()))["Cancel"],
+                                BsButton.Type("submit").Color(BsColor.Primary)["Save changes"]
                             ]
                         ]
                     ]
@@ -1949,7 +1948,7 @@ internal static class FeatureGenerator
             private __IDTYPE__? _editingId;
             private string? _error;
 
-            protected override Component? Head => Title()["__PLURAL__"];
+            protected override Component? HeadAssets => Title["__PLURAL__"];
 
             protected override async Task OnMountAsync() => await LoadAsync();
 
@@ -2008,44 +2007,44 @@ internal static class FeatureGenerator
 
             protected override Component? Render() =>
             [
-                Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center), Margin.Bottom(3)))[
-                    H1(Class: "h3 mb-0")["__PLURAL__"],
-                    Div(Class: Bs.Join(Display.Flex(), Flex.Gap(2)))[
+                Div.Class(Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center), Margin.Bottom(3)))[
+                    H1.Class("h3 mb-0")["__PLURAL__"],
+                    Div.Class(Bs.Join(Display.Flex(), Flex.Gap(2)))[
                         __TOGGLEBUTTON__
-                        BsButton(Color: BsColor.Primary, OnClick: OpenCreate)[
-                            BsIcon(Name: BsIconName.PlusLg, Class: Margin.End(1)), "New __ENTITY__"
+                        BsButton.Color(BsColor.Primary).OnClick(OpenCreate)[
+                            BsIcon.Name(BsIconName.PlusLg).Class(Margin.End(1)), "New __ENTITY__"
                         ]
                     ]
                 ],
                 !_loaded
-                    ? Div(Class: Bs.Join(Txt.Muted))["Loading…"]
+                    ? Div.Class(Bs.Join(Txt.Muted))["Loading…"]
                     : _items.Count == 0
-                        ? Div(Class: "alert alert-info")["No __PLURAL__ yet."]
-                        : BsTable(Striped: true, Hover: true, Responsive: true)[
-                            Thead()[
-                                Tr()[
-                                    Th()["#"],
+                        ? Div.Class("alert alert-info")["No __PLURAL__ yet."]
+                        : BsTable.Striped(true).Hover(true).Responsive(true)[
+                            Thead[
+                                Tr[
+                                    Th["#"],
         __HEADERS__
-                                    Th()[""]
+                                    Th[""]
                                 ]
                             ],
-                            Tbody()[
-                                _items.Select(x => Tr(Key: x.Id)[
-                                    Td()[$"{x.Id}"],
+                            Tbody[
+                                _items.Select(x => Tr.Key(x.Id)[
+                                    Td[$"{x.Id}"],
         __CELLS__
-                                    Td(Class: Bs.Join(Txt.End(), Txt.Nowrap))[
+                                    Td.Class(Bs.Join(Txt.End(), Txt.Nowrap))[
                                         __ROWACTIONS__
                                     ]
                                 ])
                             ]
                         ],
-                BsModal(Open: _modalOpen, Title: _editingId is null ? "New __ENTITY__" : "Edit __ENTITY__", Centered: true, OnClose: CloseModal)[
+                BsModal.Open(_modalOpen).Title(_editingId is null ? "New __ENTITY__" : "Edit __ENTITY__").Centered(true).OnClose(CloseModal)[
                     __ERRORALERT__
                     Form(_form, OnValidSubmitAsync: SaveAsync, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
         __VALIDATOR____FORMFIELDS__
-                        Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
-                            BsButton(Color: BsColor.Secondary, Outline: true, OnClick: CloseModal)["Cancel"],
-                            BsButton(Type: "submit", Color: BsColor.Primary)["Save"]
+                        Div.Class(Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
+                            BsButton.Color(BsColor.Secondary).Outline(true).OnClick(CloseModal)["Cancel"],
+                            BsButton.Type("submit").Color(BsColor.Primary)["Save"]
                         ]
                     ]
                 ]

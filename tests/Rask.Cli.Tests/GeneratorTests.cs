@@ -69,7 +69,7 @@ public sealed class PageGeneratorTests
         Assert.Contains("using Rask.Core.Routing;", file.Content, StringComparison.Ordinal);
         Assert.Contains("[Route(\"/products\")]", file.Content, StringComparison.Ordinal);
         Assert.Contains("public sealed partial class ProductsPage : Component", file.Content, StringComparison.Ordinal);
-        Assert.Contains("Head => Title()[\"Products\"]", file.Content, StringComparison.Ordinal);
+        Assert.Contains("HeadAssets => Title[\"Products\"]", file.Content, StringComparison.Ordinal);
     }
 
     [Fact]

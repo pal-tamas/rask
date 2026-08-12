@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Textarea<T> in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur) and
 //     re-renders this consumer so the character-count readout updates (the controlled-OnChange fix).
-//   • Bound — Textarea(() => model.X): two-way binds and streams per keystroke through the EditContext.
+//   • Bound — Textarea.Bind(() => model.X): two-way binds and streams per keystroke through the EditContext.
 public sealed partial class FormControlsTextareaDemo : Component
 {
     private string _controlled = "";
@@ -13,7 +13,7 @@ public sealed partial class FormControlsTextareaDemo : Component
         BsRow.Gutter(4)[
             BsCol.Md(6)[
                 Label.Class("form-label fw-semibold")["Controlled (Value + OnChange)"],
-                Textarea<string>()
+                Textarea
                     .Value(_controlled)
                     .OnChange(v => _controlled = v)
                     .Class("form-control mb-2")
@@ -26,8 +26,8 @@ public sealed partial class FormControlsTextareaDemo : Component
             ],
             BsCol.Md(6)[
                 Label.Class("form-label fw-semibold")["Bound (two-way)"],
-                Form(_model)[
-                    Textarea(() => _model.Bio)
+                Form.Model(_model)[
+                    Textarea.Bind(() => _model.Bio)
                         .Class("form-control mb-2")
                         .Rows(3)
                         .Placeholder("Type…")

@@ -13,7 +13,7 @@ public partial class BsCheckboxGroupTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void CheckboxGroup_Controlled_ReflectsMembershipWithPerItemLabels()
     {
-        var html = BsCheckboxGroup(Options: ["a", "b"], Value: new List<string> { "a" }, Name: "tags").ToHtml();
+        var html = BsCheckboxGroup.Value(new List<string> { "a" }).Options(["a", "b"]).Name("tags").ToHtml();
         Assert.DoesNotContain("<fieldset", html);
         Assert.StartsWith("<div class=\"form-check\" data-rask-key=\"0\">", html);
         Assert.Contains(
@@ -27,8 +27,12 @@ public partial class BsCheckboxGroupTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void CheckboxGroup_WithLabel_WrapsInFieldsetNamedByLegend()
     {
-        var html = BsCheckboxGroup(Options: ["a", "b"], Value: new List<string>(), Name: "tags",
-            Label: "Tags").ToHtml();
+        var html = BsCheckboxGroup
+            .Value(new List<string>())
+            .Options(["a", "b"])
+            .Name("tags")
+            .Label("Tags")
+            .ToHtml();
         Assert.StartsWith("<fieldset class=\"border-0 p-0 m-0\">", html);
         Assert.Contains("<legend class=\"form-label fs-6\">Tags</legend>", html);
         Assert.EndsWith("</fieldset>", html);
@@ -37,8 +41,12 @@ public partial class BsCheckboxGroupTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void CheckboxGroup_Disabled_DisablesEveryBox()
     {
-        var html = BsCheckboxGroup(Options: ["a", "b"], Value: new List<string>(), Name: "tags",
-            Disabled: true).ToHtml();
+        var html = BsCheckboxGroup
+            .Value(new List<string>())
+            .Options(["a", "b"])
+            .Name("tags")
+            .Disabled(true)
+            .ToHtml();
         Assert.Contains("value=\"a\" disabled />", html);
         Assert.Contains("value=\"b\" disabled />", html);
     }
@@ -47,9 +55,11 @@ public partial class BsCheckboxGroupTests : global::Rask.Core.RaskMarkup
     public async Task CheckboxGroup_Bound_Invalid_WiresAriaInvalidDescribedbyAndAlertFeedback()
     {
         var model = new TagModel();
-        var view = new StubComponent(() => Form(model)[
-            BsCheckboxGroup(() => model.Tags, ["a", "b"], Label: "Tags",
-                Validate: v => v.Count == 0 ? new[] { "pick at least one" } : Array.Empty<string>())
+        var view = new StubComponent(() => Form.Model(model)[
+            BsCheckboxGroup.Bind(() => model.Tags)
+                .Options(["a", "b"])
+                .Label("Tags")
+                .Validate(v => v.Count == 0 ? new[] { "pick at least one" } : Array.Empty<string>())
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -70,8 +80,8 @@ public partial class BsCheckboxGroupTests : global::Rask.Core.RaskMarkup
         // End-to-end through the control's ToggleAsync: unchecking option "a" removes it from the bound
         // collection; re-checking it adds it back (checkbox change handlers report the box's "true"/"false").
         var model = new TagModel { Tags = { "a" } };
-        var view = new StubComponent(() => Form(model)[
-            BsCheckboxGroup(() => model.Tags, ["a", "b"], Name: "tags")
+        var view = new StubComponent(() => Form.Model(model)[
+            BsCheckboxGroup.Bind(() => model.Tags).Options(["a", "b"]).Name("tags")
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -92,9 +102,13 @@ public partial class BsCheckboxGroupTests : global::Rask.Core.RaskMarkup
         Assert.Equal(new[] { "a" }, model.Tags);
     }
 
-    [Fact]
-    public void CheckboxGroup_NeitherBindNorValue_Throws() =>
-        Assert.Throws<InvalidOperationException>(() => BsCheckboxGroup(Options: ["a"]).ToHtml());
+    // `CheckboxGroup_NeitherBindNorValue_Throws` was here, and it is gone because the state it asserted
+    // can no longer be written. `Bind` and `Value` are the two ways INTO the chain, so a group that names
+    // neither is not a component at all — `BsCheckboxGroup.Options(["a"])` does not compile, because
+    // `Options` is reachable only from the state one of those two produces.
+    //
+    // The runtime guard is still in the component, and is still correct; nothing on the builder surface
+    // can reach it. A test cannot assert a compile error, so what replaced this is the type itself.
 
     private sealed class TagModel
     {

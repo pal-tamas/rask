@@ -23,7 +23,7 @@ internal sealed partial class NavigateWithPublishRenderApp : Component
         _nav = nav;
     }
 
-    protected override Component? Head => Title["nav-pub"];
+    protected override Component? HeadAssets => Title["nav-pub"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render()

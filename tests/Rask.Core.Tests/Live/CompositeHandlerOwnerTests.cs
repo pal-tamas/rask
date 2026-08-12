@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Live;
 // element carrying it is nested inside a composite wrapper, the live runtime must still re-render the
 // component that DEFINED the handler (via the closure's captured `this`), not the wrapper that happens
 // to render the element. Without that, dogfooding interactive controls into Bs* composites silently
-// drops the consumer's re-render (the CodeSample tab-switch / Callback-rating regressions).
+// drops the consumer's re-render (the CodeSample tab-switch / Action-rating regressions).
 public class CompositeHandlerOwnerTests
 {
     [Fact]

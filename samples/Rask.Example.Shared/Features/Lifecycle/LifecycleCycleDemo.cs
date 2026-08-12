@@ -27,7 +27,7 @@ public sealed partial class LifecycleCycleDemo : Component
                     .OnClick(UnmountCycle)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount probe"]
             ],
             _cycleMounted
-                ? LifecycleCycleProbe(AppendCycleLog, _nextCycleId)
+                ? LifecycleCycleProbe.Log(AppendCycleLog).InstanceId(_nextCycleId)
                 : P.Class("text-secondary fst-italic mb-0")["Probe not mounted."],
             H3.Class("h6 text-secondary text-uppercase small mt-4")["Log"],
             _cycleLog.Count == 0

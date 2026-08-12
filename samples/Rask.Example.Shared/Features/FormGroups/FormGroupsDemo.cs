@@ -15,19 +15,19 @@ public sealed partial class FormGroupsDemo : Component
         Div.Class("vstack gap-3")[
             Div[
                 Label.Class("form-label fw-semibold d-block")["Plan"],
-                BsRadioGroup(
-                    AllPlans,
-                    Value: _plan,
-                    OnChange: v => _plan = v,
-                    ItemClass: "form-check-inline")
+                BsRadioGroup
+                    .Value(_plan)
+                    .Options(AllPlans)
+                    .OnChange(v => _plan = v)
+                    .ItemClass("form-check-inline")
             ],
             Div[
                 Label.Class("form-label fw-semibold d-block")["Interests"],
-                BsCheckboxGroup<string>(
-                    AllInterests,
-                    Value: _interests.ToList(),
-                    OnChange: next => _interests = next,
-                    ItemClass: "form-check-inline")
+                BsCheckboxGroup
+                    .Value(_interests.ToList())
+                    .Options(AllInterests)
+                    .OnChange(next => _interests = next)
+                    .ItemClass("form-check-inline")
             ],
             P.Class("small text-secondary mb-0").Id("groups-summary")[
                 $"Plan: {_plan} · Interests: "

@@ -3,14 +3,14 @@ namespace Rask.Core.Tests.Components;
 public partial class HeadTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() => Assert.Equal("<head></head>", Head().ToHtml());
+    public void Render_NullProps_ReturnsOpenAndCloseTags() => Assert.Equal("<head></head>", Head.ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
         Assert.Equal(
             "<head id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></head>",
-            Head("i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Head.Id("i").Class("c").Style("s").Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     // Note: Head() is a framework-managed slot. Passing children is a RASK019

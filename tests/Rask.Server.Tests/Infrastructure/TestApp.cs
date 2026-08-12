@@ -13,7 +13,7 @@ public sealed partial class TestApp : Component
 
     public TestApp(RouteState routeState) => _routeState = routeState;
 
-    protected override Component? Head => new Title()["test"];
+    protected override Component? HeadAssets => new Title()["test"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

@@ -31,26 +31,23 @@ public sealed partial class ValidatableObjectDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<BookingModel>(
-            _model,
-            m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}",
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("vstack gap-3")[
             DataAnnotationsValidator,
-            ValidationSummary(SummaryAlert),
+            ValidationSummary.Template(SummaryAlert),
             Div[
                 Label.For("v11-name").Class("form-label small mb-1")["Name"],
-                Input(() => _model.Name).Id("v11-name").Class("form-control"),
-                ValidationMessage(() => _model.Name, FieldError)
+                Input.Bind(() => _model.Name).Id("v11-name").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
                 Label.For("v11-departure").Class("form-label small mb-1")["Departure"],
-                Input(() => _model.Departure).Id("v11-departure").Class("form-control"),
-                ValidationMessage(() => _model.Departure, FieldError)
+                Input.Bind(() => _model.Departure).Id("v11-departure").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Departure)
             ],
             Div[
                 Label.For("v11-arrival").Class("form-label small mb-1")["Arrival"],
-                Input(() => _model.Arrival).Id("v11-arrival").Class("form-control"),
-                ValidationMessage(() => _model.Arrival, FieldError)
+                Input.Bind(() => _model.Arrival).Id("v11-arrival").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.CalendarCheck).Class("me-1"), "Book"]

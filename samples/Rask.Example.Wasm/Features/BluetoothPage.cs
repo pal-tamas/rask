@@ -12,7 +12,7 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class BluetoothPage : Component
 {
-    protected override Component? Head => Title["Web Bluetooth — Rask"];
+    protected override Component? HeadAssets => Title["Web Bluetooth — Rask"];
 
     protected override Component? Render() =>
     [

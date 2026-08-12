@@ -6,11 +6,14 @@ public sealed partial class EventsFormDemo : Component
 {
     private string _submitted = "(none yet)";
 
+    // `Form` binds a model; this demo posts raw FormData, so the model is just the field it posts.
+    private readonly Fields _fields = new();
+
     protected override Component? Render() =>
     [
-        Form(OnSubmit: OnSubmit, Class: "mb-2")[
+        Form.Model(_fields).OnSubmit(OnSubmit).Class("mb-2")[
             Div.Class("input-group")[
-                Input<string>()
+                Input.Value<string>(null)
                     .Type(InputType.Text)
                     .Name("name")
                     .Class("form-control")
@@ -25,5 +28,10 @@ public sealed partial class EventsFormDemo : Component
     {
         var name = fd.Get("name");
         _submitted = string.IsNullOrWhiteSpace(name) ? "(blank)" : name;
+    }
+
+    private sealed class Fields
+    {
+        public string? Name { get; set; }
     }
 }

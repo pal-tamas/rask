@@ -11,29 +11,34 @@ namespace Rask.Bootstrap;
 // the Native <select> fallback — lives here. The value of an option is obtained through ValueOf().
 public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 {
+    /// <summary>The options to choose from.</summary>
     public required IEnumerable<TItem> Options { get; set; }
 
-    // Renders each option's content; defaults to item?.ToString() (same shape as BsMultiSelect).
-    public Carrier<Func<TItem, Component>>? OptionLabel { get; set; }
+    /// <summary>Renders one option's content. Defaults to <c>item?.ToString()</c>.</summary>
+    public Func<TItem, Component>? OptionLabel { get; set; }
 
-    // Shown in the trigger box (custom) / as a leading disabled option (native) when nothing is selected.
+    /// <summary>Shown while nothing is selected — in the box, or as a leading disabled option when Native.</summary>
     public string? Placeholder { get; set; }
 
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (p, text) => p.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
-    public new Carrier<Func<TItem, string, bool>>? Filter { get; set; }
+    /// <summary>Adds a search field to the dropdown and decides which options a typed query matches.</summary>
+    public new Func<TItem, string, bool>? Filter { get; set; }
 
     // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
     // click, and the keyboard cursor skips over it; e.g. OptionDisabled: p => p.SoldOut.
-    public Carrier<Func<TItem, bool>>? OptionDisabled { get; set; }
+    /// <summary>Marks individual options non-selectable — greyed, unclickable, skipped by the keyboard.</summary>
+    public Func<TItem, bool>? OptionDisabled { get; set; }
 
     // Groups the options, keyed by the returned string in first-seen order — <optgroup label> in Native mode,
     // non-interactive .dropdown-header rows in the custom dropdown; e.g. OptionGroup: p => p.Category.
-    public Carrier<Func<TItem, string>>? OptionGroup { get; set; }
+    /// <summary>Groups the options by the returned key, in first-seen order.</summary>
+    public Func<TItem, string>? OptionGroup { get; set; }
 
     // Opt out of the custom popover and render the native <select> instead. Guarantees a working control
     // (and the OS picker on mobile) where the custom UI is unwanted.
+    /// <summary>Renders the OS <c>&lt;select&gt;</c> instead of the custom dropdown.</summary>
     public bool? Native { get; set; }
 
     // The bound value an option represents — the option itself, or a projected field (see the subclasses).
@@ -69,7 +74,7 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
     }
 
     private Component LabelOf(TItem item) =>
-        OptionLabel?.Fn is { } label ? label(item) : item?.ToString() ?? string.Empty;
+        OptionLabel is { } label ? label(item) : item?.ToString() ?? string.Empty;
 
     // The native <select>: a plain control fed from Options (each option's value string is the projected
     // value, so binding rides the same StringChangeHandler as every Bs control), with a leading placeholder.
@@ -91,10 +96,10 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
         // Group (optional) into <optgroup>s. Each option keeps its GLOBAL flat index as the reconciliation key
         // so keys stay unique across the whole <select> once options nest under groups; each group gets its own
         // ordinal key. With no OptionGroup this is one headerless group → options emitted flat, exactly as before.
-        var layout = BsSelectNav.Build(opts, OptionGroup?.Fn);
+        var layout = BsSelectNav.Build(opts, OptionGroup);
         Component OptionFor(BsSelectNav.FlatRow<TItem> fr) => Option
             .Value(BindingHelpers.FormatValue(ValueOf(fr.Item)))
-            .Disabled(OptionDisabled?.Fn?.Invoke(fr.Item) == true ? true : null)
+            .Disabled(OptionDisabled?.Invoke(fr.Item) == true ? true : null)
             .Key(fr.FlatIndex)[LabelOf(fr.Item)];
 
         for (var g = 0; g < layout.Groups.Count; g++)
@@ -120,9 +125,9 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
             }
         }
 
-        var control = Select<string>()
-            .Name(Name ?? b.Accessor?.PropertyName)
+        var control = Select
             .Value(BindingHelpers.FormatValue(b.Current))
+            .Name(Name ?? b.Accessor?.PropertyName)
             .Disabled(Disabled)
             .Required(Required)
             .Class(cls)
@@ -153,7 +158,7 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
         var labelId = Label is not null ? (controlId ?? prefix) + "-label" : null;
 
         // Filtering is opt-in: only a supplied Filter predicate shows the search field and narrows the list.
-        var filter = Filter?.Fn;
+        var filter = Filter;
         var searchable = filter is not null;
         var filtered = searchable && !string.IsNullOrEmpty(_filter)
             ? opts.Where(o => filter!(o, _filter)).ToList()
@@ -161,11 +166,11 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
 
         // Group (optional) and flatten: `flat` is the option order the roving cursor indexes — grouping only
         // reorders it into first-seen group order, so the flat index still equals the rendered option position.
-        var layout = BsSelectNav.Build(filtered, OptionGroup?.Fn);
+        var layout = BsSelectNav.Build(filtered, OptionGroup);
         var flat = layout.Flat;
 
         // Per-option disable predicate over the flat list; the keyboard cursor skips these indices.
-        Func<int, bool> optDisabled = i => OptionDisabled?.Fn?.Invoke(flat[i]) == true;
+        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(flat[i]) == true;
 
         // Snap the roving cursor into the current flat list and off any disabled option (a filter change
         // sets _cursor loosely, and a selected-but-disabled seed must move to the nearest enabled option).
@@ -218,7 +223,7 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
             .OnClick(disabled ? null : () => Toggle(b, flat))
             .OnKeyDownAsync(disabled ? null : e => OnKeyAsync(b, flat, e))[content];
 
-        var clear = showClear
+        Component? clear = showClear
             ? BsCloseButton
                 .Class(BsClass.Join(Position.Absolute, Position.Top50, Position.TranslateMiddleY,
                     "bs-select-clear", _open ? "bs-clear-open" : null))
@@ -232,11 +237,11 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
         if (searchable && _open)
         {
             rows.Add(Div.Class(BsClass.Join("px-2", "pt-1", "pb-2"))[
-                Input<string>()
+                Input
+                    .Value(_filter ?? string.Empty)
                     .Type(InputType.Text)
                     .Class("form-control form-control-sm")
                     .Id(prefix + "-search")
-                    .Value(_filter ?? string.Empty)
                     .Placeholder("Search…")
                     .Autocomplete("off")
                     .Autofocus(true)
@@ -308,7 +313,7 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
 
         var labelNode = Label is null
             ? null
-            : Rask.Core.Components.Generated.Label(Id: labelId, Class: floating ? null : "form-label")[
+            : global::RaskEntriesRask_Core.Label.Id(labelId).Class(floating ? null : "form-label")[
                 Label,
                 Required is true ? Span.Class("text-danger ms-1")["*"] : null];
 
@@ -371,7 +376,7 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
             return;
         }
 
-        _cursor = BsSelectNav.Seed(SelectedIndex(b, flat), flat.Count, i => OptionDisabled?.Fn?.Invoke(flat[i]) == true);
+        _cursor = BsSelectNav.Seed(SelectedIndex(b, flat), flat.Count, i => OptionDisabled?.Invoke(flat[i]) == true);
         _open = true;
     }
 
@@ -407,7 +412,7 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
     private async Task OnKeyAsync(Bound b, IReadOnlyList<TItem> flat, KeyboardEventArgs e)
     {
         var count = flat.Count;
-        Func<int, bool> optDisabled = i => OptionDisabled?.Fn?.Invoke(flat[i]) == true;
+        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(flat[i]) == true;
         if (!_open)
         {
             if (e.Key is "ArrowDown" or "ArrowUp" or "Enter" or " ")
@@ -465,22 +470,22 @@ public abstract partial class BsSelectBase<TValue, TItem> : BsFormControl<TValue
     }
 }
 
-// A Bootstrap single-select bound to the option itself — the single-value twin of BsMultiSelect. Renders a
-// custom .form-select combobox by default (Options + OptionLabel; opt-in dropdown search via Filter; nullable
-// × clear; floating label); Native: true degrades to the plain OS <select>.
-//   BsSelect(() => model.Plan, plans, OptionLabel: p => Text(p), Filter: (p, t) => p.Contains(t, …))
-public sealed partial class BsSelect<TItem> : BsSelectBase<TItem, TItem>
-{
-    private protected override TItem ValueOf(TItem item) => item;
-}
-
-// A Bootstrap single-select whose Options are objects but whose bound value is a projected field, chosen by
-// OptionValue — so you can bind an id while rendering/searching the whole object.
-//   BsSelect(() => model.PersonId, people, OptionValue: p => p.Id, OptionLabel: p => Text(p.Name))
+// A Bootstrap single-select. Renders a custom .form-select combobox by default (Options + OptionLabel;
+// opt-in dropdown search via Filter; nullable × clear; floating label); Native: true degrades to the plain
+// OS <select>. OptionValue projects an option to the value bound to the model, so you can bind an id while
+// rendering and searching the whole object — and `p => p` when the option IS the value.
+//   BsSelect.Bind(() => model.PersonId).Options(people).OptionValue(p => p.Id).OptionLabel(p => Text(p.Name))
+//
+// There was a second arity, BsSelect<TItem>, for the case where the option is the value; it is gone, and
+// its call sites say `.OptionValue(p => p)` instead. Two arities cannot both hang off one seed: the pin
+// that fixes TValue would have to yield the finished component for one and a stage for the other from the
+// same receiver and the same argument, and the two continuations are ambiguous (CS0121) precisely when the
+// option type equals the value type — which is the whole of what the second arity was for.
 public sealed partial class BsSelect<TValue, TItem> : BsSelectBase<TValue, TItem>
 {
     // Projects an option to the value bound to the model (e.g. p => p.Id).
+    /// <summary>Projects an option to the value bound to the model — <c>p =&gt; p.Id</c>.</summary>
     public required Func<TItem, TValue> OptionValue { get; set; }
 
-    private protected override TValue ValueOf(TItem item) => OptionValue(item);
+    private protected override TValue ValueOf(TItem item) => OptionValue!(item);
 }

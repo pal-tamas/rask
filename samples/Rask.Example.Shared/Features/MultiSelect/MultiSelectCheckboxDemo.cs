@@ -12,11 +12,11 @@ public sealed partial class MultiSelectCheckboxDemo : Component
         Div.Class("vstack gap-3")[
             Div[
                 Label.Class("form-label fw-semibold d-block")["Interests"],
-                BsCheckboxGroup<string>(
-                    AllInterests,
-                    Value: _interests.ToList(),
-                    OnChange: next => _interests = next,
-                    ItemClass: "form-check-inline")
+                BsCheckboxGroup
+                    .Value(_interests.ToList())
+                    .Options(AllInterests)
+                    .OnChange(next => _interests = next)
+                    .ItemClass("form-check-inline")
             ],
             P.Class("small text-secondary mb-0").Id("ms-checkbox-summary")[
                 "Selected: " + (_interests.Count == 0 ? "none" : string.Join(", ", _interests))

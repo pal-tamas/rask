@@ -108,9 +108,11 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
         // THE load-bearing test for the server path. The source is interleaved (Fruit, Veg, Fruit, Veg, Fruit);
         // without leading the ORDER BY with the group column the store would return it interleaved and the same
         // band would repeat down the page. The grid leads with the group column, so each category appears once.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid(
-            Data: Interleaved.AsQueryable(), Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(Interleaved.AsQueryable())
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })));
 
         Assert.Equal(["Category: Fruit (3)", "Category: Veg (2)"], BandTitles(grid.Html));
         Assert.Equal(["Apple", "Banana", "Cherry", "Carrot", "Leek"], FirstCells(grid.Html));
@@ -122,10 +124,14 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
         // The group column leads the ORDER BY, then the user's SortBy is appended as a ThenBy — so "group by
         // category, sort by name descending" orders descending INSIDE each band, and the bands stay whole. A
         // sort that won over the grouping would scatter the bands across the page.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid(
-            Data: Interleaved.AsQueryable(), Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { },
-            Sort: "name", SortDescending: true, OnSortChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(Interleaved.AsQueryable())
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .Sort("name")
+            .SortDescending(true)
+            .OnSortChange(_ => { })));
 
         Assert.Equal(["Category: Fruit (3)", "Category: Veg (2)"], BandTitles(grid.Html));
         Assert.Equal(["Cherry", "Banana", "Apple", "Leek", "Carrot"], FirstCells(grid.Html));
@@ -136,9 +142,11 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
     {
         // Two group columns lead the ORDER BY in order (category, then supplier), so the rows arrive banded at
         // both levels: Fruit{Acme:Apple,Cherry; Bolt:Banana}, Veg{Acme:Carrot; Bolt:Leek}.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid(
-            Data: Interleaved.AsQueryable(), Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category", "supplier"], OnGroupedChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(Interleaved.AsQueryable())
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category", "supplier"])
+            .OnGroupedChange(_ => { })));
 
         Assert.Equal(["Apple", "Cherry", "Banana", "Carrot", "Leek"], FirstCells(grid.Html));
         Assert.Equal(
@@ -154,9 +162,11 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
     {
         // Column hiding is orthogonal to where the data comes from: the grouped column folds away over an
         // IQueryable exactly as over a list, while the store still leads the ORDER BY with it.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid(
-            Data: Interleaved.AsQueryable(), Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(Interleaved.AsQueryable())
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })));
 
         Assert.Equal(["Name", "Supplier", "Qty"], HeaderTitles(grid.Html));
         Assert.Contains("Category: Fruit", grid.Html, StringComparison.Ordinal);
@@ -169,9 +179,11 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
         // caches: an unrelated re-render must not re-issue the two store round-trips.
         var source = new CountingSource();
         var query = source.Rows(Interleaved).AsQueryable();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid(
-            Data: query, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { })));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(query)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })));
 
         var afterFirst = source.Executions;
         Assert.True(afterFirst > 0, "the first render must run the query");
@@ -201,8 +213,13 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
             new("Leek", "Veg", "Bolt", 2),
         };
 
-        var html = BsDataGrid(Data: slice, Columns: Columns(), RowKey: r => r.Name, TotalCount: slice.Count,
-            PageSize: 10, Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(slice)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .TotalCount(slice.Count)
+            .PageSize(10)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         Assert.Equal(["Category: Fruit (3)", "Category: Veg (2)"], BandTitles(html));
         Assert.Equal(["Apple", "Banana", "Cherry", "Carrot", "Leek"], FirstCells(html));
@@ -218,8 +235,13 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
             new("Carrot", "Veg", "Acme", 9),
         };
 
-        var html = BsDataGrid(Data: slice, Columns: Columns(), RowKey: r => r.Name, TotalCount: slice.Count,
-            PageSize: 10, Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(slice)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .TotalCount(slice.Count)
+            .PageSize(10)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         Assert.Equal(["Name", "Supplier", "Qty"], HeaderTitles(html));
         Assert.Contains("Category: Fruit", html, StringComparison.Ordinal);
@@ -230,9 +252,13 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
     {
         // The contract, made visible: the grid does NOT reorder a TotalCount slice. Hand it an interleaved
         // slice and the bands repeat — never silently, never thrown. This is why the docs say order the query.
-        var html = BsDataGrid(Data: Interleaved, Columns: Columns(), RowKey: r => r.Name,
-            TotalCount: Interleaved.Count, PageSize: 10,
-            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Interleaved)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .TotalCount(Interleaved.Count)
+            .PageSize(10)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         // Interleaved Fruit/Veg/Fruit/Veg/Fruit → five bands, not two.
         Assert.Equal(
@@ -255,8 +281,14 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
             new("Leek", "Veg", "Bolt", 2),
         };
 
-        var html = BsDataGrid(Data: slice, Columns: Columns(), RowKey: r => r.Name, TotalCount: 999,
-            PageSize: 10, Grouped: ["category"], OnGroupedChange: _ => { }, GroupSubtotals: true).ToHtml();
+        var html = BsDataGrid.Data(slice)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .TotalCount(999)
+            .PageSize(10)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .GroupSubtotals(true).ToHtml();
 
         var subtotals = Regex.Matches(html, "<tr class=\"table-light\"[^>]*>(.*?)</tr>", RegexOptions.Singleline)
             .Select(m => Regex.Replace(m.Groups[1].Value, "<[^>]+>", "|")).ToArray();
@@ -278,9 +310,14 @@ public partial class BsDataGridGroupServerTests : global::Rask.Core.RaskMarkup
             new("Leek", "Veg", "Bolt", 2),
         };
 
-        var grid = RaskTest.Render(BsDataGrid(Data: slice, Columns: Columns(), RowKey: r => r.Name,
-            TotalCount: slice.Count, PageSize: 10,
-            Grouped: ["category"], OnGroupedChange: _ => { }, GroupCollapsible: true));
+        var grid = RaskTest.Render(BsDataGrid.Data(slice)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .TotalCount(slice.Count)
+            .PageSize(10)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .GroupCollapsible(true));
 
         Assert.Equal(5, FirstCells(grid.Html).Length);
 

@@ -15,7 +15,7 @@ public partial class RadioCheckboxGroupTests : global::Rask.Core.RaskMarkup
     {
         var m = new ColorModel { Choice = Color.Green };
         var host = new LiveHost(
-            () => Form(m)[BsRadioGroup(() => m.Choice, new[] { Color.Red, Color.Green, Color.Blue })],
+            () => Form.Model(m)[BsRadioGroup.Bind(() => m.Choice).Options(new[] { Color.Red, Color.Green, Color.Blue })],
             TestServices.Default());
 
         var html = host.RenderAsLiveRoot();
@@ -35,7 +35,7 @@ public partial class RadioCheckboxGroupTests : global::Rask.Core.RaskMarkup
     {
         var m = new ColorModel { Choice = Color.Red };
         var host = new LiveHost(
-            () => Form(m)[BsRadioGroup(() => m.Choice, new[] { Color.Red, Color.Green, Color.Blue })],
+            () => Form.Model(m)[BsRadioGroup.Bind(() => m.Choice).Options(new[] { Color.Red, Color.Green, Color.Blue })],
             TestServices.Default());
 
         var html = host.RenderAsLiveRoot();
@@ -63,7 +63,7 @@ public partial class RadioCheckboxGroupTests : global::Rask.Core.RaskMarkup
         var m = new TagsModel();
         m.Tags.Add("b");
         var host = new LiveHost(
-            () => Form(m)[BsCheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })],
+            () => Form.Model(m)[BsCheckboxGroup.Bind(() => m.Tags).Options(new[] { "a", "b", "c" })],
             TestServices.Default());
 
         var html = host.RenderAsLiveRoot();
@@ -81,7 +81,7 @@ public partial class RadioCheckboxGroupTests : global::Rask.Core.RaskMarkup
     {
         var m = new TagsModel();
         var host = new LiveHost(
-            () => Form(m)[BsCheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })],
+            () => Form.Model(m)[BsCheckboxGroup.Bind(() => m.Tags).Options(new[] { "a", "b", "c" })],
             TestServices.Default());
 
         var html = host.RenderAsLiveRoot();
@@ -101,7 +101,7 @@ public partial class RadioCheckboxGroupTests : global::Rask.Core.RaskMarkup
         m.Tags.Add("a");
         m.Tags.Add("b");
         var host = new LiveHost(
-            () => Form(m)[BsCheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })],
+            () => Form.Model(m)[BsCheckboxGroup.Bind(() => m.Tags).Options(new[] { "a", "b", "c" })],
             TestServices.Default());
 
         var html = host.RenderAsLiveRoot();
@@ -120,7 +120,7 @@ public partial class RadioCheckboxGroupTests : global::Rask.Core.RaskMarkup
         var value = new List<string> { "a" };
         ICollection<string>? emitted = null;
         var host = new LiveHost(
-            () => BsCheckboxGroup<string>(new[] { "a", "b", "c" }, Value: value, OnChange: next => emitted = next),
+            () => BsCheckboxGroup.Value(value).Options(new[] { "a", "b", "c" }).OnChange(next => emitted = next),
             TestServices.Default());
 
         var ids = AllChangeIds(host.RenderAsLiveRoot());
@@ -136,7 +136,10 @@ public partial class RadioCheckboxGroupTests : global::Rask.Core.RaskMarkup
     {
         Color? picked = null;
         var host = new LiveHost(
-            () => BsRadioGroup(new[] { Color.Red, Color.Green, Color.Blue }, Value: Color.Red, OnChange: v => picked = v),
+            () => BsRadioGroup
+                .Value(Color.Red)
+                .Options([Color.Red, Color.Green, Color.Blue])
+                .OnChange(v => picked = v),
             TestServices.Default());
 
         var ids = AllChangeIds(host.RenderAsLiveRoot());

@@ -52,18 +52,18 @@ public class InputTypeMismatchAnalyzerTests
     [Fact]
     public async Task BuilderSetter_StringFamilyType_OnIntInput_ReportsRask025()
     {
-        var d = Assert.Single(await Diagnostics(App("return Input(() => _m.Age).Type(InputType.Email);")));
+        var d = Assert.Single(await Diagnostics(App("return Input.Bind(() => _m.Age).Type(InputType.Email);")));
         Assert.Equal("RASK025", d.Id);
         Assert.Contains("Email", d.GetMessage());
     }
 
     [Fact]
     public async Task BuilderSetter_StringFamilyType_OnStringInput_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App("return Input(() => _m.Name).Type(InputType.Email);")));
+        Assert.Empty(await Diagnostics(App("return Input.Bind(() => _m.Name).Type(InputType.Email);")));
 
     [Fact]
     public async Task BuilderSetter_NumberType_OnIntInput_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App("return Input(() => _m.Age).Type(InputType.Number);")));
+        Assert.Empty(await Diagnostics(App("return Input.Bind(() => _m.Age).Type(InputType.Number);")));
 
     [Fact]
     public async Task StringFamilyType_OnStringInput_NoDiagnostic() =>
@@ -71,7 +71,7 @@ public class InputTypeMismatchAnalyzerTests
 
     [Fact]
     public async Task NoExplicitType_OnIntInput_NoDiagnostic() =>
-        Assert.Empty(await Diagnostics(App("return Input(() => _m.Age);")));
+        Assert.Empty(await Diagnostics(App("return Input.Bind(() => _m.Age);")));
 
     [Fact]
     public async Task NumberType_OnIntInput_NoDiagnostic() =>

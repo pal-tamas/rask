@@ -89,7 +89,7 @@ public class DownloadTokenPullTests : ResettingTestBase
             _contentType = contentType;
         }
 
-        protected override Component? Head => Title["dl"];
+        protected override Component? HeadAssets => Title["dl"];
         protected override string? HtmlLang => null;
 
         protected override Component? Render() => Button.OnClick(() => _nav.Download(_filename, _bytes, _contentType))["go"];

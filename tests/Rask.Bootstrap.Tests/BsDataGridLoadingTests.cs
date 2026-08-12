@@ -27,7 +27,7 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
     {
         // The reason Loading is nullable rather than a plain bool. Null means "not using the feature", so no
         // wrapper, no overlay, no aria-busy — the markup a pre-existing grid already depends on.
-        var html = BsDataGrid(Data: Rows, Columns: Columns()).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).ToHtml();
 
         Assert.StartsWith("<div class=\"table-responsive\"><table class=\"table", html, StringComparison.Ordinal);
         Assert.DoesNotContain("position-relative", html, StringComparison.Ordinal);
@@ -39,7 +39,7 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
     public void LoadingFalse_RendersTheWrapper_ButNoOverlay()
     {
         // In use but idle. The wrapper is present so that flipping to true adds only the overlay.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), Loading: false).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).Loading(false).ToHtml();
 
         Assert.StartsWith("<div class=\"position-relative\">", html, StringComparison.Ordinal);
         Assert.DoesNotContain("bs-grid-overlay", html, StringComparison.Ordinal);
@@ -49,7 +49,7 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void LoadingTrue_DimsTheGrid_AndMarksTheTableBusy()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), Loading: true).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).Loading(true).ToHtml();
 
         Assert.StartsWith("<div class=\"position-relative\">", html, StringComparison.Ordinal);
         Assert.Contains("aria-busy=\"true\"", html, StringComparison.Ordinal);
@@ -64,8 +64,8 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
         // would let the <div> at this slot be paired with — and morphed into — whatever <div> was there
         // before. Keeping it for both states is what preserves the table's identity, and with it focus and
         // scroll, across a refetch.
-        var idle = BsDataGrid(Data: Rows, Columns: Columns(), Loading: false).ToHtml();
-        var busy = BsDataGrid(Data: Rows, Columns: Columns(), Loading: true).ToHtml();
+        var idle = BsDataGrid.Data(Rows).Columns(Columns()).Loading(false).ToHtml();
+        var busy = BsDataGrid.Data(Rows).Columns(Columns()).Loading(true).ToHtml();
 
         Assert.StartsWith("<div class=\"position-relative\">", idle, StringComparison.Ordinal);
         Assert.StartsWith("<div class=\"position-relative\">", busy, StringComparison.Ordinal);
@@ -77,7 +77,7 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
         // Wedged between the table and the pager it would be a structural insert the differ has to reconcile
         // against two same-tag <div> siblings; at the tail it is a pure append. position:absolute means the
         // DOM order costs nothing visually.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), PageSize: 2, Loading: true).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).PageSize(2).Loading(true).ToHtml();
 
         var table = html.IndexOf("<table", StringComparison.Ordinal);
         var pager = html.IndexOf("pagination", StringComparison.Ordinal);
@@ -93,7 +93,7 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
         // BsSpinner renders role="status", an aria-live region. Inside an aria-busy subtree its announcement
         // is deferred until busy clears — by which point the spinner is gone and the load was never announced.
         // So aria-busy goes on the <table> and the spinner is its sibling, not its child.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), Loading: true).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).Loading(true).ToHtml();
 
         var tableEnd = html.IndexOf("</table>", StringComparison.Ordinal);
         var spinner = html.IndexOf("role=\"status\"", StringComparison.Ordinal);
@@ -107,15 +107,19 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
     {
         // A fetch in flight is not "no results". Without this the first load flashes the placeholder before
         // the rows land.
-        var busy = BsDataGrid<Row>(Data: [], Columns: Columns(), Loading: true,
-            Empty: Div.Id("nothing")["Nothing found."]).ToHtml();
+        var busy = BsDataGrid.Data(global::System.Array.Empty<Row>())
+            .Columns(Columns())
+            .Loading(true)
+            .Empty(Div.Id("nothing")["Nothing found."]).ToHtml();
 
         Assert.DoesNotContain("Nothing found.", busy, StringComparison.Ordinal);
         Assert.Contains("bs-grid-overlay", busy, StringComparison.Ordinal);
 
         // ...and it returns the moment the load finishes with nothing.
-        var idle = BsDataGrid<Row>(Data: [], Columns: Columns(), Loading: false,
-            Empty: Div.Id("nothing")["Nothing found."]).ToHtml();
+        var idle = BsDataGrid.Data(global::System.Array.Empty<Row>())
+            .Columns(Columns())
+            .Loading(false)
+            .Empty(Div.Id("nothing")["Nothing found."]).ToHtml();
 
         Assert.Contains("Nothing found.", idle, StringComparison.Ordinal);
     }
@@ -125,8 +129,10 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
     {
         // "Loading finished, no results" is the most common transition this feature creates. If the Empty
         // branch returned unwrapped, the wrapper would disappear underneath the differ at exactly that moment.
-        var html = BsDataGrid<Row>(Data: [], Columns: Columns(), Loading: false,
-            Empty: Div.Id("nothing")["Nothing found."]).ToHtml();
+        var html = BsDataGrid.Data(global::System.Array.Empty<Row>())
+            .Columns(Columns())
+            .Loading(false)
+            .Empty(Div.Id("nothing")["Nothing found."]).ToHtml();
 
         Assert.StartsWith("<div class=\"position-relative\">", html, StringComparison.Ordinal);
     }
@@ -135,7 +141,7 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
     public void WhileLoading_TheControlsSayTheyAreDisabled()
     {
         // aria-disabled, not the disabled attribute: disabled would drop focus to <body> mid-fetch.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), PageSize: 2, Loading: true).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).PageSize(2).Loading(true).ToHtml();
 
         Assert.Contains(
             "<button class=\"btn btn-sm btn-link text-decoration-none p-0 fw-semibold\" aria-disabled=\"true\"",
@@ -159,8 +165,11 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
             new BsColumn<Row> { Title = "Name", Value = r => r.Name, Sortable = true, SortField = "name" },
         ];
 
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: columns, Loading: true,
-            Sort: null, OnSortChange: _ => sorts++));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(columns)
+            .Loading(true)
+            .Sort(null)
+            .OnSortChange(_ => sorts++));
 
         await grid.InvokeAsync(ClickHandlers(grid.Html)[0]);
 
@@ -171,8 +180,12 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
     public async Task WhileLoading_APageClickIsIgnored()
     {
         var pages = new List<int>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), PageSize: 2, Loading: true,
-            Page: 0, OnPageChange: pages.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .PageSize(2)
+            .Loading(true)
+            .Page(0)
+            .OnPageChange(pages.Add));
 
         // The last handler is the pager's "next".
         var handlers = ClickHandlers(grid.Html);
@@ -186,8 +199,12 @@ public partial class BsDataGridLoadingTests : global::Rask.Core.RaskMarkup
     {
         // The guards must be keyed to Loading, not accidentally always-on.
         var pages = new List<int>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), PageSize: 2, Loading: false,
-            Page: 0, OnPageChange: pages.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .PageSize(2)
+            .Loading(false)
+            .Page(0)
+            .OnPageChange(pages.Add));
 
         await grid.InvokeAsync(ClickHandlers(grid.Html)[^1]);
 

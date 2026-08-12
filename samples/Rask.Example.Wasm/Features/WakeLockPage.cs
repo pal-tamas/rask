@@ -13,7 +13,7 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class WakeLockPage : Component
 {
-    protected override Component? Head => Title["Wake lock — Rask"];
+    protected override Component? HeadAssets => Title["Wake lock — Rask"];
 
     protected override Component? Render() =>
     [

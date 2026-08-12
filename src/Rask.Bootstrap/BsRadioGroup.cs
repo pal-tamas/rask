@@ -15,17 +15,17 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
 
     // Controlled mode (used when Bind is null): the parent owns the current value.
     public TValue? Value { get; set; }
-    public Handler<TValue>? OnChange { get; set; }
-    public HandlerAsync<TValue>? OnChangeAsync { get; set; }
+    public Action<TValue>? OnChange { get; set; }
+    public Func<TValue, Task>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
     public Expression<Func<TValue>>? Bind { get; set; }
-    public Carrier<Validate<TValue>>? Validate { get; set; }
-    public Carrier<ValidateAsync<TValue>>? ValidateAsync { get; set; }
-    public Carrier<Action<TValue>>? AfterBind { get; set; }
-    public Carrier<Func<TValue, Task>>? AfterBindAsync { get; set; }
+    public Validate<TValue>? Validate { get; set; }
+    public ValidateAsync<TValue>? ValidateAsync { get; set; }
+    public Action<TValue>? AfterBind { get; set; }
+    public Func<TValue, Task>? AfterBindAsync { get; set; }
 
-    public Carrier<Func<TValue, Component>>? OptionLabel { get; set; }
+    public Func<TValue, Component>? OptionLabel { get; set; }
     public string? Name { get; set; }
 
     // The group's accessible name. When set, the radios are wrapped in a <fieldset> named by a <legend>
@@ -47,7 +47,7 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
         ArgumentNullException.ThrowIfNull(Options);
 
         var bound = Bind is not null;
-        if (!bound && OnChange?.Fn is null && OnChangeAsync?.Fn is null)
+        if (!bound && OnChange is null && OnChangeAsync is null)
         {
             throw new InvalidOperationException(
                 "BsRadioGroup requires Bind (bound mode) or an OnChange/OnChangeAsync handler (controlled mode).");
@@ -91,20 +91,20 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
             var optionValue = option;
             var optionId = $"{groupName}-{index}";
             var isChecked = current is not null && comparer.Equals(optionValue, current);
-            Component label = OptionLabel?.Fn is { } render ? render(option) : option?.ToString() ?? string.Empty;
+            Component label = OptionLabel is { } render ? render(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div.Class(wrapperClass).Key(index)[
-                Input<string>()
+                Input
+                    .Value(BindingHelpers.FormatValue(option))
                     .Type(InputType.Radio)
                     .Name(groupName)
-                    .Value(BindingHelpers.FormatValue(option))
                     .Checked(isChecked)
                     .Disabled(Disabled)
                     .Class("form-check-input")
                     .Id(optionId)
                     .Aria(optionAria)
                     .OnChangeAsync(disabled ? null : _ => SelectAsync(acc, ctx, fid, optionValue)),
-                Rask.Core.Components.Generated.Label(Class: "form-check-label", For: optionId)[label]
+                global::RaskEntriesRask_Core.Label.Class("form-check-label").For(optionId)[label]
             ]);
             index++;
         }

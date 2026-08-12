@@ -134,9 +134,9 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         Assert.Empty(ops); // nothing changed between render 2 and 3
     }
 
-    // ---- Handler-bearing subtrees ----------------------------------------------------------
+    // ---- Action-bearing subtrees ----------------------------------------------------------
     //
-    // Handler ids are positional and reissued from zero on every ROOT render, so these go through
+    // Action ids are positional and reissued from zero on every ROOT render, so these go through
     // RenderAsLiveRoot rather than HtmlSerializer.Serialize: only the real root path clears the map and
     // resets the counter, which is exactly the state a replay has to reproduce. The component under test
     // is a nested child (the root itself is never cacheable — it contains a user component).

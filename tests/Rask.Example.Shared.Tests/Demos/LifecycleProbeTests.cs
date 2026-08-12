@@ -49,7 +49,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         var log = new LifecycleLog();
         var instanceId = 7;
         var page = RaskTest.Render(
-            () => LifecycleCycleProbe(log.Add, instanceId),
+            () => LifecycleCycleProbe.Log(log.Add).InstanceId(instanceId),
             TestServices.Default());
 
         Assert.Contains(log.Snapshot(), e => e == "#7 OnMount");
@@ -62,7 +62,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         var log = new LifecycleLog();
         var mounted = true;
         var page = RaskTest.Render(
-            () => mounted ? LifecycleCycleProbe(log.Add, 1) : null,
+            () => mounted ? LifecycleCycleProbe.Log(log.Add).InstanceId(1) : null,
             TestServices.Default());
         await WaitFor.True(() => log.Contains("#1 OnMountAsync (after 150ms await)"), TimeSpan.FromSeconds(2));
 

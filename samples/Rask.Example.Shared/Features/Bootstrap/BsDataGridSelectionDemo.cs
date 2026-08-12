@@ -38,23 +38,21 @@ public sealed partial class BsDataGridSelectionDemo : Component
                     .OnClick(Archive)[$"Archive {_selected.Count} selected"],
                 _done is not null ? Span.Id("grid-bulk-done").Class(Txt.Color(BsColor.Secondary))[_done] : null
             ],
-            BsDataGrid(
-                Id: "bs-grid-selection",
-                Data: _tasks,
-                Selectable: true,
-                RowKey: t => t.Id,
-                // The full set of selected keys after every click — not a delta.
-                OnSelectionChange: keys => _selected = keys,
-                Empty: BsAlert.Id("grid-selection-empty").Color(BsColor.Success)["Nothing left. Archived it all."],
-                Columns:
-                [
+            BsDataGrid
+                .Data(_tasks)
+                .Columns([
                     new BsColumn<Task_> { Title = "Task", Value = t => t.Title, Sortable = true },
                     new BsColumn<Task_> { Title = "Assignee", Value = t => t.Assignee, Sortable = true },
                     new BsColumn<Task_>
                     {
                         Title = "State", Sortable = true, SortKey = t => t.State, Template = StateBadge,
                     },
-                ])];
+                ])
+                .Id("bs-grid-selection")
+                .Selectable(true)
+                .RowKey(t => t.Id)
+                .OnSelectionChange(keys => _selected = keys)
+                .Empty(BsAlert.Id("grid-selection-empty").Color(BsColor.Success)["Nothing left. Archived it all."])];
 
     private void Archive()
     {

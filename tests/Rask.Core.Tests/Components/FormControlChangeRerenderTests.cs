@@ -170,7 +170,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         {
             RenderCount++;
             return Div[
-                Select<string>().OnChange(v => _pick = v)[
+                Select.Value<string>(null).OnChange(v => _pick = v)[
                     Option.Value("rask"), Option.Value("blazor")
                 ],
                 Span["Picked: ", _pick]
@@ -200,7 +200,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         {
             RenderCount++;
             return Div[
-                Input<string>().OnChange(v => _text = v),
+                Input.Value<string>(null).OnChange(v => _text = v),
                 Span["Echo: ", _text]
             ];
         }
@@ -238,7 +238,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         {
             RenderCount++;
             return Div[
-                new Wrapper { Body = [.. _names.Select((n, i) => Input<string>().Value(n).OnChange(v => _names[i] = v).Key(i))] },
+                new Wrapper { Body = [.. _names.Select((n, i) => Input.Value(n).OnChange(v => _names[i] = v).Key(i))] },
                 Span["Names: ", string.Join(",", _names)]
             ];
         }
@@ -274,8 +274,8 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         protected override Component? Render()
         {
             RenderCount++;
-            return Form(_model)[
-                Select(() => _model.Color)[Option.Value("red"), Option.Value("blue")],
+            return Form.Model(_model)[
+                Select.Bind(() => _model.Color)[Option.Value("red"), Option.Value("blue")],
                 Span["Bound: ", _model.Color ?? ""]
             ];
         }
@@ -309,7 +309,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         protected override Component? Render()
         {
             RenderCount++;
-            return Form(_model)[
+            return Form.Model(_model)[
                 new BindWrapper { Bind = () => _model.Name },
                 Span["Name: ", _model.Name]
             ];
@@ -327,6 +327,6 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
     {
         public System.Linq.Expressions.Expression<Func<string>>? Bind { get; set; }
 
-        protected override Component? Render() => Input(Bind!);
+        protected override Component? Render() => Input.Bind(Bind!);
     }
 }

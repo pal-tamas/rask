@@ -10,8 +10,8 @@ namespace Rask.Core.Components;
 //
 // It also adds the HTMLMediaElement-specific EVENTS (play/pause/timeupdate/…) — these are not part of
 // the universal GlobalEventHandlers surface, so they live here rather than on Element. They flow through
-// the same LiveState DomEvents store (Handler<MediaEventArgs> carrier pairs over Callback<MediaEventArgs>,
-// see ElementEvents) and emit after the shared attrs.
+// the same LiveState DomEvents store (sync + async `Action<MediaEventArgs>` / `Func<MediaEventArgs, Task>`
+// pairs, see ElementEvents) and emit after the shared attrs.
 public abstract class HtmlMediaElement : Element
 {
     // Emit order for the media events, kept deterministic like Element's GlobalEventOrder.
@@ -29,41 +29,41 @@ public abstract class HtmlMediaElement : Element
     public string? Preload { get; set; }
     public string? CrossOrigin { get; set; }
 
-    public Handler<MediaEventArgs>? OnPlay { get => SyncHandler<MediaEventArgs>("play"); set => SetDomEventSync("play", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnPlayAsync { get => AsyncHandler<MediaEventArgs>("play"); set => SetDomEventAsync("play", value?.Fn); }
+    public Action<MediaEventArgs>? OnPlay { get => SyncHandler<MediaEventArgs>("play"); set => SetDomEventSync("play", value); }
+    public Func<MediaEventArgs, Task>? OnPlayAsync { get => AsyncHandler<MediaEventArgs>("play"); set => SetDomEventAsync("play", value); }
 
-    public Handler<MediaEventArgs>? OnPause { get => SyncHandler<MediaEventArgs>("pause"); set => SetDomEventSync("pause", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnPauseAsync { get => AsyncHandler<MediaEventArgs>("pause"); set => SetDomEventAsync("pause", value?.Fn); }
+    public Action<MediaEventArgs>? OnPause { get => SyncHandler<MediaEventArgs>("pause"); set => SetDomEventSync("pause", value); }
+    public Func<MediaEventArgs, Task>? OnPauseAsync { get => AsyncHandler<MediaEventArgs>("pause"); set => SetDomEventAsync("pause", value); }
 
-    public Handler<MediaEventArgs>? OnPlaying { get => SyncHandler<MediaEventArgs>("playing"); set => SetDomEventSync("playing", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnPlayingAsync { get => AsyncHandler<MediaEventArgs>("playing"); set => SetDomEventAsync("playing", value?.Fn); }
+    public Action<MediaEventArgs>? OnPlaying { get => SyncHandler<MediaEventArgs>("playing"); set => SetDomEventSync("playing", value); }
+    public Func<MediaEventArgs, Task>? OnPlayingAsync { get => AsyncHandler<MediaEventArgs>("playing"); set => SetDomEventAsync("playing", value); }
 
-    public Handler<MediaEventArgs>? OnEnded { get => SyncHandler<MediaEventArgs>("ended"); set => SetDomEventSync("ended", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnEndedAsync { get => AsyncHandler<MediaEventArgs>("ended"); set => SetDomEventAsync("ended", value?.Fn); }
+    public Action<MediaEventArgs>? OnEnded { get => SyncHandler<MediaEventArgs>("ended"); set => SetDomEventSync("ended", value); }
+    public Func<MediaEventArgs, Task>? OnEndedAsync { get => AsyncHandler<MediaEventArgs>("ended"); set => SetDomEventAsync("ended", value); }
 
-    public Handler<MediaEventArgs>? OnTimeUpdate { get => SyncHandler<MediaEventArgs>("timeupdate"); set => SetDomEventSync("timeupdate", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnTimeUpdateAsync { get => AsyncHandler<MediaEventArgs>("timeupdate"); set => SetDomEventAsync("timeupdate", value?.Fn); }
+    public Action<MediaEventArgs>? OnTimeUpdate { get => SyncHandler<MediaEventArgs>("timeupdate"); set => SetDomEventSync("timeupdate", value); }
+    public Func<MediaEventArgs, Task>? OnTimeUpdateAsync { get => AsyncHandler<MediaEventArgs>("timeupdate"); set => SetDomEventAsync("timeupdate", value); }
 
-    public Handler<MediaEventArgs>? OnVolumeChange { get => SyncHandler<MediaEventArgs>("volumechange"); set => SetDomEventSync("volumechange", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnVolumeChangeAsync { get => AsyncHandler<MediaEventArgs>("volumechange"); set => SetDomEventAsync("volumechange", value?.Fn); }
+    public Action<MediaEventArgs>? OnVolumeChange { get => SyncHandler<MediaEventArgs>("volumechange"); set => SetDomEventSync("volumechange", value); }
+    public Func<MediaEventArgs, Task>? OnVolumeChangeAsync { get => AsyncHandler<MediaEventArgs>("volumechange"); set => SetDomEventAsync("volumechange", value); }
 
-    public Handler<MediaEventArgs>? OnRateChange { get => SyncHandler<MediaEventArgs>("ratechange"); set => SetDomEventSync("ratechange", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnRateChangeAsync { get => AsyncHandler<MediaEventArgs>("ratechange"); set => SetDomEventAsync("ratechange", value?.Fn); }
+    public Action<MediaEventArgs>? OnRateChange { get => SyncHandler<MediaEventArgs>("ratechange"); set => SetDomEventSync("ratechange", value); }
+    public Func<MediaEventArgs, Task>? OnRateChangeAsync { get => AsyncHandler<MediaEventArgs>("ratechange"); set => SetDomEventAsync("ratechange", value); }
 
-    public Handler<MediaEventArgs>? OnDurationChange { get => SyncHandler<MediaEventArgs>("durationchange"); set => SetDomEventSync("durationchange", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnDurationChangeAsync { get => AsyncHandler<MediaEventArgs>("durationchange"); set => SetDomEventAsync("durationchange", value?.Fn); }
+    public Action<MediaEventArgs>? OnDurationChange { get => SyncHandler<MediaEventArgs>("durationchange"); set => SetDomEventSync("durationchange", value); }
+    public Func<MediaEventArgs, Task>? OnDurationChangeAsync { get => AsyncHandler<MediaEventArgs>("durationchange"); set => SetDomEventAsync("durationchange", value); }
 
-    public Handler<MediaEventArgs>? OnLoadedMetadata { get => SyncHandler<MediaEventArgs>("loadedmetadata"); set => SetDomEventSync("loadedmetadata", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnLoadedMetadataAsync { get => AsyncHandler<MediaEventArgs>("loadedmetadata"); set => SetDomEventAsync("loadedmetadata", value?.Fn); }
+    public Action<MediaEventArgs>? OnLoadedMetadata { get => SyncHandler<MediaEventArgs>("loadedmetadata"); set => SetDomEventSync("loadedmetadata", value); }
+    public Func<MediaEventArgs, Task>? OnLoadedMetadataAsync { get => AsyncHandler<MediaEventArgs>("loadedmetadata"); set => SetDomEventAsync("loadedmetadata", value); }
 
-    public Handler<MediaEventArgs>? OnSeeked { get => SyncHandler<MediaEventArgs>("seeked"); set => SetDomEventSync("seeked", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnSeekedAsync { get => AsyncHandler<MediaEventArgs>("seeked"); set => SetDomEventAsync("seeked", value?.Fn); }
+    public Action<MediaEventArgs>? OnSeeked { get => SyncHandler<MediaEventArgs>("seeked"); set => SetDomEventSync("seeked", value); }
+    public Func<MediaEventArgs, Task>? OnSeekedAsync { get => AsyncHandler<MediaEventArgs>("seeked"); set => SetDomEventAsync("seeked", value); }
 
-    public Handler<MediaEventArgs>? OnSeeking { get => SyncHandler<MediaEventArgs>("seeking"); set => SetDomEventSync("seeking", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnSeekingAsync { get => AsyncHandler<MediaEventArgs>("seeking"); set => SetDomEventAsync("seeking", value?.Fn); }
+    public Action<MediaEventArgs>? OnSeeking { get => SyncHandler<MediaEventArgs>("seeking"); set => SetDomEventSync("seeking", value); }
+    public Func<MediaEventArgs, Task>? OnSeekingAsync { get => AsyncHandler<MediaEventArgs>("seeking"); set => SetDomEventAsync("seeking", value); }
 
-    public Handler<MediaEventArgs>? OnWaiting { get => SyncHandler<MediaEventArgs>("waiting"); set => SetDomEventSync("waiting", value?.Fn); }
-    public HandlerAsync<MediaEventArgs>? OnWaitingAsync { get => AsyncHandler<MediaEventArgs>("waiting"); set => SetDomEventAsync("waiting", value?.Fn); }
+    public Action<MediaEventArgs>? OnWaiting { get => SyncHandler<MediaEventArgs>("waiting"); set => SetDomEventSync("waiting", value); }
+    public Func<MediaEventArgs, Task>? OnWaitingAsync { get => AsyncHandler<MediaEventArgs>("waiting"); set => SetDomEventAsync("waiting", value); }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

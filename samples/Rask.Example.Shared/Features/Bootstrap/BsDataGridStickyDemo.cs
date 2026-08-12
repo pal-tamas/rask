@@ -28,14 +28,9 @@ public sealed partial class BsDataGridStickyDemo : Component
 
     protected override Component? Render() =>
         Div.Id("grid-sticky-demo")[
-            BsDataGrid(
-                Id: "bs-grid-sticky",
-                Data: Readings,
-                RowKey: r => r.Sensor,
-                MaxHeight: "280px",
-                StickyHeader: true,
-                Columns:
-                [
+            BsDataGrid
+                .Data(Readings)
+                .Columns([
                     new BsColumn<Reading> { Title = "Sensor", Value = r => r.Sensor, Sortable = true },
                     new BsColumn<Reading> { Title = "Zone", Value = r => r.Zone, Sortable = true },
                     new BsColumn<Reading>
@@ -43,5 +38,9 @@ public sealed partial class BsDataGridStickyDemo : Component
                         Title = "Temp", Class = Txt.End(), Sortable = true, SortKey = r => r.Celsius,
                         Value = r => $"{r.Celsius:F1} °C",
                     },
-                ])];
+                ])
+                .Id("bs-grid-sticky")
+                .RowKey(r => r.Sensor)
+                .MaxHeight("280px")
+                .StickyHeader(true)];
 }

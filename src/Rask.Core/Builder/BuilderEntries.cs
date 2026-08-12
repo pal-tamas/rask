@@ -39,7 +39,7 @@ public abstract partial class Component
     /// </remarks>
     /// <remarks>
     ///     <para>
-    ///         <paramref name="reset" /> puts the component's non-folding props (raw delegates, carriers,
+    ///         <paramref name="reset" /> puts the component's non-folding props (delegates and
     ///         <c>Key</c>) back to the value the factory would pass for an omitted parameter, and
     ///         <paramref name="pendingReset" /> is deferred to the end of the parent's <c>Render()</c>
     ///         for the folding ones — see <see cref="BuilderRuntime" /> for why the two halves cannot

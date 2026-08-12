@@ -26,7 +26,7 @@ public sealed partial class DisposalSyncDemo : Component
                     .OnClick(UnmountSync)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount sync probe"]
             ],
             _syncMounted
-                ? DisposableTimerProbe(AppendSyncLog, _nextSyncId)
+                ? DisposableTimerProbe.Log(AppendSyncLog).InstanceId(_nextSyncId)
                 : P.Class("text-secondary fst-italic mb-0")["Probe not mounted."],
             DisposalDemoLog.Entries(_syncLog).ListId("dispose-sync-log")
         ];

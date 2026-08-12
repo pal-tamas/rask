@@ -12,7 +12,7 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class EyeDropperPage : Component
 {
-    protected override Component? Head => Title["EyeDropper — Rask"];
+    protected override Component? HeadAssets => Title["EyeDropper — Rask"];
 
     protected override Component? Render() =>
     [

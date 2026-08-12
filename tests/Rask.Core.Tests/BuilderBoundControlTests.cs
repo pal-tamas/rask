@@ -27,10 +27,10 @@ internal sealed partial class BoundBuilderProbe : Component
 
     protected override Component? Render() =>
         Div[
-            Input(() => Model.Name).Validate(NonEmpty).Id("name").Class("field"),
-            Input(() => Model.Age).Id("age"),
-            Textarea(() => Model.Name).Id("bio"),
-            Select(() => Model.Name).Id("pick")[Option("Ada")["Ada"]]
+            Input.Bind(() => Model.Name).Validate(NonEmpty).Id("name").Class("field"),
+            Input.Bind(() => Model.Age).Id("age"),
+            Textarea.Bind(() => Model.Name).Id("bio"),
+            Select.Bind(() => Model.Name).Id("pick")[Option("Ada")["Ada"]]
         ];
 
     internal static IEnumerable<string> NonEmpty(string value) =>
@@ -43,7 +43,7 @@ internal sealed partial class BoundFactoryProbe : Component
 
     protected override Component? Render() =>
         Div()[
-            Rask.Core.Components.Generated.Input(() => Model.Name, Validate: BoundBuilderProbe.NonEmpty,
+            Rask.Core.Components.Generated.Input(() => Model.Name, Validate: global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty,
                 Id: "name", Class: "field"),
             Rask.Core.Components.Generated.Input(() => Model.Age, Id: "age"),
             Rask.Core.Components.Generated.Textarea(() => Model.Name, Id: "bio"),
@@ -51,7 +51,7 @@ internal sealed partial class BoundFactoryProbe : Component
         ];
 }
 
-public class BuilderBoundControlTests
+public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void The_bound_entry_renders_identically_to_the_bound_factory() =>
@@ -73,15 +73,14 @@ public class BuilderBoundControlTests
     public void Both_validator_shapes_are_setters()
     {
         var model = new BoundForm();
-        var sync = Rask.Core.Components.Generated.Input<string>().Bind(() => model.Name);
-        var async = Rask.Core.Components.Generated.Input<string>().Bind(() => model.Name);
+        // `Bind` is the chain's opening, not a setter on a built control — which is what makes bound and
+        // controlled mutually exclusive. So the chain starts here rather than at the factory.
+        var sync = Input.Bind(() => model.Name).Validate(global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty).Value;
+        var async = Input.Bind(() => model.Name).ValidateAsync(CheckAsync).Value;
 
-        sync.Validate(BoundBuilderProbe.NonEmpty);
-        async.ValidateAsync(CheckAsync);
-
-        Assert.Same((Validate<string>)BoundBuilderProbe.NonEmpty, sync.Validate?.Fn);
-        Assert.NotNull(async.ValidateAsync?.Fn);
-        Assert.Null(async.Validate?.Fn);
+        Assert.Same((Validate<string>)global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty, sync.Validate);
+        Assert.NotNull(async.ValidateAsync);
+        Assert.Null(async.Validate);
         return;
 
         static ValueTask<IEnumerable<string>> CheckAsync(string value, CancellationToken ct) =>
@@ -94,23 +93,22 @@ public class BuilderBoundControlTests
     public void The_bound_setters_never_auto_wrap()
     {
         var probe = BoundBuilderProbe();
-        var control = Rask.Core.Components.Generated.Input<string>();
         Action<string> hook = probe.Note;
 
-        control.AfterBind(hook);
+        var control = Input.Of<string>().AfterBind(hook).Value;
 
-        Assert.Same(hook, control.AfterBind?.Fn);
+        Assert.Same(hook, control.AfterBind);
     }
 
-    // The carrier is what lets the prop and the setter share a name; plain assignment must still work.
+    // Plain assignment must still work.
     [Fact]
-    public void The_carrier_converts_from_the_plain_delegate()
+    public void A_bound_member_takes_a_plain_assignment()
     {
-        Validate<string> rule = BoundBuilderProbe.NonEmpty;
+        Validate<string> rule = global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty;
         var control = Rask.Core.Components.Generated.Input<string>();
         control.Validate = rule;
 
-        Assert.Same(rule, control.Validate?.Fn);
+        Assert.Same(rule, control.Validate);
     }
 }
 

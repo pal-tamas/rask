@@ -18,9 +18,9 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
         BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody[
                 BsInputGroup.Size(BsSize.Sm).Class("mb-2")[
-                    BsInput<string>()
-                        .Id("storage-input")
+                    BsInput
                         .Value(_input)
+                        .Id("storage-input")
                         .Placeholder("Value to persist")
                         .OnChange(v => _input = v),
                     BsButton.Color(BsColor.Primary).Id("storage-set").OnClickAsync(Set)["Set"],

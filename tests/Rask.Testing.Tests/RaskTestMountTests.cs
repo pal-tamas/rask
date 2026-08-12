@@ -7,7 +7,7 @@ namespace Rask.Testing.Tests;
 // and OnMountAsync never ran, which left anything that loads asynchronously stuck on its placeholder
 // forever and pushed coverage that belongs in a unit test out to E2E. These pin the mount, the repaint
 // that follows an asynchronous mount, and the guarantees that had to survive the fix.
-public class RaskTestMountTests
+public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
 {
     private sealed class Probe : Component
     {
@@ -189,7 +189,7 @@ public class RaskTestMountTests
     {
         // The other half of that choice: GetOrCreateChild's reuse branch nulls Children, which would
         // delete a caller-built subtree on the second render.
-        var page = RaskTest.Render(Div()[Span()["kept"]]);
+        var page = RaskTest.Render(Div[Span["kept"]]);
         page.Render();
         page.Render();
 

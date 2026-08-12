@@ -57,7 +57,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         var attempts = 0;
         var handler = new FakeHttp
         {
-            Handler = _ => Interlocked.Increment(ref attempts) <= 1
+            Action = _ => Interlocked.Increment(ref attempts) <= 1
                 ? throw new HttpRequestException("TypeError: Load failed")
                 : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                 {

@@ -23,10 +23,10 @@ public sealed partial class BsConfirmDialog : BsBlock
     // Disable outside-click / × dismissal, forcing an explicit Confirm or Cancel.
     public bool? StaticBackdrop { get; set; }
 
-    public Handler? OnConfirm { get; set; }
-    public HandlerAsync? OnConfirmAsync { get; set; }
-    public Handler? OnCancel { get; set; }
-    public HandlerAsync? OnCancelAsync { get; set; }
+    public Action? OnConfirm { get; set; }
+    public Func<Task>? OnConfirmAsync { get; set; }
+    public Action? OnCancel { get; set; }
+    public Func<Task>? OnCancelAsync { get; set; }
 
     protected override Component? Render() =>
         Open is not true
@@ -38,14 +38,14 @@ public sealed partial class BsConfirmDialog : BsBlock
                 .Title(Title)
                 .Centered(true)
                 .StaticBackdrop(StaticBackdrop)
-                .OnClose(OnCancel?.Fn)
-                .OnCloseAsync(OnCancelAsync?.Fn)
+                .OnClose(OnCancel)
+                .OnCloseAsync(OnCancelAsync)
                 .Footer(Footer())[Body()];
 
     private new Component Footer() =>
     [
-        BsButton.Color(BsColor.Secondary).OnClick(OnCancel?.Fn).OnClickAsync(OnCancelAsync?.Fn)[CancelText],
-        BsButton.Color(ConfirmColor).OnClick(OnConfirm?.Fn).OnClickAsync(OnConfirmAsync?.Fn)[ConfirmText]
+        BsButton.Color(BsColor.Secondary).OnClick(OnCancel).OnClickAsync(OnCancelAsync)[CancelText],
+        BsButton.Color(ConfirmColor).OnClick(OnConfirm).OnClickAsync(OnConfirmAsync)[ConfirmText]
     ];
 
     private new IEnumerable<Component?> Body() =>

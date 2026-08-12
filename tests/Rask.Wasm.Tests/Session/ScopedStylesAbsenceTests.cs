@@ -50,7 +50,7 @@ public class ScopedStylesAbsenceTests : ResettingTestBase
 
     private sealed class ScopedCssStubApp : Component
     {
-        protected override Component? Head => Title["wasm-stub"];
+        protected override Component? HeadAssets => Title["wasm-stub"];
 
         protected override string? HtmlLang => null;
 

@@ -44,7 +44,7 @@ public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
             .AddSingleton<IGreeter>(new FixedGreeter("ctx"))
             .BuildServiceProvider();
 
-        var root = new StubComponent(Span());
+        var root = new StubComponent(Span);
         using var ctx = LiveRenderContext.Begin(root, services);
 
         var instance = Generated.GreetingComponent();

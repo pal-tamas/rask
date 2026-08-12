@@ -100,7 +100,7 @@ public class GeneratedBuilderSurfaceAnalyzerTests
         // is what lets `.Note(…)` be followed by another setter — assert that shape here rather than
         // trusting the mirror in RequiredBuilderPropertyAnalyzerTests to still describe it.
         Assert.Contains(
-            "public static global::Demo.Card Note(this global::Demo.Card",
+            "public static global::Rask.Core.Build<global::Demo.Card> Note(this global::Rask.Core.Build<global::Demo.Card>",
             BuilderGeneratorHarness.Run(Chain).Source("RaskBuilderSetters.g.cs"),
             StringComparison.Ordinal);
 
@@ -120,7 +120,7 @@ public class GeneratedBuilderSurfaceAnalyzerTests
     ///     </para>
     /// </summary>
     [Fact]
-    public async Task A_component_with_a_required_property_gets_an_entry__and_RASK038_walks_it()
+    public async Task A_component_with_a_required_property_hands_back_a_seed__and_the_chain_must_supply_it()
     {
         const string source = """
             namespace Demo
@@ -133,17 +133,24 @@ public class GeneratedBuilderSurfaceAnalyzerTests
 
                 public sealed partial class Page : Rask.Core.Component
                 {
-                    protected override Rask.Core.Component? Render() => Card.Note("n");
+                    protected override Rask.Core.Component? Render() => Card.Title("t").Note("n");
                 }
             }
             """;
 
         var run = BuilderGeneratorHarness.Run(source);
-        Assert.Contains(" Card =>", run.Source("RaskBuilderConsumerEntries.g.cs"), StringComparison.Ordinal);
 
-        var d = Assert.Single((await AnalyzeGeneratedAsync(source)).Where(x => x.Id is "RASK038" or "RASK039"));
-        Assert.Equal("RASK038", d.Id);
-        Assert.Contains("'Title'", d.GetMessage(), StringComparison.Ordinal);
+        // The entry hands back a SEED, and `Title` is the step that turns it into a Card. `Note` is an
+        // ordinary setter, reachable only afterwards — so `Card.Note("n")`, which is what this test used
+        // to assert RASK038 about, does not compile at all any more.
+        Assert.Contains(" Card =>", run.Source("RaskBuilderConsumerEntries.g.cs"), StringComparison.Ordinal);
+        Assert.Contains("RaskSeed_Card", run.Source("RaskBuilderEntryHost.g.cs"), StringComparison.Ordinal);
+
+        // …and nothing is reported for a complete chain. RASK038 has not gone: it still answers for a
+        // REFERENCED library's component, whose RASK001-requiredness metadata destroys and the owning
+        // assembly republishes (CrossAssemblyRequiredPropertyTests). Within one compilation the type now
+        // says it, which is the stronger statement.
+        Assert.Empty((await AnalyzeGeneratedAsync(source)).Where(x => x.Id is "RASK038" or "RASK039"));
     }
 
     // The other half: the reset that stands in for the factory's required ARGUMENT. `default!` rather

@@ -13,7 +13,7 @@ public partial class DefaultNotFoundPageTests : global::Rask.Core.RaskMarkup
     {
         using var _ = BeginRoute("/missing");
 
-        var html = DefaultNotFoundPage.RenderForLive()!.ToHtml();
+        var html = DefaultNotFoundPage.Value.RenderForLive()!.ToHtml();
 
         Assert.Contains("Page not found", html);
     }
@@ -23,7 +23,7 @@ public partial class DefaultNotFoundPageTests : global::Rask.Core.RaskMarkup
     {
         using var _ = BeginRoute("/does/not/exist");
 
-        var html = DefaultNotFoundPage.RenderForLive()!.ToHtml();
+        var html = DefaultNotFoundPage.Value.RenderForLive()!.ToHtml();
 
         Assert.Contains("/does/not/exist", html);
     }
@@ -33,7 +33,7 @@ public partial class DefaultNotFoundPageTests : global::Rask.Core.RaskMarkup
     {
         using var _ = BeginRoute("/anywhere");
 
-        var html = DefaultNotFoundPage.RenderForLive()!.ToHtml();
+        var html = DefaultNotFoundPage.Value.RenderForLive()!.ToHtml();
 
         Assert.Contains("href=\"/\"", html);
     }
@@ -44,7 +44,7 @@ public partial class DefaultNotFoundPageTests : global::Rask.Core.RaskMarkup
         var services = RenderHarness.EmptyServices();
         using var _ = LiveRenderContext.Begin(new StubComponent(Span), services);
 
-        var html = DefaultNotFoundPage.RenderForLive()!.ToHtml();
+        var html = DefaultNotFoundPage.Value.RenderForLive()!.ToHtml();
 
         Assert.Contains("Page not found", html);
         Assert.Contains(">/<", html);

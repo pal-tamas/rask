@@ -29,7 +29,7 @@ public sealed partial class ProductsPage(IDispatcher dispatcher) : Component
     private bool _loaded;
     private bool _showDeleted;
 
-    protected override Component? Head => Title()["Products"];
+    protected override Component? HeadAssets => Title["Products"];
 
     protected override async Task OnMountAsync() => await LoadAsync();
 
@@ -47,34 +47,34 @@ public sealed partial class ProductsPage(IDispatcher dispatcher) : Component
 
     protected override Component? Render() =>
     [
-        Div()[
-            H1()["Products"],
-            Button("button", OnClickAsync: ToggleDeletedAsync)[_showDeleted ? "Hide deleted" : "Show deleted"],
-            NavLink(Routes.CreateProduct())["New Product"]
+        Div[
+            H1["Products"],
+            Button.Type("button").OnClickAsync(ToggleDeletedAsync)[_showDeleted ? "Hide deleted" : "Show deleted"],
+            NavLink.Href(Routes.CreateProduct())["New Product"]
         ],
         !_loaded
-            ? Div()["Loading…"]
+            ? Div["Loading…"]
             : _items.Count == 0
-                ? Div()["No Products yet."]
-                : Table()[
-                    Thead()[
-                        Tr()[
-                            Th()["#"],
-                            Th()["Name"],
-                            Th()["Price"],
-                            Th()["InStock"],
-                            Th()[""]
+                ? Div["No Products yet."]
+                : Table[
+                    Thead[
+                        Tr[
+                            Th["#"],
+                            Th["Name"],
+                            Th["Price"],
+                            Th["InStock"],
+                            Th[""]
                         ]
                     ],
-                    Tbody()[
-                        _items.Select(x => Tr(Key: x.Id)[
-                            Td()[$"{x.Id}"],
-                            Td()[x.Name.Value],
-                            Td()[$"{x.Price}"],
-                            Td()[$"{x.InStock}"],
-                            Td()[
-                                x.DeletedAt is null ? NavLink(Routes.UpdateProduct(x.Id))["Edit"] : null,
-                                x.DeletedAt is null ? (Component)DeleteProduct(Id: x.Id, OnDeleted: LoadAsync) : RestoreProduct(Id: x.Id, OnRestored: LoadAsync)
+                    Tbody[
+                        _items.Select(x => Tr.Key(x.Id)[
+                            Td[$"{x.Id}"],
+                            Td[x.Name.Value],
+                            Td[$"{x.Price}"],
+                            Td[$"{x.InStock}"],
+                            Td[
+                                x.DeletedAt is null ? NavLink.Href(Routes.UpdateProduct(x.Id))["Edit"] : null,
+                                x.DeletedAt is null ? (Component)DeleteProduct.Id(x.Id).OnDeleted(LoadAsync) : RestoreProduct.Id(x.Id).OnRestored(LoadAsync)
                             ]
                         ])
                     ]

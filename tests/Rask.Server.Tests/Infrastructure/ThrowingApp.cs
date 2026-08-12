@@ -9,7 +9,7 @@ public sealed partial class ThrowingApp : Component
 {
     public int Counter;
 
-    protected override Component? Head => new Title()["throw"];
+    protected override Component? HeadAssets => new Title()["throw"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

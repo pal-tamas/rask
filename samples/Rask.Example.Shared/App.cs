@@ -31,7 +31,7 @@ public partial class App : Component
         "window.raskAfterMorph=function(){var s=localStorage.getItem('rask-theme');if(s)apply(s);" +
         "if(typeof prev==='function')prev();};})();";
 
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Rask — feature showcase"],
         Meta.Charset("utf-8"),

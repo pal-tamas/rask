@@ -74,7 +74,7 @@ public sealed partial class KeyedListsReorderDemo : Component
     [
         BsBadge.Color(BsColor.Secondary).Pill(true)[index + 1],
         Span.Class("fw-semibold").Style("min-width: 7rem;")[f.Name],
-        Input<string>()
+        Input.Value<string>(null)
             .Type(InputType.Text)
             .Class("form-control form-control-sm kl-note")
             .Placeholder("type here, then reorder…")

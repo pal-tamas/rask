@@ -6,11 +6,11 @@ public sealed partial class EventsInputDemo : Component
 
     protected override Component? Render() =>
     [
-        Input<string>()
+        Input
+            .Value(_typed)
             .Type(InputType.Text)
             .Class("form-control mb-2")
             .Placeholder("Type something")
-            .Value(_typed)
             .OnInput(v => _typed = v),
         P.Class("small mb-0")[
             "You typed: ",

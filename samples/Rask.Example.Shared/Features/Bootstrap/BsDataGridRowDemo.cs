@@ -28,20 +28,9 @@ public sealed partial class BsDataGridRowDemo : Component
             _opened is not null
                 ? BsAlert.Id("grid-row-opened").Color(BsColor.Info).Class(Margin.Bottom(3))[$"Opened {_opened}"]
                 : null,
-            BsDataGrid(
-                Id: "bs-grid-row",
-                Data: Invoices,
-                RowKey: i => i.Number,
-                OnRowClick: i => _opened = i.Number,
-                // Overdue invoices tint red, the worst ones louder. Returning null leaves the row unstyled.
-                RowClass: i => i.DaysOverdue switch
-                {
-                    0 => null,
-                    < 30 => "table-warning",
-                    _ => "table-danger",
-                },
-                Columns:
-                [
+            BsDataGrid
+                .Data(Invoices)
+                .Columns([
                     new BsColumn<Invoice> { Title = "Invoice", Value = i => i.Number, Sortable = true },
                     new BsColumn<Invoice> { Title = "Customer", Value = i => i.Customer, Sortable = true },
                     new BsColumn<Invoice>
@@ -60,5 +49,14 @@ public sealed partial class BsDataGridRowDemo : Component
                             .Size(BsSize.Sm)
                             .OnClick(() => _opened = i.Number)["Open"],
                     },
-                ])];
+                ])
+                .Id("bs-grid-row")
+                .RowKey(i => i.Number)
+                .OnRowClick(i => _opened = i.Number)
+                .RowClass(i => i.DaysOverdue switch
+                {
+                    0 => null,
+                    < 30 => "table-warning",
+                    _ => "table-danger",
+                })];
 }

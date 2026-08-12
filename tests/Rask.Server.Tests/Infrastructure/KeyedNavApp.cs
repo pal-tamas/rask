@@ -46,7 +46,7 @@ public sealed partial class KeyedNavApp : Component
         StateHasChanged();
     }
 
-    protected override Component? Head => new Title()["keyed-nav"];
+    protected override Component? HeadAssets => new Title()["keyed-nav"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

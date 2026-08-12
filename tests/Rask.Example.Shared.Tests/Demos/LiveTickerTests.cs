@@ -245,13 +245,13 @@ public sealed partial class LiveTickerTests : global::Rask.Core.RaskMarkup
     // RenderAsLiveRoot path App uses). [SkipFactory] keeps the generator from
     // emitting a colliding Generated.TwoTickerRoot() factory.
     [SkipFactory]
-    private sealed partial class TwoTickerRoot(Callback<string> log) : Component
+    private sealed partial class TwoTickerRoot(Action<string> log) : Component
     {
         protected override Component? Render() =>
         [
             Doctype,
             Html.Lang("en")[
-                Head(),
+                Head,
                 Body[
                     LiveTicker.Symbol("BTC").Interval(5000).Log(log),
                     LiveTicker.Symbol("ETH").Interval(5000).Log(log)

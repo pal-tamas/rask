@@ -65,9 +65,9 @@ public sealed partial class GanttDemo : Component
                 .Data(_tasks)
                 .Holidays(Holidays)
                 .ViewMode(_viewMode)
-                .TaskClick(TaskClicked)
-                .DateChange(TaskMoved)
-                .ProgressChange(ProgressChanged),
+                .OnTaskClick(TaskClicked)
+                .OnDateChange(TaskMoved)
+                .OnProgressChange(ProgressChanged),
 
             BsCard.Class("gantt-log")[
                 BsCardBody.Class("py-2")[

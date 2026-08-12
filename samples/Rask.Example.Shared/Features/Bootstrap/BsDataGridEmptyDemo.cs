@@ -35,17 +35,16 @@ public sealed partial class BsDataGridEmptyDemo : Component
                     .Size(BsSize.Sm)
                     .OnClick(() => _filter = "")["Clear filter"]
             ],
-            BsDataGrid(
-                Id: "bs-grid-empty",
-                Data: rows,
-                RowKey: t => t.Title,
-                Empty: BsAlert.Id("grid-empty").Color(BsColor.Info).Class(Margin.Bottom(0))[
-                    "No tasks match that filter."],
-                Columns:
-                [
+            BsDataGrid
+                .Data(rows)
+                .Columns([
                     new BsColumn<Task> { Title = "Task", Value = t => t.Title, Sortable = true },
                     new BsColumn<Task> { Title = "Owner", Value = t => t.Owner, Sortable = true },
                 ])
+                .Id("bs-grid-empty")
+                .RowKey(t => t.Title)
+                .Empty(BsAlert.Id("grid-empty").Color(BsColor.Info).Class(Margin.Bottom(0))[
+                    "No tasks match that filter."])
         ];
     }
 }

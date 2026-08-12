@@ -15,15 +15,18 @@ public sealed class ComponentConstructionAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor Rask014 = new(
         "RASK014",
-        "Components must be created via factory methods",
-        "Do not instantiate '{0}' with 'new'; use the generated {1}Components.{0}(...) factory instead",
+        "Components must be built through a chain",
+        "Do not instantiate '{0}' with 'new'; name it and chain onto it instead — '{0}.Prop(value)', or '{0}' alone when it needs nothing",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
-        description: "The generated factories are how a component gets its key, its children and its injected "
-                     + "services; 'new' skips all three and produces an instance the runtime cannot reconcile. In a test "
-                     + "file that deliberately constructs components, opt out per file with '#pragma warning disable "
-                     + "RASK014'.",
+        description: "A chain is how a component gets its identity, its children and its injected services: the "
+                     + "first step routes through GetOrCreate, which is what lets the runtime reconcile the same "
+                     + "instance across renders. 'new' skips all of it and produces an instance the runtime cannot "
+                     + "match to anything, so it re-mounts every frame and never hits the render cache. It also skips "
+                     + "what the chain enforces — a component whose required properties are steps cannot be "
+                     + "incomplete, and 'new' can make one that is. In a test file that deliberately constructs "
+                     + "components, opt out per file with '#pragma warning disable RASK014'.",
         helpLinkUri: DiagnosticHelp.Link("RASK014"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =

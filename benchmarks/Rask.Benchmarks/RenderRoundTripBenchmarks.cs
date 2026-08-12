@@ -33,7 +33,7 @@ public partial class RenderRoundTripBenchmarks : global::Rask.Core.RaskMarkup
             rows.Add(Div.Class("row").Id($"r{i}").Key(i)[
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
-                Input<string>().Type(InputType.Text).Name($"f{i}").Value($"v{i}")
+                Input.Value($"v{i}").Type(InputType.Text).Name($"f{i}")
             ]);
         }
 

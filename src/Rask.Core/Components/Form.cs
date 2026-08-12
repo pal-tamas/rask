@@ -4,25 +4,21 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
-// [FactoryGeneric] also emits a `Form<TModel>(TModel Model, Action<TModel>? OnValidSubmit, ...)`
-// overload that narrows Model + the submit-handler delegates from the non-generic factory's
-// `object?` / `Delegate?` shapes to typed counterparts. The generic overload synthesises a
-// `Func<TModel, Task>? XAsync` sibling for each TypedDelegateProperties name and collapses
-// the two back into a single `Delegate?` argument before forwarding to the non-generic factory.
+// A <form> bound to a model. Generic over TModel, which is what types everything downstream: the
+// submit handlers receive the model itself rather than a Delegate the component has to DynamicInvoke,
+// and the cross-field validator is a `Validate<TModel>` rather than something checked at runtime.
 //
-// `Validate` rides on TypedValidatorProperties, which fans out into three overloads of the
-// generic factory — no `Validate`, typed sync `Validate<TModel>`, and typed async
-// `ValidateAsync<TModel>` (the shared validator delegate types in Rask.Core.Forms) — so callers
-// can pass a bare lambda without a delegate cast.
-[FactoryGeneric("TModel",
-    ModelProperty = nameof(Model),
-    TypedDelegateProperties = new[] { nameof(OnValidSubmit), nameof(OnInvalidSubmit) },
-    TypedValidatorProperties = new[] { nameof(Validate) })]
-public sealed class Form : Element
+// It used to be non-generic, with the typing supplied by a [FactoryGeneric] overload that narrowed
+// `object?`/`Delegate?` down per call. That worked only while the factory existed — a chain has no
+// overloads to narrow through — so the generics moved onto the component, and the attribute and its
+// whole generator path went with them. The three-way validator fan-out went too: it existed so a sync
+// and an async validator could each be a required, correctly-typed PARAMETER, and as two setters they
+// simply coexist.
+public sealed partial class Form<TModel> : Element
 {
     private EditContext? _context;
 
-    private object? _model;
+    private TModel _model = default!;
     protected override string TagName => "form";
 
     public string? Enctype { get; set; }
@@ -31,21 +27,21 @@ public sealed class Form : Element
     public string? Autocomplete { get; set; }
     public bool? Novalidate { get; set; }
     public string? Name { get; set; }
-    // Carrier-typed so the builder setter keeps the property's own name (a delegate prop is invocable,
-    // so `.OnSubmit(save)` would try to invoke it — CS1593). Calling one back is `OnSubmit?.Invoke(data)`.
-    public Handler<FormData>? OnSubmit { get; set; }
+    // Calling one back is `OnSubmit?.Invoke(data)`.
+    public Action<FormData>? OnSubmit { get; set; }
 
-    public HandlerAsync<FormData>? OnSubmitAsync { get; set; }
+    public Func<FormData, Task>? OnSubmitAsync { get; set; }
 
     // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
     // walks the model graph so descendant sub-objects also resolve to the same context. Without
-    // this, a nested binding like Input(() => model.Address.Street) — whose acc.Target is
+    // this, a nested binding like Input.Bind(() => model.Address.Street) — whose acc.Target is
     // model.Address — would GetOrCreateEditContext(model.Address) at factory time and end up
     // writing field events into a separate empty EditContext, never reaching the validators
     // that self-registered into the form's context. Setter runs every render (generated factory
     // re-applies properties on cached instances), keeping the registration fresh when sub-
     // object references are swapped between renders.
-    public object? Model
+    /// <summary>The model this form binds to. Every field inside it resolves against this object.</summary>
+    public required TModel Model
     {
         get => _model;
         set
@@ -59,15 +55,30 @@ public sealed class Form : Element
         }
     }
 
-    public Delegate? OnValidSubmit { get; set; }
-    public Delegate? OnInvalidSubmit { get; set; }
+    /// <summary>Runs on submit when every field passes validation.</summary>
+    [AutoCallback]
+    public Action<TModel>? OnValidSubmit { get; set; }
 
-    // Cross-field validation rule. Accepts either:
-    //   sync   — Validate<TModel>
-    //   async  — ValidateAsync<TModel>
-    // Messages produced here attach to FieldIdentifier(Model, "") — i.e. they surface in
-    // ValidationSummary and any field-less ValidationMessage, not against a specific input.
-    public Delegate? Validate { get; set; }
+    /// <inheritdoc cref="OnValidSubmit" />
+    [AutoCallback]
+    public Func<TModel, Task>? OnValidSubmitAsync { get; set; }
+
+    /// <summary>Runs on submit when validation fails, so the page can react rather than sit silent.</summary>
+    [AutoCallback]
+    public Action<TModel>? OnInvalidSubmit { get; set; }
+
+    /// <inheritdoc cref="OnInvalidSubmit" />
+    [AutoCallback]
+    public Func<TModel, Task>? OnInvalidSubmitAsync { get; set; }
+
+    /// <summary>
+    ///     Cross-field validation for the form as a whole. Messages attach to the model rather than to a
+    ///     field, so they surface in ValidationSummary and any field-less ValidationMessage.
+    /// </summary>
+    public Validate<TModel>? Validate { get; set; }
+
+    /// <inheritdoc cref="Validate" />
+    public ValidateAsync<TModel>? ValidateAsync { get; set; }
 
     public EditContext? Context
     {
@@ -130,8 +141,8 @@ public sealed class Form : Element
                 // and the EditContext this actually wants.
                 throw new InvalidOperationException(
                     $"Form{Describe()} has neither a model nor an EditContext, so there is nothing for "
-                    + "its fields to bind to. Pass the model as the first argument — Form(model)[ … ] — "
-                    + "or hand it an existing EditContext with Form(Context: editContext)[ … ].");
+                    + "its fields to bind to. Open the chain with the model — Form.Model(model)[ … ] — "
+                    + "or hand it an existing EditContext with Form.Model(model).Context(editContext)[ … ].");
             }
 
             ctx = LiveRenderContext.CurrentSync is { } live
@@ -141,7 +152,9 @@ public sealed class Form : Element
 
         // RegisterFormValidator(null) clears any prior registration so a re-render that
         // drops the Validate parameter doesn't leave a stale callback behind.
-        ctx.RegisterFormValidator(Validate);
+        // Whichever shape was given; null clears a prior registration so a re-render that drops the
+        // validator does not leave a stale callback behind.
+        ctx.RegisterFormValidator((Delegate?)Validate ?? ValidateAsync);
         return ctx;
     }
 
@@ -160,14 +173,17 @@ public sealed class Form : Element
             await ctx.ValidateAsync().ConfigureAwait(false);
             ctx.TouchAllRegisteredFields();
             var isValid = !ctx.HasValidationMessages();
-            var handler = isValid ? OnValidSubmit : OnInvalidSubmit;
-            if (handler is null)
+            var onModel = isValid ? OnValidSubmit : OnInvalidSubmit;
+            var onModelAsync = isValid ? OnValidSubmitAsync : OnInvalidSubmitAsync;
+            if (onModel is null && onModelAsync is null)
             {
-                if (OnSubmit?.Fn is { } sync)
+                // No model-shaped handler: fall back to the raw FormData pair, which is what a form that
+                // only wants the posted values uses.
+                if (OnSubmit is { } sync)
                 {
                     sync(formData);
                 }
-                else if (OnSubmitAsync?.Fn is { } asyn)
+                else if (OnSubmitAsync is { } asyn)
                 {
                     await asyn(formData).ConfigureAwait(false);
                 }
@@ -175,10 +191,16 @@ public sealed class Form : Element
                 return;
             }
 
-            var result = handler.DynamicInvoke(ctx.Model);
-            if (result is Task t)
+            // Typed, so the model goes straight to the handler — the non-generic Form had to
+            // DynamicInvoke here, because all it held was a Delegate.
+            var model = (TModel)ctx.Model;
+            if (onModel is { } handler)
             {
-                await t.ConfigureAwait(false);
+                handler(model);
+            }
+            else if (onModelAsync is { } handlerAsync)
+            {
+                await handlerAsync(model).ConfigureAwait(false);
             }
         };
 
@@ -223,7 +245,7 @@ public sealed class Form : Element
         }
         else
         {
-            submit = (Delegate?)OnSubmit?.Fn ?? OnSubmitAsync?.Fn;
+            submit = (Delegate?)OnSubmit ?? OnSubmitAsync;
         }
 
         if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)

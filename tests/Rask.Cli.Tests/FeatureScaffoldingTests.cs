@@ -212,7 +212,7 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("public static IEnumerable<string> Validate(string value)", vo, StringComparison.Ordinal);
         Assert.Contains("public static ProductName Create(string value)", vo, StringComparison.Ordinal);
         // The form wires the value object's Validate into the bound input.
-        Assert.Contains("Input(() => _form.Name).Validate(ProductName.Validate).Id(\"name\")", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.Contains("Input.Bind(() => _form.Name).Validate(ProductName.Validate).Id(\"name\")", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -281,6 +281,10 @@ public sealed class FeatureGeneratorTests
 
         Assert.Contains("public sealed record DeleteProductCommand(Guid Id) : ICommand", slice, StringComparison.Ordinal);
         Assert.Contains("public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component", slice, StringComparison.Ordinal);
+        // A plain delegate. It briefly had to be a carrier: while the chain's receiver was the component,
+        // a delegate-typed property was invocable and the step that sets it could not share its name, so
+        // the scaffolded caller could not write `.OnDeleted(LoadAsync)`. The `Build<T>` receiver removed
+        // that, and scaffolded code says what it means again.
         Assert.Contains("public Func<Task>? OnDeleted { get; set; }", slice, StringComparison.Ordinal);
     }
 
@@ -303,15 +307,15 @@ public sealed class FeatureGeneratorTests
         var result = Generate(useBs: true);
 
         var create = File(result, "CreateProduct.cs");
-        Assert.Contains("BsCard(Class: Bs.Join(Shadow.Sm", create, StringComparison.Ordinal);
-        Assert.Contains("BsInput(() => _form.Name).Validate(ProductName.Validate).Id(\"name\").Label(\"Name\")", create, StringComparison.Ordinal);
-        Assert.Contains("BsButton(Type: \"submit\", Color: BsColor.Primary)", create, StringComparison.Ordinal);
+        Assert.Contains("BsCard.Class(Bs.Join(Shadow.Sm", create, StringComparison.Ordinal);
+        Assert.Contains("BsInput.Bind(() => _form.Name).Validate(ProductName.Validate).Id(\"name\").Label(\"Name\")", create, StringComparison.Ordinal);
+        Assert.Contains("BsButton.Type(\"submit\").Color(BsColor.Primary)", create, StringComparison.Ordinal);
         Assert.Contains("Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3))", create, StringComparison.Ordinal);
 
         var list = File(result, "ProductsPage.cs");
-        Assert.Contains("BsTable(Striped: true, Hover: true, Responsive: true)", list, StringComparison.Ordinal);
-        Assert.Contains("BsButton(Color: BsColor.Primary", list, StringComparison.Ordinal);
-        Assert.Contains("BsIcon(Name: BsIconName.PlusLg", list, StringComparison.Ordinal);
+        Assert.Contains("BsTable.Striped(true).Hover(true).Responsive(true)", list, StringComparison.Ordinal);
+        Assert.Contains("BsButton.Color(BsColor.Primary)", list, StringComparison.Ordinal);
+        Assert.Contains("BsIcon.Name(BsIconName.PlusLg)", list, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -323,7 +327,7 @@ public sealed class FeatureGeneratorTests
         Assert.DoesNotContain(result.Files, f => Path.GetFileName(f.Path) is "CreateProduct.cs" or "UpdateProduct.cs");
 
         var list = File(result, "ProductsPage.cs");
-        Assert.Contains("BsModal(Open: _modalOpen", list, StringComparison.Ordinal);
+        Assert.Contains("BsModal.Open(_modalOpen)", list, StringComparison.Ordinal);
         Assert.Contains("private void OpenCreate()", list, StringComparison.Ordinal);
         Assert.Contains("private async Task OpenEditAsync(Guid id)", list, StringComparison.Ordinal);
         // The create + update CQRS lives on the list page now.
@@ -400,7 +404,7 @@ public sealed class FeatureGeneratorTests
         // The request + edit form round-trip the original Version through a hidden field.
         Assert.Contains("public int Version { get; set; }", File(result, "ProductRequest.cs"), StringComparison.Ordinal);
         var update = File(result, "UpdateProduct.cs");
-        Assert.Contains("Input(() => _form.Version).Type(InputType.Hidden)", update, StringComparison.Ordinal);
+        Assert.Contains("Input.Bind(() => _form.Version).Type(InputType.Hidden)", update, StringComparison.Ordinal);
         Assert.Contains("_form.Version = entity.Version;", update, StringComparison.Ordinal);
 
         // The Update handler sets the original value; a conflict is caught + shown inline (not a raw error page).
@@ -504,7 +508,7 @@ public sealed class FeatureGeneratorTests
         Assert.Contains("_error = \"Something went wrong", create, StringComparison.Ordinal);
         // Plain HTML uses a semantic role="alert"; --bs uses BsAlert.
         Assert.Contains("_error is null ? null : Div(Role: \"alert\")[_error]", create, StringComparison.Ordinal);
-        Assert.Contains("_error is null ? null : BsAlert(Color: BsColor.Danger)[_error]", File(Generate(useBs: true), "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.Contains("_error is null ? null : BsAlert.Color(BsColor.Danger)[_error]", File(Generate(useBs: true), "CreateProduct.cs"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -592,7 +596,7 @@ public sealed class FeatureGeneratorTests
         }
 
         // A field is just a label + bound Input, no framework classes.
-        Assert.Contains("Input(() => _form.Price).Id(\"price\")", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
+        Assert.Contains("Input.Bind(() => _form.Price).Id(\"price\")", File(result, "CreateProduct.cs"), StringComparison.Ordinal);
     }
 
     [Fact]

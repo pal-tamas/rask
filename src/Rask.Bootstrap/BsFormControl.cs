@@ -4,7 +4,7 @@ using Rask.Core.Forms;
 namespace Rask.Bootstrap;
 
 // Base for the Bootstrap form controls (BsInput/BsTextarea/BsSelect/BsCheck). Implements
-// IFormControl<T> so the generator emits the bound builder entry (BsInput(() => model.Email)) and the
+// IFormControl<T> so the generator emits the bound builder entry (BsInput.Bind(() => model.Email)) and the
 // controlled one (BsInput<T>(), then .Value(…)/.OnChange(…)); the controls themselves WRAP the core
 // Input/Select/Textarea and reuse the framework binding helpers (RegisterValidator/StringSetHandler/…)
 // — no re-implemented
@@ -13,15 +13,15 @@ public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
 {
     // IFormControl<T> — bound mode.
     public Expression<Func<T>>? Bind { get; set; }
-    public Carrier<Validate<T>>? Validate { get; set; }
-    public Carrier<ValidateAsync<T>>? ValidateAsync { get; set; }
-    public Carrier<Action<T>>? AfterBind { get; set; }
-    public Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
+    public Validate<T>? Validate { get; set; }
+    public ValidateAsync<T>? ValidateAsync { get; set; }
+    public Action<T>? AfterBind { get; set; }
+    public Func<T, Task>? AfterBindAsync { get; set; }
 
     // IFormControl<T> — controlled mode.
     public T? Value { get; set; }
-    public Handler<T>? OnChange { get; set; }
-    public HandlerAsync<T>? OnChangeAsync { get; set; }
+    public Action<T>? OnChange { get; set; }
+    public Func<T, Task>? OnChangeAsync { get; set; }
 
     // Shared Bootstrap field props.
     public new string? Label { get; set; }
@@ -75,11 +75,11 @@ public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
 
     // The change handler for a string-valued control: the model writeback (bound) or the typed
     // controlled-change bridge. Reused by BsInput/BsSelect/BsTextarea.
-    private protected CallbackAsync<string>? StringChangeHandler(in Bound b) =>
+    private protected Func<string, Task>? StringChangeHandler(in Bound b) =>
         b is { IsBound: true, Accessor: { } acc }
             ? BindingHelpers.StringSetHandler(acc, b.Context, b.Field, validateOnSet: false,
-                afterBind: BindingHelpers.BuildAfterBind(acc, AfterBind?.Fn, AfterBindAsync?.Fn))
-            : (CallbackAsync<string>?)((IFormControl<T>)this).ControlledChangeHandler();
+                afterBind: BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync))
+            : (Func<string, Task>?)((IFormControl<T>)this).ControlledChangeHandler();
 
     // The id used to tie the <label for> to the control.
     private protected string? ControlId(in Bound b) => Id ?? b.Accessor?.PropertyName ?? Name;
@@ -150,7 +150,7 @@ public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
     // field is marked consistently without each call site repeating the markup. Absent Required, the
     // asterisk span is null and the label renders exactly as before.
     private Component RequiredLabel(string? controlId, string? cls) =>
-        Rask.Core.Components.Generated.Label(For: controlId, Class: cls)[
+        global::RaskEntriesRask_Core.Label.For(controlId).Class(cls)[
             Label,
             Required is true ? Span.Class("text-danger ms-1")["*"] : null
         ];

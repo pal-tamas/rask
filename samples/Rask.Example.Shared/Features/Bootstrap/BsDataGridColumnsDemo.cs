@@ -33,17 +33,9 @@ public sealed partial class BsDataGridColumnsDemo : Component
 
     protected override Component? Render() =>
         Div.Id("grid-columns-demo")[
-            BsDataGrid(
-                Id: "bs-grid-columns",
-                Data: Deals,
-                RowKey: d => d.Account,
-                ColumnChooser: true,
-                HiddenColumns: _hidden,
-                OnHiddenColumnsChange: h => _hidden = [.. h],
-                ColumnOrder: _order,
-                OnColumnOrderChange: o => _order = [.. o],
-                Columns:
-                [
+            BsDataGrid
+                .Data(Deals)
+                .Columns([
                     new BsColumn<Deal>
                     {
                         Title = "Account", Value = d => d.Account, Field = d => d.Account, Sortable = true,
@@ -63,5 +55,12 @@ public sealed partial class BsDataGridColumnsDemo : Component
                         Value = d => d.Amount.ToString("C0"),
                         Footer = rows => rows.Sum(d => d.Amount).ToString("C0"),
                     },
-                ])];
+                ])
+                .Id("bs-grid-columns")
+                .RowKey(d => d.Account)
+                .ColumnChooser(true)
+                .HiddenColumns(_hidden)
+                .OnHiddenColumnsChange(h => _hidden = [.. h])
+                .ColumnOrder(_order)
+                .OnColumnOrderChange(o => _order = [.. o])];
 }

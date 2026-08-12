@@ -26,7 +26,7 @@ public sealed partial class NavigateInHandlerStateHasChangedApp : Component
 
     protected override void OnUnmount() => _routeState.Changed -= StateHasChanged;
 
-    protected override Component? Head => new Title()["nav-coalesce"];
+    protected override Component? HeadAssets => new Title()["nav-coalesce"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() => new H1()[$"path={_routeState.Path}"];

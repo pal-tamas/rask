@@ -100,7 +100,7 @@ public sealed class ToastOutlet : Component
             snapshot = [.. _messages];
         }
 
-        return Template(snapshot, Dismiss);
+        return Template!(snapshot, Dismiss);
     }
 
     private void OnToastChanged()

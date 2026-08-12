@@ -12,7 +12,7 @@ internal sealed partial class ReactiveTitleStubApp : Component
 {
     private int _count;
 
-    protected override Component? Head => Title[$"count-{_count}"];
+    protected override Component? HeadAssets => Title[$"count-{_count}"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

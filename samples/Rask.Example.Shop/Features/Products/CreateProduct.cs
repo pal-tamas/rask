@@ -25,7 +25,7 @@ public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navi
     private readonly ProductRequest _form = new();
     private string? _error;
 
-    protected override Component? Head => Title()["New Product"];
+    protected override Component? HeadAssets => Title["New Product"];
 
     private async Task SubmitAsync(ProductRequest form)
     {
@@ -41,27 +41,27 @@ public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navi
     }
 
     protected override Component? Render() =>
-        Div()[
-            Div()[
-                H1()["New Product"],
-                _error is null ? null : Div(Role: "alert")[_error],
-                Form(_form, OnValidSubmitAsync: SubmitAsync)[
-                    Input(() => _form.Version).Type(InputType.Hidden),
-                    Div()[
-                        Label("name")["Name"],
-                        Input(() => _form.Name).Validate(ProductName.Validate).Id("name")
+        Div[
+            Div[
+                H1["New Product"],
+                _error is null ? null : Div.Role("alert")[_error],
+                Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
+                    Input.Bind(() => _form.Version).Type(InputType.Hidden),
+                    Div[
+                        Label.For("name")["Name"],
+                        Input.Bind(() => _form.Name).Validate(ProductName.Validate).Id("name")
                     ],
-                    Div()[
-                        Label("price")["Price"],
-                        Input(() => _form.Price).Id("price")
+                    Div[
+                        Label.For("price")["Price"],
+                        Input.Bind(() => _form.Price).Id("price")
                     ],
-                    Div()[
-                        Label("instock")["InStock"],
-                        Input(() => _form.InStock).Id("instock")
+                    Div[
+                        Label.For("instock")["InStock"],
+                        Input.Bind(() => _form.InStock).Id("instock")
                     ],
-                    Div()[
-                        NavLink(Routes.ProductsPage())["Cancel"],
-                        Button("submit")["Save"]
+                    Div[
+                        NavLink.Href(Routes.ProductsPage())["Cancel"],
+                        Button.Type("submit")["Save"]
                     ]
                 ]
             ]

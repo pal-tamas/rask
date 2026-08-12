@@ -293,7 +293,7 @@ public sealed partial class GanttTests : global::Rask.Core.RaskMarkup
         var calls = 0;
         var js = new FakeJsRuntime();
         var host = new LiveHost(
-            () => Gantt.Data(Tasks).TaskClick(_ => { calls++; return Task.CompletedTask; }),
+            () => Gantt.Data(Tasks).OnTaskClick(_ => { calls++; return Task.CompletedTask; }),
             TestServices.Default(js: js));
 
         host.RenderAsLiveRoot();

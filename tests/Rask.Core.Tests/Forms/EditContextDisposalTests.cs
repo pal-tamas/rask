@@ -18,7 +18,7 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
         var show = true;
 
         var page = RaskTest.Render(() => show
-            ? Form<Model>(model, Context: ctx)[Input(() => model.Name)]
+            ? Form.Model(model).Context(ctx)[Input.Bind(() => model.Name)]
             : Div[Text.Value("gone")]);
 
         Assert.False(ctx.IsDisposed);
@@ -33,7 +33,7 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
     {
         var model = new Model { Name = "ada" };
         var ctx = new EditContext(model);
-        var page = RaskTest.Render(() => Form<Model>(model, Context: ctx)[Input(() => model.Name)]);
+        var page = RaskTest.Render(() => Form.Model(model).Context(ctx)[Input.Bind(() => model.Name)]);
 
         page.Render();
 

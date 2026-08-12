@@ -27,7 +27,7 @@ internal static class JobGenerator
         /// <summary>A background job — enqueue it with <see cref="IJobQueue"/> and it runs off the request thread.</summary>
         public sealed record {{name}} : IJob;
 
-        public sealed class {{name}}Handler : ICommandHandler<{{name}}>
+        public sealed class {{name}}Action : ICommandHandler<{{name}}>
         {
             public Task HandleAsync({{name}} job, CancellationToken cancellationToken)
             {

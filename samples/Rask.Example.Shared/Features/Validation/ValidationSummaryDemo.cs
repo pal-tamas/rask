@@ -24,30 +24,27 @@ public sealed partial class ValidationSummaryDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<RegistrationModel>(
-            _model,
-            m => _submission = $"Registered: {m.Name} <{m.Email}>",
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("vstack gap-3")[
             DataAnnotationsValidator,
-            ValidationSummary(SummaryAlert),
+            ValidationSummary.Template(SummaryAlert),
             Div[
                 Label.For("v2-name").Class("form-label small mb-1")["Name"],
-                Input(() => _model.Name).Id("v2-name").Class("form-control")
+                Input.Bind(() => _model.Name).Id("v2-name").Class("form-control")
             ],
             Div[
                 Label.For("v2-email").Class("form-label small mb-1")["Email"],
-                Input(() => _model.Email)
+                Input.Bind(() => _model.Email)
                     .Id("v2-email")
                     .Type(InputType.Email)
                     .Class("form-control")
             ],
             Div[
                 Label.For("v2-age").Class("form-label small mb-1")["Age"],
-                Input(() => _model.Age).Id("v2-age").Class("form-control")
+                Input.Bind(() => _model.Age).Id("v2-age").Class("form-control")
             ],
             Div[
                 Label.For("v2-plan").Class("form-label small mb-1")["Plan"],
-                Select(() => _model.Plan).Id("v2-plan").Class("form-select")[
+                Select.Bind(() => _model.Plan).Id("v2-plan").Class("form-select")[
                     Option.Value("")["— choose —"],
                     Option.Value("free")["Free"],
                     Option.Value("pro")["Pro"],

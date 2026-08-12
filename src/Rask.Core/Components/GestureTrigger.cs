@@ -34,13 +34,13 @@ public sealed class GestureTrigger : Component
     ///     Optional callback for capabilities that return a value (the eyedropper's hex, the install outcome).
     ///     When set, the client posts the result back to it; leave <c>null</c> for fire-and-forget capabilities.
     /// </summary>
-    public Carrier<Func<string?, Task>>? OnResult { get; set; }
+    public Func<string?, Task>? OnResult { get; set; }
 
     /// <summary>Renders your trigger element, given the attribute bundle to apply via its <c>Data</c> prop.</summary>
     public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr(Capability, OnResult?.Fn));
+    protected override Component Render() => Template!(GestureBridge.Attr(Capability, OnResult));
 }
 
 /// <summary>Present an element/page fullscreen from a click gesture (works on Server, unlike the imperative <c>IFullscreen</c>).</summary>
@@ -53,20 +53,20 @@ public sealed class FullscreenTrigger : Component
     public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("fullscreen.request", null, el: For?.Id));
+    protected override Component Render() => Template!(GestureBridge.Attr("fullscreen.request", null, el: For?.Id));
 }
 
 /// <summary>Open the eyedropper from a click gesture and receive the picked colour (hex, or <c>null</c> if cancelled).</summary>
 public sealed class EyeDropperTrigger : Component
 {
     /// <summary>Invoked with the picked colour as <c>#rrggbb</c>, or <c>null</c> when the user cancels.</summary>
-    public Carrier<Func<string?, Task>>? OnColor { get; set; }
+    public Func<string?, Task>? OnColor { get; set; }
 
     /// <summary>Renders your trigger element; its click opens the eyedropper.</summary>
     public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("eyedropper.open", OnColor?.Fn));
+    protected override Component Render() => Template!(GestureBridge.Attr("eyedropper.open", OnColor));
 }
 
 /// <summary>
@@ -84,7 +84,7 @@ public sealed class ScreenOrientationTrigger : Component
     public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("orientation.lock", null, arg: Orientation));
+    protected override Component Render() => Template!(GestureBridge.Attr("orientation.lock", null, arg: Orientation));
 }
 
 /// <summary>
@@ -100,7 +100,7 @@ public sealed class PictureInPictureTrigger : Component
     public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("pip.request", null, el: For.Id));
+    protected override Component Render() => Template!(GestureBridge.Attr("pip.request", null, el: For.Id));
 }
 
 /// <summary>
@@ -112,13 +112,13 @@ public sealed class PictureInPictureTrigger : Component
 public sealed class InstallTrigger : Component
 {
     /// <summary>Invoked with the install outcome: <c>"accepted"</c>, <c>"dismissed"</c>, or <c>"unavailable"</c>.</summary>
-    public Carrier<Func<string?, Task>>? OnOutcome { get; set; }
+    public Func<string?, Task>? OnOutcome { get; set; }
 
     /// <summary>Renders your trigger element; its click shows the browser's install prompt.</summary>
     public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("install.prompt", OnOutcome?.Fn));
+    protected override Component Render() => Template!(GestureBridge.Attr("install.prompt", OnOutcome));
 }
 
 /// <summary>
@@ -143,7 +143,7 @@ public sealed class MediaCaptureTrigger : Component
     public string? FacingMode { get; set; }
 
     /// <summary>Invoked with <c>"granted"</c> when the stream starts, or <c>"denied"</c> if the user refuses.</summary>
-    public Carrier<Func<string?, Task>>? OnResult { get; set; }
+    public Func<string?, Task>? OnResult { get; set; }
 
     /// <summary>Renders your trigger element; its click starts the capture and attaches it to <see cref="For" />.</summary>
     public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
@@ -154,7 +154,7 @@ public sealed class MediaCaptureTrigger : Component
         var constraints = JsonSerializer.Serialize(
             new GestureMediaConstraints(Video, Audio, FacingMode),
             RaskBrowserJsonContext.Default.GestureMediaConstraints);
-        return Template(GestureBridge.Attr("media.start", OnResult?.Fn, arg: constraints, el: For.Id));
+        return Template!(GestureBridge.Attr("media.start", OnResult, arg: constraints, el: For.Id));
     }
 }
 

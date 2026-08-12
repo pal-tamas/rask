@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Input<T> in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur/Enter) and
 //     re-renders this consumer so the "Echo:" readout updates (the controlled-OnChange fix).
-//   • Bound — Input(() => model.X): two-way binds and streams per keystroke through the EditContext.
+//   • Bound — Input.Bind(() => model.X): two-way binds and streams per keystroke through the EditContext.
 public sealed partial class FormControlsInputDemo : Component
 {
     private string _controlled = "";
@@ -13,7 +13,7 @@ public sealed partial class FormControlsInputDemo : Component
         BsRow.Gutter(4)[
             BsCol.Md(6)[
                 Label.Class("form-label fw-semibold")["Controlled (Value + OnChange)"],
-                Input<string>()
+                Input
                     .Value(_controlled)
                     .OnChange(v => _controlled = v)
                     .Class("form-control mb-2")
@@ -25,8 +25,8 @@ public sealed partial class FormControlsInputDemo : Component
             ],
             BsCol.Md(6)[
                 Label.Class("form-label fw-semibold")["Bound (two-way)"],
-                Form(_model)[
-                    Input(() => _model.Text)
+                Form.Model(_model)[
+                    Input.Bind(() => _model.Text)
                         .Class("form-control mb-2")
                         .Placeholder("Type…")
                         .Id("fc-input-bound")

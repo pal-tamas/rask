@@ -19,7 +19,7 @@ public sealed partial class TablePage(Navigator nav) : Component
     [QueryParam] public int? Page { get; set; }
     [QueryParam] public int? Size { get; set; }
 
-    protected override Component? Head => Title["Data table — Rask"];
+    protected override Component? HeadAssets => Title["Data table — Rask"];
 
     private static Person[] BuildPeople(int count)
     {
@@ -85,18 +85,18 @@ public sealed partial class TablePage(Navigator nav) : Component
                 BsCardHeader.Class("bg-white d-flex flex-wrap gap-2 align-items-center justify-content-between")[
                     Div.Class("input-group input-group-sm").Style("max-width:320px;")[
                         Span.Class("input-group-text bg-white")[BsIcon.Name(BsIconName.Search)],
-                        Input<string>()
+                        Input
+                            .Value(Filter ?? string.Empty)
                             .Type(InputType.Search)
                             .Class("form-control")
                             .Placeholder("Filter name, city, department…")
-                            .Value(Filter ?? string.Empty)
                             .OnInput(v => nav.SetQuery(
                                 KeyValuePair.Create<string, string?>("filter", v ?? string.Empty),
                                 KeyValuePair.Create<string, string?>("page", "1")))
                     ],
                     BsStack.Gap(2).Align(BsAlign.Center)[
                         Label.Class("small text-secondary mb-0")["Rows per page"],
-                        Select<string>()
+                        Select.Value<string>(null)
                             .Class("form-select form-select-sm")
                             .Style("max-width:90px;")
                             .OnChange(v => nav.SetQuery(
@@ -112,24 +112,22 @@ public sealed partial class TablePage(Navigator nav) : Component
                 BsCardBody.Class("pt-0")[
                     // Page and Sort are the URL's, so the grid renders what the query says and reports clicks
                     // instead of moving itself. Page is 0-based here and 1-based in the URL (nicer to share).
-                    BsDataGrid(
-                        Id: "people-grid",
-                        Data: filtered,
-                        PageSize: size,
-                        RowKey: p => p.Id,
-                        Class: "align-middle",
-                        Page: Math.Max(0, (Page ?? 1) - 1),
-                        OnPageChange: p => nav.SetQuery("page", (p + 1).ToString(CultureInfo.InvariantCulture)),
-                        Sort: sortKey.Length == 0 ? null : sortKey,
-                        SortDescending: !dirAsc,
-                        // The grid says which column was clicked; the cycle (asc → desc → unsorted) is this
-                        // page's policy, so it stays here.
-                        OnSortChange: s => CycleSort(s.Field, sortKey, dirAsc),
-                        Empty: Div.Class("text-center text-secondary py-4")[
+                    BsDataGrid
+                        .Data(filtered)
+                        .Columns(BuildColumns())
+                        .Id("people-grid")
+                        .PageSize(size)
+                        .RowKey(p => p.Id)
+                        .Class("align-middle")
+                        .Page(Math.Max(0, (Page ?? 1) - 1))
+                        .OnPageChange(p => nav.SetQuery("page", (p + 1).ToString(CultureInfo.InvariantCulture)))
+                        .Sort(sortKey.Length == 0 ? null : sortKey)
+                        .SortDescending(!dirAsc)
+                        .OnSortChange(s => CycleSort(s.Field, sortKey, dirAsc))
+                        .Empty(Div.Class("text-center text-secondary py-4")[
                             BsIcon.Name(BsIconName.Search).Class("me-2"),
                             "No people match your search."
-                        ],
-                        Columns: BuildColumns())
+                        ])
                 ]
             ],
             filter.Length > 0

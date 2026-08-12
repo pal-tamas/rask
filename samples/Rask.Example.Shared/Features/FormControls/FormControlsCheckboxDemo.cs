@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // BsCheckboxGroup<TItem> (example control, collection) in both shapes side by side.
 //   • Controlled — Options + Value + OnChange: the parent owns the selection; OnChange (auto-wrapped)
 //     hands back a fresh collection and re-renders this consumer so the readout updates.
-//   • Bound — BsCheckboxGroup(() => model.X, options): two-way binds the model collection.
+//   • Bound — BsCheckboxGroup.Bind(() => model.X, options): two-way binds the model collection.
 public sealed partial class FormControlsCheckboxDemo : Component
 {
     private static readonly string[] AllInterests = ["Web", "Mobile", "AI", "Games"];
@@ -15,23 +15,26 @@ public sealed partial class FormControlsCheckboxDemo : Component
         BsRow.Gutter(4)[
             BsCol.Md(6).Id("fc-checkbox-controlled")[
                 Label.Class("form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
-                BsCheckboxGroup<string>(
-                    AllInterests,
-                    Value: _controlled.ToList(),
-                    OnChange: next => _controlled = next,
-                    Name: "fc-checkbox-c",
-                    ItemClass: "form-check-inline"),
+                BsCheckboxGroup
+                    .Value(_controlled.ToList())
+                    .Options(AllInterests)
+                    .OnChange(next => _controlled = next)
+                    .Name("fc-checkbox-c")
+                    .ItemClass("form-check-inline"),
                 P.Class("small text-secondary mb-0").Id("fc-checkbox-controlled-out")[
                     "Interests: ", Strong[_controlled.Count == 0 ? "none" : string.Join(", ", _controlled)]
                 ]
             ],
             BsCol.Md(6).Id("fc-checkbox-bound")[
                 Label.Class("form-label fw-semibold d-block")["Bound (two-way)"],
-                Form(_model)[
+                Form.Model(_model)[
                     // Label: names the group — the options render inside a <fieldset>/<legend> for the
                     // correct accessible grouping semantics.
-                    BsCheckboxGroup(() => _model.Interests, AllInterests, Name: "fc-checkbox-b",
-                        Label: "Interests", ItemClass: "form-check-inline")
+                    BsCheckboxGroup.Bind(() => _model.Interests)
+                        .Options(AllInterests)
+                        .Name("fc-checkbox-b")
+                        .Label("Interests")
+                        .ItemClass("form-check-inline")
                 ],
                 P.Class("small text-secondary mb-0").Id("fc-checkbox-bound-out")[
                     "Interests: ",

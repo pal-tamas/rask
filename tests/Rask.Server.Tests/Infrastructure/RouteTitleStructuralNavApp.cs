@@ -21,7 +21,7 @@ public sealed partial class RouteTitleStructuralNavApp : Component
 
     protected override void OnUnmount() => _routeState.Changed -= StateHasChanged;
 
-    protected override Component? Head => new Title()[$"t-{_routeState.Path}"];
+    protected override Component? HeadAssets => new Title()[$"t-{_routeState.Path}"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

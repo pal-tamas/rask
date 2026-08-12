@@ -25,7 +25,7 @@ public sealed partial class CreateOrder(IDispatcher dispatcher, Navigator naviga
     private readonly OrderRequest _form = new();
     private string? _error;
 
-    protected override Component? Head => Title()["New Order"];
+    protected override Component? HeadAssets => Title["New Order"];
 
     private async Task SubmitAsync(OrderRequest form)
     {
@@ -41,22 +41,22 @@ public sealed partial class CreateOrder(IDispatcher dispatcher, Navigator naviga
     }
 
     protected override Component? Render() =>
-        Div()[
-            Div()[
-                H1()["New Order"],
-                _error is null ? null : Div(Role: "alert")[_error],
-                Form(_form, OnValidSubmitAsync: SubmitAsync)[
-                    Div()[
-                        Label("customer")["Customer"],
-                        Input(() => _form.Customer).Validate(OrderCustomer.Validate).Id("customer")
+        Div[
+            Div[
+                H1["New Order"],
+                _error is null ? null : Div.Role("alert")[_error],
+                Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
+                    Div[
+                        Label.For("customer")["Customer"],
+                        Input.Bind(() => _form.Customer).Validate(OrderCustomer.Validate).Id("customer")
                     ],
-                    Div()[
-                        Label("total")["Total"],
-                        Input(() => _form.Total).Id("total")
+                    Div[
+                        Label.For("total")["Total"],
+                        Input.Bind(() => _form.Total).Id("total")
                     ],
-                    Div()[
-                        NavLink(Routes.OrdersPage())["Cancel"],
-                        Button("submit")["Save"]
+                    Div[
+                        NavLink.Href(Routes.OrdersPage())["Cancel"],
+                        Button.Type("submit")["Save"]
                     ]
                 ]
             ]

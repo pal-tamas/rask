@@ -16,7 +16,7 @@ public sealed partial class BindingAfterBindDemo : Component
     [
         Div.Class("mb-3")[
             Label.For("bind-after-country").Class("form-label small")["Country"],
-            Select(() => _model.Country)
+            Select.Bind(() => _model.Country)
                 .AfterBind(c =>
                 {
                     _cities = Cities[c];
@@ -31,7 +31,7 @@ public sealed partial class BindingAfterBindDemo : Component
         ],
         Div.Class("mb-3")[
             Label.For("bind-after-city").Class("form-label small")["City"],
-            Select(() => _model.City)
+            Select.Bind(() => _model.City)
                 .Id("bind-after-city")
                 .Class("form-select")[
                 _cities.Select(c => Option.Value(c).Key(c)[c])

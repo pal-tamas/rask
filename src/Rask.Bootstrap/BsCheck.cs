@@ -5,7 +5,7 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap checkbox or switch bound to a bool: <div class="form-check"><input
 // class="form-check-input" type="checkbox"><label class="form-check-label">. Bound:
-// BsCheck(() => model.AcceptTerms, Label: "I accept"). Set Switch for the toggle look.
+// BsCheck.Bind(() => model.AcceptTerms).Label("I accept"). Set Switch for the toggle look.
 //
 // Implements IFormControl<bool> directly (not via the generic BsFormControl<T> base): an
 // unconstrained `T?` collapses to `T` for value types, so closing the generic base at bool would emit
@@ -14,10 +14,10 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
 {
     // IFormControl<bool> — bound mode.
     public Expression<Func<bool>>? Bind { get; set; }
-    public Carrier<Validate<bool>>? Validate { get; set; }
-    public Carrier<ValidateAsync<bool>>? ValidateAsync { get; set; }
-    public Carrier<Action<bool>>? AfterBind { get; set; }
-    public Carrier<Func<bool, Task>>? AfterBindAsync { get; set; }
+    public Validate<bool>? Validate { get; set; }
+    public ValidateAsync<bool>? ValidateAsync { get; set; }
+    public Action<bool>? AfterBind { get; set; }
+    public Func<bool, Task>? AfterBindAsync { get; set; }
 
     // IFormControl<bool> — controlled mode. Value is plain bool (the interface's `T?` resolves to
     // `bool` for the value type T=bool), so it cannot be nullable to opt out of requiredness the way
@@ -25,8 +25,8 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
     // an unchecked box is the meaningful default, and Render only reads Value when Bind is null, so a
     // bound chain that never names it is correct — without the initializer RASK038 reports it anyway.
     public bool Value { get; set; } = false;
-    public Handler<bool>? OnChange { get; set; }
-    public HandlerAsync<bool>? OnChangeAsync { get; set; }
+    public Action<bool>? OnChange { get; set; }
+    public Func<bool, Task>? OnChangeAsync { get; set; }
 
     public new string? Label { get; set; }
     public bool? Disabled { get; set; }
@@ -71,9 +71,9 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
         var controlId = Id ?? acc?.PropertyName ?? Name;
         var errorId = controlId is not null && invalid ? controlId + "-error" : null;
 
-        CallbackAsync<string>? change = acc is not null
-            ? BindingHelpers.BoolSetHandler(acc, ctx, fid, BindingHelpers.BuildAfterBind(acc, AfterBind?.Fn, AfterBindAsync?.Fn))
-            : (CallbackAsync<string>?)((IFormControl<bool>)this).ControlledChangeHandler();
+        Func<string, Task>? change = acc is not null
+            ? BindingHelpers.BoolSetHandler(acc, ctx, fid, BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync))
+            : (Func<string, Task>?)((IFormControl<bool>)this).ControlledChangeHandler();
 
         // aria-invalid marks the failed state programmatically; aria-describedby ties the input to its
         // role="alert" feedback so a screen reader announces the error with the checkbox. Same shared
@@ -84,7 +84,7 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
         // valid — while everything else (aria-label on a label-less check) passes through untouched.
         var aria = Merge(Aria, BsClass.FieldAria(invalid, errorId));
 
-        var input = Input<string>()
+        var input = Input.Of<string>()
             .Type(InputType.Checkbox)
             .Name(Name ?? acc?.PropertyName)
             .Checked(current)
@@ -106,7 +106,7 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
         return Div.Class(wrapperCls)[
             input,
             Label is not null
-                ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-check-label")[Label]
+                ? global::RaskEntriesRask_Core.Label.For(controlId).Class("form-check-label")[Label]
                 : null,
             invalid ? Div.Id(errorId).Class("invalid-feedback d-block").Role("alert")[messages[0]] : null];
     }

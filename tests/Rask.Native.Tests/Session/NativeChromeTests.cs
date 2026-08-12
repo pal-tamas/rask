@@ -407,7 +407,7 @@ public class NativeChromeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
 
 internal sealed partial class HeaderApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     private int _added;
@@ -421,7 +421,7 @@ internal sealed partial class HeaderApp : Component
 
 internal sealed partial class DynamicHeaderApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     private int _n;
@@ -435,7 +435,7 @@ internal sealed partial class DynamicHeaderApp : Component
 
 internal sealed partial class TabApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     private readonly RouteState _route;
@@ -455,7 +455,7 @@ internal sealed partial class TabApp : Component
 
 internal sealed partial class NavButtonApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     private readonly Navigator _nav;
@@ -478,7 +478,7 @@ internal sealed partial class NavButtonApp : Component
 
 internal sealed partial class TwoHeaderApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
@@ -491,7 +491,7 @@ internal sealed partial class TwoHeaderApp : Component
 
 internal sealed partial class StyledHeaderApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
@@ -507,7 +507,7 @@ internal sealed partial class StyledHeaderApp : Component
 
 internal sealed partial class StyledTabApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
@@ -526,7 +526,7 @@ internal sealed partial class StyledTabApp : Component
 
 internal sealed partial class BadgeTabApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     private int _count = 2;
@@ -545,7 +545,7 @@ internal sealed partial class BadgeTabApp : Component
 
 internal sealed partial class BackApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
@@ -557,7 +557,7 @@ internal sealed partial class BackApp : Component
 
 internal sealed partial class ChromeOnlyApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     private bool _flag;
@@ -575,7 +575,7 @@ internal sealed partial class ChromeOnlyApp : Component
 
 internal sealed partial class MenuApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     private string _last = "none";
@@ -587,9 +587,11 @@ internal sealed partial class MenuApp : Component
             .Trailing([
                 NativeMenuButton
                     .Items([
-                    NativeMenuItem.Title("Refresh").Icon(NativeIcon.Search).OnClick(() => _last = "refresh"),
-                    NativeMenuItem.Title("Delete").Destructive(true).OnClick(() => _last = "delete"),
-                ]),
+                        NativeMenuItem.Title("Refresh").Icon(NativeIcon.Search)
+                            .OnClick(() => _last = "refresh"),
+                        NativeMenuItem.Title("Delete").Destructive(true)
+                            .OnClick(() => _last = "delete"),
+                    ]),
             ]),
         NativeWebView[P[$"last={_last}"]]
     ];
@@ -597,7 +599,7 @@ internal sealed partial class MenuApp : Component
 
 internal sealed partial class SegmentedApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     private int _seg;
@@ -615,7 +617,7 @@ internal sealed partial class SegmentedApp : Component
 
 internal sealed partial class SystemHeaderApp : Component
 {
-    protected override Component? Head => Title["t"];
+    protected override Component? HeadAssets => Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

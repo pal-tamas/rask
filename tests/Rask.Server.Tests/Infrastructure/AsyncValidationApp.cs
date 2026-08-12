@@ -24,19 +24,17 @@ public sealed partial class AsyncValidationApp : Component
         _ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
     }
 
-    protected override Component? Head => new Title()["async-validation"];
+    protected override Component? HeadAssets => new Title()["async-validation"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        Form<SignupModel>(_model, Context: _ctx)[
-            Input(() => _model.Username),
-            ValidatingIndicator(
-                () => _model.Username,
-                () => Span.Class("spinner")["Checking..."]),
-            ValidationMessage(
-                () => _model.Username,
-                msgs => Div.Class("text-danger")[msgs[0]])
+        Form.Model(_model).Context(_ctx)[
+            Input.Bind(() => _model.Username),
+            ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."])
+                .For(() => _model.Username),
+            ValidationMessage.Template(msgs => Div.Class("text-danger")[msgs[0]])
+                .For(() => _model.Username)
         ]
     ];
 

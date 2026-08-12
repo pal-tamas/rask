@@ -248,7 +248,7 @@ public sealed partial class PlaygroundView : Component
         ];
     }
 
-    private static Component RenderPreviewError(Exception error, Callback recover) =>
+    private static Component RenderPreviewError(Exception error, Action recover) =>
         Div.Class("pg-preview-error")[
             Strong["The component threw while rendering:"],
             Pre[error.Message],

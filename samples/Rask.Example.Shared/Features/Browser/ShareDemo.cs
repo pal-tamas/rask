@@ -16,14 +16,14 @@ public sealed partial class ShareDemo : Component
             BsCardBody[
                 BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
                     // Headless: we render our own button; Shareable just supplies the share attribute.
-                    Shareable(
-                        new ShareData
+                    Shareable
+                        .Data(new ShareData
                         {
                             Title = "Rask",
                             Text = "Ship real iOS/Android apps from the same C# component code.",
                             Url = "https://github.com/pal-tamas/rask"
-                        },
-                        share => Button
+                        })
+                        .Template(share => Button
                             .Type("button")
                             .Class("btn btn-primary btn-sm")
                             .Id("share-btn")

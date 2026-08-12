@@ -11,7 +11,7 @@ public partial class EventHandlerErrorBoundaryTests : global::Rask.Core.RaskMark
     {
         var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(true);
-        var boundary = ErrorBoundary;
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(new Component[] { handlerOwner }, null);
 
         // ToHtml stamps handlerOwner.Boundary AND registers the handler under the live
@@ -35,7 +35,7 @@ public partial class EventHandlerErrorBoundaryTests : global::Rask.Core.RaskMark
     {
         var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(false);
-        var boundary = ErrorBoundary;
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(new Component[] { handlerOwner }, null);
 
         using var ctx = LiveRenderContext.Begin(boundary, sp);

@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // stars and emits the chosen rating up through a plain Action<int> prop. The child wraps the
 // callback in its own click handler (so the DOM event only dirties the child) and invokes it off
 // that path — yet the parent still re-renders, because the framework auto-wraps the delegate to
-// re-render its owner. No Callback type, no StateHasChanged threaded through by hand.
+// re-render its owner. No Action type, no StateHasChanged threaded through by hand.
 public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }

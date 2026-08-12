@@ -16,21 +16,18 @@ public sealed partial class FirstErrorWinsDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<LicenseModel>(
-            _model,
-            m => _submission = $"Activated: {m.Code}",
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Activated: {m.Code}").Class("vstack gap-3")[
             DataAnnotationsValidator,
             Div[
                 Label.For("v8-code").Class("form-label small mb-1")["License code"],
-                Input(() => _model.Code)
+                Input.Bind(() => _model.Code)
                     .Id("v8-code")
                     .Class("form-control")
                     .Validate(v =>
                         string.IsNullOrWhiteSpace(v)
                             ? new[] { "Code is required." }
                             : Array.Empty<string>()),
-                ValidationMessage(() => _model.Code, FieldError)
+                ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Unlock).Class("me-1"), "Activate"]

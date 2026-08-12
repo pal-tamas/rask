@@ -78,13 +78,14 @@ public sealed class InputTypeMismatchAnalyzer : DiagnosticAnalyzer
 
         // Two surfaces carry the same mistake. The factory passes Type as an argument to
         // `Generated.Input<T>(…)`; the builder chains a `.Type(…)` setter onto an `Input<T>` receiver
-        // (`Input(() => m.Flag).Type(InputType.Text)`). Both resolve to the same question — is this
+        // (`Input.Bind(() => m.Flag).Type(InputType.Text)`). Both resolve to the same question — is this
         // Input's T a string? — so both are checked here rather than in two analyzers.
         INamedTypeSymbol? control;
         ExpressionSyntax? typeArg;
         if (IsBuilderSetter(method) && string.Equals(method.Name, TypeParameter, StringComparison.Ordinal))
         {
-            control = method.ReceiverType as INamedTypeSymbol;
+            // The setter's receiver is the CHAIN, so the control is inside it: `Build<Input<bool>>`.
+            control = BuilderEntry.ChainedComponent(method.ReceiverType) as INamedTypeSymbol;
             typeArg = invocation.ArgumentList.Arguments.Count == 1
                 ? invocation.ArgumentList.Arguments[0].Expression
                 : null;

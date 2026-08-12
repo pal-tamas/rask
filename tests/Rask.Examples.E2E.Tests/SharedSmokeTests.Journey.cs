@@ -1295,7 +1295,7 @@ public abstract partial class SharedSmokeTests
         await ctxDemo.Locator("button:has-text('Toggle theme')").ClickAsync();
         await Expect(ctxBadge).ToContainTextAsync("Dark", contains);
 
-        // Callback: a child's click invokes the parent's plain delegate and the framework auto-wraps it
+        // Action: a child's click invokes the parent's plain delegate and the framework auto-wraps it
         // to re-render the parent. Scoped by the demo's #callback-rating container.
         var cb = Page.Locator("#callback-rating");
         await cb.Locator("button").Nth(3).ClickAsync();

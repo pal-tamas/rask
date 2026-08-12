@@ -21,7 +21,7 @@ public partial class PlaygroundApp : Component
         "window.raskAfterMorph=function(){var s=localStorage.getItem('rask-theme');if(s)apply(s);" +
         "if(typeof prev==='function')prev();};})();";
 
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Rask Playground"],
         Meta.Charset("utf-8"),

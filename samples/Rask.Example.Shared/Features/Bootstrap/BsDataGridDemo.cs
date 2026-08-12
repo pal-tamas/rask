@@ -28,13 +28,9 @@ public sealed partial class BsDataGridDemo : Component
     // lands on the <table>, and the pager renders as its sibling.
     protected override Component? Render() =>
         Div.Id("grid-demo")[
-        BsDataGrid(
-            Id: "bs-grid",
-            Data: Products,
-            PageSize: 5,
-            RowKey: p => p.Name,
-            Columns:
-            [
+        BsDataGrid
+            .Data(Products)
+            .Columns([
                 new BsColumn<Product> { Title = "Product", Value = p => p.Name, Sortable = true },
                 new BsColumn<Product> { Title = "Category", Value = p => p.Category, Sortable = true },
                 // Template renders a component instead of text; SortKey keeps the numeric order while the
@@ -51,7 +47,10 @@ public sealed partial class BsDataGridDemo : Component
                     Value = p => p.Price.ToString("C"),
                     Footer = rows => rows.Sum(p => p.Price).ToString("C"),
                 },
-            ])];
+            ])
+            .Id("bs-grid")
+            .PageSize(5)
+            .RowKey(p => p.Name)];
 
     private static Component StockBadge(Product product) =>
         product.Stock == 0

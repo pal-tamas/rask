@@ -52,7 +52,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     public async Task TryInvokeHandlerAsync_StringActionHandler_ReceivesValueProperty()
     {
         var captured = string.Empty;
-        var view = new StubComponent(() => Input<string>().OnInput(v => captured = v));
+        var view = new StubComponent(() => Input.Value<string>(null).OnInput(v => captured = v));
         view.RenderAsLiveRoot();
 
         using var doc = JsonDocument.Parse("{\"id\":\"h0\",\"type\":\"input\",\"value\":\"hello\"}");
@@ -66,7 +66,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     public async Task TryInvokeHandlerAsync_FormDataActionHandler_ReceivesFormFields()
     {
         FormData? captured = null;
-        var view = new StubComponent(() => Form(OnSubmit: f => captured = f));
+        var view = new StubComponent(() => Form.Model(new object()).OnSubmit(f => captured = f));
         view.RenderAsLiveRoot();
 
         using var doc =
@@ -101,7 +101,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     public async Task TryInvokeHandlerAsync_FuncStringTaskHandler_ReceivesValue()
     {
         var captured = string.Empty;
-        var view = new StubComponent(() => Input<string>()
+        var view = new StubComponent(() => Input.Value<string>(null)
             .OnInputAsync(async v =>
         {
             await Task.Yield();
@@ -120,7 +120,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     public async Task TryInvokeHandlerAsync_FuncFormDataTaskHandler_ReceivesForm()
     {
         FormData? captured = null;
-        var view = new StubComponent(() => Form(OnSubmitAsync: async f =>
+        var view = new StubComponent(() => Form.Model(new object()).OnSubmitAsync(async f =>
         {
             await Task.Yield();
             captured = f;

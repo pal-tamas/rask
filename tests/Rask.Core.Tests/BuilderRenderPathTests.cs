@@ -46,8 +46,8 @@ internal sealed partial class HeadEntryLeaf : Component
 
     internal Meta? Probe;
 
-    protected override Component? Head =>
-        Probe = Word == "a" ? Meta.Name("probe").Content("keep") : Meta.Name("probe");
+    protected override Component? HeadAssets =>
+        Probe = Word == "a" ? Meta.Name("probe").Content("keep").Value : Meta.Name("probe");
 
     protected override Component? Render() => Span[Word ?? ""];
 }
@@ -58,7 +58,7 @@ internal sealed partial class HeadFactoryLeaf : Component
 
     internal Meta? Probe;
 
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
         Probe = Word == "a"
             ? Rask.Core.Components.Generated.Meta(Name: "probe", Content: "keep")
             : Rask.Core.Components.Generated.Meta(Name: "probe");
@@ -143,7 +143,7 @@ internal sealed partial class ChromeEntryHost : Component
     internal ChromeEntryBar? Bar;
 
     protected override Component? Render() =>
-        Div[Bar = Seed == "a" ? ChromeEntryBar.Word(Seed).Extra("keep") : ChromeEntryBar.Word(Seed)];
+        Div[Bar = Seed == "a" ? ChromeEntryBar.Word(Seed).Extra("keep").Value : ChromeEntryBar.Word(Seed)];
 }
 
 internal sealed partial class ChromeFactoryHost : Component

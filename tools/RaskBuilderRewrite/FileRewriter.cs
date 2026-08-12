@@ -27,7 +27,17 @@ internal sealed record Site(
     SiteVerdict Verdict,
     string? Detail,
     IReadOnlyList<string> Setters,
-    int BindArgument,
+    // Where the entry's own parameters were written at the site, in the ENTRY's order — the arguments
+    // that stay arguments. One for a bound control's `Bind`, more for a component whose entry has to pin
+    // more than one type parameter, none for a plain or controlled site.
+    IReadOnlyList<int> PinArguments,
+    // The pin methods to call on the seed, one per PinArguments entry — `Bind`, or `Bind` then
+    // `Options` when one call cannot pin every type argument.
+    IReadOnlyList<string> PinNames,
+    // Which of Setters are chain STEPS rather than setters. Spelled identically, but a step has to come
+    // first — and the rewrite has to emit them that way itself, because the verification that follows
+    // compiles what it wrote.
+    IReadOnlyList<string> StepCalls,
     bool NeedsInjectedEntry);
 
 /// <summary>
@@ -119,8 +129,27 @@ internal sealed class FileRewriter
                 var site = byNode.Values.First(s => s.Id == siteId);
                 // By NAME, not by symbol identity: `candidate` is a different CSharpCompilation, and a
                 // source symbol from one is never reference-equal to the same source symbol in another.
-                var produced = model2.GetTypeInfo(node).Type;
-                if (produced is null || Fqn(produced) != site.ComponentFullName)
+                // Compared as ORIGINAL DEFINITIONS: a pin chain infers its type arguments, so the
+                // rewritten site produces `BsSelect<string, string>` where the component it was resolved
+                // against is the unbound `BsSelect<TValue, TItem>`. Comparing constructed types rejected
+                // every correctly-rewritten generic site as if its name had been hijacked.
+                // A STAGE is a legitimate result here: a site that supplied one pin and set the rest
+                // further down the chain rewrites to `BsSelect.Bind(x)`, and the annotated node stops
+                // there — the `.Options(y)` that finishes it was already the next call in the source.
+                // Unwrapped BEFORE OriginalDefinition, not after: a chain produces `Build<TComponent>`,
+                // and the original definition of that is `Build<T>` — whose type argument is a type
+                // parameter, not the component. Taking them in the wrong order makes every correctly
+                // rewritten site look hijacked, which is what it did the first time it ran after the
+                // chain's receiver moved off the component.
+                var produced = ChainedComponent(model2.GetTypeInfo(node).Type)?.OriginalDefinition;
+                // A STAGE or a PENDING state is a legitimate result here: a site that supplied one step
+                // and set the rest further down the chain rewrites to `BsMultiSelect.Bind(x)`, and the
+                // annotated node stops there — the `.Options(y)` that finishes it was already the next
+                // call in the source.
+                var staged = produced is not null
+                             && (produced.Name.StartsWith("RaskStage_", StringComparison.Ordinal)
+                                 || produced.Name.StartsWith("RaskPending_", StringComparison.Ordinal));
+                if (produced is null || (!staged && Fqn(produced) != site.ComponentFullName))
                 {
                     rejected.Add(siteId);
                     hijacked.Add(siteId);
@@ -186,6 +215,13 @@ internal sealed class FileRewriter
         return new FileResult(null, sites, Array.Empty<int>(), "did not converge in 6 rounds");
     }
 
+    // The component a chain builds, for a `Rask.Core.Build<T>`; otherwise the type unchanged.
+    private static ITypeSymbol? ChainedComponent(ITypeSymbol? type) =>
+        type is INamedTypeSymbol { IsGenericType: true, Arity: 1 } named
+        && string.Equals(named.ConstructedFrom.ToDisplayString(), "Rask.Core.Build<T>", StringComparison.Ordinal)
+            ? named.TypeArguments[0]
+            : type;
+
     private static HashSet<string> ErrorIds(IEnumerable<Diagnostic> diagnostics) =>
         diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(Key).ToHashSet(StringComparer.Ordinal);
 
@@ -242,9 +278,38 @@ internal sealed class FileRewriter
 
         foreach (var node in tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>())
         {
-            var method = Resolve(model, node);
-            if (method is null)
+            // A site the PREVIOUS shape already moved: `BsSelect(() => m.Plan)`, written when a generic
+            // entry was a method. The entry is a seed property now, so this is not a factory call and not
+            // an invocation of anything — it is `X(args)` where X is not invocable. Its arguments are
+            // already the pins, in order, so it re-reads as the chain without consulting a factory at all.
+            if (Resolve(model, node) is not { } method)
             {
+                var seedArgs = node.ArgumentList.Arguments;
+                if (SeedInvocation(model, node) is not ({ } seedComponent, { Count: > 0 } seedChain)
+                    || seedArgs.Count == 0 || seedArgs.Count > seedChain.Count
+                    || seedArgs.Any(a => a.NameColon is not null))
+                {
+                    continue;
+                }
+
+                // Only the leading pins move into the receiver. A site that passed one argument and then
+                // set the rest — `BsSelect(() => m.Plan).Options(plans)` — already spells the second pin
+                // as the next call in the chain, because a pin and a setter for the same property are
+                // named alike. It becomes `BsSelect.Bind(() => m.Plan).Options(plans)` untouched.
+                seedChain = seedChain.Take(seedArgs.Count).ToList();
+
+                var seedId = id++;
+                sites.Add(new Site(
+                    seedId, node, seedComponent.Name, Fqn(seedComponent.OriginalDefinition),
+                    seedComponent.Name,
+                    tree.FilePath, tree.GetLineSpan(node.Span).StartLinePosition.Line + 1,
+                    SiteVerdict.Convertible, null,
+                    Enumerable.Repeat(string.Empty, seedChain.Count).ToList(),
+                    Enumerable.Range(0, seedChain.Count).ToList(),
+                    seedChain.Select(s => s.Name).ToList(),
+                    Array.Empty<string>(),
+                    !SymbolEqualityComparer.Default.Equals(
+                        seedComponent.ContainingAssembly, _surface.FrameworkAssembly)));
                 continue;
             }
 
@@ -255,23 +320,19 @@ internal sealed class FileRewriter
             var file = tree.FilePath;
 
             var typeArguments = "";
-            var bindArgument = -1;
+            var pinArguments = new List<int>();
+            var pinNames = new List<string>();
+            var stepCalls = new List<string>();
 
             Site Make(SiteVerdict verdict, string? detail, IReadOnlyList<string>? setters = null) =>
-                new(siteId, node, name, Fqn(component), name + typeArguments, file, line,
+                new(siteId, node, name, Fqn(component.OriginalDefinition), name + typeArguments, file, line,
                     verdict, detail,
                     setters ?? Array.Empty<string>(),
-                    bindArgument,
+                    pinArguments,
+                    pinNames,
+                    stepCalls,
                     !SymbolEqualityComparer.Default.Equals(
                         component.ContainingAssembly, _surface.FrameworkAssembly));
-
-            // `Form<TModel>` is pending its own work and every one of its call sites will move again
-            // when it lands, so it is out of this migration entirely.
-            if (name is "Form")
-            {
-                sites.Add(Make(SiteVerdict.FormExcluded, null));
-                continue;
-            }
 
             if (!_surface.IsInMarkupHost(SurfaceModel.EnclosingType(model, node)))
             {
@@ -295,24 +356,76 @@ internal sealed class FileRewriter
             // does not have) moves with the entry, not before it.
             if (method.IsGenericMethod || component.IsGenericType)
             {
-                // A bound control's entry takes exactly one argument, `Bind`, and that argument is what
-                // infers T — so a site that passes one keeps it in place and turns the rest into setters.
-                // Reading `Input(() => m.Name).Class("x")` rather than `Input<string>().Bind(…)`, and
-                // working where the type argument was inferred rather than written.
-                var bind = method.Parameters.FirstOrDefault(p => p.Name == "Bind");
-                if (bind is not null
-                    && SurfaceModel.HasBindEntry(model, node.SpanStart, name)
-                    && ArgumentIndexFor(node, method, bind) is >= 0 and var index)
+                // The entry's own parameters are what infer the type arguments, so a site that passes all
+                // of them keeps them in place and turns the rest into setters. Reading
+                // `Input(() => m.Name).Class("x")` rather than `Input<string>().Bind(…)`, and working
+                // where the type argument was inferred rather than written.
+                //
+                // ALL of them or none: C# infers a method's type arguments all or nothing, so a site that
+                // supplies only some of the pins would leave the rest uninferable and cannot be rewritten
+                // this way — it waits, rather than being converted into something that does not compile.
+                // Which way in did this site actually use? A component publishes several — Bind for a
+                // bound site, Value or Options for a controlled one — and only the arguments the site
+                // WROTE can say which. Choosing by what the factory merely declares picked `Value` for
+                // every `Input(() => m.Name)` and left them all behind.
+                // Which way in did this site actually use? A component publishes several — Bind for a
+                // bound site, Value or Options for a controlled one — and only the arguments the site
+                // WROTE can say which. Choosing by what a factory merely declares picked `Value` for
+                // every `Input(() => m.Name)` and left them all behind.
+                //
+                // The factory is re-resolved per chain, because a displaced site was found by NAME and a
+                // component with both a bound and a controlled factory has two that fit: the controlled
+                // one is narrower and wins, and it has no `Bind` parameter at all, so the bound chain
+                // could never be matched against it.
+                var pins = new List<IParameterSymbol>();
+                var argumentNames = node.ArgumentList.Arguments
+                    .Select(a => a.NameColon?.Name.Identifier.ValueText).ToList();
+
+                foreach (var candidate in _surface.PinChainsFor(component))
                 {
-                    bindArgument = index;
+                    var against = method;
+                    if (candidate.Any(s => against.Parameters.All(p => p.Name != s.Parameter.Name)))
+                    {
+                        against = _surface.FindDisplacedFactory(
+                                      name, argumentNames,
+                                      candidate.Select(s => s.Parameter.Name).ToList())
+                                  ?? against;
+                    }
+
+                    var indexes = new List<int>();
+                    foreach (var step in candidate)
+                    {
+                        var parameter = against.Parameters.FirstOrDefault(p => p.Name == step.Parameter.Name);
+                        var at = parameter is null ? -1 : ArgumentIndexFor(node, against, parameter);
+                        if (at < 0)
+                        {
+                            indexes.Clear();
+                            break;
+                        }
+
+                        indexes.Add(at);
+                    }
+
+                    if (indexes.Count == candidate.Count)
+                    {
+                        method = against;
+                        pins = candidate.Select(s => s.Parameter).ToList();
+                        pinNames = candidate.Select(s => s.Name).ToList();
+                        pinArguments.AddRange(indexes);
+                        break;
+                    }
                 }
-                else if (!SurfaceModel.HasParameterlessEntry(model, node.SpanStart, name))
+
+                string? unsupplied = pins.Count == 0 ? "any" : null;
+
+                if (pinArguments.Count == 0 && !SurfaceModel.HasParameterlessEntry(model, node.SpanStart, name))
                 {
-                    sites.Add(Make(SiteVerdict.GenericFactory, "no parameterless entry"));
+                    sites.Add(Make(SiteVerdict.GenericFactory,
+                        pins.Count == 0 ? "no entry that pins" : $"site does not supply pin '{unsupplied}'"));
                     continue;
                 }
 
-                if (bindArgument < 0)
+                if (pinArguments.Count == 0)
                 {
                     // Prefer what the call site wrote. A factory found by NAME rather than by binding —
                     // which is how a displaced site is found — is the unbound definition, so its type
@@ -322,11 +435,18 @@ internal sealed class FileRewriter
                     var written = (node.Expression as GenericNameSyntax)?.TypeArgumentList.ToString();
                     if (written is null && component.TypeArguments.Any(t => t.TypeKind == TypeKind.TypeParameter))
                     {
-                        sites.Add(Make(SiteVerdict.GenericFactory, "type argument is neither written nor bound"));
+                        sites.Add(Make(SiteVerdict.GenericFactory,
+                            unsupplied is null
+                                ? "type argument is neither written nor bound"
+                                : $"type argument is neither written nor bound; pin '{unsupplied}' not supplied"));
                         continue;
                     }
 
-                    typeArguments = (written ?? "<" + string.Join(", ", component.TypeArguments.Select(t =>
+                    // `.Of<T>()`, the seed's explicit-type opening — not the old `Input<T>()` generic
+                    // METHOD entry, which the seed replaced. A generic component used non-generically
+                    // (`Input<string>()`, no bind and no value) has nothing to infer from, and this is the
+                    // step that settles the type without pinning a property.
+                    typeArguments = ".Of" + (written ?? "<" + string.Join(", ", component.TypeArguments.Select(t =>
                         t.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))) + ">") + "()";
                 }
             }
@@ -343,14 +463,22 @@ internal sealed class FileRewriter
                     break;
                 }
 
-                // The Bind argument stays where it is — it is the entry's own parameter, not a setter.
-                if (i == bindArgument)
+                // A pin stays where it is — it is the entry's own parameter, not a setter.
+                if (pinArguments.Contains(i))
                 {
                     setters.Add("");
                     continue;
                 }
 
+                // A required property has no setter any more — it is a chain STEP. The call is spelled
+                // the same, so the rewrite is unchanged; only its position matters, and the reorder pass
+                // is what puts it there.
                 var setter = _surface.SetterFor(component, parameter);
+                if (setter is null && _surface.IsStep(component, parameter.Name))
+                {
+                    setter = parameter.Name;
+                    stepCalls.Add(setter);
+                }
                 if (setter is null)
                 {
                     missing = parameter.Name;
@@ -366,6 +494,38 @@ internal sealed class FileRewriter
         }
 
         return sites;
+    }
+
+    // `X(args)` where X is a SEED property rather than anything invocable — the shape the previous
+    // generic-entry spelling leaves behind. Answers which component it meant and the pin chain that
+    // builds it, or nulls when this is not that.
+    private (INamedTypeSymbol?, IReadOnlyList<SurfaceModel.PinStep>) SeedInvocation(
+        SemanticModel model, InvocationExpressionSyntax node)
+    {
+        if (node.Expression is not SimpleNameSyntax simple)
+        {
+            return (null, []);
+        }
+
+        var seed = model.LookupSymbols(node.SpanStart, name: simple.Identifier.ValueText)
+            .OfType<IPropertySymbol>()
+            .FirstOrDefault(p => p.Type.Name.StartsWith("RaskSeed_", StringComparison.Ordinal));
+        if (seed is null)
+        {
+            return (null, []);
+        }
+
+        var component = _surface.ComponentForSeed(seed.Type);
+        if (component is null)
+        {
+            return (null, []);
+        }
+
+        // The chain this spelling meant is the one rooted at the pin the old method entry took, which was
+        // always the inference property — `Bind` for a form control. Preferred rather than assumed: a
+        // component with no Bind falls back to its longest chain.
+        var chains = _surface.PinChainsFor(component);
+        return (component, chains.FirstOrDefault(ch => ch[0].Name == "Bind") ?? chains.FirstOrDefault() ?? []);
     }
 
     // The factory this invocation names — by binding when it still binds, and by name when it does not.
@@ -387,6 +547,17 @@ internal sealed class FileRewriter
         // Only when the thing that WON the lookup is this component's own entry — otherwise the call is
         // broken for some reason of its own and is none of this tool's business.
         if (!info.CandidateSymbols.All(c => c.Name == simple.Identifier.ValueText && c.IsStatic))
+        {
+            return null;
+        }
+
+        // A name that now binds to a SEED is not a displaced factory, however much the name matches one:
+        // it is the previous generic-entry spelling, whose arguments are pins rather than factory
+        // parameters — and whose later pins may already be written as setters further down the chain.
+        // Resolving it as a factory demands every pin in the argument list and rejects the site.
+        if (model.LookupSymbols(node.SpanStart, name: simple.Identifier.ValueText)
+            .OfType<IPropertySymbol>()
+            .Any(p => p.Type.Name.StartsWith("RaskSeed_", StringComparison.Ordinal)))
         {
             return null;
         }
@@ -502,18 +673,35 @@ internal sealed class FileRewriter
             }
 
             var indent = IndentOf(node);
+            var steps = new List<string>();
             var parts = new List<string>();
             var receiver = site.Receiver;
             for (var i = 0; i < visited.ArgumentList.Arguments.Count; i++)
             {
                 var text = visited.ArgumentList.Arguments[i].Expression.ToFullString().Trim();
-                if (i == site.BindArgument)
+                if (site.PinArguments.Contains(i))
                 {
-                    receiver = $"{site.ComponentName}({text})";
                     continue;
                 }
 
-                parts.Add($".{site.Setters[i]}({text})");
+                var call = $".{site.Setters[i]}({text})";
+                (site.StepCalls.Contains(site.Setters[i]) ? steps : parts).Add(call);
+            }
+
+            parts.InsertRange(0, steps);
+
+            // The pins are written in the CHAIN's order, which is not necessarily the order the factory
+            // call site wrote them in — a site is free to name its arguments in any order, and one that
+            // did would otherwise have its pins silently transposed.
+            if (site.PinArguments.Count != 0)
+            {
+                receiver = site.ComponentName;
+                for (var i = 0; i < site.PinArguments.Count; i++)
+                {
+                    var text = visited.ArgumentList.Arguments[site.PinArguments[i]]
+                        .Expression.ToFullString().Trim();
+                    receiver += $".{site.PinNames[i]}({text})";
+                }
             }
 
             var single = receiver + string.Concat(parts);

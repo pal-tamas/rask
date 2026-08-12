@@ -7,20 +7,20 @@ public sealed partial class LifecycleCycleProbe : Component
     public required Action<string> Log { get; set; }
     public required int InstanceId { get; set; }
 
-    protected override void OnMount() => Log($"#{InstanceId} OnMount");
+    protected override void OnMount() => Log.Invoke($"#{InstanceId} OnMount");
 
     protected override async Task OnMountAsync()
     {
-        Log($"#{InstanceId} OnMountAsync (start)");
+        Log.Invoke($"#{InstanceId} OnMountAsync (start)");
         await Task.Delay(150);
-        Log($"#{InstanceId} OnMountAsync (after 150ms await)");
+        Log.Invoke($"#{InstanceId} OnMountAsync (after 150ms await)");
     }
 
-    protected override void OnUnmount() => Log($"#{InstanceId} OnUnmount");
+    protected override void OnUnmount() => Log.Invoke($"#{InstanceId} OnUnmount");
 
     protected override Task OnUnmountAsync()
     {
-        Log($"#{InstanceId} OnUnmountAsync");
+        Log.Invoke($"#{InstanceId} OnUnmountAsync");
         return Task.CompletedTask;
     }
 

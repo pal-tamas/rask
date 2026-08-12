@@ -205,11 +205,11 @@ internal static partial class ProjectGenerator
 
         public sealed partial class App : Component
         {
-            protected override Component? Head =>
+            protected override Component? HeadAssets =>
             [
-                Title()["Rask App"],
-                Meta("utf-8"),
-                Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover")
+                Title["Rask App"],
+                Meta.Charset("utf-8"),
+                Meta.Name("viewport").Content("width=device-width, initial-scale=1, viewport-fit=cover")
             ];
 
             // Rask builds the document around Render(); override Shell when its HtmlLang / BodyClass hooks
@@ -220,7 +220,7 @@ internal static partial class ProjectGenerator
             protected override Component Shell(Component head, Component body) =>
                 Html("en")[
                     head,
-                    Body(Style: "margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
+                    Body.Style("margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
                                 "env(safe-area-inset-bottom) env(safe-area-inset-left)")[body]
                 ];
 
@@ -228,13 +228,13 @@ internal static partial class ProjectGenerator
             [
                 // Real native top bar. Opt in by hosting webView.ChromeView + registering the head as INativeChrome —
                 // see Platforms/iOS/AppDelegate.cs and Platforms/Android/MainActivity.cs.
-                NativeHeaderBar(Title: "Rask App"),
+                NativeHeaderBar.Title("Rask App"),
 
                 // The HTML surface — its children are the page content, morphed into the platform WebView.
-                NativeWebView()[Router()]
+                NativeWebView[Router]
 
                 // Add a real native bottom tab bar here once you have somewhere to navigate:
-                //   NativeTabBar(Tabs: [NativeTab(Title: "Home", Icon: NativeIcon.Home, To: Routes.HomePage())])
+                //   NativeTabBar.Tabs([NativeTab(Title: "Home", Icon: NativeIcon.Home, To: Routes.HomePage())])
                 // Tapping a tab routes to its type-safe To:; the framework highlights the matching route.
             ];
         }
@@ -253,20 +253,20 @@ internal static partial class ProjectGenerator
         public sealed partial class HomePage : Component
         {
             protected override Component? Render() =>
-                Div(Style: "padding:1.25rem;font-family:system-ui,-apple-system,sans-serif")[
-                    H1(Style: "font-size:1.5rem;margin:0 0 .5rem")["Hello, Rask! 👋"],
-                    P(Style: "margin:0 0 1rem;color:#374151")["Your native app is ready. Scaffold the rest with the rask CLI:"],
-                    Ul(Style: "margin:0 0 1rem;padding-left:1.1rem;line-height:1.75;color:#374151")[
-                        Li()[Code()["rask generate page About"], " — a routed page"],
-                        Li()[Code()["rask generate component Card"], " — a reusable component"]
+                Div.Style("padding:1.25rem;font-family:system-ui,-apple-system,sans-serif")[
+                    H1.Style("font-size:1.5rem;margin:0 0 .5rem")["Hello, Rask! 👋"],
+                    P.Style("margin:0 0 1rem;color:#374151")["Your native app is ready. Scaffold the rest with the rask CLI:"],
+                    Ul.Style("margin:0 0 1rem;padding-left:1.1rem;line-height:1.75;color:#374151")[
+                        Li[Code["rask generate page About"], " — a routed page"],
+                        Li[Code["rask generate component Card"], " — a reusable component"]
                     ],
-                    P(Style: "margin:0;font-size:.9rem;color:#6b7280")[
+                    P.Style("margin:0;font-size:.9rem;color:#6b7280")[
                         "Edit this page in ",
-                        Code()["HomePage.cs"],
+                        Code["HomePage.cs"],
                         " — drop a ",
-                        Code()["HomePage.css"],
+                        Code["HomePage.css"],
                         " beside it and its rules are scoped to this page. Full guides at ",
-                        A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
+                        A.Href("https://github.com/pal-tamas/rask")["the Rask docs"],
                         "."
                     ]
                 ];

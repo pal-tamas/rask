@@ -14,7 +14,7 @@ namespace Rask.Example.Server.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class ServerPwaPage : Component
 {
-    protected override Component? Head => Title["Server PWA — Rask"];
+    protected override Component? HeadAssets => Title["Server PWA — Rask"];
 
     protected override Component? Render() =>
     [

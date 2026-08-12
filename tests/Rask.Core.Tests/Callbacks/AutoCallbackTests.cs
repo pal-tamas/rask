@@ -75,7 +75,7 @@ public class AutoCallbackTests
         // A static method (Target == null) and a lambda closing over a local (Target == a compiler
         // closure, not a Component) have no component to re-render — Wrap returns them unchanged,
         // so there is no extra allocation and no spurious re-render (same limitation Blazor's
-        // EventCallback and the old Callback had).
+        // EventCallback and the old Action had).
         var staticMethod = NoOp;
         Assert.Same(staticMethod, AutoCallback.Wrap(staticMethod));
 

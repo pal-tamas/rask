@@ -31,7 +31,7 @@ public sealed partial class TodosPage : Component
 
     [RouteParam] public Guid? Id { get; set; }
 
-    protected override Component? Head => Title["Todos — Rask"];
+    protected override Component? HeadAssets => Title["Todos — Rask"];
 
     private bool IsAdding => _route.Path.EndsWith("/new", StringComparison.OrdinalIgnoreCase);
 
@@ -138,8 +138,8 @@ public sealed partial class TodosPage : Component
                 .Open(ShowDialog)
                 .Model(_form)
                 .IsAdding(IsAdding)
-                .Cancel(Cancel)
-                .Save(Save)
+                .OnCancel(Cancel)
+                .OnSave(Save)
         ];
 }
 
@@ -153,19 +153,19 @@ public sealed partial class TodoFormDialog : Component
     public bool Open { get; set; }
     public TodoForm Model { get; set; }
     public bool IsAdding { get; set; }
-    public Callback OnCancel { get; set; }
-    public Callback<TodoForm> OnSave { get; set; }
+    public Action OnCancel { get; set; }
+    public Action<TodoForm> OnSave { get; set; }
 #pragma warning restore CS8618
 
     // OnClose fires for Escape, a backdrop click, and the header close button — all route back to /todos
     // via OnCancel, which flips ShowDialog and closes the modal. Browser Back does the same through the URL.
     protected override Component? Render() =>
         BsModal.Open(Open).Title(IsAdding ? "Add todo" : "Edit todo").Centered(true).OnClose(OnCancel)[
-            Form(Model, OnSave, Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
+            Form.Model(Model).OnValidSubmit(OnSave).Class(Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(3)))[
                 DataAnnotationsValidator,
                 // BsInput renders its own <label> + input + Bootstrap .invalid-feedback from the
                 // EditContext, so the raw Label/Input/ValidationMessage trio collapses to one call.
-                BsInput(() => Model.Title).Id("todo-title").Label("Title"),
+                BsInput.Bind(() => Model.Title).Id("todo-title").Label("Title"),
                 Div.Class(Bs.Join(Display.Flex(), Flex.Justify(BsJustify.End), Flex.Gap(2)))[
                     BsButton.Color(BsColor.Secondary).Outline(true).OnClick(OnCancel)["Cancel"],
                     BsButton.Type("submit").Color(BsColor.Primary)[

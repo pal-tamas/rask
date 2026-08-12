@@ -6,7 +6,7 @@ public sealed partial class BindingTextareaDemo : Component
 
     protected override Component? Render() =>
     [
-        Textarea(() => _model.Notes)
+        Textarea.Bind(() => _model.Notes)
             .Id("bind-textarea")
             .Class("form-control mb-2")
             .Rows(3)

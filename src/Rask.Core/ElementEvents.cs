@@ -5,8 +5,8 @@ namespace Rask.Core;
 
 // The extended GlobalEventHandlers surface, mirroring the DOM mixin every HTMLElement implements: the
 // `on*` handlers live on Element so EVERY tag gets them (Span(OnMouseEnter: …), Li(OnContextMenu: …)),
-// not just a hand-picked few. Each event is a sync `OnXxx` (Handler / Handler<TArgs>) + async
-// `OnXxxAsync` (HandlerAsync / HandlerAsync<TArgs>) pair coalesced over ONE slot in the shared
+// not just a hand-picked few. Each event is a sync `OnXxx` (Action / Action<TArgs>) + async
+// `OnXxxAsync` (Func<Task> / Func<TArgs, Task>) pair coalesced over ONE slot in the shared
 // LiveState DomEvents dictionary (see Component.GetDomEvent/SetDomEvent) — so a plain element that wires
 // nothing keeps `_live` null and pays no per-instance footprint, and the generated factory re-applying
 // both views (one null) every render never clobbers the handler the caller set.
@@ -44,44 +44,33 @@ public abstract partial class Element
     // on first handler. A plain element that wires nothing keeps `_domEvents` null and pays one extra
     // reference field. Each event name maps to ONE slot holding the delegate plus an IsAsync flag, so a
     // null re-applied by the factory clears only its own kind WITHOUT a per-render reflection probe.
-    private Dictionary<string, (Delegate Handler, bool IsAsync)>? _domEvents;
+    private Dictionary<string, (Delegate Action, bool IsAsync)>? _domEvents;
 
     // Render-hotpath early-out: WriteAttributes asks this before iterating the ordered event list. A
     // plain element answers false in one null check, so the per-render cost stays at zero.
     private protected bool HasDomEvents => _domEvents is { Count: > 0 };
 
     private protected Delegate? GetDomEvent(string name) =>
-        _domEvents is { } map && map.TryGetValue(name, out var slot) ? slot.Handler : null;
+        _domEvents is { } map && map.TryGetValue(name, out var slot) ? slot.Action : null;
 
-    // ---- Carrier views over the slot ------------------------------------------------------------
+    // ---- Typed views over the slot ----------------------------------------------------------------
     //
-    // Every event property below is typed as a CARRIER (Handler / HandlerAsync / their argument-taking
-    // siblings) rather than as the delegate itself, so the builder setter can keep the property's own
-    // name: a delegate-typed member IS invocable, so `Div.OnClick(handler)` would bind to the property
-    // and fail with CS1593 (which is why the setter used to be `.Click(…)`). A struct is not invocable,
-    // so the same-named extension binds — see Rask.Core.Handler.
+    // The dictionary holds every handler as a bare `Delegate`, because that is what dispatch needs; the
+    // properties below read one back at the type they were declared with. A slot holding the other kind
+    // (an async handler read through the sync view) reads back as null, which is what the `as` cast says.
     //
-    // The carrier is a view, never storage: the dictionary keeps holding the raw delegate, so handler
-    // registration, dispatch and the `as Callback` kind test are untouched, and wrapping/unwrapping a
-    // readonly struct around a reference allocates nothing. A slot holding the other kind (an async
-    // handler read through the sync view) reads back as null, exactly as the `as` cast did before.
-    //
-    // Null-preservation goes through the carrier's own `From`, never a hand-written conditional: the
-    // implicit conversion accepts a null delegate, so `slot is Callback fn ? new Handler(fn) : null`
-    // has a natural type of `Handler` and the null branch runs the operator — handing back a non-null
-    // carrier wrapping a null delegate, so an unset handler stops reading back as unset. `From` is the
-    // one audited place that gets that right (its own cast is load-bearing for the same reason), and a
-    // slot holding the other kind still reads back as null, exactly as the `as` cast did before.
-    private protected Handler? SyncHandler(string name) => Handler.From(GetDomEvent(name) as Callback);
+    // These used to hand back a CARRIER — a struct wrapping the delegate — so that `Div.OnClick(handler)`
+    // could reach a setter of the same name instead of trying to invoke the property (CS1593). The chain
+    // receives on `Build<TComponent>` now, so the property is not on the receiver and cannot swallow its
+    // setter; the carrier, and the null-preservation dance its implicit conversion forced, are both gone.
+    private protected Action? SyncHandler(string name) => GetDomEvent(name) as Action;
 
-    private protected HandlerAsync? AsyncHandler(string name) =>
-        HandlerAsync.From(GetDomEvent(name) as CallbackAsync);
+    private protected Func<Task>? AsyncHandler(string name) => GetDomEvent(name) as Func<Task>;
 
-    private protected Handler<TArgs>? SyncHandler<TArgs>(string name) =>
-        Handler<TArgs>.From(GetDomEvent(name) as Callback<TArgs>);
+    private protected Action<TArgs>? SyncHandler<TArgs>(string name) => GetDomEvent(name) as Action<TArgs>;
 
-    private protected HandlerAsync<TArgs>? AsyncHandler<TArgs>(string name) =>
-        HandlerAsync<TArgs>.From(GetDomEvent(name) as CallbackAsync<TArgs>);
+    private protected Func<TArgs, Task>? AsyncHandler<TArgs>(string name) =>
+        GetDomEvent(name) as Func<TArgs, Task>;
 
     // Sync handler always wins: setting it overwrites whatever's there, so `OnClick` beats `OnClickAsync`
     // when both are supplied the same render. A null clears the slot only when it currently holds a sync
@@ -119,163 +108,163 @@ public abstract partial class Element
     // ---- Drag & drop (parameterless; the dragged item's identity rides the handler's closure — see
     //      the headless DragDrop primitive). dragstart/over/drop/end here; drag/dragenter/dragleave below. ----
 
-    public Handler? OnDragStart { get => SyncHandler("dragstart"); set => SetDomEventSync("dragstart", value?.Fn); }
-    public HandlerAsync? OnDragStartAsync { get => AsyncHandler("dragstart"); set => SetDomEventAsync("dragstart", value?.Fn); }
+    public Action? OnDragStart { get => SyncHandler("dragstart"); set => SetDomEventSync("dragstart", value); }
+    public Func<Task>? OnDragStartAsync { get => AsyncHandler("dragstart"); set => SetDomEventAsync("dragstart", value); }
 
-    public Handler? OnDragOver { get => SyncHandler("dragover"); set => SetDomEventSync("dragover", value?.Fn); }
-    public HandlerAsync? OnDragOverAsync { get => AsyncHandler("dragover"); set => SetDomEventAsync("dragover", value?.Fn); }
+    public Action? OnDragOver { get => SyncHandler("dragover"); set => SetDomEventSync("dragover", value); }
+    public Func<Task>? OnDragOverAsync { get => AsyncHandler("dragover"); set => SetDomEventAsync("dragover", value); }
 
-    public Handler? OnDrop { get => SyncHandler("drop"); set => SetDomEventSync("drop", value?.Fn); }
-    public HandlerAsync? OnDropAsync { get => AsyncHandler("drop"); set => SetDomEventAsync("drop", value?.Fn); }
+    public Action? OnDrop { get => SyncHandler("drop"); set => SetDomEventSync("drop", value); }
+    public Func<Task>? OnDropAsync { get => AsyncHandler("drop"); set => SetDomEventAsync("drop", value); }
 
-    public Handler? OnDragEnd { get => SyncHandler("dragend"); set => SetDomEventSync("dragend", value?.Fn); }
-    public HandlerAsync? OnDragEndAsync { get => AsyncHandler("dragend"); set => SetDomEventAsync("dragend", value?.Fn); }
+    public Action? OnDragEnd { get => SyncHandler("dragend"); set => SetDomEventSync("dragend", value); }
+    public Func<Task>? OnDragEndAsync { get => AsyncHandler("dragend"); set => SetDomEventAsync("dragend", value); }
 
     // ---- Keyboard (KeyboardEventArgs: key/code/modifiers/repeat; the client never preventDefaults) ----
 
-    public Handler<KeyboardEventArgs>? OnKeyDown { get => SyncHandler<KeyboardEventArgs>("keydown"); set => SetDomEventSync("keydown", value?.Fn); }
-    public HandlerAsync<KeyboardEventArgs>? OnKeyDownAsync { get => AsyncHandler<KeyboardEventArgs>("keydown"); set => SetDomEventAsync("keydown", value?.Fn); }
+    public Action<KeyboardEventArgs>? OnKeyDown { get => SyncHandler<KeyboardEventArgs>("keydown"); set => SetDomEventSync("keydown", value); }
+    public Func<KeyboardEventArgs, Task>? OnKeyDownAsync { get => AsyncHandler<KeyboardEventArgs>("keydown"); set => SetDomEventAsync("keydown", value); }
 
-    public Handler<KeyboardEventArgs>? OnKeyUp { get => SyncHandler<KeyboardEventArgs>("keyup"); set => SetDomEventSync("keyup", value?.Fn); }
-    public HandlerAsync<KeyboardEventArgs>? OnKeyUpAsync { get => AsyncHandler<KeyboardEventArgs>("keyup"); set => SetDomEventAsync("keyup", value?.Fn); }
+    public Action<KeyboardEventArgs>? OnKeyUp { get => SyncHandler<KeyboardEventArgs>("keyup"); set => SetDomEventSync("keyup", value); }
+    public Func<KeyboardEventArgs, Task>? OnKeyUpAsync { get => AsyncHandler<KeyboardEventArgs>("keyup"); set => SetDomEventAsync("keyup", value); }
 
     // ---- Mouse events (MouseEventArgs: button/buttons, client/screen/page/offset/movement coords, modifiers) ----
 
     /// <summary>Click. Parameterless (modifier/coordinate-free) for source compatibility — use the mouse
     /// events below for geometry. The client still <c>preventDefault</c>s anchor navigation on click.</summary>
-    public Handler? OnClick { get => SyncHandler("click"); set => SetDomEventSync("click", value?.Fn); }
-    public HandlerAsync? OnClickAsync { get => AsyncHandler("click"); set => SetDomEventAsync("click", value?.Fn); }
+    public Action? OnClick { get => SyncHandler("click"); set => SetDomEventSync("click", value); }
+    public Func<Task>? OnClickAsync { get => AsyncHandler("click"); set => SetDomEventAsync("click", value); }
 
-    public Handler<MouseEventArgs>? OnDoubleClick { get => SyncHandler<MouseEventArgs>("dblclick"); set => SetDomEventSync("dblclick", value?.Fn); }
-    public HandlerAsync<MouseEventArgs>? OnDoubleClickAsync { get => AsyncHandler<MouseEventArgs>("dblclick"); set => SetDomEventAsync("dblclick", value?.Fn); }
+    public Action<MouseEventArgs>? OnDoubleClick { get => SyncHandler<MouseEventArgs>("dblclick"); set => SetDomEventSync("dblclick", value); }
+    public Func<MouseEventArgs, Task>? OnDoubleClickAsync { get => AsyncHandler<MouseEventArgs>("dblclick"); set => SetDomEventAsync("dblclick", value); }
 
-    public Handler<MouseEventArgs>? OnMouseDown { get => SyncHandler<MouseEventArgs>("mousedown"); set => SetDomEventSync("mousedown", value?.Fn); }
-    public HandlerAsync<MouseEventArgs>? OnMouseDownAsync { get => AsyncHandler<MouseEventArgs>("mousedown"); set => SetDomEventAsync("mousedown", value?.Fn); }
+    public Action<MouseEventArgs>? OnMouseDown { get => SyncHandler<MouseEventArgs>("mousedown"); set => SetDomEventSync("mousedown", value); }
+    public Func<MouseEventArgs, Task>? OnMouseDownAsync { get => AsyncHandler<MouseEventArgs>("mousedown"); set => SetDomEventAsync("mousedown", value); }
 
-    public Handler<MouseEventArgs>? OnMouseUp { get => SyncHandler<MouseEventArgs>("mouseup"); set => SetDomEventSync("mouseup", value?.Fn); }
-    public HandlerAsync<MouseEventArgs>? OnMouseUpAsync { get => AsyncHandler<MouseEventArgs>("mouseup"); set => SetDomEventAsync("mouseup", value?.Fn); }
+    public Action<MouseEventArgs>? OnMouseUp { get => SyncHandler<MouseEventArgs>("mouseup"); set => SetDomEventSync("mouseup", value); }
+    public Func<MouseEventArgs, Task>? OnMouseUpAsync { get => AsyncHandler<MouseEventArgs>("mouseup"); set => SetDomEventAsync("mouseup", value); }
 
-    public Handler<MouseEventArgs>? OnMouseMove { get => SyncHandler<MouseEventArgs>("mousemove"); set => SetDomEventSync("mousemove", value?.Fn); }
-    public HandlerAsync<MouseEventArgs>? OnMouseMoveAsync { get => AsyncHandler<MouseEventArgs>("mousemove"); set => SetDomEventAsync("mousemove", value?.Fn); }
+    public Action<MouseEventArgs>? OnMouseMove { get => SyncHandler<MouseEventArgs>("mousemove"); set => SetDomEventSync("mousemove", value); }
+    public Func<MouseEventArgs, Task>? OnMouseMoveAsync { get => AsyncHandler<MouseEventArgs>("mousemove"); set => SetDomEventAsync("mousemove", value); }
 
     /// <summary>Pointer entered this element (does not fire for descendants). Simulated client-side via
     /// <c>mouseover</c> + relatedTarget boundary, since <c>mouseenter</c> itself does not delegate.</summary>
-    public Handler<MouseEventArgs>? OnMouseEnter { get => SyncHandler<MouseEventArgs>("mouseenter"); set => SetDomEventSync("mouseenter", value?.Fn); }
-    public HandlerAsync<MouseEventArgs>? OnMouseEnterAsync { get => AsyncHandler<MouseEventArgs>("mouseenter"); set => SetDomEventAsync("mouseenter", value?.Fn); }
+    public Action<MouseEventArgs>? OnMouseEnter { get => SyncHandler<MouseEventArgs>("mouseenter"); set => SetDomEventSync("mouseenter", value); }
+    public Func<MouseEventArgs, Task>? OnMouseEnterAsync { get => AsyncHandler<MouseEventArgs>("mouseenter"); set => SetDomEventAsync("mouseenter", value); }
 
-    public Handler<MouseEventArgs>? OnMouseLeave { get => SyncHandler<MouseEventArgs>("mouseleave"); set => SetDomEventSync("mouseleave", value?.Fn); }
-    public HandlerAsync<MouseEventArgs>? OnMouseLeaveAsync { get => AsyncHandler<MouseEventArgs>("mouseleave"); set => SetDomEventAsync("mouseleave", value?.Fn); }
+    public Action<MouseEventArgs>? OnMouseLeave { get => SyncHandler<MouseEventArgs>("mouseleave"); set => SetDomEventSync("mouseleave", value); }
+    public Func<MouseEventArgs, Task>? OnMouseLeaveAsync { get => AsyncHandler<MouseEventArgs>("mouseleave"); set => SetDomEventAsync("mouseleave", value); }
 
-    public Handler<MouseEventArgs>? OnMouseOver { get => SyncHandler<MouseEventArgs>("mouseover"); set => SetDomEventSync("mouseover", value?.Fn); }
-    public HandlerAsync<MouseEventArgs>? OnMouseOverAsync { get => AsyncHandler<MouseEventArgs>("mouseover"); set => SetDomEventAsync("mouseover", value?.Fn); }
+    public Action<MouseEventArgs>? OnMouseOver { get => SyncHandler<MouseEventArgs>("mouseover"); set => SetDomEventSync("mouseover", value); }
+    public Func<MouseEventArgs, Task>? OnMouseOverAsync { get => AsyncHandler<MouseEventArgs>("mouseover"); set => SetDomEventAsync("mouseover", value); }
 
-    public Handler<MouseEventArgs>? OnMouseOut { get => SyncHandler<MouseEventArgs>("mouseout"); set => SetDomEventSync("mouseout", value?.Fn); }
-    public HandlerAsync<MouseEventArgs>? OnMouseOutAsync { get => AsyncHandler<MouseEventArgs>("mouseout"); set => SetDomEventAsync("mouseout", value?.Fn); }
+    public Action<MouseEventArgs>? OnMouseOut { get => SyncHandler<MouseEventArgs>("mouseout"); set => SetDomEventSync("mouseout", value); }
+    public Func<MouseEventArgs, Task>? OnMouseOutAsync { get => AsyncHandler<MouseEventArgs>("mouseout"); set => SetDomEventAsync("mouseout", value); }
 
     /// <summary>Right-click / context menu. The client <c>preventDefault</c>s so the browser menu is
     /// suppressed when you handle it.</summary>
-    public Handler<MouseEventArgs>? OnContextMenu { get => SyncHandler<MouseEventArgs>("contextmenu"); set => SetDomEventSync("contextmenu", value?.Fn); }
-    public HandlerAsync<MouseEventArgs>? OnContextMenuAsync { get => AsyncHandler<MouseEventArgs>("contextmenu"); set => SetDomEventAsync("contextmenu", value?.Fn); }
+    public Action<MouseEventArgs>? OnContextMenu { get => SyncHandler<MouseEventArgs>("contextmenu"); set => SetDomEventSync("contextmenu", value); }
+    public Func<MouseEventArgs, Task>? OnContextMenuAsync { get => AsyncHandler<MouseEventArgs>("contextmenu"); set => SetDomEventAsync("contextmenu", value); }
 
     // ---- Wheel ----
 
-    public Handler<WheelEventArgs>? OnWheel { get => SyncHandler<WheelEventArgs>("wheel"); set => SetDomEventSync("wheel", value?.Fn); }
-    public HandlerAsync<WheelEventArgs>? OnWheelAsync { get => AsyncHandler<WheelEventArgs>("wheel"); set => SetDomEventAsync("wheel", value?.Fn); }
+    public Action<WheelEventArgs>? OnWheel { get => SyncHandler<WheelEventArgs>("wheel"); set => SetDomEventSync("wheel", value); }
+    public Func<WheelEventArgs, Task>? OnWheelAsync { get => AsyncHandler<WheelEventArgs>("wheel"); set => SetDomEventAsync("wheel", value); }
 
     // ---- Pointer events (PointerEventArgs: mouse geometry + pointerId/pressure/tilt/pointerType/isPrimary) ----
 
-    public Handler<PointerEventArgs>? OnPointerDown { get => SyncHandler<PointerEventArgs>("pointerdown"); set => SetDomEventSync("pointerdown", value?.Fn); }
-    public HandlerAsync<PointerEventArgs>? OnPointerDownAsync { get => AsyncHandler<PointerEventArgs>("pointerdown"); set => SetDomEventAsync("pointerdown", value?.Fn); }
+    public Action<PointerEventArgs>? OnPointerDown { get => SyncHandler<PointerEventArgs>("pointerdown"); set => SetDomEventSync("pointerdown", value); }
+    public Func<PointerEventArgs, Task>? OnPointerDownAsync { get => AsyncHandler<PointerEventArgs>("pointerdown"); set => SetDomEventAsync("pointerdown", value); }
 
-    public Handler<PointerEventArgs>? OnPointerUp { get => SyncHandler<PointerEventArgs>("pointerup"); set => SetDomEventSync("pointerup", value?.Fn); }
-    public HandlerAsync<PointerEventArgs>? OnPointerUpAsync { get => AsyncHandler<PointerEventArgs>("pointerup"); set => SetDomEventAsync("pointerup", value?.Fn); }
+    public Action<PointerEventArgs>? OnPointerUp { get => SyncHandler<PointerEventArgs>("pointerup"); set => SetDomEventSync("pointerup", value); }
+    public Func<PointerEventArgs, Task>? OnPointerUpAsync { get => AsyncHandler<PointerEventArgs>("pointerup"); set => SetDomEventAsync("pointerup", value); }
 
-    public Handler<PointerEventArgs>? OnPointerMove { get => SyncHandler<PointerEventArgs>("pointermove"); set => SetDomEventSync("pointermove", value?.Fn); }
-    public HandlerAsync<PointerEventArgs>? OnPointerMoveAsync { get => AsyncHandler<PointerEventArgs>("pointermove"); set => SetDomEventAsync("pointermove", value?.Fn); }
+    public Action<PointerEventArgs>? OnPointerMove { get => SyncHandler<PointerEventArgs>("pointermove"); set => SetDomEventSync("pointermove", value); }
+    public Func<PointerEventArgs, Task>? OnPointerMoveAsync { get => AsyncHandler<PointerEventArgs>("pointermove"); set => SetDomEventAsync("pointermove", value); }
 
-    public Handler<PointerEventArgs>? OnPointerEnter { get => SyncHandler<PointerEventArgs>("pointerenter"); set => SetDomEventSync("pointerenter", value?.Fn); }
-    public HandlerAsync<PointerEventArgs>? OnPointerEnterAsync { get => AsyncHandler<PointerEventArgs>("pointerenter"); set => SetDomEventAsync("pointerenter", value?.Fn); }
+    public Action<PointerEventArgs>? OnPointerEnter { get => SyncHandler<PointerEventArgs>("pointerenter"); set => SetDomEventSync("pointerenter", value); }
+    public Func<PointerEventArgs, Task>? OnPointerEnterAsync { get => AsyncHandler<PointerEventArgs>("pointerenter"); set => SetDomEventAsync("pointerenter", value); }
 
-    public Handler<PointerEventArgs>? OnPointerLeave { get => SyncHandler<PointerEventArgs>("pointerleave"); set => SetDomEventSync("pointerleave", value?.Fn); }
-    public HandlerAsync<PointerEventArgs>? OnPointerLeaveAsync { get => AsyncHandler<PointerEventArgs>("pointerleave"); set => SetDomEventAsync("pointerleave", value?.Fn); }
+    public Action<PointerEventArgs>? OnPointerLeave { get => SyncHandler<PointerEventArgs>("pointerleave"); set => SetDomEventSync("pointerleave", value); }
+    public Func<PointerEventArgs, Task>? OnPointerLeaveAsync { get => AsyncHandler<PointerEventArgs>("pointerleave"); set => SetDomEventAsync("pointerleave", value); }
 
-    public Handler<PointerEventArgs>? OnPointerOver { get => SyncHandler<PointerEventArgs>("pointerover"); set => SetDomEventSync("pointerover", value?.Fn); }
-    public HandlerAsync<PointerEventArgs>? OnPointerOverAsync { get => AsyncHandler<PointerEventArgs>("pointerover"); set => SetDomEventAsync("pointerover", value?.Fn); }
+    public Action<PointerEventArgs>? OnPointerOver { get => SyncHandler<PointerEventArgs>("pointerover"); set => SetDomEventSync("pointerover", value); }
+    public Func<PointerEventArgs, Task>? OnPointerOverAsync { get => AsyncHandler<PointerEventArgs>("pointerover"); set => SetDomEventAsync("pointerover", value); }
 
-    public Handler<PointerEventArgs>? OnPointerOut { get => SyncHandler<PointerEventArgs>("pointerout"); set => SetDomEventSync("pointerout", value?.Fn); }
-    public HandlerAsync<PointerEventArgs>? OnPointerOutAsync { get => AsyncHandler<PointerEventArgs>("pointerout"); set => SetDomEventAsync("pointerout", value?.Fn); }
+    public Action<PointerEventArgs>? OnPointerOut { get => SyncHandler<PointerEventArgs>("pointerout"); set => SetDomEventSync("pointerout", value); }
+    public Func<PointerEventArgs, Task>? OnPointerOutAsync { get => AsyncHandler<PointerEventArgs>("pointerout"); set => SetDomEventAsync("pointerout", value); }
 
-    public Handler<PointerEventArgs>? OnPointerCancel { get => SyncHandler<PointerEventArgs>("pointercancel"); set => SetDomEventSync("pointercancel", value?.Fn); }
-    public HandlerAsync<PointerEventArgs>? OnPointerCancelAsync { get => AsyncHandler<PointerEventArgs>("pointercancel"); set => SetDomEventAsync("pointercancel", value?.Fn); }
+    public Action<PointerEventArgs>? OnPointerCancel { get => SyncHandler<PointerEventArgs>("pointercancel"); set => SetDomEventSync("pointercancel", value); }
+    public Func<PointerEventArgs, Task>? OnPointerCancelAsync { get => AsyncHandler<PointerEventArgs>("pointercancel"); set => SetDomEventAsync("pointercancel", value); }
 
     // ---- Touch events (TouchEventArgs: active touch count + first-touch coords + modifiers) ----
 
-    public Handler<TouchEventArgs>? OnTouchStart { get => SyncHandler<TouchEventArgs>("touchstart"); set => SetDomEventSync("touchstart", value?.Fn); }
-    public HandlerAsync<TouchEventArgs>? OnTouchStartAsync { get => AsyncHandler<TouchEventArgs>("touchstart"); set => SetDomEventAsync("touchstart", value?.Fn); }
+    public Action<TouchEventArgs>? OnTouchStart { get => SyncHandler<TouchEventArgs>("touchstart"); set => SetDomEventSync("touchstart", value); }
+    public Func<TouchEventArgs, Task>? OnTouchStartAsync { get => AsyncHandler<TouchEventArgs>("touchstart"); set => SetDomEventAsync("touchstart", value); }
 
-    public Handler<TouchEventArgs>? OnTouchEnd { get => SyncHandler<TouchEventArgs>("touchend"); set => SetDomEventSync("touchend", value?.Fn); }
-    public HandlerAsync<TouchEventArgs>? OnTouchEndAsync { get => AsyncHandler<TouchEventArgs>("touchend"); set => SetDomEventAsync("touchend", value?.Fn); }
+    public Action<TouchEventArgs>? OnTouchEnd { get => SyncHandler<TouchEventArgs>("touchend"); set => SetDomEventSync("touchend", value); }
+    public Func<TouchEventArgs, Task>? OnTouchEndAsync { get => AsyncHandler<TouchEventArgs>("touchend"); set => SetDomEventAsync("touchend", value); }
 
-    public Handler<TouchEventArgs>? OnTouchMove { get => SyncHandler<TouchEventArgs>("touchmove"); set => SetDomEventSync("touchmove", value?.Fn); }
-    public HandlerAsync<TouchEventArgs>? OnTouchMoveAsync { get => AsyncHandler<TouchEventArgs>("touchmove"); set => SetDomEventAsync("touchmove", value?.Fn); }
+    public Action<TouchEventArgs>? OnTouchMove { get => SyncHandler<TouchEventArgs>("touchmove"); set => SetDomEventSync("touchmove", value); }
+    public Func<TouchEventArgs, Task>? OnTouchMoveAsync { get => AsyncHandler<TouchEventArgs>("touchmove"); set => SetDomEventAsync("touchmove", value); }
 
-    public Handler<TouchEventArgs>? OnTouchCancel { get => SyncHandler<TouchEventArgs>("touchcancel"); set => SetDomEventSync("touchcancel", value?.Fn); }
-    public HandlerAsync<TouchEventArgs>? OnTouchCancelAsync { get => AsyncHandler<TouchEventArgs>("touchcancel"); set => SetDomEventAsync("touchcancel", value?.Fn); }
+    public Action<TouchEventArgs>? OnTouchCancel { get => SyncHandler<TouchEventArgs>("touchcancel"); set => SetDomEventSync("touchcancel", value); }
+    public Func<TouchEventArgs, Task>? OnTouchCancelAsync { get => AsyncHandler<TouchEventArgs>("touchcancel"); set => SetDomEventAsync("touchcancel", value); }
 
     // ---- Focus events (parameterless; focus/blur reach Element via capture-phase delegation) ----
 
-    public Handler? OnFocus { get => SyncHandler("focus"); set => SetDomEventSync("focus", value?.Fn); }
-    public HandlerAsync? OnFocusAsync { get => AsyncHandler("focus"); set => SetDomEventAsync("focus", value?.Fn); }
+    public Action? OnFocus { get => SyncHandler("focus"); set => SetDomEventSync("focus", value); }
+    public Func<Task>? OnFocusAsync { get => AsyncHandler("focus"); set => SetDomEventAsync("focus", value); }
 
-    public Handler? OnBlur { get => SyncHandler("blur"); set => SetDomEventSync("blur", value?.Fn); }
-    public HandlerAsync? OnBlurAsync { get => AsyncHandler("blur"); set => SetDomEventAsync("blur", value?.Fn); }
+    public Action? OnBlur { get => SyncHandler("blur"); set => SetDomEventSync("blur", value); }
+    public Func<Task>? OnBlurAsync { get => AsyncHandler("blur"); set => SetDomEventAsync("blur", value); }
 
-    public Handler? OnFocusIn { get => SyncHandler("focusin"); set => SetDomEventSync("focusin", value?.Fn); }
-    public HandlerAsync? OnFocusInAsync { get => AsyncHandler("focusin"); set => SetDomEventAsync("focusin", value?.Fn); }
+    public Action? OnFocusIn { get => SyncHandler("focusin"); set => SetDomEventSync("focusin", value); }
+    public Func<Task>? OnFocusInAsync { get => AsyncHandler("focusin"); set => SetDomEventAsync("focusin", value); }
 
-    public Handler? OnFocusOut { get => SyncHandler("focusout"); set => SetDomEventSync("focusout", value?.Fn); }
-    public HandlerAsync? OnFocusOutAsync { get => AsyncHandler("focusout"); set => SetDomEventAsync("focusout", value?.Fn); }
+    public Action? OnFocusOut { get => SyncHandler("focusout"); set => SetDomEventSync("focusout", value); }
+    public Func<Task>? OnFocusOutAsync { get => AsyncHandler("focusout"); set => SetDomEventAsync("focusout", value); }
 
     // ---- Drag events that complete the set (dragstart/over/drop/end already exist on Element) ----
 
-    public Handler? OnDrag { get => SyncHandler("drag"); set => SetDomEventSync("drag", value?.Fn); }
-    public HandlerAsync? OnDragAsync { get => AsyncHandler("drag"); set => SetDomEventAsync("drag", value?.Fn); }
+    public Action? OnDrag { get => SyncHandler("drag"); set => SetDomEventSync("drag", value); }
+    public Func<Task>? OnDragAsync { get => AsyncHandler("drag"); set => SetDomEventAsync("drag", value); }
 
-    public Handler? OnDragEnter { get => SyncHandler("dragenter"); set => SetDomEventSync("dragenter", value?.Fn); }
-    public HandlerAsync? OnDragEnterAsync { get => AsyncHandler("dragenter"); set => SetDomEventAsync("dragenter", value?.Fn); }
+    public Action? OnDragEnter { get => SyncHandler("dragenter"); set => SetDomEventSync("dragenter", value); }
+    public Func<Task>? OnDragEnterAsync { get => AsyncHandler("dragenter"); set => SetDomEventAsync("dragenter", value); }
 
-    public Handler? OnDragLeave { get => SyncHandler("dragleave"); set => SetDomEventSync("dragleave", value?.Fn); }
-    public HandlerAsync? OnDragLeaveAsync { get => AsyncHandler("dragleave"); set => SetDomEventAsync("dragleave", value?.Fn); }
+    public Action? OnDragLeave { get => SyncHandler("dragleave"); set => SetDomEventSync("dragleave", value); }
+    public Func<Task>? OnDragLeaveAsync { get => AsyncHandler("dragleave"); set => SetDomEventAsync("dragleave", value); }
 
     // ---- Clipboard events (ClipboardEventArgs: the plain-text payload read during the event) ----
 
-    public Handler<ClipboardEventArgs>? OnCopy { get => SyncHandler<ClipboardEventArgs>("copy"); set => SetDomEventSync("copy", value?.Fn); }
-    public HandlerAsync<ClipboardEventArgs>? OnCopyAsync { get => AsyncHandler<ClipboardEventArgs>("copy"); set => SetDomEventAsync("copy", value?.Fn); }
+    public Action<ClipboardEventArgs>? OnCopy { get => SyncHandler<ClipboardEventArgs>("copy"); set => SetDomEventSync("copy", value); }
+    public Func<ClipboardEventArgs, Task>? OnCopyAsync { get => AsyncHandler<ClipboardEventArgs>("copy"); set => SetDomEventAsync("copy", value); }
 
-    public Handler<ClipboardEventArgs>? OnCut { get => SyncHandler<ClipboardEventArgs>("cut"); set => SetDomEventSync("cut", value?.Fn); }
-    public HandlerAsync<ClipboardEventArgs>? OnCutAsync { get => AsyncHandler<ClipboardEventArgs>("cut"); set => SetDomEventAsync("cut", value?.Fn); }
+    public Action<ClipboardEventArgs>? OnCut { get => SyncHandler<ClipboardEventArgs>("cut"); set => SetDomEventSync("cut", value); }
+    public Func<ClipboardEventArgs, Task>? OnCutAsync { get => AsyncHandler<ClipboardEventArgs>("cut"); set => SetDomEventAsync("cut", value); }
 
-    public Handler<ClipboardEventArgs>? OnPaste { get => SyncHandler<ClipboardEventArgs>("paste"); set => SetDomEventSync("paste", value?.Fn); }
-    public HandlerAsync<ClipboardEventArgs>? OnPasteAsync { get => AsyncHandler<ClipboardEventArgs>("paste"); set => SetDomEventAsync("paste", value?.Fn); }
+    public Action<ClipboardEventArgs>? OnPaste { get => SyncHandler<ClipboardEventArgs>("paste"); set => SetDomEventSync("paste", value); }
+    public Func<ClipboardEventArgs, Task>? OnPasteAsync { get => AsyncHandler<ClipboardEventArgs>("paste"); set => SetDomEventAsync("paste", value); }
 
     // ---- Remaining form-ish events (beforeinput carries the inserted text; select/invalid/reset are bare) ----
 
-    public Handler<string>? OnBeforeInput { get => SyncHandler<string>("beforeinput"); set => SetDomEventSync("beforeinput", value?.Fn); }
-    public HandlerAsync<string>? OnBeforeInputAsync { get => AsyncHandler<string>("beforeinput"); set => SetDomEventAsync("beforeinput", value?.Fn); }
+    public Action<string>? OnBeforeInput { get => SyncHandler<string>("beforeinput"); set => SetDomEventSync("beforeinput", value); }
+    public Func<string, Task>? OnBeforeInputAsync { get => AsyncHandler<string>("beforeinput"); set => SetDomEventAsync("beforeinput", value); }
 
-    public Handler? OnSelect { get => SyncHandler("select"); set => SetDomEventSync("select", value?.Fn); }
-    public HandlerAsync? OnSelectAsync { get => AsyncHandler("select"); set => SetDomEventAsync("select", value?.Fn); }
+    public Action? OnSelect { get => SyncHandler("select"); set => SetDomEventSync("select", value); }
+    public Func<Task>? OnSelectAsync { get => AsyncHandler("select"); set => SetDomEventAsync("select", value); }
 
-    public Handler? OnInvalid { get => SyncHandler("invalid"); set => SetDomEventSync("invalid", value?.Fn); }
-    public HandlerAsync? OnInvalidAsync { get => AsyncHandler("invalid"); set => SetDomEventAsync("invalid", value?.Fn); }
+    public Action? OnInvalid { get => SyncHandler("invalid"); set => SetDomEventSync("invalid", value); }
+    public Func<Task>? OnInvalidAsync { get => AsyncHandler("invalid"); set => SetDomEventAsync("invalid", value); }
 
-    public Handler? OnReset { get => SyncHandler("reset"); set => SetDomEventSync("reset", value?.Fn); }
-    public HandlerAsync? OnResetAsync { get => AsyncHandler("reset"); set => SetDomEventAsync("reset", value?.Fn); }
+    public Action? OnReset { get => SyncHandler("reset"); set => SetDomEventSync("reset", value); }
+    public Func<Task>? OnResetAsync { get => AsyncHandler("reset"); set => SetDomEventAsync("reset", value); }
 
     // ---- Scroll (ScrollEvent: scrollTop/clientHeight/scrollHeight; rAF-coalesced client-side) ----
 
-    public Handler<ScrollEvent>? OnScroll { get => SyncHandler<ScrollEvent>("scroll"); set => SetDomEventSync("scroll", value?.Fn); }
-    public HandlerAsync<ScrollEvent>? OnScrollAsync { get => AsyncHandler<ScrollEvent>("scroll"); set => SetDomEventAsync("scroll", value?.Fn); }
+    public Action<ScrollEvent>? OnScroll { get => SyncHandler<ScrollEvent>("scroll"); set => SetDomEventSync("scroll", value); }
+    public Func<ScrollEvent, Task>? OnScrollAsync { get => AsyncHandler<ScrollEvent>("scroll"); set => SetDomEventAsync("scroll", value); }
 
     // Emits every wired GlobalEventHandlers hook as data-rask-on-{event}, in GlobalEventOrder, so the
     // serialized attribute sequence is deterministic. Early-outs in one null check for a plain element.

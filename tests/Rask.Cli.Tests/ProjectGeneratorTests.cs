@@ -226,7 +226,7 @@ public sealed class ProjectGeneratorTests
         // The shell is the Features/Shared bucket; it hosts the Router but not the welcome page.
         var shell = files["Features/Shared/App.cs"];
         Assert.Contains("public sealed partial class App : Component", shell, StringComparison.Ordinal);
-        Assert.Contains("Router()", shell, StringComparison.Ordinal);
+        Assert.Contains("Render() => Router;", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("public sealed partial class HomePage", shell, StringComparison.Ordinal);
 
         // The welcome page is its own Features/Home slice, Bootstrap-styled (no scoped .css to pair with).
@@ -235,7 +235,7 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("public sealed partial class HomePage : Component", home, StringComparison.Ordinal);
         Assert.Contains("BsCard", home, StringComparison.Ordinal);
         // The welcome copy points at the file it actually lives in.
-        Assert.Contains("Code()[\"HomePage.cs\"]", home, StringComparison.Ordinal);
+        Assert.Contains("Code[\"HomePage.cs\"]", home, StringComparison.Ordinal);
     }
 
     [Fact]

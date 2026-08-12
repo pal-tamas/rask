@@ -4,7 +4,7 @@ namespace Rask.Example.Auth;
 // wwwroot/global.css), a sticky navbar, and a Router that renders the matched page.
 public sealed partial class App : Component
 {
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Rask — cookie auth sample"],
         Meta.Charset("utf-8"),

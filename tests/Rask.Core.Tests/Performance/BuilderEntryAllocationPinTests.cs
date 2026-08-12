@@ -45,7 +45,7 @@ internal sealed partial class AllocBoundEntryProbe : Component
 {
     internal readonly BoundForm Model = new() { Name = "Ada", Age = 36 };
 
-    protected override Component? Render() => Div[Input(() => Model.Name).Id("name")];
+    protected override Component? Render() => Div[Input.Bind(() => Model.Name).Id("name")];
 }
 
 internal sealed partial class AllocBoundFactoryProbe : Component
@@ -56,11 +56,10 @@ internal sealed partial class AllocBoundFactoryProbe : Component
         Div()[Rask.Core.Components.Generated.Input(() => Model.Name, Id: "name")];
 }
 
-// The event surface, which is where the carriers live: every one of Element's ~88 handler pairs is a
-// `Handler?`/`Handler<TArgs>?` prop, so a wired handler now goes through a struct wrap on the way in and
-// the reset writes a struct on the way out. Both are supposed to be free — the carrier is a view over
-// the same dictionary slot, never storage — and, critically, an element handler must stay UNWRAPPED: an
-// AutoCallback wrapper would be one closure per handler per render, which is exactly what this pins.
+// The event surface: every one of Element's ~88 handler pairs is a
+// plain `Action?` / `Action<TArgs>?` property over the same dictionary slot, so setting one and resetting
+// one are both supposed to be free. Critically, an element handler must stay UNWRAPPED: an AutoCallback
+// wrapper would be one closure per handler per render, which is exactly what this pins.
 internal sealed partial class AllocEventEntryProbe : Component
 {
     internal int Clicks;
@@ -87,14 +86,13 @@ internal sealed partial class AllocEventFactoryProbe : Component
     private void Bump() => Clicks++;
 }
 
-// The other side of the carrier rule. A NON-Element component's callback stays AutoCallback-wrapped, so
-// it costs one closure per handler per render — on BOTH surfaces, which is the parity being pinned. The
-// carrier itself must add nothing on top: it is a struct, its nullable is a struct, and the setter's
-// From() maps null to unset without touching the heap.
+// The other side of the wrap rule. A NON-Element component's callback stays AutoCallback-wrapped, so
+// it costs one closure per handler per render — on BOTH surfaces, which is the parity being pinned.
+// Nothing may be added on top of that one closure.
 internal sealed partial class AllocCallbackLeaf : Component
 {
-    public Handler? OnPick { get; set; }
-    public Handler<string>? OnName { get; set; }
+    public Action? OnPick { get; set; }
+    public Action<string>? OnName { get; set; }
 
     protected override Component? Render() => Div;
 }
@@ -122,16 +120,15 @@ internal sealed partial class AllocCallbackFactoryProbe : Component
     private void Name(string value) => Picks++;
 }
 
-// The delegate props the `On` rule never reached — a render fragment (`Func<T, Component>`), not an
-// event callback. They ride a `Carrier<TDelegate>?` now so their setter can share their name, and the
-// carrier has to stay what it claims to be: a struct wrapping the same delegate the raw prop held, with
-// `From` mapping an unset one to a null carrier without touching the heap. A boxed carrier, or a
-// wrapper closure applied where the raw prop had none, would show up here as a per-render delta.
+// The delegate props the old `On`-dropping rule never reached — a render fragment (`Func<T, Component>`), not an
+// event callback. Their setter shares their name like any other, and a fragment is NOT auto-wrapped —
+// it does not return void or Task. A wrapper closure applied where the raw prop had none would show up
+// here as a per-render delta.
 internal sealed partial class AllocFragmentLeaf : Component
 {
-    public Carrier<Func<int, Component>>? Renderer { get; set; }
+    public Func<int, Component>? Renderer { get; set; }
 
-    protected override Component? Render() => Renderer?.Fn is { } render ? render(1) : null;
+    protected override Component? Render() => Renderer is { } render ? render(1) : null;
 }
 
 internal sealed partial class AllocFragmentEntryProbe : Component
@@ -148,17 +145,15 @@ internal sealed partial class AllocFragmentFactoryProbe : Component
     private Component Row(int i) => Span()[i.ToString(System.Globalization.CultureInfo.InvariantCulture)];
 }
 
-// The carrier's public READ surface. `OnPing?.Invoke()` is what a component calls its own callback back
-// with now that the carried delegate is internal, and it sits wherever the component chose to put it —
-// including inside Render(), on the hot path. It has to cost exactly what `Fn?.Invoke()` cost: an
-// instance method on a readonly struct, reached through Nullable<T>, is a stack copy and a call. A boxed
-// carrier (an Invoke reached through an interface, say) would be one allocation per call per render.
+// The public READ surface. `OnPing?.Invoke()` is what a component calls its own callback back
+// with, and it sits wherever the component chose to put it — including inside Render(), on the hot
+// path. A null-conditional call on a delegate field is a branch and a call, and must stay that.
 // The handlers are STATIC method groups so AutoCallback leaves them alone — the wrapped case has its own
 // probe above, and this one is measuring the call, not the wrap.
 internal sealed partial class AllocInvokeLeaf : Component
 {
-    public Handler? OnPing { get; set; }
-    public Handler<string>? OnNamed { get; set; }
+    public Action? OnPing { get; set; }
+    public Action<string>? OnNamed { get; set; }
 
     protected override Component? Render()
     {
@@ -192,14 +187,14 @@ internal sealed partial class AllocInvokeFactoryProbe : Component
 // gets the same parity pin as the body.
 internal sealed partial class AllocHeadEntryProbe : Component
 {
-    protected override Component? Head => Meta.Name("probe").Content("keep");
+    protected override Component? HeadAssets => Meta.Name("probe").Content("keep");
 
     protected override Component? Render() => Div.Id("page")[Span["42"]];
 }
 
 internal sealed partial class AllocHeadFactoryProbe : Component
 {
-    protected override Component? Head => Rask.Core.Components.Generated.Meta(Name: "probe", Content: "keep");
+    protected override Component? HeadAssets => Rask.Core.Components.Generated.Meta(Name: "probe", Content: "keep");
 
     protected override Component? Render() => Div(Id: "page")[Span()["42"]];
 }
@@ -267,7 +262,7 @@ public class BuilderEntryAllocationPinTests
     }
 
     // A wrapped component callback (as opposed to the raw DOM handler above): the wrapper closure is the
-    // dominant cost and both surfaces pay it, so the carrier must not add a second allocation on top.
+    // dominant cost and both surfaces pay it, so nothing may add a second allocation on top.
     [Fact]
     public void An_entry_built_component_callback_does_not_allocate_more_per_render_than_the_factory()
     {
@@ -277,8 +272,8 @@ public class BuilderEntryAllocationPinTests
         AssertNoWorseThan(entry, factory);
     }
 
-    // A non-event delegate prop through its carrier: the setter is only reachable at all because the
-    // prop stopped being a raw delegate, and this is what says the carrier cost nothing to get there.
+    // A non-event delegate prop — a render fragment, reachable through an ordinary setter and never
+    // auto-wrapped, so it must cost the same per render as the factory's assignment.
     [Fact]
     public void An_entry_built_fragment_delegate_does_not_allocate_more_per_render_than_the_factory()
     {
@@ -288,9 +283,9 @@ public class BuilderEntryAllocationPinTests
         AssertNoWorseThan(entry, factory);
     }
 
-    // Calling a callback back through the carrier, per render, on both surfaces.
+    // Calling a callback back, per render, on both surfaces.
     [Fact]
-    public void A_callback_invoked_through_the_carrier_does_not_allocate_more_per_render_than_the_factory()
+    public void An_invoked_callback_does_not_allocate_more_per_render_than_the_factory()
     {
         var entry = Measure(static () => new AllocInvokeEntryProbe());
         var factory = Measure(static () => new AllocInvokeFactoryProbe());

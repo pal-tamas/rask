@@ -17,8 +17,8 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
         EditContext? captured = null;
         var model = new Model();
 
-        RaskTest.Render(() => Form(model)[
-            Input(() => model.Name),
+        RaskTest.Render(() => Form.Model(model)[
+            Input.Bind(() => model.Name),
             RaskTest.EditContextProbe(c => captured = c)
         ]);
 
@@ -30,8 +30,8 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     {
         var model = new Model();
 
-        var page = RaskTest.Render(() => Form(model)[RaskTest.EditContextProbe(_ => { })]);
-        var withoutProbe = RaskTest.Render(() => Form(model));
+        var page = RaskTest.Render(() => Form.Model(model)[RaskTest.EditContextProbe(_ => { })]);
+        var withoutProbe = RaskTest.Render(() => Form.Model(model));
 
         Assert.Equal(withoutProbe.Html, page.Html);
     }
@@ -42,8 +42,8 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
         EditContext? captured = null;
         var model = new Model();
 
-        var page = RaskTest.Render(() => Form(model)[
-            Input(() => model.Name),
+        var page = RaskTest.Render(() => Form.Model(model)[
+            Input.Bind(() => model.Name),
             RaskTest.EditContextProbe(c => captured = c)
         ]);
 

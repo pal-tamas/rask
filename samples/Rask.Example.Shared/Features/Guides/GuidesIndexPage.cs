@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class GuidesIndexPage : Component
 {
-    protected override Component? Head => Title["Guides — Rask"];
+    protected override Component? HeadAssets => Title["Guides — Rask"];
 
     protected override Component? Render() =>
     [

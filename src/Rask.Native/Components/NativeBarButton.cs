@@ -13,7 +13,7 @@ public sealed partial class NativeBarButton : NativeBarItem
     public required NativeIcon Icon { get; set; }
 
     /// <summary>Invoked when the button is tapped. Optional (a button may be display-only).</summary>
-    public Carrier<Action>? OnClick { get; set; }
+    public Action? OnClick { get; set; }
 
     /// <summary>An optional accessibility label / title for the button.</summary>
     public new string? Title { get; set; }

@@ -44,7 +44,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void UnsetHandlers_AddNoFootprint()
     {
-        var div = Div;
+        var div = Div.Value;
         Assert.Null(div.OnClick);
         Assert.Null(div.OnMouseMove);
         Assert.Null(div.OnPointerDown);

@@ -13,7 +13,7 @@ internal sealed partial class StubApp : Component
 
     public StubApp(RouteState routeState) => _routeState = routeState;
 
-    protected override Component? Head => Title["stub"];
+    protected override Component? HeadAssets => Title["stub"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

@@ -24,8 +24,8 @@ public sealed partial class BsButton : BsBlock
     public new string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
-    public Handler? OnClick { get; set; }
-    public HandlerAsync? OnClickAsync { get; set; }
+    public Action? OnClick { get; set; }
+    public Func<Task>? OnClickAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -50,7 +50,7 @@ public sealed partial class BsButton : BsBlock
             .Name(Name)
             .Value(Value)
             .Aria(aria)
-            .OnClick(OnClick?.Fn)
-            .OnClickAsync(OnClickAsync?.Fn)[Items];
+            .OnClick(OnClick)
+            .OnClickAsync(OnClickAsync)[Items];
     }
 }

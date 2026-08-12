@@ -71,7 +71,7 @@ internal sealed partial class NativeJsInteropApp : Component
 
     public NativeJsInteropApp(IJSRuntime js) => _js = js;
 
-    protected override Component? Head => Title["js"];
+    protected override Component? HeadAssets => Title["js"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

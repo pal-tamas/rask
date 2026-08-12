@@ -12,7 +12,7 @@ public sealed partial class NoOpApp : Component
 {
     public int Hidden;
 
-    protected override Component? Head => new Title()["noop"];
+    protected override Component? HeadAssets => new Title()["noop"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

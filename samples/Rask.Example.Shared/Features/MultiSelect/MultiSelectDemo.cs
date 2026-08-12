@@ -15,20 +15,18 @@ public sealed partial class MultiSelectDemo : Component
 
     protected override Component? Render() =>
     [
-        Form(
-            _prefs,
-            OnValidSubmit: m => _submission = $"Saved {m.Interests.Count} interest(s)",
-            Class: "vstack gap-3")[
+        Form.Model(_prefs)
+            .OnValidSubmit(m => _submission = $"Saved {m.Interests.Count} interest(s)")
+            .Class("vstack gap-3")[
             Div[
                 Label.Class("form-label fw-semibold")["Interests"],
-                BsMultiSelect<string>(
-                    () => _prefs.Interests,
-                    AllInterests,
-                    Validate: interests => interests.Count >= 2
+                BsMultiSelect.Bind(() => _prefs.Interests)
+                    .Options(AllInterests)
+                    .Validate(interests => interests.Count >= 2
                         ? Array.Empty<string>()
-                        : ["Pick at least two interests."],
-                    Id: "ms-interests",
-                    Placeholder: "Pick a few…")
+                        : ["Pick at least two interests."])
+                    .Id("ms-interests")
+                    .Placeholder("Pick a few…")
             ],
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Save"]

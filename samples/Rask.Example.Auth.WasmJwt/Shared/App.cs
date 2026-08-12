@@ -4,7 +4,7 @@ public sealed partial class App : Component
 {
     // Bootstrap + Bootstrap Icons via CDN keep the showcase look without vendoring wwwroot/lib
     // per sample. wwwroot/global.css layers the Rask purple palette on top.
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Rask — JWT + WASM auth"],
         Meta.Charset("utf-8"),

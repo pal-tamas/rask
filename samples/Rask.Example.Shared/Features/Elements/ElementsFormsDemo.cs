@@ -4,12 +4,15 @@ namespace Rask.Example.Shared.Features;
 // datalist, output, progress, meter, button. (See the Forms page for binding/validation.)
 public sealed partial class ElementsFormsDemo : Component
 {
-    protected override Component? Render() => Form(Class: "vstack gap-3")[
+    // The elements below are plain HTML; `Form` binds a model, so this one holds their fields.
+    private readonly Fields _fields = new();
+
+    protected override Component? Render() => Form.Model(_fields).Class("vstack gap-3")[
         Fieldset.Class("border rounded p-3")[
             Legend.Class("fs-6 float-none w-auto px-2")["Profile"],
             Div.Class("mb-2")[
                 Label.For("nm").Class("form-label small mb-1")["Name"],
-                Input<string>()
+                Input.Value<string>(null)
                     .Type(InputType.Text)
                     .Id("nm")
                     .Class("form-control form-control-sm")
@@ -19,14 +22,14 @@ public sealed partial class ElementsFormsDemo : Component
             ],
             Div.Class("mb-2")[
                 Label.For("fruit").Class("form-label small mb-1")["Favourite"],
-                Select<string>().Id("fruit").Name("fruit").Class("form-select form-select-sm")[
+                Select.Value<string>(null).Id("fruit").Name("fruit").Class("form-select form-select-sm")[
                     Optgroup.Label("Fruit")[Option.Value("apple")["Apple"], Option.Value("pear").Selected(true)["Pear"]],
                     Optgroup.Label("Veg")[Option.Value("kale")["Kale"]]
                 ]
             ],
             Div.Class("mb-0")[
                 Label.For("bio").Class("form-label small mb-1")["Bio"],
-                Textarea<string>().Id("bio").Class("form-control form-control-sm").Placeholder("About you…")
+                Textarea.Value<string>(null).Id("bio").Class("form-control form-control-sm").Placeholder("About you…")
             ]
         ],
         BsRow.Gutter(3).Class(Flex.Align(BsAlign.Center))[
@@ -48,4 +51,9 @@ public sealed partial class ElementsFormsDemo : Component
             BsButton.Type("reset").Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm)["Reset"]
         ]
     ];
+
+    private sealed class Fields
+    {
+        public string? Name { get; set; }
+    }
 }

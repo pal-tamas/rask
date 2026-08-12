@@ -50,9 +50,9 @@ public class RequiredBuilderPropertyAnalyzerTests
 
         public static class RaskBuilderSettersTest
         {
-            public static global::Demo.Card Title(this global::Demo.Card c, string v) => c;
-            public static global::Demo.Card Note(this global::Demo.Card c, string? v) => c;
-            public static global::Demo.Card Kind(this global::Demo.Card c, string v) => c;
+            public static global::Rask.Core.Build<global::Demo.Card> Title(this global::Demo.Card c, string v) => c;
+            public static global::Rask.Core.Build<global::Demo.Card> Note(this global::Demo.Card c, string? v) => c;
+            public static global::Rask.Core.Build<global::Demo.Card> Kind(this global::Demo.Card c, string v) => c;
         }
         """;
 

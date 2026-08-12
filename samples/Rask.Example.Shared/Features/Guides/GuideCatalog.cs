@@ -87,6 +87,9 @@ public static class GuideCatalog
             "bi-key", "One Person Framework"),
 
         // ---- Core ----
+        new("building-components", "Building components",
+            "Naming a component and chaining onto it; what a component demands before it exists.",
+            "bi-bricks", "Core"),
         new("elements", "Elements & the DSL", "Primitives, tag factories, universal props, SVG, the element catalog.",
             "bi-code-square", "Core"),
         new("routing", "Routing", "Route attributes, params, nested layouts, type-safe URLs.",

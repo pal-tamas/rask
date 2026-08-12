@@ -831,14 +831,14 @@ internal static partial class ProjectGenerator
         [AllowAnonymous]
         public sealed partial class ErrorPage : Component
         {
-            protected override Component? Head => [Title()["Something went wrong"]];
+            protected override Component? HeadAssets => [Title["Something went wrong"]];
 
             protected override Component? Render() =>
-                Div(Class: "mx-auto my-5", Style: "max-width:540px")[
-                    BsCard(Class: "shadow-sm")[
-                        BsCardBody()[
-                            BsCardTitle()["Something went wrong"],
-                            BsCardText(Class: "text-body-secondary")[
+                Div.Class("mx-auto my-5").Style("max-width:540px")[
+                    BsCard.Class("shadow-sm")[
+                        BsCardBody[
+                            BsCardTitle["Something went wrong"],
+                            BsCardText.Class("text-body-secondary")[
                                 "The request couldn't be completed. The error has been logged."
                             ],
                             // The correlation id, and deliberately nothing else. Never render the
@@ -846,12 +846,12 @@ internal static partial class ProjectGenerator
                             // whoever hit the error, and the detail already went to ILogger where you can
                             // match it by this id.
                             Activity.Current?.Id is { Length: > 0 } traceId
-                                ? P(Class: "mb-3 small text-body-secondary")[
+                                ? P.Class("mb-3 small text-body-secondary")[
                                     "Reference: ",
-                                    Code()[traceId]
+                                    Code[traceId]
                                 ]
                                 : null,
-                            NavLink(HomeRoutes.HomePage(), Class: "btn btn-primary")["Back to the app"]
+                            NavLink.Href(HomeRoutes.HomePage()).Class("btn btn-primary")["Back to the app"]
                         ]
                     ]
                 ];
@@ -941,16 +941,16 @@ internal static partial class ProjectGenerator
             [QueryParam] public string? ReturnUrl { get; set; }
 
             protected override Component? Render() =>
-                Div(Class: "welcome-card")[
-                    H1()["Sign in"],
-                    _error is null ? null : Div(Style: "color:#b00020")[_error],
+                Div.Class("welcome-card")[
+                    H1["Sign in"],
+                    _error is null ? null : Div.Style("color:#b00020")[_error],
                     // Async submit uses the generated OnValidSubmitAsync sibling (like Button's OnClickAsync).
-                    Form(_model, OnValidSubmitAsync: SubmitAsync)[
-                        Div()[Label("username")["Username"], Input(() => _model.Username).Id("username")],
-                        Div()[Label("password")["Password"], Input(() => _model.Password).Id("password").Type(InputType.Password)],
-                        Button("submit")["Sign in"]
+                    Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+                        Div[Label.For("username")["Username"], Input.Bind(() => _model.Username).Id("username")],
+                        Div[Label.For("password")["Password"], Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)],
+                        Button.Type("submit")["Sign in"]
                     ],
-                    P()["Try alice / password (user) or root / password (admin)."]
+                    P["Try alice / password (user) or root / password (admin)."]
                 ];
 
             private async Task SubmitAsync(LoginModel m)
@@ -987,9 +987,9 @@ internal static partial class ProjectGenerator
         public sealed partial class MembersPage : Component
         {
             protected override Component? Render() =>
-                Div(Class: "welcome-card")[
-                    Authorize(
-                        NotAuthorized: P()["Please ", NavLink(Href: Routes.LoginPage())["sign in"], "."])[MemberContent()]
+                Div.Class("welcome-card")[
+                    Authorize
+                        .NotAuthorized(P["Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
                 ];
         }
 
@@ -997,10 +997,10 @@ internal static partial class ProjectGenerator
         {
             protected override Component? Render() =>
                 [
-                    H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
-                    Authorize(Roles: ["admin"])[
-                        Div(Style: "color:#7a5c00")["🔑 You have admin access."]],
-                    Button(OnClickAsync: () => auth.SignOutAsync(returnUrl: "/login"))["Sign out"]
+                    H1[$"Welcome, {userProvider.Current.Identity?.Name}"],
+                    Authorize.Roles(["admin"])[
+                        Div.Style("color:#7a5c00")["🔑 You have admin access."]],
+                    Button.OnClickAsync(() => auth.SignOutAsync(returnUrl: "/login"))["Sign out"]
                 ];
         }
 

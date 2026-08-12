@@ -23,7 +23,7 @@ internal static class ComponentGenerator
         {
             protected override Component? Render() =>
             [
-                Div()["{{name}} works. Edit Render() to build it out."]
+                Div["{{name}} works. Edit Render() to build it out."]
             ];
         }
 

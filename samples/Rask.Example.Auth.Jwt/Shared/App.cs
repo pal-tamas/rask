@@ -5,7 +5,7 @@ namespace Rask.Example.Auth.Jwt;
 // wwwroot/global.css layers the Rask purple palette on top.
 public sealed partial class App : Component
 {
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Rask — JWT auth sample"],
         Meta.Charset("utf-8"),

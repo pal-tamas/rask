@@ -8,12 +8,12 @@ public sealed partial class DisposableTimerProbe : Component, IDisposable
     public required int InstanceId { get; set; }
 
     public void Dispose() =>
-        Log($"#{InstanceId} disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
+        Log.Invoke($"#{InstanceId} disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
 
     protected override void OnMount()
     {
         _mountedAt = DateTimeOffset.Now;
-        Log($"#{InstanceId} mounted");
+        Log.Invoke($"#{InstanceId} mounted");
     }
 
     protected override Component? Render() =>

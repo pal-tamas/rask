@@ -18,7 +18,7 @@ public partial class App : Component
 
     public App(IJSRuntime js) => _js = js;
 
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Rask — the .NET One Person Framework"],
         Meta.Charset("utf-8"),

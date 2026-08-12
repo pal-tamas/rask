@@ -109,7 +109,7 @@ public sealed class LiveRenderContext : IDisposable
     public string? CurrentScopeId => _scopeStack.Count > 0 ? _scopeStack.Peek() : null;
 
     /// <summary>
-    ///     Per-render collector for <see cref="Component.Head" /> contributions. The
+    ///     Per-render collector for <see cref="Component.HeadAssets" /> contributions. The
     ///     <c>Generated.RaskHeadAssets</c> placeholder is replaced with this
     ///     registry's content during <see cref="Component.RenderAsLiveRoot()" />.
     /// </summary>
@@ -225,7 +225,7 @@ public sealed class LiveRenderContext : IDisposable
         // owner association is what lets the post-handler dirty-mark land on the right node.
         _root.RegisterHandler(handler, CurrentParent);
 
-    // Handler ids and their map live on the root; the clean-subtree frame cache needs to read the
+    // Action ids and their map live on the root; the clean-subtree frame cache needs to read the
     // counter and re-establish a skipped walk's registrations, and only this context knows the root.
     // See Component.CachedSubtree.Handlers.
 
@@ -233,11 +233,11 @@ public sealed class LiveRenderContext : IDisposable
     internal int PeekNextHandlerId => _root.NextHandlerIdInternal;
 
     /// <summary>Snapshot the handler run registered since <paramref name="startId" /> (null if empty).</summary>
-    internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(int startId) =>
+    internal (Component Owner, Delegate Action)[]? CaptureHandlerRun(int startId) =>
         _root.CaptureHandlerRun(startId);
 
     /// <summary>Re-register a captured run and advance the counter past it, as the skipped walk would.</summary>
-    internal void ReplayHandlerRun(int startId, (Component Owner, Delegate Handler)[] run) =>
+    internal void ReplayHandlerRun(int startId, (Component Owner, Delegate Action)[] run) =>
         _root.ReplayHandlerRun(startId, run);
 
     public T GetOrCreate<T>(Func<IServiceProvider, T> factory) where T : Component
@@ -361,7 +361,7 @@ public sealed class LiveRenderContext : IDisposable
     }
 
     // Used by Form to make a sub-object reachable through the same EditContext as its root
-    // model, so a nested binding like Input(() => model.Address.Street) — whose acc.Target is
+    // model, so a nested binding like Input.Bind(() => model.Address.Street) — whose acc.Target is
     // model.Address — resolves to the form's EditContext rather than auto-creating a separate
     // sub-object context. Last-write-wins: when a Form receives both Model and Context, the
     // generated factory's setter order is Model-then-Context, so the Model setter runs first

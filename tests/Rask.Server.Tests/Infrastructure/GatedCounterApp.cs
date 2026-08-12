@@ -15,7 +15,7 @@ public sealed partial class GatedCounterApp : Component
 
     public int Counter;
 
-    protected override Component? Head => new Title()["gated"];
+    protected override Component? HeadAssets => new Title()["gated"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

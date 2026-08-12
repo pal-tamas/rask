@@ -14,8 +14,8 @@ public sealed partial class BsDropdown : BsBlock
     // Right-aligns the menu (.dropdown-menu-end).
     public bool? AlignEnd { get; set; }
 
-    public Handler? OnToggle { get; set; }
-    public HandlerAsync? OnToggleAsync { get; set; }
+    public Action? OnToggle { get; set; }
+    public Func<Task>? OnToggleAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -32,8 +32,8 @@ public sealed partial class BsDropdown : BsBlock
                 .Size(Size)
                 .Class("dropdown-toggle")
                 .Aria(expanded)
-                .OnClick(OnToggle?.Fn)
-                .OnClickAsync(OnToggleAsync?.Fn)[Label ?? ""],
+                .OnClick(OnToggle)
+                .OnClickAsync(OnToggleAsync)[Label ?? ""],
             Ul
                 .Class(BsClass.Join("dropdown-menu", AlignEnd is true ? "dropdown-menu-end" : null,
                 open ? "show" : null))[Items]];
@@ -49,8 +49,8 @@ public sealed partial class BsDropdownItem : BsBlock
     public bool? Disabled { get; set; }
     public new bool? Header { get; set; }
     public bool? Divider { get; set; }
-    public Handler? OnClick { get; set; }
-    public HandlerAsync? OnClickAsync { get; set; }
+    public Action? OnClick { get; set; }
+    public Func<Task>? OnClickAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -71,7 +71,7 @@ public sealed partial class BsDropdownItem : BsBlock
 
         Component item = Href is not null
             ? A.Class(cls).Href(Href)[Items]
-            : Button.Type("button").Class(cls).OnClick(OnClick?.Fn).OnClickAsync(OnClickAsync?.Fn)[Items];
+            : Button.Type("button").Class(cls).OnClick(OnClick).OnClickAsync(OnClickAsync)[Items];
 
         return Li.Id(Id)[item];
     }

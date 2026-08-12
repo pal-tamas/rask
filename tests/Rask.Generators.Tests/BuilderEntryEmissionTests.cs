@@ -68,6 +68,7 @@ public class BuilderEntryEmissionTests
     public void An_entrys_reset_belongs_to_the_entrys_own_type()
     {
         var run = BuilderGeneratorHarness.Run("""
+                                              using System;
                                               using Rask.Core;
                                               namespace Demo
                                               {
@@ -75,9 +76,8 @@ public class BuilderEntryEmissionTests
                                               }
                                               namespace Demo.Products
                                               {
-                                                  public partial class Card : Component
+                                                  public partial class Card<T> : Component
                                                   {
-                                                      public required System.Func<Component> Template { get; set; }
                                                       public string? Note { get; set; }
                                                   }
                                               }
@@ -90,8 +90,9 @@ public class BuilderEntryEmissionTests
                                               }
                                               """);
 
-        // Products.Card's required member is a raw DELEGATE, which no chain could ever set, so it is
-        // still withheld an entry and only Orders.Card is eligible — no collision.
+        // Products.Card<T> has nothing to infer T from, so it is withheld an entry and only Orders.Card
+        // is eligible — no collision. (It used to be disqualified by a required raw DELEGATE, which no
+        // chain could set; that is not a disqualifier any more — see BuilderSetterEmissionTests.)
         Assert.Empty(run.WithId("RASK040"));
 
         // The canonical entry — the one place the reset triple is written — and the member injected into
@@ -101,7 +102,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("Entry<global::Demo.Orders.Card>", entry, StringComparison.Ordinal);
         Assert.Contains("__RaskResetEager_Demo_Orders_Card", entry, StringComparison.Ordinal);
         Assert.Contains(
-            "    private static global::Demo.Orders.Card Card => global::RaskEntriesTestAssembly.Card;",
+            "    private static global::Rask.Core.Build<global::Demo.Orders.Card> Card => global::RaskEntriesTestAssembly.Card;",
             run.Source(Entries),
             StringComparison.Ordinal);
 
@@ -112,16 +113,15 @@ public class BuilderEntryEmissionTests
         Assert.Contains("(global::Demo.Orders.Card)__c0", reset, StringComparison.Ordinal);
         Assert.Contains("__c.Other", reset, StringComparison.Ordinal);
 
-        // The other Card keeps its own reset rather than losing it to the name it shares.
-        Assert.Contains("(global::Demo.Products.Card)__c0",
-            BuilderGeneratorHarness.Method(run.Source(Setters), "__RaskResetPending_Demo_Products_Card"),
-            StringComparison.Ordinal);
+        // …and the ineligible Card gets no reset at all, because a reset exists to serve an entry and it
+        // has none. Its setters are still emitted — a chain reaches it only through a factory-built
+        // receiver, and those still have to work.
     }
 
     // Same-named GENERIC components are the one shape that survives a shared name: their entries are
     // methods, so different arities are overloads (BsSelect<TItem> next to BsSelect<TValue, TItem>).
     [Fact]
-    public void Same_named_generic_form_controls_of_different_arity_both_get_an_entry()
+    public void Same_named_generic_controls_share_a_seed__and_the_arity_that_cannot_pin_keeps_no_entry()
     {
         var run = BuilderGeneratorHarness.Run("""
                                               using System;
@@ -135,33 +135,44 @@ public class BuilderEntryEmissionTests
                                               public partial class Pick<TItem> : Component, IFormControl<TItem>
                                               {
                                                   public TItem? Value { get; set; }
-                                                  public Handler<TItem>? OnChange { get; set; }
-                                                  public HandlerAsync<TItem>? OnChangeAsync { get; set; }
+                                                  public Action<TItem>? OnChange { get; set; }
+                                                  public Func<TItem, Task>? OnChangeAsync { get; set; }
                                                   public Expression<Func<TItem>>? Bind { get; set; }
-                                                  public Carrier<Validate<TItem>>? Validate { get; set; }
-                                                  public Carrier<ValidateAsync<TItem>>? ValidateAsync { get; set; }
-                                                  public Carrier<Action<TItem>>? AfterBind { get; set; }
-                                                  public Carrier<Func<TItem, Task>>? AfterBindAsync { get; set; }
+                                                  public Validate<TItem>? Validate { get; set; }
+                                                  public ValidateAsync<TItem>? ValidateAsync { get; set; }
+                                                  public Action<TItem>? AfterBind { get; set; }
+                                                  public Func<TItem, Task>? AfterBindAsync { get; set; }
                                               }
 
                                               public partial class Pick<TValue, TItem> : Component, IFormControl<TValue>
                                               {
                                                   public TValue? Value { get; set; }
-                                                  public Handler<TValue>? OnChange { get; set; }
-                                                  public HandlerAsync<TValue>? OnChangeAsync { get; set; }
+                                                  public Action<TValue>? OnChange { get; set; }
+                                                  public Func<TValue, Task>? OnChangeAsync { get; set; }
                                                   public Expression<Func<TValue>>? Bind { get; set; }
-                                                  public Carrier<Validate<TValue>>? Validate { get; set; }
-                                                  public Carrier<ValidateAsync<TValue>>? ValidateAsync { get; set; }
-                                                  public Carrier<Action<TValue>>? AfterBind { get; set; }
-                                                  public Carrier<Func<TValue, Task>>? AfterBindAsync { get; set; }
+                                                  public Validate<TValue>? Validate { get; set; }
+                                                  public ValidateAsync<TValue>? ValidateAsync { get; set; }
+                                                  public Action<TValue>? AfterBind { get; set; }
+                                                  public Func<TValue, Task>? AfterBindAsync { get; set; }
                                               }
                                               """);
 
         Assert.Empty(run.WithId("RASK040"));
         var entries = run.Source(Entries);
-        Assert.Contains("Pick<TItem>(global::System.Linq.Expressions.Expression", entries, StringComparison.Ordinal);
-        Assert.Contains("Pick<TValue, TItem>(global::System.Linq.Expressions.Expression", entries,
-            StringComparison.Ordinal);
+
+        // Two arities of one name share the one entry member, so they share its seed. Each contributes
+        // the openings it can COMPLETE: `Pick<TItem>` pins TItem from its bind expression and opens;
+        // `Pick<TValue, TItem>` has nothing that pins TItem at all, so it contributes none and keeps no
+        // entry. That is the same finding that retired BsSelect's second arity — and it is also what
+        // stops the two openings colliding, since both would otherwise be `Bind<T>(Expression<Func<T>>)`
+        // on the same receiver (CS0111).
+        Assert.Contains("RaskSeed_Pick", entries, StringComparison.Ordinal);
+
+        // The steps live with the seed in the host file — a consuming assembly's components publish one
+        // canonical entry there and forward to it, rather than re-emitting it per host.
+        var host = run.Source("RaskBuilderEntryHost.g.cs");
+        Assert.Contains("global::Rask.Core.Build<global::Demo.Pick<TItem>> Bind<TItem>(", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("Pick<TValue, TItem> Bind", host, StringComparison.Ordinal);
     }
 
     // A non-nullable prop with no member initializer is a REQUIRED factory parameter (RASK001): the
@@ -257,7 +268,9 @@ public class BuilderEntryEmissionTests
                                                }
                                                """).Source("RaskBuilderEntryHost.g.cs");
 
-        Assert.Contains("Holder<T>(T Item)", host, StringComparison.Ordinal);
+        // `T?`, not `T`: a step takes the property's DECLARED type, so a nullable one stays nullable and
+        // a chain that passes a `string?` still infers `string` rather than `string?`.
+        Assert.Contains("global::Rask.Core.Build<global::Demo.Holder<T>> Item<T>(T? Item)", host, StringComparison.Ordinal);
 
         // …and it leaves the property exactly as the property's own setter would. Folding the change
         // keeps propsChanged honest; clearing the pending bit stops the deferred reset putting back the
@@ -267,13 +280,16 @@ public class BuilderEntryEmissionTests
         Assert.Contains("__c.Item = Item;", host, StringComparison.Ordinal);
     }
 
-    // The other half of the same rule: a generic component with nothing that pins its type argument gets
-    // no entry, because there would be no way to call it without writing the type argument by hand —
-    // which is what the zero-argument overload is already for. BsDataGrid<T> is the real one (its props
-    // are IEnumerable<T> and List<BsColumn<T>>, neither of which IS T), and this is what keeps it, and
-    // every sample call site that builds one, exactly where it was.
+    // A property does not have to BE the type parameter to pin it — a sequence of it will do, and
+    // inference reads straight through. That widening is what gives `BsDataGrid` its `.Data(rows)` and
+    // `.Columns(cols)` openings, and `Grid<T>` here its `.Rows(…)`: without it a generic component whose
+    // properties merely mention T had no way in at all and kept the factory.
+    //
+    // The narrow rule was deliberate once, to avoid handing an entry to components nobody had scheduled
+    // to migrate. With the factory going away that reasoning inverts: an unreachable component is the
+    // failure, not the surprise.
     [Fact]
-    public void A_generic_component_with_nothing_to_infer_from_gets_no_entry()
+    public void A_generic_component_is_pinned_by_a_property_that_merely_mentions_its_type_argument()
     {
         var run = BuilderGeneratorHarness.Run("""
                                               using System.Collections.Generic;
@@ -291,35 +307,45 @@ public class BuilderEntryEmissionTests
                                               """);
 
         var host = run.Source("RaskBuilderEntryHost.g.cs");
-        Assert.DoesNotContain("Grid<T>", host, StringComparison.Ordinal);
+        Assert.Contains("RaskSeed_Grid", host, StringComparison.Ordinal);
+        Assert.Contains("global::Rask.Core.Build<global::Demo.Grid<T>> Rows<T>(", host, StringComparison.Ordinal);
+
+        // …and a non-generic component with nothing required still hands back the component itself, so
+        // the seed is only ever paid for where something has to be settled first.
         Assert.Contains(" Plain =>", host, StringComparison.Ordinal);
     }
 
-    // The one shape a required member still blocks, and it is not about construction: a raw delegate
-    // prop is INVOCABLE, so `x.Template(fn)` binds to the property and a same-named setter can never be
-    // reached (the RASK042 rule). An optional prop of that shape moves to a carrier; a required one
-    // cannot, because a carrier built from a null delegate is a non-null carrier wrapping null — exactly
-    // the state `required` exists to forbid. An entry here would be constructible and never completable.
+    // A required DELEGATE used to be the one shape that blocked an entry, and it was never about
+    // construction: the prop was invocable, so `x.Template(fn)` bound to the property and a same-named
+    // setter could never be reached — an entry would have been constructible and never completable. The
+    // `Build<TComponent>` receiver settles it, so the component gets an entry and `Template` opens it.
     [Fact]
-    public void A_component_with_a_required_delegate_still_gets_no_entry()
+    public void A_component_with_a_required_delegate_gets_an_entry_that_demands_it()
     {
-        var entries = BuilderGeneratorHarness.Run("""
-                                                  using System;
-                                                  using Rask.Core;
-                                                  namespace Demo;
-                                                  public partial class Templated : Component
-                                                  {
-                                                      public required Func<Component> Template { get; set; }
-                                                  }
+        var run = BuilderGeneratorHarness.Run("""
+                                              using System;
+                                              using Rask.Core;
+                                              namespace Demo;
+                                              public partial class Templated : Component
+                                              {
+                                                  public required Func<Component> Template { get; set; }
+                                              }
 
-                                                  public partial class Optional : Component
-                                                  {
-                                                      public string? Note { get; set; }
-                                                  }
-                                                  """).Source(Entries);
+                                              public partial class Optional : Component
+                                              {
+                                                  public string? Note { get; set; }
+                                              }
+                                              """);
 
-        Assert.DoesNotContain(" Templated =>", entries, StringComparison.Ordinal);
+        var entries = run.Source(Entries);
+        Assert.Contains(" Templated =>", entries, StringComparison.Ordinal);
         Assert.Contains(" Optional =>", entries, StringComparison.Ordinal);
+
+        // A required property is a chain STEP, so the entry hands back a seed and `Template` is the way
+        // out of it — the component does not exist until it has been supplied.
+        var host = run.Source("RaskBuilderEntryHost.g.cs");
+        Assert.Contains("RaskSeed_Templated", host, StringComparison.Ordinal);
+        Assert.Contains("Template(", host, StringComparison.Ordinal);
     }
 
     // The syntax provider yields one candidate per class DECLARATION, so a partial class whose
@@ -342,7 +368,7 @@ public class BuilderEntryEmissionTests
                                                   }
                                                   """).Source(Setters);
 
-        Assert.Equal(1, Count(setters, " Note(this global::Demo.Widget"));
+        Assert.Equal(1, Count(setters, " Note(this global::Rask.Core.Build<global::Demo.Widget>"));
         Assert.Equal(1, Count(setters, " __RaskResetEager_Demo_Widget("));
     }
 
@@ -368,7 +394,7 @@ public class BuilderEntryEmissionTests
         var host = run.Source("RaskBuilderEntryHost.g.cs");
         Assert.Contains("public static class RaskEntriesTestAssembly", host, StringComparison.Ordinal);
         Assert.Contains(
-            "public static global::Demo.Card Card => global::Rask.Core.BuilderRuntime.Entry<global::Demo.Card>("
+            "public static global::Rask.Core.Build<global::Demo.Card> Card => new(global::Rask.Core.BuilderRuntime.Entry<global::Demo.Card>("
             + "global::RaskBuilderSettersTestAssembly.__RaskResetEager_Demo_Card, "
             + "global::RaskBuilderSettersTestAssembly.__RaskResetPending_Demo_Card, ",
             host,
@@ -377,7 +403,7 @@ public class BuilderEntryEmissionTests
         // The injected member: the same entry, reached by name.
         var entries = run.Source(Entries);
         Assert.Contains(
-            "    private static global::Demo.Card Card => global::RaskEntriesTestAssembly.Card;",
+            "    private static global::Rask.Core.Build<global::Demo.Card> Card => global::RaskEntriesTestAssembly.Card;",
             entries,
             StringComparison.Ordinal);
         Assert.DoesNotContain("__RaskResetEager_Demo_Card", entries, StringComparison.Ordinal);
@@ -397,7 +423,7 @@ public class BuilderEntryEmissionTests
                                                   """).Source(Entries);
 
         Assert.Contains(
-            "    private static global::Rask.Native.Components.NativeTabBar NativeTabBar "
+            "    private static global::Rask.Core.Build<global::Rask.Native.Components.NativeTabBar> NativeTabBar "
             + "=> global::RaskEntriesRask_Native.NativeTabBar;",
             entries,
             StringComparison.Ordinal);
@@ -444,7 +470,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("partial class PanelBase\n", entries.Replace("\r\n", "\n", StringComparison.Ordinal),
             StringComparison.Ordinal);
         Assert.Contains(
-            "    private static global::Demo.Card Card => global::RaskEntriesTestAssembly.Card;",
+            "    private static global::Rask.Core.Build<global::Demo.Card> Card => global::RaskEntriesTestAssembly.Card;",
             entries,
             StringComparison.Ordinal);
 
@@ -485,7 +511,7 @@ public class BuilderEntryEmissionTests
                                                   public partial class Card : Component { }
                                                   """).Source(Entries);
 
-        Assert.Equal(2, Count(entries, "private static global::Demo.Card Card =>"));
+        Assert.Equal(2, Count(entries, "private static global::Rask.Core.Build<global::Demo.Card> Card =>"));
     }
 
     // RASK036 is the diagnostic for a component that cannot receive entries because there is no partial
@@ -520,7 +546,7 @@ public class BuilderEntryEmissionTests
         // Card itself cannot carry an entry named Card (CS0542) and does not need one, so the markup
         // host is the only place the forwarder lands.
         Assert.Contains("partial class CardTests", entries, StringComparison.Ordinal);
-        Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
+        Assert.Equal(1, Count(entries, "private static global::Rask.Core.Build<global::Demo.Card> Card =>"));
     }
 
     // A markup host is one that names RaskMarkup DIRECTLY. A subclass of one already has the framework
@@ -575,7 +601,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("partial class CardTests : global::Rask.Core.RaskMarkup", entries,
             StringComparison.Ordinal);
         Assert.DoesNotContain("global::RaskEntriesRask_Core.", entries, StringComparison.Ordinal);
-        Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
+        Assert.Equal(1, Count(entries, "private static global::Rask.Core.Build<global::Demo.Card> Card =>"));
     }
 
     // The shape the attribute exists for: the base slot belongs to someone else, so no amount of
@@ -596,10 +622,10 @@ public class BuilderEntryEmissionTests
         Assert.Contains("partial class CardTests\n", entries.Replace("\r\n", "\n", StringComparison.Ordinal),
             StringComparison.Ordinal);
         Assert.Contains(
-            "private static global::Rask.Core.Components.Div Div => global::RaskEntriesRask_Core.Div;", entries,
+            "private static global::Rask.Core.Build<global::Rask.Core.Components.Div> Div => global::RaskEntriesRask_Core.Div;", entries,
             StringComparison.Ordinal);
         // The consumer's own components come the usual way, alongside them.
-        Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
+        Assert.Equal(1, Count(entries, "private static global::Rask.Core.Build<global::Demo.Card> Card =>"));
     }
 
     // A `static class` can derive from nothing at all, which is why DemoRegistry had to stop being one.
@@ -619,7 +645,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("static partial class Demos", entries, StringComparison.Ordinal);
         Assert.DoesNotContain("static partial class Demos : ", entries, StringComparison.Ordinal);
         Assert.Contains(
-            "private static global::Rask.Core.Components.Div Div => global::RaskEntriesRask_Core.Div;", entries,
+            "private static global::Rask.Core.Build<global::Rask.Core.Components.Div> Div => global::RaskEntriesRask_Core.Div;", entries,
             StringComparison.Ordinal);
     }
 

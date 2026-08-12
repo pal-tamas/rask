@@ -37,10 +37,10 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
             BsCardBody[
                 Div.Class("mb-3")[
                     Label.Class("form-label").For("demo-input")["sessionStorage value"],
-                    Input<string>()
+                    Input
+                        .Value(_input)
                         .Id("demo-input")
                         .Class("form-control")
-                        .Value(_input)
                         .OnInput(v => _input = v)
                 ],
                 BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(3))[

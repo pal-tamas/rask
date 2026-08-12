@@ -71,18 +71,9 @@ public sealed partial class BsDataGridGroupDemo : Component
                     .Active(_showGrouped)
                     .OnClick(() => _showGrouped = !_showGrouped)["Show grouped column"]
             ],
-            BsDataGrid(
-                Id: "bs-grid-group",
-                Data: Deals,
-                RowKey: d => d.Account,
-                Grouped: _grouped,
-                OnGroupedChange: g => _grouped = [.. g],
-                GroupPanel: true,
-                GroupCollapsible: true,
-                GroupSubtotals: true,
-                ShowGroupedColumns: _showGrouped,
-                Columns:
-                [
+            BsDataGrid
+                .Data(Deals)
+                .Columns([
                     new BsColumn<Deal> { Title = "Account", Value = d => d.Account, Field = d => d.Account, Sortable = true },
                     new BsColumn<Deal>
                     {
@@ -102,7 +93,15 @@ public sealed partial class BsDataGridGroupDemo : Component
                         Value = d => d.Amount.ToString("C0"),
                         Footer = rows => rows.Sum(d => d.Amount).ToString("C0"),
                     },
-                ])];
+                ])
+                .Id("bs-grid-group")
+                .RowKey(d => d.Account)
+                .Grouped(_grouped)
+                .OnGroupedChange(g => _grouped = [.. g])
+                .GroupPanel(true)
+                .GroupCollapsible(true)
+                .GroupSubtotals(true)
+                .ShowGroupedColumns(_showGrouped)];
 
     private bool Is(params string[] fields) => _grouped.SequenceEqual(fields);
 }

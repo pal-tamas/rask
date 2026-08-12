@@ -12,7 +12,7 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class MediaDevicesPage : Component
 {
-    protected override Component? Head => Title["Camera & microphone — Rask"];
+    protected override Component? HeadAssets => Title["Camera & microphone — Rask"];
 
     protected override Component? Render() =>
     [

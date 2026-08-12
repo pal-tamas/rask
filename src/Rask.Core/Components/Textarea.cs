@@ -34,20 +34,20 @@ public sealed class Textarea<T> : Element, IFormControl<T>
     public string? Dirname { get; set; }
 
     // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl.
-    public Handler<string>? OnInput { get; set; }
-    public HandlerAsync<string>? OnInputAsync { get; set; }
+    public Action<string>? OnInput { get; set; }
+    public Func<string, Task>? OnInputAsync { get; set; }
 
     // IFormControl<T> — bound mode.
     public Expression<Func<T>>? Bind { get; set; }
-    public Carrier<Validate<T>>? Validate { get; set; }
-    public Carrier<ValidateAsync<T>>? ValidateAsync { get; set; }
-    public Carrier<Action<T>>? AfterBind { get; set; }
-    public Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
+    public Validate<T>? Validate { get; set; }
+    public ValidateAsync<T>? ValidateAsync { get; set; }
+    public Action<T>? AfterBind { get; set; }
+    public Func<T, Task>? AfterBindAsync { get; set; }
 
     // IFormControl<T> — controlled mode.
     public T? Value { get; set; }
-    public Handler<T>? OnChange { get; set; }
-    public HandlerAsync<T>? OnChangeAsync { get; set; }
+    public Action<T>? OnChange { get; set; }
+    public Func<T, Task>? OnChangeAsync { get; set; }
 
     // The rendered text content, resolved in WriteAttributes (bound/controlled) and emitted by
     // RenderChildren. Null leaves the plain Children content (indexer) in place.
@@ -152,7 +152,7 @@ public sealed class Textarea<T> : Element, IFormControl<T>
         if (acc is not null)
         {
             // Bound: write the model on input, touch + revalidate on change.
-            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind?.Fn, AfterBindAsync?.Fn);
+            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
             AppendAttr(sb, "data-rask-on-input",
                 ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, fid, false, afterBind)));
@@ -162,7 +162,7 @@ public sealed class Textarea<T> : Element, IFormControl<T>
         }
 
         // Plain / controlled.
-        var input = (Delegate?)OnInput?.Fn ?? OnInputAsync?.Fn;
+        var input = (Delegate?)OnInput ?? OnInputAsync;
         if (input is not null)
         {
             AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));

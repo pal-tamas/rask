@@ -15,7 +15,7 @@ namespace Rask.Core.Tests;
 // a component an ENTRY built. These pin the case it used to miss.
 //
 // A chain writes only what it names, and only a FOLDING prop goes through BuilderRuntime.Track. So a
-// chain that sets nothing, or sets only a carrier-typed callback, or only Children, never marks the
+// chain that sets nothing, or sets only a callback, or only Children, never marks the
 // child prop-changed — and marking is what allocates the child's LiveState. The commit then read a null
 // LiveState as "this child never reached GetOrCreate" and returned, so the lifecycle never ran.
 //
@@ -30,7 +30,7 @@ internal sealed partial class CommitProbe : Component
 
     public string? Word { get; set; }
 
-    public Handler? OnPing { get; set; }
+    public Action? OnPing { get; set; }
 
     protected override void OnMount() => Mounts++;
 
@@ -55,7 +55,7 @@ internal sealed partial class BareFactoryHost : Component
     protected override Component? Render() => Div()[Probe = Generated.CommitProbe()];
 }
 
-// A chain that names only a CALLBACK. Callbacks are carriers, deliberately outside the fold — a fresh
+// A chain that names only a CALLBACK. Callbacks are deliberately outside the fold — a fresh
 // closure every render must not read as a change — so this names a prop and still never calls Track.
 internal sealed partial class CallbackOnlyEntryHost : Component
 {

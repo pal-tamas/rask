@@ -15,7 +15,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         // Fire-and-forget (no result) → rid is null. Attribute order: data-* before tag-specific (type).
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;fullscreen.request&quot;,&quot;rid&quot;:null}\" type=\"button\">Full screen</button>",
-            FullscreenTrigger(g => Button.Type("button").Data(g)["Full screen"]).ToHtml());
+            FullscreenTrigger.Template(g => Button.Type("button").Data(g)["Full screen"]).ToHtml());
     }
 
     [Fact]
@@ -23,15 +23,15 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     {
         Assert.Equal(
             "<a data-rask-gesture=\"{&quot;cap&quot;:&quot;pip.request&quot;,&quot;rid&quot;:null}\" href=\"#\">PiP</a>",
-            GestureTrigger(Capability: "pip.request", Template: g => A.Href("#").Data(g)["PiP"]).ToHtml());
+            GestureTrigger.Capability("pip.request").Template(g => A.Href("#").Data(g)["PiP"]).ToHtml());
     }
 
     [Fact]
     public void EyeDropperTrigger_WithCallback_StampsCapAndANumericResultId()
     {
-        var html = EyeDropperTrigger(
-            OnColor: _ => Task.CompletedTask,
-            Template: g => Button.Type("button").Data(g)["Pick"]).ToHtml();
+        var html = EyeDropperTrigger
+            .Template(g => Button.Type("button").Data(g)["Pick"])
+            .OnColor(_ => Task.CompletedTask).ToHtml();
 
         Assert.Matches(@"data-rask-gesture=""\{&quot;cap&quot;:&quot;eyedropper\.open&quot;,&quot;rid&quot;:\d+\}""", html);
     }
@@ -40,9 +40,9 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     public async Task GestureResultInterop_RoutesTheResultToTheTriggersCallback_ThenIsOneShot()
     {
         string? received = null;
-        var html = EyeDropperTrigger(
-            OnColor: value => { received = value; return Task.CompletedTask; },
-            Template: g => Button.Type("button").Data(g)["Pick"]).ToHtml();
+        var html = EyeDropperTrigger
+            .Template(g => Button.Type("button").Data(g)["Pick"])
+            .OnColor(value => { received = value; return Task.CompletedTask; }).ToHtml();
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
 
         await GestureResultInterop.Result(rid, "#ff8800");
@@ -61,8 +61,9 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;orientation.lock&quot;,&quot;rid&quot;:null,"
             + "&quot;arg&quot;:&quot;landscape&quot;}\" type=\"button\">Rotate</button>",
-            ScreenOrientationTrigger(Orientation: "landscape",
-                Template: g => Button.Type("button").Data(g)["Rotate"]).ToHtml());
+            ScreenOrientationTrigger
+                .Orientation("landscape")
+                .Template(g => Button.Type("button").Data(g)["Rotate"]).ToHtml());
     }
 
     [Fact]
@@ -72,8 +73,9 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;pip.request&quot;,&quot;rid&quot;:null,"
             + $"&quot;el&quot;:&quot;{video.Id}&quot;}}\" type=\"button\">Pop out</button>",
-            PictureInPictureTrigger(For: video,
-                Template: g => Button.Type("button").Data(g)["Pop out"]).ToHtml());
+            PictureInPictureTrigger
+                .For(video)
+                .Template(g => Button.Type("button").Data(g)["Pop out"]).ToHtml());
     }
 
     [Fact]
@@ -83,15 +85,18 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;fullscreen.request&quot;,&quot;rid&quot;:null,"
             + $"&quot;el&quot;:&quot;{box.Id}&quot;}}\" type=\"button\">Full screen</button>",
-            FullscreenTrigger(Template: g => Button.Type("button").Data(g)["Full screen"], For: box).ToHtml());
+            FullscreenTrigger.Template(g => Button.Type("button").Data(g)["Full screen"]).For(box).ToHtml());
     }
 
     [Fact]
     public void MediaCaptureTrigger_StampsMediaStartCapWithTargetRefAndConstraintsArg()
     {
         var preview = ElementRef.New();
-        var html = MediaCaptureTrigger(For: preview, Video: true, FacingMode: "user",
-            Template: g => Button.Type("button").Data(g)["Start camera"]).ToHtml();
+        var html = MediaCaptureTrigger
+            .For(preview)
+            .Template(g => Button.Type("button").Data(g)["Start camera"])
+            .Video(true)
+            .FacingMode("user").ToHtml();
 
         Assert.Contains("&quot;cap&quot;:&quot;media.start&quot;", html);
         Assert.Contains($"&quot;el&quot;:&quot;{preview.Id}&quot;", html);
@@ -105,9 +110,9 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     public async Task InstallTrigger_StampsInstallPromptCap_AndRoutesTheOutcomeToOnOutcome()
     {
         string? outcome = null;
-        var html = InstallTrigger(
-            OnOutcome: value => { outcome = value; return Task.CompletedTask; },
-            Template: g => Button.Type("button").Data(g)["Install"]).ToHtml();
+        var html = InstallTrigger
+            .Template(g => Button.Type("button").Data(g)["Install"])
+            .OnOutcome(value => { outcome = value; return Task.CompletedTask; }).ToHtml();
 
         Assert.Matches(@"data-rask-gesture=""\{&quot;cap&quot;:&quot;install\.prompt&quot;,&quot;rid&quot;:\d+\}""", html);
 

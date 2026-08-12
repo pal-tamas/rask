@@ -43,7 +43,7 @@ internal sealed partial class ResetBuilderHost : Component
     internal ResetLeaf? Leaf;
 
     protected override Component? Render() =>
-        Div[Leaf = Full ? ResetLeaf.Word("w").Note("L").Count(3).Ping(() => { }) : ResetLeaf];
+        Div[Leaf = Full ? ResetLeaf.Word("w").Note("L").Count(3).OnPing(() => { }).Value : ResetLeaf];
 }
 
 internal sealed partial class ResetFactoryHost : Component
@@ -260,24 +260,15 @@ public class BuilderResetTests
         Assert.DoesNotContain("id=\"last\"", html, StringComparison.Ordinal);
     }
 
-    // The half of the required-prop problem that no call-site analyzer reaches. RASK038 says the value
-    // is ABSENT; this says last render's must not survive in its place. Withholding the entry used to
-    // cover both at once, so relaxing that without this would have left `RequiredResetLeaf.Word("w")`
-    // on one render and a bare `RequiredResetLeaf` on the next still rendering "w" — silently, and
-    // forever, because the entry hands back the same instance.
-    [Fact]
-    public void A_required_prop_the_second_render_omits_goes_back_to_its_constructed_state()
-    {
-        var sp = RenderHarness.EmptyServices();
-        var host = new RequiredResetHost();
-
-        Assert.Equal("<div><span>w|3</span></div>", Render(host, sp));
-        host.Full = false;
-
-        Assert.Equal("<div><span>-|0</span></div>", Render(host, sp));
-        Assert.Null(host.Leaf!.Word);
-        Assert.Equal(0, host.Leaf.Count);
-    }
+    // `A_required_prop_the_second_render_omits_goes_back_to_its_constructed_state` was here. It covered
+    // the half of the required-prop problem no call-site analyzer reaches: RASK038 said the value was
+    // ABSENT, and this said last render's must not survive in its place.
+    //
+    // A chain cannot omit a required property any more — it is a STEP, so the component does not exist
+    // until it is supplied, and `Full ? leaf.Word("w").Count(3) : leaf` no longer compiles. The reset is
+    // still there and still correct; nothing on the surface can reach the state it repairs. What used to
+    // need two mechanisms (an analyzer for absence, a reset for staleness) is now one property of the
+    // type, which is why the test that exercised the second one is gone.
 
     // …and it must not cost the fold: a required prop re-supplied unchanged is still no change, the
     // same way an optional one is. Blanking it eagerly would have made Track compare "w" against null
@@ -317,7 +308,7 @@ internal sealed partial class KeyedResetHost : Component
     internal bool Keyed = true;
     internal ResetLeaf? Leaf;
 
-    protected override Component? Render() => Div[Leaf = Keyed ? ResetLeaf.Key(7) : ResetLeaf];
+    protected override Component? Render() => Div[Leaf = Keyed ? ResetLeaf.Key(7).Value : ResetLeaf];
 }
 
 // A RASK001-required prop: non-nullable, no member initializer. The generated factory makes it a
@@ -349,7 +340,9 @@ internal sealed partial class RequiredResetHost : Component
 #pragma warning disable RASK039 // deliberately the split chain the analyzer cannot answer
         var leaf = RequiredResetLeaf;
 #pragma warning restore RASK039
-        return Div[Leaf = Full ? leaf.Word("w").Count(3) : leaf];
+        // Both branches complete the chain: a required property is a step, so a branch that skipped one
+        // would not produce a component at all.
+        return Div[Leaf = Full ? leaf.Word("w").Count(3).Value : leaf.Word("-").Count(0)];
     }
 }
 

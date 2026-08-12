@@ -39,7 +39,7 @@ public sealed class DefaultErrorPage : Component
     private readonly Exception _error;
     private readonly bool _isDevelopment;
 
-    private readonly Callback? _recover;
+    private readonly Action? _recover;
 
     public DefaultErrorPage(Exception error) : this(error, IsDevelopmentEnvironment())
     {
@@ -56,14 +56,14 @@ public sealed class DefaultErrorPage : Component
     ///     that faults deterministically simply throws again and lands back here, which is the honest
     ///     outcome and is what React's boundary does too.
     /// </remarks>
-    public DefaultErrorPage(Exception error, Callback recover)
+    public DefaultErrorPage(Exception error, Action recover)
         : this(error, IsDevelopmentEnvironment(), recover)
     {
     }
 
     // Test seam: construct with an explicit environment so unit tests need no process-global env var
     // (setting ASPNETCORE_ENVIRONMENT would race other tests that render this page).
-    internal DefaultErrorPage(Exception error, bool isDevelopment, Callback? recover = null)
+    internal DefaultErrorPage(Exception error, bool isDevelopment, Action? recover = null)
     {
         _error = error;
         _isDevelopment = isDevelopment;
@@ -74,7 +74,7 @@ public sealed class DefaultErrorPage : Component
 
     /// <summary>
     ///     Whether this page stands in for the <b>whole</b> app rather than one failed subtree — set only
-    ///     by the root boundary, and the condition on <see cref="Head" /> below.
+    ///     by the root boundary, and the condition on <see cref="HeadAssets" /> below.
     /// </summary>
     internal bool OwnsDocument { get; init; }
 
@@ -94,7 +94,7 @@ public sealed class DefaultErrorPage : Component
     ///     <c>&lt;title&gt;</c> as a singleton with the last contributor winning, so the root fallback
     ///     does replace the app's title, exactly while the fault is on screen.
     /// </remarks>
-    protected override Component? Head => OwnsDocument
+    protected override Component? HeadAssets => OwnsDocument
         ?
         [
             Meta.Charset("utf-8"),

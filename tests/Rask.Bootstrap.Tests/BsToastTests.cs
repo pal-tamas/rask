@@ -14,7 +14,7 @@ public partial class BsToastTests : global::Rask.Core.RaskMarkup
             "</div>" +
             "<div class=\"toast-body\">Hi</div>" +
             "</div>",
-            BsToast.Id(2).Title("Note").Message("Hi").ToHtml());
+            BsToast.Id(2).Message("Hi").Title("Note").ToHtml());
 
     [Fact]
     public void Toast_Colored_RendersHeaderlessColorScheme() =>
@@ -39,5 +39,5 @@ public partial class BsToastTests : global::Rask.Core.RaskMarkup
             "</div>" +
             "<div class=\"toast-body\">Hi</div>" +
             "</div>",
-            BsToast.Id(3).Title("Note").Message("Hi").Timestamp("now").ToHtml());
+            BsToast.Id(3).Message("Hi").Title("Note").Timestamp("now").ToHtml());
 }

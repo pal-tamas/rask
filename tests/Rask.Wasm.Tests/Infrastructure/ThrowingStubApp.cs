@@ -7,7 +7,7 @@ namespace Rask.Wasm.Tests.Infrastructure;
 
 internal sealed partial class ThrowingStubApp : Component
 {
-    protected override Component? Head => Title["throw"];
+    protected override Component? HeadAssets => Title["throw"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

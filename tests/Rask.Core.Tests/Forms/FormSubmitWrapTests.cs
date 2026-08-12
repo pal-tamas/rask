@@ -55,11 +55,12 @@ internal sealed partial class WrapFormChild : Component
     {
         var owner = Owner!;
         return owner.UseBuilderSurface
-            // The naive migration of the line below: a method group, taken by its natural type into the
-            // untyped setter, with no wrapping anywhere.
-            ? Form.Model(owner.Model).OnValidSubmit(owner.SaveAsync)[Input(() => owner.Model.Name)]
-            : Rask.Core.Components.Generated.Form(owner.Model, OnValidSubmitAsync: owner.SaveAsync)[
-                Input(() => owner.Model.Name)
+            // The naive migration of the line below: the handler set through the chain, with no wrapping
+            // anywhere. `SaveAsync` returns Task, so it is the async handler on both arms — what differs
+            // is which surface registered it.
+            ? Form.Model(owner.Model).OnValidSubmitAsync(owner.SaveAsync)[Input.Bind(() => owner.Model.Name)]
+            : Form.Model(owner.Model).OnValidSubmitAsync(owner.SaveAsync)[
+                Input.Bind(() => owner.Model.Name)
             ];
     }
 }

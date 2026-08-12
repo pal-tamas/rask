@@ -16,7 +16,7 @@ internal sealed partial class NativeStubApp : Component
 
     public NativeStubApp(RouteState routeState) => _routeState = routeState;
 
-    protected override Component? Head => Title["stub"];
+    protected override Component? HeadAssets => Title["stub"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

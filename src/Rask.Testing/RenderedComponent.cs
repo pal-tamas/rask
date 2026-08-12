@@ -144,7 +144,7 @@ public class RenderedComponent : IRenderHandle
 
     /// <summary>
     ///     The value of the first <c>{name}="..."</c> attribute in the current <see cref="Html" />, or
-    ///     <c>null</c> if absent. Handler ids live in <c>data-rask-on-{event}</c> attributes.
+    ///     <c>null</c> if absent. Action ids live in <c>data-rask-on-{event}</c> attributes.
     /// </summary>
     public string? Attr(string name) => Markup.Attr(Html, name);
 
@@ -157,7 +157,7 @@ public class RenderedComponent : IRenderHandle
     /// <summary>
     ///     The handler id for the <b>first</b> element wired to <paramref name="domEvent" /> (e.g.
     ///     <c>"click"</c>, <c>"input"</c>, <c>"change"</c>, <c>"submit"</c>), or <c>null</c> if none is
-    ///     present. Handler ids are reissued from scratch on every render, so an id is valid only for the
+    ///     present. Action ids are reissued from scratch on every render, so an id is valid only for the
     ///     <see cref="Html" /> it was read from — re-query after any re-render rather than reusing a
     ///     captured id. When several elements are wired to the same event, use <see cref="HandlerIds" />;
     ///     the event helpers below always target the first match.
@@ -384,7 +384,7 @@ public class RenderedComponent : IRenderHandle
         if (!await DispatchAsync(handlerId, jsonPayload).ConfigureAwait(false))
         {
             throw new InvalidOperationException(
-                $"No handler with id '{handlerId}' is registered in the current render. Handler ids are "
+                $"No handler with id '{handlerId}' is registered in the current render. Action ids are "
                 + "reissued every render — read the id from the current Html (HandlerId(\"click\") / "
                 + "Attr(\"data-rask-on-...\")) immediately before invoking.");
         }

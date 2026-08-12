@@ -26,7 +26,7 @@ public sealed partial class LoadPage(LoadPageOptions options) : Component
 {
     private int _counter;
 
-    protected override Component? Head => Title["rask session load"];
+    protected override Component? HeadAssets => Title["rask session load"];
 
     protected override Component? Render()
     {

@@ -6,14 +6,14 @@ public partial class TextareaTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<textarea></textarea>", Textarea<string>().ToHtml());
+        Assert.Equal("<textarea></textarea>", Textarea.Value<string>(null).ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
         Assert.Equal(
             "<textarea id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"n\" rows=\"4\" cols=\"80\" placeholder=\"p\" required disabled readonly maxlength=\"100\" minlength=\"1\" wrap=\"soft\" autofocus autocomplete=\"off\" form=\"f\" dirname=\"d\"></textarea>",
-            Textarea<string>()
+            Textarea.Value<string>(null)
                 .Name("n")
                 .Rows(4)
                 .Cols(80)
@@ -31,7 +31,8 @@ public partial class TextareaTests : global::Rask.Core.RaskMarkup
                 .Id("i")
                 .Class("c")
                 .Style("s")
-                .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+                .Data(new Dictionary<string, string?> { ["k"] = "v" })
+                .ToHtml());
     }
 
     [Fact]
@@ -42,12 +43,12 @@ public partial class TextareaTests : global::Rask.Core.RaskMarkup
     public void Render_OnInputOutsideLiveContext_OmitsHandlerAttribute() =>
         Assert.Equal(
             "<textarea></textarea>",
-            Textarea<string>().OnInput(_ => { }).ToHtml());
+            Textarea.Value<string>(null).OnInput(_ => { }).ToHtml());
 
     [Fact]
     public void Render_OnInputAndOnChangeInsideLiveContext_EmitSequentialIds()
     {
-        var view = new StubComponent(() => Textarea<string>().OnInput(_ => { }).OnChange(_ => { }));
+        var view = new StubComponent(() => Textarea.Value<string>(null).OnInput(_ => { }).OnChange(_ => { }));
         Assert.Equal(
             "<textarea data-rask-on-input=\"h0\" data-rask-on-change=\"h1\"></textarea>",
             view.RenderAsLiveRoot());
@@ -56,7 +57,7 @@ public partial class TextareaTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_OnInputAsyncAndOnChangeAsyncInsideLiveContext_EmitSequentialIds()
     {
-        var view = new StubComponent(() => Textarea<string>()
+        var view = new StubComponent(() => Textarea.Value<string>(null)
             .OnInputAsync(async _ => { await Task.Yield(); })
             .OnChangeAsync(async _ => { await Task.Yield(); }));
         Assert.Equal(

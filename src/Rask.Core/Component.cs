@@ -335,20 +335,20 @@ public abstract partial class Component : RaskMarkup
     ///     <para>
     ///         Default is <c>null</c> — no head contribution. Typical override returns a collection
     ///         expression of <c>Link</c> / <c>Script</c> / <c>Title</c> / <c>Meta</c> calls (e.g.
-    ///         <c>Head =&gt; [Title(...), Meta(...)]</c>) or a single tag. Return <c>null</c> for
+    ///         <c>HeadAssets =&gt; [Title(...), Meta(...)]</c>) or a single tag. Return <c>null</c> for
     ///         "no contribution" (including conditional bodies:
-    ///         <c>Head =&gt; cond ? [Title(...)] : null</c>).
+    ///         <c>HeadAssets =&gt; cond ? [Title(...)] : null</c>).
     ///     </para>
     /// </summary>
-    protected virtual Component? Head => null;
+    protected virtual Component? HeadAssets => null;
 
     /// <summary>
-    ///     This component's <see cref="Head" /> contribution as its last render produced it, or
+    ///     This component's <see cref="HeadAssets" /> contribution as its last render produced it, or
     ///     <c>null</c> when it has none.
     /// </summary>
     /// <remarks>
     ///     Read rather than re-evaluated, by both the serializer's collection point and the
-    ///     clean-subtree cache: <see cref="Head" /> is a user-written expression that builds components,
+    ///     clean-subtree cache: <see cref="HeadAssets" /> is a user-written expression that builds components,
     ///     so it has to run exactly once per render, inside the render that owns what it builds (see
     ///     <see cref="RenderForLive" />).
     /// </remarks>
@@ -379,7 +379,7 @@ public abstract partial class Component : RaskMarkup
     ///     </code>
     ///     <para>
     ///         The pieces arrive as <b>parameters</b> — <paramref name="head" /> is the framework's
-    ///         <c>&lt;head&gt;</c> element, which collects every mounted component's <see cref="Head" />
+    ///         <c>&lt;head&gt;</c> element, which collects every mounted component's <see cref="HeadAssets" />
     ///         contribution plus the scoped CSS/JS assets, and <paramref name="body" /> is the app's own
     ///         render output. Place both; dropping <paramref name="head" /> loses every head asset on the
     ///         page, and dropping <paramref name="body" /> renders nothing. The doctype is emitted by the
@@ -389,7 +389,7 @@ public abstract partial class Component : RaskMarkup
     ///     <para>
     ///         Evaluated once per render, <b>before</b> the app's own <see cref="Render" /> runs, so it
     ///         cannot observe state that render produces. Anything reactive belongs in the body or in
-    ///         <see cref="Head" />.
+    ///         <see cref="HeadAssets" />.
     ///     </para>
     /// </summary>
     protected virtual Component Shell(Component head, Component body) =>
@@ -941,7 +941,7 @@ public abstract partial class Component : RaskMarkup
         // frame while this component may be served from the render cache: re-running the chain on a
         // cache hit would hand out fresh positional identities on every frame (the counter is only
         // reset by a real render), and re-running it at all is work a clean component does not owe.
-        Live.CachedHead = Head;
+        Live.CachedHead = HeadAssets;
 
         // Builder-surface commit point. A generated FACTORY assigns every prop and then calls
         // NotifyParameters itself, because it knows when the props are done. A setter chain has no
@@ -1061,7 +1061,7 @@ public abstract partial class Component : RaskMarkup
     ///     the global namespace of every consuming assembly, so the entry point has to be public). It is
     ///     the setter-chain equivalent of the factory's <c>__propsChanged</c> fold: same
     ///     <see cref="EqualityComparer{T}" /> semantics, same exclusions — <c>Key</c>, auto-wrapped
-    ///     callbacks, raw delegates and carrier props never fold, so the generator simply does not emit
+    ///     callbacks and raw delegate props never fold, so the generator simply does not emit
     ///     the call for them.
     /// </remarks>
     internal void MarkEntryPropsChangedInternal() => Live.EntryPropsChanged = true;
@@ -1085,7 +1085,7 @@ public abstract partial class Component : RaskMarkup
             return false;
         }
 
-        // Handler ids are positional and reissued from zero on every root render, so the ids baked into
+        // Action ids are positional and reissued from zero on every root render, so the ids baked into
         // this span are only the ids a walk would issue now if the counter has arrived back at exactly
         // the value it held when we captured. It hasn't when anything upstream changed how many handlers
         // it registers, and replaying then would emit ids that collide with a sibling's. Fall through to
@@ -1524,7 +1524,7 @@ public abstract partial class Component : RaskMarkup
     ///     contiguous — a cached subtree contains no nested user component, so nothing interleaves its
     ///     own registrations — which is what lets the run be described by a start and a length.
     /// </summary>
-    internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(int startId)
+    internal (Component Owner, Delegate Action)[]? CaptureHandlerRun(int startId)
     {
         var count = Live.NextHandlerId - startId;
         if (count <= 0 || Live.Handlers is not { } map)
@@ -1551,7 +1551,7 @@ public abstract partial class Component : RaskMarkup
     ///     Re-register a captured run under the ids it was captured with and advance the counter past it,
     ///     leaving the root's handler state exactly as the skipped walk would have.
     /// </summary>
-    internal void ReplayHandlerRun(int startId, (Component Owner, Delegate Handler)[] run)
+    internal void ReplayHandlerRun(int startId, (Component Owner, Delegate Action)[] run)
     {
         var map = Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
         for (var i = 0; i < run.Length; i++)
@@ -1694,152 +1694,63 @@ public abstract partial class Component : RaskMarkup
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                // Named callback delegate types (Callbacks.cs) — typed fast path mirroring the
-                // Action/Func cases above so the framework's own handlers don't fall to DynamicInvoke.
-                case Callback c:
-                    c();
-                    return true;
-                case Callback<MouseModifiers> c:
-                    c(ExtractModifiers(payload));
-                    return true;
-                case Callback<string> c:
-                    c(ExtractString(payload, "value"));
-                    return true;
-                case Callback<IReadOnlyList<string>> c:
-                    c(ExtractStringList(payload));
-                    return true;
-                case Callback<FormData> c:
-                    c(FormData.FromJson(payload));
-                    return true;
-                case Callback<ScrollEvent> c:
-                    c(ScrollEvent.FromJson(payload));
-                    return true;
-                case Callback<KeyboardEventArgs> c:
-                    c(KeyboardEventArgs.FromJson(payload));
-                    return true;
-                case Callback<IReadOnlyList<RaskFile>> c:
-                {
-                    var files = FileListReader.Read(payload);
-                    try { c(files); }
-                    finally { ReleaseFiles(files); }
-
-                    return true;
-                }
-                case CallbackAsync c:
-                    await InvokeWithRenderingAsync(() => c()).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                case CallbackAsync<MouseModifiers> c:
-                {
-                    var mods = ExtractModifiers(payload);
-                    await InvokeWithRenderingAsync(() => c(mods)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<string> c:
-                {
-                    var value = ExtractString(payload, "value");
-                    await InvokeWithRenderingAsync(() => c(value)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<IReadOnlyList<string>> c:
-                {
-                    var picked = ExtractStringList(payload);
-                    await InvokeWithRenderingAsync(() => c(picked)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<FormData> c:
-                {
-                    var fd = FormData.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(fd)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<ScrollEvent> c:
-                {
-                    var sc = ScrollEvent.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(sc)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<KeyboardEventArgs> c:
-                {
-                    var ke = KeyboardEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(ke)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case CallbackAsync<IReadOnlyList<RaskFile>> c:
-                {
-                    var files = FileListReader.Read(payload);
-                    try
-                    {
-                        await InvokeWithRenderingAsync(() => c(files)).ConfigureAwait(false);
-                    }
-                    finally { ReleaseFiles(files); }
-
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
                 // Extended GlobalEventHandlers args (mouse/wheel/pointer/touch/clipboard/media). Each
                 // parses the flat client payload into its typed record; async siblings re-mark dirty
                 // after the mid-await render, mirroring the keyboard/scroll cases above.
-                case Callback<MouseEventArgs> c:
+                case Action<MouseEventArgs> c:
                     c(MouseEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<MouseEventArgs> c:
+                case Func<MouseEventArgs, Task> c:
                 {
                     var args = MouseEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<WheelEventArgs> c:
+                case Action<WheelEventArgs> c:
                     c(WheelEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<WheelEventArgs> c:
+                case Func<WheelEventArgs, Task> c:
                 {
                     var args = WheelEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<PointerEventArgs> c:
+                case Action<PointerEventArgs> c:
                     c(PointerEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<PointerEventArgs> c:
+                case Func<PointerEventArgs, Task> c:
                 {
                     var args = PointerEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<TouchEventArgs> c:
+                case Action<TouchEventArgs> c:
                     c(TouchEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<TouchEventArgs> c:
+                case Func<TouchEventArgs, Task> c:
                 {
                     var args = TouchEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<ClipboardEventArgs> c:
+                case Action<ClipboardEventArgs> c:
                     c(ClipboardEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<ClipboardEventArgs> c:
+                case Func<ClipboardEventArgs, Task> c:
                 {
                     var args = ClipboardEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
-                case Callback<MediaEventArgs> c:
+                case Action<MediaEventArgs> c:
                     c(MediaEventArgs.FromJson(payload));
                     return true;
-                case CallbackAsync<MediaEventArgs> c:
+                case Func<MediaEventArgs, Task> c:
                 {
                     var args = MediaEventArgs.FromJson(payload);
                     await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
@@ -1881,7 +1792,7 @@ public abstract partial class Component : RaskMarkup
             // higher. For non-boundary owners (regular components), fall back to their
             // ancestor boundary. Without a boundary the exception bubbles so the dispatcher's
             // catch-and-log still fires.
-            ResolveHandlerBoundary(owner)!.Trip(ex, ErrorSource.Handler);
+            ResolveHandlerBoundary(owner)!.Trip(ex, ErrorSource.Action);
             return true;
         }
     }
@@ -2323,11 +2234,11 @@ public abstract partial class Component : RaskMarkup
         ///     entry. Retaining the delegates is not new retention: the released Element graph held these
         ///     very instances.
         /// </summary>
-        public (Component Owner, Delegate Handler)[]? Handlers;
+        public (Component Owner, Delegate Action)[]? Handlers;
 
         /// <summary>
         ///     The root's handler counter as it stood when <see cref="Frames" /> were captured, i.e. the
-        ///     first id this subtree baked in. Handler ids are positional and reissued from zero every
+        ///     first id this subtree baked in. Action ids are positional and reissued from zero every
         ///     root render, so a replay is only sound when the counter has arrived back at this exact
         ///     value — otherwise the baked ids are not the ones a walk would now issue.
         /// </summary>
@@ -2367,7 +2278,7 @@ public abstract partial class Component : RaskMarkup
         public IReadOnlyDictionary<string, string?>? Aria;
         public HeadAssetRegistry? HeadAssets;
         public HashSet<Type>? MountedTypes;
-        public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;
+        public Dictionary<string, (Component Owner, Delegate Action)>? Handlers;
         public bool HasInitialized;
         public bool HasRenderedOnce;
         public bool IsDisposed;

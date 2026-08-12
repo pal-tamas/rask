@@ -20,7 +20,6 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
 {
     private const string ComponentFullName = "Rask.Core.Component";
     private const string RaskCoreAssembly = "Rask.Core";
-    private const string RaskCoreNamespace = "Rask.Core";
 
     private static readonly DiagnosticDescriptor Rask026 = new(
         "RASK026",
@@ -105,8 +104,8 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
     // The Rask callback a lambda is bound to (by name), or null. The lambda's parent is its delegate
     // creation; that delegate's parent is the IArgumentOperation, whose parent is the invocation. We
     // require BOTH that the invocation targets a generated factory (static Generated.X(...)) or a
-    // builder setter (`.AfterBind(…)`) — so a user helper that merely takes a Callback parameter is left
-    // alone — AND that it is an event/binding callback (a Rask Callback/CallbackAsync delegate, or an
+    // builder setter (`.AfterBind(…)`) — so a user helper that merely takes a Action parameter is left
+    // alone — AND that it is an event/binding callback (a Rask Action/Func<Task> delegate, or an
     // AfterBind* hook by name).
     private static string? CallbackNameOf(IOperation lambda)
     {
@@ -140,9 +139,7 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
         // takes a parameter called `value`) — `.AfterBind(_ => StateHasChanged())`.
         if (IsBuilderSetter(call.TargetMethod))
         {
-            return IsRaskCallbackName(call.TargetMethod.Name) || IsRaskCallbackType(parameter.Type)
-                ? call.TargetMethod.Name
-                : null;
+            return IsRaskCallbackName(call.TargetMethod.Name) ? call.TargetMethod.Name : null;
         }
 
         return IsGeneratedFactory(call.TargetMethod) && IsRaskCallbackParameter(parameter)
@@ -160,16 +157,19 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
         && method.ContainingType?.Name.StartsWith("RaskBuilderSetters", StringComparison.Ordinal) == true;
 
     private static bool IsRaskCallbackParameter(IParameterSymbol parameter) =>
-        IsRaskCallbackType(parameter.Type) || IsRaskCallbackName(parameter.Name);
+        IsRaskCallbackName(parameter.Name);
 
-    // Rask's named event-callback delegate types (Callback/Callback<T>/CallbackAsync/CallbackAsync<T>)
-    // live in Rask.Core and are used for every On* event prop — an unambiguous signal.
-    private static bool IsRaskCallbackType(ITypeSymbol type) =>
-        string.Equals(type.ContainingNamespace?.ToDisplayString(), RaskCoreNamespace, StringComparison.Ordinal)
-        && type.Name is "Callback" or "CallbackAsync";
-
-    // The bound post-bind hooks are plain Action<T>/Func<T,Task>; recognise them by name.
-    private static bool IsRaskCallbackName(string name) => name is "AfterBind" or "AfterBindAsync";
+    // By NAME, because the type no longer carries the signal. Rask's callbacks used to be named delegate
+    // types in Rask.Core (`Callback`, `CallbackAsync`), which said "framework event callback" on sight;
+    // they are plain `Action`/`Func<…>` now, and a BCL delegate says nothing about who re-renders after
+    // it. What still says it is the property: `On…` is Rask's event-callback convention across the whole
+    // surface, and `AfterBind`/`AfterBindAsync` are the two binding hooks that do not use the prefix.
+    //
+    // A name test is narrower than the type test it replaces, not wider: a `Func<T, Component>` template
+    // or a `Func<T, string?>` selector is not an event and never was reported.
+    private static bool IsRaskCallbackName(string name) =>
+        name is "AfterBind" or "AfterBindAsync"
+        || (name.StartsWith("On", StringComparison.Ordinal) && name.Length > 2);
 
     private static bool InheritsFromOrIs(INamedTypeSymbol? type, INamedTypeSymbol target)
     {

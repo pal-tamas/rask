@@ -36,7 +36,7 @@ public partial class DefaultHandlerAsyncTests : global::Rask.Core.RaskMarkup
     {
         var sp = RenderHarness.EmptyServices();
         var owner = new UnmatchedAsyncOwner(true);
-        var boundary = ErrorBoundary;
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(new Component[] { owner }, null);
 
         using var ctx = LiveRenderContext.Begin(boundary, sp);

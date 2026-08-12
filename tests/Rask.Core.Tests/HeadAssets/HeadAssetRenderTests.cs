@@ -2,7 +2,7 @@
 
 namespace Rask.Core.Tests.HeadAssets;
 
-// End-to-end render tests for Component.Head + framework-managed <head> — exercises
+// End-to-end render tests for Component.HeadAssets + framework-managed <head> — exercises
 // the HtmlSerializer.Add → HeadAssetRegistry → Component.RenderAsLiveRootCore splice
 // pass. Unit-level dedup behavior lives in HeadAssetRegistryTests; this file
 // asserts the rendered HTML you'd actually see in the browser.
@@ -162,7 +162,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
                 // Head() is framework-managed: the serializer auto-inserts the
                 // head-asset sentinel inside, so contributions splice in without
                 // any explicit placeholder.
-                Head(),
+                Head,
                 Body[_body]
             ]
         ];
@@ -179,7 +179,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
             _body = body;
         }
 
-        protected override Component? Head => Title[_title];
+        protected override Component? HeadAssets => Title[_title];
 
         protected override Component? Render() =>
         [
@@ -188,7 +188,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
                 // Head() is framework-managed: the serializer auto-inserts the
                 // head-asset sentinel inside, so contributions splice in without
                 // any explicit placeholder.
-                Head(),
+                Head,
                 Body[_body]
             ]
         ];
@@ -206,7 +206,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     {
         protected override Component? Render() =>
         [
-            Pre[Code[Html.Lang("en")[Head()[Title["Inner"]], Body[P["hi"]]].ToHtml()]],
+            Pre[Code[Html.Lang("en")[Head[Title["Inner"]], Body[P["hi"]]].ToHtml()]],
             Span.Class("marker")["after"]
         ];
     }
@@ -214,7 +214,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
 
     private sealed class ContributesLink : Component
     {
-        protected override Component? Head => Link.Rel("stylesheet").Href("/a.css");
+        protected override Component? HeadAssets => Link.Rel("stylesheet").Href("/a.css");
         protected override Component? Render() => Div["with link"];
     }
 
@@ -222,14 +222,14 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     {
         private readonly string _title;
         public ContributesTitle(string title) => _title = title;
-        protected override Component? Head => Title[_title];
+        protected override Component? HeadAssets => Title[_title];
         protected override Component? Render() => Div["with title"];
     }
 
     private sealed class ContributesTitleWithId : Component
     {
         public int Id { get; set; }
-        protected override Component? Head => Title[$"User #{Id}"];
+        protected override Component? HeadAssets => Title[$"User #{Id}"];
         protected override Component? Render() => Div[$"user {Id}"];
     }
 

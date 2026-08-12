@@ -24,13 +24,9 @@ public sealed partial class BsDataGridDetailDemo : Component
 
     protected override Component? Render() =>
         Div.Id("grid-detail-demo")[
-        BsDataGrid(
-            Id: "bs-grid-detail",
-            Data: Orders,
-            RowKey: o => o.Number,
-            ExpandedContent: Lines,
-            Columns:
-            [
+        BsDataGrid
+            .Data(Orders)
+            .Columns([
                 new BsColumn<Order> { Title = "Order", Value = o => o.Number, Sortable = true },
                 new BsColumn<Order> { Title = "Customer", Value = o => o.Customer, Sortable = true },
                 new BsColumn<Order>
@@ -43,7 +39,10 @@ public sealed partial class BsDataGridDetailDemo : Component
                     Title = "Total", Class = Txt.End(), Sortable = true, SortKey = o => o.Total,
                     Value = o => o.Total.ToString("C"),
                 },
-            ])];
+            ])
+            .Id("bs-grid-detail")
+            .RowKey(o => o.Number)
+            .ExpandedContent(Lines)];
 
     // The detail row is just a component — anything you can render belongs here.
     private static Component Lines(Order order) =>

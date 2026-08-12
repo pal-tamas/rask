@@ -224,7 +224,7 @@ internal static partial class PayloadBytesReport
                 Span.Class("label")[$"Item {i}"],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
                 Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),
-                Input<string>().Type(InputType.Text).Name($"f{i}").Value($"v{i}").Placeholder("edit").MaxLength(64)
+                Input.Value($"v{i}").Type(InputType.Text).Name($"f{i}").Placeholder("edit").MaxLength(64)
             ]);
         }
 
@@ -309,7 +309,7 @@ internal static partial class PayloadBytesReport
                 Span.Class("label")[text],
                 A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
                 Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32),
-                Input<string>().Type(InputType.Text).Name($"f{i}").Value($"v{i}").Placeholder("edit").MaxLength(64)
+                Input.Value($"v{i}").Type(InputType.Text).Name($"f{i}").Placeholder("edit").MaxLength(64)
             ]);
         }
 

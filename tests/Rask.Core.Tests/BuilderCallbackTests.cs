@@ -8,18 +8,18 @@ using static Rask.Core.Tests.Generated;
 
 namespace Rask.Core.Tests;
 
-// PROTOTYPE — the point of Handler: a callback prop and its builder setter share a name.
-// With a raw `Callback?` prop this file would not compile (CS1593: the delegate wins).
+// A callback property and its chain step share a name, and the property is an ORDINARY delegate.
+// Those two facts are one fact: the step's receiver is `Build<TComponent>`, so C# never looks the
+// property up on it and cannot read `.OnSelect(fn)` as invoking the delegate (CS1593).
 //
-// Note `Handler?`, not `Handler`. A non-nullable struct with no initializer is a *required*
-// factory parameter (RASK001), so declaring the carrier non-nullable would silently turn every
-// optional callback into a required argument.
+// This file used to be the carrier's proving ground — every property here was a `Handler?` wrapping
+// its delegate, purely to stay out of that lookup. What it pins now is that nothing needs to.
 internal sealed partial class BuilderCard : Component
 {
     public new string? Label { get; set; }
-    public Handler? OnSelect { get; set; }
+    public Action? OnSelect { get; set; }
 
-    protected override Component? Render() => Button.OnClick(OnSelect?.Fn)[Label ?? ""];
+    protected override Component? Render() => Button.OnClick(OnSelect)[Label ?? ""];
 }
 
 internal sealed partial class CardHost : Component
@@ -27,7 +27,7 @@ internal sealed partial class CardHost : Component
     internal int Selected;
 
     protected override Component? Render() =>
-        Div[BuilderCard().Label("Pick me").OnSelect(Choose)];
+        Div[BuilderCard.Label("Pick me").OnSelect(Choose)];
 
     internal void Choose() => Selected++;
 
@@ -38,62 +38,49 @@ internal sealed partial class CardHost : Component
     internal void Named(string value) => Selected++;
 }
 
-public class BuilderCallbackTests
+public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Prop_and_setter_share_a_name() =>
         Assert.Equal("<div><button>Pick me</button></div>", CardHost().ToHtml());
 
-    [Fact]
-    public void Assignment_still_works_through_the_implicit_conversion()
-    {
-        Callback h = () => { };
-        Handler carried = h;
-        Assert.Same(h, carried.Fn);
-    }
-
-    // The wrap must survive the carrier: a handler owned by a component is replaced by a
-    // re-rendering delegate, exactly as the generated factory does today.
+    // A handler owned by a component is replaced by a re-rendering delegate, exactly as the generated
+    // factory does.
     [Fact]
     public void Setter_wraps_an_owned_handler_so_it_re_renders()
     {
         var host = CardHost();
-        var card = BuilderCard();
-        var raw = (Callback)host.Choose;
+        var raw = (Action)host.Choose;
 
-        card.OnSelect(raw);
+        var card = BuilderCard.OnSelect(raw).Value;
 
-        Assert.NotNull(card.OnSelect?.Fn);
-        Assert.NotSame(raw, card.OnSelect?.Fn);
+        Assert.NotNull(card.OnSelect);
+        Assert.NotSame(raw, card.OnSelect);
     }
 
     [Fact]
     public void Setter_leaves_an_unowned_handler_alone()
     {
-        var card = BuilderCard();
-        Callback stat = Noop;
+        Action stat = Noop;
 
-        card.OnSelect(stat);
+        var card = BuilderCard.OnSelect(stat).Value;
 
-        Assert.Same(stat, card.OnSelect?.Fn);
+        Assert.Same(stat, card.OnSelect);
     }
 
-    // Element's whole event surface rides the same carriers, so a DOM handler's setter keeps the
-    // property's name: `.OnClick(…)`, not the `.Click(…)` a raw delegate prop forced.
+    // A DOM handler's setter keeps the property's name — `.OnClick(…)`, not the `.Click(…)` the old
+    // name-shifting rule produced for a raw delegate prop.
     [Fact]
     public void An_element_event_setter_keeps_the_On_prefix()
     {
-        var div = Div();
-        Callback stat = Noop;
+        Action stat = Noop;
 
-        div.OnClick(stat);
+        var div = Div.OnClick(stat).Value;
 
-        Assert.Same(stat, div.OnClick?.Fn);
+        Assert.Same(stat, div.OnClick);
     }
 
-    // …and the argument-taking half, which rides Handler<TArgs> — the setter still takes the
-    // Callback<TArgs>, because a lambda cannot reach the carrier (C# will not chain a delegate
-    // conversion into a user-defined one).
+    // …and the argument-taking half.
     [Fact]
     public void A_typed_element_event_setter_wires_the_dom_slot()
     {
@@ -105,33 +92,33 @@ public class BuilderCallbackTests
             view.RenderAsLiveRoot());
     }
 
-    // The hard rule the carrier must not quietly break: an ELEMENT handler goes straight to the DOM,
+    // The hard rule nothing may quietly break: an ELEMENT handler goes straight to the DOM,
     // where handler-owner resolution already re-renders the owner — wrapping it would allocate a
     // closure per handler per render. Same owned handler as the card test above, opposite outcome.
     [Fact]
     public void An_element_event_setter_does_not_auto_wrap()
     {
         var host = CardHost();
-        var raw = (Callback)host.Choose;
+        var raw = (Action)host.Choose;
 
-        var div = Div().OnClick(raw);
+        var div = Div.OnClick(raw).Value;
 
-        Assert.Same(raw, div.OnClick?.Fn);
+        Assert.Same(raw, div.OnClick);
     }
 
-    // The carrier converts FROM a delegate, and that conversion accepts the null literal too — so a
-    // `cond ? handler : null` inside the property (or a factory passing its default) must not hand back
-    // a carrier wrapping a null delegate. An unset handler reads back as null, the way it always did.
+    // An unset handler reads back as null. This was a real hazard while a callback was a carrier struct:
+    // its implicit conversion accepted the null literal, so an omitted handler landed as a NON-null
+    // carrier wrapping null and every `is not null` test a component made about its own callback flipped.
     [Fact]
     public void An_unset_element_event_reads_back_as_null()
     {
-        var div = Div().OnClick(null);
+        var div = Div.OnClick(null).Value;
 
         Assert.Null(div.OnClick);
         Assert.Null(div.OnMouseDown);
     }
 
-    // The distinction the carrier must not blur, now that every framework callback prop rides one.
+    // The distinction that must not blur.
     // DragDrop is a plain Component, so its OnDrop stays AutoCallback-wrapped: nothing else re-renders
     // the consumer whose state the handler mutates. Input<T> is Element-derived, so its OnChange is
     // forwarded RAW to the DOM, where handler-owner resolution already re-renders and a wrapper would
@@ -141,59 +128,55 @@ public class BuilderCallbackTests
     public void A_component_callback_is_wrapped_where_an_element_controls_is_not()
     {
         var host = CardHost();
-        var dropped = (Callback<DragDropMove>)host.Dropped;
-        var changed = (Callback<string>)host.Named;
+        var dropped = (Action<DragDropMove>)host.Dropped;
+        var changed = (Action<string>)host.Named;
 
-        Assert.NotSame(dropped, DragDrop(_ => Div(), OnDrop: dropped).OnDrop?.Fn);
-        Assert.NotSame(dropped, DragDrop(_ => Div()).OnDrop(dropped).OnDrop?.Fn);
+        Assert.NotSame(dropped, DragDrop(_ => Div(), OnDrop: dropped).OnDrop);
+        Assert.NotSame(dropped, DragDrop.Body(_ => Div()).OnDrop(dropped).Value.OnDrop);
 
-        Assert.Same(changed, Input<string>(OnChange: changed).OnChange?.Fn);
-        Assert.Same(changed, Input<string>().OnChange(changed).OnChange?.Fn);
+        Assert.Same(changed, Input<string>(OnChange: changed).OnChange);
+        Assert.Same(changed, Input.Of<string>().OnChange(changed).Value.OnChange);
     }
 
-    // A null delegate must land as an UNSET carrier on both surfaces. The implicit conversion accepts
-    // one, so an argument that merely HAPPENS to be null (`OnSelect: maybe`) would convert into a
-    // non-null carrier wrapping null — and every `is not null` a component asks about its own callback
-    // (BsToast's auto-hide timer, BsDataGrid's controlled-mode gates) would answer true for a handler
-    // nobody wired. Both surfaces assign through Handler.From, which maps null to unset.
+    // A null argument reads back as null on both surfaces — which every `is not null` a component asks
+    // about its own callback depends on (BsToast's auto-hide timer, BsDataGrid's controlled-mode gates).
+    // It took a `From` helper on every assignment to hold while callbacks were carriers; now it is what
+    // assigning a delegate does.
     [Fact]
     public void A_null_callback_argument_reads_back_as_unset()
     {
-        Callback? maybe = null;
+        Action? maybe = null;
 
         Assert.Null(BuilderCard().OnSelect);
         Assert.Null(BuilderCard(OnSelect: maybe).OnSelect);
-        Assert.Null(BuilderCard().OnSelect(maybe).OnSelect);
+        Assert.Null(BuilderCard.OnSelect(maybe).Value.OnSelect);
     }
 
-    // The async sibling still loses to a sync handler on the shared slot, through the carrier.
+    // The async sibling still loses to a sync handler on the shared slot.
     [Fact]
     public void The_sync_handler_still_wins_the_shared_slot()
     {
-        Callback sync = Noop;
-        var div = Div().OnClickAsync(() => Task.CompletedTask).OnClick(sync);
+        Action sync = Noop;
+        var div = Div.OnClickAsync(() => Task.CompletedTask).OnClick(sync).Value;
 
-        Assert.Same(sync, div.OnClick?.Fn);
+        Assert.Same(sync, div.OnClick);
         Assert.Null(div.OnClickAsync);
     }
 
-    // The other half of the rule, and the one the `On` prefix never reached: a delegate prop whose
-    // name does not start with `On` got a setter of the SAME name, which C#'s invocable-member rule
-    // could never bind to — the property won and the setter was unreachable dead code. Rask.Core's
-    // cases (Authorize.Authorized, ErrorBoundary.Fallback, DragDrop/VirtualizeModel's Body) ride a
-    // carrier now, which is what makes this a setter call rather than an attempt to invoke a
-    // `Func<Exception, Callback, Component>` with a `Func<Exception, Callback, Component>`.
+    // The case the old `On`-dropping rule could never reach: a delegate prop whose name does not start
+    // with `On` got a setter of the same name, which the invocable-member rule could never bind to — the
+    // property won and the setter was unreachable dead code. Authorize.Authorized, ErrorBoundary.Fallback
+    // and DragDrop/VirtualizeModel's Body were all in that set; the chain receiver settles all of them.
     [Fact]
     public void A_non_On_delegate_prop_is_reachable_through_the_chain()
     {
-        var boundary = ErrorBoundary().Fallback((ex, _) => Span()[ex.Message]);
+        var boundary = ErrorBoundary.Fallback((ex, _) => Span[ex.Message]).Value;
 
-        Assert.NotNull(boundary.Fallback?.Fn);
+        Assert.NotNull(boundary.Fallback);
     }
 
-    // …and an omitted one still reads back as unset. `Authorize` asks exactly this about its own prop
-    // ("null delegate → static authorized content via the children indexer"), so a non-null carrier
-    // wrapping null would send it down the delegate branch and NullReferenceException instead.
+    // …and an omitted one still reads back as null. `Authorize` asks exactly this about its own prop
+    // ("null delegate → static authorized content via the children indexer").
     [Fact]
     public void An_omitted_non_On_delegate_prop_reads_back_as_unset()
     {
@@ -201,93 +184,49 @@ public class BuilderCallbackTests
 
         Assert.Null(Authorize().Authorized);
         Assert.Null(Authorize(Authorized: none).Authorized);
-        Assert.Null(Authorize().Authorized(none).Authorized);
+        Assert.Null(Authorize.Authorized(none).Value.Authorized);
     }
 
-    // The public read surface is the CALL, not the delegate. `?.Invoke(…)` reads as what it does and is
-    // null-safe by construction — on an unset carrier AND on one that somehow wraps a null delegate,
-    // which is the trap `From` exists to prevent and which a hand-held delegate re-opens at every site
-    // that forgets to check. So `Fn` is internal, and the carrier is declared WITHOUT a positional
-    // parameter to keep it that way: a positional record publishes its parameter as a public property no
-    // matter what the author intended, which is how it became public in the first place.
+    // What the three carrier tests that stood here used to protect, restated as the thing that replaced
+    // them. They asserted that `Handler`/`Carrier<…>` kept its delegate private behind `Invoke`, that
+    // `From` mapped null to unset, and that the implicit conversion still accepted a plain delegate —
+    // all of it machinery whose only job was to stop a delegate-typed property from swallowing its own
+    // setter. The chain receives on `Build<TComponent>` now, so the property is not on the receiver and
+    // there is nothing to hide behind: a callback property IS its delegate.
     //
-    // Asserted by reflection rather than by "it does not compile": this test assembly has
-    // InternalsVisibleTo, so `Fn` is reachable from here either way (the wrap-preservation tests above
-    // use it deliberately, to compare delegate IDENTITY rather than to call it).
+    // Reflection rather than "it compiles": the surface these components present is the point, and a
+    // regression here would be a carrier creeping back in rather than a compile error.
     [Theory]
-    [InlineData(typeof(Handler), "Invoke")]
-    [InlineData(typeof(HandlerAsync), "InvokeAsync")]
-    [InlineData(typeof(Handler<string>), "Invoke")]
-    [InlineData(typeof(HandlerAsync<string>), "InvokeAsync")]
-    public void A_handler_carrier_exposes_the_call_and_not_the_delegate(Type carrier, string invoke)
+    [InlineData(typeof(BuilderCard), "OnSelect", typeof(Action))]
+    [InlineData(typeof(Rask.Core.Element), "OnClick", typeof(Action))]
+    [InlineData(typeof(Rask.Core.Element), "OnClickAsync", typeof(Func<Task>))]
+    [InlineData(typeof(Rask.Core.Element), "OnMouseDown", typeof(Action<Rask.Core.Live.MouseEventArgs>))]
+    public void A_callback_property_is_a_plain_delegate(Type component, string prop, Type expected)
     {
-        Assert.Null(carrier.GetProperty("Fn", BindingFlags.Public | BindingFlags.Instance));
-        Assert.NotNull(carrier.GetProperty("Fn", BindingFlags.NonPublic | BindingFlags.Instance));
-        Assert.NotNull(carrier.GetMethod(invoke, BindingFlags.Public | BindingFlags.Instance));
+        var p = component.GetProperty(prop, BindingFlags.Public | BindingFlags.Instance);
 
-        // The positional record's other public gift: a Deconstruct that hands the delegate straight back.
-        Assert.Null(carrier.GetMethod("Deconstruct", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(p);
+        Assert.Equal(expected, Nullable.GetUnderlyingType(p!.PropertyType) ?? p.PropertyType);
 
-        // …while the two members every call site DOES need stay public: the null-preserving factory and
-        // the implicit conversion that keeps `OnClick = Save` and every generated `OnClick:` working.
-        Assert.NotNull(carrier.GetMethod("From", BindingFlags.Public | BindingFlags.Static));
-        Assert.NotNull(carrier.GetMethod("op_Implicit", BindingFlags.Public | BindingFlags.Static));
+        // …and no carrier anywhere on the surface it belongs to.
+        Assert.DoesNotContain(
+            component.Assembly.GetTypes(),
+            t => t.Name is "Handler" or "HandlerAsync" or "Carrier`1" or "Handler`1" or "HandlerAsync`1");
     }
 
-    // The one carrier that keeps its delegate public, and why: `Carrier<TDelegate>` names its delegate
-    // only by a type parameter, so it knows neither the arity nor the return type an `Invoke` would need
-    // and no method can stand in for calling it. A component that declares a value-returning callback
-    // prop (`Carrier<Func<T, string?>>? RowClass`) has to reach the delegate to use it, and it is
-    // usually in another assembly — so this is a deliberate exception, not an oversight.
+    // The setter keeps the PROPERTY's name — the whole point of moving the receiver. A raw delegate prop
+    // used to force `.Rate(…)` for an `OnRate` property, or no setter at all.
     [Fact]
-    public void The_open_ended_carrier_keeps_its_delegate_reachable()
+    public void A_callback_setter_keeps_the_propertys_name()
     {
-        var carrier = typeof(Carrier<Callback>);
+        var host = CardHost();
+        var raw = (Action)host.Choose;
 
-        Assert.NotNull(carrier.GetProperty("Fn", BindingFlags.Public | BindingFlags.Instance));
-        Assert.Null(carrier.GetMethod("Deconstruct", BindingFlags.Public | BindingFlags.Instance));
+        var card = BuilderCard.OnSelect(raw).Value;
+
+        Assert.NotNull(card.OnSelect);
     }
 
-    // Invoke is what the carrier is FOR, so it has to behave on every shape: run the callback when one is
-    // wired, no-op (and, for the async pair, hand back a completed Task) when nothing is.
-    [Fact]
-    public async Task Invoke_runs_a_wired_callback_and_no_ops_on_an_unset_one()
-    {
-        var calls = 0;
-        Handler? sync = Handler.From(() => calls++);
-        Handler<int>? typed = Handler<int>.From(n => calls += n);
-        HandlerAsync? async = HandlerAsync.From(() =>
-        {
-            calls++;
-            return Task.CompletedTask;
-        });
-        HandlerAsync<int>? typedAsync = HandlerAsync<int>.From(n =>
-        {
-            calls += n;
-            return Task.CompletedTask;
-        });
-
-        sync?.Invoke();
-        typed?.Invoke(2);
-        await (async?.InvokeAsync() ?? Task.CompletedTask);
-        await (typedAsync?.InvokeAsync(3) ?? Task.CompletedTask);
-
-        Assert.Equal(7, calls);
-
-        // The null-carrier half — `?.` never reaches Invoke…
-        Handler? unset = null;
-        unset?.Invoke();
-
-        // …and the null-DELEGATE half, which is the case a raw `.Fn` call would have thrown on: the
-        // implicit conversion accepts null, so a carrier wrapping nothing is constructible and Invoke
-        // has to absorb it.
-        Assert.Equal(7, calls);
-        new Handler(null).Invoke();
-        new Handler<int>(null).Invoke(1);
-        await new HandlerAsync(null).InvokeAsync();
-        await new HandlerAsync<int>(null).InvokeAsync(1);
-        Assert.Equal(7, calls);
-    }
 
     private static void Noop() { }
 }

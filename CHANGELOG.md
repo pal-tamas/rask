@@ -7,6 +7,200 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **BREAKING — callbacks are plain delegates. `Handler`, `HandlerAsync`, `Handler<T>`,
+  `HandlerAsync<T>`, `Carrier<TDelegate>` and the four `Callback*` delegate types are deleted.** A
+  component property says the delegate it means:
+
+  ```csharp
+  public Action? OnPick { get; set; }
+  public Func<Task>? OnSaveAsync { get; set; }
+  public Action<int>? OnRate { get; set; }
+  public Func<Product, Component>? Template { get; set; }
+  ```
+
+  Every one of those was a wrapper a moment ago — `Handler?`, `HandlerAsync?`, `Handler<int>?`,
+  `Carrier<Func<Product, Component>>?` — and the wrappers existed for exactly one reason: a delegate-typed
+  property on the chain's receiver swallowed its own setter. The `Build<TComponent>` receiver removes that
+  collision at its source, so ~180 properties across `Rask.Core`, `Rask.Bootstrap` and `Rask.Native` drop
+  back to `Action` / `Func<…>`, and reading one back is `OnPick?.Invoke()` rather than `.Fn` / `.Invoke`
+  / `.InvokeAsync`.
+
+  Everything that rode on the wrappers goes with them: `AutoCallback.Wrap`'s duplicate named-delegate
+  overloads, `Component.TryInvokeHandlerAsync`'s duplicate typed dispatch arms, `ElementEvents`'
+  carrier views and their null-preservation dance, and the generator's `CarrierDelegate` / `AssignExpr` /
+  `ParamType` mapping layer. `Validate<T>` and `ValidateAsync<T>` stay — they are domain delegates, not
+  wrappers, and spelled out they would put `Func<T, CancellationToken, ValueTask<IEnumerable<string>>>`
+  on the form surface.
+
+  **A callback setter now keeps the property's name in every case.** The old rule dropped a leading `On`
+  where it could (`OnRate` → `.Rate(…)`), so a handful of call sites move: `.Rate(…)` → `.OnRate(…)`,
+  `.TaskClick(…)` → `.OnTaskClick(…)`, `.Save(…)` → `.OnSave(…)`.
+
+- **RASK042 is retired**, not renamed. It reported a delegate-typed property whose setter could never be
+  reached; there is no such property any more. The ID is not reused.
+
+- **RASK026 recognises a callback by NAME rather than by type.** It used to key on the `Callback` /
+  `CallbackAsync` delegate types, which said "framework event callback" on sight; a BCL delegate says
+  nothing, so the signal is now the property — `On…`, plus `AfterBind`/`AfterBindAsync`. Narrower than
+  what it replaces, not wider (a `Func<T, Component>` template is not an event and never was reported) —
+  and it immediately found two live instances in `GestureBridgeDemo` that the type test had missed.
+
+- **BREAKING — a chain's receiver is `Build<TComponent>`, so a callback property can be an ordinary
+  delegate.** The entry hands back a chain rather than the component, and every step takes and returns
+  one:
+
+  ```csharp
+  Div.Class("card")[Span["hi"]]                       // reads exactly as before
+  BsButton.Color(BsColor.Primary).OnClick(Save)["Save"]
+  ```
+
+  The reason is a C# rule rather than a preference. Resolving `x.OnClick(handler)` looks `OnClick` up on
+  the receiver's type; if that lookup finds a property of DELEGATE type it stops there and reads the call
+  as an invocation (CS1593), and extension methods are never considered. While the receiver was the
+  component itself, every callback property therefore needed a non-invocable wrapper around its delegate
+  to stay out of the lookup's way. One step off the component, the lookup finds nothing and the setter
+  binds — whatever the property's type.
+
+  `Build<T>` converts implicitly to `T`, and a user-defined conversion may be followed by a standard one,
+  so a chain reaches `Component` through it as well: markup, `Render()` returns, `Component` parameters,
+  strongly-typed children collections and properties typed as a particular component all take a chain with
+  no cast.
+
+  It is a `readonly struct` over one reference, and `BuilderSurfaceBenchmarks` says that costs nothing:
+  a 50-row re-render (one entry plus three setter calls per row, 150 setter calls a frame) allocates
+  **19.7 KB on both surfaces — Alloc Ratio 1.00**. The wall-clock arms overlap within noise and no claim
+  is made about them.
+
+  Two consequences worth stating, because neither is reachable by reading the happy path:
+  - **A component's static members are no longer reachable by simple name inside a markup host.** C#'s
+    "Color Color" rule merges a type and a same-named property only when the property's type IS that type,
+    which a chain's is not — so `MyComponent.Helper()` resolves to the entry and needs qualifying.
+  - **`cond ? SomeChain : null` needs a target type**, because a struct and `null` share none. Assigning
+    to a `Component?` local (rather than `var`) is the fix, and target-typed conditionals do the rest.
+
+- **`Of<T>()` — the way into a generic component that has nothing to infer from.** Every other opening
+  pins a type argument from an argument (`Input.Bind(() => m.Name)`), but a generic component is not
+  obliged to be used generically: Rask.Bootstrap drives a bare `<input type=checkbox>` through
+  `Input<string>` with no bind and no value. The generic factory had a no-argument overload for exactly
+  that; a seed of pins alone dropped it, which is what left those sites on the factory. Required
+  properties are not waived — only the type is settled.
+
+- **BREAKING — `Form` is genuinely generic: `Form<TModel>`.** Its typing used to be a factory-only
+  fiction — the component held `object? Model` and three `Delegate?` properties, and a `[FactoryGeneric]`
+  overload narrowed them per call. That works only while a factory exists; a chain has no overloads to
+  narrow through, so the generics moved onto the component.
+
+  ```csharp
+  Form.Model(_m)
+      .Validate(CheckoutRules.Check)
+      .OnValidSubmit(Save)
+      .Class("vstack gap-3")[ … ]
+  ```
+
+  The submit handlers now receive the model itself instead of a `Delegate` the component had to
+  `DynamicInvoke`, and the cross-field validator is a `Validate<TModel>` rather than something checked at
+  runtime. The three-way validator fan-out is gone with them: it existed so a sync and an async validator
+  could each be a required, correctly-typed PARAMETER, and as two setters (`Validate`/`ValidateAsync`)
+  they simply coexist.
+
+  **`Model` is required**, so a form with nothing to bind to no longer compiles — the guard that used to
+  throw at first render is unreachable from the surface, and the ~14 plain-`<form>` call sites each bind
+  the fields they were already posting.
+
+- **`[AutoCallback]` — opt-in wrapping for a callback an element-derived component invokes itself.** An
+  `Element`'s delegate props go straight to the DOM, where handler-owner resolution already repaints, so
+  wrapping them would add a closure on the render hot path for nothing. `Form`'s submit handlers are not
+  dispatched that way — its own bridge invokes them after validation — so without a wrap the component
+  that supplied the handler never re-rendered. `[FactoryGeneric]`'s `TypedDelegateProperties` used to say
+  this by hand for the one component that needed it; the attribute says it where the property is declared.
+  Caught by `FormSubmitWrapTests`, which exists precisely to ask this question.
+
+- **A property's summary now rides onto the step and the setter that write it.** A chain shows the
+  SETTER in a tooltip, not the property — so hovering `.Placeholder(…)` said nothing at all while the
+  property behind it was fully documented. The generator copies each property's `<summary>` onto every
+  member it emits for it, taken from the compiler's own XML rather than the trivia, so an inherited
+  `<inheritdoc/>` arrives already resolved. A property with no summary gets no doc comment: an empty one
+  is worse than none, because it suppresses the fallback the IDE would otherwise show.
+  `BsSelect`'s own properties are documented as the first pass, which is what the surface's most-used
+  chain shows. The rest of the framework's properties carry `//` line comments rather than `///`, and
+  converting them is per-property work that this only makes worth doing.
+
+- **RASK044 — a builder chain that sets the same property twice.** The second call wins and the first is
+  dead: it compiles, renders, and uses the last value, so the mistake survives review and shows up later
+  as markup nobody can account for. Two writes to one property are always a merge artefact or a copied
+  line that was not adjusted; if the value is conditional, compute it once and pass it. Reported once per
+  chain, naming the property. Two *separate* chains that each name it once are ordinary markup and are
+  not reported.
+  An analyzer rather than a property of the type, and the boundary is worth stating: the chain already
+  makes a required property impossible to omit and `Bind`/`Value` impossible to mix, because each step
+  returns a type offering only what is still legal. Extending that to every setter would need one state
+  per subset of the surface — 2^n over ~90 properties, where the required-property machinery pays 2^k
+  over the few that are required.
+- **RASK014 speaks about the chain now**, not the factory: `new` skips the first step's `GetOrCreate`, so
+  the runtime cannot match the instance across renders and it re-mounts every frame. It also skips what
+  the chain enforces — a component whose required properties are steps cannot be incomplete, and `new`
+  can make one that is.
+
+- **BREAKING — a builder chain is a state machine, and the type at each point says what is legal next.**
+  A component with anything to settle first no longer hands back the component: it hands back a *seed*,
+  and each step returns a state offering only what is still outstanding. The component — with its
+  optional setters and its `[…]` children indexer — appears once nothing is.
+
+  ```csharp
+  BsSelect.Bind(() => _m.TeamId).Options(Teams).OptionValue(t => t.Id)
+  BsSelect.Bind(() => _m.Plan).Options(Plans)     // the option IS the value
+  BsRadioGroup.Options(AllPlans).Value(_plan)
+  BsToast.Id(7).Message("Saved")                   // or .Message("Saved").Id(7)
+  Div.Class("card")[…]                             // nothing required — unchanged
+  ```
+
+  Three things stop being possible to write, rather than being reported after the fact:
+  - **A required property cannot be omitted.** It is a step, so the component does not exist until it is
+    supplied. RASK038 has not gone, but within one compilation the type now says it; the analyzer's
+    remaining job is a *referenced* library's component, whose RASK001-requiredness metadata destroys and
+    the owning assembly republishes.
+  - **Bound and controlled cannot be mixed.** `Bind` and `Value` are the two openings, so taking either
+    leaves the other unreachable. A control bound to an expression *and* handed a value had two sources
+    of truth and nothing decided which won; it used to compile.
+  - **A type argument is never written by hand.** The step that opens the chain infers it — no
+    `Input<string>()`, no empty `()`.
+
+  Order is free where it can be: any outstanding required property may come next, which costs one state
+  struct per reachable subset (at most two per component here). Type pins are the exception, and that is
+  the language rather than the design — `OptionValue` is a `Func<TItem, TValue>`, so it cannot precede
+  the `Options` that fixes `TItem`.
+
+  The steps are **instance** methods on the seed, and that is load-bearing rather than stylistic: a state
+  fixes its own type arguments, so a step on it introduces none, which lets `Options(IEnumerable<TValue>)`
+  beat `Options<TItem>(IEnumerable<TItem>)` when the option *is* the value and fill in the identity
+  projection itself. As extension methods both would have had to declare the state's type parameters,
+  leaving them equally generic and the call ambiguous (CS0111) — which is what made this design look
+  impossible when it was first tried.
+
+  Seeds and states are `[EditorBrowsable(Never)]`, so they stay out of completion lists; they are named
+  `RaskSeed_`/`RaskStage_`/`RaskPending_` and are never written by hand.
+
+  **Costs nothing measurable.** `BuilderSurfaceBenchmarks` over a 50-row steady-state re-render:
+  **19.7 KB/op on both surfaces, allocation ratio 1.00**, the chain 5% faster in time. A state is a
+  struct holding the component it is building, so a chain allocates exactly what the factory did.
+
+- **BREAKING — `BsSelect<TItem>` is retired; `BsSelect<TValue, TItem>` is the only arity.** Two arities
+  cannot both hang off one seed: the step that fixes `TValue` would have to yield the finished component
+  for one and a stage for the other from the same receiver and the same argument, and the two
+  continuations are ambiguous precisely when the option type equals the value type — which is the whole
+  of what the second arity was for. The common case costs nothing at the call site, because
+  `.Options(items)` recognises it and supplies `x => x` itself.
+
+- **BREAKING — eighteen raw-delegate properties are carriers now**, so their setters keep the property's
+  own name: twelve `Template` props (the `GestureTrigger` family, `Shareable`, `ToastOutlet`,
+  `ValidatingIndicator`, `ValidationMessage` ×3, `ValidationSummary`), `BsSelect.OptionValue`, and five
+  sample `Log` probes. A raw delegate property is invocable, so a same-named setter can never be reached
+  (RASK042) — and those seven components had no builder entry at all as a result. Renaming the setter
+  instead was tried and reverted: it reached the property at the price of spelling the surface's most-used
+  chains `.SetTemplate(…)` and `.SetOptionValue(…)`. Read one back through `.Fn` (or `.Invoke(…)` for a
+  `Handler`).
+
 ### Fixed
 - **A type that declares a nested component can be a markup host now.** Opting one in produced **CS0102 in
   generated source** — `DependencyInjectionTests.GreetingComponent` the injected entry against

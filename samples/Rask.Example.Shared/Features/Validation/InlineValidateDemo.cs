@@ -28,15 +28,14 @@ public sealed partial class InlineValidateDemo : Component
 
     protected override Component? Render() =>
     [
-        Form(
-            _model,
-            OnValidSubmit: m => _submission = $"Welcome, {m.Email}",
-            Class: "vstack gap-3",
-            Validate: m =>
+        Form.Model(_model)
+            .OnValidSubmit(m => _submission = $"Welcome, {m.Email}")
+            .Class("vstack gap-3")
+            .Validate(m =>
                 m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
             Div[
                 Label.For("v4-email").Class("form-label small mb-1")["Email"],
-                Input(() => _model.Email)
+                Input.Bind(() => _model.Email)
                     .Id("v4-email")
                     .Type(InputType.Email)
                     .Class("form-control")
@@ -44,17 +43,17 @@ public sealed partial class InlineValidateDemo : Component
                         v.Contains('@')
                             ? Array.Empty<string>()
                             : new[] { "Email looks wrong." }),
-                ValidationMessage(() => _model.Email, FieldError)
+                ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
             Div[
                 Label.For("v4-password").Class("form-label small mb-1")["Password"],
-                Input(() => _model.Password).Id("v4-password").Type(InputType.Password).Class("form-control")
+                Input.Bind(() => _model.Password).Id("v4-password").Type(InputType.Password).Class("form-control")
             ],
             Div[
                 Label.For("v4-confirm").Class("form-label small mb-1")["Confirm"],
-                Input(() => _model.Confirm).Id("v4-confirm").Type(InputType.Password).Class("form-control")
+                Input.Bind(() => _model.Confirm).Id("v4-confirm").Type(InputType.Password).Class("form-control")
             ],
-            ValidationSummary(SummaryAlert),
+            ValidationSummary.Template(SummaryAlert),
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Sign in"]
             ]

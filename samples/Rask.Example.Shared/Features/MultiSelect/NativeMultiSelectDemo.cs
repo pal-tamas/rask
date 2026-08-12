@@ -16,10 +16,10 @@ public sealed partial class NativeMultiSelectDemo : Component
 
     protected override Component? Render() =>
     [
-        Form(_shipping, Class: "vstack gap-3")[
+        Form.Model(_shipping).Class("vstack gap-3")[
             Div[
                 Label.Class("form-label fw-semibold").For("native-regions")["Ship to"],
-                Select(() => _shipping.Regions)
+                Select.Bind(() => _shipping.Regions)
                     .Multiple(true)
                     .Id("native-regions")
                     .Class("form-select")

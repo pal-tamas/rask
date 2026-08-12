@@ -15,28 +15,28 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
     // Controlled mode (no Bind).
     public ICollection<TItem>? Value { get; set; }
-    public Handler<ICollection<TItem>>? OnChange { get; set; }
-    public HandlerAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
+    public Action<ICollection<TItem>>? OnChange { get; set; }
+    public Func<ICollection<TItem>, Task>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
-    public Carrier<Validate<ICollection<TItem>>>? Validate { get; set; }
-    public Carrier<ValidateAsync<ICollection<TItem>>>? ValidateAsync { get; set; }
-    public Carrier<Action<ICollection<TItem>>>? AfterBind { get; set; }
-    public Carrier<Func<ICollection<TItem>, Task>>? AfterBindAsync { get; set; }
+    public Validate<ICollection<TItem>>? Validate { get; set; }
+    public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
+    public Action<ICollection<TItem>>? AfterBind { get; set; }
+    public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
-    public Carrier<Func<TItem, Component>>? OptionLabel { get; set; }
+    public Func<TItem, Component>? OptionLabel { get; set; }
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
 
     // Marks individual options non-selectable. A disabled option renders greyed (aria-disabled), takes no
     // click, and the keyboard cursor skips over it; e.g. OptionDisabled: t => t.Retired.
-    public Carrier<Func<TItem, bool>>? OptionDisabled { get; set; }
+    public Func<TItem, bool>? OptionDisabled { get; set; }
 
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (t, text) => t.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
-    public new Carrier<Func<TItem, string, bool>>? Filter { get; set; }
+    public new Func<TItem, string, bool>? Filter { get; set; }
 
     // Opt in to a "Select all / Clear all" header row at the top of the dropdown. It toggles the currently
     // shown (filtered), enabled options in one click — adds them all, or clears them when they are already
@@ -45,7 +45,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
     // Groups the options under non-interactive .dropdown-header rows, keyed by the returned string in first-seen
     // order; e.g. OptionGroup: t => t.Category. The roving cursor still walks the flat option order.
-    public Carrier<Func<TItem, string>>? OptionGroup { get; set; }
+    public Func<TItem, string>? OptionGroup { get; set; }
 
     // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
@@ -108,11 +108,11 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
         var errorId = invalid ? prefix + "-error" : null;
 
         Component LabelOf(TItem item) =>
-            OptionLabel?.Fn is { } label ? label(item) : item?.ToString() ?? string.Empty;
+            OptionLabel is { } label ? label(item) : item?.ToString() ?? string.Empty;
 
         // Filtering is opt-in: only a supplied Filter predicate shows the dropdown's search field and narrows
         // the options by what the user has typed.
-        var filter = Filter?.Fn;
+        var filter = Filter;
         var searchable = filter is not null;
         var filtered = searchable && !string.IsNullOrEmpty(_filter)
             ? Options.Where(o => filter!(o, _filter))
@@ -121,12 +121,12 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
         // Group (optional) and flatten: `flat` is the option order the roving cursor indexes — grouping only
         // reorders it into first-seen group order, so flat index still equals the rendered option position.
-        var layout = BsSelectNav.Build(filteredList, OptionGroup?.Fn);
+        var layout = BsSelectNav.Build(filteredList, OptionGroup);
         var flat = layout.Flat;
 
         // Per-option disable predicate over the flat list; the keyboard cursor skips these indices and the
         // option row takes no click.
-        Func<int, bool> optDisabled = i => OptionDisabled?.Fn?.Invoke(flat[i]) == true;
+        Func<int, bool> optDisabled = i => OptionDisabled?.Invoke(flat[i]) == true;
 
         // The roving keyboard cursor lives in flat option-index space. Normalise it once against the current
         // list so a filter change (which may shrink the list) can't leave it dangling past the end, and seed
@@ -180,10 +180,10 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
         if (searchable && _open)
         {
             rows.Add(Div.Class(BsClass.Join("px-2", "pt-1", "pb-2"))[
-                Input<string>()
+                Input
+                    .Value(_filter ?? string.Empty)
                     .Type(InputType.Text)
                     .Class("form-control form-control-sm")
-                    .Value(_filter ?? string.Empty)
                     .Placeholder("Search…")
                     .Autocomplete("off")
                     .Autofocus(true)
@@ -260,7 +260,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
                             ? null
                             : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked))
                         .Key(idx)[
-                        Input<string>()
+                        Input.Of<string>()
                             .Type(InputType.Checkbox)
                             .Class("form-check-input m-0 pe-none")
                             .Checked(isChecked),
@@ -321,7 +321,7 @@ public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollec
 
         var labelNode = Label is null
             ? null
-            : Rask.Core.Components.Generated.Label(Id: labelId, Class: floating ? null : "form-label")[Label];
+            : global::RaskEntriesRask_Core.Label.Id(labelId).Class(floating ? null : "form-label")[Label];
 
         var children = new List<Component?>();
         if (labelNode is not null && !floating)

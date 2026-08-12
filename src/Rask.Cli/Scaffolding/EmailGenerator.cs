@@ -44,7 +44,7 @@ internal static class EmailGenerator
         {
             protected override Component? Render() =>
             [
-                Div()["{{name}} works. Edit Render() to build the email body."]
+                Div["{{name}} works. Edit Render() to build the email body."]
             ];
         }
 

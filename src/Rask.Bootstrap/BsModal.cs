@@ -26,11 +26,11 @@ public sealed partial class BsModal : BsBlock
     // Optional footer content (e.g. action buttons) placed in .modal-footer.
     public new Component? Footer { get; set; }
 
-    public Handler? OnClose { get; set; }
-    public HandlerAsync? OnCloseAsync { get; set; }
+    public Action? OnClose { get; set; }
+    public Func<Task>? OnCloseAsync { get; set; }
 
     // Shields clicks inside the dialog from the outer close handler (nearest-handler delegation).
-    private static readonly Callback Shield = () => { };
+    private static readonly Action Shield = () => { };
 
     protected override Component? Render()
     {
@@ -78,7 +78,7 @@ public sealed partial class BsModal : BsBlock
                 ? Div.Class("modal-header")[
                     Title is not null ? H5.Id(titleId).Class("modal-title")[Title] : null,
                     HideClose is not true
-                        ? BsCloseButton.OnClick(OnClose?.Fn).OnClickAsync(OnCloseAsync?.Fn)
+                        ? BsCloseButton.OnClick(OnClose).OnClickAsync(OnCloseAsync)
                         : null]
                 : null,
             Div.Class("modal-body")[Items],
@@ -92,8 +92,8 @@ public sealed partial class BsModal : BsBlock
             .Role("dialog")
             .Aria(aria)
             .Data(data)
-            .OnClick(staticBackdrop ? null : OnClose?.Fn)
-            .OnClickAsync(staticBackdrop ? null : OnCloseAsync?.Fn)[
+            .OnClick(staticBackdrop ? null : OnClose)
+            .OnClickAsync(staticBackdrop ? null : OnCloseAsync)[
                 Div.Class(dialogCls).OnClick(staticBackdrop ? null : Shield)[content]];
 
         return [modal, Div.Class("modal-backdrop fade show")];

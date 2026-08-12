@@ -126,7 +126,7 @@ public partial class HtmlSerializerTests : global::Rask.Core.RaskMarkup
     {
         // Head() is framework-managed (no children allowed per RASK019) — its case
         // verifies the no-stamp rule alongside the rest of the shell tags.
-        "head" => Head(),
+        "head" => Head,
         "body" => Body[Text.Value("x")],
         "html" => Html[Text.Value("x")],
         "title" => Title[Text.Value("x")],

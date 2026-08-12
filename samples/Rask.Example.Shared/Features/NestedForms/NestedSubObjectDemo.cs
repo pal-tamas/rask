@@ -14,49 +14,46 @@ public sealed partial class NestedSubObjectDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<CheckoutModel>(
-            _model,
-            m => _submission =
-                $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).",
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission =
+                $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).").Class("vstack gap-3")[
             DataAnnotationsValidator,
             Div[
                 Label.For("nf-name").Class("form-label small mb-1")["Name"],
-                Input(() => _model.Name).Id("nf-name").Class("form-control"),
-                ValidationMessage(() => _model.Name, FieldError)
+                Input.Bind(() => _model.Name).Id("nf-name").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
                 Label.For("nf-email").Class("form-label small mb-1")["Email"],
-                Input(() => _model.Email)
+                Input.Bind(() => _model.Email)
                     .Id("nf-email")
                     .Type(InputType.Email)
                     .Class("form-control"),
-                ValidationMessage(() => _model.Email, FieldError)
+                ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
             Fieldset.Class("border rounded p-3 mt-2")[
                 Legend.Class("h6 fw-semibold")["Shipping address"],
                 Div.Class("vstack gap-3")[
                     Div[
                         Label.For("nf-street").Class("form-label small mb-1")["Street"],
-                        Input(() => _model.Address.Street)
+                        Input.Bind(() => _model.Address.Street)
                             .Id("nf-street")
                             .Class("form-control"),
-                        ValidationMessage(() => _model.Address.Street, FieldError)
+                        ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
                     ],
                     Div[
                         Label.For("nf-city").Class("form-label small mb-1")["City"],
-                        Input(() => _model.Address.City)
+                        Input.Bind(() => _model.Address.City)
                             .Id("nf-city")
                             .Class("form-control"),
-                        ValidationMessage(() => _model.Address.City, FieldError)
+                        ValidationMessage.Template(FieldError).For(() => _model.Address.City)
                     ],
                     Div[
                         Label.For("nf-country").Class("form-label small mb-1")["Country (ISO)"],
-                        Input(() => _model.Address.Country)
+                        Input.Bind(() => _model.Address.Country)
                             .Id("nf-country")
                             .Class("form-control")
                             .MaxLength(2),
-                        ValidationMessage(() => _model.Address.Country, FieldError)
+                        ValidationMessage.Template(FieldError).For(() => _model.Address.Country)
                     ]
                 ]
             ],

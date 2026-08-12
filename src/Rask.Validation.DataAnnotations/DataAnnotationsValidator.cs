@@ -10,7 +10,7 @@ namespace Rask.Validation.DataAnnotations;
 //
 //   Form<RegistrationModel>(_model, OnValidSubmit: ...)[
 //       DataAnnotationsValidator(),
-//       Input(() => _model.Email),
+//       Input.Bind(() => _model.Email),
 //       ValidationMessage(() => _model.Email, ...)
 //   ]
 //
@@ -25,7 +25,7 @@ public sealed partial class DataAnnotationsValidator : Component
 
     protected override Component? Render()
     {
-        // Snapshot the render-scoped IServiceProvider at Render time. Handler invocation
+        // Snapshot the render-scoped IServiceProvider at Render time. Action invocation
         // (submit, change, blur) doesn't re-enter LiveRenderContext, so reading
         // LiveRenderContext.Current?.Services at validation time would return null and break
         // ValidationContext.GetService<T>(). The SP doesn't change across renders within a

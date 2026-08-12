@@ -12,7 +12,7 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class InstallPromptPage : Component
 {
-    protected override Component? Head => Title["Install prompt — Rask"];
+    protected override Component? HeadAssets => Title["Install prompt — Rask"];
 
     protected override Component? Render() =>
     [

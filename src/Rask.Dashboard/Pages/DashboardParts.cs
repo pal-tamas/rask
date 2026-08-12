@@ -95,7 +95,7 @@ internal sealed partial class DashboardParked : Component
 {
     public bool Parked { get; set; }
 
-    public HandlerAsync? Resume { get; set; }
+    public Func<Task>? Resume { get; set; }
 
     protected override Component? Render() =>
         Parked
@@ -106,5 +106,5 @@ internal sealed partial class DashboardParked : Component
             ]
             : null;
 
-    private Task ResumeAsync() => Resume?.InvokeAsync() ?? Task.CompletedTask;
+    private Task ResumeAsync() => Resume?.Invoke() ?? Task.CompletedTask;
 }

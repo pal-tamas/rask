@@ -74,7 +74,7 @@ public sealed partial class ToastDemoTests : global::Rask.Core.RaskMarkup
     public void Toast_Render_EmitsBootstrapMarkup()
     {
         var html = RaskTest.Render(
-            () => BsToast.Id(1).Title("Heads up").Message("A message").Timestamp("just now").Icon(BsIconName.Bell),
+            () => BsToast.Id(1).Message("A message").Title("Heads up").Timestamp("just now").Icon(BsIconName.Bell),
             TestServices.Default()).Html;
 
         Assert.Contains("toast show", html);
@@ -92,7 +92,7 @@ public sealed partial class ToastDemoTests : global::Rask.Core.RaskMarkup
     public void Toast_ColouredVariant_UsesHeaderlessFlexLayout()
     {
         var html = RaskTest.Render(
-            () => BsToast.Id(1).Title("Saved").Message("Done").Color(BsColor.Success),
+            () => BsToast.Id(1).Message("Done").Title("Saved").Color(BsColor.Success),
             TestServices.Default()).Html;
 
         Assert.Contains("toast show align-items-center text-bg-success border-0", html);
@@ -105,7 +105,7 @@ public sealed partial class ToastDemoTests : global::Rask.Core.RaskMarkup
     public void Toast_Default_NoVariant_NoWhiteClose()
     {
         var html = RaskTest.Render(
-            () => BsToast.Id(1).Title("T").Message("M"),
+            () => BsToast.Id(1).Message("M").Title("T"),
             TestServices.Default()).Html;
 
         Assert.DoesNotContain("text-bg", html);

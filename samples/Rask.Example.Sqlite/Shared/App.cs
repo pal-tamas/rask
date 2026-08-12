@@ -5,7 +5,7 @@ namespace Rask.Example.Sqlite;
 // it is the framework's (RASK021).
 public sealed partial class App : Component
 {
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Rask — SQLite production pragmas"],
         Meta.Charset("utf-8"),

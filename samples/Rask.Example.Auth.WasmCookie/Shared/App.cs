@@ -5,7 +5,7 @@ public sealed partial class App : Component
     // Bootstrap + Bootstrap Icons via CDN keep the showcase look without vendoring wwwroot/lib
     // per sample. wwwroot/global.css layers the Rask purple palette on top — user <head>
     // contributions splice in before the scoped-css link so the palette overrides Bootstrap.
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
         Title["Rask — Cookie + WASM auth"],
         Meta.Charset("utf-8"),

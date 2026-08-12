@@ -102,7 +102,7 @@ public partial class SvgScopedCssTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Serialize_ScopeId_StampsSvgDescendants()
     {
-        var view = new SvgCssWrapper(Svg()[Circle(R: "5")]);
+        var view = new SvgCssWrapper(Svg[Circle.R("5")]);
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(SvgCssWrapper));
         Assert.Contains($"<svg data-{scopeId}>", html);

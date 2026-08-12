@@ -45,7 +45,7 @@ public sealed partial class CancellationProbe : Component
                 probe._watch.Stop();
             }
 
-            probe.Log($"#{probe.InstanceId} cancelled ({probe._watch.ElapsedMilliseconds} ms)");
+            probe.Log.Invoke($"#{probe.InstanceId} cancelled ({probe._watch.ElapsedMilliseconds} ms)");
         }, this);
 
         // Cooperative cancellation in 100ms slices. We poll the captured token
@@ -70,7 +70,7 @@ public sealed partial class CancellationProbe : Component
 
         _watch.Stop();
         _status = "completed";
-        Log($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");
+        Log.Invoke($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");
     }
 
     protected override Component? Render()

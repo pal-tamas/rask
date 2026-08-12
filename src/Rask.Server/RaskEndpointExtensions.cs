@@ -1179,7 +1179,7 @@ public static class RaskEndpointExtensions
         metrics?.HandlerDispatched();
         var dispatchStart = Stopwatch.GetTimestamp();
 
-        // Handler timeout: cancel the dispatch's CancellationToken after handlerTimeout (linked to
+        // Action timeout: cancel the dispatch's CancellationToken after handlerTimeout (linked to
         // the socket so a close cancels it too). A handler that threads CancellationToken into its
         // async work unwinds cooperatively; one that ignores it can't be force-aborted (the timeout is
         // still logged + metered). Null when the timeout is disabled, so the default path allocates nothing.

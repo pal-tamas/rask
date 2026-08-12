@@ -36,7 +36,7 @@ public sealed class ValidationMessage : Component
             return new Fragment();
         }
 
-        return Template(msgs);
+        return Template!(msgs);
     }
 }
 
@@ -64,7 +64,7 @@ public sealed class ValidationSummary : Component
             return null;
         }
 
-        return Template(entries);
+        return Template!(entries);
     }
 }
 
@@ -102,6 +102,6 @@ public sealed class ValidatingIndicator : Component
         }
 
         var acc = ExpressionAccessor.Parse(For);
-        return ctx.ShouldShowValidatingIndicator(acc.Field) ? Template() : new Fragment();
+        return ctx.ShouldShowValidatingIndicator(acc.Field) ? Template!() : new Fragment();
     }
 }

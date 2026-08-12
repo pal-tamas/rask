@@ -22,11 +22,11 @@ public sealed partial class LoginPage(WasmLoginService login) : Component
                 Form(_model, OnValidSubmitAsync: SubmitAsync)[
                     Div.Class("mb-3")[
                         Label.For("username").Class("form-label")["Username"],
-                        Input(() => _model.Username).Id("username").Class("form-control")
+                        Input.Bind(() => _model.Username).Id("username").Class("form-control")
                     ],
                     Div.Class("mb-3")[
                         Label.For("password").Class("form-label")["Password"],
-                        Input(() => _model.Password).Id("password").Type(InputType.Password).Class("form-control")
+                        Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("form-control")
                     ],
                     Button.Type("submit").Id("login-submit").Class("btn btn-primary w-100")["Sign in"]
                 ],

@@ -33,7 +33,7 @@ public sealed class VirtualizeModel : Component
     private int _clientHeight;
     private IEnumerable? _lastItems;
     private Delegate? _lastProvider;
-    private Callback<ScrollEvent>? _onScrollDelegate;
+    private Action<ScrollEvent>? _onScrollDelegate;
     private int _scrollTop;
     private int _totalCount;
     private bool _totalCountKnown;
@@ -60,7 +60,7 @@ public sealed class VirtualizeModel : Component
     // returns the user's chosen root Component for the virtualized region. Stored under the
     // name "Body" rather than "Render" to avoid colliding with Component.Render(). The
     // user-facing typed factory VirtualizeModel<T>(...) exposes this parameter as "Render".
-    public new Carrier<Func<VirtualizationState, Component>>? Body { get; set; }
+    public new Func<VirtualizationState, Component>? Body { get; set; }
 
     // VirtualizeModel reads mutable internal state (scroll position, item cache, total count
     // from the async provider) that the framework can't observe through props alone, so
@@ -117,7 +117,7 @@ public sealed class VirtualizeModel : Component
 
     protected override Component? Render()
     {
-        if (Body?.Fn is not { } body)
+        if (Body is not { } body)
         {
             throw new InvalidOperationException(
                 "VirtualizeModel has no Body, so there is nothing for it to render. Body is the first "

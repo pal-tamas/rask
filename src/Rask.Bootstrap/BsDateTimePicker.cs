@@ -10,13 +10,13 @@ namespace Rask.Bootstrap;
 // calendar, and the time columns grey out-of-range items on the boundary day. Seconds:true adds a seconds
 // column. Keyboard mirrors BsDatePicker for the grid; Labels localizes the nav/column/clear aria-labels.
 // Native:true falls back to <input type=datetime-local>. Reuses PickerParts.CalendarGrid + TimeColumns.
-//   Bound:      BsDateTimePicker(() => model.When).Label("When")
+//   Bound:      BsDateTimePicker.Bind(() => model.When).Label("When")
 //   Controlled: BsDateTimePicker<DateTime>().Value(dt).OnChange(v => …)
 public sealed partial class BsDateTimePicker<T> : BsPickerBase<T>
 {
     public DateTime? Min { get; set; }
     public DateTime? Max { get; set; }
-    public Carrier<Func<DateOnly, bool>>? Disable { get; set; }
+    public Func<DateOnly, bool>? Disable { get; set; }
     public int? MinuteStep { get; set; }
     public bool? Seconds { get; set; }
     public int? SecondStep { get; set; }
@@ -83,7 +83,7 @@ public sealed partial class BsDateTimePicker<T> : BsPickerBase<T>
                 () => _cursor = ClampCursor(_cursor.AddMonths(1)),
                 PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor), PickerLabels),
             Div.Class(BsClass.Join("bs-datetime", Display.Flex(), Flex.Gap(2)))[
-                PickerParts.CalendarGrid(_cursor, _cursor, selDate, minDate, maxDate, Disable?.Fn, Culture,
+                PickerParts.CalendarGrid(_cursor, _cursor, selDate, minDate, maxDate, Disable, Culture,
                     prefix, gridId, day => PickDayAsync(acc, ctx, fid, selected, offset, day)),
                 PickerParts.TimeColumns(selTime, step, showSeconds, secStep, minTime, maxTime, Culture,
                     PickerLabels,
@@ -291,7 +291,7 @@ public sealed partial class BsDateTimePicker<T> : BsPickerBase<T>
     private bool Selectable(DateOnly d) =>
         !((Min is { } mn && d < DateOnly.FromDateTime(mn)) ||
           (Max is { } mx && d > DateOnly.FromDateTime(mx)) ||
-          Disable?.Fn?.Invoke(d) == true);
+          Disable?.Invoke(d) == true);
 
     private bool PrevMonthDisabled(DateOnly view) =>
         Min is { } mn && new DateOnly(view.Year, view.Month, 1).AddDays(-1) < DateOnly.FromDateTime(mn);

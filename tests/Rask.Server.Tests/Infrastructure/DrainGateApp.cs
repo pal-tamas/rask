@@ -17,7 +17,7 @@ public sealed partial class DrainGateApp : Component
 
     public int Counter;
 
-    protected override Component? Head => new Title()["drain"];
+    protected override Component? HeadAssets => new Title()["drain"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

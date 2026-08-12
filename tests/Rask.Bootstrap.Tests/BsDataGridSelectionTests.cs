@@ -30,7 +30,7 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void WithoutSelection_NoCheckboxColumn()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).ToHtml();
 
         Assert.DoesNotContain("bs-grid-check", html, StringComparison.Ordinal);
         Assert.DoesNotContain("form-check-input", html, StringComparison.Ordinal);
@@ -39,7 +39,7 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Selectable_AddsALeadingCheckboxColumn()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Selectable: true).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).Selectable(true).ToHtml();
 
         // The checkbox column leads, before the first data header.
         Assert.Contains("<thead><tr><th class=\"bs-grid-check\" scope=\"col\">", html, StringComparison.Ordinal);
@@ -51,17 +51,19 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     {
         // SelectedKeys/OnSelectionChange imply it, so a controlled grid doesn't have to say Selectable too.
         Assert.Contains("bs-grid-check",
-            BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Selectable: true).ToHtml(),
+            BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).Selectable(true).ToHtml(),
             StringComparison.Ordinal);
         Assert.Contains("bs-grid-check",
-            BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, SelectedKeys: []).ToHtml(),
+            BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).SelectedKeys([]).ToHtml(),
             StringComparison.Ordinal);
         Assert.Contains("bs-grid-check",
-            BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, OnSelectionChange: _ => { }).ToHtml(),
+            BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).OnSelectionChange(_ => { }).ToHtml(),
             StringComparison.Ordinal);
         Assert.Contains("bs-grid-check",
-            BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-                OnSelectionChangeAsync: _ => Task.CompletedTask).ToHtml(),
+            BsDataGrid.Data(Rows)
+                .Columns(Columns())
+                .RowKey(r => r.Name)
+                .OnSelectionChangeAsync(_ => Task.CompletedTask).ToHtml(),
             StringComparison.Ordinal);
     }
 
@@ -70,7 +72,7 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     {
         // Twenty identical "Select row" labels read as one control repeated. The name comes from the first
         // Value column.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Selectable: true).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).Selectable(true).ToHtml();
 
         Assert.Contains("aria-label=\"Select Banana\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"Select Apple\"", html, StringComparison.Ordinal);
@@ -81,7 +83,7 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     {
         BsColumn<Row>[] templatesOnly = [new BsColumn<Row> { Title = "N", Template = r => Span[r.Name] }];
 
-        var html = BsDataGrid(Data: Rows, Columns: templatesOnly, RowKey: r => r.Name, Selectable: true).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(templatesOnly).RowKey(r => r.Name).Selectable(true).ToHtml();
 
         Assert.Contains("aria-label=\"Select row\"", html, StringComparison.Ordinal);
     }
@@ -90,7 +92,7 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public void TheSelectAllCheckbox_SaysItOnlyCoversThisPage()
     {
         // It can only reach the rows the grid holds, and next to a pager "Select all" would be a lie.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Selectable: true, PageSize: 2)
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).Selectable(true).PageSize(2)
             .ToHtml();
 
         Assert.Contains("aria-label=\"Select all rows on this page\"", html, StringComparison.Ordinal);
@@ -100,8 +102,11 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public async Task ClickingARowCheckbox_SelectsAndDeselects()
     {
         var reported = new List<IReadOnlyList<object>>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Selectable: true, OnSelectionChange: reported.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Selectable(true)
+            .OnSelectionChange(reported.Add));
 
         // [0] is select-all, [1..] are the rows.
         var html = await grid.InvokeAsync(ChangeHandlers(grid.Html)[1], Checked(true));
@@ -117,8 +122,12 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public async Task SelectAll_CoversThePage_AndClearsWhenFull()
     {
         var reported = new List<IReadOnlyList<object>>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Selectable: true, PageSize: 2, OnSelectionChange: reported.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Selectable(true)
+            .PageSize(2)
+            .OnSelectionChange(reported.Add));
 
         // Page 1 holds Banana and Apple — and only those get selected, not Cherry on page 2.
         var html = await grid.InvokeAsync(ChangeHandlers(grid.Html)[0], Checked(true));
@@ -136,8 +145,12 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
         // The point of a bulk action: three on page 1 and two on page 2 is five rows, so paging must not
         // silently drop what is already picked.
         var reported = new List<IReadOnlyList<object>>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Selectable: true, PageSize: 2, OnSelectionChange: reported.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Selectable(true)
+            .PageSize(2)
+            .OnSelectionChange(reported.Add));
 
         await grid.InvokeAsync(ChangeHandlers(grid.Html)[1], Checked(true));  // Banana, page 1
 
@@ -154,7 +167,7 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public void SelectAll_OnAnEmptyPage_IsNotCheckedAndIsDisabled()
     {
         // All() over an empty page is vacuously true, which would render the box checked over nothing.
-        var html = BsDataGrid<Row>(Data: [], Columns: Columns(), RowKey: r => r.Name, Selectable: true).ToHtml();
+        var html = BsDataGrid.Data(global::System.Array.Empty<Row>()).Columns(Columns()).RowKey(r => r.Name).Selectable(true).ToHtml();
 
         Assert.DoesNotContain("checked", html, StringComparison.Ordinal);
         Assert.Contains("disabled", html, StringComparison.Ordinal);
@@ -163,8 +176,11 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void ControlledSelection_RendersWhatItIsGiven()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            SelectedKeys: ["Apple"], OnSelectionChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .SelectedKeys(["Apple"])
+            .OnSelectionChange(_ => { }).ToHtml();
 
         Assert.Contains("<tr class=\"table-active\" data-rask-key=\"Apple\">", html, StringComparison.Ordinal);
         Assert.Single(Regex.Matches(html, "table-active"));
@@ -175,8 +191,11 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     {
         // The caller owns it: the grid must not also mutate its own set, or the two would drift.
         var reported = new List<IReadOnlyList<object>>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            SelectedKeys: ["Apple"], OnSelectionChange: reported.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .SelectedKeys(["Apple"])
+            .OnSelectionChange(reported.Add));
 
         var html = await grid.InvokeAsync(ChangeHandlers(grid.Html)[1], Checked(true)); // Banana
 
@@ -189,8 +208,11 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public async Task ControlledSelection_ReportsTheWholeSet_NotADelta()
     {
         var reported = new List<IReadOnlyList<object>>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            SelectedKeys: ["Apple", "Cherry"], OnSelectionChange: reported.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .SelectedKeys(["Apple", "Cherry"])
+            .OnSelectionChange(reported.Add));
 
         await grid.InvokeAsync(ChangeHandlers(grid.Html)[1], Checked(true)); // + Banana
 
@@ -201,8 +223,11 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public async Task DeselectingAControlledRow_ReportsTheRemainder()
     {
         var reported = new List<IReadOnlyList<object>>();
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            SelectedKeys: ["Apple", "Banana"], OnSelectionChange: reported.Add));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .SelectedKeys(["Apple", "Banana"])
+            .OnSelectionChange(reported.Add));
 
         await grid.InvokeAsync(ChangeHandlers(grid.Html)[1], Checked(false)); // Banana, already selected -> off
 
@@ -213,8 +238,11 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public async Task OnSelectionChangeAsync_IsAwaited()
     {
         IReadOnlyList<object>? got = null;
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Selectable: true, OnSelectionChangeAsync: keys =>
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Selectable(true)
+            .OnSelectionChangeAsync(keys =>
             {
                 got = keys;
                 return Task.CompletedTask;
@@ -229,8 +257,10 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public async Task SelectionSurvivesASort_BecauseItIsKeyed()
     {
         // Keyed, not indexed: sorting moves the rows but not the selection.
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Selectable: true));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Selectable(true));
 
         var html = await grid.InvokeAsync(ChangeHandlers(grid.Html)[1], Checked(true));
         Assert.Contains("<tr class=\"table-active\" data-rask-key=\"Banana\">", html, StringComparison.Ordinal);
@@ -247,8 +277,11 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public async Task WithMasterDetail_BothLeadingColumnsRender_AndTheDetailSpansThemAll()
     {
         // The colspan and the three leading-cell sites are where an extra leading column goes wrong.
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Selectable: true, ExpandedContent: r => Div[r.Name]));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Selectable(true)
+            .ExpandedContent(r => Div[r.Name]));
 
         // Expand the first row: [0]/[1] are the sortable headers, so the expanders start at [2].
         var expander = Regex.Matches(grid.Html, "data-rask-on-click=\"([^\"]+)\"")
@@ -269,8 +302,11 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
             new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Footer = rows => rows.Sum(r => r.Qty) },
         ];
 
-        var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name, Selectable: true,
-            ExpandedContent: r => Div[r.Name]).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(columns)
+            .RowKey(r => r.Name)
+            .Selectable(true)
+            .ExpandedContent(r => Div[r.Name]).ToHtml();
 
         var tfoot = Regex.Match(html, "<tfoot>(.*?)</tfoot>", RegexOptions.Singleline).Groups[1].Value;
 
@@ -283,8 +319,14 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
     public void WithTotalCount_SelectionWorksOnTheSlice()
     {
         // Server-side mode: the grid holds one page and can only ever name its keys.
-        var html = BsDataGrid(Data: Rows.Take(2).ToList(), Columns: Columns(), RowKey: r => r.Name,
-            TotalCount: 40, PageSize: 2, Page: 0, Selectable: true, SelectedKeys: ["Banana"]).ToHtml();
+        var html = BsDataGrid.Data(Rows.Take(2).ToList())
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .TotalCount(40)
+            .PageSize(2)
+            .Page(0)
+            .Selectable(true)
+            .SelectedKeys(["Banana"]).ToHtml();
 
         Assert.Contains("<tr class=\"table-active\" data-rask-key=\"Banana\">", html, StringComparison.Ordinal);
         Assert.Contains("1-2 / 40", html, StringComparison.Ordinal);
@@ -296,15 +338,21 @@ public partial class BsDataGridSelectionTests : global::Rask.Core.RaskMarkup
         // A real `disabled` here, not aria-disabled: unlike the sort/pager controls (which stay focusable so a
         // fetch doesn't throw away the user's keyboard position), a checkbox that cannot be changed should not
         // be reachable at all.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Selectable: true,
-            Loading: true).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Selectable(true)
+            .Loading(true).ToHtml();
 
         // Count the checkboxes specifically — the sort button's aria-disabled also contains "disabled".
         Assert.Equal(4, Regex.Matches(html, "<input[^>]*form-check-input[^>]*\\sdisabled").Count);
 
         // ...and they are enabled again when it clears.
-        var idle = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Selectable: true,
-            Loading: false).ToHtml();
+        var idle = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Selectable(true)
+            .Loading(false).ToHtml();
 
         Assert.Empty(Regex.Matches(idle, "<input[^>]*form-check-input[^>]*\\sdisabled"));
     }

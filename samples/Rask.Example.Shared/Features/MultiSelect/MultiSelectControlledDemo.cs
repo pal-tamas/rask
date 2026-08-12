@@ -16,12 +16,12 @@ public sealed partial class MultiSelectControlledDemo : Component
         Div.Class("vstack gap-3")[
             Div[
                 Label.Class("form-label fw-semibold")["Topics"],
-                BsMultiSelect<string>(
-                    AllTopics,
-                    Value: _topics.ToList(),
-                    OnChange: next => _topics = next,
-                    Id: "ms-controlled",
-                    Placeholder: "Choose topics…")
+                BsMultiSelect
+                    .Value(_topics.ToList())
+                    .Options(AllTopics)
+                    .OnChange(next => _topics = next)
+                    .Id("ms-controlled")
+                    .Placeholder("Choose topics…")
             ],
             P.Class("small text-secondary mb-0").Id("ms-controlled-summary")[
                 "Selected: " + (_topics.Count == 0 ? "none" : string.Join(", ", _topics))

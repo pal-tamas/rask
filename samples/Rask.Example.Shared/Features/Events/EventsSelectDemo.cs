@@ -6,7 +6,7 @@ public sealed partial class EventsSelectDemo : Component
 
     protected override Component? Render() =>
     [
-        Select<string>()
+        Select.Value<string>(null)
             .Class("form-select mb-2")
             .OnChange(v => _pick = v)[
             Option.Value("rask").Selected(_pick == "rask")["Rask"],

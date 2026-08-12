@@ -34,11 +34,28 @@ public static class RaskTest
     }
 
     /// <summary>
+    ///     Renders a finished markup chain — <c>RaskTest.Render(BsAlert.Color(BsColor.Danger)["boom"])</c>.
+    /// </summary>
+    /// <remarks>
+    ///     An overload rather than a conversion at the call site: <c>T</c> above is constrained to
+    ///     <see cref="Component" />, and a generic type parameter is inferred before any user-defined
+    ///     conversion is considered, so a chain cannot reach it (CS0315). Taking the chain directly keeps
+    ///     the test reading as the markup it renders, and the handle stays typed as the component so
+    ///     <see cref="RenderedComponent{T}.Instance" /> is still the thing under test.
+    /// </remarks>
+    /// <typeparam name="T">The component the chain built.</typeparam>
+    /// <param name="chain">The markup under test.</param>
+    /// <param name="services">Services available to the component. Defaults to an empty provider.</param>
+    public static RenderedComponent<T> Render<T>(Build<T> chain, IServiceProvider? services = null)
+        where T : Component
+        => Render(chain.Value, services);
+
+    /// <summary>
     ///     Renders the component produced by <paramref name="factory" /> as a live root and returns a handle
     ///     to the result. The factory runs on <b>every</b> render, so the tree is rebuilt from your current
     ///     state each time — use this (rather than the <see cref="Render{T}(T, IServiceProvider)" />
     ///     overload, which renders one fixed instance) whenever a re-render should see changed props:
-    ///     <c>RaskTest.Render(() => Form(model)[Input(() => model.Name)])</c>. Returning <c>null</c> renders
+    ///     <c>RaskTest.Render(() => Form(model)[Input.Bind(() => model.Name)])</c>. Returning <c>null</c> renders
     ///     nothing — for a child built by its generated factory, that also drives it through its unmount path.
     /// </summary>
     /// <param name="factory">Builds the component under test; invoked once per render.</param>
@@ -88,7 +105,7 @@ public static class RaskTest
     ///     <code>
     ///     EditContext? ctx = null;
     ///     var page = RaskTest.Render(() => Form(model)[
-    ///         Input(() => model.Name),
+    ///         Input.Bind(() => model.Name),
     ///         RaskTest.EditContextProbe(c => ctx = c)
     ///     ]);
     ///     </code>

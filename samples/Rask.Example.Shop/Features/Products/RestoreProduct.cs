@@ -40,5 +40,5 @@ public sealed partial class RestoreProduct(IDispatcher dispatcher) : Component
     }
 
     protected override Component? Render() =>
-        Button("button", OnClickAsync: RestoreAsync)["Restore"];
+        Button.Type("button").OnClickAsync(RestoreAsync)["Restore"];
 }

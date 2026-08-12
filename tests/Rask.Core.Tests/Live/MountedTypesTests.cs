@@ -22,7 +22,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     {
         // Only the root StubComponent itself is a user component — its render returns a
         // bare Span. Asserting that the set contains StubComponent but nothing else.
-        var view = new StubComponent(Span());
+        var view = new StubComponent(Span);
         using var ctx = LiveRenderContext.Begin(view);
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(view, sb);
@@ -95,7 +95,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void NInstancesOfSameComponentType_AppearOnce()
     {
-        var view = new StubComponent(() => Div()[
+        var view = new StubComponent(() => Div[
             new CssOnly(), new CssOnly(), new CssOnly(), new CssOnly(), new CssOnly()
         ]);
         ScopedAssetRegistry.RegisterCss(typeof(CssOnly), ".x { color: red; }");

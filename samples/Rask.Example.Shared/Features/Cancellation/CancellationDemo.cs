@@ -22,7 +22,7 @@ public sealed partial class CancellationDemo : Component
                     .OnClick(Unmount)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount probe"]
             ],
             _mounted
-                ? CancellationProbe(AppendLog, _nextInstance)
+                ? CancellationProbe.Log(AppendLog).InstanceId(_nextInstance)
                 : P.Class("text-secondary fst-italic mb-0")["Probe is not mounted."],
             H3.Class("h6 text-secondary text-uppercase small mt-4")["Log"],
             _log.Count == 0

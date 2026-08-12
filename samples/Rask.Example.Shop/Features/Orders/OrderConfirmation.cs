@@ -17,15 +17,15 @@ public sealed partial class OrderConfirmation : Component
     public decimal Total { get; set; }
 
     protected override Component? Render() =>
-        Div(Style: "font-family:system-ui,sans-serif;max-width:32rem")[
-            H1(Style: "font-size:1.25rem")["Thanks for your order"],
-            P()[$"We've got your order, {Customer}."],
-            P()[
+        Div.Style("font-family:system-ui,sans-serif;max-width:32rem")[
+            H1.Style("font-size:1.25rem")["Thanks for your order"],
+            P[$"We've got your order, {Customer}."],
+            P[
                 "Total: ",
-                Strong()[Total.ToString("C", System.Globalization.CultureInfo.InvariantCulture)]
+                Strong[Total.ToString("C", System.Globalization.CultureInfo.InvariantCulture)]
             ],
-            Hr(),
-            P(Style: "color:#666;font-size:0.875rem")[
+            Hr,
+            P.Style("color:#666;font-size:0.875rem")[
                 "This message was queued on the app's own database and delivered by a background worker."
             ]
         ];

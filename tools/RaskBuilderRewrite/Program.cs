@@ -13,6 +13,8 @@ using Rask.Tools.BuilderRewrite;
 
 var projects = new List<string>();
 var apply = false;
+var reorder = false;
+var reflow = false;
 var hostify = false;
 string? reportPath = null;
 var configuration = "Debug";
@@ -23,6 +25,13 @@ for (var i = 0; i < args.Length; i++)
     {
         case "--apply":
             apply = true;
+            break;
+        case "--reorder":
+            reorder = true;
+            break;
+        case "--reflow":
+            reorder = true;
+            reflow = true;
             break;
         case "--hostify":
             hostify = true;
@@ -74,6 +83,32 @@ foreach (var projectPath in projects)
     if (surface is null)
     {
         Console.WriteLine("   no Rask.Core reference — nothing to do");
+        continue;
+    }
+
+    // Reordering only moves calls that already exist, so it is safe to run against a compilation that
+    // does not build — which is exactly the state the required-first rule leaves behind.
+    if (reorder)
+    {
+        var moved = 0;
+        foreach (var tree in project.UserTrees)
+        {
+            var reorderer = new ChainReorderer(surface, reflow);
+            var rewritten = reorderer.Run(project.Compilation.GetSemanticModel(tree), tree.GetRoot());
+            if (reorderer.Reordered == 0)
+            {
+                continue;
+            }
+
+            moved += reorderer.Reordered;
+            Console.WriteLine($"   {Path.GetFileName(tree.FilePath)}: {reorderer.Reordered} reordered");
+            if (apply)
+            {
+                Write(tree.FilePath, rewritten.SyntaxTree);
+            }
+        }
+
+        Console.WriteLine($"reordered: {moved}{(apply ? "" : " (dry run)")}");
         continue;
     }
 

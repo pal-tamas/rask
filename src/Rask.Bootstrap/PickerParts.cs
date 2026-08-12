@@ -45,7 +45,7 @@ internal static partial class PickerParts
     // The prev/next month header with the localized "MMMM yyyy" label. The nav aria-labels come from
     // `labels` (they have no CultureInfo source, unlike the month/day names).
     internal static Component MonthHeader(
-        DateOnly view, CultureInfo culture, Callback onPrev, Callback onNext,
+        DateOnly view, CultureInfo culture, Action onPrev, Action onNext,
         bool prevDisabled, bool nextDisabled, BsPickerLabels labels) =>
         Div
             .Class(BsClass.Join(Display.Flex(), Flex.Align(BsAlign.Center),
@@ -201,7 +201,7 @@ internal static partial class PickerParts
     // non-clickable when out of range for its column. Reuses shared aria dictionaries so a full time
     // column (24 hours + minutes + seconds) doesn't allocate a dictionary per option on every render.
     private static Component TimeItem(
-        int value, bool active, bool disabled, CultureInfo culture, CallbackAsync onPick)
+        int value, bool active, bool disabled, CultureInfo culture, Func<Task> onPick)
     {
         var aria = (active, disabled) switch
         {

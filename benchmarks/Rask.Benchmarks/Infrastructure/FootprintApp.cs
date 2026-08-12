@@ -33,7 +33,7 @@ public sealed partial class FootprintApp : Component
     // emits it; the reports build the page via Bench.FootprintApp(RowCount: n).
     public int RowCount { get; set; }
 
-    protected override Component? Head => Title["rask session footprint"];
+    protected override Component? HeadAssets => Title["rask session footprint"];
 
     /// <summary>
     ///     Change the rendered HTML so the next render survives the session's dedup.

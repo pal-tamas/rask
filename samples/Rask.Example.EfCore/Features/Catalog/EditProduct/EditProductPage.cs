@@ -18,7 +18,7 @@ public sealed partial class EditProductPage(IDbContextFactory<CatalogDbContext> 
 
     [RouteParam] public int Id { get; set; }
 
-    protected override Component? Head => Title["Edit product — Rask EF Core"];
+    protected override Component? HeadAssets => Title["Edit product — Rask EF Core"];
 
     // Fires on first render and whenever Id changes — load the row to edit into the form.
     protected override async Task OnPropsChangedAsync()
@@ -72,31 +72,31 @@ public sealed partial class EditProductPage(IDbContextFactory<CatalogDbContext> 
         return Div.Class("card shadow-sm border-0 mx-auto").Style("max-width: 32rem")[
             Div.Class("card-body")[
                 H1.Class("h4 mb-3")["Edit product"],
-                Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
+                Form.Model(_form).OnValidSubmitAsync(SubmitAsync).Class("vstack gap-3")[
                     Div[
                         Label.For("p-name").Class("form-label small mb-1")["Name"],
-                        Input(() => _form.Name)
+                        Input.Bind(() => _form.Name)
                             .Validate(ProductName.Validate)
                             .Id("p-name")
                             .Class("form-control"),
-                        ValidationMessage(() => _form.Name, FieldErrors.Template)
+                        ValidationMessage.Template(FieldErrors.Template).For(() => _form.Name)
                     ],
                     Div[
                         Label.For("p-price").Class("form-label small mb-1")["Price"],
-                        Input(() => _form.Price)
+                        Input.Bind(() => _form.Price)
                             .Validate(Money.Validate)
                             .Id("p-price")
                             .Class("form-control")
                             .Step("0.01"),
-                        ValidationMessage(() => _form.Price, FieldErrors.Template)
+                        ValidationMessage.Template(FieldErrors.Template).For(() => _form.Price)
                     ],
                     Div[
                         Label.For("p-stock").Class("form-label small mb-1")["Stock"],
-                        Input(() => _form.Stock)
+                        Input.Bind(() => _form.Stock)
                             .Validate(StockLevel.Validate)
                             .Id("p-stock")
                             .Class("form-control"),
-                        ValidationMessage(() => _form.Stock, FieldErrors.Template)
+                        ValidationMessage.Template(FieldErrors.Template).For(() => _form.Stock)
                     ],
                     Div.Class("d-flex justify-content-end gap-2 pt-2")[
                         NavLink.Href("/products").Class("btn btn-outline-secondary")["Cancel"],

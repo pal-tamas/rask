@@ -21,38 +21,26 @@ public interface IFormControl<T>
 {
     // Bound mode — two-way binds an lvalue and drives the ambient EditContext.
     Expression<Func<T>>? Bind { get; set; }
-    Carrier<Validate<T>>? Validate { get; set; }
-    Carrier<ValidateAsync<T>>? ValidateAsync { get; set; }
-    Carrier<Action<T>>? AfterBind { get; set; }
-    Carrier<Func<T, Task>>? AfterBindAsync { get; set; }
+    Validate<T>? Validate { get; set; }
+    ValidateAsync<T>? ValidateAsync { get; set; }
+    Action<T>? AfterBind { get; set; }
+    Func<T, Task>? AfterBindAsync { get; set; }
 
     // Controlled mode — the parent owns Value and is notified of changes.
     T? Value { get; set; }
-    Handler<T>? OnChange { get; set; }
-    HandlerAsync<T>? OnChangeAsync { get; set; }
+    Action<T>? OnChange { get; set; }
+    Func<T, Task>? OnChangeAsync { get; set; }
 }
 ```
 
-All six delegate members ride in a **carrier** (`Rask.Core`) — `Carrier<>` for the bound four,
-`Handler<T>`/`HandlerAsync<T>` for the change pair. A delegate-typed property *is* invocable, so
-`control.Validate(rule)` (or `control.OnChange(h)`) would bind to the property instead of the same-named
-builder setter; the carrier makes the member non-invocable. Its implicit conversion keeps ordinary
-assignment (`Validate = rule`) and every generated `Validate:` / `OnChange:` factory parameter working
-unchanged. Reading them back differs by carrier: the bound four are `Carrier<TDelegate>`, whose
-delegate is public (`Validate?.Fn`) because a delegate named only by a type parameter has no signature
-to offer an `Invoke` for; the change pair are `Handler<T>`/`HandlerAsync<T>`, whose delegate is internal
-to the framework and whose public surface is the null-safe call — `OnChange?.Invoke(v)`,
-`await OnChangeAsync?.InvokeAsync(v)`.
+All six are ordinary delegates, read back and called the way any delegate is — `Validate?.Invoke(v)`,
+`OnChange?.Invoke(v)`, `await (OnChangeAsync?.Invoke(v) ?? Task.CompletedTask)`.
 
-One trap the conversion brings: it accepts a *null* delegate, so `cond ? new Handler(h) : null` hands back a
-non-null carrier wrapping null — an unset handler that no longer reads back as unset. Cast the unset branch
-(`: (Handler?)null`), or build it with `Handler.From(h)`, which maps null to unset. Every generated
-assignment already does.
-
-The rule is not limited to the interface's members, or to names beginning with `On`: **any** delegate-typed
-property your control declares needs a carrier if you want a builder setter for it. `OptionLabel`,
-`RowClass`, a `Filter` predicate — all of them are invocable as declared, so the setter of the same name can
-never be reached. The generator reports the ones it finds as **RASK042** and names the carrier to use.
+Every one of those properties is an ordinary delegate — `Validate<T>`, `Action<T>`, `Func<T, Task>` —
+declared exactly as you would declare it anywhere else. They used to need a carrier: while a chain's
+receiver was the control itself, a delegate-typed property was *invocable*, so `.Validate(rule)` bound to
+the property rather than to the setter of the same name. The chain receives on `Build<TComponent>` now,
+so there is nothing in the way and nothing to wrap.
 
 You declare those nine properties (plus your own display props), implement `Render`, and the generator
 emits **two factories**:
@@ -79,25 +67,21 @@ namespace MyApp.Controls;
 public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
 {
     public required IEnumerable<TValue> Options { get; set; }
-    // A carrier, not a raw `Func<…>`: a delegate-typed property IS invocable, so `.OptionLabel(fn)`
-    // would bind to the property and never reach the same-named builder setter. Same reason the four
-    // bound members below use one. Assignment and every generated `OptionLabel:` argument are
-    // unchanged; a `Carrier<TDelegate>` hands the delegate back through `.Fn` (a `Handler` does not —
-    // there the public surface is `Invoke`).
-    public Carrier<Func<TValue, Component>>? OptionLabel { get; set; }
+    // A plain delegate, like every callback and template on the surface.
+    public Func<TValue, Component>? OptionLabel { get; set; }
     public string? Class { get; set; }
 
     // IFormControl<TValue> — controlled mode.
     public TValue? Value { get; set; }
-    public Handler<TValue>? OnChange { get; set; }
-    public HandlerAsync<TValue>? OnChangeAsync { get; set; }
+    public Action<TValue>? OnChange { get; set; }
+    public Func<TValue, Task>? OnChangeAsync { get; set; }
 
     // IFormControl<TValue> — bound mode.
     public Expression<Func<TValue>>? Bind { get; set; }
-    public Carrier<Validate<TValue>>? Validate { get; set; }
-    public Carrier<ValidateAsync<TValue>>? ValidateAsync { get; set; }
-    public Carrier<Action<TValue>>? AfterBind { get; set; }
-    public Carrier<Func<TValue, Task>>? AfterBindAsync { get; set; }
+    public Validate<TValue>? Validate { get; set; }
+    public ValidateAsync<TValue>? ValidateAsync { get; set; }
+    public Action<TValue>? AfterBind { get; set; }
+    public Func<TValue, Task>? AfterBindAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -131,7 +115,7 @@ public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
                 Type: "button",
                 Class: active ? "btn btn-primary" : "btn btn-outline-primary",
                 OnClickAsync: () => SelectAsync(acc, ctx, fid, captured),
-                Key: i++)[OptionLabel?.Fn is { } label ? label(option) : option?.ToString() ?? ""]);
+                Key: i++)[OptionLabel is { } label ? label(option) : option?.ToString() ?? ""]);
         }
 
         var children = new List<Component> { Div(Class: "btn-group")[buttons] };
@@ -181,11 +165,11 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 
 | Member | Replaces |
 |---|---|
-| `Validator` | `(Delegate?)Validate?.Fn ?? ValidateAsync?.Fn` — the single delegate the `EditContext` dispatches |
+| `Validator` | `(Delegate?)Validate ?? ValidateAsync` — the single delegate the `EditContext` dispatches |
 | `RegisterValidator(accessor, ctx)` | `ctx?.RegisterFieldValidator(acc.Field, Validator, () => acc.Getter())` |
-| `InvokeAfterBindAsync(value)` | `AfterBind?.Fn?.Invoke(v); if (AfterBindAsync?.Fn is { } h) await h(v);` |
+| `InvokeAfterBindAsync(value)` | `AfterBind?.Invoke(v); if (AfterBindAsync is { } h) await h(v);` |
 | `InvokeOnChangeAsync(value)` | `OnChange?.Invoke(v); await (OnChangeAsync?.InvokeAsync(v) ?? Task.CompletedTask);` |
-| `ControlledChangeHandler()` | a `Callback<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChangeAsync` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
+| `ControlledChangeHandler()` | an `Action<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChangeAsync` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
 
 `RegisterValidator` is safe (and required) to call **every render** — passing the collapsed validator each
 time also clears a stale rule when the consumer drops `Validate`.

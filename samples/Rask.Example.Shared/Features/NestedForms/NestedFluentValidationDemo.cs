@@ -24,12 +24,12 @@ public sealed partial class NestedFluentValidationDemo : Component
             var captured = line;
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    Input(() => captured.Sku).Class("form-control form-control-sm"),
-                    ValidationMessage(() => captured.Sku, FieldError)
+                    Input.Bind(() => captured.Sku).Class("form-control form-control-sm"),
+                    ValidationMessage.Template(FieldError).For(() => captured.Sku)
                 ],
                 Td.Style("width: 6rem;")[
-                    Input(() => captured.Quantity).Class("form-control form-control-sm"),
-                    ValidationMessage(() => captured.Quantity, FieldError)
+                    Input.Bind(() => captured.Quantity).Class("form-control form-control-sm"),
+                    ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
                     BsButton
@@ -43,26 +43,23 @@ public sealed partial class NestedFluentValidationDemo : Component
 
         return
         [
-            Form<NestedOrderModel>(
-                _model,
-                m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)",
-                Class: "vstack gap-3")[
+            Form.Model(_model).OnValidSubmit(m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)").Class("vstack gap-3")[
                 FluentValidationValidator.Validator(_validator),
                 Div[
                     Label.For("nf-fv-name").Class("form-label small mb-1")["Customer"],
-                    Input(() => _model.CustomerName).Id("nf-fv-name").Class("form-control"),
-                    ValidationMessage(() => _model.CustomerName, FieldError)
+                    Input.Bind(() => _model.CustomerName).Id("nf-fv-name").Class("form-control"),
+                    ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Fieldset.Class("border rounded p-3")[
                     Legend.Class("h6 fw-semibold")["Address"],
                     Div.Class("vstack gap-2")[
                         Div[
-                            Input(() => _model.Address.Street).Class("form-control"),
-                            ValidationMessage(() => _model.Address.Street, FieldError)
+                            Input.Bind(() => _model.Address.Street).Class("form-control"),
+                            ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
                         ],
                         Div[
-                            Input(() => _model.Address.City).Class("form-control"),
-                            ValidationMessage(() => _model.Address.City, FieldError)
+                            Input.Bind(() => _model.Address.City).Class("form-control"),
+                            ValidationMessage.Template(FieldError).For(() => _model.Address.City)
                         ]
                     ]
                 ],

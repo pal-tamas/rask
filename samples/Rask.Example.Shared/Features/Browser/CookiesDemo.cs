@@ -18,10 +18,10 @@ public sealed partial class CookiesDemo(ICookies cookies) : Component
         BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody[
                 Div.Class("input-group input-group-sm mb-2")[
-                    Input<string>()
+                    Input
+                        .Value(_input)
                         .Id("cookie-input")
                         .Class("form-control")
-                        .Value(_input)
                         .Placeholder("Cookie value")
                         .OnInput(v => _input = v),
                     BsButton.Color(BsColor.Primary).Id("cookie-set").OnClickAsync(Set)["Set"],

@@ -12,20 +12,17 @@ public sealed partial class FluentValidationDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<OrderModel>(
-            _model,
-            m => _submission = $"Ordered {m.Quantity} × {m.Product}",
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Ordered {m.Quantity} × {m.Product}").Class("vstack gap-3")[
             FluentValidationValidator.Validator(new OrderValidator()),
             Div[
                 Label.For("v7-product").Class("form-label small mb-1")["Product"],
-                Input(() => _model.Product).Id("v7-product").Class("form-control"),
-                ValidationMessage(() => _model.Product, FieldError)
+                Input.Bind(() => _model.Product).Id("v7-product").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Product)
             ],
             Div[
                 Label.For("v7-quantity").Class("form-label small mb-1")["Quantity"],
-                Input(() => _model.Quantity).Id("v7-quantity").Class("form-control"),
-                ValidationMessage(() => _model.Quantity, FieldError)
+                Input.Bind(() => _model.Quantity).Id("v7-quantity").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Quantity)
             ],
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.BagCheck).Class("me-1"), "Order"]

@@ -22,18 +22,14 @@ public sealed partial class AsyncValidationDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<SignupModel>(
-            _model,
-            m => _submission = $"Signed up: {m.Username}",
-            Context: _ctx,
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Signed up: {m.Username}").Context(_ctx).Class("vstack gap-3")[
             DataAnnotationsValidator,
             Div[
                 Label.For("v3-username").Class("form-label small mb-1")["Username"],
-                Input(() => _model.Username).Id("v3-username").Class("form-control"),
-                ValidatingIndicator(() => _model.Username, Checking),
-                ValidationMessage(() => _model.Username,
-                    msgs => [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])])
+                Input.Bind(() => _model.Username).Id("v3-username").Class("form-control"),
+                ValidatingIndicator.Template(Checking).For(() => _model.Username),
+                ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])])
+                    .For(() => _model.Username)
             ],
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Sign up"]

@@ -36,7 +36,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Date_Controlled_RendersComboboxValueAndCaret()
     {
-        var html = Html(Us, () => BsDatePicker<DateOnly>().Value(Jul7).Label("Day").Id("d"));
+        var html = Html(Us, () => BsDatePicker.Value(Jul7).Label("Day").Id("d"));
         Assert.Contains("<label class=\"form-label\" for=\"d\">Day</label>", html);
         Assert.Contains("role=\"combobox\"", html);
         Assert.Contains("aria-haspopup=\"grid\"", html);
@@ -50,7 +50,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     {
         // The .dropdown wrapper is marked data-rask-popover and the combobox box data-rask-anchor, so the
         // runtime re-anchors the open popover with position:fixed (escapes overflow-clipping ancestors).
-        var html = Html(Us, () => BsDatePicker<DateOnly>().Value(Jul7).Id("d"));
+        var html = Html(Us, () => BsDatePicker.Value(Jul7).Id("d"));
         Assert.Contains("class=\"dropdown position-relative\" data-rask-popover=\"\"", html);
         Assert.Contains("data-rask-anchor=\"\" role=\"combobox\"", html);
     }
@@ -58,7 +58,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Date_Grid_HasGridRolesSelectedDayAndSevenHeaders()
     {
-        var html = Html(Us, () => BsDatePicker<DateOnly>().Value(Jul7).Id("d"));
+        var html = Html(Us, () => BsDatePicker.Value(Jul7).Id("d"));
         Assert.Contains("<div id=\"d-cal\" class=\"bs-cal\" role=\"grid\"", html);
         Assert.Contains("role=\"gridcell\"", html);
         // The bound day is marked selected + focused, and carries a full localized aria-label. The cell
@@ -76,12 +76,12 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Date_EnUs_IsSundayFirst() =>
         Assert.Contains("role=\"columnheader\" aria-label=\"Sunday\">Sun<",
-            Html(Us, () => BsDatePicker<DateOnly>().Value(Jul7)));
+            Html(Us, () => BsDatePicker.Value(Jul7)));
 
     [Fact]
     public void Date_DeDe_IsMondayFirstAndLocalizedMonth()
     {
-        var html = Html(De, () => BsDatePicker<DateOnly>().Value(Jul7));
+        var html = Html(De, () => BsDatePicker.Value(Jul7));
         Assert.Contains("role=\"columnheader\" aria-label=\"Montag\">Mo<", html);
         Assert.Contains("<span class=\"fw-semibold\">Juli 2026</span>", html);
     }
@@ -90,7 +90,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     public void Date_MinMax_GreysOutOfRangeDaysAndDisablesPrev()
     {
         var html = Html(Us, () =>
-            BsDatePicker<DateOnly>().Value(new DateOnly(2026, 7, 15)).Min(new DateOnly(2026, 7, 10)).Id("d"));
+            BsDatePicker.Value(new DateOnly(2026, 7, 15)).Min(new DateOnly(2026, 7, 10)).Id("d"));
         // A day before Min is disabled + aria-disabled.
         Assert.Contains("id=\"d-d-20260705\" class=\"bs-cal-cell disabled\"", html);
         Assert.Contains("aria-label=\"Sunday, July 5, 2026\" aria-disabled=\"true\"", html);
@@ -101,7 +101,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Date_NullableEmpty_ShowsPlaceholderAndNoClear()
     {
-        var html = Html(Us, () => BsDatePicker<DateOnly?>().Value(null).Placeholder("pick"));
+        var html = Html(Us, () => BsDatePicker.Value<DateOnly?>(null).Placeholder("pick"));
         Assert.Contains("value=\"\" placeholder=\"pick\"", html);
         Assert.DoesNotContain("btn-close", html);
     }
@@ -109,7 +109,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Date_NullableWithValue_ShowsClearButton()
     {
-        var html = Html(Us, () => BsDatePicker<DateOnly?>().Value(Jul7));
+        var html = Html(Us, () => BsDatePicker.Value<DateOnly?>(Jul7));
         Assert.Contains("btn-close", html);
         // Closed picker's × has no raised z-index (.bs-clear-open) — see the BsSelect equivalent.
         Assert.DoesNotContain("bs-clear-open", html);
@@ -121,19 +121,19 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
         // The caret/× are absolutely placed; a position-relative wrapper around the box (inside the .dropdown)
         // anchors them to the box alone. Without it they'd centre over the label-above + box stack and land on
         // the box's top edge instead of vertically centred in it.
-        var html = Html(Us, () => BsDatePicker<DateOnly>().Value(Jul7).Label("Day").Id("d"));
+        var html = Html(Us, () => BsDatePicker.Value(Jul7).Label("Day").Id("d"));
         Assert.Contains("<div class=\"position-relative\"><input", html);
         Assert.Contains("bs-picker-caret", html);
     }
 
     [Fact]
     public void Date_NonNullableWithValue_HasNoClearButton() =>
-        Assert.DoesNotContain("btn-close", Html(Us, () => BsDatePicker<DateOnly>().Value(Jul7)));
+        Assert.DoesNotContain("btn-close", Html(Us, () => BsDatePicker.Value(Jul7)));
 
     [Fact]
     public void Date_Native_RendersNativeInputNotGrid()
     {
-        var html = Html(Us, () => BsDatePicker<DateOnly>().Value(Jul7).Native(true));
+        var html = Html(Us, () => BsDatePicker.Value(Jul7).Native(true));
         Assert.Contains("type=\"date\"", html);
         Assert.Contains("value=\"2026-07-07\"", html);
         Assert.DoesNotContain("role=\"grid\"", html);
@@ -142,7 +142,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Date_Disabled_IsNotFocusable()
     {
-        var html = Html(Us, () => BsDatePicker<DateOnly>().Value(Jul7).Disabled(true));
+        var html = Html(Us, () => BsDatePicker.Value(Jul7).Disabled(true));
         Assert.Contains("disabled autocomplete=\"off\"", html);
         Assert.DoesNotContain("tabindex=\"0\"", html);
     }
@@ -151,7 +151,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     public void Date_Bound_RendersModelValueAndPropertyDerivedIds()
     {
         var model = new DayModel { Day = Jul7 };
-        var html = Html(Us, () => BsDatePicker(() => model.Day));
+        var html = Html(Us, () => BsDatePicker.Bind(() => model.Day));
         Assert.Contains("value=\"7/7/2026\"", html);
         Assert.Contains("aria-controls=\"Day-cal\"", html); // controlId derives from the property name
         Assert.Contains("id=\"Day-d-20260707\"", html);
@@ -163,8 +163,8 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
         // Two controlled pickers without an Id must not collide on grid/cell ids (else aria-controls /
         // aria-activedescendant resolve to the wrong calendar).
         var html = Html(Us, () => Div[
-            BsDatePicker<DateOnly>().Value(Jul7),
-            BsDatePicker<DateOnly>().Value(Jul7)
+            BsDatePicker.Value(Jul7),
+            BsDatePicker.Value(Jul7)
         ]);
         var ids = Regex.Matches(html, "id=\"(bsdp\\d+)-cal\"")
             .Select(m => m.Groups[1].Value)
@@ -178,7 +178,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Time_Controlled_RendersListboxesActiveValueAndStep()
     {
-        var html = Html(Us, () => BsTimePicker<TimeOnly>().Value(new TimeOnly(9, 30)).MinuteStep(15));
+        var html = Html(Us, () => BsTimePicker.Value(new TimeOnly(9, 30)).MinuteStep(15));
         Assert.Contains("aria-haspopup=\"listbox\"", html);
         Assert.Contains("role=\"listbox\" aria-label=\"Hour\"", html);
         Assert.Contains("role=\"listbox\" aria-label=\"Minute\"", html);
@@ -191,12 +191,12 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Time_Native_RendersNativeInput() =>
         Assert.Contains("type=\"time\"",
-            Html(Us, () => BsTimePicker<TimeOnly>().Value(new TimeOnly(9, 30)).Native(true)));
+            Html(Us, () => BsTimePicker.Value(new TimeOnly(9, 30)).Native(true)));
 
     [Fact]
     public void Time_MinMax_GreysOutOfRangeHoursAndMinutes()
     {
-        var html = Html(Us, () => BsTimePicker<TimeOnly>()
+        var html = Html(Us, () => BsTimePicker
             .Value(new TimeOnly(9, 45))
             .Min(new TimeOnly(9, 30))
             .Max(new TimeOnly(17, 0))
@@ -216,7 +216,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     {
         // Min 10:59 with 5-min steps renders only …:55 in hour 10 — no stepped minute reaches 59, so hour 10
         // itself is greyed (else a click would compose 10:00 and Clamp would silently snap it to 10:59).
-        var html = Html(Us, () => BsTimePicker<TimeOnly?>().Value(null).Min(new TimeOnly(10, 59)).MinuteStep(5));
+        var html = Html(Us, () => BsTimePicker.Value<TimeOnly?>(null).Min(new TimeOnly(10, 59)).MinuteStep(5));
         Assert.Contains("bs-time-item disabled\" data-rask-key=\"10\" aria-disabled=\"true\" type=\"button\">10", html);
         Assert.Contains("bs-time-item disabled\" data-rask-key=\"9\" aria-disabled=\"true\" type=\"button\">09", html);
         // 11:00 ≥ 10:59, so hour 11 stays selectable.
@@ -226,7 +226,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Time_Seconds_RendersThirdColumnAndStep()
     {
-        var html = Html(Us, () => BsTimePicker<TimeOnly>()
+        var html = Html(Us, () => BsTimePicker
             .Value(new TimeOnly(9, 30, 45))
             .Seconds(true)
             .SecondStep(15)
@@ -242,7 +242,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void DateTime_Controlled_RendersCalendarAndTime()
     {
-        var html = Html(Us, () => BsDateTimePicker<DateTime>().Value(new DateTime(2026, 7, 7, 9, 30, 0)));
+        var html = Html(Us, () => BsDateTimePicker.Value(new DateTime(2026, 7, 7, 9, 30, 0)));
         Assert.Contains("class=\"bs-datetime", html);
         Assert.Contains("role=\"grid\"", html);
         Assert.Contains("role=\"listbox\" aria-label=\"Hour\"", html);
@@ -252,12 +252,12 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void DateTime_Native_RendersNativeInput() =>
         Assert.Contains("type=\"datetime-local\"",
-            Html(Us, () => BsDateTimePicker<DateTime>().Value(new DateTime(2026, 7, 7, 9, 30, 0)).Native(true)));
+            Html(Us, () => BsDateTimePicker.Value(new DateTime(2026, 7, 7, 9, 30, 0)).Native(true)));
 
     [Fact]
     public void DateTime_MinMax_BoundaryDayGreysTimeItems()
     {
-        var html = Html(Us, () => BsDateTimePicker<DateTime>()
+        var html = Html(Us, () => BsDateTimePicker
             .Value(new DateTime(2026, 7, 10, 12, 0, 0))
             .Min(new DateTime(2026, 7, 10, 9, 0, 0))
             .Max(new DateTime(2026, 7, 10, 17, 0, 0)));
@@ -271,7 +271,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void DateTime_Seconds_RendersSecondsColumn()
     {
-        var html = Html(Us, () => BsDateTimePicker<DateTime>()
+        var html = Html(Us, () => BsDateTimePicker
             .Value(new DateTime(2026, 7, 7, 9, 30, 45))
             .Seconds(true)
             .SecondStep(15));
@@ -285,8 +285,8 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Labels_Date_OverrideNavAndClearAriaLabels()
     {
-        var html = Html(Us, () => BsDatePicker<DateOnly?>()
-            .Value(Jul7)
+        var html = Html(Us, () => BsDatePicker
+            .Value<DateOnly?>(Jul7)
             .Labels(new BsPickerLabels { PreviousMonth = "Prev", NextMonth = "Fwd", Clear = "Wipe" }));
         Assert.Contains("aria-label=\"Prev\"", html);
         Assert.Contains("aria-label=\"Fwd\"", html);
@@ -296,7 +296,7 @@ public partial class BsPickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Labels_Time_OverrideColumnAriaLabels()
     {
-        var html = Html(Us, () => BsTimePicker<TimeOnly>()
+        var html = Html(Us, () => BsTimePicker
             .Value(new TimeOnly(9, 30, 0))
             .Seconds(true)
             .Labels(new BsPickerLabels { Hour = "Std", Minute = "Min", Second = "Sek" }));

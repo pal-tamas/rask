@@ -26,7 +26,7 @@ public sealed partial class BoomNestedDemo : Component
             ]
         ];
 
-    private static Component InnerFallback(Exception ex, Callback recover) =>
+    private static Component InnerFallback(Exception ex, Action recover) =>
         BsAlert
             .Color(BsColor.Warning)
             .Class("d-flex align-items-start")

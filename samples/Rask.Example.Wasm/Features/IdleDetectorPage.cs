@@ -12,7 +12,7 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class IdleDetectorPage : Component
 {
-    protected override Component? Head => Title["Idle detection — Rask"];
+    protected override Component? HeadAssets => Title["Idle detection — Rask"];
 
     protected override Component? Render() =>
     [

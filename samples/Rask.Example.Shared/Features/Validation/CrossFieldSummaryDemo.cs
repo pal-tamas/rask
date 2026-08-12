@@ -22,22 +22,21 @@ public sealed partial class CrossFieldSummaryDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<TripModel>(
-            _model,
-            OnValidSubmit: m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}",
-            Class: "vstack gap-3",
-            Validate: m =>
+        Form.Model(_model)
+            .OnValidSubmit(m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}")
+            .Class("vstack gap-3")
+            .Validate(m =>
                 m.Return > m.Depart
                     ? Array.Empty<string>()
                     : new[] { "Return date must be after departure." })[
-            ValidationSummary(SummaryAlert),
+            ValidationSummary.Template(SummaryAlert),
             Div[
                 Label.For("v5-depart").Class("form-label small mb-1")["Departure"],
-                Input(() => _model.Depart).Id("v5-depart").Class("form-control")
+                Input.Bind(() => _model.Depart).Id("v5-depart").Class("form-control")
             ],
             Div[
                 Label.For("v5-return").Class("form-label small mb-1")["Return"],
-                Input(() => _model.Return).Id("v5-return").Class("form-control")
+                Input.Bind(() => _model.Return).Id("v5-return").Class("form-control")
             ],
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Airplane).Class("me-1"), "Book"]

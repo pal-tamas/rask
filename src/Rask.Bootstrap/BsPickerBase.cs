@@ -83,10 +83,10 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
         var cls = BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null, Class);
         var placeholder = Floating is true ? Placeholder ?? Label ?? " " : Placeholder;
 
-        var control = Input<string>()
+        var control = Input
+            .Value(BindingHelpers.FormatValue(b.Current))
             .Type(type)
             .Name(Name ?? b.Accessor?.PropertyName)
-            .Value(BindingHelpers.FormatValue(b.Current))
             .Placeholder(placeholder)
             .Disabled(Disabled)
             .Required(Required)
@@ -152,21 +152,21 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
         string gridId,
         string formatted,
         IReadOnlyDictionary<string, string?> boxAria,
-        CallbackAsync<string> onParse,
-        CallbackAsync<KeyboardEventArgs> onKeyDown,
+        Func<string, Task> onParse,
+        Func<KeyboardEventArgs, Task> onKeyDown,
         bool hasValue,
         Component? popover,
-        CallbackAsync clearAsync)
+        Func<Task> clearAsync)
     {
         var disabled = Disabled == true;
         var showClear = CanClear && hasValue && !disabled;
         var floating = Floating is true && Label is not null;
 
-        var box = Input<string>()
+        var box = Input
+            .Value(Text ?? formatted)
             .Type(InputType.Text)
             .Class(BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null))
             .Id(controlId)
-            .Value(Text ?? formatted)
             .Placeholder(floating ? null : Placeholder)
             .Disabled(Disabled)
             .Autocomplete("off")
@@ -186,7 +186,7 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
                     Position.TranslateMiddleY, Margin.End(3), "bs-picker-caret"))
                 .Aria(Hidden)["▾"];
 
-        var clear = showClear
+        Component? clear = showClear
             ? BsCloseButton
                 .Class(BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
                     Position.TranslateMiddleY, Margin.End(2), "bs-picker-clear", Open ? "bs-clear-open" : null))
@@ -194,7 +194,7 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
                 .OnClickAsync(clearAsync)
             : null;
 
-        var backdrop = Open && !disabled
+        Component? backdrop = Open && !disabled
             ? Div
                 .Class(BsClass.Join(Position.Fixed, Position.Top0, Position.Start0,
                     Sizing.W(100), Sizing.H(100)))
@@ -204,7 +204,7 @@ public abstract partial class BsPickerBase<T> : BsFormControl<T>
 
         var labelNode = Label is null
             ? null
-            : Rask.Core.Components.Generated.Label(For: controlId, Class: floating ? null : "form-label")[
+            : global::RaskEntriesRask_Core.Label.For(controlId).Class(floating ? null : "form-label")[
                 Label,
                 Required is true ? Span.Class("text-danger ms-1")["*"] : null];
 

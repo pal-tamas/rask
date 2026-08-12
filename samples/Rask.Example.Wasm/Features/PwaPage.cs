@@ -13,7 +13,7 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class PwaPage : Component
 {
-    protected override Component? Head => Title["PWA — Rask"];
+    protected override Component? HeadAssets => Title["PWA — Rask"];
 
     protected override Component? Render() =>
     [

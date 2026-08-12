@@ -25,12 +25,13 @@ public sealed partial class BsToaster : Component
     public int? AutoHideMs { get; set; } = 5000;
 
     protected override Component? Render() =>
-        ToastOutlet(Template: (messages, dismiss) =>
+        ToastOutlet
+            .Template((messages, dismiss) =>
             Div.Class($"toast-container position-fixed {Placement} p-3")[
                 messages.Select(m => (Component)BsToast
                     .Id(m.Id)
-                    .Title(m.Title)
                     .Message(m.Message)
+                    .Title(m.Title)
                     .Color(ToColor(m.Level))
                     .Icon(ToIcon(m.Level))
                     .AutoHideMs(AutoHideMs)

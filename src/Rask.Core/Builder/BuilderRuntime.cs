@@ -30,7 +30,7 @@ public static partial class BuilderRuntime
     ///         factory's exclusions are honoured by the generator instead of here — <c>Key</c> (a
     ///         reconciliation identity, not a reactive prop), auto-wrapped callbacks and raw delegates
     ///         (a fresh closure every render, so folding them would force a change every frame) and
-    ///         carrier props simply get a setter with no <c>Track</c> call.
+    ///         delegate props simply get a setter with no <c>Track</c> call.
     ///     </para>
     ///     <para>
     ///         The value it compares against is the one the PREVIOUS render left on the component, not a
@@ -79,7 +79,7 @@ public static partial class BuilderRuntime
     // whatever is still pending when the parent's Render() returns is reset then — with the previous
     // value still in place, so the fold stays exactly what the factory would have reported.
     //
-    // Non-folding props (raw delegates, carriers, Key) skip all of this: they are reset eagerly by the
+    // Non-folding props (delegates, Key) skip all of this: they are reset eagerly by the
     // entry, because they never participate in the fold and so cannot disturb it.
 
     internal readonly record struct EntrySlot(

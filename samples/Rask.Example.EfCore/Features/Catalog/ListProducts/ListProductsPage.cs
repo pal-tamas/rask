@@ -15,7 +15,7 @@ public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext>
     private IReadOnlyList<Product> _products = [];
     private bool _loaded;
 
-    protected override Component? Head => Title["Products — Rask EF Core"];
+    protected override Component? HeadAssets => Title["Products — Rask EF Core"];
 
     // Runs on every mount — navigating back from the create/edit slices remounts this page, so the
     // list always reflects the latest committed state.

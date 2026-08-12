@@ -30,7 +30,7 @@ internal sealed class NativeSpeechRecognition(Context context) : ISpeechRecognit
         private readonly bool _continuous;
         private readonly bool _interim;
         private readonly string? _lang;
-        private readonly Handler _main = new(Looper.MainLooper!);
+        private readonly Action _main = new(Looper.MainLooper!);
         private SpeechRecognizer? _recognizer;
         private bool _stopped;
 

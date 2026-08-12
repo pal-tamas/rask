@@ -28,38 +28,76 @@ public sealed partial class BsSelectDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<Model>(_m, Class: "vstack gap-3")[
+        Form.Model(_m).Class("vstack gap-3")[
             // 1. Basic — binds the chosen option itself; a muted placeholder shows when empty.
-            BsSelect(() => _m.Plan, Plans, OptionLabel: p => Text.Value(PlanLabel(p)),
-                Placeholder: "— choose —", Label: "Plan (basic)", Id: "sel-plan"),
+            BsSelect.Bind(() => _m.Plan)
+                .Options(Plans)
+                .OptionLabel(p => Text.Value(PlanLabel(p)))
+                .Placeholder("— choose —")
+                .Label("Plan (basic)")
+                .Id("sel-plan"),
             // 2. Floating — the label rides inside the box and floats up on focus / when filled.
-            BsSelect(() => _m.PlanFloat, Plans, OptionLabel: p => Text.Value(PlanLabel(p)),
-                Label: "Plan (floating)", Floating: true, Id: "sel-plan-float"),
+            BsSelect.Bind(() => _m.PlanFloat)
+                .Options(Plans)
+                .OptionLabel(p => Text.Value(PlanLabel(p)))
+                .Label("Plan (floating)")
+                .Floating(true)
+                .Id("sel-plan-float"),
             // 3. Searchable — a Filter predicate adds a search field that narrows the options.
-            BsSelect(() => _m.PlanSearch, Plans, OptionLabel: p => Text.Value(PlanLabel(p)),
-                Filter: (p, t) => PlanLabel(p).Contains(t, StringComparison.OrdinalIgnoreCase),
-                Placeholder: "Search a plan…", Label: "Plan (searchable)", Id: "sel-plan-search"),
+            BsSelect.Bind(() => _m.PlanSearch)
+                .Options(Plans)
+                .OptionLabel(p => Text.Value(PlanLabel(p)))
+                .Filter((p, t) => PlanLabel(p).Contains(t, StringComparison.OrdinalIgnoreCase))
+                .Placeholder("Search a plan…")
+                .Label("Plan (searchable)")
+                .Id("sel-plan-search"),
             // 4. Clearable — a nullable int? gets an × that resets it to null (the Placeholder state).
-            BsSelect(() => _m.Seats, Seats, OptionLabel: n => Text.Value(SeatLabel(n)),
-                Placeholder: "Any", Label: "Seats (nullable, clearable)", Id: "sel-seats"),
+            BsSelect.Bind(() => _m.Seats)
+                .Options(Seats)
+                .OptionLabel(n => Text.Value(SeatLabel(n)))
+                .Placeholder("Any")
+                .Label("Seats (nullable, clearable)")
+                .Id("sel-seats"),
             // 5. Value selector — options are Team objects, but the bound value is the projected id.
-            BsSelect(() => _m.TeamId, Options: Teams, OptionValue: t => t.Id, OptionLabel: t => Text.Value(t.Name),
-                Filter: (t, q) => t.Name.Contains(q, StringComparison.OrdinalIgnoreCase),
-                Placeholder: "No team", Label: "Team (binds to id)", Id: "sel-team"),
+            BsSelect.Bind(() => _m.TeamId).Options(Teams)
+                .OptionValue(t => t.Id)
+                .OptionLabel(t => Text.Value(t.Name))
+                .Filter((t, q) => t.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
+                .Placeholder("No team")
+                .Label("Team (binds to id)")
+                .Id("sel-team"),
             // 6. Native — the OS <select>; handy on mobile.
-            BsSelect(() => _m.Tier, Plans, OptionLabel: p => Text.Value(PlanLabel(p)), Native: true,
-                Label: "Tier (native)", Id: "sel-tier"),
+            BsSelect.Bind(() => _m.Tier)
+                .Options(Plans)
+                .OptionLabel(p => Text.Value(PlanLabel(p)))
+                .Native(true)
+                .Label("Tier (native)")
+                .Id("sel-tier"),
             // 7. Native + nullable — the leading empty option is a selectable "None" that round-trips null.
-            BsSelect(() => _m.NativeSeats, Seats, OptionLabel: n => Text.Value(SeatLabel(n)), Native: true,
-                Placeholder: "None", Label: "Seats (native, nullable)", Id: "sel-nseats"),
+            BsSelect.Bind(() => _m.NativeSeats)
+                .Options(Seats)
+                .OptionLabel(n => Text.Value(SeatLabel(n)))
+                .Native(true)
+                .Placeholder("None")
+                .Label("Seats (native, nullable)")
+                .Id("sel-nseats"),
             // 8. Disabled — non-interactive, still shows its bound value.
-            BsSelect(() => _m.Locked, Plans, OptionLabel: p => Text.Value(PlanLabel(p)),
-                Label: "Plan (disabled)", Disabled: true, Id: "sel-locked"),
+            BsSelect.Bind(() => _m.Locked)
+                .Options(Plans)
+                .OptionLabel(p => Text.Value(PlanLabel(p)))
+                .Label("Plan (disabled)")
+                .Disabled(true)
+                .Id("sel-locked"),
             // 9. Grouped + per-option disabled — OptionGroup renders .dropdown-header sections; OptionDisabled
             //    greys a non-selectable option that the keyboard cursor skips over.
-            BsSelect(() => _m.GroupedTeamId, Options: Teams, OptionValue: t => t.Id, OptionLabel: t => Text.Value(t.Name),
-                OptionGroup: Division, OptionDisabled: t => t.Id == 3,
-                Placeholder: "Pick a team", Label: "Team (grouped, one disabled)", Id: "sel-grouped")
+            BsSelect.Bind(() => _m.GroupedTeamId).Options(Teams)
+                .OptionValue(t => t.Id)
+                .OptionLabel(t => Text.Value(t.Name))
+                .OptionGroup(Division)
+                .OptionDisabled(t => t.Id == 3)
+                .Placeholder("Pick a team")
+                .Label("Team (grouped, one disabled)")
+                .Id("sel-grouped")
         ],
         BsAlert.Color(BsColor.Secondary).Class("mt-3 mb-0")[
             Span.Id("sel-readout")[

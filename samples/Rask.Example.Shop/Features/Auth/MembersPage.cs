@@ -14,9 +14,9 @@ namespace Rask.Example.Shop.Features.Auth;
 public sealed partial class MembersPage : Component
 {
     protected override Component? Render() =>
-        Div(Class: "welcome-card")[
-            Authorize(
-                NotAuthorized: P()["Please ", NavLink(Href: Routes.LoginPage())["sign in"], "."])[MemberContent()]
+        Div.Class("welcome-card")[
+            Authorize
+                .NotAuthorized(P["Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
         ];
 }
 
@@ -24,9 +24,9 @@ public sealed partial class MemberContent(IAuthSignIn auth, IUserProvider userPr
 {
     protected override Component? Render() =>
         [
-            H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
-            Authorize(Roles: ["admin"])[
-                Div(Style: "color:#7a5c00")["🔑 You have admin access."]],
-            Button(OnClickAsync: () => auth.SignOutAsync(returnUrl: "/login"))["Sign out"]
+            H1[$"Welcome, {userProvider.Current.Identity?.Name}"],
+            Authorize.Roles(["admin"])[
+                Div.Style("color:#7a5c00")["🔑 You have admin access."]],
+            Button.OnClickAsync(() => auth.SignOutAsync(returnUrl: "/login"))["Sign out"]
         ];
 }

@@ -12,11 +12,11 @@ public sealed partial class MultiSelectRadioDemo : Component
         Div.Class("vstack gap-3")[
             Div[
                 Label.Class("form-label fw-semibold d-block")["Plan"],
-                BsRadioGroup(
-                    AllTiers,
-                    Value: _plan,
-                    OnChange: v => _plan = v,
-                    ItemClass: "form-check-inline")
+                BsRadioGroup
+                    .Value(_plan)
+                    .Options(AllTiers)
+                    .OnChange(v => _plan = v)
+                    .ItemClass("form-check-inline")
             ],
             P.Class("small text-secondary mb-0").Id("ms-radio-summary")[$"Plan: {_plan}"]
         ];

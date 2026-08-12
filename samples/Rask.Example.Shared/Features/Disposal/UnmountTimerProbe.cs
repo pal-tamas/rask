@@ -12,7 +12,7 @@ public sealed partial class UnmountTimerProbe : Component
 
     protected override void OnMount()
     {
-        Log($"#{InstanceId} ticker started");
+        Log.Invoke($"#{InstanceId} ticker started");
         _timer = new Timer(_ =>
         {
             Interlocked.Increment(ref _ticks);
@@ -24,7 +24,7 @@ public sealed partial class UnmountTimerProbe : Component
     {
         _timer?.Dispose();
         _timer = null;
-        Log($"#{InstanceId} ticker stopped after {_ticks} tick(s)");
+        Log.Invoke($"#{InstanceId} ticker stopped after {_ticks} tick(s)");
     }
 
     protected override Component? Render() =>

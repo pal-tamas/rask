@@ -297,8 +297,8 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Diff_AttributeValueChanged_ProducesSingleSetAttributeOp()
     {
-        var before = Frames(Input<string>().Type(InputType.Text).Name("f").Value("old").Placeholder("edit"));
-        var after = Frames(Input<string>().Type(InputType.Text).Name("f").Value("new").Placeholder("edit"));
+        var before = Frames(Input.Value("old").Type(InputType.Text).Name("f").Placeholder("edit"));
+        var after = Frames(Input.Value("new").Type(InputType.Text).Name("f").Placeholder("edit"));
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -320,8 +320,8 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
         // checkbox losing its event handler (so it stopped responding after a click) and
         // gaining a spurious value="". Name-keyed diffing emits exactly one op for the
         // toggled attribute and leaves `list` (emitted AFTER `checked`) untouched.
-        var unchecked_ = Frames(Input<string>().Type(InputType.Checkbox).Name("n").List("dl"));
-        var checked_ = Frames(Input<string>().Type(InputType.Checkbox).Name("n").Checked(true).List("dl"));
+        var unchecked_ = Frames(Input.Value<string>(null).Type(InputType.Checkbox).Name("n").List("dl"));
+        var checked_ = Frames(Input.Value<string>(null).Type(InputType.Checkbox).Name("n").Checked(true).List("dl"));
 
         var on = new List<EditOp>();
         FrameDiffer.Diff(unchecked_, checked_, on);

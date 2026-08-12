@@ -12,38 +12,35 @@ public sealed partial class ValidationFieldsDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<RegistrationModel>(
-            _model,
-            m => _submission = $"Registered: {m.Name} <{m.Email}>",
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("vstack gap-3")[
             DataAnnotationsValidator,
             Div[
                 Label.For("v1-name").Class("form-label small mb-1")["Name"],
-                Input(() => _model.Name).Id("v1-name").Class("form-control"),
-                ValidationMessage(() => _model.Name, FieldError)
+                Input.Bind(() => _model.Name).Id("v1-name").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
                 Label.For("v1-email").Class("form-label small mb-1")["Email"],
-                Input(() => _model.Email)
+                Input.Bind(() => _model.Email)
                     .Id("v1-email")
                     .Type(InputType.Email)
                     .Class("form-control"),
-                ValidationMessage(() => _model.Email, FieldError)
+                ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
             Div[
                 Label.For("v1-age").Class("form-label small mb-1")["Age"],
-                Input(() => _model.Age).Id("v1-age").Class("form-control"),
-                ValidationMessage(() => _model.Age, FieldError)
+                Input.Bind(() => _model.Age).Id("v1-age").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Age)
             ],
             Div[
                 Label.For("v1-plan").Class("form-label small mb-1")["Plan"],
-                Select(() => _model.Plan).Id("v1-plan").Class("form-select")[
+                Select.Bind(() => _model.Plan).Id("v1-plan").Class("form-select")[
                     Option.Value("")["— choose —"],
                     Option.Value("free")["Free"],
                     Option.Value("pro")["Pro"],
                     Option.Value("team")["Team"]
                 ],
-                ValidationMessage(() => _model.Plan, FieldError)
+                ValidationMessage.Template(FieldError).For(() => _model.Plan)
             ],
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Register"]

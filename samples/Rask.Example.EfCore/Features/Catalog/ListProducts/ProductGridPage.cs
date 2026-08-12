@@ -34,7 +34,7 @@ public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> 
 
     public void Dispose() => _db.Dispose();
 
-    protected override Component? Head => Title["Product grid — Rask EF Core"];
+    protected override Component? HeadAssets => Title["Product grid — Rask EF Core"];
 
     protected override async Task OnMountAsync() => await LoadAsync();
 
@@ -85,15 +85,11 @@ public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> 
             + "materialises only the current page. It runs inside the synchronous render, so it blocks a "
             + "request thread — fine for an admin screen — and needs a DbContext that outlives the render."
         ],
-        BsDataGrid(
-            Id: "query-grid",
-            // Ordered by Id: Skip/Take over an unordered SQL query is undefined, and EF warns about it.
-            // Sorting a column replaces this ordering; it is the default the grid falls back to.
-            Data: _db.Products.AsNoTracking().OrderBy(p => p.Id),
-            PageSize: Size,
-            RowKey: p => p.Id,
-            Columns:
-            [
+        BsDataGrid.Data(_db.Products.AsNoTracking().OrderBy(p => p.Id))
+            .Id("query-grid")
+            .PageSize(Size)
+            .RowKey(p => p.Id)
+            .Columns([
                 new BsColumn<Product>
                 {
                     Title = "Product", Sortable = true,
@@ -115,20 +111,18 @@ public sealed partial class ProductGridPage(IDbContextFactory<CatalogDbContext> 
             + "awaits, then hands over one page plus the real total. Nothing blocks, and each load uses a "
             + "short-lived DbContext."
         ],
-        BsDataGrid(
-            Id: "async-grid",
-            Data: _rows,
-            TotalCount: _total,
-            PageSize: Size,
-            RowKey: p => p.Id,
-            Page: _page,
-            OnPageChangeAsync: GoToPageAsync,
-            Sort: _sort,
-            SortDescending: _desc,
-            OnSortChangeAsync: SortAsync,
-            Empty: Div.Class("text-secondary")["No products yet."],
-            Columns:
-            [
+        BsDataGrid.Data(_rows)
+            .Id("async-grid")
+            .TotalCount(_total)
+            .PageSize(Size)
+            .RowKey(p => p.Id)
+            .Page(_page)
+            .OnPageChangeAsync(GoToPageAsync)
+            .Sort(_sort)
+            .SortDescending(_desc)
+            .OnSortChangeAsync(SortAsync)
+            .Empty(Div.Class("text-secondary")["No products yet."])
+            .Columns([
                 // SortField names the column in OnSortChange; the handler maps it to an OrderBy.
                 new BsColumn<Product>
                 {

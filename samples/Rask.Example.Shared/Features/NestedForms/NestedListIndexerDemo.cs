@@ -25,12 +25,12 @@ public sealed partial class NestedListIndexerDemo : Component
             rows.Add(Tr.Key(_model.Skus[i].Id)[
                 Td.Class("text-secondary small")[$"#{i + 1}"],
                 Td[
-                    Input(() => _model.Skus[i].Code).Class("form-control form-control-sm"),
-                    ValidationMessage(() => _model.Skus[i].Code, FieldError)
+                    Input.Bind(() => _model.Skus[i].Code).Class("form-control form-control-sm"),
+                    ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Code)
                 ],
                 Td.Style("width: 7rem;")[
-                    Input(() => _model.Skus[i].Price).Class("form-control form-control-sm"),
-                    ValidationMessage(() => _model.Skus[i].Price, FieldError)
+                    Input.Bind(() => _model.Skus[i].Price).Class("form-control form-control-sm"),
+                    ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
                 Td.Style("width: 5rem;")[
                     BsButton
@@ -52,11 +52,8 @@ public sealed partial class NestedListIndexerDemo : Component
 
         return
         [
-            Form<InvoiceModel>(
-                _model,
-                m => _submission =
-                    $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price):F2}",
-                Class: "vstack gap-3")[
+            Form.Model(_model).OnValidSubmit(m => _submission =
+                    $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price):F2}").Class("vstack gap-3")[
                 DataAnnotationsValidator,
                 Table.Class("table table-sm align-middle mb-0")[
                     Thead[Tr[Th.Style("width: 3rem;")["#"], Th["SKU"], Th["Price"], Th]],

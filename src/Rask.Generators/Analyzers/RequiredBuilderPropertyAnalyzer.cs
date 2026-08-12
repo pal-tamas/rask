@@ -128,6 +128,9 @@ public sealed class RequiredBuilderPropertyAnalyzer : DiagnosticAnalyzer
         }
 
         var names = Quote(missing);
+        // A setter is named after the property it writes, delegate or not, so the message can name the
+        // property directly. It could not while a delegate prop's setter dropped a leading `On` — naming
+        // the property then sent the author to a method that did not exist.
         var setters = string.Join(", ", missing.Select(static p => "'." + p.Name + "(…)'"));
         var location = operation.Syntax.GetLocation();
 

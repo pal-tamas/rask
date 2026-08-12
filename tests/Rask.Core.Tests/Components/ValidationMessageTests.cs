@@ -11,7 +11,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     public void OutsideEditContext_RendersNothing()
     {
         var p = new Person();
-        var html = ValidationMessage(() => p.Name, msgs => Div.Class("validation-message")[msgs[0]]).ToHtml();
+        var html = ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name).ToHtml();
         Assert.Equal("", html);
     }
 
@@ -19,8 +19,8 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     public void InsideEditContext_NoMessages_RendersNothing()
     {
         var p = new Person { Name = "Ada" };
-        var view = new StubComponent(() => Form(p)[
-            ValidationMessage(() => p.Name, msgs => Div.Class("validation-message")[msgs[0]])
+        var view = new StubComponent(() => Form.Model(p)[
+            ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
         var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("validation-message", html);
@@ -33,8 +33,8 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(p);
         ctx.AddValidationMessage(new FieldIdentifier(p, nameof(Person.Name)), "Name is required");
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidationMessage(() => p.Name, msgs => Div.Class("validation-message")[msgs[0]])
+        var view = new StubComponent(() => Form.Model(p).Context(ctx)[
+            ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -55,8 +55,8 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(p);
         var field = new FieldIdentifier(p, nameof(Person.Name));
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidationMessage(() => p.Name, msgs => Div.Class("validation-message")[msgs[0]])
+        var view = new StubComponent(() => Form.Model(p).Context(ctx)[
+            ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
 
         var first = view.RenderAsLiveRoot();
@@ -82,8 +82,9 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var email = new FieldIdentifier(p, nameof(Person.Email));
         ctx.AddValidationMessage(name, "Name is required");
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidationSummary(entries =>
+        var view = new StubComponent(() => Form.Model(p).Context(ctx)[
+            ValidationSummary
+                .Template(entries =>
                 Ul.Class("validation-summary")[
                     entries.Select((e, i) => Li.Key(i)[e.Message])
                 ])
@@ -107,8 +108,9 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(p);
         ctx.AddValidationMessage(new FieldIdentifier(p, nameof(Person.Name)), "Name is required");
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidationSummary(entries =>
+        var view = new StubComponent(() => Form.Model(p).Context(ctx)[
+            ValidationSummary
+                .Template(entries =>
                 Ul.Class("validation-summary")[
                     entries.Select((e, i) => Li.Key(i)[e.Message])
                 ])
@@ -128,9 +130,9 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var gate = new TaskCompletionSource();
         ctx.AddValidator(new GatedValidator(gate.Task));
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidatingIndicator(() => p.Name,
-                () => Div.Class("validating-indicator")["Checking..."])
+        var view = new StubComponent(() => Form.Model(p).Context(ctx)[
+            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+                .For(() => p.Name)
         ]);
 
         // Kick off validation so PendingCount > 0.
@@ -158,9 +160,9 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var gate = new TaskCompletionSource();
         ctx.AddValidator(new GatedValidator(gate.Task));
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidatingIndicator(() => p.Name,
-                () => Div.Class("validating-indicator")["Checking..."])
+        var view = new StubComponent(() => Form.Model(p).Context(ctx)[
+            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+                .For(() => p.Name)
         ]);
 
         var task = ctx.ValidateFieldAsync(fid);
@@ -190,9 +192,9 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var gate = new TaskCompletionSource();
         ctx.AddValidator(new GatedValidator(gate.Task));
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidatingIndicator(() => p.Name,
-                () => Div.Class("validating-indicator")["Checking..."])
+        var view = new StubComponent(() => Form.Model(p).Context(ctx)[
+            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+                .For(() => p.Name)
         ]);
 
         var task = ctx.ValidateFieldAsync(fid);
@@ -217,9 +219,9 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var gate = new TaskCompletionSource();
         ctx.AddValidator(new GatedValidator(gate.Task));
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidatingIndicator(() => p.Name,
-                () => Div.Class("validating-indicator")["Checking..."])
+        var view = new StubComponent(() => Form.Model(p).Context(ctx)[
+            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+                .For(() => p.Name)
         ]);
 
         var task = ctx.ValidateFieldAsync(fid);

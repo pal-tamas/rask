@@ -154,7 +154,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     public void Outlet_OutsideRouter_Throws()
     {
         var sp = RenderHarness.EmptyServices();
-        var view = new StubComponent(() => Outlet());
+        var view = new StubComponent(() => Outlet);
 
         Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot(sp));
     }

@@ -3,7 +3,7 @@ using Rask.Core.Forms;
 namespace Rask.Bootstrap;
 
 // A Bootstrap textarea. Wraps the core Textarea with the .form-control class, label, help text and
-// validation display. Bound: BsTextarea(() => model.Bio, Label: "Bio", Rows: 4).
+// validation display. Bound: BsTextarea.Bind(() => model.Bio).Label("Bio").Rows(4).
 public sealed partial class BsTextarea<T> : BsFormControl<T>
 {
     public string? Placeholder { get; set; }
@@ -24,9 +24,9 @@ public sealed partial class BsTextarea<T> : BsFormControl<T>
         var controlId = ControlId(b);
         var cls = BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null, Class);
 
-        var control = Textarea<string>()
-            .Name(Name ?? b.Accessor?.PropertyName)
+        var control = Textarea
             .Value(BindingHelpers.FormatValue(b.Current))
+            .Name(Name ?? b.Accessor?.PropertyName)
             .Placeholder(Placeholder)
             .Rows(Rows)
             .Cols(Cols)

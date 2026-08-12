@@ -22,12 +22,12 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
             Div.Class("card-body")[
                 Div.Class("d-flex gap-2 flex-wrap align-items-center mb-2")[
                     Label.Class("small text-secondary mb-0").For("serial-baud")["Baud"],
-                    Input<string>()
+                    Input
+                        .Value(_baudRate.ToString())
                         .Id("serial-baud")
                         .Type(InputType.Number)
                         .Class("form-control form-control-sm")
                         .Style("width: 7rem")
-                        .Value(_baudRate.ToString())
                         .Disabled(_port is not null)
                         .OnInput(v => int.TryParse(v, out _baudRate)),
                     Button
@@ -42,10 +42,10 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         .OnClickAsync(Disconnect)["Disconnect"]
                 ],
                 Div.Class("input-group input-group-sm mb-2")[
-                    Input<string>()
+                    Input
+                        .Value(_outgoing)
                         .Id("serial-outgoing")
                         .Class("form-control")
-                        .Value(_outgoing)
                         .Placeholder("Line to send")
                         .Disabled(_port is null)
                         .OnInput(v => _outgoing = v),

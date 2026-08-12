@@ -56,12 +56,12 @@ internal static class PageGenerator
         [Route("{{route}}")]
         public sealed partial class {{className}} : Component
         {
-            protected override Component? Head => Title()["{{title}}"];
+            protected override Component? HeadAssets => Title["{{title}}"];
 
             protected override Component? Render() =>
             [
-                H1()["{{title}}"],
-                P()["A new page. Edit Render() to build it out."]
+                H1["{{title}}"],
+                P["A new page. Edit Render() to build it out."]
             ];
         }
 

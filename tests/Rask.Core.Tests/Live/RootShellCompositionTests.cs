@@ -19,7 +19,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void AnAppThatRendersOnlyItsBody_StillGetsAWholeDocument()
     {
-        var html = RenderApp(new StubComponent(() => Div()["hi"]));
+        var html = RenderApp(new StubComponent(() => Div["hi"]));
 
         Assert.Equal("<!DOCTYPE html><html lang=\"en\"><head></head><body><div>hi</div></body></html>", html);
     }
@@ -60,7 +60,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
 
     /// <summary>
     ///     The escape hatch takes the pieces as parameters, so an override never has to name the
-    ///     <c>Head()</c> tag — which is what keeps it clear of the <see cref="Component.Head" /> virtual.
+    ///     <c>Head()</c> tag — which is what keeps it clear of the <see cref="Component.HeadAssets" /> virtual.
     /// </summary>
     [Fact]
     public void AShellOverride_ComposesTheDocumentItself()
@@ -129,14 +129,14 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void DirectRenderAsLiveRoot_ComposesNoShell()
     {
-        var html = new StubComponent(() => Div()["hi"]).RenderAsLiveRoot(Services());
+        var html = new StubComponent(() => Div["hi"]).RenderAsLiveRoot(Services());
 
         Assert.Equal("<div>hi</div>", html);
     }
 
     private sealed class HeadApp : Component
     {
-        protected override Component? Head => Title["from the app"];
+        protected override Component? HeadAssets => Title["from the app"];
         protected override Component? Render() => null;
     }
 
@@ -176,7 +176,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
 
     private sealed class NestedFailureApp : Component
     {
-        protected override Component? Head => Title["still fine"];
+        protected override Component? HeadAssets => Title["still fine"];
 
         protected override Component? Render()
         {

@@ -10,7 +10,7 @@ public sealed partial class ElementsMetadataDemo : Component
     // them and their serialized output, so the analyzer is suppressed here on purpose.
 #pragma warning disable RASK019
     private static Component Shell() => Html.Lang("en").Dir("ltr")[
-        Head()[
+        Head[
             Meta.Charset("utf-8"),
             Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
             Title["My page"],

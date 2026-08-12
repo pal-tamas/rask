@@ -98,7 +98,7 @@ internal sealed class RootErrorBoundary : Component
             // just threw would only throw again — so a render fault still replaces the page, in
             // development as in production, which is the honest outcome.
             if (boundary is { Source: not ErrorSource.Render }
-                && DevErrorInfo.From(ex, boundary.Source == ErrorSource.Handler ? "handler" : "lifecycle")
+                && DevErrorInfo.From(ex, boundary.Source == ErrorSource.Action ? "handler" : "lifecycle")
                     is { } devError)
             {
                 ctx.ReportDevError(devError);
@@ -125,7 +125,7 @@ internal sealed class RootErrorBoundary : Component
         // the host as a 500. The framework's own default shell takes over for that render — a custom
         // shell cannot be trusted after it has just failed, and the error page needs a document to live
         // in.
-        var head = F.Head();
+        var head = Head;
         Component document;
         try
         {

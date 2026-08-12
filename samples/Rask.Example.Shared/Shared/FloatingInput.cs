@@ -25,9 +25,9 @@ public sealed partial class FloatingInput<TProp> : Component
     {
         var (id, label) = FloatingField.Resolve(Bind);
         return Div.Class("form-floating mb-3")[
-            Input(Bind).Id(id).Placeholder(label).Class("form-control"),
+            Input.Bind(Bind).Id(id).Placeholder(label).Class("form-control"),
             Label.For(id)[label],
-            ValidationMessage(Bind, msgs => Div.Class("invalid-feedback d-block")[msgs[0]])
+            ValidationMessage.Template(msgs => Div.Class("invalid-feedback d-block")[msgs[0]]).For(Bind)
         ];
     }
 }

@@ -21,16 +21,13 @@ public sealed partial class FluentValidationAsyncDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<TicketModel>(
-            _model,
-            m => _submission = $"Reserved: {m.Code}",
-            Class: "vstack gap-3")[
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Reserved: {m.Code}").Class("vstack gap-3")[
             FluentValidationValidator.Validator(new TicketValidator()),
             Div[
                 Label.For("v9-code").Class("form-label small mb-1")["Ticket code"],
-                Input(() => _model.Code).Id("v9-code").Class("form-control"),
-                ValidatingIndicator(() => _model.Code, Checking),
-                ValidationMessage(() => _model.Code, FieldError)
+                Input.Bind(() => _model.Code).Id("v9-code").Class("form-control"),
+                ValidatingIndicator.Template(Checking).For(() => _model.Code),
+                ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
             Div[
                 BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.TicketPerforated).Class("me-1"), "Reserve"]

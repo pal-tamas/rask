@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK043)
+# Rask diagnostics (RASK001–RASK044)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -77,8 +77,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK039](#rask039) | Warning | Builder chain is split across statements, so its required properties can't be checked |
 | [RASK040](#rask040) | Warning | Two components share a simple name, so neither can have a builder entry |
 | [RASK041](#rask041) | Warning | The builder surface's shared pending-bit budget is exhausted |
-| [RASK042](#rask042) | Warning | Delegate-typed property cannot receive a builder setter |
+| [RASK042](#rask042) | — | *Retired* — delegate-typed property cannot receive a builder setter |
 | [RASK043](#rask043) | Warning | Component factory is not imported in a type that has no builder entries |
+| [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
+| [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 
 ---
 
@@ -814,34 +816,15 @@ constant **together** (they are a wire format between an app and the Rask it was
 make the new property non-folding.
 
 ## RASK042
-**Delegate-typed property cannot receive a builder setter** · Warning
+**Retired** — delegate-typed property cannot receive a builder setter
 
-A setter may share its property's name only because of C#'s invocable-member rule: `.OnClick(Save)`
-binds to the extension method because the property `OnClick` is not invocable. A **raw delegate**
-property is invocable, so the same lookup goes to the property instead and the generated setter
-becomes unreachable dead code — the property cannot be set from a chain at all.
+Reported while a chain's receiver was the component itself: a delegate-typed property is *invocable*, so
+`.OnClick(Save)` bound to the property instead of to the same-named setter, and the setter was
+unreachable dead code. The fix at the time was to wrap the delegate in a carrier.
 
-```csharp
-public sealed partial class Grid<T> : Component
-{
-    public Func<T, string>? RowClass { get; set; }              // ✗ RASK042 — setter unreachable
-    public Carrier<Func<T, string>>? RowClass { get; set; }     // ✓
-}
-```
-
-A carrier is a readonly struct, so it is not invocable and the rule goes back to picking the setter.
-Its implicit conversion means every assignment (`RowClass = d => …`) and every generated `RowClass:`
-factory argument keeps working unchanged; reading the delegate back is `.Fn`. For a callback-shaped
-property the generator names `Handler` / `HandlerAsync` (and their argument-taking siblings)
-instead, which you call back through `Invoke` — see
-[building form controls](building-form-controls.md).
-
-A **`required`** delegate property is not reported: it has no chain to sit in, and moving it to a
-carrier would only cost it its non-nullness.
-
-**Fix:** declare the property as the carrier named in the message. Suppress with
-`#pragma warning disable RASK042` / `.editorconfig` (`dotnet_diagnostic.RASK042.severity = none`) if
-the property is only ever set through the factory or by assignment.
+A chain now receives on `Build<TComponent>`, so the property is not on the receiver, the lookup that
+caused this cannot happen, and a callback property is an ordinary `Action` / `Func<…>`. The ID is not
+reused.
 
 ## RASK043
 **Component factory is not imported here** · Warning
@@ -926,3 +909,66 @@ hierarchy is your design decision, not the framework's.
 
 The related `using`-alias collision cannot be fixed this way — it surfaces as a hard CS1061 after the
 alias has already lost the lookup, which is what [RASK037](#rask037) exists for.
+
+---
+
+## RASK044
+**Builder chain sets the same property twice** · Warning
+
+A setter writes its property and hands the component back, so a chain that names one twice simply
+overwrites it. The last call wins, the earlier one has no effect, and the compiler is perfectly happy —
+which is why this needs saying out loud.
+
+```csharp
+Card.Title("Coffee").Note("Dark roast").Title("Tea")   // ✗ RASK044 — renders "Tea"
+Card.Title("Coffee").Note("Dark roast")                // ✓
+```
+
+Two writes to one property are always either a merge artefact or a copied line that was not adjusted.
+Nothing about the shape is legitimate: if the value really is conditional, compute it once and pass it.
+
+```csharp
+Card.Title(featured ? "Coffee" : "Tea")                // ✓
+```
+
+**Reported once per chain**, naming the property, not once per extra call.
+
+Two *separate* chains are not a duplicate — `Div[Card.Title("a"), Card.Title("b")]` is two components
+that each name `Title` once, which is ordinary markup.
+
+**Why an analyzer and not the type.** The chain already makes some mistakes unwritable: a required
+property cannot be omitted, and `Bind` and `Value` cannot both be used, because each step returns a type
+that offers only what is still legal. Extending that to *every* setter would mean one state per subset of
+the surface — 2^n over roughly ninety properties — where the required-property machinery pays 2^k over
+the few that are required. So this one is reported rather than prevented.
+
+Silence it per line with `#pragma warning disable RASK044`, or per project in `.editorconfig`
+(`dotnet_diagnostic.RASK044.severity = none`).
+
+## RASK045
+**Component built by a chain is assigned to afterwards** · Warning
+
+A chain states everything a component was given, in one expression, where the reader of the call site
+can see it. An assignment after the chain has ended is invisible from there, and nothing reconciles the
+two — a chain step and a later write to the same property simply disagree, and the write wins.
+
+```csharp
+Card c = Card.Note("a");
+c.Note = "b";                       // ✗ RASK045 — the chain says "a", the reader has to find this line
+
+Card.Note("b")                      // ✓ one expression, one answer
+```
+
+Only a component a **chain** produced is held to this. One built any other way — `new`, a factory, a
+field the component assigned itself — is not reported: the surface it came through is what decides, and
+only a chain promises to be the whole story.
+
+It has to be an analyzer rather than a property of the type. `Build<T>` converts implicitly to the
+component it built, which is what keeps the chain out of the way at every call site that wants the
+component itself (a property typed as a particular component, a strongly-typed children collection, a
+test asserting on the result). Once it has converted, the result is an ordinary component with ordinary
+settable properties, and nothing in the type system is left to forbid the write.
+
+**Fix:** move the assignment into the chain — every property a chain can reach has a step of the same
+name. Suppress with `#pragma warning disable RASK045` / `.editorconfig`
+(`dotnet_diagnostic.RASK045.severity = none`) where a component genuinely has to be completed later.

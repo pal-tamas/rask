@@ -240,10 +240,10 @@ public sealed class TutorialWalkthroughE2ETests
             public decimal Total { get; set; }
 
             protected override Component? Render() =>
-                Div()[
-                    H1()["Thanks for your order!"],
-                    P()[$"Order {OrderId} — total ", Strong()[$"{Total:C}"], "."],
-                    P()["We'll email again when it ships."]
+                Div[
+                    H1["Thanks for your order!"],
+                    P[$"Order {OrderId} — total ", Strong()[$"{Total:C}"], "."],
+                    P["We'll email again when it ships."]
                 ];
         }
         """;

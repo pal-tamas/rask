@@ -4,7 +4,7 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap text input. Wraps the core Input and adds the .form-control class, an optional label,
 // help text, and the .is-invalid + .invalid-feedback validation display. Bound:
-// BsInput(() => model.Email).Label("Email"); controlled: BsInput<T>().Value(x).OnChange(…). The HTML
+// BsInput.Bind(() => model.Email).Label("Email"); controlled: BsInput<T>().Value(x).OnChange(…). The HTML
 // input type is derived from T (or set explicitly via Type).
 public sealed partial class BsInput<T> : BsFormControl<T>
 {
@@ -46,10 +46,10 @@ public sealed partial class BsInput<T> : BsFormControl<T>
         // value, so `typeof(T)` in there is `string` and its own default step would never see the decimal.
         var derivedType = DeriveType();
 
-        var control = Input<string>()
+        var control = Input
+            .Value(BindingHelpers.FormatValue(b.Current))
             .Type(derivedType)
             .Name(Name ?? b.Accessor?.PropertyName)
-            .Value(BindingHelpers.FormatValue(b.Current))
             .Placeholder(placeholder)
             .Disabled(Disabled)
             .ReadOnly(ReadOnly)

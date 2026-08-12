@@ -23,12 +23,12 @@ public sealed partial class NestedListForeachDemo : Component
             var captured = item; // foreach already captures per-iteration but make it loud.
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    Input(() => captured.Description).Class("form-control form-control-sm"),
-                    ValidationMessage(() => captured.Description, FieldError)
+                    Input.Bind(() => captured.Description).Class("form-control form-control-sm"),
+                    ValidationMessage.Template(FieldError).For(() => captured.Description)
                 ],
                 Td.Style("width: 6rem;")[
-                    Input(() => captured.Quantity).Class("form-control form-control-sm"),
-                    ValidationMessage(() => captured.Quantity, FieldError)
+                    Input.Bind(() => captured.Quantity).Class("form-control form-control-sm"),
+                    ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
                     BsButton
@@ -42,10 +42,7 @@ public sealed partial class NestedListForeachDemo : Component
 
         return
         [
-            Form<CartModel>(
-                _model,
-                m => _submission = $"Submitted {m.Items.Count} line item(s).",
-                Class: "vstack gap-3")[
+            Form.Model(_model).OnValidSubmit(m => _submission = $"Submitted {m.Items.Count} line item(s).").Class("vstack gap-3")[
                 DataAnnotationsValidator,
                 Table.Class("table table-sm align-middle mb-0")[
                     Thead[Tr[Th["Description"], Th["Quantity"], Th]],

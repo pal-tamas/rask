@@ -34,7 +34,7 @@ public partial class KeyTests : global::Rask.Core.RaskMarkup
         Assert.Equal("<li data-rask-key=\"42\"></li>", li.ToHtml());
 
         // Reading Key back returns the original boxed value unchanged.
-        Assert.Equal(42, li.Key);
+        Assert.Equal(42, li.Value.Key);
     }
 
     [Fact]

@@ -107,21 +107,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                      + "else fails, which is why this exists.",
         helpLinkUri: DiagnosticHelp.Link("RASK041"));
 
-    private static readonly DiagnosticDescriptor Rask042 = new(
-        "RASK042",
-        "Delegate-typed property cannot receive a builder setter",
-        "Property '{0}.{1}' is a raw delegate, so it is invocable and C#'s invocable-member rule binds '{1}(...)' to the property instead of to the same-named builder setter — the setter can never be reached. Declare it as a carrier ('{2}') instead: the carrier is not invocable, its implicit conversion keeps assignment and every generated '{1}:' factory argument working, and calling the callback back becomes '{1}?.Invoke(...)'.",
-        DiagnosticHelp.Category,
-        DiagnosticSeverity.Warning,
-        true,
-        description: "C#'s invocable-member rule is what lets a setter share a property's name at all: '.OnClick(x)' "
-                     + "binds to the extension method because the property 'OnClick' is not invocable. A RAW delegate "
-                     + "property is invocable, so the same lookup goes to the property and the setter becomes "
-                     + "unreachable dead code — the property simply cannot be set from a chain. A carrier is a "
-                     + "readonly struct, so it is not invocable and the rule goes back to picking the setter; its "
-                     + "implicit conversion means no assignment or generated factory argument changes.",
-        helpLinkUri: DiagnosticHelp.Link("RASK042"));
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var candidates = context.SyntaxProvider
@@ -221,7 +206,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // because it is the one thing about a component that metadata destroys: a member initializer
         // compiles into the constructor, so from a referencing compilation `string Title` and
         // `string Title = ""` are the same symbol and RASK038 cannot tell an optional property from a
-        // required one. This compilation can — it is the rule BlocksEntry already applies right here — so
+        // required one. This compilation can — it is the same rule RASK001 applies right here — so
         // it publishes the answer rather than leaving a consumer to re-derive one it cannot reach.
         context.RegisterSourceOutput(grouped.Combine(builderEnabled),
             static (spc, t) => EmitPublishedRequiredProperties(spc, t.Left, t.Right));
@@ -285,7 +270,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     isRequired ? defaultLiteral + "!" : defaultLiteral,
                     string.Equals(owner, elementFqn, StringComparison.Ordinal),
                     isRequired,
-                    HasDerivedSetter(p)));
+                    HasDerivedSetter(p),
+                    SummaryOf(p)));
             }
         }
 
@@ -316,16 +302,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         ReportSharedBitOverflow(spc, host, sharedBits);
         foreach (var s in host.Shared)
         {
-            if (s.IsDelegate && SetterName(s.Name, s.IsDelegate) == s.Name)
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask042, Location.None, s.Owner, s.Name,
-                    SuggestedCarrier(s.TypeFqn)));
-                continue;
-            }
-
+            // No reachability skip, and none needed anywhere any more: the setter's receiver is the
+            // CHAIN, so a delegate-typed property is not on it and cannot swallow its own setter.
             EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
                 fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
-                pendingBit: Bit(sharedBits, s.Name));
+                pendingBit: Bit(sharedBits, s.Name), summary: s.Summary);
         }
 
         // One Candidate per component TYPE. A partial class whose declarations each carry a base list
@@ -354,24 +335,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             // default to write.
             foreach (var p in OwnSetterProps(c))
             {
-                // A raw delegate prop is INVOCABLE, so `__c.RowClass(fn)` binds to the property and the
-                // same-named setter can never be reached (CS1593 at best, a wrong-arity invocation at
-                // worst). Emitting it anyway would be dead code that reads like a working surface.
+                // A CHAIN STEP is not also a setter, and that single rule carries three guarantees.
                 //
-                // Reported only when the prop is otherwise settable through a chain. A REQUIRED delegate
-                // prop (`required Func<…> Template`) has no chain to be set from at all — its component
-                // is excluded from entries by BlocksEntry, and its factory assigns the prop on every
-                // render — so moving it to a carrier would buy nothing and would cost its non-nullness
-                // (a carrier converted from a null delegate is a non-null carrier wrapping null, where
-                // the raw `required` delegate simply cannot be null).
-                if (p.IsDelegate && SetterName(p.Name, p.IsDelegate) == p.Name)
+                // `Bind` and `Value` are both steps, so choosing one leaves the other unreachable: a
+                // bound control cannot also be given a Value, which used to compile and quietly meant
+                // two sources of truth. A required property is a step, so it cannot be omitted — the
+                // component does not exist until it is supplied, which is a stronger statement than
+                // RASK038 reporting it afterwards. And a property that pins a type argument is a step,
+                // because there is no component to hang a setter on until it has been.
+                if (IsExclusiveOpening(c, p.Name))
                 {
-                    if (!IsRequiredFactoryParam(p))
-                    {
-                        spc.ReportDiagnostic(Diagnostic.Create(Rask042, MakeLocation(p), c.FullyQualifiedName,
-                            p.Name, SuggestedCarrier(p.TypeFqn)));
-                    }
-
                     continue;
                 }
 
@@ -379,7 +352,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate,
                     p.IsAutoRerenderDelegate || folded, generic: false,
                     !folded && FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
-                    c.TypeParameters, c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name));
+                    c.TypeParameters, c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name),
+                    p.Summary);
             }
 
             EmitBoundSetters(sb, c, visibility);
@@ -405,7 +379,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     //
     // Two halves, because the propsChanged fold has to keep meaning what it meant:
     //
-    //  * EAGER — the non-folding props (raw delegates, carriers, Key). Assigned unconditionally when the
+    //  * EAGER — the non-folding props (delegates, Key). Assigned unconditionally when the
     //    entry is created, exactly as the factory assigns them. They never call Track, so defaulting
     //    them early cannot disturb anything.
     //  * PENDING — the folding props. Defaulting one before its setter runs would make Track compare the
@@ -817,38 +791,23 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         return result;
     }
 
-    // The name a builder setter takes for a property. A raw delegate prop is invocable and would beat a
-    // same-named extension (CS1593), so historically those setters dropped the `On` prefix; the props
-    // that matter have since moved to carriers, which are not invocable and so keep their own name. A
-    // delegate prop whose name the rule leaves unchanged has no reachable setter at all — RASK042.
-    private static string SetterName(string name, bool isDelegate) =>
-        isDelegate && name.StartsWith("On", StringComparison.Ordinal) && name.Length > 2
-            ? name.Substring(2)
-            : name;
-
-    // The carrier RASK042 tells the author to declare instead: the named pair for a Callback-shaped
-    // delegate, the open Carrier<TDelegate> for anything else.
-    private static string SuggestedCarrier(string typeFqn)
-    {
-        var t = StripNullable(typeFqn);
-        return t switch
-        {
-            "global::Rask.Core.Callback" => "global::Rask.Core.Handler?",
-            "global::Rask.Core.CallbackAsync" => "global::Rask.Core.HandlerAsync?",
-            _ when t.StartsWith("global::Rask.Core.Callback<", StringComparison.Ordinal) =>
-                "global::Rask.Core.Handler<" + t.Substring("global::Rask.Core.Callback<".Length) + "?",
-            _ when t.StartsWith("global::Rask.Core.CallbackAsync<", StringComparison.Ordinal) =>
-                "global::Rask.Core.HandlerAsync<" + t.Substring("global::Rask.Core.CallbackAsync<".Length) + "?",
-            _ => "global::Rask.Core.Carrier<" + t + ">?",
-        };
-    }
+    // A setter is named after the property it writes. Always — including a DELEGATE property, which used
+    // to be the one exception: an extension method could not share a delegate prop's name, because C#
+    // resolves `x.OnClick(fn)` against the property and reads it as an invocation (CS1593). The rule
+    // dropped a leading `On` to dodge that (`OnRate` -> `.Rate(…)`), and where it could not, the property
+    // had no reachable setter at all and RASK042 asked the author to wrap the delegate in a carrier.
+    //
+    // Both are gone because the chain's receiver is `Build<TComponent>` rather than the component: the
+    // property is no longer on the receiver, so the lookup never finds it and the setter binds whatever
+    // the property's type. A callback property is now an ordinary `Action`/`Func`, and its setter says
+    // what the property says.
 
     // The bound half of an IFormControl<T> control: one setter per interface member, typed from the
     // interface's T rather than from the declaring class. That matters twice — the members may be
     // inherited from a non-Element base (BsInput<T> gets them from BsFormControl<T>, which the
     // depth-0 rule above would skip), and it is what lets the generic entry take only `Bind`:
     //
-    //     Input(() => _form.Name).Validate(ProductName.Validate).Id("name")
+    //     Input.Bind(() => _form.Name).Validate(ProductName.Validate).Id("name")
     //
     // replaces the factory's none/sync/async overload fan-out, whose only purpose was to make
     // Validate a required, correctly-typed parameter. Never auto-wrapped: a validator is not an event
@@ -862,24 +821,30 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         var t = fc.ValueTypeFqn;
 
-        // The four delegate members are typed as they are DECLARED — `Carrier<…>?`, not the bare
-        // delegate. That is what makes EmitSetter take the delegate as its parameter and assign it
-        // through the carrier's `From`: written as the raw delegate the assignment would run the
-        // carrier's implicit conversion instead, and a null validator or hook would land as a non-null
-        // carrier wrapping null — exactly the trap `From` exists to close, reopened one layer up.
+        // Typed from the INTERFACE rather than from wherever the control happens to declare them, so a
+        // control inheriting them from a non-Element base still gets setters typed on the interface's T.
         var members = new (string Name, string TypeFqn)[]
         {
             ("Bind", "global::System.Linq.Expressions.Expression<global::System.Func<" + t + ">>?"),
-            ("Validate", "global::Rask.Core.Carrier<global::Rask.Core.Forms.Validate<" + t + ">>?"),
-            ("ValidateAsync", "global::Rask.Core.Carrier<global::Rask.Core.Forms.ValidateAsync<" + t + ">>?"),
-            ("AfterBind", "global::Rask.Core.Carrier<global::System.Action<" + t + ">>?"),
+            ("Validate", "global::Rask.Core.Forms.Validate<" + t + ">?"),
+            ("ValidateAsync", "global::Rask.Core.Forms.ValidateAsync<" + t + ">?"),
+            ("AfterBind", "global::System.Action<" + t + ">?"),
             ("AfterBindAsync",
-                "global::Rask.Core.Carrier<global::System.Func<" + t
-                + ", global::System.Threading.Tasks.Task>>?"),
+                "global::System.Func<" + t
+                + ", global::System.Threading.Tasks.Task>?"),
         };
 
         foreach (var (name, typeFqn) in members)
         {
+            // `Bind` is a chain STEP, not a setter — it is how a bound control gets its value type, and
+            // leaving it here as well would put it back within reach of a chain that already chose
+            // `Value`. That is the shape this rule exists to forbid: a control bound to an expression AND
+            // handed a value has two sources of truth, and nothing decided which won.
+            if (IsExclusiveOpening(c, name))
+            {
+                continue;
+            }
+
             // fold: false — the bound members are a fresh expression tree / delegate every render, so
             // folding them would report propsChanged on every frame. Exactly what EmitBoundOverload's
             // foldProps does (only the shared display props participate there too).
@@ -893,7 +858,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // flag to NotifyParameters: Key is a reconciliation identity rather than a reactive prop;
     // auto-wrapped callbacks and raw delegates are a fresh closure every render, so folding them would
     // force propsChanged: true on every frame and defeat the render cache for any callback-taking
-    // component; a carrier prop wraps one of those.
+    // component.
     /// <summary>
     ///     Whether <paramref name="propName" /> is a property a <c>[FactoryGeneric]</c> component folds a
     ///     <i>typed</i> callback into — <c>Form.OnValidSubmit</c> and <c>OnInvalidSubmit</c>, whose generic
@@ -911,14 +876,32 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static bool IsFoldedCallback(Candidate c, string propName) =>
         c.GenericFactory is { } gf && gf.TypedDelegateProperties.Contains(propName);
 
+    // Opt-in wrapping for a callback an ELEMENT-derived component invokes itself rather than handing to
+    // the DOM. Matched by name so Rask.Core's own attribute needs no symbol threaded through here.
+    private static bool HasAutoCallbackAttribute(ISymbol prop) =>
+        prop.GetAttributes().Any(a =>
+            a.AttributeClass?.ToDisplayString() == "Rask.Core.AutoCallbackAttribute");
+
     private static bool FoldsIntoPropsChanged(string name, string typeFqn, bool isDelegate, bool autoRerender) =>
         !string.Equals(name, "Key", StringComparison.Ordinal)
         && !isDelegate
         && !autoRerender
-        && CarrierDelegate(typeFqn) is null;
+        ;
 
-    // A delegate-typed property is invocable, so an extension of the same name loses to it (CS1593).
-    // Until those props move to a non-delegate carrier, their setters drop the `On` prefix.
+
+    // One line of `///` above a generated member, so a chain's tooltip says what the property it writes
+    // says. Skipped when the property has no summary — an empty doc comment is worse than none, because
+    // it suppresses the fallback the IDE would otherwise show.
+    private static void EmitDocComment(StringBuilder sb, string summary, string pad)
+    {
+        if (summary.Length == 0)
+        {
+            return;
+        }
+
+        sb.Append(pad).Append("/// <summary>").Append(summary).AppendLine("</summary>");
+    }
+
     private static void EmitSetter(
         StringBuilder sb,
         string name,
@@ -931,42 +914,30 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string typeParameters = "",
         string constraints = "",
         string visibility = "public",
-        int pendingBit = -1)
+        int pendingBit = -1,
+        string summary = "")
     {
-        var setterName = SetterName(name, isDelegate);
+        EmitDocComment(sb, summary, "    ");
+        var setterName = name;
 
-        // A carrier-typed prop takes the underlying DELEGATE as its parameter, not the carrier: a method
-        // group or lambda cannot reach `Handler?` / `Carrier<…>?` (that needs a delegate conversion
-        // followed by a user-defined one, which C# will not chain). The carrier exists so the prop and
-        // setter can share a name; the conversion back happens at the assignment.
-        //
-        // `wrap` is the AutoCallback decision, and it is per property, not per carrier: an Element's
+        // `wrap` is the AutoCallback decision, and it is per property: an Element's
         // handlers go to the DOM unwrapped (owner resolution already re-renders, and wrapping would
         // allocate per render), a non-Element component's event callbacks are wrapped, and a form
         // control's bound members (validators, post-bind hooks) are never wrapped at all.
-        var carrier = CarrierDelegate(typeFqn);
-        var paramType = carrier ?? typeFqn;
+        var paramType = typeFqn;
         // Wrap returns a nullable delegate (null in → null out); assigning it to a non-nullable prop
         // needs the null-forgiving `!` (CS8601), the same way the factory's assignment pass does it.
         var value = wrap
             ? "global::Rask.Core.AutoCallback.Wrap(value)"
-              + (carrier is null && !typeFqn.EndsWith("?", StringComparison.Ordinal) ? "!" : string.Empty)
+              + (typeFqn.EndsWith("?", StringComparison.Ordinal) ? string.Empty : "!")
             : "value";
-        // `From`, not `new Handler(…)`: an unset handler must land as a NULL carrier, or the component's
-        // own `OnClose is not null` tests all start answering true — see AssignExpr. (A non-nullable
-        // carrier prop cannot hold From's `Handler?`, but it is already rejected upstream as a required
-        // factory parameter; the constructor stays as the fallback so the emission can't break on one.)
-        var assigned = carrier is null
-            ? value
-            : typeFqn.EndsWith("?", StringComparison.Ordinal)
-                ? StripNullable(typeFqn) + ".From(" + value + ")"
-                : "new " + typeFqn + "(" + value + ")";
+        var assigned = value;
 
         // The propsChanged fold, one prop at a time. The factory can snapshot every prop, assign them
         // all and diff once, because it knows where the assignments end; a setter chain does not, so
         // each folding setter accumulates its own delta and the parent fires the single notification
         // when its Render() returns (Component.RenderForLive). Same EqualityComparer semantics, and the
-        // non-folding props (Key, delegates, carriers) emit no call at all — see FoldsIntoPropsChanged.
+        // non-folding props (Key, delegates) emit no call at all — see FoldsIntoPropsChanged.
         var track = fold
             ? "global::Rask.Core.BuilderRuntime.Track(__c, __c." + EscapeIdentifier(name) + ", value); "
             : string.Empty;
@@ -981,90 +952,41 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         // An `internal` component cannot appear in a `public` signature (CS0050/CS0051), so the
         // setter's accessibility tracks its component's — the same rule the factory emission uses.
+        // The receiver is `Build<TComponent>`, never the component. That is the whole reason a callback
+        // property can be an ORDINARY delegate: C# stops at a delegate-typed property when it resolves
+        // `x.OnClick(fn)` and reads the call as an invocation (CS1593), never reaching an extension
+        // method — but only if the property is on the receiver. One step off it, the lookup finds
+        // nothing and the setter binds. See Rask.Core.Build{T}.
         sb.Append("    ").Append(visibility).Append(" static ");
         if (generic)
         {
-            sb.Append("T ").Append(EscapeIdentifier(setterName)).Append("<T>(this T __c, ").Append(paramType)
+            sb.Append(BuildOf("T")).Append(' ').Append(EscapeIdentifier(setterName)).Append("<T>(this ")
+                .Append(BuildOf("T")).Append(" __b, ").Append(paramType)
                 .Append(" value) where T : ").Append(receiver);
-            sb.Append(" { ").Append(track).Append("__c.").Append(EscapeIdentifier(name)).Append(" = ")
-                .Append(assigned).AppendLine("; return __c; }");
+            sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
+                .Append(" = ").Append(assigned).AppendLine("; return __b; }");
             return;
         }
 
-        sb.Append(receiver).Append(' ').Append(EscapeIdentifier(setterName)).Append(typeParameters)
-            .Append("(this ").Append(receiver).Append(" __c, ").Append(paramType).Append(" value)")
+        sb.Append(BuildOf(receiver)).Append(' ').Append(EscapeIdentifier(setterName)).Append(typeParameters)
+            .Append("(this ").Append(BuildOf(receiver)).Append(" __b, ").Append(paramType).Append(" value)")
             .Append(constraints);
-        sb.Append(" { ").Append(track).Append("__c.").Append(EscapeIdentifier(name)).Append(" = ")
-            .Append(assigned).AppendLine("; return __c; }");
+        sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
+            .Append(" = ").Append(assigned).AppendLine("; return __b; }");
     }
 
-    // Maps a carrier prop (Handler / HandlerAsync / Carrier<TDelegate>) to the delegate it carries.
-    // Every generated *parameter* for such a prop is typed as the delegate, not the carrier: a lambda or
-    // method group cannot reach the carrier (that would need a delegate conversion followed by a
-    // user-defined one, which C# will not chain), and the implicit conversion turns it back at the
-    // assignment. Null for a prop that is not a carrier.
-    private static string? CarrierDelegate(string typeFqn)
-    {
-        var t = StripNullable(typeFqn);
-        switch (t)
-        {
-            case "global::Rask.Core.Handler":
-                return "global::Rask.Core.Callback?";
-            case "global::Rask.Core.HandlerAsync":
-                return "global::Rask.Core.CallbackAsync?";
-        }
+    // The chain's receiver and result for a component type — `Rask.Core.Build<TComponent>`.
+    private static string BuildOf(string componentFqn) =>
+        "global::Rask.Core.Build<" + componentFqn + ">";
 
-        if (!t.EndsWith(">", StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        // The argument-taking carriers name their ARGUMENT, not their delegate (Element's whole event
-        // surface is declared with them), so the delegate is rebuilt around it.
-        foreach (var (open, delegateOpen) in CarrierShapes)
-        {
-            if (t.StartsWith(open, StringComparison.Ordinal))
-            {
-                var inner = t.Substring(open.Length, t.Length - open.Length - 1);
-                return delegateOpen is null ? inner + "?" : delegateOpen + inner + ">?";
-            }
-        }
-
-        return null;
-    }
-
-    // Open generic → the delegate a carrier of that shape carries. `Carrier<TDelegate>` names the
-    // delegate itself (null); the Handler pair names the argument.
-    private static readonly (string Open, string? DelegateOpen)[] CarrierShapes =
-    {
-        ("global::Rask.Core.Carrier<", null),
-        ("global::Rask.Core.HandlerAsync<", "global::Rask.Core.CallbackAsync<"),
-        ("global::Rask.Core.Handler<", "global::Rask.Core.Callback<"),
-    };
-
-    // The type a generated factory parameter uses for a property: the carried delegate for a carrier
-    // prop, the property's own type otherwise.
-    private static string ParamType(PropInfo p) => CarrierDelegate(p.TypeFqn) ?? p.TypeFqn;
-
-    // The expression a generated ASSIGNMENT uses to put a delegate-typed argument into a property:
-    // `Handler.From(value)` for a carrier prop, the value itself otherwise.
-    //
-    // Never the bare implicit conversion, and never `new Handler(value)`: the conversion accepts a null
-    // delegate, so an omitted argument would land as a non-NULL carrier wrapping null. A component that
-    // asks about its own callback — `AutoHideMs is > 0 && OnClose is not null` (BsToast),
-    // `OnSortChange is not null` (BsDataGrid), `OnChange is null && OnChangeAsync is null`
-    // (BsRadioGroup) — would then answer true for a handler nobody wired. From maps null → null, so a
-    // carrier prop reads back exactly as unset as the raw delegate prop it replaced. Allocation-free
-    // either way (a struct, and Nullable<> of one).
-    //
-    // Only applied to a NULLABLE prop: the carrier of a required prop cannot hold From's `Handler?`,
-    // and a non-nullable carrier is already rejected upstream (RASK001 / CS9040).
-    private static string AssignExpr(PropInfo p, string valueExpr) =>
-        p.IsNullable && CarrierDelegate(p.TypeFqn) is not null
-            ? StripNullable(p.TypeFqn) + ".From(" + valueExpr + ")"
-            : valueExpr;
-
-    private static bool IsCarrierProp(PropInfo p) => CarrierDelegate(p.TypeFqn) is not null;
+    // A generated parameter, and a generated assignment, are the property's own type and the value
+    // itself. There used to be a layer here: a callback property was a CARRIER wrapping its delegate, so
+    // every parameter had to be typed as the carried delegate (a lambda cannot reach a carrier — that
+    // needs a delegate conversion followed by a user-defined one, which C# will not chain) and every
+    // assignment had to run back through `From`. The carriers existed only so a delegate-typed property
+    // would not swallow its own setter; the chain's `Build<TComponent>` receiver removes the collision at
+    // its source, so the property is the delegate and there is nothing to map.
+    private static string ParamType(PropInfo p) => p.TypeFqn;
 
     private static string SanitizeIdentifier(string value)
     {
@@ -1095,11 +1017,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string DefaultLiteral,
         bool IsElementOwned,
         bool IsRequired,
-        bool HasDerivedSetter);
+        bool HasDerivedSetter,
+        string Summary = "");
 
     // The names already declared on Rask.Core.Component. In the compilation that DECLARES it, an entry
     // whose name matches one would be CS0102 ("already contains a definition") — `Head` is the real case:
-    // Component.Head is the head-asset contribution. In a CONSUMER the same names, now including every
+    // Component.HeadAssets is the head-asset contribution. In a CONSUMER the same names, now including every
     // tag entry Rask.Core emitted, are what a referenced library's entry would hide (CS0108).
     private static ComponentHost GetComponentHost(Compilation compilation)
     {
@@ -1172,44 +1095,613 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         shared.Append("public static class ").AppendLine(EntryHostName(host.AssemblyName));
         shared.AppendLine("{");
 
-        foreach (var c in EntryCandidates(spc, candidates, taken))
+        var entries = EntryCandidates(spc, candidates, taken);
+        var seeded = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var c in entries)
         {
-            // A property may not be generic, so a generic component's entry has to be a static METHOD —
-            // legal alongside its own type name by the invocable-member rule. Only a generic FORM CONTROL
-            // gets one: its `Bind` argument is what infers the value type. A generic component with no
-            // such argument has nothing to infer from and keeps the factory.
-            if (c.TypeParameters.Length != 0)
+            // The entry hands back a SEED whenever the chain has something to demand first — a type
+            // argument to pin, or a required property. One property per component NAME.
+            if (NeedsSeed(c))
             {
-                EmitBoundEntry(sb, c, taken, c.IsPublic ? "protected" : "private protected", indent: "    ",
-                    host.AssemblyName, runtimePrefix: runtime);
-                EmitBoundEntry(shared, c, taken, c.IsPublic ? "public" : "internal", indent: "    ",
-                    host.AssemblyName, runtimePrefix: runtime);
+                if (!seeded.Add(c.TypeName))
+                {
+                    continue;
+                }
+
+                sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
+                    .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.TypeName))
+                    .AppendLine(" = default;");
+
+                shared.Append(c.IsPublic ? "    public static " : "    internal static ")
+                    .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.TypeName))
+                    .AppendLine(" => default;");
                 continue;
             }
 
             // An internal component cannot surface through a `protected` member of the public
             // Component (CS0053); `private protected` keeps it to derived types in this assembly.
+            //
+            // The entry opens a chain, so it hands back `Build<TComponent>` and not the component: the
+            // steps after it are extension methods on the chain, which is what keeps a delegate-typed
+            // property from swallowing its own setter (see Rask.Core.Build{T}).
             sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
-                .Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime).Append(EntryMethod(c))
+                .Append(BuildOf(c.FullyQualifiedName)).Append(' ')
+                .Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime).Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, host.AssemblyName);
-            sb.AppendLine(");");
+            sb.AppendLine("));");
 
             shared.Append(c.IsPublic ? "    public static " : "    internal static ")
-                .Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime).Append(EntryMethod(c))
+                .Append(BuildOf(c.FullyQualifiedName)).Append(' ')
+                .Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime).Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(shared, c, host.AssemblyName);
-            shared.AppendLine(");");
+            shared.AppendLine("));");
         }
 
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
 
         shared.AppendLine("}");
+        EmitSeeds(shared, entries, host.AssemblyName, runtime);
         spc.AddSource("RaskBuilderEntryHost.g.cs", SourceText.From(shared.ToString(), Encoding.UTF8));
     }
+
+    /// <summary>
+    ///     The seed types a generic component's entry hands back, and the pins that turn one into the
+    ///     component.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The pins are <b>extension methods</b>, which is what lets them be generic where the entry
+    ///         property cannot be, and what lets them infer: <c>Input.Bind(() =&gt; m.Name)</c> pins
+    ///         <c>T</c> from the expression, <c>BsRadioGroup.Options(all)</c> from the sequence.
+    ///     </para>
+    ///     <para>
+    ///         In the GLOBAL namespace, like the setters, so a referencing assembly reaches them with no
+    ///         <c>using</c> — and so a consumer needs nothing injected for them: only the entry property
+    ///         is forwarded per host, while the pins are found once, wherever the chain is written.
+    ///     </para>
+    /// </remarks>
+    /// <summary>
+    ///     The whole staged surface: a seed per component that has anything to demand, the states in
+    ///     between, and the steps that move from one to the next.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A chain is a state machine and the TYPE at each point says what is legal next. The seed
+    ///         offers the ways in; each step returns a state that offers only what is still outstanding;
+    ///         and the component — with its optional setters and its children indexer — appears once
+    ///         nothing is. So a required property cannot be forgotten, and two mutually exclusive ways in
+    ///         cannot both be taken, without either being reported: they are unrepresentable.
+    ///     </para>
+    ///     <para>
+    ///         States are identified by WHICH required properties are already set, so the remaining ones
+    ///         may be given in any order — <c>BsToast.Id(7).Message("…")</c> and
+    ///         <c>BsToast.Message("…").Id(7)</c> are both chains and both end at the component. That costs
+    ///         one struct per reachable subset, which is why only REQUIRED properties take part: the
+    ///         optional surface would make it 2^n over everything.
+    ///     </para>
+    /// </remarks>
+    private static void EmitSeeds(
+        StringBuilder sb, List<Candidate> entries, string assemblyName, string runtimePrefix)
+    {
+        var staged = entries.Where(NeedsSeed).ToList();
+        if (staged.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var byNamespace in staged.GroupBy(static c => c.Namespace, StringComparer.Ordinal))
+        {
+            var scoped = byNamespace.Key.Length != 0;
+            if (scoped)
+            {
+                sb.AppendLine();
+                sb.Append("namespace ").AppendLine(byNamespace.Key);
+                sb.AppendLine("{");
+            }
+
+            foreach (var name in byNamespace.GroupBy(static c => c.TypeName, StringComparer.Ordinal))
+            {
+                EmitStateTypes(sb, name.First(), scoped ? "    " : string.Empty, assemblyName, runtimePrefix);
+            }
+
+            if (scoped)
+            {
+                sb.AppendLine("}");
+            }
+        }
+
+    }
+
+    // The seed, the type stage an opening of two pins needs, and one state per reachable subset of
+    // satisfied required properties. All EditorBrowsable(Never): they are machinery a chain moves
+    // through, never a type anybody names, and they would otherwise crowd every completion list that has
+    // the component's namespace in scope.
+    // The seed, the stage an opening of two steps needs, and one state per reachable subset of satisfied
+    // required properties — each carrying the steps that lead out of it as INSTANCE methods.
+    //
+    // Instance rather than extension methods, and the difference is not stylistic. A state fixes its own
+    // type arguments, so a step on it introduces none of its own — which lets an overload that pins
+    // nothing extra beat one that does, and that is what lets `Options(IEnumerable<TValue>)` win over
+    // `Options<TItem>(IEnumerable<TItem>)` when the option IS the value. As extensions both would have
+    // had to declare the state's type parameters themselves, leaving them equally generic and the call
+    // ambiguous (CS0121). They also need no `using`, which extensions in another assembly only avoid by
+    // living in the global namespace.
+    private static void EmitStateTypes(
+        StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix)
+    {
+        const string hidden =
+            "[global::System.ComponentModel.EditorBrowsable("
+            + "global::System.ComponentModel.EditorBrowsableState.Never)]";
+        var visibility = c.IsPublic ? "public" : "internal";
+        var required = RequiredSteps(c);
+        var openings = Openings(c);
+
+        sb.Append(pad).Append("/// <summary>Where a ").Append(c.TypeName)
+            .AppendLine(" chain starts. Take one of its steps to begin.</summary>");
+        sb.Append(pad).AppendLine(hidden);
+        sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(SeedName(c)).AppendLine();
+        sb.Append(pad).AppendLine("{");
+
+        EmitExplicitTypeOpening(sb, c, pad + "    ", assemblyName, runtimePrefix, required);
+
+        foreach (var opening in openings)
+        {
+            if (opening.Count == 0)
+            {
+                // Nothing to pin, so the component is constructible from the word go and any one of its
+                // required properties opens the chain.
+                foreach (var first in required)
+                {
+                    EmitBuildingStep(
+                        sb, c, pad + "    ", assemblyName, runtimePrefix, first, [],
+                        new HashSet<string>(StringComparer.Ordinal) { first.PropertyName });
+                }
+
+                continue;
+            }
+
+            if (opening.Count == 2)
+            {
+                var stageParams = TypeParametersFor(c, opening[0]);
+                sb.Append(pad).Append("    public ").Append(StageFqn(c, opening[0], stageParams)).Append(' ')
+                    .Append(EscapeIdentifier(opening[0].ParamName)).Append(stageParams).Append('(')
+                    .Append(StepParamType(opening[0])).Append(' ')
+                    .Append(EscapeIdentifier(opening[0].ParamName)).AppendLine(")");
+                sb.Append(pad).Append("        => new(").Append(EscapeIdentifier(opening[0].ParamName))
+                    .AppendLine(");");
+                continue;
+            }
+
+            EmitBuildingStep(
+                sb, c, pad + "    ", assemblyName, runtimePrefix, opening[0], [],
+                SatisfiedBy(c, opening));
+        }
+
+        sb.Append(pad).AppendLine("}");
+
+        foreach (var opening in openings.Where(static o => o.Count == 2))
+        {
+            var stageParams = TypeParametersFor(c, opening[0]);
+            sb.Append(pad).Append("/// <summary>").Append(c.TypeName).Append(" awaiting ")
+                .Append(opening[1].ParamName).AppendLine(", which fixes the rest of its type.</summary>");
+            sb.Append(pad).AppendLine(hidden);
+            sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StageName(c, opening[0]))
+                .Append(stageParams).AppendLine();
+            sb.Append(pad).AppendLine("{");
+            sb.Append(pad).Append("    internal ").Append(StageName(c, opening[0])).Append('(')
+                .Append(StepParamType(opening[0])).Append(" value) => ")
+                .Append(opening[0].ParamName).AppendLine(" = value;");
+            sb.Append(pad).AppendLine();
+            sb.Append(pad).Append("    private ").Append(StepParamType(opening[0])).Append(' ')
+                .Append(opening[0].ParamName).AppendLine(" { get; }");
+            sb.Append(pad).AppendLine();
+
+            EmitBuildingStep(
+                sb, c, pad + "    ", assemblyName, runtimePrefix, opening[1],
+                [(opening[0], "this." + EscapeIdentifier(opening[0].ParamName))],
+                SatisfiedBy(c, opening));
+
+            EmitIdentityStep(sb, c, pad + "    ", assemblyName, runtimePrefix, opening);
+
+            sb.Append(pad).AppendLine("}");
+        }
+
+        foreach (var state in ReachableStates(c))
+        {
+            sb.Append(pad).Append("/// <summary>").Append(c.TypeName).Append(" still awaiting ")
+                .Append(string.Join(", ", required.Where(r => !state.Contains(r.PropertyName))
+                    .Select(r => r.ParamName)))
+                .AppendLine(".</summary>");
+            sb.Append(pad).AppendLine(hidden);
+            sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StateName(c, state))
+                .Append(c.TypeParameters).AppendLine();
+            sb.Append(pad).AppendLine("{");
+            sb.Append(pad).Append("    internal ").Append(StateName(c, state)).Append('(')
+                .Append(c.FullyQualifiedName).AppendLine(" component) => Component = component;");
+            sb.Append(pad).AppendLine();
+            sb.Append(pad).Append("    private ").Append(c.FullyQualifiedName)
+                .AppendLine(" Component { get; }");
+
+            foreach (var step in required.Where(r => !state.Contains(r.PropertyName)))
+            {
+                var next = new HashSet<string>(state, StringComparer.Ordinal) { step.PropertyName };
+                var done = next.Count == required.Count;
+                sb.Append(pad).AppendLine();
+                EmitDocComment(sb, step.Summary, pad + "    ");
+                sb.Append(pad).Append("    public ")
+                    .Append(done ? BuildOf(c.FullyQualifiedName) : StateFqn(c, next) + c.TypeParameters)
+                    .Append(' ').Append(EscapeIdentifier(step.ParamName)).Append('(')
+                    .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName))
+                    .AppendLine(")");
+                sb.Append(pad).AppendLine("    {");
+                sb.Append(pad).AppendLine("        var __c = Component;");
+                EmitPinAssignment(sb, step, EscapeIdentifier(step.ParamName), pad + "    ");
+                // Either way a target-typed `new`: the last step wraps the component in its chain, an
+                // earlier one hands on the state still waiting for something.
+                sb.Append(pad).AppendLine("        return new(__c);");
+                sb.Append(pad).AppendLine("    }");
+            }
+
+            sb.Append(pad).AppendLine("}");
+        }
+    }
+
+
+    // The way into a generic component that has nothing to infer from.
+    //
+    // Every other opening PINS: `Input.Bind(() => m.Name)` reads T off the expression, and that is the
+    // shape almost every call site wants. But a generic component is not obliged to be used generically
+    // — Rask.Bootstrap drives a bare `<input type=checkbox>` through `Input<string>`, naming no bind and
+    // no value, purely for the element half of it. The old generic FACTORY had a no-argument overload for
+    // exactly this; a seed of pins alone silently dropped it, which is what left those sites on the
+    // factory. `Input.Of<string>()` is that overload, restored as a step.
+    //
+    // It states the type argument rather than inferring one, so it is spelled `Of` rather than sharing a
+    // pin's name: a reader seeing `Of<string>` knows nothing was inferred.
+    //
+    // Only for a generic component with NOTHING REQUIRED. Where something is required, one of its steps
+    // is the opening and that step already pins the type — `Form.Model(m)` reads TModel off the model —
+    // so `Of` would be a second spelling of the same move, and a chain that took it would owe the
+    // required step anyway.
+    private static void EmitExplicitTypeOpening(
+        StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
+        List<EntryInference> required)
+    {
+        if (c.TypeParameters.Length == 0 || required.Count != 0)
+        {
+            return;
+        }
+
+        var result = BuildOf(c.FullyQualifiedName);
+
+        sb.Append(pad).Append("/// <summary>Opens a ").Append(c.TypeName)
+            .AppendLine(" whose type argument is stated rather than inferred.</summary>");
+        sb.Append(pad).Append("public ").Append(result).Append(" Of").Append(c.TypeParameters)
+            .Append("()").AppendLine(c.TypeParameterConstraints);
+        sb.Append(pad).AppendLine("{");
+        sb.Append(pad).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c))
+            .Append(c.FullyQualifiedName).Append(">(");
+        EmitResetArguments(sb, c, assemblyName, c.TypeParameters);
+        sb.AppendLine(");");
+        sb.Append(pad).AppendLine("    return new(__c);");
+        sb.Append(pad).AppendLine("}");
+        sb.AppendLine();
+    }
+
+    // The shortcut for "the option IS the value".
+    //
+    // `BsSelect` carries two type parameters and a required projection between them, so the long way
+    // round is `.Options(items).OptionValue(x => x)` — stating an identity nobody wanted to write. When
+    // the sequence's element type is the value type the projection is knowable, so an overload takes
+    // that case and fills it in.
+    //
+    // This is only expressible because the steps are INSTANCE methods: the stage fixes TValue, so this
+    // overload introduces no type parameter of its own and beats the generic one. As extension methods
+    // both would have had to declare TValue themselves, leaving them equally generic and the call
+    // ambiguous (CS0121) — which is what made the two-arity design look impossible in the first place.
+    private static void EmitIdentityStep(
+        StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
+        List<EntryInference> opening)
+    {
+        var names = OrderedTypeParameters(c.TypeParameters);
+        if (names.Count != 2)
+        {
+            return;
+        }
+
+        var pinnedByStage = MentionedTypeParameters(opening[0].ParamTypeFqn, ParseTypeParameters(c.TypeParameters));
+        var value = names.FirstOrDefault(pinnedByStage.Contains);
+        var item = names.FirstOrDefault(n => !pinnedByStage.Contains(n));
+        if (value is null || item is null)
+        {
+            return;
+        }
+
+        // The only thing still outstanding after this step must be the projection itself.
+        var satisfied = SatisfiedBy(c, opening);
+        satisfied.Add(opening[1].PropertyName);
+        var outstanding = RequiredSteps(c).Where(r => !satisfied.Contains(r.PropertyName)).ToList();
+        if (outstanding.Count != 1)
+        {
+            return;
+        }
+
+        var projection = outstanding[0];
+        // A step's parameter is the property's declared type, so a nullable one keeps its `?`; the shape
+        // comparison is about the delegate itself.
+        var expected = "global::System.Func<" + item + ", " + value + ">";
+        if (StepParamType(projection).TrimEnd('?') != expected)
+        {
+            return;
+        }
+
+        var unified = RenameTypeParameter(c.FullyQualifiedName, item, value);
+        sb.Append(pad).Append("public ").Append(BuildOf(unified)).Append(' ')
+            .Append(EscapeIdentifier(opening[1].ParamName)).Append('(')
+            .Append(RenameTypeParameter(StepParamType(opening[1]), item, value)).Append(' ')
+            .Append(EscapeIdentifier(opening[1].ParamName)).AppendLine(")");
+        sb.Append(pad).AppendLine("{");
+        sb.Append(pad).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c))
+            .Append(unified).Append(">(");
+        // The reset delegates are generic over the component's parameters, and here both are TValue —
+        // the whole point of this overload. Handing them the component's own list would name a TItem
+        // this method does not declare.
+        EmitResetArguments(sb, c, assemblyName, "<" + value + ", " + value + ">");
+        sb.AppendLine(");");
+        // Through EmitPinAssignment, not raw: a step has to mark its property WRITTEN, or the deferred
+        // reset blanks it again at the end of the parent's Render(). Assigning these directly is what
+        // made every identity-form select render with a null `Options` — caught by the golden markup,
+        // which is the only thing that would have caught it.
+        EmitPinAssignment(sb, opening[0], "this." + EscapeIdentifier(opening[0].ParamName), pad);
+        EmitPinAssignment(sb, opening[1], EscapeIdentifier(opening[1].ParamName), pad);
+        // The projection's own type still names TItem, which this overload does not declare — it is the
+        // one being unified away.
+        EmitPinAssignment(
+            sb,
+            projection with { ParamTypeFqn = RenameTypeParameter(projection.ParamTypeFqn, item, value) },
+            "static __x => __x",
+            pad);
+        sb.Append(pad).AppendLine("    return new(__c);");
+        sb.Append(pad).AppendLine("}");
+    }
+
+    // Which required properties an opening has already supplied — `Options` opens nothing for a form
+    // control, but for a component whose only required property also pins the type, the opening is the
+    // whole of what was outstanding.
+    private static HashSet<string> SatisfiedBy(Candidate c, List<EntryInference> opening) =>
+        new(RequiredSteps(c)
+                .Where(r => opening.Any(o =>
+                    string.Equals(o.PropertyName, r.PropertyName, StringComparison.Ordinal)))
+                .Select(r => r.PropertyName),
+            StringComparer.Ordinal);
+
+    // A step that CONSTRUCTS: it completes the component's type, so it builds, assigns whatever earlier
+    // steps parked, assigns its own, and hands back either the component or the state still wanting
+    // something.
+    private static void EmitBuildingStep(
+        StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
+        EntryInference step, IReadOnlyList<(EntryInference Pin, string Value)> carried,
+        HashSet<string> satisfied)
+    {
+        var required = RequiredSteps(c);
+        var done = satisfied.Count == required.Count;
+        var result = done ? BuildOf(c.FullyQualifiedName) : StateFqn(c, satisfied) + c.TypeParameters;
+        // A step on a STAGE declares only the type parameters the stage has not already fixed: the stage
+        // is generic over what the first step pinned, and re-declaring those would shadow them (CS0693),
+        // while declaring none leaves the ones this step pins unresolved.
+        var fixedByStage = new HashSet<string>(
+            carried.SelectMany(x => MentionedTypeParameters(
+                x.Pin.ParamTypeFqn, ParseTypeParameters(c.TypeParameters))),
+            StringComparer.Ordinal);
+        var outstanding = OrderedTypeParameters(c.TypeParameters).Where(n => !fixedByStage.Contains(n)).ToList();
+        var methodParams = outstanding.Count == 0 ? string.Empty : "<" + string.Join(", ", outstanding) + ">";
+
+        EmitDocComment(sb, step.Summary, pad);
+        sb.Append(pad).Append("public ").Append(result).Append(' ')
+            .Append(EscapeIdentifier(step.ParamName)).Append(methodParams).Append('(')
+            .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName)).Append(')')
+            .Append(methodParams.Length == 0 ? string.Empty : c.TypeParameterConstraints).AppendLine();
+        sb.Append(pad).AppendLine("{");
+        sb.Append(pad).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c))
+            .Append(c.FullyQualifiedName).Append(">(");
+        EmitResetArguments(sb, c, assemblyName, c.TypeParameters);
+        sb.AppendLine(");");
+
+        foreach (var (pin, value) in carried)
+        {
+            EmitPinAssignment(sb, pin, value, pad);
+        }
+
+        EmitPinAssignment(sb, step, EscapeIdentifier(step.ParamName), pad);
+        // Target-typed either way — the chain when this step completed the component, otherwise the
+        // state that still wants something.
+        sb.Append(pad).AppendLine("    return new(__c);");
+        sb.Append(pad).AppendLine("}");
+    }
+
+    // The required properties a chain has to name, as steps. Required means what RASK001 means — a
+    // non-nullable property with no member initializer — plus the language's `required` modifier.
+    private static List<EntryInference> RequiredSteps(Candidate c)
+    {
+        var bits = OwnPendingBits(c);
+        var steps = new List<EntryInference>();
+        foreach (var p in c.Properties)
+        {
+            if (!IsRequiredFactoryParam(p) || p.IsInitOnly || p.Name == "Children" || p.IsSharedSurfaceProp)
+            {
+                continue;
+            }
+
+            steps.Add(new EntryInference(
+                p.Name,
+                p.TypeFqn,
+                p.Name,
+                FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
+                Bit(bits, p.Name),
+                p.Summary));
+        }
+
+        return steps;
+    }
+
+    // The ways in. A generic component's are its pin chains; a non-generic one has nothing to pin, so its
+    // single (empty) opening means "buildable straight away" and its required properties open the chain.
+    // Whether a component's entry hands back a SEED rather than the component: it does whenever there is
+    // anything to demand first — a type argument to pin, or a required property to supply.
+    /// <summary>
+    ///     Whether a property is one of the MUTUALLY EXCLUSIVE ways into a control, and so must not also
+    ///     be reachable as a setter.
+    /// </summary>
+    /// <remarks>
+    ///     Only a form control's <c>Bind</c> and <c>Value</c> qualify. They are two answers to one
+    ///     question — where the value comes from — so a chain that took either must not be able to take
+    ///     the other, and leaving them as setters is exactly how a bound control could still be handed a
+    ///     value.
+    ///     <para>
+    ///         Every OTHER property that happens to pin a type argument stays a setter as well as a step.
+    ///         They are not alternatives: <c>BsDataGrid.Data(rows).Columns(cols)</c> sets both, and
+    ///         withdrawing the second because it could have opened the chain made it unreachable
+    ///         (CS1955 — the property is invoked, because no setter exists). Requiredness is not enforced
+    ///         by withholding the setter; it is enforced by the component not existing until the step is
+    ///         taken.
+    ///     </para>
+    /// </remarks>
+    private static bool IsExclusiveOpening(Candidate c, string name) =>
+        c.FormControl is not null && name is "Bind" or "Value"
+        // …and only where a SEED exists to reach them through. A non-generic control with nothing
+        // required — `BsCheck`, whose Bind is a plain `Expression<Func<bool>>?` — has no chain in front
+        // of it, so withdrawing the setter leaves the property with no way in at all.
+        && NeedsSeed(c);
+
+    private static bool NeedsSeed(Candidate c) =>
+        c.TypeParameters.Length != 0 || RequiredSteps(c).Count != 0;
+
+    private static List<List<EntryInference>> Openings(Candidate c)
+    {
+        if (c.TypeParameters.Length == 0)
+        {
+            return [[]];
+        }
+
+        var sets = PinSets(c);
+
+        // A FORM CONTROL opens on its value and nothing else. Its other properties can pin the type just
+        // as well — `Options` is an `IEnumerable<TItem>` — but letting one of those open the chain says
+        // the control is complete before it has been told where its value comes from, and leaves the
+        // choice between bound and controlled unmade. Narrowing this is what makes the mode the first
+        // decision: `BsCheckboxGroup.Value(v).Options(o)` or `.Bind(x).Options(o)`, never `.Options(o)`
+        // followed by whichever of the two the author remembered.
+        if (c.FormControl is null)
+        {
+            return sets;
+        }
+
+        var valueFirst = sets
+            .Where(s => s.Count != 0 && s[0].PropertyName is "Bind" or "Value")
+            .ToList();
+        return valueFirst.Count != 0 ? valueFirst : sets;
+    }
+
+    // Every state a chain can stand in: some required properties set, at least one still missing. Named
+    // by what is SATISFIED, so two orders through the same set meet at the same type instead of
+    // multiplying.
+    private static List<HashSet<string>> ReachableStates(Candidate c)
+    {
+        var required = RequiredSteps(c);
+        var states = new List<HashSet<string>>();
+        if (required.Count == 0)
+        {
+            return states;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var frontier = new List<HashSet<string>>();
+
+        foreach (var opening in Openings(c))
+        {
+            var satisfied = required
+                .Where(r => opening.Any(o => string.Equals(o.PropertyName, r.PropertyName, StringComparison.Ordinal)))
+                .Select(r => r.PropertyName);
+            var satisfiedSet = new HashSet<string>(satisfied, StringComparer.Ordinal);
+
+            // A non-generic component opens on any one of its required properties.
+            if (opening.Count == 0)
+            {
+                foreach (var first in required)
+                {
+                    frontier.Add(new HashSet<string>(StringComparer.Ordinal) { first.PropertyName });
+                }
+
+                continue;
+            }
+
+            frontier.Add(satisfiedSet);
+        }
+
+        while (frontier.Count != 0)
+        {
+            var state = frontier[frontier.Count - 1];
+            frontier.RemoveAt(frontier.Count - 1);
+            // The EMPTY state is a real one whenever an opening pins the type without satisfying any
+            // required property — `BsCheckboxGroup.Bind(x)` still owes `Options`. It is a distinct type
+            // from the seed, because it carries the component the opening built.
+            if (state.Count >= required.Count || !seen.Add(StateKey(state)))
+            {
+                continue;
+            }
+
+            states.Add(state);
+            foreach (var step in required.Where(r => !state.Contains(r.PropertyName)))
+            {
+                frontier.Add(new HashSet<string>(state, StringComparer.Ordinal) { step.PropertyName });
+            }
+        }
+
+        return states;
+    }
+
+    private static string StateKey(IEnumerable<string> satisfied) =>
+        string.Join("_", satisfied.OrderBy(static s => s, StringComparer.Ordinal));
+
+    private static string StateName(Candidate c, IEnumerable<string> satisfied)
+    {
+        var key = StateKey(satisfied);
+        return key.Length == 0 ? "RaskPending_" + c.TypeName : "RaskPending_" + c.TypeName + "_" + key;
+    }
+
+    private static string StateFqn(Candidate c, IEnumerable<string> satisfied) =>
+        (c.Namespace.Length == 0 ? "global::" : "global::" + c.Namespace + ".") + StateName(c, satisfied);
+
+    // What a step does to the component, which is exactly what the property's own setter would do — the
+    // fold that reports `propsChanged`, and the pending bit that tells the deferred reset this prop was
+    // written after all. Shared by every step form so they cannot drift.
+    private static void EmitPinAssignment(
+        StringBuilder sb, EntryInference pin, string value, string pad = "")
+    {
+        var assigned = value;
+
+        if (pin.Track)
+        {
+            sb.Append(pad).Append("        global::Rask.Core.BuilderRuntime.Track(__c, __c.")
+                .Append(EscapeIdentifier(pin.PropertyName)).Append(", ").Append(assigned).AppendLine(");");
+        }
+
+        if (pin.PendingBit >= 0)
+        {
+            sb.Append(pad).Append("        global::Rask.Core.BuilderRuntime.Written(__c, ")
+                .Append(MaskLiteral(new[] { pin.PendingBit })).AppendLine(");");
+        }
+
+        sb.Append(pad).Append("        __c.").Append(EscapeIdentifier(pin.PropertyName)).Append(" = ")
+            .Append(assigned).AppendLine(";");
+    }
+
+    // A step's parameter is the property's own type.
+    private static string StepParamType(EntryInference step) => step.ParamTypeFqn;
 
     // Which components get a builder entry, and the single place that decides it. Both emissions
     // (Component's own, and the per-consumer partials) ask this, and the RESET emission is keyed off
@@ -1242,64 +1734,246 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // (neither constrained `new()`) are the paths that do it. What enforces the value afterwards is
     // RASK038 at the chain — the same trade already made for a RASK001-required property.
     //
-    // One shape still blocks, and it is not about construction at all: see BlocksEntry.
+    // A `required` RAW DELEGATE used to block as well, and that one was not about construction either:
+    // the prop was invocable, so a same-named setter could never be reached and the component would have
+    // been constructible and permanently incomplete. The chain's `Build<TComponent>` receiver removed
+    // that, so ValidationMessage, ValidationSummary, ValidatingIndicator, ToastOutlet, Shareable, the
+    // GestureTrigger family and BsSelect's OptionValue simply have entries.
     //
-    // …and so does a name Component already declares (`Head`), which would be CS0102.
+    // …and a name Component already declares (`Head`) still blocks too, which would be CS0102.
     private static bool CanHaveEntry(Candidate c, HashSet<string> taken) =>
         (c.TypeParameters.Length == 0 ? c.HasParameterlessCtor || c.HasDIConstructor : HasGenericEntryShape(c))
-        && !c.Properties.Any(BlocksEntry)
         && !taken.Contains(c.TypeName);
 
     /// <summary>
-    ///     Whether a <i>generic</i> component can have an entry: it must be constructible, it must have
-    ///     something to infer its type argument from, and — for now — it must declare no <c>required</c>
-    ///     member.
+    ///     Whether a <i>generic</i> component can have an entry: it must be constructible, and it must
+    ///     have something to infer its type argument from.
     /// </summary>
     /// <remarks>
-    ///     The required-member exclusion is not about construction (<c>EntryRequired</c> solved that) and
-    ///     not about generics either. It is that a generic component's entry is a <b>method</b>, and a
-    ///     method entry hides its same-named factory inside a component body — so handing one to
-    ///     <c>BsSelect</c>, <c>BsMultiSelect</c>, <c>BsRadioGroup</c> or <c>BsCheckboxGroup</c> breaks
-    ///     ~20 multi-argument factory call sites in <c>samples/</c> on the spot (CS1501/CS1739). That is a
-    ///     migration, not an addition, and it contradicts the premise that both surfaces compile side by
-    ///     side. Recorded here rather than pushed through.
+    ///     <para>
+    ///         A <c>required</c> member used to exclude it as well, and that exclusion was never about
+    ///         construction (<c>EntryRequired</c> had already solved that) nor about generics. It was that
+    ///         a generic component's entry is a <b>method</b>, and a method entry hides its same-named
+    ///         factory inside a component body — so handing one to <c>BsMultiSelect</c>,
+    ///         <c>BsRadioGroup</c> or <c>BsCheckboxGroup</c> breaks their multi-argument factory call
+    ///         sites on the spot (CS1501/CS1739). It was deferred while that was an unscheduled
+    ///         migration; the sites move in this pass, so it is lifted.
+    ///     </para>
+    ///     <para>
+    ///         What enforces the required value afterwards is RASK038 at the chain — the same trade every
+    ///         other <c>EntryRequired</c> component already makes.
+    ///     </para>
     /// </remarks>
     private static bool HasGenericEntryShape(Candidate c) =>
-        c.HasParameterlessCtor && InferenceFor(c) is not null && !HasRequiredMember(c);
+        c.HasParameterlessCtor && PinSets(c).Count != 0;
 
     /// <summary>
-    ///     The single argument a generic component's method entry takes, and the property it sets — what
-    ///     pins the type argument so <c>Input(() =&gt; m.Age)</c> yields <c>Input&lt;int&gt;</c> without
-    ///     the caller writing one.
+    ///     The seed a generic component's entry hands back — the receiver its pins extend.
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         One mechanism, two ways of naming the property: an <c>IFormControl&lt;T&gt;</c>'s
-    ///         <c>Bind</c>, whose <c>Expression&lt;Func&lt;T&gt;&gt;</c> carries the value type; or, for
-    ///         any other generic component, the first factory-parameter property whose type <i>is</i> one
-    ///         of the component's type parameters. The emission below does not care which of the two
-    ///         produced it — that is the point, and it is why this replaced the parallel bound-only path
-    ///         rather than sitting beside it.
+    ///         A property may not be generic, so a generic component cannot have a property entry that
+    ///         yields the component itself. It can have one that yields an empty struct, with the type
+    ///         arguments pinned by an extension method on that struct — which is what removes both the
+    ///         empty <c>()</c> and the written type argument from every call site
+    ///         (<c>Input.Bind(() =&gt; m.Name)</c> rather than <c>Input(() =&gt; m.Name)</c>, and
+    ///         <c>BsRadioGroup.Options(all)</c> rather than <c>BsRadioGroup&lt;Plan&gt;()</c>).
     ///     </para>
     ///     <para>
-    ///         Deliberately NOT general enough to match an <c>Expression&lt;Func&lt;T&gt;&gt;</c> property
-    ///         on a component that is not a form control. <c>FloatingInput&lt;TProp&gt;</c> and its two
-    ///         siblings in <c>samples/</c> have exactly that shape, and matching them would hand them a
-    ///         method entry and displace their factory call sites — the same cost as the four generic
-    ///         controls above, paid by surprise. Widening this is a migration to schedule, not a rule to
-    ///         relax quietly.
+    ///         One seed per component NAME, not per arity: the two arities of <c>BsSelect</c> share the
+    ///         one entry member, so they share its type, and their pins are overloads on it. They no
+    ///         longer collide, because a pin that has to account for more type parameters takes more
+    ///         arguments — which is a different signature, not a return-type-only difference (CS0111).
     ///     </para>
     /// </remarks>
-    private static EntryInference? InferenceFor(Candidate c)
+    private static string SeedFqn(Candidate c) =>
+        (c.Namespace.Length == 0 ? "global::" : "global::" + c.Namespace + ".") + SeedName(c);
+
+    private static string SeedName(Candidate c) => "RaskSeed_" + c.TypeName;
+
+    // Named after the step that OPENS it, because two ways in carry different things: `Bind` parks an
+    // expression and `Value` parks a value, so one stage type cannot serve both — its constructor would
+    // have to take either.
+    private static string StageName(Candidate c, EntryInference opening) =>
+        "RaskStage_" + c.TypeName + "_" + opening.ParamName;
+
+    private static string StageFqn(Candidate c, EntryInference opening, string typeParameters) =>
+        (c.Namespace.Length == 0 ? "global::" : "global::" + c.Namespace + ".")
+        + StageName(c, opening) + typeParameters;
+
+    // The type parameters a pin accounts for, in the component's own declaration order — the stage
+    // between two pins is generic over exactly the ones the FIRST pin fixed.
+    private static string TypeParametersFor(Candidate c, EntryInference pin)
     {
-        if (c.TypeParameters.Length == 0)
+        var names = ParseTypeParameters(c.TypeParameters);
+        var mentioned = MentionedTypeParameters(pin.ParamTypeFqn, names);
+        var ordered = OrderedTypeParameters(c.TypeParameters).Where(mentioned.Contains).ToList();
+        return ordered.Count == 0 ? string.Empty : "<" + string.Join(", ", ordered) + ">";
+    }
+
+    // "<TValue, TItem>" → [TValue, TItem]. ParseTypeParameters answers the same question as a SET, which
+    // loses the order a type parameter list has to keep.
+    private static List<string> OrderedTypeParameters(string list)
+    {
+        var result = new List<string>();
+        if (list.Length < 3)
         {
-            return null;
+            return result;
         }
+
+        foreach (var name in list.Substring(1, list.Length - 2).Split(','))
+        {
+            var trimmed = name.Trim();
+            if (trimmed.Length != 0)
+            {
+                result.Add(trimmed);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    ///     Every way in to a generic component: one pin set per overload the seed publishes.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A pin set has to pin <b>every</b> type parameter, because C# infers a method's type
+    ///         arguments all or nothing. So each property that can do that alone becomes an overload of
+    ///         its own — <c>Input.Bind(() =&gt; m.Name)</c>, <c>Input.Value(_text)</c>,
+    ///         <c>BsRadioGroup.Options(AllPlans)</c> — and a component no single property can pin falls
+    ///         back to the one combination <see cref="InferencePins" /> assembles, spelled as a staged
+    ///         chain — <c>BsSelect.Bind(() =&gt; m.PersonId).Options(people)</c>.
+    ///     </para>
+    ///     <para>
+    ///         Several ways in is the point rather than a cost: the pin is also what carries the type, so
+    ///         a component reachable only through <c>Bind</c> would have no spelling at all for a
+    ///         controlled site, and one reachable only through <c>Options</c> none for a bound one.
+    ///     </para>
+    /// </remarks>
+    /// <summary>
+    ///     Every property a chain has to name before the component exists: the ones that pin a type
+    ///     argument, and the ones that are required.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         These are steps rather than setters, and the difference is the whole of what the chain
+    ///         enforces. A step is reachable only from the state before it, so a required property cannot
+    ///         be forgotten (the component is not produced until it is set) and two mutually exclusive
+    ///         ones cannot both be used (taking either leaves the other behind).
+    ///     </para>
+    ///     <para>
+    ///         Required here means what RASK001 means — a non-nullable property with no member
+    ///         initializer — plus the language's own <c>required</c> modifier, which is the same set
+    ///         RASK038 walks a chain looking for. <c>Children</c> is never a step: it arrives through the
+    ///         indexer, which the finished component carries.
+    ///     </para>
+    /// </remarks>
+    private static List<EntryInference> ChainSteps(Candidate c)
+    {
+        var steps = new List<EntryInference>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        // EVERY pin, not just the ones on one chain: a component publishes several ways in — `Bind` for a
+        // bound control, `Value` for a controlled one — and each is a step. Taking only one chain left
+        // the others as ordinary setters, which is precisely how a bound control could still be handed a
+        // `Value`. Longest chain first, so the ones that must precede others still do.
+        foreach (var pin in PinSets(c).OrderByDescending(s => s.Count).SelectMany(s => s))
+        {
+            if (seen.Add(pin.PropertyName))
+            {
+                steps.Add(pin);
+            }
+        }
+
+        var bits = OwnPendingBits(c);
+        foreach (var p in c.Properties)
+        {
+            if (!IsRequiredFactoryParam(p) || p.IsInitOnly || p.Name == "Children" || !seen.Add(p.Name))
+            {
+                continue;
+            }
+
+            steps.Add(new EntryInference(
+                p.Name,
+                p.TypeFqn,
+                p.Name,
+                FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
+                Bit(bits, p.Name),
+                p.Summary));
+        }
+
+        return steps;
+    }
+
+    private static List<List<EntryInference>> PinSets(Candidate c)
+    {
+        var names = ParseTypeParameters(c.TypeParameters);
+        var sets = new List<List<EntryInference>>();
+        if (names.Count == 0)
+        {
+            return sets;
+        }
+
+        var candidates = PinCandidates(c, names).ToList();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var first in candidates)
+        {
+            if (!seen.Add(first.ParamName))
+            {
+                continue;
+            }
+
+            // Every way in is grown from ITS OWN first step, completing whatever type parameters that
+            // step left open with the other candidates. One pin is a chain of one; a component whose
+            // value fixes only half its type — `BsSelect`, whose `TItem` comes from `Options` — gets a
+            // staged chain per way in. Building only ONE chain (the bound one) is what made controlled
+            // mode unreachable: `Value` pinned TValue, never completed, and so opened nothing.
+            var chain = new List<EntryInference> { first };
+            var unpinned = new HashSet<string>(names, StringComparer.Ordinal);
+            unpinned.ExceptWith(MentionedTypeParameters(first.ParamTypeFqn, names));
+
+            foreach (var next in candidates)
+            {
+                if (unpinned.Count == 0)
+                {
+                    break;
+                }
+
+                var mentioned = MentionedTypeParameters(next.ParamTypeFqn, names);
+                if (string.Equals(next.ParamName, first.ParamName, StringComparison.Ordinal)
+                    || !mentioned.Overlaps(unpinned))
+                {
+                    continue;
+                }
+
+                chain.Add(next);
+                unpinned.ExceptWith(mentioned);
+            }
+
+            if (unpinned.Count == 0)
+            {
+                sets.Add(chain);
+            }
+        }
+
+        return sets;
+    }
+
+    // The properties a pin can be made from, in the order the overloads should read: an
+    // IFormControl<T>'s Bind first, then the component's own factory-parameter properties.
+    //
+    // Never a DELEGATE, however plainly it names the type parameter: the argument at the call site is an
+    // implicitly-typed lambda, which contributes nothing to inference. BsSelect's OptionValue
+    // (Func<TItem, TValue>) is exactly that shape — it would compile here and fail at every call site.
+    private static IEnumerable<EntryInference> PinCandidates(Candidate c, HashSet<string> names)
+    {
+        var bits = OwnPendingBits(c);
 
         if (c.FormControl is { } fc)
         {
-            return new EntryInference(
+            yield return new EntryInference(
                 "Bind",
                 "global::System.Linq.Expressions.Expression<global::System.Func<" + fc.ValueTypeFqn + ">>",
                 "Bind",
@@ -1307,33 +1981,99 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 PendingBit: -1);
         }
 
-        var names = ParseTypeParameters(c.TypeParameters);
-        var bits = OwnPendingBits(c);
         foreach (var p in c.Properties)
         {
-            if (!p.IsTypeParameter || p.IsInitOnly || p.IsSharedSurfaceProp || !IsParamProperty(p))
+            if (p.IsInitOnly || p.IsSharedSurfaceProp || !IsParamProperty(p) || p.IsDelegate
+                || p.IsBoundInterfaceProp)
             {
                 continue;
             }
 
-            var type = StripNullable(p.TypeFqn);
-            if (!names.Contains(type))
+            var type = p.TypeFqn;
+            if (MentionedTypeParameters(type, names).Count == 0)
             {
                 continue;
             }
 
-            // The entry has to leave the property exactly as its own setter would, or the two surfaces
+            // The pin has to leave the property exactly as its own setter would, or the two surfaces
             // disagree about a prop that every chain sets: the fold that reports `propsChanged`, and the
             // pending bit that tells the deferred reset this prop was written after all.
-            return new EntryInference(
+            yield return new EntryInference(
                 p.Name,
                 type,
                 p.Name,
                 FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
-                Bit(bits, p.Name));
+                Bit(bits, p.Name),
+                p.Summary);
+        }
+    }
+
+    private static List<EntryInference>? InferencePins(Candidate c)
+    {
+        var names = ParseTypeParameters(c.TypeParameters);
+        if (names.Count == 0)
+        {
+            return null;
         }
 
-        return null;
+        // Greedy over the SAME candidate list the single-property sets are drawn from, so the two cannot
+        // disagree about what may be a pin. That mattered once and silently: this loop had its own filter
+        // and never learned to skip a DELEGATE, so BsSelect's second pin came out as `OptionValue`
+        // (Func<TItem, TValue>) — which compiles here and infers nothing at any call site, because the
+        // argument is an implicitly-typed lambda.
+        var pins = new List<EntryInference>();
+        var unpinned = new HashSet<string>(names, StringComparer.Ordinal);
+
+        foreach (var pin in PinCandidates(c, names))
+        {
+            if (unpinned.Count == 0)
+            {
+                break;
+            }
+
+            var mentioned = MentionedTypeParameters(pin.ParamTypeFqn, names);
+            if (!mentioned.Overlaps(unpinned))
+            {
+                continue;
+            }
+
+            pins.Add(pin);
+            unpinned.ExceptWith(mentioned);
+        }
+
+        return pins.Count != 0 && unpinned.Count == 0 ? pins : null;
+    }
+
+    // Which of `names` appear as a whole identifier in a fully-qualified type string — so
+    // `IEnumerable<TItem>` mentions TItem, and `IEnumerable<TItemKind>` does not.
+    private static HashSet<string> MentionedTypeParameters(string typeFqn, HashSet<string> names)
+    {
+        var found = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in names)
+        {
+            var from = 0;
+            while (from <= typeFqn.Length - name.Length)
+            {
+                var at = typeFqn.IndexOf(name, from, StringComparison.Ordinal);
+                if (at < 0)
+                {
+                    break;
+                }
+
+                var beforeOk = at == 0 || !IsIdentifierChar(typeFqn[at - 1]);
+                var afterAt = at + name.Length;
+                var afterOk = afterAt == typeFqn.Length || !IsIdentifierChar(typeFqn[afterAt]);
+                if (beforeOk && afterOk)
+                {
+                    found.Add(name);
+                    break;
+                }
+
+                from = at + 1;
+            }
+        }
+
+        return found;
     }
 
     private readonly record struct EntryInference(
@@ -1341,25 +2081,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string ParamTypeFqn,
         string PropertyName,
         bool Track,
-        int PendingBit);
-
-    /// <summary>
-    ///     A required property the chain could never set, which is worse than having no entry: the
-    ///     component would be constructible and permanently incomplete.
-    /// </summary>
-    /// <remarks>
-    ///     A raw delegate property is INVOCABLE, so <c>x.Template(fn)</c> binds to the property and a
-    ///     same-named setter can never be reached — the RASK042 rule. Optional props of that shape are
-    ///     reported and moved to a carrier; a <c>required</c> one cannot follow, because a carrier built
-    ///     from a null delegate is a non-null carrier wrapping null and that is exactly the state
-    ///     <c>required</c> exists to forbid. So <c>ValidationMessage</c>, <c>ValidatingIndicator</c>,
-    ///     <c>ValidationSummary</c>, <c>ToastOutlet</c>, <c>Shareable</c>, the <c>GestureTrigger</c> family
-    ///     and <c>BsSelect&lt;TValue, TItem&gt;</c> (its <c>OptionValue</c>) still have no entry. Their
-    ///     required member is a <c>Template</c>-shaped callback, and giving them one needs a decision
-    ///     about their public API rather than a change here.
-    /// </remarks>
-    private static bool BlocksEntry(PropInfo p) =>
-        p.UserMarkedRequired && p.IsDelegate && SetterName(p.Name, p.IsDelegate) == p.Name;
+        int PendingBit,
+        string Summary = "");
 
     // Construction that cannot be `new T()`: no parameterless constructor, or a required member the
     // language will not let `new()` satisfy.
@@ -1425,7 +2148,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     }
 
     // The generic form control's method entry. It takes ONE parameter — the bind expression — because
-    // that is what infers the value type (`Input(() => model.Age)` → `Input<int>`); the validator and the
+    // that is what infers the value type (`Input.Bind(() => model.Age)` → `Input<int>`); the validator and the
     // post-bind hooks that force the factory's none/sync/async overload fan-out are setters instead.
     // When the control has more type parameters than the value type mentions (BsSelect<TValue, TItem>),
     // inference falls back to the caller writing them out — the entry still compiles and still works.
@@ -1470,9 +2193,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         StringBuilder sb, Candidate c, HashSet<string> taken, string visibility, string indent,
         string assemblyName, string hostTypeParameters = "", string runtimePrefix = "")
     {
-        // Nothing to infer the type argument from, no `new T()` to build, or a member that must be set
-        // at construction: no entry — the factory stays the way in.
-        if (!CanHaveEntry(c, taken) || InferenceFor(c) is not { } inference)
+        // Nothing to infer the type arguments from, no `new T()` to build, or a name already taken: no
+        // entry — the factory stays the way in.
+        if (!CanHaveEntry(c, taken) || InferencePins(c) is not { } pins)
         {
             return;
         }
@@ -1483,7 +2206,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var typeParameters = c.TypeParameters;
         var constraints = c.TypeParameterConstraints;
         var self = c.FullyQualifiedName;
-        var valueType = inference.ParamTypeFqn;
+        var paramTypes = pins.Select(static p => p.ParamTypeFqn).ToList();
         var reserved = ParseTypeParameters(hostTypeParameters);
         if (reserved.Count != 0)
         {
@@ -1504,43 +2227,55 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 typeParameters = RenameTypeParameter(typeParameters, name, renamed);
                 constraints = RenameTypeParameter(constraints, name, renamed);
                 self = RenameTypeParameter(self, name, renamed);
-                valueType = RenameTypeParameter(valueType, name, renamed);
+                for (var i = 0; i < paramTypes.Count; i++)
+                {
+                    paramTypes[i] = RenameTypeParameter(paramTypes[i], name, renamed);
+                }
             }
         }
 
-        // Inference mode: one parameter, and it is what pins the type argument. The property is assigned
-        // AFTER the entry returns, which is after the entry's reset has run — the same ordering a setter
-        // in the chain gets, because this IS the chain's first link.
-        var param = EscapeIdentifier(inference.ParamName);
+        // Inference mode: one parameter per pin, in the order that reads like the factory call it
+        // replaces. Each property is assigned AFTER the entry returns, which is after the entry's reset
+        // has run — the same ordering a setter in the chain gets, because this IS the chain's first link.
         sb.Append(indent).Append(visibility).Append(" static ").Append(self).Append(' ')
-            .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters)
-            .Append('(').Append(valueType).Append(' ').Append(param).Append(')')
-            .Append(constraints).AppendLine();
+            .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters).Append('(');
+        for (var i = 0; i < pins.Count; i++)
+        {
+            sb.Append(i == 0 ? string.Empty : ", ").Append(paramTypes[i]).Append(' ')
+                .Append(EscapeIdentifier(pins[i].ParamName));
+        }
+
+        sb.Append(')').Append(constraints).AppendLine();
         sb.Append(indent).AppendLine("{");
         sb.Append(indent).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c)).Append(self)
             .Append(">(");
         EmitResetArguments(sb, c, assemblyName, typeParameters);
         sb.AppendLine(");");
 
-        // Exactly what the property's own setter would do, so the entry and a later `.Prop(x)` cannot
+        // Exactly what each property's own setter would do, so the entry and a later `.Prop(x)` cannot
         // disagree: fold the change into propsChanged when the prop folds, and clear its pending bit so
         // the deferred reset does not put back the value the entry just set. A bound-mode `Bind` needs
-        // neither — it never folds and is reset eagerly — so this degenerates to the bare assignment
+        // neither — it never folds and is reset eagerly — so that pin degenerates to the bare assignment
         // that path always had.
-        if (inference.Track)
+        foreach (var pin in pins)
         {
-            sb.Append(indent).Append("    global::Rask.Core.BuilderRuntime.Track(__c, __c.")
-                .Append(EscapeIdentifier(inference.PropertyName)).Append(", ").Append(param).AppendLine(");");
+            var param = EscapeIdentifier(pin.ParamName);
+            if (pin.Track)
+            {
+                sb.Append(indent).Append("    global::Rask.Core.BuilderRuntime.Track(__c, __c.")
+                    .Append(EscapeIdentifier(pin.PropertyName)).Append(", ").Append(param).AppendLine(");");
+            }
+
+            if (pin.PendingBit >= 0)
+            {
+                sb.Append(indent).Append("    global::Rask.Core.BuilderRuntime.Written(__c, ")
+                    .Append(MaskLiteral(new[] { pin.PendingBit })).AppendLine(");");
+            }
+
+            sb.Append(indent).Append("    __c.").Append(EscapeIdentifier(pin.PropertyName)).Append(" = ")
+                .Append(param).AppendLine(";");
         }
 
-        if (inference.PendingBit >= 0)
-        {
-            sb.Append(indent).Append("    global::Rask.Core.BuilderRuntime.Written(__c, ")
-                .Append(MaskLiteral(new[] { inference.PendingBit })).AppendLine(");");
-        }
-
-        sb.Append(indent).Append("    __c.").Append(EscapeIdentifier(inference.PropertyName)).Append(" = ")
-            .Append(param).AppendLine(";");
         sb.Append(indent).AppendLine("    return __c;");
         sb.Append(indent).AppendLine("}");
 
@@ -1786,25 +2521,36 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append("public static class ").AppendLine(EntryHostName(host.AssemblyName));
         sb.AppendLine("{");
 
+        var seeded = new HashSet<string>(StringComparer.Ordinal);
         foreach (var c in entries)
         {
             var visibility = c.IsPublic ? "public" : "internal";
-            if (c.TypeParameters.Length != 0)
+            if (NeedsSeed(c))
             {
-                EmitBoundEntry(sb, c, EmptyNames, visibility, indent: "    ", host.AssemblyName,
-                    runtimePrefix: runtime);
+                // One seed property per component NAME; the steps that turn it into a component are
+                // emitted below, as extensions.
+                if (seeded.Add(c.TypeName))
+                {
+                    sb.Append("    ").Append(visibility).Append(" static ").Append(SeedFqn(c)).Append(' ')
+                        .Append(EscapeIdentifier(c.TypeName)).AppendLine(" => default;");
+                }
+
                 continue;
             }
 
-            sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime)
+            // The entry opens a chain, so it hands back `Build<TComponent>` rather than the component:
+            // the steps that follow are extension methods on the chain, which is what keeps a
+            // delegate-typed property from swallowing its own setter (see Rask.Core.Build{T}).
+            sb.Append("    ").Append(visibility).Append(" static ").Append(BuildOf(c.FullyQualifiedName))
+                .Append(' ').Append(EscapeIdentifier(c.TypeName)).Append(" => new(").Append(runtime)
                 .Append(EntryMethod(c))
                 .Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, host.AssemblyName);
-            sb.AppendLine(");");
+            sb.AppendLine("));");
         }
 
         sb.AppendLine("}");
+        EmitSeeds(sb, entries, host.AssemblyName, runtime);
         spc.AddSource("RaskBuilderEntryHost.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
@@ -1819,8 +2565,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // referenced library's RASK001 props, permanently (CrossAssemblyRequiredPropertyTests). The language's
     // `required` modifier is the only kind metadata preserves, and it is not this kind.
     //
-    // So the answer is published from here, where it is already known: this is the same rule BlocksEntry
-    // applies a few lines up, over the same property set, in the compilation that reported RASK001 for it.
+    // So the answer is published from here, where it is already known: the same rule RASK001 applies, over
+    // the same property set, in the compilation that reported it.
     // Re-deriving it on the consumer's side is not "harder" — it is impossible; re-deriving it from a
     // richer source would be a second copy free to drift. `required` props are skipped: metadata keeps
     // those, and the consumer reads them straight off the symbol.
@@ -1874,31 +2620,32 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         spc.AddSource("RaskRequiredProperties.g.cs", SourceText.From(file.ToString(), Encoding.UTF8));
     }
 
-    // This assembly's own entries, described the way a forwarder needs them. A generic form control is
-    // two overloads (bound and controlled), matching what EmitBoundEntry put in the host class.
+    // This assembly's own entries, described the way a forwarder needs them.
+    //
+    // A generic component forwards exactly like a non-generic one — one property, no type parameters,
+    // no argument list — because its entry IS a property now: it hands back a seed, and the pins that
+    // turn the seed into the component are extension methods in the global namespace, which a
+    // referencing assembly already reaches without anything being forwarded to it. One per component
+    // NAME, since both arities of a two-arity component share the member.
     private static List<EntryRef> OwnEntryRefs(List<Candidate> entries, string hostFqn)
     {
         var refs = new List<EntryRef>();
+        var seeded = new HashSet<string>(StringComparer.Ordinal);
         foreach (var c in entries)
         {
-            if (c.TypeParameters.Length == 0)
-            {
-                refs.Add(new EntryRef(hostFqn, c.TypeName, c.FullyQualifiedName, string.Empty, string.Empty,
-                    string.Empty, string.Empty));
-                continue;
-            }
-
-            if (InferenceFor(c) is not { } inference)
+            if (NeedsSeed(c) && !seeded.Add(c.TypeName))
             {
                 continue;
             }
 
-            var param = EscapeIdentifier(inference.ParamName);
-            refs.Add(new EntryRef(hostFqn, c.TypeName, c.FullyQualifiedName, c.TypeParameters,
-                c.TypeParameterConstraints,
-                "(" + inference.ParamTypeFqn + " " + param + ")", "(" + param + ")"));
-            refs.Add(new EntryRef(hostFqn, c.TypeName, c.FullyQualifiedName, c.TypeParameters,
-                c.TypeParameterConstraints, "()", "()"));
+            refs.Add(new EntryRef(
+                hostFqn,
+                c.TypeName,
+                NeedsSeed(c) ? SeedFqn(c) : BuildOf(c.FullyQualifiedName),
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty));
         }
 
         return refs;
@@ -2945,34 +3692,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                == "global::System.Threading.Tasks.Task";
     }
 
-    // Same question as IsAutoRerenderDelegate, asked of a property whose delegate may sit inside a
-    // carrier struct (Handler / HandlerAsync / Carrier<TDelegate>). Without the unwrap every carrier
-    // prop would look like a plain struct and silently lose its auto-rerender wrapping.
-    private static bool IsAutoRerenderProp(ITypeSymbol type)
-    {
-        var t = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } lifted
-            ? lifted.TypeArguments[0]
-            : type;
-
-        if (t is INamedTypeSymbol named)
-        {
-            switch (named.OriginalDefinition.ToDisplayString())
-            {
-                case "Rask.Core.Handler":
-                case "Rask.Core.HandlerAsync":
-                case "Rask.Core.Handler<TArgs>":
-                case "Rask.Core.HandlerAsync<TArgs>":
-                    // The carriers over Callback/CallbackAsync — the shape a parent↔child event
-                    // callback has. Element's own events reach here too, but never with this answer:
-                    // the caller gates on !isElement first, because a DOM handler is forwarded raw.
-                    return true;
-                case "Rask.Core.Carrier<TDelegate>":
-                    return IsAutoRerenderDelegate(named.TypeArguments[0]);
-            }
-        }
-
-        return IsAutoRerenderDelegate(t);
-    }
+    // The same question asked of a PROPERTY: lift a `Nullable<>` first, then ask the delegate.
+    //
+    // This used to unwrap a carrier as well — a callback property was a struct holding its delegate, so
+    // without the unwrap every one of them looked like a plain value type and silently lost its
+    // auto-rerender wrapping. Properties are delegates again, so the lift is all that is left.
+    private static bool IsAutoRerenderProp(ITypeSymbol type) =>
+        IsAutoRerenderDelegate(
+            type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } lifted
+                ? lifted.TypeArguments[0]
+                : type);
 
     private static bool IsInRaskCoreNamespace(INamedTypeSymbol symbol)
     {
@@ -3162,8 +3891,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // auto-wrapping on a non-Element control (BsInput, BsSelect, …) — but they are post-bind
                 // hooks, not event callbacks, and the bound factory has always assigned them raw. Excluding
                 // every bound member here keeps the builder setters on the same rule.
+                // An Element subclass forwards its delegate props straight to the DOM, where
+                // handler-owner resolution already repaints and a wrap would only add a hot-path closure
+                // — so they are assigned verbatim (DelegatePropOnElementSubclass_IsNotWrapped).
+                //
+                // [AutoCallback] is the exception, and it exists because Form needs one: its submit
+                // handlers are NOT dispatched by the DOM, they are invoked by Form's own submit bridge
+                // after validation, so nothing else would repaint the component that owns them. That is
+                // what [FactoryGeneric]'s TypedDelegateProperties used to say, on a component that is no
+                // longer generic-by-factory.
                 var isAutoRerenderDelegate =
-                    !isElement && !isBoundInterfaceProp && IsAutoRerenderProp(prop.Type);
+                    (!isElement || HasAutoCallbackAttribute(prop))
+                    && !isBoundInterfaceProp && IsAutoRerenderProp(prop.Type);
 
                 // Any delegate-typed prop (event callbacks: Callback/CallbackAsync/Action/Func) is
                 // excluded from the propsChanged fold below — two delegates/closures are practically never
@@ -3198,7 +3937,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     initializerDefault,
                     prop.SetMethod?.IsInitOnly == true,
                     IsSharedSurfaceType(current),
-                    HasDerivedSetter(prop)));
+                    HasDerivedSetter(prop),
+                    SummaryOf(prop)));
             }
         }
 
@@ -3478,7 +4218,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // assigned each render, just not folded.
         var nonKeyProps = paramProps.Where(p => !IsKeyProp(p)).ToList();
         var foldProps = nonKeyProps
-            .Where(p => !p.IsAutoRerenderDelegate && !p.IsDelegate && !IsCarrierProp(p)).ToList();
+            .Where(p => !p.IsAutoRerenderDelegate && !p.IsDelegate).ToList();
 
         // Prefer the parameterless ctor + object-initializer path whenever it's available.
         // Even if the component declares additional ctors that take services (DI) or
@@ -3699,30 +4439,27 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // Bound-mode member assignments (raw — never auto-wrapped; AfterBind is a post-bind hook, not an
         // event callback). The validator param (named Validate either way) sets Validate for the sync
         // overload and ValidateAsync for the async overload.
-        // Each carrier member goes through AssignExpr, so an omitted validator/hook stays an unset
-        // carrier instead of a non-null one wrapping null (a bare `null` literal already converts
-        // straight, but the supplied-argument branch would otherwise run the implicit conversion).
         var validate = Member("Validate");
         var validateAsync = Member("ValidateAsync");
-        var validateExpr = shape == ValidatorShape.Sync ? AssignExpr(validate, "Validate") : "null";
-        var validateAsyncExpr = shape == ValidatorShape.Async ? AssignExpr(validateAsync, "Validate") : "null";
+        var validateExpr = shape == ValidatorShape.Sync ? "Validate" : "null";
+        var validateAsyncExpr = shape == ValidatorShape.Async ? "Validate" : "null";
         var assigns = new List<(string Esc, string Expr)>
         {
             ("Bind", "Bind"),
             ("Validate", validateExpr),
             ("ValidateAsync", validateAsyncExpr),
-            (afterBind.Escaped, AssignExpr(afterBind, afterBind.Escaped)),
-            (afterBindAsync.Escaped, AssignExpr(afterBindAsync, afterBindAsync.Escaped)),
+            (afterBind.Escaped, afterBind.Escaped),
+            (afterBindAsync.Escaped, afterBindAsync.Escaped),
         };
         foreach (var p in shared)
         {
-            assigns.Add((p.Escaped, AssignExpr(p, p.Escaped)));
+            assigns.Add((p.Escaped, p.Escaped));
         }
 
         // Fold (propsChanged): only the shared value props participate — the bound members are fresh
         // expressions/delegates each render (folding them would force propsChanged: true every frame).
         var foldProps = shared
-            .Where(p => !IsKeyProp(p) && !p.IsAutoRerenderDelegate && !p.IsDelegate && !IsCarrierProp(p))
+            .Where(p => !IsKeyProp(p) && !p.IsAutoRerenderDelegate && !p.IsDelegate)
             .ToList();
 
         void EmitInit(string indent)
@@ -4031,7 +4768,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            sb.Append("global::Rask.Core.Callback<").Append(gf.TypeParameter).Append(">? ").Append(dp).Append(" = null");
+            sb.Append("global::System.Action<").Append(gf.TypeParameter).Append(">? ").Append(dp).Append(" = null");
         }
 
         foreach (var dp in typedDelegates)
@@ -4042,7 +4779,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            sb.Append("global::Rask.Core.CallbackAsync<").Append(gf.TypeParameter)
+            sb.Append("global::System.Func<").Append(gf.TypeParameter).Append(", global::System.Threading.Tasks.Task")
                 .Append(">? ").Append(dp).Append("Async = null");
         }
 
@@ -4061,9 +4798,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            // ParamType, not TypeFqn: this overload forwards to the ordinary factory, whose parameter
-            // for a carrier prop is the DELEGATE. Typing the pass-through as the carrier would emit an
-            // argument the target cannot take — the implicit conversion only runs delegate → carrier.
+            // ParamType, so the pass-through is typed exactly as the factory it forwards to.
             sb.Append(ParamType(p)).Append(' ').Append(p.Name);
             if (!IsRequiredFactoryParam(p))
             {
@@ -4134,7 +4869,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         for (var i = 0; i < entries.Count; i++)
         {
             var p = entries[i];
-            sb.Append("                ").Append(p.Escaped).Append(" = ").Append(AssignExpr(p, p.Escaped));
+            sb.Append("                ").Append(p.Escaped).Append(" = ").Append(p.Escaped);
             if (i < entries.Count - 1)
             {
                 sb.Append(',');
@@ -4170,8 +4905,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             if (p.IsAutoRerenderDelegate)
             {
                 // Wrap returns a nullable delegate (null in → null out); a non-nullable prop never
-                // passes null, so the null-forgiving `!` is safe and silences CS8601. A carrier prop
-                // takes the `?` back off through From, so it never needs the suppression.
+                // passes null, so the null-forgiving `!` is safe and silences CS8601.
                 value = "global::Rask.Core.AutoCallback.Wrap(" + p.Escaped + ")";
                 if (!p.IsNullable)
                 {
@@ -4183,7 +4917,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 value = p.Escaped;
             }
 
-            sb.Append("        __c.").Append(p.Escaped).Append(" = ").Append(AssignExpr(p, value)).AppendLine(";");
+            sb.Append("        __c.").Append(p.Escaped).Append(" = ").Append(value).AppendLine(";");
         }
 
         if (foldProps.Count == 0)
@@ -4351,6 +5085,36 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string DefaultLiteral,
         bool IsParams);
 
+
+    /// <summary>
+    ///     A property's <c>&lt;summary&gt;</c>, flattened to one line, or empty when it has none.
+    /// </summary>
+    /// <remarks>
+    ///     What a chain shows in a tooltip is the setter, not the property — so unless the summary is
+    ///     carried across, hovering <c>.Placeholder(…)</c> says nothing at all while the property it
+    ///     writes is fully documented. Taken from the compiler's own XML rather than the trivia, so an
+    ///     inherited <c>&lt;inheritdoc/&gt;</c> arrives already resolved.
+    /// </remarks>
+    private static string SummaryOf(ISymbol symbol)
+    {
+        var xml = symbol.GetDocumentationCommentXml();
+        if (string.IsNullOrEmpty(xml))
+        {
+            return string.Empty;
+        }
+
+        var open = xml!.IndexOf("<summary>", StringComparison.Ordinal);
+        var close = xml.IndexOf("</summary>", StringComparison.Ordinal);
+        if (open < 0 || close <= open)
+        {
+            return string.Empty;
+        }
+
+        var text = xml.Substring(open + "<summary>".Length, close - open - "<summary>".Length);
+        var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(" ", words);
+    }
+
     private readonly record struct PropInfo(
         string Name,
         string TypeFqn,
@@ -4368,7 +5132,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string? InitializerDefault,
         bool IsInitOnly,
         bool IsSharedSurfaceProp,
-        bool HasDerivedSetter)
+        bool HasDerivedSetter,
+        // The property's own <summary>, carried onto the step or setter that sets it — see EmitDocComment.
+        // Empty when the property has none, which is most of them today.
+        string Summary = "")
     {
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
         public string Escaped => EscapeIdentifier(Name);

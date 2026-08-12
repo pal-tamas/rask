@@ -32,7 +32,7 @@ public sealed class DragDropContext
     public string? TargetZone => _owner.TargetZoneInternal;
     public int TargetIndex => _owner.TargetIndexInternal;
 
-    public Callback DragEnd => _owner.EndDrag;
+    public Action DragEnd => _owner.EndDrag;
 
     // Convenience for the common "highlight the slot under the cursor" case.
     public bool IsDropTarget(string zone, int index) =>
@@ -44,13 +44,13 @@ public sealed class DragDropContext
         string.Equals(_owner.SourceZoneInternal, zone, StringComparison.Ordinal)
         && _owner.SourceIndexInternal == index;
 
-    public Callback DragStart(string zone, int index) => () => _owner.BeginDrag(zone, index);
+    public Action DragStart(string zone, int index) => () => _owner.BeginDrag(zone, index);
 
-    public Callback DragOver(string zone, int index) => () => _owner.HoverTarget(zone, index);
+    public Action DragOver(string zone, int index) => () => _owner.HoverTarget(zone, index);
 
     // Always async: wire to Element.OnDropAsync. CommitDropAsync routes to whichever drop handler
     // (sync OnDrop or async OnDropAsync) the DragDrop primitive holds, so a sync consumer still
     // works — the context can't know the consumer's choice at the call site, so it always returns
     // a Func<Task> and the (rare) sync commit completes synchronously inside it.
-    public CallbackAsync Drop(string zone, int index) => () => _owner.CommitDropAsync(zone, index);
+    public Func<Task> Drop(string zone, int index) => () => _owner.CommitDropAsync(zone, index);
 }

@@ -11,6 +11,7 @@ namespace Rask.Generators.Tests;
 public class BuilderSetterEmissionTests
 {
     private const string Src = """
+                               using System;
                                using Rask.Core;
                                namespace Demo;
                                public partial class Widget : Component
@@ -27,9 +28,9 @@ public class BuilderSetterEmissionTests
         var output = Run(Src);
 
         Assert.Contains(
-            "Title(this global::Demo.Widget __c, string? value) "
-            + "{ global::Rask.Core.BuilderRuntime.Track(__c, __c.Title, value); "
-            + "global::Rask.Core.BuilderRuntime.Written(__c, 0x10000UL); __c.Title = value; return __c; }",
+            "Title(this global::Rask.Core.Build<global::Demo.Widget> __b, string? value) "
+            + "{ var __c = __b.Value; global::Rask.Core.BuilderRuntime.Track(__c, __c.Title, value); "
+            + "global::Rask.Core.BuilderRuntime.Written(__c, 0x10000UL); __c.Title = value; return __b; }",
             output,
             StringComparison.Ordinal);
         Assert.Contains("global::Rask.Core.BuilderRuntime.Track(__c, __c.Count, value);", output,
@@ -67,7 +68,7 @@ public class BuilderSetterEmissionTests
     {
         var output = Run(Src);
 
-        var pick = output.Split('\n').Single(l => l.Contains(" Pick(this ", StringComparison.Ordinal));
+        var pick = output.Split('\n').Single(l => l.Contains(" OnPick(this ", StringComparison.Ordinal));
         Assert.DoesNotContain("BuilderRuntime.Written", pick, StringComparison.Ordinal);
         Assert.Contains("__c.OnPick = null;", EagerReset(output, "Widget"), StringComparison.Ordinal);
     }
@@ -118,7 +119,7 @@ public class BuilderSetterEmissionTests
     {
         var output = Run(Src);
 
-        var line = output.Split('\n').Single(l => l.Contains(" Pick(this ", StringComparison.Ordinal));
+        var line = output.Split('\n').Single(l => l.Contains(" OnPick(this ", StringComparison.Ordinal));
         Assert.DoesNotContain("BuilderRuntime.Track", line, StringComparison.Ordinal);
     }
 
@@ -148,129 +149,132 @@ public class BuilderSetterEmissionTests
     public void The_shared_generic_setters_fold_the_same_way()
     {
         var src = """
+                  using System;
                   namespace Rask.Core;
                   public abstract partial class Element : Component
                   {
                       public string? Class { get; set; }
-                      public global::Rask.Core.Callback? OnClick { get; set; }
+                      public Action? OnClick { get; set; }
                   }
                   """;
 
         var output = Run(src);
 
         Assert.Contains(
-            "public static T Class<T>(this T __c, string? value) where T : global::Rask.Core.Element "
-            + "{ global::Rask.Core.BuilderRuntime.Track(__c, __c.Class, value); "
-            + "global::Rask.Core.BuilderRuntime.Written(__c, 0x1UL); __c.Class = value; return __c; }",
+            "public static global::Rask.Core.Build<T> Class<T>(this global::Rask.Core.Build<T> __b, string? value) where T : global::Rask.Core.Element "
+            + "{ var __c = __b.Value; global::Rask.Core.BuilderRuntime.Track(__c, __c.Class, value); "
+            + "global::Rask.Core.BuilderRuntime.Written(__c, 0x1UL); __c.Class = value; return __b; }",
             output,
             StringComparison.Ordinal);
 
-        var click = output.Split('\n').Single(l => l.Contains(" Click<T>(this ", StringComparison.Ordinal));
+        var click = output.Split('\n').Single(l => l.Contains(" OnClick<T>(this ", StringComparison.Ordinal));
         Assert.DoesNotContain("BuilderRuntime.Track", click, StringComparison.Ordinal);
     }
 
-    // A carrier prop keeps its own name — that is the whole point of the carrier, and it is what makes
-    // Element's event surface read `.OnClick(…)` instead of `.Click(…)`. The SETTER still takes the
-    // delegate: a method group cannot reach a carrier, because C# will not chain a delegate conversion
-    // into a user-defined one. And it must not be AutoCallback-wrapped — a DOM handler is forwarded
-    // raw, where handler-owner resolution already re-renders the owner.
+    // An event property keeps its own name, which is what makes Element's surface read `.OnClick(…)`
+    // and not `.Click(…)`. It used to read `.Click(…)`: a delegate-typed property on the receiver
+    // swallowed its own setter, so the name had to shift or the prop had to become a carrier. And it must
+    // not be AutoCallback-wrapped — a DOM handler is forwarded raw, where handler-owner resolution
+    // already re-renders the owner.
     [Fact]
-    public void A_carrier_element_event_keeps_its_name_and_is_not_wrapped()
+    public void An_element_event_keeps_its_name_and_is_not_wrapped()
     {
         var src = """
+                  using System;
+                  using System.Threading.Tasks;
                   namespace Rask.Core;
                   public abstract partial class Element : Component
                   {
-                      public global::Rask.Core.Handler? OnClick { get; set; }
-                      public global::Rask.Core.Handler<global::Rask.Core.Live.MouseEventArgs>? OnMouseDown { get; set; }
-                      public global::Rask.Core.HandlerAsync? OnClickAsync { get; set; }
+                      public Action? OnClick { get; set; }
+                      public Action<global::Rask.Core.Live.MouseEventArgs>? OnMouseDown { get; set; }
+                      public Func<Task>? OnClickAsync { get; set; }
                   }
                   """;
 
         var output = Run(src);
 
         Assert.Contains(
-            "public static T OnClick<T>(this T __c, global::Rask.Core.Callback? value) "
+            "public static global::Rask.Core.Build<T> OnClick<T>(this global::Rask.Core.Build<T> __b, global::System.Action? value) "
             + "where T : global::Rask.Core.Element "
-            + "{ __c.OnClick = global::Rask.Core.Handler.From(value); return __c; }",
+            + "{ var __c = __b.Value; __c.OnClick = value; return __b; }",
             output,
             StringComparison.Ordinal);
         Assert.Contains(
-            "OnMouseDown<T>(this T __c, "
-            + "global::Rask.Core.Callback<global::Rask.Core.Live.MouseEventArgs>? value)",
+            "OnMouseDown<T>(this global::Rask.Core.Build<T> __b, "
+            + "global::System.Action<global::Rask.Core.Live.MouseEventArgs>? value)",
             output,
             StringComparison.Ordinal);
         Assert.Contains(
-            "OnClickAsync<T>(this T __c, global::Rask.Core.CallbackAsync? value)",
+            "OnClickAsync<T>(this global::Rask.Core.Build<T> __b, global::System.Func<global::System.Threading.Tasks.Task>? value)",
             output,
             StringComparison.Ordinal);
         Assert.DoesNotContain("AutoCallback.Wrap", output, StringComparison.Ordinal);
     }
 
-    // The other half of the carrier rule, and the one that fails SILENTLY. A carrier on a
-    // non-Element component (BsButton.OnClick, BsDataGrid.OnSortChange, Input's DragDrop sibling…)
-    // must STAY AutoCallback-wrapped: a component callback has no DOM handler-owner resolution behind
-    // it, so dropping the wrapper stops the consumer re-rendering while the markup stays identical.
-    // IsAutoRerenderProp answers the question through the carrier; this pins that it still does.
+    // The half that fails SILENTLY. A callback on a non-Element component (BsButton.OnClick,
+    // BsDataGrid.OnSortChange, Input's DragDrop sibling…) must STAY AutoCallback-wrapped: it has no DOM
+    // handler-owner resolution behind it, so dropping the wrapper stops the consumer re-rendering while
+    // the markup stays identical. IsAutoRerenderProp answers the question; this pins that it still does.
     [Fact]
-    public void A_carrier_callback_on_a_non_element_component_is_still_auto_wrapped()
+    public void A_callback_on_a_non_element_component_is_still_auto_wrapped()
     {
         var output = Run("""
+                         using System;
+                         using System.Threading.Tasks;
                          using Rask.Core;
                          namespace Demo;
                          public partial class Widget : Component
                          {
-                             public Handler? OnPick { get; set; }
-                             public HandlerAsync<string>? OnPickAsync { get; set; }
-                             public Carrier<System.Action<int>>? OnRank { get; set; }
+                             public Action? OnPick { get; set; }
+                             public Func<string, Task>? OnPickAsync { get; set; }
+                             public System.Action<int>? OnRank { get; set; }
                          }
                          """);
 
         Assert.Contains(
-            "OnPick(this global::Demo.Widget __c, global::Rask.Core.Callback? value) "
-            + "{ __c.OnPick = global::Rask.Core.Handler.From(global::Rask.Core.AutoCallback.Wrap(value)); "
-            + "return __c; }",
+            "OnPick(this global::Rask.Core.Build<global::Demo.Widget> __b, global::System.Action? value) "
+            + "{ var __c = __b.Value; __c.OnPick = global::Rask.Core.AutoCallback.Wrap(value); "
+            + "return __b; }",
             output,
             StringComparison.Ordinal);
         Assert.Contains(
-            "__c.OnPickAsync = global::Rask.Core.HandlerAsync<string>"
-            + ".From(global::Rask.Core.AutoCallback.Wrap(value));",
+            "__c.OnPickAsync = global::Rask.Core.AutoCallback.Wrap(value);",
             output,
             StringComparison.Ordinal);
 
-        // Carrier<TDelegate> asks the same question of the delegate it carries, so an Action<int>
-        // callback is wrapped for the same reason.
+        // …and a plain BCL delegate is the same question with the same answer.
         Assert.Contains(
-            "__c.OnRank = global::Rask.Core.Carrier<global::System.Action<int>>"
-            + ".From(global::Rask.Core.AutoCallback.Wrap(value));",
+            "__c.OnRank = global::Rask.Core.AutoCallback.Wrap(value);",
             output,
             StringComparison.Ordinal);
     }
 
-    // `From`, never `new Handler(value)` and never the bare implicit conversion: the conversion accepts
-    // a null delegate, so an omitted argument would land as a non-null carrier wrapping null and the
-    // component's own `OnClose is not null` tests would all start answering true. Pinned on the FACTORY
-    // too, which is where an omitted argument actually arrives.
+    // An omitted callback stays null all the way through. There used to be a hazard here: a callback
+    // property was a CARRIER struct whose implicit conversion accepted a null delegate, so an omitted
+    // argument landed as a non-null carrier wrapping null and every `OnClose is not null` test a
+    // component makes about its own callback started answering true. The property is the delegate now,
+    // so null is null — pinned on the FACTORY, which is where an omitted argument actually arrives.
     [Fact]
-    public void A_carrier_assignment_maps_a_null_delegate_to_an_unset_carrier()
+    public void An_omitted_callback_argument_stays_null()
     {
         var src = """
+                  using System;
                   using Rask.Core;
                   namespace Demo;
                   public partial class Widget : Component
                   {
-                      public Handler? OnPick { get; set; }
+                      public Action? OnPick { get; set; }
                   }
                   """;
 
         var factory = Run(src, "Demo.Generated.g.cs");
 
-        Assert.Contains("global::Rask.Core.Callback? OnPick = null", factory, StringComparison.Ordinal);
+        Assert.Contains("global::System.Action? OnPick = null", factory, StringComparison.Ordinal);
         Assert.Contains(
-            "__c.OnPick = global::Rask.Core.Handler.From(global::Rask.Core.AutoCallback.Wrap(OnPick));",
+            "__c.OnPick = global::Rask.Core.AutoCallback.Wrap(OnPick);",
             factory,
             StringComparison.Ordinal);
-        Assert.DoesNotContain("__c.OnPick = new global::Rask.Core.Handler(", factory, StringComparison.Ordinal);
+        Assert.DoesNotContain(".From(", factory, StringComparison.Ordinal);
     }
 
     // A prop inherited from an INTERMEDIATE base (HtmlMediaElement, BsBlock, BsFormControl<T>, a
@@ -294,7 +298,7 @@ public class BuilderSetterEmissionTests
                          }
                          """);
 
-        Assert.Contains("Heading(this global::Demo.Widget __c, string? value)", output, StringComparison.Ordinal);
+        Assert.Contains("Heading(this global::Rask.Core.Build<global::Demo.Widget> __b, string? value)", output, StringComparison.Ordinal);
 
         // …and the inherited prop is reset like an own one, or the chain would keep last render's
         // heading where the factory would have put it back.
@@ -302,7 +306,7 @@ public class BuilderSetterEmissionTests
 
         // Component's own props stay on the shared surface: emitting them here as well would be dead
         // weight on every component in the assembly.
-        Assert.DoesNotContain("Key(this global::Demo.Widget", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Key(this global::Rask.Core.Build<global::Demo.Widget>", output, StringComparison.Ordinal);
     }
 
     // The shared Element/Component surface gets its reset emitted ONCE, into Rask.Core.BuilderRuntime —
@@ -312,11 +316,12 @@ public class BuilderSetterEmissionTests
     public void The_shared_surface_reset_is_emitted_once_onto_BuilderRuntime()
     {
         var output = Run("""
+                         using System;
                          namespace Rask.Core;
                          public abstract partial class Element : Component
                          {
                              public string? Class { get; set; }
-                             public global::Rask.Core.Callback? OnClick { get; set; }
+                             public Action? OnClick { get; set; }
                          }
                          """, "RaskBuilderReset.g.cs");
 
@@ -331,67 +336,44 @@ public class BuilderSetterEmissionTests
         Assert.Contains("public const ulong SharedComponentPending = 0x0UL;", output, StringComparison.Ordinal);
     }
 
-    // A raw delegate property IS invocable, so C#'s invocable-member rule binds `grid.RowClass(fn)` to
-    // the property and never looks at the same-named extension. The setter was emitted anyway: dead
-    // code that reads like a working surface, and the prop simply cannot be set from a chain. It has to
-    // move to a carrier (which is not invocable) — that is what a65abd3e/8587f44a did for every prop
-    // named `On…`, and the props the `On` rule never touched were left behind.
+    // The rule these two tests used to pin is gone, and this is its epitaph. A delegate property was
+    // INVOCABLE, so `grid.RowClass(fn)` bound to the property and never reached the same-named
+    // extension: the setter was dead code (RASK042), and a REQUIRED delegate property cost its component
+    // an entry outright. Both followed from the receiver being the component. It is `Build<TComponent>`
+    // now, so a delegate property is not on the receiver and every one of them gets an ordinary setter.
     [Fact]
-    public void A_delegate_prop_whose_setter_would_share_its_name_is_reported_not_emitted()
+    public void A_delegate_prop_gets_an_ordinary_setter_under_its_own_name()
     {
         var run = BuilderGeneratorHarness.Run("""
+                                              using System;
                                               using Rask.Core;
                                               namespace Demo;
                                               public partial class Widget : Component
                                               {
                                                   public System.Func<int, string>? Format { get; set; }
-                                                  public Carrier<System.Func<int, string>>? Shape { get; set; }
-                                              }
-                                              """);
-
-        var reported = Assert.Single(run.WithId("RASK042"));
-        Assert.Contains("Demo.Widget.Format", reported.GetMessage(), StringComparison.Ordinal);
-        Assert.Contains("global::Rask.Core.Carrier<global::System.Func<int, string>>?", reported.GetMessage(),
-            StringComparison.Ordinal);
-
-        var output = run.Source("RaskBuilderSetters.g.cs");
-        Assert.DoesNotContain(" Format(this ", output, StringComparison.Ordinal);
-
-        // The carrier-typed sibling is the fix, so it keeps its name AND takes the raw delegate.
-        Assert.Contains(
-            "Shape(this global::Demo.Widget __c, global::System.Func<int, string>? value) "
-            + "{ __c.Shape = global::Rask.Core.Carrier<global::System.Func<int, string>>.From(value); "
-            + "return __c; }",
-            output,
-            StringComparison.Ordinal);
-    }
-
-    // …but not for a REQUIRED delegate prop (`required Func<…> Template`). Its component is excluded
-    // from the entries entirely, so there is no chain for a setter to sit in, and its factory assigns
-    // the prop on every render. Moving it to a carrier would only cost its non-nullness.
-    [Fact]
-    public void A_required_delegate_prop_is_not_reported()
-    {
-        var run = BuilderGeneratorHarness.Run("""
-                                              using Rask.Core;
-                                              namespace Demo;
-                                              public partial class Widget : Component
-                                              {
-                                                  public required System.Func<int, string> Format { get; set; }
+                                                  public required System.Func<int, string> Shape { get; set; }
                                               }
                                               """);
 
         Assert.Empty(run.WithId("RASK042"));
-        Assert.DoesNotContain(" Format(this ", run.Source("RaskBuilderSetters.g.cs"), StringComparison.Ordinal);
+
+        var output = run.Source("RaskBuilderSetters.g.cs");
+        Assert.Contains(
+            "Format(this global::Rask.Core.Build<global::Demo.Widget> __b, global::System.Func<int, string>? value) "
+            + "{ var __c = __b.Value; __c.Format = value; return __b; }",
+            output,
+            StringComparison.Ordinal);
+
+        // A required one is a chain STEP rather than a setter, so it opens the chain instead.
+        Assert.Contains("Shape", run.Source("RaskBuilderEntryHost.g.cs"), StringComparison.Ordinal);
     }
 
-    // The bound IFormControl<T> members are emitted from the INTERFACE's types rather than from the
-    // control's own declarations, and those types are carriers. Spelling them as the bare delegate here
-    // made the assignment run the carrier's implicit conversion instead of `From`, so a null validator
-    // or post-bind hook landed as a non-null carrier wrapping null — the trap `From` exists to close,
-    // reopened one layer up, where `Validator`'s `Validate?.Fn ?? ValidateAsync?.Fn` reads it back.
+
+    // The bound IFormControl<T> members are emitted from the INTERFACE's types rather than from
+    // wherever the control happens to declare them, so that a control inheriting them from a non-Element
+    // base still gets setters typed from the interface's T.
     [Fact]
-    public void The_bound_setters_assign_through_the_carriers_From()
+    public void The_bound_setters_are_typed_from_the_interface()
     {
         var output = Run("""
                          using System;
@@ -403,25 +385,24 @@ public class BuilderSetterEmissionTests
                          public partial class Widget : Component, IFormControl<int>
                          {
                              public int? Value { get; set; }
-                             public Handler<int>? OnChange { get; set; }
-                             public HandlerAsync<int>? OnChangeAsync { get; set; }
+                             public Action<int>? OnChange { get; set; }
+                             public Func<int, Task>? OnChangeAsync { get; set; }
                              public Expression<Func<int>>? Bind { get; set; }
-                             public Carrier<Validate<int>>? Validate { get; set; }
-                             public Carrier<ValidateAsync<int>>? ValidateAsync { get; set; }
-                             public Carrier<Action<int>>? AfterBind { get; set; }
-                             public Carrier<Func<int, Task>>? AfterBindAsync { get; set; }
+                             public Validate<int>? Validate { get; set; }
+                             public ValidateAsync<int>? ValidateAsync { get; set; }
+                             public Action<int>? AfterBind { get; set; }
+                             public Func<int, Task>? AfterBindAsync { get; set; }
                          }
                          """);
 
-        // The parameter is still the plain delegate — a lambda or method group cannot reach a carrier.
         Assert.Contains(
-            "Validate(this global::Demo.Widget __c, global::Rask.Core.Forms.Validate<int>? value) "
-            + "{ __c.Validate = global::Rask.Core.Carrier<global::Rask.Core.Forms.Validate<int>>.From(value); "
-            + "return __c; }",
+            "Validate(this global::Rask.Core.Build<global::Demo.Widget> __b, global::Rask.Core.Forms.Validate<int>? value) "
+            + "{ var __c = __b.Value; __c.Validate = value; "
+            + "return __b; }",
             output,
             StringComparison.Ordinal);
         Assert.Contains(
-            "__c.AfterBind = global::Rask.Core.Carrier<global::System.Action<int>>.From(value);",
+            "__c.AfterBind = value;",
             output,
             StringComparison.Ordinal);
     }

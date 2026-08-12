@@ -22,16 +22,16 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
             Div.Class("card-body")[
                 BsRow.Gutter(2).Class(Margin.Bottom(2))[
                     BsCol.Sm(4)[
-                        Input<string>()
+                        Input
+                            .Value(_key)
                             .Id("idb-key")
                             .Class("form-control form-control-sm")
-                            .Value(_key)
                             .OnInput(v => _key = v)],
                     BsCol.Sm(8)[
-                        Input<string>()
+                        Input
+                            .Value(_value)
                             .Id("idb-value")
                             .Class("form-control form-control-sm")
-                            .Value(_value)
                             .OnInput(v => _value = v)]
                 ],
                 BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
