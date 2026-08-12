@@ -5,8 +5,8 @@ using Rask.Cli.Scaffolding;
 namespace Rask.Cli.Tests;
 
 /// <summary>
-/// Types tutorial chapter 2 into a freshly scaffolded project and builds it — the question the snippet
-/// parser can't answer.
+/// Walks the tutorial the way a reader does — scaffold, then chapter 2, 3, 4 in order — building after
+/// each. The question the snippet parser can't answer.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -18,26 +18,29 @@ namespace Rask.Cli.Tests;
 /// package. A reader following the chapter exactly got four compiler errors.
 /// </para>
 /// <para>
+/// Extending it to chapter 4 found a fifth: the job handler used <c>IDbContextFactory</c> and
+/// <c>AppDbContext</c> with no <c>using</c> and no namespace, so the file the chapter names did not
+/// compile. The chapters build on each other — chapter 4's handler reads <c>db.Orders</c>, which only
+/// exists after chapter 3 — so they are walked cumulatively rather than in isolation.
+/// </para>
+/// <para>
 /// Opt-in with the rest of the build gates (<c>RASK_CLI_BUILD_E2E=1</c>) because it packs the framework
-/// and runs a real restore + build. It reads the chapter rather than a copy of it: a snippet edited in
-/// the docs is compiled here, which is the only arrangement that can't drift.
+/// and runs a real restore + build. It reads the chapters rather than copies of them: a snippet edited
+/// in the docs is compiled here, which is the only arrangement that can't drift.
 /// </para>
 /// </remarks>
 public sealed partial class TutorialChapterBuildE2ETests
 {
     [SkippableFact]
-    public async Task Chapter_2_builds_when_you_type_it_in()
+    public async Task The_tutorial_builds_when_you_type_it_in()
     {
         Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
-        var chapter = File.ReadAllText(Path.Combine(TutorialDirectory(), "02-first-feature.md"));
-        var fences = CSharpFence().Matches(chapter).Select(m => m.Groups["code"].Value).ToArray();
+        var ch2 = Fences("02-first-feature.md");
+        var ch3 = Fences("03-orders-and-auth.md");
+        var ch4 = Fences("04-background-jobs.md");
 
-        string Fence(string contains) =>
-            fences.FirstOrDefault(f => f.Contains(contains, StringComparison.Ordinal))
-            ?? throw new InvalidOperationException(
-                $"Chapter 2 no longer contains a C# snippet with '{contains}'. If the chapter was "
-                + "restructured, update this test to match — don't delete the coverage.");
+        string Fence(string contains) => Pick(ch2, contains, "2");
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
         var temp = Path.Combine(Path.GetTempPath(), "rask-tutorial-e2e", Guid.NewGuid().ToString("N"));
@@ -86,17 +89,62 @@ public sealed partial class TutorialChapterBuildE2ETests
                 $"add \"{csproj}\" package Rask.Validation.DataAnnotations --version {version}");
             Assert.True(added == 0, $"Adding the validation package failed.{CliBuildE2E.Diagnostics(addOutput)}");
 
-            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{csproj}\" -warnaserror -m:1");
-            Assert.True(
-                exit == 0,
-                "Tutorial chapter 2 does not compile when typed in as written. Every snippet a reader "
-                + $"copies has to build.{CliBuildE2E.Diagnostics(output)}");
+            await Build(csproj, "chapter 2");
+
+            // --- Chapter 3: a second slice on the same database ---
+            var orders = Path.Combine(projectDir, "Features", "Orders");
+            fs.CreateDirectory(orders);
+            Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Entity<Guid>", "3"));
+
+            context = Strip(Pick(ch3, "using Shop.Features.Orders;", "3")) + "\n" + fs.ReadAllText(contextPath);
+            fs.WriteAllText(
+                contextPath,
+                OpeningBrace().Replace(context, "$1    " + Strip(Pick(ch3, "DbSet<Order>", "3")) + "\n\n", 1));
+
+            await Build(csproj, "chapter 3");
+
+            // --- Chapter 4: a durable job, whose handler reads the Orders set chapter 3 added ---
+            var jobHandler = Pick(ch4, "SendOrderReceiptHandler(IDbContextFactory", "4");
+            var shared = Path.Combine(projectDir, "Features", "Shared");
+            Write(
+                fs, shared, "SendOrderReceipt.cs",
+                jobHandler[..jobHandler.IndexOf("public sealed class", StringComparison.Ordinal)].Trim()
+                + "\n\nnamespace Shop.Features.Shared;\n\n"
+                + Pick(ch4, "record SendOrderReceipt(Guid OrderId)", "4").Trim() + "\n\n"
+                + jobHandler[jobHandler.IndexOf("public sealed class", StringComparison.Ordinal)..]);
+
+            await Build(csproj, "chapter 4");
         }
         finally
         {
             CliBuildE2E.TryDeleteDirectory(temp);
         }
     }
+
+    private static async Task Build(string csproj, string chapter)
+    {
+        var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{csproj}\" -warnaserror -m:1");
+        Assert.True(
+            exit == 0,
+            $"Tutorial {chapter} does not compile when typed in as written. Every snippet a reader "
+            + $"copies has to build.{CliBuildE2E.Diagnostics(output)}");
+    }
+
+    private static string[] Fences(string chapter) =>
+        CSharpFence()
+            .Matches(File.ReadAllText(Path.Combine(TutorialDirectory(), chapter)))
+            .Select(m => m.Groups["code"].Value)
+            .ToArray();
+
+    /// <summary>
+    /// The chapter's snippet containing <paramref name="contains"/>. Throws rather than returning null so
+    /// a restructured chapter fails loudly instead of silently covering nothing.
+    /// </summary>
+    private static string Pick(string[] fences, string contains, string chapter) =>
+        fences.FirstOrDefault(f => f.Contains(contains, StringComparison.Ordinal))
+        ?? throw new InvalidOperationException(
+            $"Chapter {chapter} no longer contains a C# snippet with '{contains}'. If the chapter was "
+            + "restructured, update this test to match — don't delete the coverage.");
 
     /// <summary>A snippet line with its trailing "// at the top of the file" aside removed.</summary>
     private static string Strip(string fence) => fence.Trim().Split("//")[0].Trim();

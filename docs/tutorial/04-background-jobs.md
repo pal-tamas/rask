@@ -13,6 +13,8 @@ same `app.db`.
 Create `Features/Shared/SendOrderReceipt.cs` — a job record and its handler:
 
 ```csharp
+namespace Shop.Features.Shared;
+
 public sealed record SendOrderReceipt : IJob;
 
 public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
@@ -35,6 +37,8 @@ public sealed record SendOrderReceipt(Guid OrderId) : IJob;
 Fill in the handler with whatever the work is (we'll make it send an email in the next chapter):
 
 ```csharp
+using Microsoft.EntityFrameworkCore;   // for IDbContextFactory
+
 public sealed class SendOrderReceiptHandler(IDbContextFactory<AppDbContext> dbFactory)
     : ICommandHandler<SendOrderReceipt>
 {
