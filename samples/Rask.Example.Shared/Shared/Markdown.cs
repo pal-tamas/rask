@@ -24,14 +24,80 @@ namespace Rask.Example.Shared;
 // docs/*.md renders on GitHub, so the guides stay dual-purpose (repo docs + on-site).
 public sealed partial class Markdown : Component
 {
-    // AutoIdentifiers gives every heading a stable id (anchor links); the advanced extensions cover
-    // tables, fenced code, task lists, etc. — the Markdown the guides actually use. Thread-safe, reused.
+    // The advanced extensions cover tables, fenced code, task lists, etc. — the Markdown the guides
+    // actually use — and bring AutoIdentifiers, which gives every heading an id. Thread-safe, reused.
     // Internal so GuideChrome extracts headings through the *same* pipeline, guaranteeing the ids it
-    // links to match the ids Markdig stamps on the rendered <h2>/<h3>.
-    internal static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
-        .UseAdvancedExtensions()
-        .UseAutoIdentifiers()
-        .Build();
+    // links to match the ids stamped on the rendered <h2>/<h3>.
+    //
+    // The ids are then RESTAMPED GitHub-style. The docs under docs/ are authored and reviewed on GitHub,
+    // and their in-page links are written against GitHub's anchors — which differ from Markdig's wherever
+    // a heading holds punctuation, because GitHub deletes the character and keeps the space around it
+    // ("Context & DI" → context--di) while Markdig collapses the run (context-di). Rendering Markdig's ids
+    // meant 62 links across the docs still navigated and silently landed the reader at the top of the page.
+    // Markdig's own AutoIdentifierOptions.GitHub does NOT close this gap (verified: identical output), so
+    // the slug is ours. Subscribed AFTER UseAdvancedExtensions so this runs after AutoIdentifiers and wins.
+    internal static readonly MarkdownPipeline Pipeline = BuildPipeline();
+
+    private static MarkdownPipeline BuildPipeline()
+    {
+        var builder = new MarkdownPipelineBuilder().UseAdvancedExtensions();
+        builder.DocumentProcessed += StampGitHubHeadingIds;
+        return builder.Build();
+    }
+
+    private static void StampGitHubHeadingIds(MarkdownDocument document)
+    {
+        // Per document, because GitHub disambiguates repeats within one page.
+        var seen = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var heading in document.Descendants<HeadingBlock>())
+        {
+            var slug = GitHubSlug(InlineText(heading.Inline));
+            if (slug.Length == 0)
+            {
+                continue;
+            }
+
+            if (seen.TryGetValue(slug, out var count))
+            {
+                seen[slug] = count + 1;
+                slug = $"{slug}-{count}";
+            }
+            else
+            {
+                seen[slug] = 1;
+            }
+
+            heading.GetAttributes().Id = slug;
+        }
+    }
+
+    /// <summary>
+    /// GitHub's heading slug: lower-case, drop everything that isn't a letter, digit, hyphen or
+    /// underscore, and turn each remaining whitespace character into a hyphen.
+    /// </summary>
+    /// <remarks>
+    /// The load-bearing detail is what it does NOT do: it never collapses the hyphens that result. A
+    /// dropped "&amp;" or em dash leaves the spaces on either side of it, so they become two hyphens —
+    /// which is why the docs are full of anchors like <c>#rask-db--ef-core-migrations</c>. Leading digits
+    /// survive too (<c>#1-two-way-binding</c>), where Markdig strips them.
+    /// </remarks>
+    private static string GitHubSlug(string headingText)
+    {
+        var sb = new StringBuilder(headingText.Length);
+        foreach (var ch in headingText)
+        {
+            if (char.IsWhiteSpace(ch))
+            {
+                sb.Append('-');
+            }
+            else if (char.IsLetterOrDigit(ch) || ch is '-' or '_')
+            {
+                sb.Append(char.ToLowerInvariant(ch));
+            }
+        }
+
+        return sb.ToString();
+    }
 
     private static readonly ConcurrentDictionary<string, string> HtmlCache = new(StringComparer.Ordinal);
 

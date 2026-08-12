@@ -82,6 +82,7 @@ The shipped native backends (both platforms):
 | `IDeviceMotion` | CoreMotion (`CMMotionManager`) | `SensorManager` (accelerometer + gyroscope) |
 | `INotifications` | `UNUserNotificationCenter` | `NotificationManager` (+ channel) |
 | `IBadge` | `UNUserNotificationCenter.SetBadgeCount` | badge notification (`setNumber`) |
+| `IPermissions` | `CLLocationManager` / `UNUserNotificationCenter` / `AVCaptureDevice` status | `Activity.CheckSelfPermission` |
 
 So `await geolocation.GetCurrentPositionAsync()` returns a native fix (real permission prompt +
 `CLLocationManager` / `LocationManager` accuracy) instead of `navigator.geolocation`, `clipboard.WriteTextAsync`
@@ -89,6 +90,12 @@ hits `UIPasteboard` / `ClipboardManager` (no WebView gesture gate), `notificatio
 OS notification where a WebView has no `Notification` API at all, and so on. Some backends need platform
 permissions — add `ACCESS_FINE_LOCATION` / `ACCESS_NETWORK_STATE` / `POST_NOTIFICATIONS` (Android) and
 `NSLocationWhenInUseUsageDescription` (iOS), and the head requests the location and notification runtime grants.
+
+`IPermissions` is the one to reach for *before* any of those: it reports on the **OS app permission** the
+backends above gate on, not the WebView's own grants, so asking it and then calling `IGeolocation` are
+questions and answers about the same system. Note the tri-state is only real on iOS — Android's
+`CheckSelfPermission` cannot tell "never asked" from "denied permanently", so anything not granted reports
+`Prompt`. See [`IPermissions`](apis/permissions.md).
 
 The **declarative** `Shareable` still reaches the native share sheet through the **capability bridge**: the
 native client advertises `window.__raskNative.capabilities` and an `invoke(name, data)` that posts a

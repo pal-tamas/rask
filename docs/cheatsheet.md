@@ -12,21 +12,6 @@ rask new Shop --auth --docker         # new app: cookie auth + a Dockerfile for 
 rask dev                              # dotnet watch run — hot reload (--open for a browser)
 rask info                             # what rask sees: project, packages, versions
 
-# a full CRUD vertical slice (entity + CQRS + EF + pages)
-rask generate feature Product Name:string Price:decimal InStock:bool
-rask g f Order Total:decimal --id long          # g = generate, f = feature; long key
-rask g f Order Total:decimal -c ProductsDbContext   # reuse an existing DbContext
-rask g f Post Title:string 1:n Comment Body:text    # a related entity in the same run
-
-# other artifacts
-rask g page Products                  # → Features/Products/ProductsPage.cs ([Route("/products")])
-rask g component PriceTag             # → Features/Shared/PriceTag.cs
-rask g component PriceTag -F Orders   # → Features/Orders/PriceTag.cs (co-locate in a slice)
-rask g job SendWelcomeEmail           # → Features/Shared/… (IJob + handler)  + Rask.Jobs
-rask g email WelcomeEmail             # → Features/Shared/… (email-body component)  + Rask.Mail
-rask g cache PopularProducts          # → a cached read accessor  + Rask.Cache
-rask g p Orders --dry-run             # print what would be written, touch nothing
-
 # database (wraps dotnet-ef; installs it on first use)
 rask db add InitialCreate             # generate a migration from the current model
 rask db update                        # apply it — creates app.db
@@ -41,43 +26,39 @@ rask deploy --host root@box --domain shop.example.com   # bare box → live HTTP
 rask deploy                           # redeploy (host/domain remembered), zero-downtime
 rask deploy --github-actions          # write .github/workflows/deploy.yml
 rask deploy status                    # what's running, and on which color
-rask deploy logs --follow             # tail the deployed app
+rask deploy logs -f                  # tail the deployed app (--follow)
 rask deploy rollback                  # put the previous image back
 
 # tab completion
 rask completion zsh > "${fpath[1]}/_rask"   # also: bash, fish
 ```
 
-Short aliases everywhere: `rask g` = `rask generate`; `g f`/`g c`/`g p`/`g j`/`g e`/`g ca` =
-feature / component / page / job / email / cache. Every command's own list is in
-`rask <command> --help`, and a wrong one tells you what you probably meant.
+Every command's own option list is in `rask <command> --help`, and a wrong one tells you what you
+probably meant.
 
-## Feature field tokens
+> **Code inside the project is code you write.** `rask` scaffolds the project; pages, components, CRUD
+> slices, jobs, emails and caches are shown as copyable code in the [tutorial](tutorial/00-overview.md)
+> and the guides, and the finished app is committed as
+> [`samples/Rask.Example.Shop`](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop).
 
-`rask g f <Entity> <Name:type> …` — fields are **positional** after the name. `Id` is added for you.
+## A CRUD slice, in one place
 
-| Type token | C# type | | Modifier | Meaning |
-|---|---|---|---|---|
-| `string` / `text` | `string` | | `Name:string?` | trailing `?` → **optional** |
-| `int` / `number` | `int` | | `Name:string(100)` | `(n)` → max length |
-| `long` | `long` | | `'Note:string?(500)'` | quote specs with `?`/`(…)` so the shell won't expand them |
-| `decimal` / `money` | `decimal` | | | |
-| `double` | `double` | | **Relationship** | after the root's fields: |
-| `bool` | `bool` | | `1:n Comment Body:text` | one Post → many Comments (FK on Comment) |
-| `date` | `DateOnly` | | `n:1` · `1:1` · `n:n` | many-to-one · one-to-one · many-to-many |
-| `time` | `TimeOnly` | | `0:n` (leading `0`) | makes the foreign key **optional** |
-| `datetime` | `DateTime` | | | `n:n` uses EF's implicit join table |
-| `Guid` | `Guid` | | | |
+A vertical slice under `Features/<Plural>/` is five kinds of file:
 
-**Feature flags:** `--bs` (Bootstrap `Bs*` pages) · `--modal` (create/edit in a `BsModal`, implies
-`--bs`) · `--soft-delete` · `--concurrency` (row version) · `--events` · `--outbox` (implies
-`--events`) · `--tests` (sibling `<Project>.Tests`) · `--validation valueobjects|dataannotations|fluent`
-· `--id guid|int|long` · `--plural People` · `--context <Name>` (only with several DbContexts) · `--no-restore` · `--force` ·
-`--dry-run` · `--save-defaults` (remember these flags in `.rask/generate.json`).
+| File | What it is |
+|---|---|
+| `Product.cs` | the entity — `Entity<Guid>`, private setters, `Create`/`Update` factories |
+| `ProductRequest.cs` | the form model the create/edit pages bind to |
+| `ProductConfiguration.cs` | the EF `IEntityTypeConfiguration<Product>` (lengths, keys, relationships) |
+| `ProductsPage.cs` | the routed list page + its query and handler |
+| `CreateProduct.cs` · `UpdateProduct.cs` · `DeleteProduct.cs` | one command + handler + page each |
+
+Plus `public DbSet<Product> Products => Set<Product>();` on the app's one `AppDbContext`.
+[Chapter 2](tutorial/02-first-feature.md) writes all of it out.
 
 ## Wiring one-liners
 
-`rask g f` **writes these three for you** into `Program.cs` (and adds the packages):
+A data-backed app needs these three in `Program.cs` (`rask new --data` writes them for you):
 
 ```csharp
 builder.Services.AddRaskCqrs();                        // the mediator (IDispatcher)

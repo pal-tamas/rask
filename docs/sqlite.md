@@ -490,27 +490,109 @@ the SQLite store on mobile, so adding a todo, killing the app, and relaunching s
 
 ## SQLite in the browser? (WASM)
 
-`Rask.SQLite` is a **server- and mobile-side** package, and deliberately so. Its whole value is the
-production pragma set — WAL, `busy_timeout`, `synchronous` — which tames **concurrent** access to a
-file database. A browser (WebAssembly) app has none of that: it's single-threaded, there's no real
-filesystem, and **WAL doesn't work** there, so the pragmas that make this package worthwhile don't
-apply. Running `Microsoft.Data.Sqlite` in the browser also means compiling and linking a WASM build of
-`e_sqlite3` (a native relink at publish) for a database that lives in memory and is lost on reload
-unless you serialize the whole file out by hand — a lot of moving parts for little gain.
+SQLite runs in the browser — `Microsoft.Data.Sqlite` and EF Core on top of it, in the tab, with no server
+involved. What does **not** belong there is `Rask.SQLite` itself: that package is a **server- and
+mobile-side** one, and deliberately so. Its whole value is the production pragma set — WAL,
+`busy_timeout`, `synchronous` — which tames **concurrent** access to a file database. A browser app has
+one connection and no concurrency to tame, so those pragmas buy it nothing.
+
+Two things that used to make this impractical no longer do. Linking the native `e_sqlite3` takes no work:
+the patched SQLitePCLRaw bundle this repo already pins resolves to a native package that ships the
+`browser-wasm` asset and adds the `NativeFileReference` itself. And the database living in memory — lost
+on every reload — is what [`Rask.SQLite.Browser`](#rasksqlitebrowser--keeping-a-browser-database) exists
+to fix.
 
 For client-side storage in a Rask WASM app, reach for what the browser already gives you and Rask
 already wraps:
 
 - **Key/value** — `IBrowserStorage` (localStorage/sessionStorage, ~5 MB) or `IIndexedDb` (hundreds of
   MB, async), both in `Rask.Core.Browser`. See [browser-apis.md](browser-apis.md).
-- **A real client-side SQL database** — use the JavaScript
-  [`sqlite-wasm`](https://sqlite.org/wasm/) + OPFS (Origin Private File System) stack in a Web Worker.
-  That's a different engine from `Microsoft.Data.Sqlite`, purpose-built for the browser, and it owns
-  the durable-persistence story (OPFS sync access handles) that `Rask.SQLite` intentionally does not
-  try to reinvent.
+- **A real client-side SQL database, in C#** — [`Rask.SQLite.Browser`](#rasksqlitebrowser--keeping-a-browser-database),
+  below. Same `Microsoft.Data.Sqlite`, same EF Core, persisted across reloads.
+- **A real client-side SQL database, in JavaScript** — the
+  [`sqlite-wasm`](https://sqlite.org/wasm/) + OPFS stack in a Web Worker. A different engine, purpose-built
+  for the browser, and still the only way to get SQLite reading and writing OPFS pages directly (which
+  needs a Worker — see [Where OPFS fits](#where-opfs-fits)). Reach for it if
+  the client-side database is the point of the app rather than a local cache of one.
 
-Keep SQLite behind the server (or on device with `Rask.Native`), and let the WASM client talk to it
-through an API or the browser storage APIs above.
+For a **server** app, none of this changes the advice: keep SQLite behind the server (or on device with
+`Rask.Native`) and let the client talk to it through an API. The browser database is for apps that must
+work offline or own their data locally — not a way to avoid having a server.
+
+> **It does run, though: the [playground's tutorial](playground.md#the-guided-tutorial) does exactly
+> this.** Its data chapters run EF Core + `Microsoft.Data.Sqlite` in the browser — native relink and all —
+> and everything above about *pragmas* still holds, but "it can't work" would be too strong. Two
+> constraints if you try it: the app must be **untrimmed** (`PublishTrimmed=true` breaks EF Core, though
+> raw ADO.NET survives it), and it needs `NoWarn=WASM0001` for the varargs `sqlite3_config` natives, which
+> this repo's warnings-as-errors would otherwise turn into a failed build.
+>
+> What the playground does *not* solve is durability: its databases live in the runtime's in-memory
+> filesystem and are gone on reload, which is the right trade for a teaching sandbox and the wrong one for
+> an app. **[`Rask.SQLite.Browser`](#rasksqlitebrowser--keeping-a-browser-database) is the answer to that**,
+> and it ships today.
+
+### `Rask.SQLite.Browser` — keeping a browser database
+
+The in-memory filesystem is the whole problem, and it is solvable without changing where the database
+lives. `Rask.SQLite.Browser` restores the file from IndexedDB before anything opens it, writes it back on
+an interval and on page-hide through SQLite's Online Backup API (never a file copy of a database something
+might be writing), and elects a single owner tab with a Web Lock:
+
+```csharp
+builder.Services.AddRaskBrowserSqlite("app");
+builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(BrowserSqlite.ConnectionString("app")));
+```
+
+Everything above that line — including [`AddRaskJobs<AppDbContext>()`](jobs.md) — is then the same code you
+would write on a server. A worked example, with background jobs running against it and an E2E test that
+queues a job and reloads the page: [`samples/Rask.Example.Wasm.Jobs`](../samples/Rask.Example.Wasm.Jobs).
+
+Three limits, stated plainly because each one is a silent failure rather than an error:
+
+- **The durability window is the snapshot interval, not the page-hide flush.** The browser does not wait
+  for a `pagehide` handler, so a force-closed or crashed tab loses whatever changed since the last tick.
+  Shorten the interval if that matters; each tick copies the whole database, so the cost scales with its
+  size rather than with how much changed.
+- **Snapshots live in IndexedDB, and IndexedDB is evictable.** Under storage pressure a browser may
+  discard them, and the database would come back empty on the next load with nothing to indicate why. The
+  owning tab therefore asks for the origin to be exempted (`navigator.storage.persist()`) at startup, and
+  logs a refusal rather than failing. Chromium decides from engagement heuristics without prompting;
+  **Firefox prompts**, and this is asked during boot rather than from a click — so an app that would
+  rather pick its moment sets `o.RequestPersistentStorage = false` and calls
+  `IStorageEstimator.RequestPersistAsync()` from a user-gesture handler instead.
+- **One tab owns the database.** Every tab has its own copy of the in-memory filesystem, so two owners
+  would mean two divergent databases and a last-writer-wins overwrite. The others run with their own empty,
+  unpersisted database — which, left unexplained, looks exactly like the user's data having been deleted.
+  Inject `BrowserSqliteOwnership` and say so:
+
+  ```csharp
+  protected override async Task OnMountAsync() => _isOwner = await ownership.Resolved;
+  // ownership.IsOwner is null while the election is in flight, so "deciding" and
+  // "not the owner" stay distinguishable and the banner never flashes during a normal boot.
+  ```
+
+  When the owner closes, `await ownership.Available` completes in the waiting tab so you can offer a
+  reload. **Reloading is what takes it over** — a waiting tab already opened its own empty database at
+  boot, so the file cannot be swapped under its live connections, and a tab that started persisting its
+  empty database would overwrite the previous owner's good snapshot. Proxying a non-owner's writes to the
+  owner is not implemented.
+- **The two build settings above are not optional**: `PublishTrimmed=false`, and publishing *without*
+  `-p:WasmBuildNative=false` — otherwise SQLite is not linked in and the app boots normally, then fails on
+  every database call.
+
+Use `journal_mode=DELETE` rather than WAL here. That is not a WAL workaround: a browser database has one
+connection and no reader-while-writer concurrency to protect, and DELETE leaves the file consistent after
+every commit — which is exactly what makes its bytes safe to snapshot and ship somewhere else.
+
+#### Where OPFS fits
+
+The [Origin Private File System](browser-apis.md) will make the *flush* incremental:
+because it takes ranged writes, a snapshot can write only the 4 KB ranges that changed instead of the whole
+file, which is what makes a short interval affordable for a large database. It is a pluggable backend
+behind the same `AddRaskBrowserSqlite` call, not a different API. What it will *not* do any time soon is
+move the live database onto OPFS: that needs `createSyncAccessHandle`, which exists only inside a Worker,
+and Rask boots the .NET runtime on the main thread. So the database stays in the in-memory filesystem, and
+restore-at-boot stays a rehydrate — from a different source, and a faster flush.
 
 ## Limitations & when to outgrow SQLite
 

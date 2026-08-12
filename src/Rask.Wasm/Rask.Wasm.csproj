@@ -42,6 +42,12 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.Extensions.Logging"/>
     <!--
+      IHostedService, so AddHostedService means the same thing here as on the server (see
+      WasmHostedServices). Abstractions only — no generic host, no reflection, nothing that would
+      trouble the browser trimmer.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <!--
       Rask.Core uses Microsoft.AspNetCore.Authorization (in RouteAuthorizationGuard).
       On the WASM track there's no Microsoft.AspNetCore.App framework reference, so we
       surface this dep at the package boundary so consumers can restore it.

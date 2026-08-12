@@ -20,6 +20,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <!-- Parses the tutorial's C# snippets (TutorialSnippetTests). The docs are the only place the
+         framework's code is taught now, so they get a parser rather than a proofread. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
   </ItemGroup>
 
   <ItemGroup>

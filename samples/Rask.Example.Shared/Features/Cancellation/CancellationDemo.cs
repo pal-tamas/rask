@@ -12,14 +12,14 @@ public sealed partial class CancellationDemo : Component
     protected override Component? Render() =>
         Div[
             BsStack.Gap(2).Class(Margin.Bottom(3))[
-                BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Id("cancel-mount").Disabled(_mounted).OnClick(Mount)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Mount probe"],
+                BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Id("cancel-mount").Disabled(_mounted).OnClick(MountProbe)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Mount probe"],
                 BsButton
                     .Color(BsColor.Secondary)
                     .Outline(true)
                     .Size(BsSize.Sm)
                     .Id("cancel-unmount")
                     .Disabled(!_mounted)
-                    .OnClick(Unmount)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount probe"]
+                    .OnClick(UnmountProbe)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount probe"]
             ],
             _mounted
                 ? CancellationProbe.Log(AppendLog).InstanceId(_nextInstance)
@@ -33,7 +33,7 @@ public sealed partial class CancellationDemo : Component
                         .Class("list-group-item ps-2 small")[Code.Class("small")[line]])]
         ];
 
-    private void Mount()
+    private void MountProbe()
     {
         if (_mounted)
         {
@@ -45,7 +45,7 @@ public sealed partial class CancellationDemo : Component
         StateHasChanged();
     }
 
-    private void Unmount()
+    private void UnmountProbe()
     {
         if (!_mounted)
         {

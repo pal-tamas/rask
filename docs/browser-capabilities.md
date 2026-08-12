@@ -15,7 +15,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`ICookies`](apis/cookies.md) | ✅ | ✅ | ✅ | — |
 | [`IClipboard`](apis/clipboard.md) | ✅ | ✅ | ✅&nbsp;★ | UIPasteboard / ClipboardManager |
 | [`IGeolocation`](apis/geolocation.md) | ✅ | ✅ | ✅&nbsp;★ | CLLocationManager / LocationManager |
-| [`IPermissions`](apis/permissions.md) | ✅ | ✅ | ✅ | — |
+| [`IPermissions`](apis/permissions.md) | ✅ | ✅ | ✅&nbsp;★ | OS authorization status / CheckSelfPermission (camera+mic stay on the WebView) |
 | [`IVibration`](apis/vibration.md) | ✅ | ✅ | ✅&nbsp;★ | AudioToolbox / Vibrator |
 | [`IPageVisibility`](apis/page-visibility.md) | ✅ | ✅ | ✅ | — |
 | [`INavigatorInfo`](apis/navigator-info.md) | ✅ | ✅ | ✅ | — |
@@ -34,6 +34,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`IPerformance`](apis/performance.md) | ✅ | ✅ | ✅ | — |
 | [`IIndexedDb`](apis/indexeddb.md) | ✅ | ✅ | ✅ | — |
 | [`IFileSystemAccess`](apis/file-system-access.md) | ✅ | ✅ | ⬜ | — |
+| [`IOriginPrivateFileSystem`](apis/origin-private-file-system.md) | ✅ | ✅ | ✅ | — |
 | [`IWebAuthn`](apis/webauthn.md) | ✅ | ✅ | ✅ | — |
 | [`IWebLocks`](apis/web-locks.md) | ✅ | ✅ | ✅ | — |
 | [`IBroadcastChannel`](apis/broadcast-channel.md) | ✅ | ✅ | ✅ | — |

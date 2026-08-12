@@ -17,7 +17,8 @@ APIs live in the [Mobile & PWA guide](pwa.md).
 
 <!-- demo:browser-storage -->
 
-**`IIndexedDb`** — a persistent, asynchronous key/value store, far larger than localStorage and non-blocking.
+**`IIndexedDb`** — a persistent, asynchronous key/value store, far larger than localStorage and non-blocking. Holds
+text (`SetAsync`/`GetAsync`) or raw bytes (`SetBytesAsync`/`GetBytesAsync`, stored as a real `Uint8Array`).
 
 <!-- demo:browser-indexeddb -->
 
@@ -130,6 +131,10 @@ The push pattern above, one element at a time.
 **`IFileSystemAccess`** — open a file, edit it, and save it back to the same file (Chromium-family).
 
 <!-- demo:browser-file-system -->
+
+**`IOriginPrivateFileSystem`** — a private, persistent file tree the app owns: no picker, addressed by path, written in byte ranges. The right home for a local database file.
+
+<!-- demo:browser-opfs -->
 
 **`IWebAuthn`** — register and sign in with a passkey instead of a password.
 

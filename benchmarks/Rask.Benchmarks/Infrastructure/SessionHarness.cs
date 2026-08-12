@@ -92,6 +92,21 @@ internal static partial class SessionHarness
     }
 
     /// <summary>
+    ///     As <see cref="Drive" />, but each update also flips the header's extra button, so the number of
+    ///     handlers registered above the rows changes on every render. Drives the case a page hits whenever
+    ///     a conditional action appears — and the one that decides whether the rows' cached subtrees can be
+    ///     replayed or have to be re-walked.
+    /// </summary>
+    public static void DriveWithHandlerShift(LiveSession session, FootprintApp app, int updates)
+    {
+        for (var i = 0; i < updates; i++)
+        {
+            app.BumpWithHandlerShift();
+            session.RequestRenderAsync().GetAwaiter().GetResult();
+        }
+    }
+
+    /// <summary>
     ///     Three forced blocking gen-2 collections, then the live bytes.
     ///     <para>
     ///         Deliberately NOT the same technique as the vs-Blazor <c>mem-footprint</c> report, which

@@ -17,24 +17,25 @@ dotnet tool install -g Rask.Cli
 That puts a `rask` command on your `PATH`. Update it later with `dotnet tool update -g Rask.Cli`.
 
 > `rask` is a thin, Rask-aware layer over the .NET SDK: it owns scaffolding end to end (`rask new`,
-> `rask generate`), and shells out to `dotnet` for the rest — `rask dev` wraps `dotnet watch`, `rask db`
+> and shells out to `dotnet` for the rest — `rask dev` wraps `dotnet watch`, `rask db`
 > wraps `dotnet ef`.
 
 ## Getting help
 
-`rask` on its own lists the commands. `rask <command> --help` (or `-h`) prints that command's full
-reference — its arguments, an aligned table of every option with a one-line description, and
-copy-pasteable examples:
+`rask <command> --help` (or `-h`) prints that command's full reference — its arguments, an aligned
+table of every option with a one-line description, and copy-pasteable examples:
 
 ```bash
-rask                       # list all commands
+rask                       # on a terminal: the new-project wizard. Piped: the command list.
+rask --help                # the command list, always
 rask new --help            # arguments, options, and examples for `new`
-rask generate feature --help
+rask deploy --help
 ```
 
 Help (and other output) is colorized when `rask` is writing to a terminal, and falls back to plain
 text when the output is piped or when the [`NO_COLOR`](https://no-color.org) environment variable is
-set — so `rask info | cat` and CI logs stay clean.
+set — so `rask info | cat` and CI logs stay clean. Long descriptions wrap to the terminal's width;
+piped output is never reflowed, so a line you grep for stays on one line.
 
 ## Short names mean one thing
 
@@ -46,16 +47,15 @@ them:
 | `-h` | `--help` (reserved CLI-wide; no command may claim it) |
 | `-p` | `--project` |
 | `-o` | `--output` |
-| `-f` | `--fields` |
-| `-c` | `--context` |
 | `-n` | `--name` |
+| `-t` | `--template` |
+| `-f` | `--follow` |
 | `-y` | `--yes` |
 
 A few options have no short name on purpose, because the letter belongs to something else: `rask dev
---open`, `rask deploy logs --follow`, `rask generate --plural`. `--feature` is `-F` for the same
-reason — `-f` is `--fields`, which `generate` also takes.
+--open` (`-o` is `--output`).
 
-`--force` means *overwrite files* (`new`, `generate`). Skipping a destructive confirmation is
+`--force` means *overwrite files* (`rask new`). Skipping a destructive confirmation is
 `--yes` (`rask db drop`, `rask db restore`) — a different word, because it is a different power.
 
 A test enforces all of this, so a new option cannot quietly reuse a letter.
@@ -63,13 +63,12 @@ A test enforces all of this, so a new option cannot quietly reuse a letter.
 ## `--dry-run` and `--json`
 
 **`--dry-run` lists what would happen and changes nothing**, in the same shape everywhere: one
-`[dry-run] would …` line per action. It is on `new`, `generate`, `dev`, `db` and `deploy`.
+`[dry-run] would …` line per action. It is on `new`, `dev`, `db` and `deploy`.
 
 ```bash
 rask db drop --dry-run        # the exact `dotnet ef` command, without the database going anywhere
 rask dev --dry-run            # the `dotnet watch` command line and the environment it sets
-rask generate feature Product Name:string --dry-run            # the files it would write
-rask generate feature Product Name:string --dry-run --verbose  # ...and their contents
+rask new Shop --dry-run                                        # the files it would write
 ```
 
 A dry run never prompts — it does nothing, so there is nothing to consent to.
@@ -90,19 +89,37 @@ machine with no SDK simply has no `dotnetSdk` key, where the human report prints
 ## `rask new` — scaffold a project
 
 ```bash
-rask new                             # interactive: prompts for name, template, and features
+rask                                 # the wizard, from a blank slate
+rask new                             # the same wizard
 rask new MyApp                       # a server-rendered app (the default template)
 rask new MyApp --auth --docker       # + cookie auth + a production Dockerfile
-rask new Blog --data --docker        # + a SQLite database ready for `rask generate feature`
+rask new Blog --data --docker        # + a SQLite database, ready for your first feature
 rask new Spa --template wasm --pwa   # an installable browser-WASM PWA
 rask new Shop --template wasm-hosted # a WASM SPA with an ASP.NET host
 rask new Field --template native     # a native iOS + Android app
+rask new Kiosk --template native --platform android   # Android only
 ```
 
-Run `rask new` on its own (no name) and — on a terminal — it walks you through a short wizard: the
-project name, a numbered template picker, and a yes/no for each feature the template supports. It then
-scaffolds exactly as if you'd passed the flags. Piped or in a script (no terminal), a missing name is a
-plain error instead, so automation stays predictable.
+Run `rask` (or `rask new`) with no project name and — on a terminal — it walks you through a short
+wizard: the project name, an arrow-key **project type** picker, **styling** (Rask.Bootstrap or plain
+elements), whether to add a **Dockerfile**, and a checklist of **batteries** you toggle with space. A
+database picker follows if anything you ticked needs one. It then scaffolds exactly as if you'd passed
+the flags.
+
+Picking `native` asks its own two questions instead: where the UI comes from, and which platforms to
+target. Everything else on that path is skipped, because the native template has no component library,
+no Dockerfile and no batteries — and the summary lists only what was actually decided, rather than
+reporting defaults for questions it never asked.
+
+The wizard **fills gaps rather than re-asking**: anything already on the command line is kept and its
+question skipped, so `rask new --template wasm --auth` asks only for the name. Piped or in a script (no
+terminal), a missing name is a plain error instead, and bare `rask` prints the command list — so
+automation stays predictable.
+
+Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` solution, and is initialized
+as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
+existing repository. `--no-bootstrap` swaps the `Bs*` components for plain elements against a small
+stylesheet in the app shell, and drops the `Rask.Bootstrap` reference.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately. `wasm-hosted` emits a three-project solution — `MyApp.Client`
@@ -110,7 +127,7 @@ restore` so the output builds immediately. `wasm-hosted` emits a three-project s
 library both reference).
 
 A new project is deliberately **minimal** — nothing to delete before you start — and everything it
-scaffolds already follows the vertical-slice layout the CLI generates into: feature code under
+scaffolds already follows the vertical-slice layout the guides build on: feature code under
 `Features/<Name>/`, cross-cutting code under `Features/Shared/`.
 
 ```
@@ -125,9 +142,9 @@ MyApp/
   Properties/launchSettings.json
 ```
 
-The root component lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice,
-styled with Bootstrap. `--auth` adds a `Features/Auth/` slice and `--data` an `AppDbContext` under
-`Features/Shared/`. Add pages and components to taste — `rask generate` is the fast path.
+The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice, styled with
+Bootstrap. `--auth` adds a `Features/Auth/` slice and `--data` an `AppDbContext` under `Features/Shared/`.
+Add pages and components to taste — the [tutorial](tutorial/00-overview.md) shows the shapes.
 
 | Option | Meaning |
 |--------|---------|
@@ -137,7 +154,7 @@ styled with Bootstrap. `--auth` adds a `Features/Auth/` slice and `--data` an `A
 | `--pwa` | Web app manifest + service worker + icon, and the wiring to serve them (web templates). |
 | `--cqrs` | Wire up `Rask.Cqrs` — `AddRaskCqrs()` + the package reference (the `server` template only). |
 | `--database <sqlite\|postgres\|sqlserver>` | Which database `--data` wires. Defaults to `sqlite` — one file, no server. `postgres` and `sqlserver` use [`Rask.Postgres` / `Rask.SqlServer`](databases.md) instead, and drop the file-only batteries (Litestream, snapshots, the deploy volume). The `server` template only. |
-| `--data` | Pre-wire a SQLite database: an empty `AppDbContext`, `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory — so the first `rask generate feature <Name>` attaches to it and is immediately runnable with `rask db add`/`update`. It also wires **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream)) — inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time (`rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`), and `--docker` puts the replicator binary in the image. Implies `--cqrs` (the `server` template only). |
+| `--data` | Pre-wire a SQLite database: an empty `AppDbContext`, `AddRaskData()`, and a `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory — so your first entity attaches to it and is immediately runnable with `rask db add`/`update`. It also wires **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream)) — inert until you set `Litestream:ReplicaUrl`, so turning it on is one env var at deploy time (`rask deploy --env "Litestream__ReplicaUrl=s3://bucket/app"`), and `--docker` puts the replicator binary in the image. Implies `--cqrs` (the `server` template only). |
 | `--jobs` | Durable background jobs on the app's own database: `AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`. Implies `--data`. |
 | `--mail` | Transactional email on the app's own database, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. Implies `--data`. |
 | `--cache` | A database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. Implies `--data`. |
@@ -148,7 +165,8 @@ styled with Bootstrap. `--auth` adds a `Features/Auth/` slice and `--data` an `A
 | `--ops` | An [operator dashboard](dashboard.md) at `/_ops` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. With `--auth` it also emits the authorization policy that gates it; without, that line is scaffolded commented out and the dashboard denies everyone outside Development. Implies `--data`. |
 | `--all-batteries` | Every battery above — the full One Person Framework stack in one app. |
 | `--docker` | Emit a production `Dockerfile` + `.dockerignore` (web templates). |
-| `--host` | `local` (default) or `server` — which native mode to scaffold (the `native` template only). |
+| `--platform` | The `native` template only, repeatable: `ios`, `android`, or both (the default when omitted). Only the platforms you name get a target framework, a manifest and a head — an unselected platform leaves no files behind. |
+| `--host` | The `native` template only: **where the UI comes from**. `local` (default) runs your components on the device, so the app works offline. `server` and `wasm-hosted` scaffold a thin native shell whose WebView points at a Rask app you host, so the UI ships when you deploy rather than when the store approves — they emit the same shell (the WebView takes a trusted origin and doesn't care what serves it) and differ only in the guidance they carry, because a live server renders over a WebSocket while a published WASM bundle keeps working once loaded. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips `dotnet restore`). |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |
@@ -162,6 +180,27 @@ everything outside it, which would otherwise be a bare 500 with an empty body. T
 your app shell and shows a **correlation id and nothing else** — the exception goes to `ILogger`, where you
 match it by that id. Locally the handler stays off, because the developer exception page is strictly more
 useful than a page designed to reveal nothing.
+
+### Which template supports which flag
+
+| Flag | `server` | `wasm` | `wasm-hosted` | `native` |
+| --- | :-: | :-: | :-: | :-: |
+| `--auth` | ✅ | ✅ | ✅ | — |
+| `--pwa` | ✅ | ✅ | ✅ | — |
+| `--docker` | ✅ | ✅ | ✅ | — |
+| `--cqrs`, `--data` (+ `--database`) | ✅ | — | — | — |
+| `--jobs`, `--mail`, `--cache`, `--outbox`, `--push`, `--snapshots`, `--logs`, `--ops` | ✅ | — | — | — |
+| `--all-batteries` | ✅ | — | — | — |
+| `--host`, `--platform` (see below) | — | — | — | ✅ |
+
+The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
+combination that is then rejected. On the command line, asking for one is a usage error that names both
+halves rather than silently dropping the flag:
+
+```console
+$ rask new X --template wasm --data
+Template 'wasm' does not support: --data. Supported flags: --auth, --docker, --pwa.
+```
 
 The battery flags are **server-only** — they all ride the app's own database, and only the `server`
 template has one. Each implies what it needs (`--jobs` implies `--data` implies `--cqrs`), so you can ask
@@ -180,82 +219,30 @@ Litestream restore before anything opens the database. Those are pinned by tests
 Requesting a flag a template doesn't support (for example `--cqrs` on `wasm`) fails fast with the list
 of flags that template *does* support, rather than passing an unknown option through.
 
-## `rask generate` — scaffold code
+## Writing code — by hand, from the guides
 
-```bash
-rask generate page Products                  # → Features/Products/ProductsPage.cs  ([Route("/products")])
-rask generate page Products --route /catalog # a custom route
-rask generate component PriceTag             # → Features/Shared/PriceTag.cs
-rask generate component PriceTag --feature Orders  # → Features/Orders/PriceTag.cs (co-locate in a slice)
-rask generate component PriceTag -o Widgets  # into a chosen folder
-rask generate job SendWelcomeEmail           # → Features/Shared/SendWelcomeEmail.cs (IJob + handler)
-rask generate email WelcomeEmail             # → Features/Shared/WelcomeEmail.cs (an email-body component)
-rask generate cache PopularProducts          # → Features/Shared/PopularProducts.cs (a read-through cache)
-rask generate page Orders --dry-run          # print what would be written, write nothing
+`rask` scaffolds a **project**; it does not scaffold code inside one. There is no `rask generate`.
 
-# A full CQRS + EF Core CRUD vertical slice
-rask generate feature Product Name:string Price:decimal InStock:bool 'Note:string?(500)'
-rask g f Order Total:decimal --id long   # short aliases: g = generate, f = feature
-```
+Pages, components, CRUD slices, background jobs, emails and cached accessors are all ordinary C# you
+write yourself, and every one of them is documented as code you can copy:
 
-`rask generate` writes idiomatic files into the current project. It finds the owning `.csproj` by
-walking up from the working directory, derives each file's namespace from its folder (root namespace +
-folder path, the C# convention), and **refuses to overwrite an existing file** unless you pass `--force`.
+| What you want | Where the code is |
+| --- | --- |
+| A routed page, a reusable component | [Composition](composition.md), [Routing](routing.md) |
+| A CRUD slice — entity, commands, queries, pages | [Tutorial ch.2](tutorial/02-first-feature.md), [Rask.Data](data.md), [CQRS](cqrs.md) |
+| A background job | [Tutorial ch.4](tutorial/04-background-jobs.md), [Jobs](jobs.md) |
+| A transactional email | [Tutorial ch.5](tutorial/05-email.md), [Mail](mail.md) |
+| A cached read | [Tutorial ch.6](tutorial/06-cache.md), [Cache](cache.md) |
+| Domain events through the outbox | [Tutorial ch.7](tutorial/07-outbox-events.md), [Outbox](outbox.md) |
 
-| Artifact | Emits | Class / namespace |
-|----------|-------|-------------------|
-| `page <Name>` | `Features/<Name>/<Name>Page.cs` — a routed page `Component` with a `Head` title | `<Name>Page` in `<Root>.Features.<Name>` |
-| `component <Name>` | `Features/Shared/<Name>.cs` — a plain `Component` (or `Features/<Feature>/` with `--feature`) | `<Name>` in `<Root>.Features.Shared` |
-| `job <Name>` | `Features/Shared/<Name>.cs` — a background job: an `IJob` record + its `ICommandHandler` (adds the `Rask.Jobs` / `Rask.Cqrs` packages). `--feature` co-locates it in a slice. Alias: `rask g j` | `<Name>` in `<Root>.Features.Shared` |
-| `email <Name>` | `Features/Shared/<Name>.cs` — an email-body component rendered to HTML by `Email.Body(...)` (adds the `Rask.Mail` package). **Auto-wires** into your `DbContext` — registers `AddRaskMail<Ctx>` in `Program.cs` and maps the mail table in `OnModelCreating` — when it finds a single one (or `--context <Name>`); otherwise prints the steps. `--feature` co-locates it in a slice. Alias: `rask g e` | `<Name>` in `<Root>.Features.Shared` |
-| `cache <Name>` | `Features/Shared/<Name>.cs` — a read-through cache accessor that owns its key and its invalidation in one place (adds the `Rask.Cache` package). `--feature` co-locates it in a slice. Alias: `rask g ca` | `<Name>` in `<Root>.Features.Shared` |
-| `feature <Name> <field:type> …` | `Features/<Plural>/` — an encapsulated entity (`Create`/`Update`, Guid id) with **value objects** for required strings (built-in validation), an EF `IEntityTypeConfiguration` mapped by the app's one `DbContext` (found in the project, or written to `Features/Shared/AppDbContext.cs` when there is none), **CQRS** create/update/delete commands + list/get queries with handlers, and list / create / edit pages that dispatch via `IDispatcher` | in `<Root>.Features.<Plural>` |
+The [tutorial](tutorial/00-overview.md) builds all of it in order, and the finished result is committed
+as [`samples/Rask.Example.Shop`](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop) —
+a working app to read whenever a snippet needs its surroundings.
 
-| Option | Meaning |
-|--------|---------|
-| `<field:type> …` (positional) | `feature` only: the entity's fields, given **positionally** after the name — `rask g f Product Name:string Price:decimal`. Types: `string`, `int`, `long`, `decimal`, `double`, `bool`, `date` (→ `DateOnly`), `time` (→ `TimeOnly`), `datetime` (→ `DateTime`), `Guid` (aliases like `text`/`number`/`money` too). A field is optional with a trailing `?` (`Note:string?`); strings get a default max length, overridable with `Name:string(100)`. Quote specs containing `?` or `(…)` so your shell doesn't expand them (`'Note:string?(500)'`). An `Id` is added automatically. |
-| `<card> <Target> <field:type> …` | `feature` only: **relationships** — after the root's fields, name a cardinality, a target entity, and its fields to scaffold a *related* entity in the same run. `1:n`/`n:1`/`1:1` add the foreign key, navigation properties, and EF mapping; `n:n` maps a many-to-many through EF Core's implicit join table (no join entity). E.g. `rask g f Post Title:string 1:n Comment Body:text` generates both `Post` and `Comment`, with `Comment.PostId` + `Comment.Post` and `Post.Comments`. Cardinalities: `1:n`, `0:n`, `n:1`, `n:0`, `1:1`, `0:1`, `n:n` — a leading `0` makes the foreign key optional. |
-| `--fields`, `-f` | `feature` only: the legacy comma-joined form of the fields above — `--fields "Name:string,Price:decimal"`. Equivalent to the positional args; you can't use both at once. |
-| `--id` | `feature` only: the entity's key type — `guid` (default), `int`, or `long`. |
-| `--modal` | `feature` only (implies `--bs`): create + update happen in a `BsModal` on the list page, instead of separate create/edit pages. |
-| `--bs` | `feature` only: render the pages with Rask.Bootstrap `Bs*` components (`BsCard`/`BsTable`/`BsButton`/`BsInput`/`BsCheck`/`BsIcon`) + `Bs.Join(...)` utility classes instead of raw core + Bootstrap class strings. |
-| `--validation` | `feature` only: `valueobjects` (default — required strings become value objects with built-in, dependency-free validation), `dataannotations` (POCO + `[Required]`/`[MaxLength]` + `DataAnnotationsValidator`), or `fluent` (POCO + a generated `AbstractValidator` + `FluentValidationValidator`). |
-| `--soft-delete` | `feature` only: the entity implements `ISoftDeletable` (a `DeletedAt` stamp) so `Delete` becomes a soft delete (via `Rask.Data`'s interceptor + a global query filter), and the list page gains a "Show deleted" toggle + a `Restore` action for deleted rows. |
-| `--concurrency` | `feature` only: the entity implements `IVersioned` (an `int Version` optimistic-concurrency token). The edit form round-trips the original `Version` (a hidden field) and the update handler applies it, so an edit that races another loses gracefully — a `DbUpdateConcurrencyException` is caught and shown as an inline "this record changed — reload" message. |
-| `--events` | `feature` only: emit typed domain-event records (`<Entity>Created`/`Updated`/`Deleted`, `INotification`) that the aggregate raises on create/update/delete, plus a sample `INotificationHandler` stub. `Rask.Data`'s interceptor publishes them in-process after the change commits (auto-registered by `AddRaskCqrs()`). |
-| `--outbox` | `feature` only: like `--events`, but the events implement `IOutboxEvent` and are delivered through a **durable transactional outbox** ([`Rask.Outbox`](outbox.md)) — written to an `OutboxMessage` table in the same transaction as the change, then published by a background processor (at-least-once, crash-safe). The `DbContext` gets the table mapped (baked in when generated, spliced into `OnModelCreating` when attaching); the next-steps wire `AddRaskOutbox` + disable the in-process publisher. |
-| `--tests` | `feature` only: also emit xUnit tests in a sibling `<Project>.Tests` project — a domain test (`Create`/`Update` + value-object validation) and, when the `DbContext` can be constructed from options (every scaffolded one can), a database round-trip persistence test. The test project is created and wired (test SDK, xUnit, a reference to the app) on first use, so `dotnet test` runs as-is. |
-| `--no-restore` | `feature` only: don't add the NuGet packages automatically (just print them). |
-| `--context`, `-c` | `feature` only: which `DbContext` maps the entities. You rarely need it: a run attaches to the project's own context by default (adding the `DbSet` + `using` to it), and only writes one — the shared `Features/Shared/AppDbContext.cs` — when the project has none. Name one here when the project has **several** contexts, which the CLI refuses to guess between. |
-| `--plural` | `feature` only: the plural used for the folder, DbSet, list page, and route. Give the entity a **singular** name (`Product`) and this defaults to a simple pluralization (`Products`); override it when that guess is wrong (`--plural People`). |
-| `--route`, `-r` | `page` only: the `[Route]` path (default: kebab-case of the name, e.g. `/products`). |
-| `--feature`, `-F` | `component`/`job`/`email` only: co-locate the file under `Features/<Name>/` instead of the default `Features/Shared/` (the namespace follows the folder). |
-| `--output`, `-o` | Write into this folder instead of the default (the namespace follows the folder). |
-| `--project`, `-p` | Project to scaffold into. Accepts a `.csproj` or a directory. Needed when a folder holds more than one project, which is otherwise a hard stop. |
-| `--force` | Overwrite existing file(s). |
-| `--dry-run` | Print the file(s) that would be written, and write nothing. |
-| `--save-defaults` | `feature` only: remember this run's feature flags in `.rask/generate.json` (see below). |
-
-**Team defaults (`.rask/generate.json`).** So a project doesn't retype the same feature flags every
-time, `rask generate feature` reads defaults from `.rask/generate.json` at the project root — e.g.
-`{ "bs": true, "validation": "fluent", "tests": true }`. Explicit flags on the command line always win.
-Write the file by hand, or let the CLI record your choices: `rask generate feature Order Total:decimal
---bs --tests --save-defaults` scaffolds *and* remembers `--bs`/`--tests` for next time. Booleans are
-opt-in (an absent key means off).
-
-The generated code compiles as-is in any project scaffolded by `rask new` — the factory methods and the
-`Component` base come from Rask's implicit usings, and pages navigate with the type-safe generated
-`Routes.*()` URLs. Every generated entity inherits [`Rask.Data`](data.md)'s `Entity<TId>` (Id +
-audit stamps + a domain-events buffer), so a generated `feature` needs **EF Core + `Rask.Cqrs` +
-`Rask.Data`** referenced — `rask generate` **adds those packages to the project for you**
-(`dotnet add package` for EF Core + SQLite, `Rask.Cqrs`, `Rask.Data`, and — with `--bs`/`--validation` —
-`Rask.Bootstrap` / the validation library; pass `--no-restore` to skip). It then **writes the DI
-registration** (`AddRaskCqrs()` + `AddRaskData()` + `AddDbContextFactory` with the interceptors) into
-`Program.cs` for you — falling back to printing it if it can't find the file — and prints the migration
-to create and apply with [`rask db`](#rask-db--ef-core-migrations) before it works.
-
-Every command has short aliases: `rask g` = `rask generate`, and `g f` / `g c` / `g p` scaffold a
-feature / component / page.
+> **Why no generator?** Scaffolded code is read far more often than it is written, and a generator's
+> output has to be understood line by line the first time you meet it anyway. Teaching the same code in
+> the guides means there is one version of it — the one you can read, adapt, and keep — instead of a
+> generated one plus a document describing it, drifting apart.
 
 ### When you get it wrong
 
@@ -263,8 +250,8 @@ A rejected command line always names what was wrong, what is allowed, and what t
 where there's an obvious candidate, what you probably meant:
 
 ```console
-$ rask genrate
-Unknown command 'genrate'. Did you mean 'generate'?
+$ rask deplyo
+Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
 Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, native.
@@ -428,7 +415,7 @@ rask db restore backups/app-20260805-081500.db --remote
 ```
 
 A friendly wrapper over `dotnet ef` for the everyday migration lifecycle, meant to pair with what
-`rask generate feature` scaffolds. It finds the project for you (the single `.csproj` at or above the
+your feature code needs. It finds the project for you (the single `.csproj` at or above the
 current directory — override with `--project`), and if the EF Core tools aren't installed it installs
 `dotnet-ef` globally the first time you run it.
 
@@ -447,7 +434,7 @@ that configures it; defaults to `--project`), and `--context/-c` (when the app h
 `DbContext`). Anything after `--` is forwarded to `dotnet ef` verbatim (e.g. `rask db update -- --verbose`).
 
 The EF Core tools need the startup project to reference `Microsoft.EntityFrameworkCore.Design` —
-projects from `rask generate feature` already do, and `rask db` adds it for you (via `dotnet add
+projects scaffolded with `--data` already do, and `rask db` adds it for you (via `dotnet add
 package`) if it's missing. `backup` and `restore` need none of that: they copy a database rather than
 migrate one, so they never install `dotnet-ef`.
 
@@ -636,10 +623,9 @@ so only a genuinely broken thing sets the exit code (`1`); a machine that can st
 **It is read-only.** It reports; it never installs or fixes. A doctor that quietly installed the tooling
 it found missing would be doing the thing you ran it to avoid.
 
-One thing it exists to catch: a corrupt `.rask/deploy.json` or `.rask/generate.json` used to be
-swallowed — the loaders fall back to defaults, so a typo'd file looked exactly like no file, and the
-remembered host or team flags vanished with nothing said. They now say so in passing, and `doctor`
-reports it as a failure.
+One thing it exists to catch: a corrupt `.rask/deploy.json` used to be swallowed — the loader falls
+back to defaults, so a typo'd file looked exactly like no file, and the remembered host vanished with
+nothing said. It now says so in passing, and `doctor` reports it as a failure.
 
 ## `rask info` — environment report
 

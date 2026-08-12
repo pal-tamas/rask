@@ -10,18 +10,31 @@ namespace Rask.Cli.Scaffolding;
 internal sealed partial class ProjectContext(
     string projectDirectory,
     string rootNamespace,
-    DatabaseProvider provider = DatabaseProvider.Sqlite)
+    DatabaseProvider provider = DatabaseProvider.Sqlite,
+    bool isBrowser = false)
 {
     public string ProjectDirectory { get; } = projectDirectory;
 
     public string RootNamespace { get; } = rootNamespace;
 
     /// <summary>
+    /// Whether this project is a browser (WebAssembly) app rather than a server one.
+    /// </summary>
+    /// <remarks>
+    /// Detected from the project file, like <see cref="Provider"/>, and for the same reason: the answer
+    /// was already decided by <c>rask new</c>, and asking again is a second thing to get out of sync.
+    /// It changes what scaffolding can honestly tell you to do — a browser app has no design-time
+    /// database for <c>rask db</c> to migrate, and its database needs
+    /// <c>AddRaskBrowserSqlite</c> to survive a reload at all.
+    /// </remarks>
+    public bool IsBrowser { get; } = isBrowser;
+
+    /// <summary>
     /// The database this project is wired to, read off its package references rather than asked for again.
     /// </summary>
     /// <remarks>
     /// Detected, not configured: the provider was already decided by <c>rask new --database</c>, and a
-    /// second source of truth is a second thing to get out of sync — a <c>rask generate feature</c> that
+    /// second source of truth is a second thing to get out of sync — a command that
     /// emitted SQLite wiring into a PostgreSQL app would not fail until runtime.
     /// </remarks>
     public DatabaseProvider Provider { get; } = provider;
@@ -64,6 +77,45 @@ internal sealed partial class ProjectContext(
 
     [GeneratedRegex(@"<RootNamespace>\s*(.+?)\s*</RootNamespace>", RegexOptions.IgnoreCase)]
     private static partial Regex RootNamespaceRegex();
+
+    // A browser TFM on either the singular or plural element. Matched by the "-browser" suffix rather
+    // than the framework version, so a bump doesn't silently stop detecting it — but scoped to the
+    // element, because the bare string also occurs in comments, constants and package ids.
+    [GeneratedRegex(@"<TargetFrameworks?>[^<]*-browser", RegexOptions.IgnoreCase)]
+    private static partial Regex BrowserTargetFrameworkRegex();
+
+    // A reference to the WASM host itself, as a package (Include="Rask.Wasm") or as a project
+    // (Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj") — the repo's own samples use the latter.
+    // Anchored on the closing quote so it does NOT match Rask.Wasm.Hosting, which is the giveaway of a
+    // SERVER project, not a browser one.
+    [GeneratedRegex(@"Include=""(?:[^""]*[\\/])?Rask\.Wasm(?:\.csproj)?""", RegexOptions.IgnoreCase)]
+    private static partial Regex WasmHostReferenceRegex();
+
+    /// <summary>
+    /// Whether a project file describes a browser (WASM) app.
+    /// </summary>
+    /// <remarks>
+    /// Three independent signals, because an app can be recognisably a browser app by any of them: the
+    /// browser target framework, the framework's own <c>RaskWasm</c> marker, or a reference to the WASM
+    /// host. Matching any one is deliberate — a project that is a browser app by only one signal is still
+    /// a browser app.
+    /// <para>
+    /// Each signal is matched precisely rather than as a substring, because a false positive here is not
+    /// cosmetic: it hands a server project the browser next-steps and adds <c>Rask.SQLite.Browser</c> to
+    /// it, which doesn't resolve there. The one that bites is <c>Rask.Wasm.Hosting</c> — referenced by the
+    /// <b>Server</b> half of a <c>wasm-hosted</c> solution, which is precisely the project a background
+    /// job belongs in. Keeping the closing quote on the package check is what separates the two.
+    /// </para>
+    /// </remarks>
+    internal static bool DetectBrowser(string csprojText)
+    {
+        ArgumentNullException.ThrowIfNull(csprojText);
+
+        return BrowserTargetFrameworkRegex().IsMatch(csprojText)
+            // The value, not just the element: <RaskWasm>false</RaskWasm> asserts the opposite.
+            || csprojText.Contains("<RaskWasm>true</RaskWasm>", StringComparison.OrdinalIgnoreCase)
+            || WasmHostReferenceRegex().IsMatch(csprojText);
+    }
 
     internal static string ReadRootNamespace(IFileSystem fileSystem, string csprojPath)
     {
@@ -128,10 +180,13 @@ internal static class ProjectLocator
             var projects = fileSystem.ListFiles(directory, "*.csproj");
             if (projects.Count == 1)
             {
+                // One read, two answers — the project file is the source of truth for both.
+                var csproj = fileSystem.ReadAllText(projects[0]);
                 return new ProjectContext(
                     directory,
                     ProjectContext.ReadRootNamespace(fileSystem, projects[0]),
-                    DatabaseCatalog.DetectProvider(fileSystem.ReadAllText(projects[0])));
+                    DatabaseCatalog.DetectProvider(csproj),
+                    ProjectContext.DetectBrowser(csproj));
             }
 
             if (projects.Count > 1)

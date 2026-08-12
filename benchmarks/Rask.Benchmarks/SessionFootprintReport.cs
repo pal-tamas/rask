@@ -27,13 +27,13 @@ namespace Rask.Benchmarks;
 ///         high-water mark.
 ///     </para>
 ///     <para>
-///         <b>On the page shape.</b> Rows are keyed and each owns a handler, i.e. a real data grid. That is
-///         deliberately the shape the clean-subtree cache cannot help: <c>TryCacheCleanSubtree</c> rejects
-///         any component carrying a <c>Key</c>, and RASK022 pushes every list item toward one — so the
-///         pages where retained memory actually matters are exactly the pages that keep their Element
-///         graph. A keyless, handler-free variant was measured during development and did not come out
-///         materially cheaper per byte of page, so the sweep reports the realistic shape only rather than
-///         an axis whose arms differ in page size as well as in shape.
+///         <b>On the page shape.</b> Rows are keyed and each owns a handler, i.e. a real data grid — the
+///         shape the clean-subtree cache has to earn its keep on, and RASK022 pushes every list item
+///         toward a <c>Key</c>. Both a <c>Key</c> and a handler were once outright disqualifying for
+///         <c>TryCacheCleanSubtree</c>; neither is now, so these rows hold a compact frame snapshot rather
+///         than an Element graph. A keyless, handler-free variant was measured during development and did
+///         not come out materially cheaper per byte of page, so the sweep reports the realistic shape only
+///         rather than an axis whose arms differ in page size as well as in shape.
 ///     </para>
 ///     <para>
 ///         <b>What this excludes.</b> The transport (a real socket plus Kestrel's ~32 KB of per-connection
@@ -68,7 +68,7 @@ internal static class SessionFootprintReport
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
             "# {0} sessions retained per row; SessionsPer1GiB = 1GiB / BytesPerSession.", sessions));
         Console.WriteLine("# Page shape: a keyed data-table row owning one event handler — a real data grid,");
-        Console.WriteLine("# and the shape the clean-subtree cache cannot help (a Key alone disqualifies it).");
+        Console.WriteLine("# the shape the clean-subtree cache has to earn its keep on (it caches both now).");
         Console.WriteLine("# State: Unconnected = GET'd, socket never attached (still holds a MaxSessions slot);");
         Console.WriteLine("#        Connected = socket attached + updates driven (buffers at high-water).");
         Console.WriteLine("Page,PageHtmlBytes,State,BytesPerSession,SessionsPer1GiB");

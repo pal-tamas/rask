@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Rask.Cli.Scaffolding;
+using Spectre.Console;
 
 namespace Rask.Cli.Commands;
 
@@ -69,22 +70,34 @@ internal sealed class DoctorCommand(
             return failed == 0 ? 0 : 1;
         }
 
-        var width = checks.Max(c => c.Name.Length);
+        // status | name | detail, with each fix on its own row under the detail it belongs to — the grid
+        // keeps that hanging indent aligned without the caller counting spaces.
+        var grid = new Grid();
+        grid.AddColumn(new GridColumn().NoWrap().PadRight(2));
+        grid.AddColumn(new GridColumn().NoWrap().PadRight(3));
+        grid.AddColumn();
+
         foreach (var check in checks)
         {
             var (mark, style) = check.Status switch
             {
-                DoctorStatus.Ok => ("ok  ", ConsoleStyle.Success),
+                DoctorStatus.Ok => ("ok", ConsoleStyle.Success),
                 DoctorStatus.Warn => ("warn", ConsoleStyle.Warning),
                 _ => ("fail", ConsoleStyle.Error),
             };
 
-            Console.WriteLine($"  {mark}  {check.Name.PadRight(width)}   {check.Detail}", style);
+            grid.AddRow(
+                new Text(mark, ConsoleStyling.Of(style)),
+                new Text(check.Name, ConsoleStyling.Of(style)),
+                new Text(check.Detail, ConsoleStyling.Of(style)));
+
             if (check.Fix is { Length: > 0 } fix)
             {
-                Console.WriteLine($"        {new string(' ', width)}   {fix}", ConsoleStyle.Dim);
+                grid.AddRow(Text.Empty, Text.Empty, new Text(fix, ConsoleStyling.Of(ConsoleStyle.Dim)));
             }
         }
+
+        Console.Ansi.Write(new RaggedRight(new Padder(grid, new Padding(2, 0, 0, 0))));
 
         Console.Out.WriteLine();
         Console.WriteLine(
@@ -155,25 +168,18 @@ internal sealed class DoctorCommand(
             : new DoctorCheck("rask dev", DoctorStatus.Ok, $"{target.Name} ({target.Kind})", null));
 
         // The version this CLI would pin into a new project, so a mismatch with what the project already
-        // references is visible before `rask generate` adds a package that disagrees with the rest.
+        // references is visible before a package is added that disagrees with the rest.
         checks.Add(new DoctorCheck(
             "rask packages", DoctorStatus.Ok, NewCommand.ResolvePackageVersion(CliMetadata.Version), null));
 
-        // The bug this command exists to make visible: both config loaders catch JsonException and return
-        // defaults, so a typo'd file looked exactly like no file and the remembered host or flags
-        // vanished with nothing said anywhere.
-        foreach (var (name, problem) in new[]
-                 {
-                     (".rask/deploy.json", DeployConfig.DescribeProblem(_fileSystem, _workingDirectory)),
-                     (".rask/generate.json", GenerateConfig.DescribeProblem(_fileSystem, project.ProjectDirectory)),
-                 })
+        // The bug this command exists to make visible: the config loader catches JsonException and returns
+        // defaults, so a typo'd file looked exactly like no file and the remembered host vanished with
+        // nothing said anywhere. (`.rask/generate.json` went with the feature scaffolder that wrote it.)
+        if (DeployConfig.DescribeProblem(_fileSystem, _workingDirectory) is { } deployProblem)
         {
-            if (problem is not null)
-            {
-                checks.Add(new DoctorCheck(
-                    name, DoctorStatus.Fail, problem,
-                    "Until it parses, its remembered settings are silently ignored."));
-            }
+            checks.Add(new DoctorCheck(
+                ".rask/deploy.json", DoctorStatus.Fail, deployProblem,
+                "Until it parses, its remembered settings are silently ignored."));
         }
 
         return checks;

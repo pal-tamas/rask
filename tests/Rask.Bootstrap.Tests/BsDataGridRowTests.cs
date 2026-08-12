@@ -18,8 +18,9 @@ public partial class BsDataGridRowTests : global::Rask.Core.RaskMarkup
         new BsColumn<Row> { Title = "Qty", Value = r => r.Qty },
     ];
 
-    // Action ids are reissued every render, so read them fresh in document order and index the one under
-    // test — the same approach BsDataGridInteractionTests uses.
+    // Read fresh in document order and index the one under test, rather than assuming an id — the grid
+    // decides which handlers it renders, and an id only holds while it keeps rendering that one. Same
+    // approach BsDataGridInteractionTests uses.
     private static string[] ClickHandlers(string html) =>
         Regex.Matches(html, "data-rask-on-click=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToArray();
 

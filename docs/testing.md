@@ -86,8 +86,9 @@ public async Task Clicking_increments()
 - **`.Instance`** — the component object you passed to `Render(component)`, so you can assert its own state
   rather than parsing it back out of the markup. It stays the same object for the handle's lifetime.
 - **`.HandlerId(domEvent)`** / **`.Attr(name)`** — read a handler id / attribute off the current `Html`.
-  Handler ids are reissued every render, so read one from the current `Html` right before invoking rather
-  than reusing a captured id.
+  A handler id belongs to the component that rendered it and survives a re-render, but not that element
+  leaving the tree or its component rendering a different set of handlers — so read one from the current
+  `Html` right before invoking rather than reusing a captured id.
 - **`.HandlerIds(domEvent)`** / **`.Attrs(name)`** — every match, in document order. This is how you target
   one of several same-event elements — a grid's sort headers, a list's row buttons:
 
@@ -258,8 +259,9 @@ Payload shapes by event:
 
 `TryInvokeHandlerAsync` returns `false` when no handler matches the id — and, when the payload carries
 the client's `"type"` field, when that event cannot feed the handler the id resolved to (an `"input"`
-frame landing on a parameterless `OnClick`). Handler ids are positional per render, so a frame that
-outlived its render would otherwise run whatever now occupies that slot. A payload with no `"type"` — the
+frame landing on a parameterless `OnClick`). A component reuses its own handler slots when it renders a
+different set of handlers, so a frame that outlived its render could otherwise run whatever now occupies
+one. A payload with no `"type"` — the
 shape these examples use — makes no claim, so it dispatches on the id alone as before.
 
 ---

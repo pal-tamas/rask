@@ -29,6 +29,7 @@
 [![Rask.SQLite.EntityFrameworkCore](https://img.shields.io/nuget/v/Rask.SQLite.EntityFrameworkCore.svg?label=Rask.SQLite.EntityFrameworkCore)](https://www.nuget.org/packages/Rask.SQLite.EntityFrameworkCore)
 [![Rask.SQLite.Litestream](https://img.shields.io/nuget/v/Rask.SQLite.Litestream.svg?label=Rask.SQLite.Litestream)](https://www.nuget.org/packages/Rask.SQLite.Litestream)
 [![Rask.SQLite.Snapshots](https://img.shields.io/nuget/v/Rask.SQLite.Snapshots.svg?label=Rask.SQLite.Snapshots)](https://www.nuget.org/packages/Rask.SQLite.Snapshots)
+[![Rask.SQLite.Browser](https://img.shields.io/nuget/v/Rask.SQLite.Browser.svg?label=Rask.SQLite.Browser)](https://www.nuget.org/packages/Rask.SQLite.Browser)
 <!-- Forms & push -->
 [![Rask.Validation.DataAnnotations](https://img.shields.io/nuget/v/Rask.Validation.DataAnnotations.svg?label=Rask.Validation.DataAnnotations)](https://www.nuget.org/packages/Rask.Validation.DataAnnotations)
 [![Rask.Validation.FluentValidation](https://img.shields.io/nuget/v/Rask.Validation.FluentValidation.svg?label=Rask.Validation.FluentValidation)](https://www.nuget.org/packages/Rask.Validation.FluentValidation)
@@ -56,8 +57,8 @@ product, by one person in one sitting:
 ```bash
 dotnet tool install -g Rask.Cli
 
-rask new Shop --auth --docker                              # scaffold: UI + cookie auth + a Dockerfile
-rask generate feature Product Name:string Price:decimal    # a full CQRS + EF Core CRUD slice — DI wired for you
+rask new Shop --auth --docker --data                       # scaffold: UI + cookie auth + Dockerfile + SQLite
+# …write a Products slice — docs/tutorial/02-first-feature.md has the code
 rask db add InitialCreate && rask db update                # create + apply the SQLite migration
 rask dev                                                   # run it, hot-reloading, at /products
 rask deploy --host root@box --domain shop.example.com      # ship it: bare box → Docker + auto-HTTPS, zero-downtime
@@ -113,7 +114,7 @@ no separate server to run. Add one with a package reference and a line of DI; th
 | Pillar | What one command / one line gives you | |
 |---|---|---|
 | **The `rask` CLI** | `new` · `generate` · `db` · `dev` · `deploy` — the whole lifecycle, one tool. | [→](docs/cli.md) |
-| **CRUD scaffolder** | `rask generate feature` emits an encapsulated entity, CQRS commands/queries, and list/create/edit pages — and **writes the DI into `Program.cs`**. | [→](docs/cli.md) |
+| **A CRUD slice** | An encapsulated entity, CQRS commands/queries, and list/create/edit pages — written once in the tutorial and repeated per feature. | [→](docs/tutorial/02-first-feature.md) |
 | **Data** (`Rask.Data`) | `Entity<TId>` + EF interceptors: audit stamps, soft delete, optimistic concurrency, domain events. | [→](docs/data.md) |
 | **CQRS** (`Rask.Cqrs`) | Source-generated, trim-safe queries / commands / notifications via `IDispatcher`. | [→](docs/cqrs.md) |
 | **Auth** | Cookie & JWT, Server & WASM, a declarative `Authorize` gate + route guards. | [→](docs/authentication.md) |
@@ -162,10 +163,10 @@ iOS/Android app** — a WebView hybrid where your C# runs natively on the device
 Building a product used to mean assembling a stack: a frontend framework in another language, a backend, a
 managed database, a queue, a cache, a blob store, a deploy pipeline — each rented, glued, and maintained. For
 a team that's overhead; for one person it's the whole job. Rask collapses it into **one C# codebase on one
-server**: scaffold a feature, store it in SQLite, ship it to a box — no PaaS, no glue, no second language.
+server**: write a feature, store it in SQLite, ship it to a box — no PaaS, no glue, no second language.
 
-- **You write the product, not the plumbing.** `rask generate feature` emits the vertical slice *and* wires
-  the DI; the pillars register in a line; `rask deploy` even prepares the bare server for you.
+- **You write the product, not the plumbing.** A vertical slice is a handful of small files; the pillars
+  register in a line; `rask deploy` even prepares the bare server for you.
 - **DB-backed by default.** Jobs, mail, cache, outbox — all persist to the app's own SQLite DB. Adding one is
   a package reference, not a new service to operate.
 - **Correct, concurrent, backed-up SQLite.** WAL, busy-timeout, non-blocking write retries, and continuous
@@ -208,6 +209,7 @@ The [`rask` CLI](docs/cli.md) (`Rask.Cli`, a global .NET tool) owns all scaffold
 ```bash
 dotnet tool install -g Rask.Cli          # one-time: install the CLI
 
+rask                                      # a wizard: name, project type, styling, Docker, batteries
 rask new MyApp                            # ASP.NET live-server app (the default template)
 rask new MyApp --template wasm            # standalone browser-WASM SPA
 rask new MyApp --template wasm-hosted     # browser-WASM client + ASP.NET host
@@ -215,6 +217,10 @@ rask new MyApp --template native          # native iOS + Android app (WebView hy
 
 cd MyApp && rask dev                       # run with hot reload (--open for a browser; native: dotnet build -t:Run -f net10.0-android)
 ```
+
+Run `rask` with no arguments on a terminal and it asks its way to a project, skipping any question you
+already answered on the command line. Every project comes with a `.gitignore`, an `.editorconfig`, a
+`.slnx` solution and a git repository with one commit.
 
 Add `--auth` for a cookie/JWT-wired starter, `--pwa` (WASM) for an installable offline app, or
 `--docker` (the three web templates) for a production multi-stage Dockerfile — see
@@ -249,6 +255,7 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.SQLite.EntityFrameworkCore`  | an EF Core app that wants the pragmas (+ opt-in busy retry)        | `o.UseRaskSqlite(cs)` on the `DbContextOptionsBuilder`       |
 | `Rask.SQLite.Litestream`           | server-side SQLite app wanting managed backup                      | `services.AddRaskSqliteLitestream(...)` + `RestoreSqliteFromLitestreamAsync()` |
 | `Rask.SQLite.Snapshots`            | server-side SQLite app wanting scheduled backups                   | `services.AddRaskSqliteSnapshots(...)` (or inject `ISqliteSnapshotter`)       |
+| `Rask.SQLite.Browser`              | a WASM app wanting a real SQLite database that survives a reload   | `services.AddRaskBrowserSqlite("app")` + `o.UseSqlite(BrowserSqlite.ConnectionString("app"))` |
 | `Rask.Testing`                     | your `*.Tests` project (references your app)                       | `RaskTest.Render(new MyComponent())` → assert on `.Html`    |
 
 </details>
@@ -264,7 +271,9 @@ host trade-offs, and sub-path hosting are covered in **[getting started](docs/ge
   to `main`; click through a full multi-page Rask app in the browser before cloning anything.
 - **[Playground ↗](https://pal-tamas.github.io/rask/playground/)** — write Rask component C# in the browser with a real
   IDE: Roslyn-powered IntelliSense, as-you-type diagnostics, and a gallery of ready-to-run examples — then see it
-  compile & render live (Roslyn runs in WebAssembly, no server). See [docs/playground.md](docs/playground.md).
+  compile & render live (Roslyn runs in WebAssembly, no server). It also hosts an **eight-chapter guided tutorial**
+  whose last four chapters run **real EF Core + SQLite inside the tab** — write an entity, save a row, query it back,
+  with nothing installed. See [docs/playground.md](docs/playground.md).
 - **[`samples/`](samples/)** — runnable showcase apps that exercise every feature end-to-end: the shared feature pages
   (`samples/Rask.Example.Shared/Features/`), EF Core + SQLite data access, and one auth sample per cell of the
   `{Cookie, JWT} × {Server, WASM}` matrix. Run one with, e.g.,

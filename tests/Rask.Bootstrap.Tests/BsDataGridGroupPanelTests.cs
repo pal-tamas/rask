@@ -304,8 +304,8 @@ public partial class BsDataGridGroupPanelTests : global::Rask.Core.RaskMarkup
         Assert.Contains("No rows.", html, StringComparison.Ordinal);
     }
 
-    // The handler id of the button carrying this aria-label. Ids are reissued every render, so it is read from
-    // the current markup rather than captured.
+    // The handler id of the button carrying this aria-label. Read from the current markup rather than
+    // captured: an id only holds while its component keeps rendering that same handler.
     private static string ClickFor(string html, string label)
     {
         var m = Regex.Match(html,

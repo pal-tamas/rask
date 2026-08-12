@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <IsAotCompatible>true</IsAotCompatible>
+
+    <PackageId>Rask.Sync.Client</PackageId>
+    <Title>Rask.Sync.Client — backendless sync over object storage</Title>
+    <Description>Joins Rask.Sync's merge engine to an object-storage bucket so several devices can share data with no server between them. Each client appends to a prefix only it writes, so there are no write conflicts to resolve; peers are discovered with a grouped listing and read forward from a per-peer watermark, so syncing costs what changed rather than what exists. Edits made offline queue locally and flush on the next sync, and the whole thing reports a status — synced, pending, offline, conflicts — that a UI can render.</Description>
+    <PackageTags>sync offline-first local-first object-storage s3 azure-blob crdt lww dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Sync.Client.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Sync\Rask.Sync.csproj"/>
+    <ProjectReference Include="..\Rask.ObjectStore\Rask.ObjectStore.csproj"/>
+  </ItemGroup>
+
+</Project>

@@ -4,8 +4,8 @@
 
 `Rask.Jobs` runs **background work off the request thread**, stored in the app's own database — no message
 broker, no Redis. Enqueue a job and a hosted worker runs it later, **at-least-once**, with exponential-backoff
-retries; it also runs **delayed** and durable **interval-recurring** jobs. Scaffold one with
-`rask generate job <Name>`.
+retries; it also runs **delayed** and durable **interval-recurring** jobs. [Tutorial chapter
+4](tutorial/04-background-jobs.md) builds one end to end.
 
 ```bash
 dotnet add package Rask.Jobs
@@ -105,8 +105,26 @@ for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero`
 
 ## Notes
 
-- **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a
-  browser/WASM concern.
+- **It runs in the browser too, unchanged.** The processor is a hosted service and the store is your EF Core
+  database, and both of those now exist on the WASM host: `AddHostedService` starts what it registers (see
+  [lifecycle.md](lifecycle.md#hosted-services)), and [`Rask.SQLite.Browser`](sqlite.md#sqlite-in-the-browser-wasm)
+  gives a browser app a real SQLite database that survives a reload. So `AddRaskJobs<AppDbContext>()` is the
+  same line on both hosts, and a job plus its handler compiles and runs on either:
+
+  ```csharp
+  host.Services.AddRaskBrowserSqlite("app");                       // the only browser-specific line
+  host.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(BrowserSqlite.ConnectionString("app")));
+  host.Services.AddRaskCqrs();
+  host.Services.AddRaskJobs<AppDbContext>();
+  ```
+
+  What differs is what the guarantees are worth. The lease still makes a job run on exactly one *runner*, but
+  in a browser that means one tab: `Rask.SQLite.Browser` elects a single owner, and the other tabs are not
+  peers sharing a queue — they have their own, unpersisted database. Durability is bounded by the snapshot
+  interval rather than by `SaveChangesAsync`, so a force-closed tab loses jobs queued since the last one.
+  And shutdown is best-effort: the browser does not wait for `pagehide`, so `StopAsync`'s lease hand-back
+  often does not land and the lease expiry is what recovers the batch. Working app:
+  [`samples/Rask.Example.Wasm.Jobs`](../samples/Rask.Example.Wasm.Jobs).
 - **A job type must be a concrete, non-generic type the generated registry can name** — that is how a stored
   job is rehydrated without reflection. Skipped shapes: generic (or nested inside a generic), `file`-local,
   and `private`/`protected` at any level of its containing chain. Each is reported at build time as

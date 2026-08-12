@@ -19,7 +19,20 @@ fi
 # when there is most to check: grep exits on the first match, git takes SIGPIPE writing the rest, and the
 # pipeline reports failure — so a large staged change reads as "no code changes" and sails through
 # unchecked, while a small one gates normally. It let a 421-file commit touching all of src/ past.
-if ! git diff --cached --name-only | grep -E '^(src/|tests/|benchmarks/|Rask\.slnx$|Directory\.)' >/dev/null; then
+#
+# samples/ and docs/ are in here for the same reason src/ is: the suite genuinely gates them.
+#
+#   samples/ is compiled, analyzer-checked, warnings-as-errors code with its own test projects. More than
+#   that, Rask.Example.Shared.Tests compiles samples/Rask.Example.Shared and owns DemoMarkup.golden.txt —
+#   so a samples-only commit could break a committed golden with nothing objecting.
+#
+#   docs/ is an input to the tests, not just prose: DocsIndexTests walks docs/**/*.md on disk for
+#   reachability from docs/README.md, and GuidesTests holds the GuideCatalog parity guard in both
+#   directions. A new page committed on its own skipped exactly the checks written to catch it.
+#
+# Leaving these out meant a whole feature could land ungated — the playground tutorial was largely a
+# samples/ + docs/ change, and reported "no code changes staged".
+if ! git diff --cached --name-only | grep -E '^(src/|samples/|docs/|tests/|benchmarks/|Rask\.slnx$|Directory\.)' >/dev/null; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
 fi

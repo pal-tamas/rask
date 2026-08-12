@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 # Smoke driver for the `rask` CLI (src/Rask.Cli).
 #
-# The CLI is the framework's front door: `rask new` scaffolds a project, `rask generate` scaffolds
-# pages/components/CRUD features/jobs/emails into it, `rask info|db|dev|deploy` wrap the SDK. This
-# script drives the two that actually produce artifacts end-to-end (new + generate), asserting exit
-# codes AND that the expected files / output show up — the thing a unit test of an internal method
-# can't prove: that the assembled tool scaffolds a real project on disk.
-#
-# It stays HERMETIC: the full `generate feature` reaches out to nuget.org to add EF Core/Cqrs/Data
-# packages, so the feature step here uses --dry-run (prints the plan, writes nothing, no network).
-# The real-write proof is `generate page`, which writes one .cs file and touches no packages.
+# The CLI is the framework's front door: `rask new` scaffolds a project and `rask info|db|dev|deploy`
+# wrap the SDK. Code *inside* a project is written by hand — there is no `generate` verb. This script
+# drives the one command that produces artifacts end-to-end (`new`), asserting exit codes AND that the
+# expected files show up — the thing a unit test of an internal method can't prove: that the assembled
+# tool scaffolds a real project on disk.
 #
 # Usage (from anywhere — paths resolve off this script's location):
 #   .claude/skills/run-rask-cli/smoke.sh              # build the CLI, then run the smoke
@@ -59,17 +55,8 @@ echo "==> Environment"
 check "info"            0 "Rask CLI"          -- info
 check "--version"       0 "[0-9]+\.[0-9]+"    -- --version
 
-echo "==> Help is discoverable (options table + examples; hidden feature flags surfaced)"
-check "generate --help shows feature flags" 0 "Feature options" -- generate --help
-check "generate --help shows examples"      0 "Examples:"       -- generate --help
-# --outbox/--tests were previously undocumented — help must now list them.
-helpout="$( rask generate --help 2>&1 )"
-if echo "$helpout" | grep -q -- "--outbox" && echo "$helpout" | grep -q -- "--tests"; then
-  echo "  PASS  generate --help lists --outbox/--tests"; PASS=$((PASS+1))
-else
-  echo "  FAIL  generate --help missing hidden flags"; echo "$helpout" | sed 's/^/        | /' | head -6; FAIL=$((FAIL+1))
-fi
-
+echo "==> Help is discoverable (options table + examples)"
+check "new --help shows examples"           0 "Examples:"       -- new --help
 echo "==> Shell completion (generated from the live command + option set)"
 check "completion bash"  0 "complete -F _rask_complete rask" -- completion bash
 check "completion fish"  0 "complete -c rask"                 -- completion fish
@@ -87,21 +74,6 @@ check "new Shop"        0 "Created Shop"      -- new Shop --template server --ou
 have "$WORK/Shop/Shop.csproj"
 have "$WORK/Shop/Program.cs"
 have "$WORK/Shop/Features/Shared/App.cs"
-
-echo "==> Generate into it (real write: a page — no packages, no network)"
-( cd "$WORK/Shop" && rask generate page Dashboard --route /dashboard ) >/dev/null 2>&1 \
-  && { echo "  PASS  generate page (exit 0)"; PASS=$((PASS+1)); } \
-  || { echo "  FAIL  generate page"; FAIL=$((FAIL+1)); }
-have "$WORK/Shop/Features/Dashboard/DashboardPage.cs"
-
-echo "==> Generate a CRUD feature (dry-run: hermetic, shows the plan, no nuget)"
-featureout="$( cd "$WORK/Shop" && rask generate feature Product Name:string Price:decimal --dry-run 2>&1 )"
-if echo "$featureout" | grep -q "would write Features/Products/Product.cs" \
-   && echo "$featureout" | grep -q "Entity<Guid>"; then
-  echo "  PASS  generate feature --dry-run (CRUD plan)"; PASS=$((PASS+1))
-else
-  echo "  FAIL  generate feature --dry-run"; echo "$featureout" | sed 's/^/        | /' | head -6; FAIL=$((FAIL+1))
-fi
 
 echo "==> Deploy scaffolding + preview (hermetic: no host, no docker, no network)"
 # `deploy` itself needs Docker + SSH + a real box, so it can't run here. Its two offline modes can:
@@ -123,7 +95,7 @@ checkin "$WORK/Shop" "deploy rejects a bad --deploy-user" 2 "isn't a valid Linux
 
 echo "==> A wrong command line exits 2, names the fix, and guesses what you meant"
 mkdir -p "$WORK/empty"
-check                 "unknown command suggests"   2 "Did you mean 'generate'"        -- genrate
+check                 "unknown command suggests"   2 "Did you mean 'deploy'"          -- deplyo
 check                 "unknown command"            2 "Unknown command"                -- frobnicate
 check                 "bad option value suggests"  2 "Did you mean 'server'"          -- new X --template srever
 check                 "unknown option suggests"    2 "Did you mean '--template'"      -- new X --tempate server
@@ -136,8 +108,7 @@ check                 "-h is help, not --host"     0 "Usage: rask deploy"       
 echo "==> Error paths (work that was attempted and failed still exits 1)"
 # Project is resolved by walking UP for a single .csproj — so "no project" must run in an empty dir,
 # and field validation (which happens AFTER project resolution) must run INSIDE the Shop project.
-checkin "$WORK/empty" "generate outside a project" 1 "Couldn't find a .csproj"        -- generate page Nope --dry-run
-checkin "$WORK/Shop"  "bad field type"             2 "Unknown field type"             -- generate feature Bad Name:wobble --dry-run
+checkin "$WORK/empty" "db outside a project"      1 "Couldn't find a .csproj"        -- db list
 
 echo
 echo "==> $PASS passed, $FAIL failed."

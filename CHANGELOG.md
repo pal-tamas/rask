@@ -974,6 +974,550 @@ them until tagged releases begin.
     document, so the client's `document.documentElement` morph still strips `<html>` attributes it did
     not render. An app that stamps a theme attribute pre-boot still re-applies it from
     `window.raskAfterMorph`.
+
+### Fixed
+- **Tutorial chapter 7 contradicted chapter 3.** It told the reader to write `Create(string customer,
+  decimal total)` on an `Order` that chapter 3 gave `Total`/`ProductId`/`Placed` and no `Customer` —
+  the snippets came from a generator run with different fields, which the old `--force` regeneration
+  papered over. Chapter 7 now shows the revised `Order.cs` whole, with chapter 3's fields intact. The
+  build gate walks chapters 2 → 3 → 4 → 5 → 7.
+- **The CLI build gate's intermittent wasm-hosted failures were MSBuild node reuse
+  ([#650](https://github.com/pal-tamas/rask/issues/650)), not flakiness.** A worker node kept alive
+  from an earlier run had already loaded `Rask.Wasm.Tasks.dll` from that run's temp directory, so the
+  next run's publish silently baked nothing. `Directory.Build.rsp` sets `-nodeReuse:false` for in-repo
+  builds but these projects are generated outside it; the harness now sets `MSBUILDDISABLENODEREUSE=1`,
+  which the nested `dotnet publish` inherits. Three consecutive gate runs are now 27/27.
+
+### Fixed
+- **Tutorial chapter 4 didn't compile either.** The job handler used `IDbContextFactory<AppDbContext>`
+  with no `using` and no namespace, so the file the chapter names failed with two `CS0246`s as soon as
+  a reader filled the handler in. Chapter 5's email component gained the namespace every other file in
+  the tutorial declares. The build gate now walks chapters 2 → 3 → 4 cumulatively — they depend on each
+  other (chapter 4's handler reads the `Orders` set chapter 3 adds), so isolation would have missed it.
+
+### Fixed
+- **Tutorial chapter 2 didn't compile if you typed it in.** Four defects, none visible to the snippet
+  parser: the `AppDbContext` step gave the `DbSet<Product>` line but not the `using` the slice needs
+  (the resulting error names `Product`, not the missing import); the list page linked to
+  `UpdateProduct` and `DeleteProduct`, which the chapter never provided; and the form used
+  `DataAnnotationsValidator` without saying it comes from its own package. The chapter now provides
+  both missing files and names the package, and chapter 3 gained the matching `using` for Orders.
+  `TutorialChapterBuildE2ETests` now scaffolds a project, types the chapter in, and builds it with
+  `-warnaserror` — reading the chapter itself, so an edited snippet is compiled rather than a copy.
+
+### Changed
+- **`rask deploy logs -f` works.** `--follow` had no short name because `-f` was `--fields` CLI-wide,
+  and the comment explaining that named the cost: `docker logs -f` muscle memory. `--fields` went with
+  `rask generate`, so the letter is free and the tail of a log now reads the way every other tool
+  spells it. A test already enforces one meaning per short name across the CLI, which is what makes
+  reclaiming a freed letter safe rather than a guess.
+
+### Removed
+- **Dead code the `rask generate` removal left behind.** Eight properties on `ScaffoldResult` (the
+  DbContext splice points, the `Program.cs` registrations, the sibling test-project wiring), the
+  `TestProjectWiring` record, `Identifiers.Capitalize`, and `Scaffold.IsInside` with its private
+  path-comparison helper. Nothing warns about an unused property on an internal record, so they would
+  have sat there looking like part of the design.
+- **Stale references to `rask generate` in the CLI itself.** The scaffolded welcome page told every new
+  project to run three commands that no longer exist, `rask new`'s next steps printed a fourth, and the
+  generated `Program.cs` and `AppDbContext` carried comments describing a generator. They now point at
+  the tutorial.
+
+### Added
+- **The tutorial's C# snippets are now checked by a test.** Since the code moved out of `rask generate`
+  and into the guides, nothing compiled it — a snippet could rot into something that never builds and
+  the first person to find out would be a reader typing it. `TutorialSnippetTests` parses every fenced
+  C# block in `docs/tutorial/` and verifies that every `override` inside a `Component` names a member
+  that actually exists on `Component`. That second check is the one that matters: it catches a snippet
+  calling a lifecycle hook from a different framework, which parses perfectly and never compiles.
+
+### Added
+- **`rask` on its own opens a new-project wizard.** Typing `rask` with nothing else used to print the
+  command list — a reasonable answer to a question nobody asked, since someone typing it has no project
+  yet. On a terminal it now walks the wizard: project name, an arrow-key **project type** picker,
+  **styling** (Rask.Bootstrap or plain elements), a **Dockerfile** question, and a checklist of
+  **batteries** toggled with space instead of thirteen consecutive yes/no prompts. A database picker
+  follows when something you ticked needs one. Piped or scripted, bare `rask` still prints the command
+  list, so `rask | head` and CI are unchanged.
+- **The wizard fills gaps instead of re-asking.** Anything already given on the command line is kept
+  verbatim and its question skipped, so `rask new --template wasm --auth` asks only for the name.
+  Questions that cannot apply are skipped too — no database question without a battery that needs one,
+  no snapshots question for a database that isn't a file.
+- **Every scaffolded project gets a `.gitignore`, an `.editorconfig`, and a `.slnx` solution, and is
+  initialized as a git repository with one commit.** These are the things whose absence is paid for
+  later and by someone else: a committed `bin/` or `app.db`, a formatting-only diff, a solution nobody
+  can open. `--no-git` skips the repository, and it is skipped automatically when the target is already
+  inside one. The `wasm-hosted` template's hand-written `.sln` — three projects, six GUIDs and a
+  configuration matrix — is now a nine-line `.slnx`.
+- **`rask new --no-bootstrap`.** Renders the generated pages with plain elements against a small
+  stylesheet carried in the app shell, and drops the `Rask.Bootstrap` reference, for projects bringing
+  their own CSS. The wizard asks for it as a styling choice. Covered by the CLI build gate, which packs
+  this commit's packages and runs a real `-warnaserror` build over the result — the one flag where the
+  generated *code* differs rather than the wiring is the one a string assertion proves least about.
+- **`--host wasm-hosted` for the native template**, alongside `local` and `server`. Picking `native` in
+  the wizard now asks where the UI comes from: the device, a Rask server, or a wasm-hosted app. The two
+  remote modes scaffold the same shell — `RaskServerWebView` takes a trusted origin and never asks what
+  serves it — and differ in the guidance they carry, because a live server renders over a WebSocket
+  while a published bundle keeps working once loaded. The wizard's summary now lists only what was
+  actually decided, so a native app is no longer told it chose Rask.Bootstrap and declined Docker.
+- **`rask new --template native --platform ios|android`** (repeatable; both by default), and a matching
+  wizard checklist. The native template used to multi-target both platforms unconditionally, so an
+  Android-only app still carried a `Platforms/iOS/` folder, an iOS target framework, an
+  `Info.plist` wiring block and a run command for a simulator it would never launch — files that never
+  compile, which is the kind of thing that survives for years because nobody is sure whether they
+  matter. Naming one platform now leaves no trace of the other, down to the `dotnet workload install`
+  line and the per-target-framework compile guards, which are emitted only when there is more than one
+  target to keep apart.
+
+### Removed
+- **`rask generate` is gone — the CLI no longer scaffolds code inside a project.** All six artifacts
+  (`page`, `component`, `feature`, `job`, `email`, `cache`) and the ~3,400 lines of generators behind
+  them are deleted, along with `.rask/generate.json` and the feature flag surface (`--fields`,
+  `--bs`, `--modal`, `--soft-delete`, `--concurrency`, `--events`, `--outbox`, `--tests`, `--id`,
+  `--plural`, `--validation`, `--save-defaults`). `rask` is now `new`, `dev`, `db`, `deploy`, `info`,
+  `doctor`, `completion`.
+
+  **The code did not go away — it moved into the guides.** Every artifact the scaffolder used to emit is
+  now written out as copyable code: [tutorial ch.2](docs/tutorial/02-first-feature.md) builds a full CRUD
+  slice (entity, form model, EF configuration, CQRS commands/queries, list/create/edit pages), and
+  ch.4–7 do the same for jobs, email, cache and outbox events. The finished app remains committed as
+  `samples/Rask.Example.Shop`, so a snippet always has somewhere to be read in full.
+
+  Scaffolded code is read far more often than it is written, and a generator's output has to be
+  understood line by line the first time you meet it anyway. Teaching it in the guides means there is one
+  version of that code — the one you can read, adapt and keep — instead of a generated one plus a
+  document describing it, drifting apart.
+
+### Changed
+- **The CLI's terminal output is rendered by [Spectre.Console](https://spectreconsole.net).** The help
+  pages, `rask deploy status`, `rask doctor`, the deploy and host-setup spinners and every prompt were
+  ~270 lines of hand-rolled ANSI escapes, `\r` overwrites and `PadRight` columns that had never learned
+  terminal width, word wrap or arrow-key selection. Long option descriptions now wrap under themselves
+  instead of running off the edge, lists are navigated with the arrow keys, and the tool wears its own
+  purple. Two behaviours are held exactly as they were, and tested: piped output carries **no escape
+  codes, no logo and no reflowing** — a line you grep for stays on one line — and progress spinners
+  write **nothing at all** off a terminal. `NO_COLOR` now removes only color, where before it also
+  disabled the cursor control the spinner and the list prompts need.
+- Emoji and the block-glyph logo are drawn only on a terminal that reports Unicode support, so a console
+  on a legacy code page gets plain text rather than mojibake.
+
+### Fixed
+- **A second build in the same session no longer fails on the scoped-asset bake.** MSBuild keeps its
+  worker nodes alive between invocations, and the bake is not safe across them: it loads bundle
+  assemblies with `Assembly.LoadFrom`, so a node that already loaded one of that simple name from
+  *another* project's output throws and the bake produces an empty bundle
+  ([#650](https://github.com/pal-tamas/rask/issues/650)). Since the guard added in #652 that is a build
+  error rather than a silently 404-ing app — correct, but it means publishing two different WASM samples
+  in a row **breaks the second one**, and an ordinary `dotnet build` after a publish can break too. A
+  repository-level `Directory.Build.rsp` now passes `-nodeReuse:false`, so every build starts from fresh
+  workers and the collision cannot arise. Measured cost on this repo: a no-op incremental build of
+  `Rask.Core` goes 0.68s → 0.89s.
+  Explicitly a **mitigation, not the fix** — consumers building their own apps are unaffected by the
+  response file. The fix needs a load context that intercepts *dependency* resolution rather than only
+  top-level loads; `Assembly.Load(byte[])` and a bare `AssemblyLoadContext` both look like they work and
+  do not, because `AssemblyResolve` is last-chance and the pre-loaded copy wins, splitting the registry
+  the bake reads from the one the registrations write to. Diagnosis recorded on #650.
+- **`rask generate job` in the Server half of a `wasm-hosted` solution treated it as a browser app.**
+  Browser detection matched `Rask.Wasm` as a substring, and the Server project references
+  **`Rask.Wasm.Hosting`** — so the one project a background job actually belongs in got the browser
+  next-steps (`AddRaskBrowserSqlite`, "`rask db` does not apply") and had `Rask.SQLite.Browser` added to
+  it. That package doesn't resolve for a server project, so the command finished with *"the files were
+  written, but the wiring above didn't complete"* and exit 1 — broken, not merely misleading.
+  All three signals are now matched precisely rather than as substrings: `-browser` on the
+  `TargetFramework(s)` element rather than anywhere in the file, `<RaskWasm>true</RaskWasm>` rather than
+  `<RaskWasm>` (which also matched an explicit `false`), and a reference to `Rask.Wasm` itself as either
+  a package or a project — anchored so `Rask.Wasm.Hosting` can't satisfy it. A genuine browser app,
+  including the Client half of the same solution, is unaffected.
+- **The battery demo's live subscription no longer overwrites what you just read.** `BatteryDemo` showed
+  one "Status" line written by two independent sources: the `WatchAsync` subscription stamped `live` on
+  every push from the device, and the *Read now* button stamped `read`. Whichever wrote last won — so a
+  push arriving after a click replaced the answer with `live` and **never put it back**, making the
+  button look like it had done nothing. The two are now separate lines, `Watch:` and `Status:`, each with
+  exactly one writer; the level and charging figures stay shared, since both sources describe the same
+  battery and the freshest value is the right one whichever produced it.
+  This also removes an intermittent red from the **longest test in the E2E gate** — the shared journey
+  asserted that one label after clicking Read, so a chance push failed the whole journey on unrelated
+  branches ([#661](https://github.com/pal-tamas/rask/issues/661)).
+
+### Added
+- **Compaction, so a shared bucket doesn't grow forever.** A replica folds its own objects into a single
+  one holding its whole current contribution and removes the rest — automatically once its prefix passes
+  `CompactAfterObjects` (default 50), or on demand via `CompactAsync()`. What makes it cheap is a
+  property of cr-sqlite's feed worth knowing on its own: **it is current state, not history** — one entry
+  per (row, column) with the value that won, so editing a field forty times leaves *one* entry and a
+  deleted row collapses to a single tombstone. Republishing everything therefore costs the size of the
+  database rather than the number of edits ever made. No coordination is needed, because a replica only
+  ever rewrites its own prefix — the same rule that removes write conflicts makes compaction a local
+  decision. Three things keep it safe, each pinned by a test: the replacement is keyed so it sorts
+  **after** everything it replaces (a replacement that sorted earlier would silently stop reaching peers
+  that had already synced); re-reading state a peer already holds is harmless because applying twice does
+  nothing; and a peer reading an object as it is removed skips it and finds the replacement. The payoff
+  is a new device's first sync — one object per peer instead of replaying every sync those peers have
+  ever done, verified against the real extension including that a **tombstone survives compaction**, so a
+  deleted row does not come back from the dead.
+- **A working sample: three devices sharing one database with no server.**
+  `samples/Rask.Example.Crdt` runs three replicas — Phone, Laptop, Tablet — each with its own SQLite
+  file and its own replica identity, sharing a bucket and nothing else. Each device can be taken
+  offline independently, so the demo exercises the real offline path rather than a special case: edit
+  **different fields of the same todo** on two offline devices, bring both back, sync, and both edits
+  survive. That is the claim per-column merging makes, and it is asserted by an E2E that drives it
+  through a browser. cr-sqlite's native binary is per-platform and not redistributed, so without
+  `RASK_CRSQLITE_PATH` the page explains what to download instead of failing at the first query with
+  "no such function" — and *that* state is asserted too, so one of the two always runs.
+- **`FolderObjectStore` — a bucket backed by a directory.** The same `IObjectStore` over a folder, which
+  is what lets the sample run with no cloud credentials. It also covers a single-machine deployment
+  with no reason to pay for object storage, and — the interesting case — **a folder something else
+  already replicates**: pointed at a Syncthing share, devices converge with no central server at all.
+  Objects are written beside their key and moved into place, so a concurrent reader sees either nothing
+  or the whole object, and keys that would escape the root are refused rather than normalised, because
+  a key can come from a listing of a folder other people also write to.
+- **`Rask.SQLite.Crdt.Sync` — share those replicas through a bucket, with no server between them.**
+  Ships the change feed over `Rask.ObjectStore`: `new CrdtSyncEngine(objectStore, feed)` then
+  `SyncAsync()`, with a status a UI can render (published / received / peers / offline). The design
+  rests on one rule — **each device writes only under its own prefix** (`crdt/{site-id}/changes/`) and
+  never touches another's — so no two devices ever write the same key and there is nothing to lock,
+  nothing to retry on conflict, and no lease to leak when a device dies mid-write. Keys carry the
+  publisher's own `db_version` range in fixed-width hex, so they sort in the order changes were made
+  and a remembered key resumes where the last sync stopped; peers are found with a grouped listing, so
+  discovery costs one response naming the *devices*. Only `ReadLocalChangesAsync()` is published, or
+  every device would re-upload every other device's history, and uploads batch because object storage
+  charges per request.
+  **A peer watermark is a key, not a version** — a `db_version` is assigned by whichever database reads
+  it, so "everything peer X has after N" is unanswerable from versions and building on them would
+  silently skip changes. The watermark advances only after changes commit locally, so an interrupted
+  pull is retried rather than skipped. **Offline is the normal case**: the database *is* the queue, so
+  an unreachable bucket loses nothing and `CrdtSyncPhase.Offline` is deliberately not a failure state.
+  There is no conflict count, on purpose — merging is per column and automatic, so nothing was silently
+  discarded. `ICrdtSyncStore` is a cache rather than a record: losing it costs re-uploading and
+  re-reading, never data, and a fresh state is answered *from the bucket* so a reinstalled device does
+  not republish its history. The wire format is hand-written (no reflection, trim-safe) and tags each
+  value with its SQLite storage class, because a value written back as the wrong class is a different
+  value rather than a formatting difference. Documented in
+  [docs/sqlite-crdt-sync.md](docs/sqlite-crdt-sync.md); verified with two real replicas syncing through
+  a bucket, not only against a fake feed.
+- **`Rask.SQLite.Crdt` — several replicas of one database, written independently and merged without
+  conflicts, through ordinary EF Core.** Wires the cr-sqlite extension into a `DbContext` so application
+  code stays LINQ, change tracking and `SaveChanges`, and merging happens per **column** rather than per
+  row: two devices editing different fields of the same record both keep their work, and last-writer-wins
+  applies only where two devices wrote the same field. `CrdtChangeFeed` exposes the change log with no
+  transport attached — `ReadChangesAsync` from a watermark, `ApplyChangesAsync` back — so the same log
+  works over a bucket, a socket, or nothing at all; pair it with `Rask.Sync.Client` for the bucket case.
+  Applying a change twice is a no-op, which is what makes re-sending safe after an upload whose outcome
+  is unknown. Two properties a transport has to build around, both verified against the real extension:
+  a replica's feed carries **every change it ever accepted**, still stamped with the originating
+  `site_id`, so `ReadLocalChangesAsync()` is what to publish or every device re-uploads every other
+  device's history; and a `db_version` belongs to the database it was read from — applying a peer's
+  change stamps it with *this* replica's next version — so a version orders your own publishing but can
+  never mean "everything peer X has after N". A batch applies in **one transaction**, so a peer's work
+  lands atomically and costs the receiver one version rather than one per column.
+  The package exists for the three requirements that otherwise fail *quietly*: the extension is per
+  connection rather than per process, so loading once at startup works until the pool recycles and then
+  silently stops (it is now loaded on every open and finalized before every close); cr-sqlite refuses a
+  `NOT NULL` column without a default, which is the exact shape EF emits for every required property, so
+  `ApplyCrdtConventions()` supplies them; and loading the extension seeds bookkeeping tables that make
+  `EnsureCreated` treat the database as already provisioned, so the schema must be created on a context
+  *without* the extension — otherwise nothing is created at all and the first symptom is the promotion
+  complaining about a missing primary key. Configuring a non-SQLite provider is reported rather than
+  skipped, because silently not replicating surfaces later as data loss. The native binary is supplied by
+  the app via `ExtensionPath`, since cr-sqlite ships one per platform. Documented in
+  [docs/sqlite-crdt.md](docs/sqlite-crdt.md); the merge behaviour is covered against the real extension
+  (`RASK_CRSQLITE_PATH`), and everything reachable without it always runs.
+- **A waiting tab now finds out when the database becomes free.** `BrowserSqliteOwnership.Available`
+  completes in a non-owner tab once the owning tab closes, so an app can turn "close the other tab" into
+  "your data is ready — reload" instead of leaving the user to guess when the condition was met.
+  **Reloading is what takes ownership**, deliberately: a waiting tab already opened its own empty database
+  at boot, so the file cannot be swapped under its live connections, and a tab that started persisting its
+  empty database would overwrite the previous owner's good snapshot with nothing. The watcher polls with
+  `TryRequestAsync`, which acquires and releases within the call, rather than waiting on `RequestAsync` —
+  waiting would mean *holding* the lock the moment it frees, which would both make this tab an owner it
+  must not be and block a tab that could actually use it. The signal is therefore advisory: another tab
+  may win between the poll and the reload, and the reloaded page runs the normal election to find out.
+  Tunable via `TakeoverPollInterval` (2s default); `samples/Rask.Example.Wasm.Jobs` shows it, covered by
+  an E2E that opens two real tabs and closes the owner.
+- **A browser database now asks not to be evicted.** `Rask.SQLite.Browser` keeps its snapshots in
+  IndexedDB, and IndexedDB is evictable: under storage pressure a browser may discard them, and the
+  database comes back empty on the next load with nothing to indicate why. The owning tab now calls
+  `navigator.storage.persist()` at startup (via `IStorageEstimator`, added in #645), checking
+  `IsPersistedAsync()` first so an already-exempt origin is never asked twice. A refusal is logged and
+  changes nothing else — the app runs exactly as before, the risk is just no longer silent. Only the
+  owning tab asks, since the others persist nothing. Chromium decides from engagement heuristics without
+  prompting; **Firefox prompts**, and this is asked during boot rather than from a click, so an app that
+  would rather choose its moment sets `o.RequestPersistentStorage = false` and calls
+  `IStorageEstimator.RequestPersistAsync()` from a user-gesture handler instead.
+- **`BrowserSqliteOwnership` — let a second tab explain itself.** Only one tab may own a browser SQLite
+  database, so the others run against their own empty, unpersisted one. That is correct, and until now it
+  was also indistinguishable from the user's data having been deleted: the package logged a warning to the
+  console and the app had no way to ask. Inject `BrowserSqliteOwnership`, `await ownership.Resolved`, and
+  say so. `IsOwner` is `null` while the election is in flight rather than `false`, so "still deciding" and
+  "another tab has it" stay distinguishable and a normal boot never flashes a warning banner.
+  `samples/Rask.Example.Wasm.Jobs` shows one, covered by an E2E that opens two real tabs.
+
+### Fixed
+- **A WASM publish that drops its scoped assets now fails the build instead of shipping.** The bake stages
+  scoped CSS/JS into `obj/…/rask-scoped` and registers them as computed static web assets in the build
+  pass, trusting them to flow into the publish manifest. When that link breaks — most reliably by building
+  one project in both `WasmBuildNative` modes through a single `obj/` — the published bundle simply has no
+  `/_rask/a/` and **nothing says so**: the app builds, publishes, boots and renders, with only its scoped
+  CSS/JS absent. Every scoped URL 404s, and for an app whose scoped JS owns something load-bearing that
+  presents as a hung page, sending you to debug the app rather than the build. The publish now compares
+  what was staged against what shipped and errors with the cause and the fix.
+
+  It also catches a second shape — **the bake not running at all**. With the staging directory absent,
+  "this project has no scoped assets" and "the bake was skipped" are the same observation, so the
+  comparison above has nothing to compare and stays quiet. The bake now records that it ran, and a publish
+  that never baked *and* shipped no scoped assets fails. A project that genuinely has none bakes zero,
+  records the run, and is unaffected — verified against `samples/Rask.Example.Wasm.Jobs`, which has no
+  scoped assets; an incremental publish that skips the build pass while its assets already sit in
+  `wwwroot` stays quiet too.
+
+  **Neither covers what #650 actually is**, so that issue stays open. Two sessions have now reproduced it
+  and the build log is unambiguous: after a no-native solution build, the native publish's bake *runs* and
+  writes **zero** files for an app that plainly has scoped assets. Nothing outside the bake can see the
+  difference between that and a project with none, so no publish-time check can catch it —
+  `FailOnEmpty` can't either, since its `registryResolved` is true whenever `Rask.Core` merely loads and
+  would fail every WASM app without scoped assets. The fix has to be inside the bake, once the binlog
+  shows what its inputs looked like on the failing run.
+
+  `BakeScopedAssetsTask.FailOnEmpty` could not have caught this and — despite its own documentation
+  claiming otherwise — has never been wired to anything: it fires only when the bake *runs* and writes
+  zero, whereas here the bake runs perfectly well and the break is downstream of it. Its docs now say so.
+- **62 in-page anchors across the docs sent readers to the top of the page instead of the section they
+  named.** The docs under `docs/` are authored and reviewed on GitHub, and their `#anchor` links are
+  written against GitHub's heading slugs — but the guides site rendered Markdig's, which differ wherever
+  a heading holds punctuation. GitHub *deletes* the character and keeps the spaces either side of it, so
+  `## Rask db — migrations` becomes `#rask-db--migrations`, while Markdig collapses the run to
+  `#rask-db-migrations`; leading numbers survive on GitHub (`#1-two-way-binding`) and are stripped by
+  Markdig. Every one of those links still navigated, which is why none of them looked broken.
+  Heading ids are now stamped GitHub-style, so the same anchor resolves in both places a doc is read.
+  Markdig's own `AutoIdentifierOptions.GitHub` does **not** close this gap — it produces identical output
+  to the default, verified — so the slug is ours. The on-this-page rail reads ids from the same pipeline
+  and follows automatically.
+  Five anchors were genuinely dead rather than mis-slugged (a heading reworded, one that never existed)
+  and are repointed at the sections they meant.
+
+### Added
+- **The docs suite now checks that links *inside* a doc resolve, not just that every doc is reachable.**
+  `DocsIndexTests` guarded reachability from `docs/README.md` and `GuidesTests` guarded catalogue parity;
+  neither looked at whether a link written in a doc pointed at anything, so both misses above were found
+  by a person reading rather than by a test. `DocsLinkTests` adds three checks over every `docs/**/*.md`:
+  a relative `*.md` link resolves to a file that exists; it resolves to a doc the app can actually serve
+  (the renderer rewrites `dir/x.md` to the SPA route `/guides/x` by bare leaf, so a doc present on disk
+  but not embedded under that slug is a link a reader can follow to a 404); and an `#anchor` — in the
+  same doc or another — names a real heading. Anchors are checked against the ids Markdig actually
+  stamps, by parsing with the renderer's own pipeline rather than a second slugifier that could disagree
+  with the first. External `http(s)` links are left alone: checking them needs the network and would buy
+  flakiness for no benefit.
+
+### Fixed
+- **Playground: picking a chapter or an example before the editor had mounted silently kept the starter
+  code.** Run and Reset waited for the editor; the controls that *load* code did not — they only guarded
+  against a compile being in flight. Loading a chapter is a round-trip to `setEditorValue`, and before the
+  editor exists that call is a no-op, so the editor then came up holding the starter instead. The reader
+  was left with the brief and the chapter highlight showing one chapter while the editor held another —
+  and Run compiled the wrong code and ticked the chapter off as done. On a cold load the window is seconds
+  wide, which is exactly when a first-time reader clicks "Tutorial". Every control now shares one gate
+  (`CanInteract`), since the bug was two copies of the condition disagreeing. Closes #647.
+- **Playground: a bundle whose scoped assets are missing now says so, instead of looking hung.** Mounting
+  the editor is an interop call into `PlaygroundView.js`; if that module never loaded, the call never
+  *settles* — which is not the same as failing, and the textarea fallback never gets a chance. Every
+  control then sat disabled forever with no explanation, which reads as "the playground is broken" and
+  sends you to debug Roslyn or Monaco rather than the build that dropped the assets. The mount now has a
+  deadline (generous, so a slow connection fetching Monaco can't trip it) and reports the module as
+  missing. See #650 for the build-side glitch that produces such a bundle.
+- **The pre-commit gate now covers `samples/` and `docs/`.** Its change filter listed `src/`, `tests/`,
+  `benchmarks/` and the build files, so a commit touching only samples or only docs reported "no code
+  changes staged" and skipped both formatting and the unit suite. That is not merely a missed format run:
+  `Rask.Example.Shared.Tests` compiles `samples/Rask.Example.Shared` and owns a committed markup golden,
+  and `DocsIndexTests` / `GuidesTests` read `docs/**/*.md` off disk for reachability and catalog parity —
+  so a samples-only or docs-only commit could break a golden or a docs invariant with nothing objecting
+  until somebody else's push. An entire feature could land ungated; the playground tutorial was largely a
+  `samples/` + `docs/` change.
+- **`rask generate job` no longer prints server-only next steps inside a browser app**
+  ([#646](https://github.com/pal-tamas/rask/issues/646)). `rask g j` is not gated on project kind, so it
+  runs anywhere a `.csproj` is found — and it told everyone the same thing: point a `DbContextFactory` at
+  `Data Source=app.db`, then run `rask db add && rask db update`. In a WASM app the migration step is not
+  something the reader can do at all (there is no design-time database in a browser bundle), and the
+  registration omits the one call that makes the queue durable. The failure was silent rather than loud:
+  the app built, ran, and quietly lost every queued job on reload. `ProjectContext` now detects a browser
+  project the same way it already detects the database provider — by reading the project file — and the
+  notes tell a WASM app to register `AddRaskBrowserSqlite`, create its schema at boot, and avoid the two
+  build settings (`-p:WasmBuildNative=false`, `PublishTrimmed=true`) that each break it without an error.
+- **`INotifications` no longer reports `Granted` on Android for an app whose notifications the user
+  switched off.** The check asked only whether the app *held* `POST_NOTIFICATIONS`, and short-circuited
+  to `Granted` outright below API 33 where no such permission exists. But the per-app notification
+  toggle in Settings is independent of the permission, exists on every supported version, and turning
+  it off makes `NotificationManager.Notify` a **silent** no-op — so `PermissionAsync()` said `Granted`,
+  `ShowAsync` returned without throwing, and nothing ever appeared. The one call that sees that toggle,
+  `AreNotificationsEnabled`, is now consulted first; it exists from API 24, the android head's own
+  minimum, so it needs no version guard.
+  A muted app reports **`Denied`** rather than `Default`, because the way back is the Settings screen
+  and not a prompt — which is what `Denied` means in the web contract this backend mirrors.
+  `RequestPermissionAsync()` returns it too instead of claiming a grant no prompt could produce (it was
+  answering `Granted` unconditionally below API 33). **Behaviour change:** `ShowAsync` on a muted app
+  now throws `InvalidOperationException` like any other ungranted permission, where it previously
+  returned and quietly showed nothing.
+
+### Added
+- **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
+  enters the tree through its generated factory, and that factory is what registers the instance with its
+  parent. One built another way — because its type isn't known until runtime: a plugin, a component chosen
+  by name, one compiled in the browser — arrives as a plain object. It rendered correctly but was invisible
+  to the alive-set walk: **no `OnMount`, no `OnMountAsync`, no `OnRendered`, no `OnUnmount`**, and no handle
+  to re-render through when an async hook completed. Anything loading its data in `OnMountAsync` sat on its
+  placeholder forever, with nothing reported — the failure looked exactly like code that doesn't work.
+  `Div()[Mount(Child: instance)]` adopts and notifies it, and adds no markup of its own; wrapping a
+  factory-built child is a harmless no-op. See [composition.md](docs/composition.md#hosting-a-component-you-built-yourself).
+  (Found because the playground mounts every compiled component this way — so until now *no* playground
+  snippet could load anything in `OnMountAsync`.)
+- **A guided tutorial in the playground, with real EF Core + SQLite running in the browser.** The
+  playground's left pane gains a **Tutorial** tab beside the example gallery: eight chapters that start at
+  "what is a component" and end at a database, each with its goal and notes above the editor, prev/next
+  navigation, and a tick once the chapter compiles (your edits included — the tick means it built, not
+  that you clicked it).
+
+  Chapters 5–8 are the point: they run **actual EF Core against actual SQLite inside the tab** — not a
+  mock, not the in-memory provider. `e_sqlite3` is linked into the published WebAssembly runtime, so
+  `SaveChangesAsync` writes rows a later `Where(...)` reads back through real SQL. They teach the same
+  [`Rask.Data`](docs/data.md) conventions `rask generate feature` scaffolds — `Entity<Guid>`,
+  `ApplyRaskConventions()`, and the auditing / soft-delete interceptors — so what a reader learns in the
+  browser is what they will write on their machine. A reader can now go from the front page to "I inserted
+  a row and queried it back" with nothing installed.
+
+  Notes: each chapter owns its own database file (chapters evolve the schema, and `EnsureCreated()` does
+  nothing to a database that already has tables), those files live in the runtime's in-memory filesystem
+  and are lost on reload — which is the intent for a sandbox, and still [not how to build an
+  app](docs/sqlite.md#sqlite-in-the-browser-wasm). Linking `e_sqlite3` means the playground now publishes
+  with a **native relink** (the `wasm-tools` workload); a build made with `-p:WasmBuildNative=false` ships
+  without the EF Core reference set and marks those chapters read-only rather than pretending they work,
+  so the fast unit-gate build is unaffected.
+- **`samples/Rask.Example.Wasm.Jobs` — `Rask.Jobs` running in the browser, verified end to end.** Queue a
+  job, a `BackgroundService` picks it up and writes a row, reload the page and the row is still there —
+  with no server behind any of it. Every registration below the first line is what you would write on a
+  server, and `GreetJob` plus its `ICommandHandler<GreetJob>` would compile and run there unchanged. The
+  new E2E test is the only evidence for a chain no unit test can reach: the WASM host starting a
+  registered `IHostedService`, EF Core opening a natively-linked SQLite database in the browser,
+  `JobProcessor` claiming a row with its lease, and the database surviving a reload from an IndexedDB
+  snapshot. It is its own sample rather than a page in the showcase because EF Core cannot be trimmed,
+  and it is the one sample that must **not** be published with `-p:WasmBuildNative=false` — SQLite is a
+  native library, and skipping the relink produces a bundle that boots and then fails on every database
+  call. `scripts/run-e2e-local.sh` publishes it accordingly, and the fixture checks the output and says
+  so if it was built the wrong way.
+- **`Rask.SQLite.Browser` — a real SQLite database inside a browser WASM app, persisted across reloads.**
+  `docs/sqlite.md` said this was not worth doing; it is, and it now works. The native `e_sqlite3` links
+  into a `browser-wasm` publish on its own (the patched SQLitePCLRaw 3.x bundle already pinned for
+  CVE-2025-6965 resolves to a native package that ships the browser asset and wires the
+  `NativeFileReference` itself), so `Microsoft.Data.Sqlite` — and Entity Framework Core on top of it,
+  including `ExecuteUpdateAsync` — runs in the browser unchanged. What was missing was durability and a
+  single writer, which is what this package adds: the database is restored from IndexedDB during a hosted
+  service's `StartAsync` (so anything registered after it opens a populated file), written back on an
+  interval and on page-hide through SQLite's Online Backup API rather than an unsafe file copy, and owned
+  by exactly one tab via a Web Lock — because every tab has its own in-memory filesystem, and two owners
+  would mean two divergent databases with the last snapshot silently winning.
+  ```csharp
+  builder.Services.AddRaskBrowserSqlite("app");
+  builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(BrowserSqlite.ConnectionString("app")));
+  builder.Services.AddRaskJobs<AppDbContext>();   // unchanged from the server
+  ```
+  Three limits worth stating plainly: an app using EF Core in the browser must publish with
+  `PublishTrimmed=false` (EF Core does not survive the trimmer there; `Microsoft.Data.Sqlite` alone does);
+  the durability window is the snapshot interval, not the page-hide flush, because the browser does not
+  wait for a `pagehide` handler; and non-owner tabs get their own unpersisted database rather than a view
+  of the owner's — promotion and write-proxying are not implemented.
+- **`IIndexedDb` stores raw bytes, not just strings.** `IKeyValueStore` gains
+  `SetBytesAsync(key, byte[])` / `GetBytesAsync(key)` for content that is binary rather than text — an
+  image, a compressed blob, a database file. The value lands in IndexedDB as a real `Uint8Array`, so a
+  megabyte of bytes costs a megabyte of quota; base64 is used only in transit, being the one encoding
+  that marshals identically across the interop boundary on every host. Both methods have default
+  interface implementations that fall back to the string API, so a custom `IKeyValueStore` written
+  before this still compiles and behaves correctly — it just pays the ~33% inflation in storage too.
+  The two pairs are not interchangeable: read a key with the same kind of accessor you wrote it with.
+- **`AddHostedService` now works on the browser host.** It always compiled there —
+  `Microsoft.Extensions.Hosting.Abstractions` is pure abstractions — but nothing ever *started* what
+  it registered, because a WASM app has no generic host. So a `BackgroundService` that ran on the
+  server registered fine, resolved fine, and silently never ran. Rask now starts registered hosted
+  services itself, in registration order, at the end of boot — late enough that a service can call
+  `StateHasChanged()` against a mounted tree, and late enough that a slow `StartAsync` cannot hold up
+  the rest of the boot or anything after `await RunAsync<App>()`. Differences from the server, all
+  documented in [docs/lifecycle.md](docs/lifecycle.md#hosted-services): a service that throws from
+  `StartAsync` is logged and skipped rather than blanking the app, since a browser tab has no
+  orchestrator to restart it (a throwing *constructor* takes the whole set down, because the
+  container builds them in one call — reported plainly); a `BackgroundService` whose loop faults
+  after starting is observed and logged, so a crashed loop cannot masquerade as one that never ran;
+  and shutdown is drained from `pagehide` — in reverse start order, and not for a back/forward-cache
+  suspend where the page can be restored still running — which the browser does not wait for, so it
+  is an optimisation rather than a guarantee.
+- **`IPermissions` now has a native backend, so on iOS/Android it answers about the OS permission the
+  other native backends actually gate on.** It was the only wrapper in its family without one — the 14
+  interfaces beside it (`IGeolocation`, `INotifications`, `IClipboard`, …) resolve to native backends, and
+  the one you reach for *first*, to decide whether you are about to prompt, still answered from the
+  WebView. That made it wrong twice over on a native head. It barely answered at all:
+  `navigator.permissions.query` throws `NotSupportedError` for `Geolocation`/`Notifications` on WebKit and
+  `TypeError` for the clipboard and persistent-storage names, so five of the seven typed `PermissionName`
+  values faulted the awaited task on iOS — including the two the interface's own docs tell you to pair it
+  with. And where it did answer, it described a different system: those native backends are gated by the
+  **OS app permission** (`Info.plist`/manifest + the system prompt), which the WebView's Permissions API
+  cannot see — so you could ask the WebView, get `granted`, and call `IGeolocation`, which reads
+  `CLLocationManager`. Each name is now answered from **the gate the caller will actually meet**: iOS
+  `CLLocationManager` / `UNUserNotificationCenter`, Android `Activity.CheckSelfPermission` plus
+  `AreNotificationsEnabled` (which also catches a user who switched notifications off below API 33, where
+  there is no runtime permission to check). Wired by `ApplePlatform`/`AndroidPlatform` like every other
+  native backend, so an app needs no new code.
+  Three answers are deliberately *not* the OS grant. **`Camera` and `Microphone` stay with the WebView** —
+  nothing on a native head consumes the app's capture grant (`IMediaDevices` is WASM-only, so capture goes
+  through the WebView, which gates it on its own permission on top of the app's), and they are also the
+  only two names WebKit answers, so deferring is both the accurate and the well-supported choice.
+  **`ClipboardRead` reports `Prompt` on iOS**, because since iOS 16 the programmatic `UIPasteboard` read
+  the native `IClipboard` performs can raise the system "Allow Paste?" alert. `ClipboardWrite` and
+  `PersistentStorage` report `Granted`, which is accurate rather than a stand-in for "don't know".
+  **Caveat, and it is deliberate:** Android's `CheckSelfPermission` reports only granted/denied and cannot
+  separate "never asked" from "denied permanently" (`ShouldShowRequestPermissionRationale` doesn't close
+  the gap — it is `false` both before the first ask and after a permanent denial), so anything not granted
+  that it could still request reports `Prompt`. Read that as "not granted", **not** as a promise that a
+  dialog will appear: a permission missing from the manifest is refused with no dialog at all. Claiming
+  `Denied` would mislead on first run, which is the common case. iOS has the real tri-state and reports it.
+  Named `NativePermissionQuery`, not `NativePermissions`: that name already belongs to the public
+  runtime-*request* bridge the scaffolded heads forward `OnRequestPermissionsResult` to, and renaming it
+  would break every scaffolded app. The two are companions — one asks, one requests.
+- **`-p:RaskNativeHeads=ios` builds just the iOS head**, the mirror of the existing `android` value. Only
+  `android` had a one-head switch (it exists so an Ubuntu job can build the APK without the iOS workload,
+  which Linux can't install), which left the opposite case — a macOS dev with only the ios workload —
+  unable to compile `Platforms/iOS/**` at all, so half of every native change was CI-only by construction.
+  Set on `Rask.Native` and both native samples together; a value present on one and missing from another
+  still fails on the workload the other head needs.
+
+### Changed
+- **An event handler's id now belongs to the component that renders it, so one component gaining a
+  handler no longer renumbers the rest of the page.** Ids came from a single counter reset to zero on
+  every root render and handed out `h0, h1, …` in walk order, so a conditional button appearing
+  anywhere pushed every later handler on the page up by one. Two things fell out of that. The diff
+  rewrote `data-rask-on-*` on elements whose markup had not changed — on a 100-row list of buttons with
+  one conditional action above it, an update shipped **3,205 bytes across 101 edit ops; it now ships 94
+  bytes in 1** (new gated `HandlerShiftAboveList100` scenario in `payload-bytes`; the five existing
+  scenarios are byte-identical). And the clean-subtree cache had to refuse any snapshot whose baked-in
+  ids the shifted counter had invalidated, so an interactive list re-walked itself whenever anything
+  above it changed shape: on the `session-churn` handler-shift pass that is **−60% allocation per
+  update at 200 rows (252,097 → 100,124 B) and −64% at 1,000 (1,220,549 → 438,170 B)**, which brings
+  the cost of an update that moves the handler count down to within ~2% of one that does not.
+  Ids are now assigned per (component, local slot) and held for that component's lifetime, anchored to
+  the component whose subtree the element serializes in rather than to the delegate's target — so a
+  callback passed down into a composite wrapper cannot shift the wrapper's own ids either. Renumbering
+  is *bounded to one component*, not eliminated: an element passed into a wrapper as children takes a
+  slot on that wrapper, so a conditional sibling there still shifts the ones after it — within that
+  wrapper, rather than to the end of the page. A number is never handed to a **second component**: when
+  one unmounts its ids simply stop being registered, so a click a user sent a moment before a row
+  vanished resolves to nothing and no-ops instead of being redirected onto whichever component
+  inherited a recycled number. (Within a single component a slot is still reused when its handler set
+  shrinks — unchanged from the counter this replaces, and still narrowed by the frame-shape guard.)
+  The number space
+  therefore tracks cumulative rather than concurrent handler slots — but each id string is minted once
+  and cached on its slot, so steady-state re-render allocation is **unchanged to the byte**
+  (`LiveRenderRoundTrip`'s marginal cost per re-render is 70.31 KB before and after). The costs, both
+  one-off: a component's first render allocates one small state object (a 1,000-row interactive grid
+  retains **+1.5%**, 7,381,092 → 7,493,300 B/session), and a single component that registers many
+  handlers in its own render allocates one array for slots 1.. (`Register1000`, the pathological
+  one-component-owns-1,000-handlers shape, 128.82 → 145.1 KB on the render that builds it).
+  Nothing changes on the wire or in any API: a first render still emits `h0, h1, …` in document order,
+  and ids stay opaque to the client, which echoes them back verbatim.
 - **BREAKING — a short flag now means the same option on every `rask` command.** The same two
   keystrokes used to do different things depending on where you were, and the two worst cases failed
   *silently* rather than erroring, which is what made this worth breaking for:
@@ -1318,6 +1862,118 @@ them until tagged releases begin.
   - Production is unchanged and cannot leak: `DevErrorInfo.From` returns `null` outside development, so no
     stack trace can reach a browser even if a call site forgot to check, and the client requires the
     `data-rask-dev` flag as a second, independent gate.
+
+### Added
+- **`IOriginPrivateFileSystem` — a private, persistent file tree the app owns outright (#642).** The two
+  storage wrappers Rask shipped both stop short of a file an app writes to repeatedly and reopens on the
+  next visit: `IIndexedDb` is a key/value store, and `IFileSystemAccess` is a *picker* — it needs a user
+  gesture and models a document the user chose, not storage the app manages. OPFS is the missing third
+  case, and the one a local database file needs.
+  - **Reads and writes take a byte offset**, so a large file is worked in chunks and the payload crossing
+    the interop boundary is bounded by the range asked for, not the size of the file. A ranged write
+    leaves the rest intact; writing past the end extends the file, zero-filling the gap.
+    `ReadAllBytesAsync`/`WriteAllBytesAsync` are the single-round-trip convenience over the same store.
+  - **Paths, not handles.** The tree is app-owned and persistent, so the same path is reopened every
+    session — there is nothing to pick and nothing to keep alive between calls. Parent directories are
+    created on write.
+  - **A missing path returns `null` rather than throwing**, matching `IKeyValueStore.GetAsync`, and a
+    ranged read past the end returns the bytes that were there — an ordinary short read, not an error.
+  - Works on both transports, but every call is a round trip: under the Server transport that crosses the
+    WebSocket, so the local-database scenario this exists for is in practice a WASM one.
+- **`IStorageEstimator` can now ask for storage to survive eviction.** `IsPersistedAsync` and
+  `RequestPersistAsync` wrap `navigator.storage.persisted()`/`persist()` — the same object `estimate()`
+  already came from. Without this, OPFS is persistent but still reclaimable under storage pressure, which
+  is the difference between a cache and a database. Both resolve `false` where unsupported, so an app can
+  treat "not persisted" and "cannot be persisted" the same way: writes are evictable either way.
+  Chromium grants from engagement heuristics without prompting; Firefox prompts, so call it from a
+  gesture handler.
+- **`Rask.ObjectStore` — S3 and Azure Blob with no cloud SDK behind it (#642).** The AWS and Azure SDKs
+  are large, reflection-heavy, and not usable from a browser, which ruled them out for the one place this
+  is most useful: a WASM app talking to a bucket with no backend in between. Signing SigV4 is a few dozen
+  lines of HMAC, and an Azure SAS needs no signing at all, so the client does both itself and runs
+  unchanged server-side and in the browser. One interface covers S3, Cloudflare R2, Google Cloud Storage
+  (through its S3 interop keys), MinIO, Backblaze B2, DigitalOcean Spaces and Azure Blob.
+  - **Ranged reads, streamed writes.** Object storage charges per byte moved, so `GetRangeAsync` asks for
+    a range rather than an object; `PutAsync(key, Stream, length)` uploads without buffering, keeping
+    object size and memory use unrelated.
+  - **A missing object returns `null`; a range past the end returns a short read.** Those two stay
+    distinguishable on purpose — anything walking an append-only log has to tell "gone" from "nothing new
+    yet", and collapsing them into one answer is how a sync client silently decides its peers vanished.
+  - **`TryCreateAsync` is mutual exclusion without a lock service** — an atomic compare-and-create
+    (`If-None-Match: *`) that S3, Azure Blob and GCS all support. Preferred over an Azure blob lease,
+    which exists on one provider, needs renewal, and strands the resource if the holder disappears.
+  - **Credentials are asked for per request**, so an expiring STS session or SAS refreshes without
+    rebuilding the store. `InMemoryObjectStoreCredentials` — the browser case, where the user supplies the
+    credential — holds it for the life of the process and offers *no* persistence option: a credential
+    that survives a reload is one any later script injection can read back, so getting there has to be a
+    deliberate act rather than an overload someone reaches for.
+  - **Clock skew is handled rather than assumed away.** SigV4 rejects a request more than 15 minutes off
+    the service's clock and device clocks are genuinely wrong; the service's own `Date` is read from the
+    rejected response and later requests sign against corrected time, so a wrong clock costs one round
+    trip instead of an error that explains nothing.
+  - The signer is verified against a separate implementation of the algorithm written from the AWS
+    specification, not against its own recorded output, and against the encoding rules the specification
+    names individually — `%20` rather than `+`, no double-encoding, slashes preserved in a key, query
+    parameters sorted after encoding.
+- **`Rask.Sync` — the merge engine offline-first sync rests on (#642).** Two devices edit the same data
+  while offline; both come back; the data has to be something. This answers that deterministically, and
+  it is deliberately a package with **no dependencies and no I/O** — it does not know where operations
+  come from or go. This is the piece where a mistake silently destroys a user's work, so it is the piece
+  with nothing else in it to hide behind.
+  - **Three properties, asserted by brute force rather than by example.** Replaying a log is
+    order-independent, idempotent and convergent. The tests permute every ordering of each log, replay it
+    twice, interleave duplicates, and split it at every point — because a hand-picked ordering only proves
+    that ordering works, where the actual claim is that order does not matter. Together these are what
+    remove the need for a server: a client never has to know what it already sent, never has to coordinate
+    with a peer, and never has to be right about the order.
+  - **Operations carry changed fields, not whole rows**, so two devices editing different fields of one
+    record offline both keep their work — a whole-row operation would silently discard one of them. Values
+    are raw JSON, opaque to the engine, so it needs no knowledge of the application's types.
+  - **Conflicts are reported, not hidden.** Last-writer-wins loses data by design: something has to lose,
+    and no cleverer rule avoids that. What it can avoid is nobody being told. Every merge that discards
+    another node's value returns a record carrying both values and both stamps. Merging stays fully
+    automatic. Deliberately *not* reported: a device overwriting its own earlier value, two devices writing
+    the same value, and duplicate delivery — a conflict feed that fires on every ordinary save is one
+    people learn to ignore, which is the same outcome as not reporting at all.
+  - **A hybrid logical clock, because wall clocks lose data.** Device clocks disagree, users set them by
+    hand, and they run backwards over NTP corrections — so an edit made later can carry an earlier
+    timestamp and be discarded silently. The clock never moves backwards and advances on every stamp it
+    observes, so anything issued after receiving an operation sorts after it. Stamps are fixed-width hex,
+    so sorting them as strings equals comparing them as values — which is what lets a log be ordered by
+    object key with no parsing and no index. Node identity is the final tie-break: without it two devices
+    can mint identical stamps and the winner depends on arrival order, which is divergence, not a merge.
+  - Rows are addressed by entity name plus a `Guid`, because an offline insert has to mint its own key.
+
+### Added
+- **`Rask.Sync.Client` — several devices sharing data with no server between them (#642).** Joins
+  `Rask.Sync`'s merge engine to an object-storage bucket. The design rests on one rule: **each device
+  writes only under its own prefix** (`clients/{id}/ops/`) and never touches another's. No two clients
+  ever write the same key, so there is nothing to lock, nothing to retry on conflict, and no lease to
+  renew or to leak if a device disappears mid-write. Everything else follows from it.
+  - **Forward-only reads.** Keys carry the hybrid logical clock in fixed-width hex, so they sort in the
+    order things happened and a remembered key resumes exactly where the last sync stopped — the cost of
+    a sync is what changed, not what exists. Peers are found with a grouped listing, so discovery costs
+    one response listing the *devices* rather than one listing every object they have ever written.
+  - **Offline is the normal case, not an error.** `RecordAsync` never touches the network, so the app
+    behaves identically with or without connectivity. A failed upload leaves the queue intact and the next
+    sync re-sends it, which is safe precisely because applying an operation twice changes nothing.
+    `SyncPhase.Offline` is deliberately not a failure state — showing it as one trains people to ignore
+    the indicator that matters.
+  - **The status carries the two questions apps usually leave unanswered**: `Pending` ("if I close this
+    tab now, do I lose anything?") and `Conflicts` ("did syncing throw away something I typed?"). Neither
+    can be answered unless the engine counts them, so they belong on the status rather than in the app.
+  - `ISyncStore` keeps the queue and watermarks across reloads. Losing the queue loses a user's offline
+    edits; losing the watermarks costs only re-reading, because replay is idempotent — an asymmetry worth
+    knowing when choosing an implementation.
+
+### Changed
+- **`IObjectStore` gained `startAfter` on `ListAsync`, and a `ListPrefixesAsync` grouped listing.** Both
+  exist because syncing forward-only needs them: without `startAfter` every sync re-reads the whole
+  history, and without a grouped listing, discovering which devices exist means listing every object they
+  have ever written — which would undo the saving. `startAfter` is server-side on S3 (`start-after`);
+  **Azure Blob has no equivalent**, so there it filters the results and the listing still costs the same.
+  The behaviour is identical either way, and the difference is documented on the interface rather than
+  left for someone to discover from a bill.
 
 ## [0.20.0] - 2026-08-06
 

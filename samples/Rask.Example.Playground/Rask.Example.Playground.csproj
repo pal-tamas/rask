@@ -32,6 +32,21 @@
          Guarded off the fast no-native build (-p:WasmBuildNative=false, the CI unit gate): the SDK forbids
          RunAOTCompilation=false when WasmBuildNative is already false, so only set it otherwise. -->
     <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+
+    <!-- The tutorial's data chapters run EF Core against a real SQLite database in the browser, which
+         needs e_sqlite3 (a static archive, runtimes/browser-wasm/nativeassets/*/e_sqlite3.a) linked into
+         the runtime — i.e. a native relink, the same thing the two guards above key off. So the fast
+         no-native build (-p:WasmBuildNative=false, used by the unit gate) simply ships without those
+         packages: the app still builds and runs, and the data chapters are offered read-only with an
+         explanation. Publishing normally (pages.yml, the E2E gate) gets the full track. -->
+    <RaskPlaygroundData Condition=" '$(RaskPlaygroundData)' == '' and '$(WasmBuildNative)' != 'false' ">true</RaskPlaygroundData>
+    <DefineConstants Condition=" '$(RaskPlaygroundData)' == 'true' ">$(DefineConstants);RASK_PLAYGROUND_DATA</DefineConstants>
+    <!-- WASM0001: the relink reports that SQLite's variadic natives (sqlite3_config / sqlite3_db_config)
+         "will fail at runtime" — WebAssembly has no varargs calling convention. True, and irrelevant here:
+         nothing on the connection/EF Core path calls them (verified in a browser: open, ADO round-trip,
+         EnsureCreated, SaveChanges, LINQ, ExecuteUpdate all work). Without this the repo-wide
+         TreatWarningsAsErrors turns the two warnings into a failed publish. -->
+    <NoWarn Condition=" '$(RaskPlaygroundData)' == 'true' ">$(NoWarn);WASM0001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -67,6 +82,20 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="true"/>
+  </ItemGroup>
+
+  <!-- The data chapters' reference set. None of the playground's OWN code touches EF Core: these are here
+       purely so the assemblies land in _framework, where WasmReferenceLoader picks up every managed boot
+       resource and hands it to Roslyn. Microsoft.Data.Sqlite finds its native provider by reflecting for
+       SQLitePCLRaw.batteries_v2, which resolves because this app is untrimmed — so there is no host-side
+       initialisation to write either. bundle_e_sqlite3 is a direct reference because that is the only way
+       to lift SQLitePCLRaw to the 3.x family (CVE-2025-6965; see Directory.Packages.props). -->
+  <ItemGroup Condition=" '$(RaskPlaygroundData)' == 'true' ">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+    <!-- Entity<TId>, ApplyRaskConventions and the auditing/soft-delete interceptors the chapters teach —
+         the same conventions `rask generate feature` scaffolds into a real project. -->
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
 
 </Project>

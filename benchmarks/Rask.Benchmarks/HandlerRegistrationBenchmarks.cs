@@ -4,10 +4,18 @@ using Bench = Rask.Benchmarks.Generated;
 
 namespace Rask.Benchmarks;
 
-// Stresses Component.RegisterHandler in isolation — the interning array (_smallHandlerIds
-// covers h0..h255) is the win to measure. Past 256 handlers, the path falls back to a
-// "h" + n concat which allocates a string per call. Two benchmarks: well-under and
-// well-over the intern threshold, so a regression in either branch shows up.
+// Stresses Component.RegisterHandler in isolation. The prebuilt id table (_smallHandlerIds covers
+// h0..h1023) is the win to measure; past it, minting a slot's id falls back to a formatted string.
+// Three benchmarks straddling that threshold so a regression in either branch shows up.
+//
+// All three measure a component's FIRST render: IterationSetup builds a fresh host, so each one pays
+// the one-off cost of that component's slot table (slot 0 is a scalar; slots 1.. share one array grown
+// geometrically). A re-render reuses both and mints nothing, which is why this benchmark deliberately
+// does not describe steady state — LiveRenderRoundTrip's RenderTenTimes does.
+//
+// Numbers are cumulative rather than concurrent (an id is never reused once issued, so a stale event
+// for a removed element cannot be redirected onto a live handler), which is what makes the
+// past-the-table path reachable on a long-lived churny page rather than merely theoretical.
 [MemoryDiagnoser]
 public partial class HandlerRegistrationBenchmarks : global::Rask.Core.RaskMarkup
 {
@@ -17,34 +25,30 @@ public partial class HandlerRegistrationBenchmarks : global::Rask.Core.RaskMarku
     [GlobalSetup]
     public void GlobalSetup() => _action = () => { };
 
-    // Fresh host per iteration: avoids needing private-field reset access on Component
-    // and keeps each [Benchmark] starting from _nextHandlerId == 0. The allocation is
-    // outside the measured region. Construction goes through the generated factory so
-    // RASK014 is satisfied.
+    // Fresh host per iteration: avoids needing private-field reset access on Component and keeps each
+    // [Benchmark] starting from an empty slot table. The allocation is outside the measured region.
+    // Construction goes through the generated factory so RASK014 is satisfied.
     [IterationSetup]
     public void IterationSetup() => _host = (RegHost)RegHost;
 
     [Benchmark]
-    public string Register200()
-    {
-        // 200 fits well inside the intern table — represents a typical complex page.
-        // No string-concat allocations on this path; the dictionary insert dominates.
-        string? last = null;
-        for (var i = 0; i < 200; i++)
-        {
-            last = _host.RegisterHandler(_action);
-        }
+    public string Register200() => RegisterMany(200);
 
-        return last!;
-    }
-
+    // 1000 still fits inside the prebuilt table, so this is the same branch as Register200 at 5x the
+    // slot-array growth — it isolates the array from the id minting.
     [Benchmark]
-    public string Register1000()
+    public string Register1000() => RegisterMany(1000);
+
+    // 2000 runs ~1000 registrations past the end of the prebuilt table, so roughly half of them format
+    // their id instead of reading it out. Each such string is minted once and then cached on its slot,
+    // so this is the worst case for a component's first render and costs nothing on its later ones.
+    [Benchmark]
+    public string Register2000() => RegisterMany(2000);
+
+    private string RegisterMany(int count)
     {
-        // 1000 exceeds the 256-slot intern table; the 744 over-the-line registrations
-        // hit the "h" + n concat path. Captures both phases in one number.
         string? last = null;
-        for (var i = 0; i < 1000; i++)
+        for (var i = 0; i < count; i++)
         {
             last = _host.RegisterHandler(_action);
         }

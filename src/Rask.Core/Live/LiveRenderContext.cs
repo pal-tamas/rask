@@ -58,6 +58,11 @@ public sealed class LiveRenderContext : IDisposable
         // read, not a virtual interface call — keeps the render hot path allocation- and dispatch-free on the
         // non-native hosts, which never collect chrome.
         _collectsNativeChrome = _handle?.CollectsNativeChrome ?? false;
+        // One context IS one render pass, and a pass is exactly the scope over which each component
+        // numbers its handler slots from 0. Stamping the generation here rather than in
+        // RenderAsLiveRootCore covers every path that can register a handler — Begin is public, and a
+        // caller driving a root through it repeatedly would otherwise never see its slot counters reset.
+        root.BeginHandlerGeneration();
         _previous = _current.Value;
         _previousSync = _syncCurrent;
         _current.Value = this;
@@ -225,20 +230,17 @@ public sealed class LiveRenderContext : IDisposable
         // owner association is what lets the post-handler dirty-mark land on the right node.
         _root.RegisterHandler(handler, CurrentParent);
 
-    // Action ids and their map live on the root; the clean-subtree frame cache needs to read the
-    // counter and re-establish a skipped walk's registrations, and only this context knows the root.
-    // See Component.CachedSubtree.Handlers.
+    // The handler map lives on the root; the clean-subtree frame cache has to re-establish a skipped
+    // walk's registrations in it, and only this context knows which root that is. The slot ids come
+    // from the cached component itself. See Component.CachedSubtree.Handlers.
 
-    /// <summary>The next handler id this render will issue.</summary>
-    internal int PeekNextHandlerId => _root.NextHandlerIdInternal;
+    /// <summary>Snapshot the run <paramref name="component" /> just registered (null if it registered none).</summary>
+    internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(Component component) =>
+        component.CaptureHandlerRun(_root);
 
-    /// <summary>Snapshot the handler run registered since <paramref name="startId" /> (null if empty).</summary>
-    internal (Component Owner, Delegate Action)[]? CaptureHandlerRun(int startId) =>
-        _root.CaptureHandlerRun(startId);
-
-    /// <summary>Re-register a captured run and advance the counter past it, as the skipped walk would.</summary>
-    internal void ReplayHandlerRun(int startId, (Component Owner, Delegate Action)[] run) =>
-        _root.ReplayHandlerRun(startId, run);
+    /// <summary>Re-register a captured run under its component's own slot ids, as the skipped walk would.</summary>
+    internal void ReplayHandlerRun(Component component, (Component Owner, Delegate Handler)[] run) =>
+        component.ReplayHandlerRun(_root, run);
 
     public T GetOrCreate<T>(Func<IServiceProvider, T> factory) where T : Component
     {

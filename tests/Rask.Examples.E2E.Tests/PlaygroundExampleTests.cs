@@ -11,6 +11,9 @@ namespace Rask.Examples.E2E.Tests;
 ///     starter component <em>in the browser</em> with Roslyn + the Rask source generator, renders the
 ///     result, the compiled component's own click handler runs through the shared live session, the editor
 ///     surfaces as-you-type Roslyn diagnostics <em>before</em> any Run, and a gallery example loads + runs.
+///     The journey then walks the guided tutorial track, whose data chapters run <b>real EF Core against a
+///     real SQLite database inside the tab</b> — the one claim no desktop test can stand in for, since it
+///     depends on <c>e_sqlite3</c> being linked into the published WASM runtime.
 /// </summary>
 [Collection(PlaygroundExampleCollection.Name)]
 public sealed class PlaygroundExampleTests
@@ -80,6 +83,45 @@ public sealed class PlaygroundExampleTests
             await Expect(page.Locator(".pg-preview"))
                 .ToContainTextAsync("Try the Rask playground",
                     new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+
+            // ── The guided tutorial track, and the only proof that EF Core + SQLite really run in the
+            // browser. Chapter 5 creates a database, saves a row through SaveChangesAsync and queries it
+            // back; nothing short of a working e_sqlite3 in the WASM runtime can make that row appear.
+            await page.ClickAsync("#pg-tab-tutorial");
+            await Expect(page.Locator("#pg-chapter-5")).ToBeVisibleAsync();
+
+            // A build without the SQLite reference set marks the data chapters locked. That is a legitimate
+            // build (the fast no-native one), but it is NOT what this suite is meant to be testing, so fail
+            // with a message that says so rather than timing out on the row below.
+            await Expect(page.Locator("#pg-chapter-5.is-locked")).ToHaveCountAsync(0);
+
+            await page.ClickAsync("#pg-chapter-5");
+            await Expect(page.Locator(".pg-brief-title")).ToContainTextAsync("Chapter 5");
+            await page.ClickAsync(".pg-run");
+
+            // OnMountAsync opens the database and EnsureCreated()s it — an empty table on a fresh tab.
+            await Expect(page.Locator(".pg-preview"))
+                .ToContainTextAsync("No rows yet",
+                    new LocatorAssertionsToContainTextOptions { Timeout = 120_000 });
+
+            // Insert: the compiled component's handler runs SaveChangesAsync against SQLite, reloads, and
+            // the row — stamped by Rask.Data's AuditingInterceptor — paints through the live session.
+            await page.ClickAsync(".pg-preview .card .btn");
+            await Expect(page.Locator(".pg-preview"))
+                .ToContainTextAsync("Espresso",
+                    new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+            await Expect(page.Locator(".pg-preview")).ToContainTextAsync("1 row(s)");
+
+            // Running a chapter ticks it off in the track.
+            await Expect(page.Locator("#pg-chapter-5.is-done")).ToHaveCountAsync(1);
+
+            // Next → chapter 6, which seeds its own database and queries it back with LINQ.
+            await page.ClickAsync(".pg-next");
+            await Expect(page.Locator(".pg-brief-title")).ToContainTextAsync("Chapter 6");
+            await page.ClickAsync(".pg-run");
+            await Expect(page.Locator(".pg-preview"))
+                .ToContainTextAsync("Cold brew",
+                    new LocatorAssertionsToContainTextOptions { Timeout = 120_000 });
 
             // Regression guard for #419: the editor host must stay singular. data-rask-managed used to sit on
             // the .pg-code-host div the .NET side renders, so every full-HTML frame (the first frame after

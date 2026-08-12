@@ -16,19 +16,20 @@ open alongside.
 | publish a domain event durably | [↓](#publish-a-domain-event-through-the-outbox) |
 | harden SQLite for production | [↓](#turn-on-production-sqlite) |
 | deploy, and redeploy | [↓](#deploy-and-redeploy) |
-| stop retyping the same feature flags | [↓](#save-team-defaults) |
-| get tests with a generated feature | [↓](#generate-tests-for-a-feature) |
+| test a feature | [↓](#test-a-feature) |
 
 ---
 
 ## Add a feature to an existing database
 
-Nothing to pass: a feature attaches to the `DbContext` the project already has — the CLI finds the class,
-adds the `DbSet`, and wires the cross-namespace `using` so it compiles. Name one with `--context` only when
-the project has several and the CLI asks which.
+A feature maps through the `DbContext` the project already has — add the entity, its configuration and its
+pages under `Features/Orders/`, then one line to the context:
+
+```csharp
+public DbSet<Order> Orders => Set<Order>();
+```
 
 ```bash
-rask g f Order Total:decimal ProductId:guid Placed:datetime
 rask db add AddOrder && rask db update
 ```
 
@@ -36,15 +37,19 @@ rask db add AddOrder && rask db update
 
 ## Add a related entity
 
-Name a cardinality, a target entity, and its fields **after the root's fields** — both slices are
-generated in one run, with the foreign key, navigation properties, and EF mapping in place.
+Give the child a foreign key and the parent a collection, then map it in the child's
+`IEntityTypeConfiguration`:
 
-```bash
-rask g f Post Title:string 1:n Comment Body:text     # Post → many Comments (Comment.PostId + Comment.Post, Post.Comments)
+```csharp
+// Comment.cs
+public Guid PostId { get; private set; }
+
+// CommentConfiguration.cs
+entity.HasOne<Post>().WithMany().HasForeignKey(x => x.PostId);
 ```
 
-Cardinalities: `1:n` `n:1` `1:1` `n:n` — a leading `0` (`0:n`) makes the foreign key optional; `n:n`
-maps through EF Core's implicit join table (no join entity).
+Use `.IsRequired(false)` on the foreign key for an optional relationship, and EF Core's implicit join
+table for many-to-many (no join entity needed).
 
 → Reference: [the `rask` CLI](cli.md) · Learn it: [Tutorial Ch 3](tutorial/03-orders-and-auth.md)
 
@@ -67,11 +72,12 @@ Scaffold the login itself with `rask new … --auth`.
 
 ## Run work off the request thread
 
-Generate a job, add one registration + its table, then enqueue. `EnqueueAsync` returns as soon as the
-row is written, so the request finishes immediately; a background processor runs it at-least-once.
+Write a job record and handler, add one registration + its table, then enqueue. `EnqueueAsync` returns as
+soon as the row is written, so the request finishes immediately; a background processor runs it
+at-least-once.
 
-```bash
-rask g job SendOrderReceipt
+```csharp
+public sealed record SendOrderReceipt(Guid OrderId) : IJob;
 ```
 ```csharp
 builder.Services.AddRaskJobs<ProductsDbContext>(o => { /* … */ });   // needs AddRaskCqrs()
@@ -83,12 +89,9 @@ await jobs.EnqueueAsync(new SendOrderReceipt(order.Id), CancellationToken);
 
 ## Send a transactional email
 
-Generate an email whose body is a Rask component, add the mail queue, then send. Delivery happens off
+Write an email whose body is a Rask component, add the mail queue, then send. Delivery happens off
 the request thread over SMTP with backoff.
 
-```bash
-rask g email OrderReceipt
-```
 ```csharp
 builder.Services.AddRaskMail<ProductsDbContext>(o => { /* SMTP … */ });
 modelBuilder.AddRaskMail();                                          // then: rask db add AddMail && rask db update
@@ -113,14 +116,12 @@ await cache.RemoveAsync("products");                                 // when the
 ## Publish a domain event through the outbox
 
 Events are written to an `OutboxMessage` row **in the same transaction** as your data, then delivered
-post-commit (crash-safe, at-least-once). The fastest path is to scaffold it with the feature:
+post-commit (crash-safe, at-least-once). Declare the events, raise them from the entity, and wire the
+outbox:
 
-```bash
-rask g f Order Total:decimal --outbox        # emits the event records, the Raise calls, and a handler stub
+```csharp
+public sealed record OrderCreated(Guid Id) : IOutboxEvent;   // then Raise(new OrderCreated(Id)) in Create
 ```
-
-For an existing feature, wire it by hand:
-
 ```csharp
 builder.Services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);   // was AddRaskData()
 builder.Services.AddRaskOutbox<ProductsDbContext>(o => { /* … */ });
@@ -157,25 +158,20 @@ Needs a `Dockerfile` — `rask new … --docker` writes one.
 
 → Reference: [deployment](deployment.md) · Learn it: [Tutorial Ch 11](tutorial/11-deploy.md)
 
-## Save team defaults
+## Test a feature
 
-So a project stops retyping the same feature flags, record them once in `.rask/generate.json`; explicit
-flags on the command line always win.
+Add a sibling `<Project>.Tests` project and test the slice directly — the domain rules on the entity, and
+a SQLite round-trip through the real `DbContext`:
 
-```bash
-rask g f Order Total:decimal --bs --tests --save-defaults    # scaffolds and remembers --bs/--tests
-```
+```csharp
+[Fact]
+public void Create_sets_the_fields()
+{
+    var product = Product.Create("Desk", 249m, inStock: true);
 
-→ Reference: [the `rask` CLI](cli.md#rask-generate--scaffold-code)
-
-## Generate tests for a feature
-
-`--tests` emits a sibling `<Project>.Tests` project (created and wired on first use) with a domain test
-and — when the `DbContext` is generated — a SQLite round-trip persistence test, so `dotnet test` runs
-as-is.
-
-```bash
-rask g f Product Name:string Price:decimal --tests
+    Assert.Equal("Desk", product.Name);
+    Assert.NotEqual(Guid.Empty, product.Id);
+}
 ```
 
 → Reference: [testing](testing.md)

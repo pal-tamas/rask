@@ -6,15 +6,15 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>Generates the <c>wasm</c> template (a standalone browser-WASM SPA) into <paramref name="targetDirectory"/>.</summary>
-    public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version)
+    public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version, bool bootstrap = true)
     {
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.csproj", WasmCsproj(auth, version)),
+            ($"{NameToken}.csproj", WasmCsproj(auth, bootstrap, version)),
             ("Program.cs", WasmProgram(auth, pwa)),
             // The shell + welcome page are identical to the server template's (Features/Shared + Features/Home).
-            ("Features/Shared/App.cs", AppShellCs),
-            ("Features/Home/HomePage.cs", HomePageCs),
+            ("Features/Shared/App.cs", AppShellCs(bootstrap)),
+            ("Features/Home/HomePage.cs", HomePageCs(bootstrap)),
             ("wwwroot/index.html", WasmIndexHtml(pwa)),
             ("runtimeconfig.template.json", WasmRuntimeConfig),
         };
@@ -38,11 +38,13 @@ internal static partial class ProjectGenerator
             files.Add(("nginx.conf", WasmNginxConf));
         }
 
+        files.AddRange(ProjectHygiene($"{NameToken}.csproj"));
+
         var scaffoldFiles = Materialize(targetDirectory, name, files);
 
         return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker))
         {
-            Packages = ["Rask.Wasm", "Rask.Bootstrap"],
+            Packages = bootstrap ? ["Rask.Wasm", "Rask.Bootstrap"] : ["Rask.Wasm"],
         };
     }
 
@@ -96,8 +98,11 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
         """;
 
-    private static string WasmCsproj(bool auth, string version)
+    private static string WasmCsproj(bool auth, bool bootstrap, string version)
     {
+        var bootstrapRef = bootstrap
+            ? $"\n    <PackageReference Include=\"Rask.Bootstrap\" Version=\"{version}\"/>"
+            : "";
         var authRefs = auth
             ? $"""
 
@@ -111,8 +116,7 @@ internal static partial class ProjectGenerator
         {WasmSdkPropertyGroup}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>
-            <PackageReference Include="Rask.Bootstrap" Version="{version}"/>{authRefs}
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>{bootstrapRef}{authRefs}
           </ItemGroup>
 
         </Project>

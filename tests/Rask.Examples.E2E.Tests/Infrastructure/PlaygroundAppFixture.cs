@@ -7,6 +7,12 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 ///     own <c>_framework/*.dll</c> back as compiler references; a plain file server serves those bytes
 ///     exactly as a static host would. The CI e2e-build job publishes the bundle; a local run needs it
 ///     published first (in the same configuration this test is built as).
+///     <para>
+///         Publish it <b>without</b> <c>-p:WasmBuildNative=false</c>: the tutorial's data chapters need
+///         <c>e_sqlite3</c> linked into the runtime, and the fast no-native build deliberately ships
+///         without the EF Core reference set (see <c>RaskPlaygroundData</c> in the csproj), which the
+///         tutorial half of <c>PlaygroundExampleTests</c> asserts against.
+///     </para>
 /// </summary>
 public sealed class PlaygroundAppFixture : StaticWwwrootHostFixture
 {
@@ -14,5 +20,6 @@ public sealed class PlaygroundAppFixture : StaticWwwrootHostFixture
 
     protected override string MissingBundleMessage(string wwwroot) =>
         $"Published {ProjectRelativePath} not found at '{wwwroot}'. Publish it first — e.g. " +
-        $"`dotnet publish samples/Rask.Example.Playground -c {Configuration} -p:WasmBuildNative=false`.";
+        $"`dotnet publish samples/Rask.Example.Playground -c {Configuration}` (needs the wasm-tools "
+        + "workload: the tutorial's data chapters link e_sqlite3 into the runtime).";
 }

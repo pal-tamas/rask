@@ -2292,6 +2292,8 @@ div .mb-1 .small .text-secondary
 code
 div .mb-1 .small .text-secondary
 code
+div .mb-1 .small .text-secondary
+code
 div .small .text-secondary
 code
 
@@ -2794,6 +2796,35 @@ button .btn .btn-outline-primary .btn-sm
 button .btn .btn-outline-primary .btn-sm
 button .btn .btn-outline-secondary .btn-sm
 button .btn .btn-outline-danger .btn-sm
+div .small .text-secondary
+code
+
+=== browser-opfs ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .flex-wrap .gap-2 .mb-2
+button .btn .btn-outline-primary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+button .btn .btn-outline-secondary .btn-sm
+div .small .text-secondary
+code
+div .small .text-secondary
+code
 div .small .text-secondary
 code
 

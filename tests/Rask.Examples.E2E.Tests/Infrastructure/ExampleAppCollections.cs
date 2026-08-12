@@ -22,6 +22,13 @@ public sealed class SqliteExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class CrdtExampleCollection
+    : ICollectionFixture<CrdtExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "CrdtExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class WasmExampleCollection
     : ICollectionFixture<WasmExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
 {
@@ -40,6 +47,13 @@ public sealed class SiteExampleCollection
     : ICollectionFixture<SiteWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
 {
     public const string Name = "SiteExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class BrowserJobsWasmExampleCollection
+    : ICollectionFixture<BrowserJobsWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "BrowserJobsWasmExample";
 }
 
 [CollectionDefinition(Name)]

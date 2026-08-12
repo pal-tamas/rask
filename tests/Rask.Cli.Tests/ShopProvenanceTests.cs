@@ -35,6 +35,20 @@ public sealed class ShopProvenanceTests
         "Features/Shared/AppDbContext.cs",
     };
 
+    /// <summary>
+    /// Generated files this sample deliberately does not carry, as opposed to carries in a hand-written
+    /// form. <c>rask new</c> writes project hygiene for a <em>standalone</em> app; this sample lives inside
+    /// the Rask repo, which already supplies the ignore rules, the solution and the formatting config — and
+    /// a nested <c>root = true</c> .editorconfig would override the repo's own rules for these very files,
+    /// putting <c>dotnet format</c> at odds with itself.
+    /// </summary>
+    private static readonly HashSet<string> NotInSample = new(StringComparer.Ordinal)
+    {
+        ".gitignore",
+        ".editorconfig",
+        ProjectName + ".slnx",
+    };
+
     private static string SampleDirectory()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -62,7 +76,7 @@ public sealed class ShopProvenanceTests
         foreach (var file in generated.Files)
         {
             var relative = Path.GetRelativePath("/generated", file.Path).Replace('\\', '/');
-            if (HandWritten.Contains(relative))
+            if (HandWritten.Contains(relative) || NotInSample.Contains(relative))
             {
                 continue;
             }
@@ -90,6 +104,14 @@ public sealed class ShopProvenanceTests
         {
             var path = Path.Combine(sampleDirectory, relative.Replace('/', Path.DirectorySeparatorChar));
             Assert.True(File.Exists(path), $"{relative} is exempted as hand-written but doesn't exist.");
+        }
+
+        // The other exemption list is the mirror image: these must NOT be here, or the sample has picked
+        // up a config that fights the repo's own.
+        foreach (var relative in NotInSample)
+        {
+            var path = Path.Combine(sampleDirectory, relative.Replace('/', Path.DirectorySeparatorChar));
+            Assert.False(File.Exists(path), $"{relative} is exempted as absent from the sample but exists.");
         }
     }
 

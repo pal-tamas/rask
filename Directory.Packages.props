@@ -46,6 +46,13 @@
     -->
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!--
+      Spectre.Console renders the `rask` CLI's terminal surface. Keep the two entries on the same
+      version: Spectre.Console.Testing ships the input/console doubles the CLI's prompt tests drive,
+      and it is built against the exact matching Spectre.Console.
+    -->
+    <PackageVersion Include="Spectre.Console" Version="0.57.2" />
+    <PackageVersion Include="Spectre.Console.Testing" Version="0.57.2" />
+    <!--
       SQLitePCLRaw is held at the 3.x family deliberately, ahead of what Microsoft.Data.Sqlite and
       Microsoft.EntityFrameworkCore.Sqlite ask for (they still pin the 2.1.11 family).
 

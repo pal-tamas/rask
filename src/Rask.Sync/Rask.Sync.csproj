@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Runs wherever the data does: in the browser under WebAssembly, and on a server that wants to
+         replay or compact the same log. -->
+    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <IsAotCompatible>true</IsAotCompatible>
+
+    <PackageId>Rask.Sync</PackageId>
+    <Title>Rask.Sync — offline-first merge engine</Title>
+    <Description>The correctness core of offline-first sync for Rask: a hybrid logical clock, an append-only operation log, and a deterministic merge that resolves concurrent edits per field with last-writer-wins and tombstoned deletes. Pure logic with no I/O and no transport — apply the same operations in any order, more than once, on any device, and every replica lands on the same state. Conflicts are reported rather than silently resolved, so an application can tell a user what was overwritten.</Description>
+    <PackageTags>sync offline-first crdt lww hybrid-logical-clock local-first merge dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Sync.Tests"/>
+  </ItemGroup>
+
+</Project>

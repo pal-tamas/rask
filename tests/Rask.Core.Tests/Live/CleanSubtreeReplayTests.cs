@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Live;
 // Phase B: a persistent, pure-element, handler-free user component caches its rendered subtree as a
 // frame span and RELEASES its Element object graph; a clean re-render replays from frames (identical
 // HTML, zero diff). A dirty re-render, a nested user component, or a handler keeps the element path.
-public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
+public class CleanSubtreeReplayTests
 {
     private static string Render(SessionRenderCache cache, Component tree, List<EditOp> ops, bool rotate = true)
     {
@@ -27,7 +27,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void PureElementComponent_IsCachedAndReleasesElementGraph()
     {
-        var page = new StubComponent(() => Div.Class("page")[Span.Class("v")["static"], Div["x"]]);
+        var page = new StubComponent(() => Div(Class: "page")[Span(Class: "v")["static"], Div()["x"]]);
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -44,7 +44,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         var page = new StubComponent(() =>
         {
             built++;
-            return Div.Class("page")[Span.Class("v")["hello"], Div["static"]];
+            return Div(Class: "page")[Span(Class: "v")["hello"], Div()["static"]];
         });
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
@@ -61,7 +61,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     public void DirtyReRender_ReWalksAndUpdates()
     {
         var value = 1;
-        var page = new StubComponent(() => Div.Class("page")[Span.Class("v")[value.ToString()]]);
+        var page = new StubComponent(() => Div(Class: "page")[Span(Class: "v")[value.ToString()]]);
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -85,8 +85,8 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void NestedUserComponent_IsNotCached_SoDescendantsCanUpdate()
     {
-        var inner = new StubComponent(() => Span.Class("inner")["a"]);
-        var outer = new StubComponent(() => Div.Class("outer")[inner]);
+        var inner = new StubComponent(() => Span(Class: "inner")["a"]);
+        var outer = new StubComponent(() => Div(Class: "outer")[inner]);
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -108,10 +108,10 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         // stale "loading" snapshot must be dropped, or a later CLEAN root re-render would replay it and
         // revert the DOM back to the spinner. (This is the HttpFetchDemo E2E failure, reduced.)
         var loaded = false;
-        var inner = new StubComponent(() => Span.Class("inner")["loaded"]);
+        var inner = new StubComponent(() => Span(Class: "inner")["loaded"]);
         var page = new StubComponent(() => loaded
-            ? Div.Class("box")[inner] // nested user component → not cacheable
-            : Div.Class("box")[Span.Class("spin")["loading"]]); // pure elements → cacheable
+            ? Div(Class: "box")[inner] // nested user component → not cacheable
+            : Div(Class: "box")[Span(Class: "spin")["loading"]]); // pure elements → cacheable
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -134,12 +134,12 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         Assert.Empty(ops); // nothing changed between render 2 and 3
     }
 
-    // ---- Action-bearing subtrees ----------------------------------------------------------
+    // ---- Handler-bearing subtrees ----------------------------------------------------------
     //
-    // Action ids are positional and reissued from zero on every ROOT render, so these go through
-    // RenderAsLiveRoot rather than HtmlSerializer.Serialize: only the real root path clears the map and
-    // resets the counter, which is exactly the state a replay has to reproduce. The component under test
-    // is a nested child (the root itself is never cacheable — it contains a user component).
+    // The root's handler map is cleared on every ROOT render, so these go through RenderAsLiveRoot
+    // rather than HtmlSerializer.Serialize: only the real root path clears it and opens a new slot
+    // generation, which is exactly the state a replay has to reproduce. The component under test is a
+    // nested child (the root itself is never cacheable — it contains a user component).
 
     private static JsonElement EmptyPayload => JsonDocument.Parse("{}").RootElement;
 
@@ -175,8 +175,8 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     {
         // A button per row is what a real data grid looks like, so this shape has to cache like any
         // other pure-element subtree — the handler wiring is reproduced on replay rather than banned.
-        var row = new StubComponent(() => Div.Class("btn").OnClick(() => { })["click me"]);
-        var root = new StubComponent(() => Div.Class("page")[row]);
+        var row = new StubComponent(() => Div(Class: "btn", OnClick: () => { })["click me"]);
+        var root = new StubComponent(() => Div(Class: "page")[row]);
         var cache = new SessionRenderCache();
 
         var html = RenderRoot(cache, root, new List<EditOp>());
@@ -192,8 +192,8 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         // The failure this guards is a silently dead button: a replay skips the walk, so unless it
         // re-registers the run, the id the browser sends back is absent from the freshly-cleared map.
         var clicks = 0;
-        var row = new StubComponent(() => Div.Class("btn").OnClick(() => clicks++)["click me"]);
-        var root = new StubComponent(() => Div.Class("page")[row]);
+        var row = new StubComponent(() => Div(Class: "btn", OnClick: () => clicks++)["click me"]);
+        var root = new StubComponent(() => Div(Class: "page")[row]);
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -216,7 +216,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         // replay must carry the resolved owner through, not just the delegate — otherwise the click
         // fires but the UI never updates.
         var counter = new CounterRow();
-        var root = new StubComponent(() => Div.Class("page")[counter]);
+        var root = new StubComponent(() => Div(Class: "page")[counter]);
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -233,12 +233,13 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ReplayedSubtree_AdvancesTheHandlerCounter()
+    public async Task ReplayedSiblings_KeepDistinctHandlerRegistrations()
     {
-        // A replay that didn't advance the counter would hand the SECOND row the first row's id.
-        var a = new StubComponent(() => Div.Class("a").OnClick(() => { })["a"]);
-        var b = new StubComponent(() => Div.Class("b").OnClick(() => { })["b"]);
-        var root = new StubComponent(() => Div.Class("page")[a, b]);
+        // Two replayed siblings must each re-register under their OWN slot ids. A replay that wrote
+        // both runs into the same ids would leave the second row's button wired to the first's.
+        var a = new StubComponent(() => Div(Class: "a", OnClick: () => { })["a"]);
+        var b = new StubComponent(() => Div(Class: "b", OnClick: () => { })["b"]);
+        var root = new StubComponent(() => Div(Class: "page")[a, b]);
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -253,16 +254,56 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task HandlerIdsShiftUpstream_FallsBackToWalk()
+    public async Task HandlerInsideAnErrorBoundary_SurvivesTheEnclosingComponentsReplay()
     {
-        // A handler appearing BEFORE a cached sibling shifts every later id by one. The sibling's baked
-        // ids are then not what a walk would issue, so it must re-walk under the corrected ids rather
-        // than replay a colliding span.
+        // An ErrorBoundary becomes CurrentParent while its children serialize, so handlers written by
+        // the ENCLOSING component but passed through the boundary as children land on the boundary's
+        // slot table, not the enclosing one's. A capture that reads only the cached component's own
+        // slots would miss them, and since the root's map is cleared every render the replay would
+        // leave a button that resolves to nothing — dead for the rest of the session, silently.
+        //
+        // A boundary is also a component that can re-render independently (it trips into its fallback
+        // without dirtying its parent), which is the same reason a nested user component disqualifies
+        // the enclosing subtree from caching. So it disqualifies too, and the walk keeps the button live.
+        var clicks = 0;
+        var page = new StubComponent(() =>
+            Div(Class: "page")[ErrorBoundary()[Div(Class: "btn", OnClick: () => clicks++)["go"]]]);
+        var root = new StubComponent(() => Div(Class: "shell")[page]);
+        var cache = new SessionRenderCache();
+        var ops = new List<EditOp>();
+
+        var first = RenderRoot(cache, root, ops);
+        Assert.Contains("data-rask-on-click", first);
+
+        var second = RenderRoot(cache, root, ops);
+        Assert.Equal(first, second);
+
+        var id = HandlerIdIn(second);
+        Assert.True(await root.TryInvokeHandlerAsync(id, EmptyPayload), "the button must still resolve");
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public async Task HandlerAppearingUpstream_LeavesACachedSiblingReplayable()
+    {
+        // A handler appearing BEFORE a cached sibling used to shift every later id by one, so the
+        // sibling's baked ids were no longer what a walk would issue and it had to be re-walked under
+        // corrected ids. Ids are now per (component, slot), so the header growing one costs the header
+        // and nothing else: the row's ids are still exactly what a walk would issue, and its snapshot
+        // replays. This is the whole point of stable ids — the cache stops missing on a change that
+        // never touched the cached subtree.
         var headerHandler = false;
         var rowClicks = 0;
-        var row = new StubComponent(() => Div.Class("row").OnClick(() => rowClicks++)["row"]);
-        var root = new StubComponent(() => Div.Class("page")[
-            headerHandler ? Div.Class("hdr").OnClick(() => { })["hdr"] : Div.Class("hdr")["hdr"],
+        var rowRenders = 0;
+        var row = new StubComponent(() =>
+        {
+            rowRenders++;
+            return Div(Class: "row", OnClick: () => rowClicks++)["row"];
+        });
+        var root = new StubComponent(() => Div(Class: "page")[
+            // The wrapper stays put so only the HANDLER COUNT moves — the row keeps its position in
+            // the tree and its identity, and the render below is a pure cache question.
+            Div(Class: "hdr")[headerHandler ? Div(Class: "act", OnClick: () => { })["act"] : null],
             row
         ]);
         var cache = new SessionRenderCache();
@@ -271,15 +312,18 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         var first = RenderRoot(cache, root, ops);
         var rowIdBefore = HandlerIdIn(first);
         Assert.True(row.IsCleanSubtreeCachedForTest);
+        Assert.Equal(1, rowRenders);
 
-        // The header grows a handler and takes the row's old id.
         headerHandler = true;
         var second = RenderRoot(cache, root, ops);
         var headerId = HandlerIdIn(second, 0);
         var rowIdAfter = HandlerIdIn(second, 1);
 
-        Assert.Equal(rowIdBefore, headerId);       // the header claimed the id the row used to hold
-        Assert.NotEqual(rowIdAfter, headerId);     // the row moved rather than colliding
+        Assert.Equal(rowIdBefore, rowIdAfter);     // the row did not move
+        Assert.NotEqual(rowIdAfter, headerId);     // and the header drew a number of its own
+        Assert.Equal(1, rowRenders);               // ...so the row replayed rather than re-rendering
+        Assert.True(row.IsCleanSubtreeCachedForTest);
+
         Assert.True(await root.TryInvokeHandlerAsync(rowIdAfter, EmptyPayload));
         Assert.Equal(1, rowClicks);                // and it is still the ROW's handler behind it
     }
@@ -298,7 +342,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     {
         // A keyed list row is the shape where retained memory matters most (RASK022 wants a Key on
         // every list item), so it has to be cacheable like any other pure-element subtree.
-        var page = new StubComponent(() => Div.Class("row")[Span["r1"]]) { Key = "k1" };
+        var page = new StubComponent(() => Div(Class: "row")[Span()["r1"]]) { Key = "k1" };
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -315,7 +359,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         var page = new StubComponent(() =>
         {
             built++;
-            return Div.Class("row")[Span["r1"]];
+            return Div(Class: "row")[Span()["r1"]];
         })
         { Key = "k1" };
         var cache = new SessionRenderCache();
@@ -336,7 +380,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         // The hazard the snapshot's key check exists for: reassigning Key does not dirty the component
         // (Key is excluded from the propsChanged fold), so a replay here would emit the OLD key and the
         // diff would reconcile this row against the wrong sibling.
-        var page = new StubComponent(() => Div.Class("row")[Span["r1"]]) { Key = "k1" };
+        var page = new StubComponent(() => Div(Class: "row")[Span()["r1"]]) { Key = "k1" };
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -358,7 +402,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     public void KeyedComponent_KeyRemoved_DoesNotStaleReplay()
     {
         // Same hazard in the null direction: dropping the Key must drop the attribute, not replay it.
-        var page = new StubComponent(() => Div.Class("row")[Span["r1"]]) { Key = "k1" };
+        var page = new StubComponent(() => Div(Class: "row")[Span()["r1"]]) { Key = "k1" };
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -378,7 +422,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
         // inner, so it would replay a snapshot carrying the old identity and the diff would match this
         // subtree against the wrong sibling. The snapshot records the forwarded key it was captured
         // under precisely so this falls back to a walk.
-        var inner = new StubComponent(() => Div.Class("row")[Span["x"]]);
+        var inner = new StubComponent(() => Div(Class: "row")[Span()["x"]]);
         var outer = new StubComponent(() => inner) { Key = "k1" };
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
@@ -395,8 +439,8 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     public void NestedDescendantStaysLiveAcrossReRenders()
     {
         var innerValue = 1;
-        var inner = new StubComponent(() => Span.Class("v")[innerValue.ToString()]);
-        var outer = new StubComponent(() => Div.Class("outer")[Div.Class("hdr")["title"], inner]);
+        var inner = new StubComponent(() => Span(Class: "v")[innerValue.ToString()]);
+        var outer = new StubComponent(() => Div(Class: "outer")[Div(Class: "hdr")["title"], inner]);
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
@@ -422,5 +466,5 @@ internal sealed partial class CounterRow : Component
     private int _count;
 
     protected override Component? Render() =>
-        Div.Class("counter").OnClick(() => _count++)[_count.ToString()];
+        Div(Class: "counter", OnClick: () => _count++)[_count.ToString()];
 }

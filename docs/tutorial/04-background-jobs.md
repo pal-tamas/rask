@@ -1,22 +1,20 @@
 # Chapter 4 — Background jobs
 
 > **Goal:** send order processing off the request thread with a durable background job that survives restarts.
-> **You'll run:** `rask generate job SendOrderReceipt`
+> **You'll write:** a job record and its handler under `Features/Shared/`.
 
 When a customer places an order you don't want to make them wait while you do slow follow-up work (charging,
 emailing, updating stock). `Rask.Jobs` enqueues that work as a **durable job** — a row in your SQLite
 database that a background worker picks up and runs, retrying on failure. No Redis, no broker; it rides the
 same `app.db`.
 
-## 1. Generate a job
+## 1. Write a job
 
-```bash
-rask generate job SendOrderReceipt
-```
-
-That writes `Features/Shared/SendOrderReceipt.cs` — a job record and its handler:
+Create `Features/Shared/SendOrderReceipt.cs` — a job record and its handler:
 
 ```csharp
+namespace Shop.Features.Shared;
+
 public sealed record SendOrderReceipt : IJob;
 
 public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
@@ -39,6 +37,8 @@ public sealed record SendOrderReceipt(Guid OrderId) : IJob;
 Fill in the handler with whatever the work is (we'll make it send an email in the next chapter):
 
 ```csharp
+using Microsoft.EntityFrameworkCore;   // for IDbContextFactory
+
 public sealed class SendOrderReceiptHandler(IDbContextFactory<AppDbContext> dbFactory)
     : ICommandHandler<SendOrderReceipt>
 {

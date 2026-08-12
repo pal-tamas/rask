@@ -12,6 +12,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <!-- The tutorial's data chapters compile against EF Core + SQLite, so those assemblies have to be in
+         this project's trusted-platform set (that's where TestReferences builds the reference set from,
+         standing in for the browser's _framework). bundle_e_sqlite3 is the mandatory direct reference that
+         lifts SQLitePCLRaw to the 3.x family — see the CVE-2025-6965 note in Directory.Packages.props. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
@@ -26,6 +32,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"/>
+    <!-- Entity&lt;TId&gt;, ApplyRaskConventions and the interceptors the data chapters teach. -->
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
+    <!-- Renders a compiled chapter for real (handlers wired, OnMountAsync driven), so the data chapters
+         are proven to load and query, not merely to compile. -->
+    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
   </ItemGroup>
 
   <!-- The compiler is a browser-WASM app type at runtime, but its logic is portable Roslyn + BCL. Link
@@ -37,10 +48,15 @@
              LinkBase="Compiler"/>
     <Compile Include="..\..\samples\Rask.Example.Playground\PlaygroundSamples.cs"
              LinkBase="Samples"/>
+    <Compile Include="..\..\samples\Rask.Example.Playground\TutorialChapters.cs"
+             LinkBase="Samples"/>
     <!-- The readiness pill's state → class mapping, linked so the selector the browser E2E waits on is
          pinned by THIS gate. It lives in its own file for exactly that reason (see IdeBadgeState): the
          view itself can't be linked here, since it pulls in the browser host and Rask.Bootstrap. -->
     <Compile Include="..\..\samples\Rask.Example.Playground\IdeBadgeState.cs"
+             LinkBase="Samples"/>
+    <!-- Same reasoning for the tutorial pane's state hooks: the browser E2E drives the track through them. -->
+    <Compile Include="..\..\samples\Rask.Example.Playground\TutorialPaneState.cs"
              LinkBase="Samples"/>
   </ItemGroup>
 

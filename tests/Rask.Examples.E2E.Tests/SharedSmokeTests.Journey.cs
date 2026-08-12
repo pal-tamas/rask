@@ -2201,7 +2201,11 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#locks-status")).ToContainTextAsync("acquired", contains);
 
         // Battery — one-shot read of navigator.getBattery (headless Chromium provides a mock manager, so
-        // GetStatusAsync resolves rather than returning null); the status flips to "read".
+        // GetStatusAsync resolves rather than returning null); the read label flips to "read".
+        //
+        // Asserted on #battery-status, which ONLY the read writes. The demo used to share one label with
+        // the watch subscription, so a push arriving after this click replaced "read" with "live" and
+        // never restored it — an intermittent red on the longest test in the gate (#661).
         await Page.Locator("#battery-read").ClickAsync();
         await Expect(Page.Locator("#battery-status")).ToContainTextAsync("read", contains);
 
