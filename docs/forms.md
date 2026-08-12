@@ -22,7 +22,7 @@ The low-level path wires `Value` and an event handler yourself:
 
 ```csharp
 Input<string>().Type(InputType.Text).Value(_typed).Input(v => _typed = v)
-P()[$"Echo: {_typed}"]
+P[$"Echo: {_typed}"]
 ```
 
 <!-- demo:binding-manual -->
@@ -30,8 +30,8 @@ P()[$"Echo: {_typed}"]
 The ergonomic path is a `Bind` expression — one call replaces `Value` + `OnInput` + parsing:
 
 ```csharp
-Input(() => _model.Name).Placeholder("Your name")
-P()[$"Hello, {_model.Name}!"]
+Input.Bind(() => _model.Name).Placeholder("Your name")
+P[$"Hello, {_model.Name}!"]
 ```
 
 <!-- demo:binding-typed -->
@@ -81,11 +81,11 @@ Uploading the bytes (streaming to a server endpoint, size limits, progress) is c
 [http-and-files.md](http-and-files.md).
 
 ```csharp
-Input(() => _model.Subscribe)   // bool     → checkbox
-Input(() => _model.Age)         // int      → number
-Input(() => _model.StartDate)   // DateOnly → date
-Select(() => _model.Favorite)[Option("Red")["Red"], Option("Blue")["Blue"]]
-Textarea(() => _model.Notes).Rows(3)
+Input.Bind(() => _model.Subscribe)   // bool     → checkbox
+Input.Bind(() => _model.Age)         // int      → number
+Input.Bind(() => _model.StartDate)   // DateOnly → date
+Select.Bind(() => _model.Favorite)[Option("Red")["Red"], Option("Blue")["Blue"]]
+Textarea.Bind(() => _model.Notes).Rows(3)
 ```
 
 <!-- demo:binding-multi -->
@@ -126,9 +126,9 @@ then re-validate on every keystroke so a correction clears the message without a
 handy for dependent fields (pick a country, repopulate the city dropdown in the same render):
 
 ```csharp
-Select(() => _model.Country)
+Select.Bind(() => _model.Country)
     .AfterBind(c => { _cities = Cities[c]; _model.City = _cities[0]; })[ /* options */ ]
-Select(() => _model.City)[_cities.Select(c => Option(Value: c)[c])]
+Select.Bind(() => _model.City)[_cities.Select(c => Option.Value(c)[c])]
 ```
 
 <!-- demo:binding-afterbind -->
@@ -147,8 +147,8 @@ plus the validator pipeline. Bound inputs inside the form discover that context 
 
 ```csharp
 Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
-    Input(() => _model.Username),
-    Button(Type: "submit")["Sign up"]
+    Input.Bind(() => _model.Username),
+    Button.Type("submit")["Sign up"]
 ]
 ```
 
@@ -173,9 +173,9 @@ _ctx = new EditContext(_model);
 _ctx.AddValidator(new SlowTitleValidator());
 
 Form<TaskModel>(_model, m => _submission = "Saved", Context: _ctx)[
-    Input(() => _model.Title),
-    Button(Type: "button", OnClickAsync: () => _ctx.ValidateAsync().AsTask())["Validate now"],
-    Button(Type: "submit", Disabled: _ctx.IsValidatingAny)["Save"]
+    Input.Bind(() => _model.Title),
+    Button.Type("button").OnClickAsync(() => _ctx.ValidateAsync().AsTask())["Validate now"],
+    Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
 ]
 ```
 
@@ -187,11 +187,9 @@ Two headless components read the context — both take a required `Template:` so
 and both render nothing when there's nothing to show:
 
 ```csharp
-ValidationMessage(For: () => _model.Email,
-    Template: errs => Div(Class: "field-error")[errs[0]])
+ValidationMessage.For(() => _model.Email).Template(errs => Div.Class("field-error")[errs[0]])
 
-ValidationSummary(
-    Template: entries => Ul()[entries.Select(e => Li()[Strong()[e.Field], ": ", e.Message])])
+ValidationSummary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field], ": ", e.Message])])
 ```
 
 `ValidationMessage.For` keys a single field; `ValidationSummary` lists every `ValidationEntry`

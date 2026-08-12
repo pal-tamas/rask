@@ -9,7 +9,7 @@ transient messages that survive a client-side navigation.
 
 ```csharp
 // In the layout, once:
-BsToaster()
+BsToaster
 
 // Anywhere, via the injected IToaster:
 toaster.Show("Saved.", ToastLevel.Success);

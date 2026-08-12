@@ -50,9 +50,9 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 public sealed class Greeting : Component
 {
     public required string Name { get; set; }   // non-nullable → required factory param
-    protected override Component? Render() => H1()[$"Hello, {Name}!"];
+    protected override Component? Render() => H1[$"Hello, {Name}!"];
 }
-// call site: Greeting(Name: "Ada")
+// call site: Greeting.Name("Ada")
 ```
 
 ### Event handler + local state
@@ -65,7 +65,7 @@ public sealed class Greeting : Component
 
 ```csharp
 // Rask — owner re-renders automatically after the handler
-Button(OnClick: () => _count++)[$"Count: {_count}"]
+Button.OnClick(() => _count++)[$"Count: {_count}"]
 ```
 
 ### Component → parent callback (no `EventCallback`)
@@ -87,11 +87,11 @@ public sealed class RatingStars : Component
 {
     public Action<int>? OnRate { get; set; }
     protected override Component? Render() =>
-        Button(OnClick: () => OnRate?.Invoke(5))["Rate"];
+        Button.OnClick(() => OnRate?.Invoke(5))["Rate"];
 }
 
 // parent — the lambda captures `this`, so invoking OnRate re-renders the parent
-RatingStars(OnRate: n => _rating = n)
+RatingStars.OnRate(n => _rating = n)
 ```
 
 A static method, or a lambda closing over a local instead of `this`, has no
@@ -108,7 +108,7 @@ component that should update.
 
 ```csharp
 // Rask — provide high, read deep (nearest provider wins, matched by type)
-Context.Provide<Theme>(Value: _theme)[ ThemeCard() ]
+Context.Provide<Theme>(Value: _theme)[ ThemeCard ]
 // in any descendant's Render():
 var theme = Context.Required<Theme>();   // or Context.Get<T>() (null if absent)
 ```
@@ -129,11 +129,11 @@ public sealed class UserPage(Navigator nav) : Component   // Navigator via ctor
 {
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
-    // navigate from a handler: nav.NavigateTo(HomePage()), nav.SetQuery("tab", "x")
+    // navigate from a handler: nav.NavigateTo(HomePage), nav.SetQuery("tab", "x")
 }
 
 // type-safe link (generated URL builder) instead of a "/users/42" string:
-NavLink(UserPage(id: 42))["View user"]
+NavLink.Href(UserPage(id: 42))["View user"]
 ```
 
 ### Forms
@@ -149,11 +149,10 @@ NavLink(UserPage(id: 42))["View user"]
 ```csharp
 // Rask
 Form<SignupModel>(_model, OnValidSubmit: m => Save(m))[
-    DataAnnotationsValidator(),                  // from Rask.Validation.DataAnnotations
-    Input(() => _model.Name),              // input type inferred from the CLR type
-    ValidationMessage(For: () => _model.Name,
-        Template: errs => Div(Class: "field-error")[errs[0]]),
-    Button(Type: "submit")["Sign up"]
+    DataAnnotationsValidator,                  // from Rask.Validation.DataAnnotations
+    Input.Bind(() => _model.Name),              // input type inferred from the CLR type
+    ValidationMessage.For(() => _model.Name).Template(errs => Div.Class("field-error")[errs[0]]),
+    Button.Type("submit")["Sign up"]
 ]
 ```
 
@@ -181,8 +180,8 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
   `Range` inside the indexer. Pass enumerables **directly** instead:
 
   ```csharp
-  Ul()[items.Select(i => (Component)Li(Key: i.Id)[i.Name])]   // ✓ pass the sequence
-  // Ul()[.. items.Select(...)]                            // ✗ parses as Range
+  Ul[items.Select(i => (Component)Li.Key(i.Id)[i.Name])]   // ✓ pass the sequence
+  // Ul[.. items.Select(...)]                            // ✗ parses as Range
   ```
 
 - **F12 / Go-to-Definition on `Foo(...)` lands on the *generated* factory, not your

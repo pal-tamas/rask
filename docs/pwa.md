@@ -117,7 +117,7 @@ public sealed class InstallButton(IInstallPrompt install) : Component
     }
 
     protected override Component? Render() => _canInstall
-        ? Button(OnClickAsync: Prompt)["Install app"]
+        ? Button.OnClickAsync(Prompt)["Install app"]
         : Text("");
 
     private async Task Prompt()

@@ -14,9 +14,9 @@ override — the padding is a style, which is the one thing `BodyClass` can't ca
 ```csharp
 protected override Component? Head =>
 [
-    Title()["Rask App"],
-    Meta("utf-8"),
-    Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover")
+    Title["Rask App"],
+    Meta.Charset("utf-8"),
+    Meta.Name("viewport").Content("width=device-width, initial-scale=1, viewport-fit=cover")
 ];
 
 // head is the framework's <head> — place it, or the page loses every head asset.
@@ -25,7 +25,7 @@ protected override Component Shell(Component head, Component body) =>
         head,
         // Pad the body by the device safe-area insets so content clears the status bar / notch /
         // home indicator (the boot shell requests an edge-to-edge viewport with viewport-fit=cover).
-        Body(Style: "margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
+        Body.Style("margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
                     "env(safe-area-inset-bottom) env(safe-area-inset-left)")[body]
     ];
 ```
@@ -122,12 +122,12 @@ factory-built components — you compose them in `Render()`, they work like any 
 ```csharp
 protected override Component? Render() =>
 [
-    NativeHeaderBar(Title: "Dashboard", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: OnAdd)]),
-    NativeWebView()[Router()],
-    NativeTabBar(Tabs: [
-        NativeTab(Title: "Home", Icon: NativeIcon.Home, To: Features.Routes.HomePage()),
-        NativeTab(Title: "Me",   Icon: NativeIcon.Person, To: Features.Routes.MePage()),
-    ], Selected: 0)
+    NativeHeaderBar.Title("Dashboard").Trailing([NativeBarButton.Icon(NativeIcon.Add).OnClick(OnAdd)]),
+    NativeWebView[Router],
+    NativeTabBar.Tabs([
+        NativeTab.Title("Home").Icon(NativeIcon.Home).To(Features.Routes.HomePage()),
+        NativeTab.Title("Me").Icon(NativeIcon.Person).To(Features.Routes.MePage()),
+    ]).Selected(0)
 ];
 ```
 
@@ -186,13 +186,10 @@ Set colors **per bar** — every slot is optional, and an unset slot keeps the p
 fully opt-in and backward compatible):
 
 ```csharp
-NativeHeaderBar(Title: "Home",
-    Background: NativeColor.Hex("#1E88E5"),
-    Tint: NativeColor.White,                                 // leading/trailing button color
-    TitleColor: NativeColor.White),
-NativeTabBar(Tabs: [...],
-    Tint: NativeColor.Hex("#1E88E5"),                        // the selected tab
-    UnselectedTint: NativeColor.Hex("#6B7280")),
+NativeHeaderBar.Title("Home").Background(NativeColor.Hex("#1E88E5")).Tint(NativeColor.White)// leading/trailing button color
+.TitleColor(NativeColor.White),
+NativeTabBar.Tabs([...]).Tint(NativeColor.Hex("#1E88E5"))// the selected tab
+.UnselectedTint(NativeColor.Hex("#6B7280")),
 ```
 
 For an app-wide default, register a **`NativeTheme`** on `host.Services` (like `INativeChrome`); a per-bar

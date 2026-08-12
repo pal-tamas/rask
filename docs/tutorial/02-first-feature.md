@@ -169,17 +169,17 @@ public sealed class CreateProduct(IDispatcher dispatcher, Navigator navigator) :
     }
 
     protected override Component? Render() =>
-        Div()[
-            H1()["New Product"],
-            _error is null ? null : Div(Role: "alert")[_error],
-            Form(_form, OnValidSubmitAsync: SubmitAsync)[
-                DataAnnotationsValidator(),
-                Div()[Label("name")["Name"], Input(() => _form.Name, Id: "name")],
-                Div()[Label("price")["Price"], Input(() => _form.Price, Id: "price")],
-                Div()[Label("instock")["InStock"], Input(() => _form.InStock, Id: "instock")],
-                Div()[
-                    NavLink(Routes.ProductsPage())["Cancel"],
-                    Button("submit")["Save"]
+        Div[
+            H1["New Product"],
+            _error is null ? null : Div.Role("alert")[_error],
+            Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
+                DataAnnotationsValidator,
+                Div[Label.For("name")["Name"], Input.Bind(() => _form.Name).Id("name")],
+                Div[Label.For("price")["Price"], Input.Bind(() => _form.Price).Id("price")],
+                Div[Label.For("instock")["InStock"], Input.Bind(() => _form.InStock).Id("instock")],
+                Div[
+                    NavLink.Href(Routes.ProductsPage())["Cancel"],
+                    Button.Type("submit")["Save"]
                 ]
             ]
         ];
@@ -287,35 +287,35 @@ public sealed class UpdateProduct(IDispatcher dispatcher, Navigator navigator) :
     {
         if (!_loaded)
         {
-            return Div()["Loading…"];
+            return Div["Loading…"];
         }
 
         if (!_found)
         {
-            return Div()["Product not found. ", NavLink(Routes.ProductsPage())["Back to the list"], "."];
+            return Div["Product not found. ", NavLink.Href(Routes.ProductsPage())["Back to the list"], "."];
         }
 
-        return Div()[
-            Div()[
-                H1()["Edit Product"],
-                _error is null ? null : Div(Role: "alert")[_error],
-                Form(_form, OnValidSubmitAsync: SubmitAsync)[
-                    DataAnnotationsValidator(),
-                    Div()[
-                        Label("name")["Name"],
-                        Input(() => _form.Name, Id: "name")
+        return Div[
+            Div[
+                H1["Edit Product"],
+                _error is null ? null : Div.Role("alert")[_error],
+                Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
+                    DataAnnotationsValidator,
+                    Div[
+                        Label.For("name")["Name"],
+                        Input.Bind(() => _form.Name).Id("name")
                     ],
-                    Div()[
-                        Label("price")["Price"],
-                        Input(() => _form.Price, Id: "price")
+                    Div[
+                        Label.For("price")["Price"],
+                        Input.Bind(() => _form.Price).Id("price")
                     ],
-                    Div()[
-                        Label("instock")["InStock"],
-                        Input(() => _form.InStock, Id: "instock")
+                    Div[
+                        Label.For("instock")["InStock"],
+                        Input.Bind(() => _form.InStock).Id("instock")
                     ],
-                    Div()[
-                        NavLink(Routes.ProductsPage())["Cancel"],
-                        Button("submit")["Save changes"]
+                    Div[
+                        NavLink.Href(Routes.ProductsPage())["Cancel"],
+                        Button.Type("submit")["Save changes"]
                     ]
                 ]
             ]
@@ -370,7 +370,7 @@ public sealed class DeleteProduct(IDispatcher dispatcher) : Component
     }
 
     protected override Component? Render() =>
-        Button("button", OnClickAsync: DeleteAsync)["Delete"];
+        Button.Type("button").OnClickAsync(DeleteAsync)["Delete"];
 }
 ```
 
@@ -415,24 +415,24 @@ public sealed class ProductsPage(IDispatcher dispatcher) : Component
 
     protected override Component? Render() =>
     [
-        Div()[
-            H1()["Products"],
-            NavLink(Routes.CreateProduct())["New Product"]
+        Div[
+            H1["Products"],
+            NavLink.Href(Routes.CreateProduct())["New Product"]
         ],
         !_loaded
-            ? Div()["Loading…"]
+            ? Div["Loading…"]
             : _items.Count == 0
-                ? Div()["No Products yet."]
-                : Table()[
-                    Thead()[Tr()[Th()["Name"], Th()["Price"], Th()["InStock"], Th()[""]]],
-                    Tbody()[
-                        _items.Select(x => Tr(Key: x.Id)[
-                            Td()[x.Name],
-                            Td()[$"{x.Price}"],
-                            Td()[$"{x.InStock}"],
-                            Td()[
-                                NavLink(Routes.UpdateProduct(x.Id))["Edit"],
-                                DeleteProduct(Id: x.Id, OnDeleted: LoadAsync)
+                ? Div["No Products yet."]
+                : Table[
+                    Thead[Tr[Th["Name"], Th["Price"], Th["InStock"], Th[""]]],
+                    Tbody[
+                        _items.Select(x => Tr.Key(x.Id)[
+                            Td[x.Name],
+                            Td[$"{x.Price}"],
+                            Td[$"{x.InStock}"],
+                            Td[
+                                NavLink.Href(Routes.UpdateProduct(x.Id))["Edit"],
+                                DeleteProduct.Id(x.Id).OnDeleted(LoadAsync)
                             ]
                         ])
                     ]

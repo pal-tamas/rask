@@ -14,9 +14,9 @@ gets a clear (×) button; `Native: true` degrades to the native
 `<input type=date|time|datetime-local>`.
 
 ```csharp
-BsDatePicker(() => model.StartsOn).Min(DateOnly.FromDateTime(DateTime.Today))
-BsTimePicker(() => model.At)
-BsDateTimePicker(() => model.When).Native(true)   // native OS control
+BsDatePicker.Bind(() => model.StartsOn).Min(DateOnly.FromDateTime(DateTime.Today))
+BsTimePicker.Bind(() => model.At)
+BsDateTimePicker.Bind(() => model.When).Native(true)   // native OS control
 ```
 
 ## Time range, seconds & steps
@@ -28,8 +28,8 @@ day-by-day, and on a boundary day the time columns grey out the out-of-range hou
 values are always clamped back into `[Min, Max]` on write, whatever path produced them.
 
 ```csharp
-BsTimePicker(() => model.At).Min(new TimeOnly(9, 0)).Max(new TimeOnly(17, 0)).Seconds(true).SecondStep(15)
-BsDateTimePicker(() => model.When).Seconds(true)
+BsTimePicker.Bind(() => model.At).Min(new TimeOnly(9, 0)).Max(new TimeOnly(17, 0)).Seconds(true).SecondStep(15)
+BsDateTimePicker.Bind(() => model.When).Seconds(true)
 ```
 
 ## Keyboard
@@ -57,7 +57,7 @@ automatically. The remaining chrome that has no culture source — the month-nav
 headings and the clear button — is translated with `Labels`:
 
 ```csharp
-BsDatePicker(() => model.StartsOn).Labels(new BsPickerLabels
+BsDatePicker.Bind(() => model.StartsOn).Labels(new BsPickerLabels
 {
     PreviousMonth = "Vorheriger Monat",
     NextMonth = "Nächster Monat",

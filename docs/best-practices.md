@@ -78,7 +78,7 @@ mistake, the rule notes the ID.
   re-renders the parent that owns the lambda, with no `StateHasChanged` by hand. Write the lambda
   *inside* the component so it captures `this`:
   ```csharp
-  RatingStars(Value: _rating, OnRate: n => _rating = n)   // lambda captures this → parent re-renders
+  RatingStars.Value(_rating).OnRate(n => _rating = n)   // lambda captures this → parent re-renders
   ```
   A lambda over a plain local or a static method isn't wrapped and won't trigger a re-render. See
   [composition → callbacks](composition-callbacks-context.md#callbacks-child--parent).
@@ -95,7 +95,7 @@ mistake, the rule notes the ID.
   unmount and — while a handler runs — when the host cancels that dispatch (the server's
   `HandlerTimeout` or a closed socket). Without it, slow work pins the session's render pipeline:
   ```csharp
-  Button(OnClickAsync: async () => _rows = await _api.LoadAsync(CancellationToken))["Load"]
+  Button.OnClickAsync(async () => _rows = await _api.LoadAsync(CancellationToken))["Load"]
   ```
   See [composition → cancelling async work](composition-callbacks-context.md#callbacks-child--parent) and
   [lifecycle → cancellation](lifecycle.md#cancellation-tied-to-component-lifetime).
@@ -131,7 +131,7 @@ mistake, the rule notes the ID.
   trap:
   ```csharp
   foreach (var item in _model.Items)
-      rows.Add(Tr()[Td()[Input(() => item.Description)]]);
+      rows.Add(Tr[Td[Input.Bind(() => item.Description)]]);
   ```
   Only reach for the indexer style (`() => _model.Items[i].Name`) when you need the row number or
   replace records rather than mutate them — and then copy the loop index into a per-iteration local.
@@ -227,7 +227,7 @@ mistake, the rule notes the ID.
   for the two attributes that aren't `aria-*`. Build higher-level affordances from these primitives
   plus semantic HTML (`Nav`, `Main`, `Label(For:)`, `Th(Scope:)`):
   ```csharp
-  Div(Role: "status", Aria: new() { ["live"] = "polite" })[_statusMessage]
+  Div.Role("status").Aria(new() { ["live"] = "polite" })[_statusMessage]
   ```
 
 ## Performance & memory

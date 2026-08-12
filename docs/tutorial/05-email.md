@@ -18,7 +18,7 @@ public sealed class OrderReceipt : Component
 {
     protected override Component? Render() =>
     [
-        Div()["OrderReceipt works. Edit Render() to build the email body."]
+        Div["OrderReceipt works. Edit Render() to build the email body."]
     ];
 }
 ```
@@ -33,10 +33,10 @@ public sealed class OrderReceipt : Component
     public decimal Total { get; set; }
 
     protected override Component? Render() =>
-        Div()[
-            H1()["Thanks for your order!"],
-            P()[$"Order {OrderId} — total ", Strong()[$"{Total:C}"], "."],
-            P()["We'll email again when it ships."]
+        Div[
+            H1["Thanks for your order!"],
+            P[$"Order {OrderId} — total ", Strong[$"{Total:C}"], "."],
+            P["We'll email again when it ships."]
         ];
 }
 ```

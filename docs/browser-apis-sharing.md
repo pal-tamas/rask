@@ -59,7 +59,7 @@ it hands you the `data-rask-share` attribute to spread onto it:
 
 ```csharp
 Shareable(new ShareData { Title = "Rask", Url = "https://…" },
-    share => Button(Type: "button", Class: "btn btn-primary", Data: share)["Share"])
+    share => Button.Type("button").Class("btn btn-primary").Data(share)["Share"])
 ```
 
 The shared client fires `navigator.share` **inside the click gesture** — no round-trip, so the transient
@@ -89,17 +89,15 @@ Capabilities that return a value (the eyedropper's hex, the install outcome) pos
 `OnResult` / `OnColor` / `OnOutcome` callback; the two `<video>` triggers target an element via its `ElementRef`.
 
 ```csharp
-FullscreenTrigger(g => Button(Type: "button", Data: g)["Full screen"])
+FullscreenTrigger(g => Button.Type("button").Data(g)["Full screen"])
 ScreenOrientationTrigger(Orientation: "landscape",
-    g => Button(Type: "button", Data: g)["Lock landscape"])
+    g => Button.Type("button").Data(g)["Lock landscape"])
 EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
-    g => Button(Type: "button", Data: g)["Pick a colour"])
+    g => Button.Type("button").Data(g)["Pick a colour"])
 InstallTrigger(OnOutcome: o => { outcome = o; return Task.CompletedTask; },
-    g => Button(Type: "button", Data: g)["Install app"])
-MediaCaptureTrigger(For: preview, Video: true,
-    Template: g => Button(Type: "button", Data: g)["Start camera"])
-PictureInPictureTrigger(For: preview,
-    Template: g => Button(Type: "button", Data: g)["Pop out video"])
+    g => Button.Type("button").Data(g)["Install app"])
+MediaCaptureTrigger.For(preview).Video(true).Template(g => Button.Type("button").Data(g)["Start camera"])
+PictureInPictureTrigger.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
 ```
 
 All six ship: `FullscreenTrigger`, `ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`,
@@ -164,7 +162,7 @@ public sealed class LazyImages(IIntersectionObserver io) : Component, IAsyncDisp
     private readonly ElementRef _sentinel = ElementRef.New();
     private IAsyncDisposable? _obs;
 
-    protected override Component? Render() => Div(Ref: _sentinel)[ /* … */ ];
+    protected override Component? Render() => Div.Ref(_sentinel)[ /* … */ ];
 
     protected override async Task OnRenderedAsync(bool first)
     {

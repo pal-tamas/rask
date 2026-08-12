@@ -67,8 +67,8 @@ public sealed class Weather(IWeatherForecastService service) : Component
 
     protected override Component? Render() =>
         _forecasts is null
-            ? P()[Em()["Loading..."]]
-            : Table()[/* render rows */];
+            ? P[Em["Loading..."]]
+            : Table[/* render rows */];
 }
 ```
 
@@ -137,9 +137,9 @@ unless you put a closer boundary in the way.
 protected override async Task OnMountAsync() => _rows = await api.LoadAsync();
 
 // With one, the blast radius is the subtree you chose.
-ErrorBoundary(Fallback: (ex, retry) => Div()[
-    P()["Could not load the rows."],
-    Button(OnClick: retry)["Try again"]
+ErrorBoundary.Fallback((ex, retry) => Div[
+    P["Could not load the rows."],
+    Button.OnClick(retry)["Try again"]
 ])[
     RowList()
 ]

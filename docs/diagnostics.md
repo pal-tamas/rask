@@ -210,8 +210,8 @@ specific path.
 factories so keys, children, and DI wiring are handled consistently.
 
 ```csharp
-// ✗ new Div()
-// ✓ Div(Class: "card")[ ... ]
+// ✗ new Div
+// ✓ Div.Class("card")[ ... ]
 ```
 
 **Fix:** call the generated factory (`Div(...)`, `Counter(...)`). In test files that deliberately
@@ -281,10 +281,10 @@ attributes. Nothing fails, so this warning is the only signal there is.
 ```csharp
 // ✗ RASK021 — the root builds the document
 protected override Component? Render() =>
-    [Doctype(), Html("en")[Head(), Body()[Router()]]];
+    [Doctype, Html("en")[Head, Body[Router]]];
 
 // ✓ the root renders the body's content
-protected override Component? Render() => Router();
+protected override Component? Render() => Router;
 ```
 
 **Fix:** return the body's content (usually `Router()`) and move the shell's pieces to the overrides
@@ -303,8 +303,8 @@ A Rask factory call appears in a sibling-list context (a `.Select`/`.SelectMany`
 input state and emits untrusted structural diffs on insert/remove/move.
 
 ```csharp
-// ✗ items.Select(i => Li()[ i.Name ])
-// ✓ items.Select(i => Li(Key: i.Id)[ i.Name ])
+// ✗ items.Select(i => Li[ i.Name ])
+// ✓ items.Select(i => Li.Key(i.Id)[ i.Name ])
 ```
 
 **Fix:** pass a stable `Key:` (an entity id, not the loop index). See
@@ -318,9 +318,9 @@ An `Img(...)` factory call supplies no `Alt`. Without a text alternative, screen
 announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/WAI/WCAG21/Understanding/non-text-content).
 
 ```csharp
-// ✗ Img(Src: "/logo.png")
-// ✓ Img(Src: "/logo.png", Alt: "Rask logo")
-// ✓ Img(Src: "/divider.png", Alt: "")   // decorative: empty alt hides it from assistive tech
+// ✗ Img.Src("/logo.png")
+// ✓ Img.Src("/logo.png").Alt("Rask logo")
+// ✓ Img.Src("/divider.png").Alt("")   // decorative: empty alt hides it from assistive tech
 ```
 
 **Fix:** pass a meaningful `Alt:`, or the empty string `Alt: ""` for a purely decorative image so
@@ -357,11 +357,11 @@ A generic `Input<T>` derives its HTML input `type` from `T` (`bool`→checkbox, 
 
 ```csharp
 // ✗ Age is int — a number input can't be an email field:
-Input(() => model.Age).Type(InputType.Email)
+Input.Bind(() => model.Age).Type(InputType.Email)
 // ✓ let the type derive from T (int → number):
-Input(() => model.Age)
+Input.Bind(() => model.Age)
 // ✓ or use a string-only type on a string field:
-Input(() => model.Email).Type(InputType.Email)
+Input.Bind(() => model.Email).Type(InputType.Email)
 ```
 
 **Fix:** drop the explicit `Type` (it's inferred from `T`), or bind a `string`. The warning fires only
@@ -407,11 +407,11 @@ ignores the async one, which is rarely what the author intended. Set exactly one
 
 ```csharp
 // ✗ both set — OnClickAsync is silently dropped at runtime:
-Button(OnClick: () => Toggle(), OnClickAsync: async () => await SaveAsync())["Save"]
+Button.OnClick(() => Toggle()).OnClickAsync(async () => await SaveAsync())["Save"]
 // ✓ pick one — the async handler, since it awaits:
-Button(OnClickAsync: async () => await SaveAsync())["Save"]
+Button.OnClickAsync(async () => await SaveAsync())["Save"]
 // ✓ passing null for the sibling is allowed (a deliberate "at most one" conditional):
-Button(OnClick: useAsync ? null : Sync, OnClickAsync: useAsync ? Async : null)["Save"]
+Button.OnClick(useAsync ? null : Sync).OnClickAsync(useAsync ? Async : null)["Save"]
 ```
 
 **Fix:** remove one of the two handlers (keep the async `OnXAsync` if it awaits, else the sync `OnX`).
@@ -473,7 +473,7 @@ file — can reorder parameters and silently rebind such a call. The first one o
 
 ```csharp
 // ✗ Div("main", "container", "color:red")                 // three positional — order-fragile, hard to read
-// ✓ Div(Id: "main", Class: "container", Style: "color:red") // explicit, refactor-proof
+// ✓ Div.Id("main").Class("container").Style("color:red") // explicit, refactor-proof
 ```
 
 **Fix:** name the arguments (`Prop: value`). Hidden by default (no build output, no effect on the
@@ -515,17 +515,17 @@ analyzer flags a native component passed to any element-children indexer.
 
 ```csharp
 // ✗ RASK032 — native chrome as an element child
-protected override Component? Render() => Div()[NativeHeaderBar(Title: "Home")];
+protected override Component? Render() => Div[NativeHeaderBar.Title("Home")];
 
 // ✗ RASK032 — native chrome inside the NativeWebView's HTML content
-protected override Component? Render() => NativeWebView()[NativeHeaderBar(Title: "Home")];
+protected override Component? Render() => NativeWebView[NativeHeaderBar.Title("Home")];
 
 // ✓ correct — bars are siblings of NativeWebView at the layout level
 protected override Component? Render() =>
 [
-    NativeHeaderBar(Title: "Home"),
-    NativeWebView()[Router()],
-    NativeTabBar(Tabs: [...], Selected: 0)
+    NativeHeaderBar.Title("Home"),
+    NativeWebView[Router],
+    NativeTabBar.Tabs([...]).Selected(0)
 ];
 ```
 
@@ -554,7 +554,7 @@ It deliberately leaves alone:
 [Route("todos")] public sealed class TodosPage : Component { /* … */ }
 
 nav.NavigateTo("/todos");            // ✗ RASK033 — use Routes.TodosPage()
-NavLink(Href: "/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conversion
+NavLink.Href("/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conversion
 
 nav.NavigateTo(Routes.TodosPage());  // ✓ type-safe; a renamed route is a compile error
 nav.NavigateTo("/todos/new");        // ✓ secondary template — no factory, left alone
@@ -584,8 +584,7 @@ It leaves alone:
   reach of the call-site check).
 
 ```csharp
-BsDataGrid(Data: deals, ColumnChooser: true, Columns:
-[
+BsDataGrid.Data(deals).ColumnChooser(true).Columns([
     new BsColumn<Deal> { Title = "Region", Value = d => d.Region },              // ✗ RASK034 — no token
     new BsColumn<Deal> { Title = "Amount", Field = d => d.Amount },              // ✓ named "amount"
     new BsColumn<Deal> { Title = "", Template = d => Actions(d),
@@ -845,7 +844,7 @@ using Rask.Core.Components;
 
 internal static class Parts
 {
-    public static Component Loading() => Div(Class: "spinner")["…"];   // ✗ RASK043 — CS0119
+    public static Component Loading() => Div.Class("spinner")["…"];   // ✗ RASK043 — CS0119
 }
 ```
 
@@ -868,7 +867,7 @@ using static Rask.Core.Components.Generated;                          // ✓ the
 
 internal static class Parts
 {
-    public static Component Loading() => Div(Class: "spinner")["…"];
+    public static Component Loading() => Div.Class("spinner")["…"];
 }
 ```
 

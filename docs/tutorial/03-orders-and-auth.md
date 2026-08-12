@@ -111,15 +111,15 @@ login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`)
 already uses in `Auth/MembersPage.cs`:
 
 ```csharp
-Authorize()[                                 // only rendered for signed-in users
-    NavLink(CreateProduct())["New product"]
+Authorize[                                 // only rendered for signed-in users
+    NavLink.Href(CreateProduct)["New product"]
 ]
 ```
 
 For role-specific bits — say a "Delete" button only admins should see — pass `Roles`:
 
 ```csharp
-Authorize(Roles: ["admin"])[ DeleteProductButton(product.Id) ]
+Authorize.Roles(["admin"])[ DeleteProductButton(product.Id) ]
 ```
 
 ## Verify

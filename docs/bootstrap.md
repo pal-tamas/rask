@@ -16,8 +16,8 @@ Reference the package, then link the CSS in your `App`'s `Head` with `BootstrapS
 ```csharp
 protected override Component? Head =>
 [
-    Title()["My App"],
-    BootstrapStyles()           // links _content/Rask.Bootstrap/css + icons (PathBase-aware)
+    Title["My App"],
+    BootstrapStyles           // links _content/Rask.Bootstrap/css + icons (PathBase-aware)
 ];
 ```
 
@@ -38,10 +38,10 @@ open/active state and wire `Open:`/`OnClose:` (etc.); flipping the field re-rend
 runtime, no `bootstrap.js`.
 
 ```csharp
-BsButton(Color: BsColor.Primary, Size: BsSize.Lg)["Save"]
-BsModal(Open: _open, Title: "Hi", OnClose: () => _open = false)[ /* body */ ]  // traps focus, Escape-closes, labelled — see accessibility.md
-BsInput(() => model.Email).Label("Email").Type(InputType.Email)   // .is-invalid + .invalid-feedback built in
-BsIcon(Name: BsIconName.HeartFill, Color: BsColor.Danger)
+BsButton.Color(BsColor.Primary).Size(BsSize.Lg)["Save"]
+BsModal.Open(_open).Title("Hi").OnClose(() => _open = false)[ /* body */ ]  // traps focus, Escape-closes, labelled — see accessibility.md
+BsInput.Bind(() => model.Email).Label("Email").Type(InputType.Email)   // .is-invalid + .invalid-feedback built in
+BsIcon.Name(BsIconName.HeartFill).Color(BsColor.Danger)
 ```
 
 ## Brand colour

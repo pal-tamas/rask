@@ -119,10 +119,10 @@ child node automatically:
 public sealed class Greeting : Component
 {
     protected override Component? Render() =>
-        Div(Class: "greeting")[
-            H1()["Hello, world!"],
-            P()["Welcome to your new Rask app — ", Strong()["it's all C#"], "."],
-            Span()[42]                          // value types convert too — no .ToString()
+        Div.Class("greeting")[
+            H1["Hello, world!"],
+            P["Welcome to your new Rask app — ", Strong["it's all C#"], "."],
+            Span[42]                          // value types convert too — no .ToString()
         ];
 }
 ```
@@ -159,9 +159,9 @@ public sealed class Counter : Component
 
     protected override Component? Render() =>
         [
-            H1()["Counter"],
-            P()[$"Current count: {_count}"],
-            Button(OnClick: () => _count++)["Click me"]
+            H1["Counter"],
+            P[$"Current count: {_count}"],
+            Button.OnClick(() => _count++)["Click me"]
         ];
 }
 ```
@@ -179,10 +179,9 @@ public sealed class RatingStars : Component
     public Action<int>? OnRate { get; set; }            // a plain delegate prop
 
     protected override Component? Render() =>
-        Div()[
-            Enumerable.Range(1, 5).Select(i => (Component)Button(
-                OnClick: () => OnRate?.Invoke(i),        // child invokes; parent re-renders
-                Key: i)[i <= Value ? "★" : "☆"])
+        Div[
+            Enumerable.Range(1, 5).Select(i => (Component)Button.OnClick(() => OnRate?.Invoke(i))// child invokes; parent re-renders
+.Key(i)[i <= Value ? "★" : "☆"])
         ];
 }
 
@@ -192,8 +191,8 @@ public sealed class RatingDemo : Component
 
     protected override Component? Render() =>
         [
-            RatingStars(Value: _rating, OnRate: n => _rating = n),   // lambda captures this
-            P()[_rating == 0 ? "Click a star." : $"You rated: {_rating}/5"]
+            RatingStars.Value(_rating).OnRate(n => _rating = n),   // lambda captures this
+            P[_rating == 0 ? "Click a star." : $"You rated: {_rating}/5"]
         ];
 }
 ```
@@ -258,12 +257,12 @@ public sealed class App : Component
 {
     // App-level head; pages can override their own Head to set a per-page Title.
     protected override Component? Head => [
-        Title()["My Rask App"],
-        Meta("utf-8"),
-        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1")
+        Title["My Rask App"],
+        Meta.Charset("utf-8"),
+        Meta.Name("viewport").Content("width=device-width, initial-scale=1")
     ];
 
-    protected override Component? Render() => Router();
+    protected override Component? Render() => Router;
 }
 ```
 
@@ -282,7 +281,7 @@ is a `Shell` override. It receives the framework's `<head>` and the app's render
 
 ```csharp
 protected override Component Shell(Component head, Component body) =>
-    Html("en", Dir: "rtl")[head, Body(Class: "dark")[body]];
+    Html("en", Dir: "rtl")[head, Body.Class("dark")[body]];
 ```
 
 The doctype is still emitted ahead of whatever `Shell` returns, and the runtime `<script>` still lands
@@ -293,7 +292,7 @@ Any component can contribute to `<head>` while it's in the tree by overriding `H
 `<base>` are singleton tags — the last contributor wins, so a page's `Title` overrides the app fallback:
 
 ```csharp
-protected override Component? Head => Title()["Welcome — My Rask App"];
+protected override Component? Head => Title["Welcome — My Rask App"];
 ```
 
 > **Guardrails:** two compile-time checks catch the common mistakes (full list in
@@ -323,11 +322,11 @@ public sealed class UserPage : Component
     [QueryParam] public string? Tab { get; set; }
 
     protected override Component? Render() =>
-        Span()[$"User #{Id} — {Tab ?? "overview"}"];
+        Span[$"User #{Id} — {Tab ?? "overview"}"];
 }
 
 // elsewhere — type-safe, refactor-proof:
-NavLink(UserPage(id: 42))["View user"];
+NavLink.Href(UserPage(id: 42))["View user"];
 ```
 
 The `Router()` in your root component matches the current path and renders the page. To navigate from

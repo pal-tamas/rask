@@ -92,13 +92,13 @@ After any `modelBuilder.AddRask…` line: `rask db add <Name>` → `rask db upda
 var view = await dispatcher.DispatchAsync(new GetProducts(), CancellationToken);   // IDispatcher, ctor-injected
 
 // Type-safe URL for a routed page — never a string path:
-NavLink(Href: Routes.ProductsPage())["Catalog"];       // list page → <Plural>Page
+NavLink.Href(Routes.ProductsPage())["Catalog"];       // list page → <Plural>Page
 nav.NavigateTo(Routes.UpdateProduct(Id: id));          // edit page → Update<Entity>; Navigator, event-handler only
 
 // Gate on auth — route-level attribute, or a component that renders only when signed in:
 [Authorize]                                            // redirects anonymous deep-links to /login
-Authorize()[ NewProductButton() ]                      // shown only to signed-in users
-Authorize(Roles: ["admin"])[ DeleteProductButton(id) ]
+Authorize[ NewProductButton() ]                      // shown only to signed-in users
+Authorize.Roles(["admin"])[ DeleteProductButton(id) ]
 
 // Cache an expensive read; invalidate on write:
 var products = await cache.GetOrCreateAsync("products", async _ => await LoadAsync(), CancellationToken);

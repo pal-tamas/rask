@@ -20,10 +20,9 @@ public sealed class RatingStars : Component
     public Action<int>? OnRate { get; set; }
 
     protected override Component? Render() =>
-        Div(Class: "d-inline-flex gap-1")[
-            Enumerable.Range(1, 5).Select(i => (Component)Button(
-                OnClick: () => OnRate?.Invoke(i),   // raise the event
-                Key: i)[i <= Value ? "★" : "☆"])
+        Div.Class("d-inline-flex gap-1")[
+            Enumerable.Range(1, 5).Select(i => (Component)Button.OnClick(() => OnRate?.Invoke(i))// raise the event
+.Key(i)[i <= Value ? "★" : "☆"])
         ];
 }
 
@@ -33,9 +32,9 @@ public sealed class RatingDemo : Component
     private int _rating;
 
     protected override Component? Render() =>
-        Div()[
-            RatingStars(Value: _rating, OnRate: n => _rating = n),   // re-renders the parent
-            P()[_rating == 0 ? "Click a star." : $"You rated {_rating}/5"]
+        Div[
+            RatingStars.Value(_rating).OnRate(n => _rating = n),   // re-renders the parent
+            P[_rating == 0 ? "Click a star." : $"You rated {_rating}/5"]
         ];
 }
 ```
@@ -129,7 +128,7 @@ cancellable async work a handler or lifecycle hook starts, so the work aborts wh
 away and a slow handler unwinds instead of pinning the session's render pipeline:
 
 ```csharp
-Button(OnClickAsync: async () =>
+Button.OnClickAsync(async () =>
     _rows = await _api.LoadAsync(CancellationToken))["Load"]
 ```
 
@@ -152,7 +151,7 @@ drilling** — React's provide/consume, type-erased so it stays trim-safe.
 ```csharp
 // Provide near the top. `Provide<T>` is a transparent node; children render under it.
 Context.Provide<Theme>(Value: _theme)[
-    ThemeCard()        // knows nothing about Theme — no prop passed through it
+    ThemeCard        // knows nothing about Theme — no prop passed through it
 ]
 
 // Consume anywhere below, in Render():
@@ -161,7 +160,7 @@ public sealed class ThemeBadge : Component
     protected override Component? Render()
     {
         var theme = Context.Required<Theme>();   // throws if no provider
-        return Span(Class: theme.IsDark ? "badge bg-dark" : "badge bg-light")[theme.Name];
+        return Span.Class(theme.IsDark ? "badge bg-dark" : "badge bg-light")[theme.Name];
     }
 }
 ```

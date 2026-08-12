@@ -46,13 +46,13 @@ public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Compon
     [QueryParam] public string? ReturnUrl { get; set; }
 
     protected override Component? Render() =>
-        Div(Class: "mx-auto", Style: "max-width:24rem")[
-            H1()["Sign in"],
-            _error is null ? null : Div(Class: "alert alert-danger")[_error],
-            Form(_model, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
-                Input(() => _model.Username).Id("username").Class("form-control"),
-                Input(() => _model.Password).Id("password").Type(InputType.Password).Class("form-control"),
-                Button("submit", Class: "btn btn-primary")["Sign in"]
+        Div.Class("mx-auto").Style("max-width:24rem")[
+            H1["Sign in"],
+            _error is null ? null : Div.Class("alert alert-danger")[_error],
+            Form.Model(_model).OnValidSubmitAsync(SubmitAsync).Class("vstack gap-3")[
+                Input.Bind(() => _model.Username).Id("username").Class("form-control"),
+                Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("form-control"),
+                Button.Type("submit").Class("btn btn-primary")["Sign in"]
             ]
         ];
 
@@ -84,14 +84,10 @@ subscription:
 public sealed class SecurePage : Component
 {
     protected override Component? Render() =>
-        Authorize(
-            Authorizing:   P()["Signing you in…"],
-            NotAuthorized: P()["Please sign in."],
-            Authorized: user => Div()[      // ← receives the current principal, re-runs on sign-in/out
-                H1()[$"Hello, {user.Identity!.Name}"],
-                Authorize(Roles: ["admin"],
-                    NotAuthorized: P()["You have standard access."])[
-                    Div(Class: "alert alert-warning")["🔑 Admin tools"]]
+        Authorize.Authorizing(P["Signing you in…"]).NotAuthorized(P["Please sign in."]).Authorized(user => Div[      // ← receives the current principal, re-runs on sign-in/out
+                H1[$"Hello, {user.Identity!.Name}"],
+                Authorize.Roles(["admin"]).NotAuthorized(P["You have standard access."])[
+                    Div.Class("alert alert-warning")["🔑 Admin tools"]]
             ]);
 }
 ```

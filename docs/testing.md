@@ -22,7 +22,7 @@ public sealed class Counter : Component
 {
     private int _count;
     protected override Component? Render() =>
-        Button(Type: "button", OnClick: () => _count++)[$"Count: {_count}"];
+        Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
 }
 
 [Fact]
@@ -45,7 +45,7 @@ public async Task Clicking_increments()
 
   ```csharp
   var model = new OrderModel();
-  var page = RaskTest.Render(() => Form(model)[Input(() => model.Name)]);
+  var page = RaskTest.Render(() => Form.Model(model)[Input.Bind(() => model.Name)]);
 
   await page.InputAsync("{\"value\":\"Ada\"}");   // the next render rebuilds the form from `model`
   ```
@@ -58,7 +58,7 @@ public async Task Clicking_increments()
   about a component from quietly becoming an assertion about a page.
 
   ```csharp
-  var page = RaskTest.RenderDocument(new App(), services);
+  var page = RaskTest.RenderDocument(new App, services);
   Assert.StartsWith("<!DOCTYPE html>", page.Html);
   Assert.Contains("<html lang=\"en\">", page.Html);
   Assert.Contains(">My app</title>", page.Html);   // head tags carry a dedupe key attribute
@@ -128,8 +128,8 @@ Validation state (messages, `IsModified`, `IsValidating`) never reaches the mark
 
 ```csharp
 EditContext? ctx = null;
-var page = RaskTest.Render(() => Form(model)[
-    Input(() => model.Name),
+var page = RaskTest.Render(() => Form.Model(model)[
+    Input.Bind(() => model.Name),
     RaskTest.EditContextProbe(c => ctx = c)
 ]);
 
@@ -179,14 +179,14 @@ tag factories (`Button(...)`, `Div(...)`), form factories (`Form(...)`, `Input(.
 For a standalone component, `ToHtml()` serializes it directly (no live context):
 
 ```csharp
-Assert.Equal("<button></button>", Button().ToHtml());
+Assert.Equal("<button></button>", Button.ToHtml());
 ```
 
 For anything that needs a live context (event handlers, forms, DI services), wrap it in a
 `StubComponent` and call `RenderAsLiveRoot()`:
 
 ```csharp
-var view = new StubComponent(() => Button(OnClick: () => { })["x"]);
+var view = new StubComponent(() => Button.OnClick(() => { })["x"]);
 Assert.Equal("<button data-rask-on-click=\"h0\">x</button>", view.RenderAsLiveRoot());
 ```
 
@@ -205,14 +205,22 @@ case with a `Render_AllPropsSet_…` case that asserts the **exact attribute ord
 ```csharp
 [Fact]
 public void Render_NullProps_ReturnsEmptyButtonTags() =>
-    Assert.Equal("<button></button>", Button().ToHtml());
+    Assert.Equal("<button></button>", Button.ToHtml());
 
 [Fact]
 public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder() =>
     Assert.Equal(
         "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
-        Button("submit", true, "action", "save", Id: "go", Class: "btn", Style: "color:red",
-            Data: new Dictionary<string, string?> { ["test-id"] = "primary" }).ToHtml());
+        Button
+            .Type("submit")
+            .Disabled(true)
+            .Name("action")
+            .Value("save")
+            .Id("go")
+            .Class("btn")
+            .Style("color:red")
+            .Data(new Dictionary<string, string?> { ["test-id"] = "primary" })
+            .ToHtml());
 ```
 
 Useful patterns from the suite:
@@ -239,7 +247,7 @@ Event handlers are registered against the live context at render time and surfac
 
 ```csharp
 var p = new Person { Name = "Ada", Age = 30 };
-var view = new StubComponent(() => Form(p)[Input(() => p.Name)]);
+var view = new StubComponent(() => Form.Model(p)[Input.Bind(() => p.Name)]);
 var html = view.RenderAsLiveRoot();
 
 var inputId = Markup.Attr(html, "data-rask-on-input");
@@ -282,7 +290,7 @@ public async Task Submit_InvalidModel_CallsOnInvalidSubmit_NotOnValidSubmit()
         OnValidSubmit:   _ => validCalled++,
         OnInvalidSubmit: _ => invalidCalled++,
         Validate: m => string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>())[
-        Input(() => p.Name), Input(() => p.Age)
+        Input.Bind(() => p.Name), Input.Bind(() => p.Age)
     ]);
     var html = view.RenderAsLiveRoot();
 
@@ -303,7 +311,7 @@ var model = new SignupModel { Username = "ada" };
 var ctx = new EditContext(model);
 ctx.AddValidator(new RejectIfEqualsValidator("admin", "Already taken."));
 
-var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[Input(() => model.Username)]);
+var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[Input.Bind(() => model.Username)]);
 var html = view.RenderAsLiveRoot();
 
 using var inputDoc  = JsonDocument.Parse("{\"value\":\"admin\"}");
@@ -330,7 +338,7 @@ it needs, then asserted on the resulting HTML:
 
 ```csharp
 var routeState = new RouteState { Path = "/" };
-var html = new App().RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+var html = new App.RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 Assert.Contains("Hello, world!", html);
 ```
 
@@ -339,7 +347,7 @@ assertion is about the *page* (the doctype, `<html lang>`, what landed in `<head
 through `RaskTest.RenderDocument` instead, which composes the document the way a host does:
 
 ```csharp
-var html = RaskTest.RenderDocument(new App(), TestServices.Default(routeState: routeState)).Html;
+var html = RaskTest.RenderDocument(new App, TestServices.Default(routeState: routeState)).Html;
 Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 
