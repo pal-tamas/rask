@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Tutorial chapter 2 didn't compile if you typed it in.** Four defects, none visible to the snippet
+  parser: the `AppDbContext` step gave the `DbSet<Product>` line but not the `using` the slice needs
+  (the resulting error names `Product`, not the missing import); the list page linked to
+  `UpdateProduct` and `DeleteProduct`, which the chapter never provided; and the form used
+  `DataAnnotationsValidator` without saying it comes from its own package. The chapter now provides
+  both missing files and names the package, and chapter 3 gained the matching `using` for Orders.
+  `TutorialChapterBuildE2ETests` now scaffolds a project, types the chapter in, and builds it with
+  `-warnaserror` — reading the chapter itself, so an edited snippet is compiled rather than a copy.
+
 ### Changed
 - **`rask deploy logs -f` works.** `--follow` had no short name because `-f` was `--fields` CLI-wide,
   and the comment explaining that named the cost: `docker logs -f` muscle memory. `--fields` went with

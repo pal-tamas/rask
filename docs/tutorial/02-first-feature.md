@@ -100,11 +100,18 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 }
 ```
 
-Then add the set to `Features/Shared/AppDbContext.cs`:
+Then map it on the app's context. `AppDbContext` lives in `Features/Shared/`, so it needs the slice's
+namespace as well as the set — two lines in `Features/Shared/AppDbContext.cs`:
 
 ```csharp
-public DbSet<Product> Products => Set<Product>();
+using Shop.Features.Products;   // at the top of the file
 ```
+```csharp
+public DbSet<Product> Products => Set<Product>();   // inside the class
+```
+
+Forgetting the `using` is the one that bites, because the error names `Product` rather than the import:
+`The type or namespace name 'Product' could not be found`.
 
 ## 4. A command and its handler
 
@@ -182,15 +189,192 @@ public sealed class CreateProduct(IDispatcher dispatcher, Navigator navigator) :
 `Routes.ProductsPage()` is generated from the `[Route]` on the list page you're about to write — a typed
 URL, so renaming a route breaks the build instead of the link. See [routing](../routing.md).
 
+`DataAnnotationsValidator()` comes from its own package — the one thing on this page `rask new` doesn't
+already give you:
+
+```bash
+dotnet add package Rask.Validation.DataAnnotations
+```
+
 Note `OnMountAsync`, not a constructor or `OnInitialized`: a Rask component loads its data when it
 mounts. The [lifecycle](../lifecycle.md) guide has the full order.
 
-**`UpdateProduct.cs` and `DeleteProduct.cs` follow the same shape:** a record command, a handler that
-loads and mutates through `Product.Update` (or removes), and — for update — an edit page that loads the
-entity into a `ProductRequest` first. Write them by copying `CreateProduct.cs` and changing the verb, or
-read them in the [sample](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop/Features/Products).
+## 5. Edit and delete
 
-## 5. The list page
+Same shape, and the list page in the next step links to both — so write them now or it won't compile.
+
+`Features/Products/UpdateProduct.cs` adds a query (to load the row into the form) alongside the command:
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+using Rask.Core.Routing;
+using Shop.Features.Shared;
+
+namespace Shop.Features.Products;
+
+public sealed record GetProductQuery(Guid Id) : IQuery<Product?>;
+
+public sealed class GetProductQueryHandler(IDbContextFactory<AppDbContext> dbContextFactory)
+    : IQueryHandler<GetProductQuery, Product?>
+{
+    public async Task<Product?> HandleAsync(GetProductQuery query, CancellationToken cancellationToken)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == query.Id, cancellationToken);
+    }
+}
+
+public sealed record UpdateProductCommand(Guid Id, ProductRequest Request) : ICommand;
+
+public sealed class UpdateProductCommandHandler(IDbContextFactory<AppDbContext> dbContextFactory)
+    : ICommandHandler<UpdateProductCommand>
+{
+    public async Task HandleAsync(UpdateProductCommand command, CancellationToken cancellationToken)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
+        if (entity is null)
+        {
+            return;
+        }
+
+        entity.Update(command.Request.Name, command.Request.Price, command.Request.InStock);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+[Route("/products/{id:guid}/edit")]
+public sealed class UpdateProduct(IDispatcher dispatcher, Navigator navigator) : Component
+{
+    private readonly ProductRequest _form = new();
+    private bool _loaded;
+    private bool _found;
+    private string? _error;
+
+    [RouteParam] public Guid Id { get; set; }
+
+    protected override Component? Head => Title()["Edit Product"];
+
+    protected override async Task OnPropsChangedAsync()
+    {
+        _loaded = false;
+        var entity = await dispatcher.DispatchAsync(new GetProductQuery(Id), CancellationToken);
+        _found = entity is not null;
+        if (entity is not null)
+        {
+            _form.Name = entity.Name;
+            _form.Price = entity.Price;
+            _form.InStock = entity.InStock;
+        }
+
+        _loaded = true;
+    }
+
+    private async Task SubmitAsync(ProductRequest form)
+    {
+        try
+        {
+            await dispatcher.DispatchAsync(new UpdateProductCommand(Id, form), CancellationToken);
+            navigator.NavigateTo(Routes.ProductsPage());
+        }
+        catch (Exception)
+        {
+            _error = "Something went wrong — please try again.";
+        }
+    }
+
+    protected override Component? Render()
+    {
+        if (!_loaded)
+        {
+            return Div()["Loading…"];
+        }
+
+        if (!_found)
+        {
+            return Div()["Product not found. ", NavLink(Routes.ProductsPage())["Back to the list"], "."];
+        }
+
+        return Div()[
+            Div()[
+                H1()["Edit Product"],
+                _error is null ? null : Div(Role: "alert")[_error],
+                Form(_form, OnValidSubmitAsync: SubmitAsync)[
+                    DataAnnotationsValidator(),
+                    Div()[
+                        Label("name")["Name"],
+                        Input(() => _form.Name, Id: "name")
+                    ],
+                    Div()[
+                        Label("price")["Price"],
+                        Input(() => _form.Price, Id: "price")
+                    ],
+                    Div()[
+                        Label("instock")["InStock"],
+                        Input(() => _form.InStock, Id: "instock")
+                    ],
+                    Div()[
+                        NavLink(Routes.ProductsPage())["Cancel"],
+                        Button("submit")["Save changes"]
+                    ]
+                ]
+            ]
+        ];
+    }
+}
+```
+
+`Features/Products/DeleteProduct.cs` is the command plus a small reusable button the list page drops
+next to each row:
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+using Shop.Features.Shared;
+
+namespace Shop.Features.Products;
+
+public sealed record DeleteProductCommand(Guid Id) : ICommand;
+
+public sealed class DeleteProductCommandHandler(IDbContextFactory<AppDbContext> dbContextFactory)
+    : ICommandHandler<DeleteProductCommand>
+{
+    public async Task HandleAsync(DeleteProductCommand command, CancellationToken cancellationToken)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entity = await db.Products.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
+        if (entity is null)
+        {
+            return;
+        }
+
+        db.Products.Remove(entity);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+// A reusable delete button: dispatches the delete command, then invokes OnDeleted so the caller
+// (the list page) can refresh.
+public sealed class DeleteProduct(IDispatcher dispatcher) : Component
+{
+    public Guid Id { get; set; }
+
+    public Func<Task>? OnDeleted { get; set; }
+
+    private async Task DeleteAsync()
+    {
+        await dispatcher.DispatchAsync(new DeleteProductCommand(Id), CancellationToken);
+        if (OnDeleted is not null)
+        {
+            await OnDeleted();
+        }
+    }
+
+    protected override Component? Render() =>
+        Button("button", OnClickAsync: DeleteAsync)["Delete"];
+}
+```
+
+## 6. The list page
 
 `Features/Products/ProductsPage.cs` — a query, its handler, and the routed page:
 
@@ -257,7 +441,7 @@ public sealed class ProductsPage(IDispatcher dispatcher) : Component
 }
 ```
 
-## 6. Register the services
+## 7. Register the services
 
 `Program.cs` needs three registrations (Chapter 1's `--all-batteries` already added them; if you
 scaffolded without it, add them next to your other `builder.Services…` lines):
@@ -279,7 +463,7 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
   the app but honours a `ConnectionStrings:App` override, which is how a deploy points it at a persistent
   volume.
 
-## 7. Create the database
+## 8. Create the database
 
 The code is ready, but the SQLite file has no tables yet. EF Core **migrations** generate the schema from
 your entities. `rask db` wraps the EF tooling (installing `dotnet-ef` for you on first use):
@@ -293,7 +477,7 @@ rask db update                # apply it — creates app.db with a Products tabl
 against `app.db`. Every time you change an entity later, it's the same pair: `rask db add <Name>` then
 `rask db update`.
 
-## 8. Run it
+## 9. Run it
 
 ```bash
 rask dev
