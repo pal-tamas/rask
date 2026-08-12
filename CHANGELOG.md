@@ -110,16 +110,21 @@ them until tagged releases begin.
   Entry     25.88 us   19.7 KB   1.00   (time ratio 1.18 ± 0.02)
   ```
 
-  The cause is named in `BuilderSurfaceBenchmarks`' own comment, written when the change went in and
-  before anyone measured it: the deferred reset grew a second, more expensive form, where a property
-  whose setter has a BODY is assigned unconditionally instead of being skipped when it already reads
-  as its default (`Router.Routes` derives the routing table from being handed a null, so skipping the
-  write rendered an empty page). Five props on the shared `Element`/`Component` surface take that form
-  — `Draggable`, `Role`, `TabIndex`, `Aria`, `Ref` — so every element in every entry-built tree pays
-  for it. "It is only a field write" was a claim; this is the measurement, and it is not free.
+  **The cause is not yet known.** `BuilderSurfaceBenchmarks`' own comment predicts one — the deferred
+  reset grew a form where a property whose setter has a BODY is assigned unconditionally rather than
+  skipped when it already reads as its default, and five props on the shared `Element`/`Component`
+  surface take that form (`Draggable`, `Role`, `TabIndex`, `Aria`, `Ref`), so every element pays. That
+  prediction was **measured and disproved**: narrowing the unconditional path to `Router.Routes` alone
+  (the one property that genuinely derives state, resolving `RouteRegistry.BuildTree()` on assignment)
+  moves the ratio from 1.18 to 1.17. It is not where the time goes.
 
-  The ratio is recorded here because dropping the generated factory removes the arm that produces it,
-  so this comparison cannot be reproduced afterwards.
+  What has not been ruled out is the per-step bookkeeping each setter does (`Track` + `Written`, 150
+  calls a frame here) and the reset's own shape — every prop on the shared surface is a separate mask
+  test per component per render, whether or not the form of the write changes. Tracked in the issue;
+  the number is recorded here rather than left to be rediscovered.
+
+  The ratio is recorded because dropping the generated factory removes the arm that produces it, so
+  this comparison cannot be reproduced afterwards.
 
   Two consequences worth stating, because neither is reachable by reading the happy path:
   - **A component's static members are no longer reachable by simple name inside a markup host.** C#'s
