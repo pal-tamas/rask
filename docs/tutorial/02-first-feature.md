@@ -153,7 +153,7 @@ public sealed class CreateProduct(IDispatcher dispatcher, Navigator navigator) :
     private readonly ProductRequest _form = new();
     private string? _error;
 
-    protected override Component? Head => Title()["New Product"];
+    protected override Component? HeadAssets => Title["New Product"];
 
     private async Task SubmitAsync(ProductRequest form)
     {
@@ -253,7 +253,7 @@ public sealed class UpdateProduct(IDispatcher dispatcher, Navigator navigator) :
 
     [RouteParam] public Guid Id { get; set; }
 
-    protected override Component? Head => Title()["Edit Product"];
+    protected override Component? HeadAssets => Title["Edit Product"];
 
     protected override async Task OnPropsChangedAsync()
     {
@@ -403,7 +403,7 @@ public sealed class ProductsPage(IDispatcher dispatcher) : Component
     private IReadOnlyList<Product> _items = [];
     private bool _loaded;
 
-    protected override Component? Head => Title()["Products"];
+    protected override Component? HeadAssets => Title["Products"];
 
     protected override async Task OnMountAsync() => await LoadAsync();
 

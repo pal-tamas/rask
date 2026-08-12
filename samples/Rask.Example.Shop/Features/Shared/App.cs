@@ -5,8 +5,8 @@ namespace Rask.Example.Shop.Features.Shared;
 public sealed partial class App : Component
 {
     // App-level head contributions splice into the framework-managed <head>
-    // via the Component? Head override. Title is singleton — any page that
-    // overrides Head with its own Title supersedes this fallback for the tab.
+    // via the Component? HeadAssets override. Title is singleton — any page that
+    // overrides HeadAssets with its own Title supersedes this fallback for the tab.
     protected override Component? HeadAssets => [
         Title["Rask.Example.Shop"],
         Meta.Charset("utf-8"),
