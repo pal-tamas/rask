@@ -198,6 +198,17 @@ internal static class CliBuildE2E
         };
         psi.Environment["CI"] = "true";
 
+        // Node reuse is what makes the wasm-hosted cases fail intermittently, and only ever on a repeated
+        // run (#650). A worker node kept alive from an earlier run has already loaded Rask.Wasm.Tasks.dll
+        // via Assembly.LoadFrom from *that* run's temp directory; the next run's publish reuses the node,
+        // the load of the same simple name from a new path throws, and the scoped-asset bake silently
+        // produces nothing — surfacing as "the bake did not run during this publish" rather than as
+        // anything to do with the template. The repo's Directory.Build.rsp sets this for in-repo builds,
+        // but these projects are generated into a temp directory outside it, so it has to be set here.
+        // An environment variable rather than -nodeReuse:false on the command line: the wasm-hosted build
+        // shells out to a nested `dotnet publish`, and the variable is inherited where a flag is not.
+        psi.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+
         using var process = Process.Start(psi)!;
         var stdout = await process.StandardOutput.ReadToEndAsync();
         var stderr = await process.StandardError.ReadToEndAsync();
