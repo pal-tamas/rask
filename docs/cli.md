@@ -49,10 +49,11 @@ them:
 | `-o` | `--output` |
 | `-n` | `--name` |
 | `-t` | `--template` |
+| `-f` | `--follow` |
 | `-y` | `--yes` |
 
 A few options have no short name on purpose, because the letter belongs to something else: `rask dev
---open`, `rask deploy logs --follow`.
+--open` (`-o` is `--output`).
 
 `--force` means *overwrite files* (`rask new`). Skipping a destructive confirmation is
 `--yes` (`rask db drop`, `rask db restore`) — a different word, because it is a different power.

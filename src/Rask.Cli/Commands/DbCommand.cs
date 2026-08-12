@@ -311,9 +311,9 @@ internal sealed partial class DbCommand(IConsole console, IFileSystem fileSystem
     }
 
     // The EF Core tools need the startup project to reference Microsoft.EntityFrameworkCore.Design;
-    // without it `dotnet ef` fails with a terse message. Projects from `rask generate feature` already
+    // without it `dotnet ef` fails with a terse message. Projects scaffolded with `--data` already
     // include it, but a hand-built one (or a demo that uses EnsureCreated) may not — so add it for the
-    // user (like `rask generate` does for the packages it needs, and like the dotnet-ef tool install
+    // user (like the dotnet-ef tool install
     // above). `dotnet add package` restores too, so the subsequent `dotnet ef` build picks it up. This
     // never blocks: if we can't confidently read the startup project's csproj we stay quiet rather than
     // touch a setup we can't see (e.g. the ref comes from imported props), and a failed add still lets

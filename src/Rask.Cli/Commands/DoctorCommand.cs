@@ -168,7 +168,7 @@ internal sealed class DoctorCommand(
             : new DoctorCheck("rask dev", DoctorStatus.Ok, $"{target.Name} ({target.Kind})", null));
 
         // The version this CLI would pin into a new project, so a mismatch with what the project already
-        // references is visible before `rask generate` adds a package that disagrees with the rest.
+        // references is visible before a package is added that disagrees with the rest.
         checks.Add(new DoctorCheck(
             "rask packages", DoctorStatus.Ok, NewCommand.ResolvePackageVersion(CliMetadata.Version), null));
 

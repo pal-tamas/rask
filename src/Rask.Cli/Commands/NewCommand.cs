@@ -75,7 +75,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("auth", description: "Add cookie authentication (login + members pages).")
             .Flag("pwa", description: "Add a PWA manifest, icon, and offline page.")
             .Flag("cqrs", description: "Wire up Rask.Cqrs (server template only).")
-            .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext that `rask generate feature` attaches to (server only). See --database.")
+            .Flag("data", description: "Pre-wire a database + EF Core: an AppDbContext your features map through (server only). See --database.")
             .Flag("docker", description: "Add a Dockerfile and .dockerignore for container deploys.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use).")
             .Flag("no-git", description: "Don't initialize a git repository (one is created with an initial commit by default).")
@@ -549,7 +549,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var version = ResolvePackageVersion(CliMetadata.Version);
         var result = build(targetDirectory, version);
 
-        // --dry-run previews the plan without touching disk or restoring — same spirit as `rask generate --dry-run`.
+        // --dry-run previews the plan without touching disk or restoring.
         if (dryRun)
         {
             WriteHeading($"Would create {template.DisplayName} '{name}':");
