@@ -965,6 +965,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .Append(" value) where T : ").Append(receiver);
             sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
                 .Append(" = ").Append(assigned).AppendLine("; return __b; }");
+            EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility, generic: true);
             return;
         }
 
@@ -973,6 +974,85 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             .Append(constraints);
         sb.Append(" { var __c = __b.Value; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
             .Append(" = ").Append(assigned).AppendLine("; return __b; }");
+        EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility, generic: false);
+    }
+
+    // A property whose type IS an attribute bag — Data, Aria, FieldAria, and anything added later.
+    // Keyed off the type rather than a list of names, so a new bag property gets the ergonomic steps
+    // without anyone remembering to add it here.
+    //
+    // Whole-type equality, not a substring test: `Func<IReadOnlyDictionary<string, string?>, Component>`
+    // is the gesture triggers' render callback, and it CONTAINS the bag's name. A substring test hands it
+    // a `.Data(string, string?)` overload whose body cannot compile.
+    private static bool IsAttrBag(string typeFqn)
+    {
+        var bare = typeFqn.EndsWith("?", StringComparison.Ordinal)
+            ? typeFqn.Substring(0, typeFqn.Length - 1)
+            : typeFqn;
+        return string.Equals(
+            bare, "global::System.Collections.Generic.IReadOnlyDictionary<string, string?>",
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     Two extra steps beside a bag property's dictionary setter, so the shape real markup is full of
+    ///     — one attribute — reads as <c>.Data("test-id", "primary")</c> rather than
+    ///     <c>.Data(new Dictionary&lt;string, string?&gt; { ["test-id"] = "primary" })</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Both forward to <c>Rask.Core.AttrBag</c>, which the element writer knows by type: one pair costs
+    ///     a single object rather than a Dictionary plus its bucket and entry arrays, and is written
+    ///     without materialising an enumerator. <c>params ReadOnlySpan&lt;…&gt;</c> keeps a multi-pair call
+    ///     site's argument list on the stack.
+    /// </remarks>
+    private static void EmitAttrBagOverloads(
+        StringBuilder sb, string setterName, string propertyName, string typeFqn, string receiver,
+        bool fold, int pendingBit, string visibility, bool generic)
+    {
+        if (!IsAttrBag(typeFqn))
+        {
+            return;
+        }
+
+        var escaped = EscapeIdentifier(setterName);
+        var prop = EscapeIdentifier(propertyName);
+
+        // The same bookkeeping the dictionary setter does, but written against `__bag`: the caller's
+        // `track` string names a local `value`, which is this overload's own parameter name.
+        var track = fold
+            ? "global::Rask.Core.BuilderRuntime.Track(__c, __c." + prop + ", __bag); "
+            : string.Empty;
+        if (pendingBit >= 0)
+        {
+            track += "global::Rask.Core.BuilderRuntime.Written(__c, " + MaskLiteral(new[] { pendingBit }) + "); ";
+        }
+
+        var self = generic ? BuildOf("T") : BuildOf(receiver);
+        var typeArgs = generic ? "<T>" : string.Empty;
+        var where = generic ? " where T : " + receiver : string.Empty;
+
+        // The body is assigned here rather than forwarded to the dictionary overload. Every component's
+        // setters are extension methods on Build<…> in one static class, so a forwarding `Data(__b, …)`
+        // is resolved against ALL of them and binds to whichever component's overload wins — it picked
+        // Build<FullscreenTrigger> for an EyeDropperTrigger. Assigning the property directly has no name
+        // to resolve.
+        foreach (var (parameters, expression) in new[]
+                 {
+                     // Name only — a BARE attribute (`data-rask-no-restore`), which is how the framework's
+                     // own opt-out flags are written. A null value is what renders one, the same rule
+                     // `disabled` follows; `""` would render `=""`, which is a different attribute.
+                     ("string name", "new global::Rask.Core.AttrBag(name, null)"),
+                     ("string name, string? value", "new global::Rask.Core.AttrBag(name, value)"),
+                     ("params global::System.ReadOnlySpan<(string Name, string? Value)> pairs",
+                         "new global::Rask.Core.AttrBag(pairs)"),
+                 })
+        {
+            sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
+                .Append(typeArgs).Append("(this ").Append(self).Append(" __b, ").Append(parameters).Append(')')
+                .Append(where)
+                .Append(" { var __c = __b.Value; var __bag = ").Append(expression).Append("; ").Append(track)
+                .Append("__c.").Append(prop).AppendLine(" = __bag; return __b; }");
+        }
     }
 
     // The chain's receiver and result for a component type — `Rask.Core.Build<TComponent>`.

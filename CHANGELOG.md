@@ -8,6 +8,36 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **An attribute bag names its pair: `Div.Data("test-id", "primary")`.** The dictionary form still
+  works, and is still the right thing for a genuinely large bag:
+
+  ```csharp
+  Div.Data("rask-no-restore")                    // bare: data-rask-no-restore
+  Div.Data("test-id", "primary")
+  Div.Data(("test-id", "primary"), ("state", "idle"))
+  Span.Aria("label", "Close")
+  ```
+
+  The name-only form is the BARE attribute, which is how the framework's own opt-out flags are
+  written — `.Data("flag")` renders `data-flag`, `.Data("flag", "")` renders `data-flag=""`, and those
+  are different attributes.
+
+  It is not only shorter. A `Dictionary` for one attribute is **three** allocations — the dictionary,
+  its bucket array and its entry array — and a chain step re-assigns its property on every render, so
+  that was a per-render cost on every element carrying a single `data-*`. The pair form allocates one
+  object with two fields (`Rask.Core.AttrBag`), which `Element` writes straight from those fields:
+  without that branch it would have traded three allocations for a boxed enumerator, since only
+  `Dictionary<,>` has a struct enumerator to borrow.
+
+  Measured over 100 elements each carrying one `data-*` (`AttrBagBenchmarks`): **80.7 KB → 63.52 KB,
+  Alloc Ratio 0.79**, mean 11.32 μs → 10.09 μs. With three attributes each it is still ahead —
+  87.15 KB → 75.43 KB. So the ergonomic spelling is also the cheap one, at both sizes.
+
+  The steps are emitted for any property typed `IReadOnlyDictionary<string, string?>` rather than for
+  a list of names, so `Data`, `Aria` and `FieldAria` all get them and so does anything added later.
+  Lookup on the bag is a linear scan, which is the right structure at this size — it is written once
+  and read once per render.
+
 - **BREAKING — callbacks are plain delegates. `Handler`, `HandlerAsync`, `Handler<T>`,
   `HandlerAsync<T>`, `Carrier<TDelegate>` and the four `Callback*` delegate types are deleted.** A
   component property says the delegate it means:

@@ -189,6 +189,30 @@ public abstract partial class Element : Component
     private static void AppendPrefixedAttrs(StringBuilder sb, string prefix,
         IReadOnlyDictionary<string, string?> map, string? skipKey)
     {
+        // The bag `.Data("test-id", "primary")` builds. Written straight from its fields — it has no
+        // struct enumerator to borrow, so without this branch the single-attribute case would trade
+        // Dictionary's three allocations for a boxed enumerator on every render.
+        if (map is AttrBag bag)
+        {
+            if (skipKey is null || !string.Equals(bag.Name0, skipKey, StringComparison.Ordinal))
+            {
+                AppendAttr(sb, prefix, bag.Name0, bag.Value0);
+            }
+
+            if (bag.Rest is { } rest)
+            {
+                foreach (var kv in rest)
+                {
+                    if (skipKey is null || !string.Equals(kv.Key, skipKey, StringComparison.Ordinal))
+                    {
+                        AppendAttr(sb, prefix, kv.Key, kv.Value);
+                    }
+                }
+            }
+
+            return;
+        }
+
         if (map is Dictionary<string, string?> dict)
         {
             foreach (var kv in dict)

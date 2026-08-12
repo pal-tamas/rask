@@ -219,7 +219,7 @@ public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder() =>
             .Id("go")
             .Class("btn")
             .Style("color:red")
-            .Data(new Dictionary<string, string?> { ["test-id"] = "primary" })
+            .Data("test-id", "primary")
             .ToHtml());
 ```
 

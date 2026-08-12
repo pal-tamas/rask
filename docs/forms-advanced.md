@@ -201,7 +201,7 @@ Two things to know when building a form:
 - **`data-rask-no-restore` opts out** a field, or every field under it:
 
 ```csharp
-Div(Data: new Dictionary<string, string?> { ["rask-no-restore"] = "" })[
+Div.Data("rask-no-restore")[
     Input.Bind(() => _model.CouponCode).Class("form-control")   // never carried across a reload
 ]
 ```
