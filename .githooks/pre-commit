@@ -15,7 +15,11 @@ if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
   exit 0
 fi
 
-if ! git diff --cached --name-only | grep -qE '^(src/|tests/|benchmarks/|Rask\.slnx$|Directory\.)'; then
+# `grep -E … >/dev/null`, never `grep -q`. With `set -o pipefail`, `-q` makes the gate skip PRECISELY
+# when there is most to check: grep exits on the first match, git takes SIGPIPE writing the rest, and the
+# pipeline reports failure — so a large staged change reads as "no code changes" and sails through
+# unchecked, while a small one gates normally. It let a 421-file commit touching all of src/ past.
+if ! git diff --cached --name-only | grep -E '^(src/|tests/|benchmarks/|Rask\.slnx$|Directory\.)' >/dev/null; then
   echo "pre-commit: no code changes staged — skipping the format + unit gate."
   exit 0
 fi
