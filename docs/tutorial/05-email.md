@@ -12,6 +12,8 @@ email in C# with the same `Div()`/`H1()` you already know, no templating languag
 Create `Features/Shared/OrderReceipt.cs` — a component whose `Render()` is the email body:
 
 ```csharp
+namespace Shop.Features.Shared;
+
 public sealed class OrderReceipt : Component
 {
     protected override Component? Render() =>

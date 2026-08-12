@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **Tutorial chapter 4 didn't compile either.** The job handler used `IDbContextFactory<AppDbContext>`
+  with no `using` and no namespace, so the file the chapter names failed with two `CS0246`s as soon as
+  a reader filled the handler in. Chapter 5's email component gained the namespace every other file in
+  the tutorial declares. The build gate now walks chapters 2 → 3 → 4 cumulatively — they depend on each
+  other (chapter 4's handler reads the `Orders` set chapter 3 adds), so isolation would have missed it.
+
+### Fixed
 - **Tutorial chapter 2 didn't compile if you typed it in.** Four defects, none visible to the snippet
   parser: the `AppDbContext` step gave the `DbSet<Product>` line but not the `using` the slice needs
   (the resulting error names `Product`, not the missing import); the list page linked to
