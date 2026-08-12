@@ -30,7 +30,7 @@ internal static class CliBuildE2E
         "Rask.Server",                      // server template
         "Rask.Wasm",                        // wasm + wasm-hosted templates
         "Rask.Wasm.Hosting",                // wasm-hosted template
-        "Rask.Bootstrap",                   // every template, and `generate feature --bs`
+        "Rask.Bootstrap",                   // every template unless --no-bootstrap
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Data",                        // every generated feature
         "Rask.SQLite",                      // --data + every generated feature (via Rask.SQLite.EntityFrameworkCore)
@@ -40,14 +40,14 @@ internal static class CliBuildE2E
         "Rask.Postgres",                    // --database postgres — UseRaskPostgres
         "Rask.SqlServer",                   // --database sqlserver — UseRaskSqlServer
         "Rask.WebPush",                     // --push — AddRaskWebPush + the subscription endpoints
-        "Rask.Outbox",                      // generate feature --outbox, and tutorial ch7
+        "Rask.Outbox",                      // tutorial ch.7
         "Rask.Jobs",                        // generate job, and tutorial ch4
         "Rask.Mail",                        // generate email, and tutorial ch5
         "Rask.Cache",                       // tutorial ch6 — AddRaskCache / ICache.GetOrCreateAsync
         "Rask.Logging",                     // --logs — AddRaskLogging, and the dashboard's History mode
         "Rask.Dashboard",                   // --ops — AddRaskDashboard + the /_ops pages
-        "Rask.Validation.DataAnnotations",  // generate feature --validation dataannotations
-        "Rask.Validation.FluentValidation", // generate feature --validation fluent
+        "Rask.Validation.DataAnnotations",  // tutorial ch.2's form validation
+        "Rask.Validation.FluentValidation", // the FluentValidation alternative
     ];
 
     // Packed once and shared across every case (packing the projects is the expensive part of these gates).
