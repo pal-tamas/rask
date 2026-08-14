@@ -10,21 +10,23 @@ using Microsoft.CodeAnalysis.Operations;
 namespace Rask.Generators.Analyzers;
 
 /// <summary>
-///     RASK021 — flags a root component that does not render the full page shell.
+///     RASK021 — flags a root component that renders the page shell itself.
 ///     <para>
 ///         The component passed to <c>UseRask&lt;TApp&gt;()</c> (Server / Wasm.Hosting) or
-///         <c>RunAsync&lt;TApp&gt;()</c> (standalone WASM) is the document root: its
-///         <c>Render()</c> must produce <c>Doctype()</c>, <c>Html(...)</c>, <c>Head()</c>, and
-///         <c>Body()</c>. Omitting any of them yields a broken page (and, without a
-///         <c>&lt;body&gt;</c>, nowhere for the auto-injected runtime script to land). We surface
-///         the gap at compile time; the framework also fails fast at runtime as a backstop.
+///         <c>RunAsync&lt;TApp&gt;()</c> (standalone WASM) renders straight into <c>&lt;body&gt;</c>:
+///         Rask emits the doctype, <c>&lt;html&gt;</c>, <c>&lt;head&gt;</c> and <c>&lt;body&gt;</c>
+///         around whatever it returns. A root that still builds them itself nests a second document
+///         inside the body, which the HTML parser then silently unwraps — a page that looks nearly
+///         right and has lost its attributes. Since nothing fails, the compile-time signal is the
+///         only one there is (the runtime backstop this diagnostic used to pair with is gone: the
+///         shell is no longer the app's to get wrong).
 ///     </para>
 ///     <para>
 ///         Best-effort: only fires when <c>TApp</c> and its <c>Render()</c> are visible in the
 ///         current compilation's source, and matches the shell factories by name (the names the
 ///         user writes). Apps composed via a delegated helper or pulled from a referenced
-///         assembly aren't analyzed — the runtime check covers those. Warning severity, so it
-///         never breaks a build and is suppressible per call site.
+///         assembly aren't analyzed. Warning severity, so it never breaks a build and is
+///         suppressible per call site.
 ///     </para>
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
@@ -36,22 +38,25 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
     private const string WasmHostingExtensions = "Rask.Wasm.Hosting.RaskWasmEndpointExtensions";
     private const string WasmHostBuilder = "Rask.Wasm.WasmHostBuilder";
 
-    // Shell factory names a root Render() must call, in canonical document order. Matched by the
-    // invoked method's simple name — these are the generated factory names the user writes
-    // (Doctype(), Html(...), Head(), Body()).
+    // Shell factory names the framework now owns, in canonical document order. Matched by the invoked
+    // method's simple name — these are the generated factory names the user writes (Doctype(),
+    // Html(...), Head(), Body()).
     private static readonly string[] _shellFactories = { "Doctype", "Html", "Head", "Body" };
 
     private static readonly DiagnosticDescriptor Rask021 = new(
         "RASK021",
-        "Root component must render a complete page shell",
-        "The Rask root component '{0}' does not render a complete page shell; missing: {1}. A root Render() should produce Doctype(), Html(...)[Head(), Body()[...]].",
+        "Root component must not render the page shell",
+        "The Rask root component '{0}' renders the page shell itself ({1}). Rask builds the document around the root — return the body's content and move <head> contributions to the Head override, <html lang> to HtmlLang, <body class> to BodyClass, or the whole document to a Shell override.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "The root component renders the whole document, so it must produce the shell itself: Doctype(), "
-                     + "then Html(…)[ Head(), Body()[ … ] ]. A runtime backstop enforces the same thing, so a shell that "
-                     + "slips past this analyzer fails at render instead. Do not add the runtime <script> — it is "
-                     + "appended to <body> automatically.",
+        description: "The root component renders into <body>: Rask emits the doctype, <html>, <head> and <body> around "
+                     + "whatever it returns. Building them again nests a second document inside the body, which the "
+                     + "parser unwraps — the page keeps rendering and quietly loses the nested tags' attributes. Return "
+                     + "the body content (typically Router()); put head contributions in the Head override, the "
+                     + "document language in HtmlLang, the body class in BodyClass, and anything else in a "
+                     + "Shell(head, body) override. Do not add the runtime <script> — it is appended to <body> "
+                     + "automatically.",
         helpLinkUri: DiagnosticHelp.Link("RASK021"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
@@ -105,22 +110,24 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        List<string>? missing = null;
-        foreach (var factory in _shellFactories)
-        {
-            if (!produced.Contains(factory))
-            {
-                (missing ??= new List<string>()).Add(factory + "()");
-            }
-        }
-
-        if (missing is null)
+        if (produced.Count == 0)
         {
             return;
         }
 
+        // Report in canonical document order rather than discovery order, so the message reads the way
+        // the shell is written and is stable across edits that only move things around.
+        List<string>? found = null;
+        foreach (var factory in _shellFactories)
+        {
+            if (produced.Contains(factory))
+            {
+                (found ??= new List<string>()).Add(factory + "()");
+            }
+        }
+
         context.ReportDiagnostic(Diagnostic.Create(
-            Rask021, op.Syntax.GetLocation(), app.Name, string.Join(", ", missing)));
+            Rask021, op.Syntax.GetLocation(), app.Name, string.Join(", ", found!)));
     }
 
     private static bool IsEntryPoint(IMethodSymbol method)

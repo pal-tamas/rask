@@ -138,6 +138,35 @@ public class PackageDependencyTests
             : declared;
     }
 
+    // A package that ships its OWN NUGET.md must Include it, never Update it.
+    //
+    // The regression this pins: `<None Update="NUGET.md" Pack="true" …>` relies on the file already being in
+    // the None collection, which it only is in the INNER (per-TargetFramework) build — the SDK's default item
+    // globs do not run in the outer build. Pack runs on the outer build, so for a MULTI-TARGETED project the
+    // Update matched nothing, while the neighbouring `<None Remove="..\..\NUGET.md" />` still stripped the
+    // repo-root readme Directory.Build.props contributes. The package came out with no readme at all and pack
+    // failed with NU5039 — which broke every nightly publish, silently, because a plain `dotnet build` never
+    // touches the outer-build pack path.
+    //
+    // Include is correct for single- and multi-targeted projects alike, so the rule is uniform rather than
+    // "Update is fine until you add a second TFM".
+    [Fact]
+    public void A_package_with_its_own_readme_includes_it_rather_than_updating_it()
+    {
+        var offenders = SourceProjects()
+            .Where(p => IsPackable(p.Value))
+            .Where(p => File.ReadAllText(p.Value).Contains("<None Update=\"NUGET.md\"", StringComparison.Ordinal))
+            .Select(p => p.Key)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.True(
+            offenders.Length == 0,
+            "These projects Update NUGET.md instead of Including it, so their package ships without a readme "
+            + "and pack fails with NU5039 on a multi-targeted project:"
+            + Environment.NewLine + "  " + string.Join(Environment.NewLine + "  ", offenders));
+    }
+
     // Every project under src/, packable or not, keyed by its file name. Both invariants above need the whole set:
     // one to tell a reference to an unpackable project from a reference to a shipped one, the other to pick the
     // packable ones out.

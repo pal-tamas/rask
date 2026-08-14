@@ -94,10 +94,10 @@ WASM templates differ mainly in `Program.cs`):
   `app.UseRask<App>()` mounts your root component (`App`) as the whole site, and a `/health` endpoint is
   wired for deployment probes. Your own services go here too.
 
-- **`App.cs`** — two things live here. First, the **root component** `App`: the one place that renders the
-  full HTML page shell (`Doctype` / `Html` / `Head` / `Body`) and drops a `Router()` where the current page
-  appears. `<head>` is framework-managed — app-wide tags (title, charset, viewport) go through its `Head`
-  override, not by passing children to `Head()` (more in [section 7](#7-the-page-shell-and-the-head-override)).
+- **`App.cs`** — two things live here. First, the **root component** `App`: it renders straight into
+  `<body>` — Rask builds the document around it — and drops a `Router()` where the current page appears.
+  `<head>` is framework-managed — app-wide tags (title, charset, viewport) go through its `Head`
+  override, not by passing children to `Head()` (more in [section 7](#7-the-document-and-the-head-override)).
   Second, the **`HomePage`** component — the `/` route, a small welcome card. Edit or replace it; it's your
   starting point.
 
@@ -116,13 +116,13 @@ every component — `Div()[ ... ]` — and strings, other components, and value 
 child node automatically:
 
 ```csharp
-public sealed class Greeting : Component
+public sealed partial class Greeting : Component
 {
     protected override Component? Render() =>
-        Div(Class: "greeting")[
-            H1()["Hello, world!"],
-            P()["Welcome to your new Rask app — ", Strong()["it's all C#"], "."],
-            Span()[42]                          // value types convert too — no .ToString()
+        Div.Class("greeting")[
+            H1["Hello, world!"],
+            P["Welcome to your new Rask app — ", Strong["it's all C#"], "."],
+            Span[42]                          // value types convert too — no .ToString()
         ];
 }
 ```
@@ -153,15 +153,15 @@ code works for both.
 
 ```csharp
 [Route("/counter")]
-public sealed class Counter : Component
+public sealed partial class Counter : Component
 {
     private int _count;
 
     protected override Component? Render() =>
         [
-            H1()["Counter"],
-            P()[$"Current count: {_count}"],
-            Button(OnClick: () => _count++)["Click me"]
+            H1["Counter"],
+            P[$"Current count: {_count}"],
+            Button.OnClick(() => _count++)["Click me"]
         ];
 }
 ```
@@ -173,27 +173,26 @@ wraps it so invoking it re-renders the **parent** that owns the lambda. There is
 type, and the child stays oblivious to the parent:
 
 ```csharp
-public sealed class RatingStars : Component
+public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }
     public Action<int>? OnRate { get; set; }            // a plain delegate prop
 
     protected override Component? Render() =>
-        Div()[
-            Enumerable.Range(1, 5).Select(i => (Component)Button(
-                OnClick: () => OnRate?.Invoke(i),        // child invokes; parent re-renders
-                Key: i)[i <= Value ? "★" : "☆"])
+        Div[
+            Enumerable.Range(1, 5).Select(i => (Component)Button.OnClick(() => OnRate?.Invoke(i))// child invokes; parent re-renders
+.Key(i)[i <= Value ? "★" : "☆"])
         ];
 }
 
-public sealed class RatingDemo : Component
+public sealed partial class RatingDemo : Component
 {
     private int _rating;
 
     protected override Component? Render() =>
         [
-            RatingStars(Value: _rating, OnRate: n => _rating = n),   // lambda captures this
-            P()[_rating == 0 ? "Click a star." : $"You rated: {_rating}/5"]
+            RatingStars.Value(_rating).OnRate(n => _rating = n),   // lambda captures this
+            P[_rating == 0 ? "Click a star." : $"You rated: {_rating}/5"]
         ];
 }
 ```
@@ -213,7 +212,7 @@ Its parameters are derived from your public settable properties:
 | `Children`                                        | always excluded (children attach via the indexer) |
 
 ```csharp
-public sealed class Card : Component
+public sealed partial class Card : Component
 {
     public required string Title { get; set; }     // required factory param
     public string? Subtitle { get; set; }          // optional, default null
@@ -234,7 +233,7 @@ parameter (and `required` on a property with a DI-only constructor is the **RASK
 through the primary constructor instead:
 
 ```csharp
-public sealed class Weather(IWeatherForecastService service) : Component { ... }
+public sealed partial class Weather(IWeatherForecastService service) : Component { ... }
 ```
 
 <!-- demo:components-di -->
@@ -245,46 +244,67 @@ cached internal state the caller shouldn't pass. The counter below starts at 7 (
 
 <!-- demo:components-skipfactory -->
 
-## 7. The page shell and the `Head` override
+## 7. The document and the `Head` override
 
-Your root component (the `TApp` you pass to the host — `App` in the template) must render the **full
-HTML shell**: `Doctype`, `Html`, `Head`, `Body`. Both `<head>` and `<body>` are framework-managed — the
-runtime `<script>` is auto-appended to `<body>`, and `<head>` is filled from every mounted component's
-`Head` override.
+Your root component (the `TApp` you pass to the host — `App` in the template) renders straight into
+`<body>`. Rask composes the document around it: the doctype, `<html>`, a `<head>` filled from every
+mounted component's `Head` override (plus the scoped CSS and JS the page needs), and a `<body>` holding
+what the root rendered and the auto-appended runtime `<script>`. So a root is just its head
+contributions and a `Router()`:
 
 ```csharp
-public sealed class App : Component
+public sealed partial class App : Component
 {
     // App-level head; pages can override their own Head to set a per-page Title.
     protected override Component? Head => [
-        Title()["My Rask App"],
-        Meta("utf-8"),
-        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1")
+        Title["My Rask App"],
+        Meta.Charset("utf-8"),
+        Meta.Name("viewport").Content("width=device-width, initial-scale=1")
     ];
 
-    protected override Component? Render() =>
-        [
-            Doctype(),
-            Html("en")[
-                Head(),               // framework-managed slot — do NOT pass children
-                Body()[
-                    Router()
-                ]
-            ]
-        ];
+    protected override Component? Render() => Router;
 }
 ```
+
+The two attributes an app usually wants on the shell are overrides of their own, read off the root:
+`HtmlLang` — the `lang` on `<html>`, `"en"` by default, `null` to omit it — and `BodyClass`, the
+`class` on `<body>`, `null` by default:
+
+```csharp
+protected override string? HtmlLang => "fr";
+protected override string? BodyClass => "bg-body-tertiary";
+```
+
+Anything those two can't express — another attribute on `<html>`, an element wrapped around the app —
+is a `Shell` override. It receives the framework's `<head>` and the app's rendered body as
+**parameters**, so place both: drop `head` and the page loses every head asset.
+
+```csharp
+protected override Component Shell(Component head, Component body) =>
+    Html("en", Dir: "rtl")[head, Body.Class("dark")[body]];
+```
+
+The doctype is still emitted ahead of whatever `Shell` returns, and the runtime `<script>` still lands
+in `<body>` — neither is yours to add. `Shell` is evaluated once per render, *before* your `Render()`
+runs, so it can't observe state that render produces; keep anything reactive in the body or in `Head`.
 
 Any component can contribute to `<head>` while it's in the tree by overriding `Head`. `<title>` and
 `<base>` are singleton tags — the last contributor wins, so a page's `Title` overrides the app fallback:
 
 ```csharp
-protected override Component? Head => Title()["Welcome — My Rask App"];
+protected override Component? Head => Title["Welcome — My Rask App"];
 ```
 
 > **Guardrails:** two compile-time checks catch the common mistakes (full list in
-> [diagnostics](diagnostics.md)) — **RASK021** if the root doesn't render a complete shell, and
-> **RASK019** if you pass children to `Head()` instead of using the override.
+> [diagnostics](diagnostics.md)) — **RASK021** if the root renders the shell itself, and **RASK019** if
+> you pass children to `Head()` instead of using the override.
+
+> **Already have an app?** Delete the shell from your root's `Render()` and return what was inside
+> `<body>` (usually just `Router()`). Its pieces move to the overrides that own them: the `lang` on
+> `Html(...)` becomes `HtmlLang`, the `Class` on `Body(...)` becomes `BodyClass`, the `Head()` slot just
+> goes away (your head contributions were already in the `Head` override), and anything left over
+> becomes a `Shell` override. `Doctype`, `Html`, `Head`, and `Body` are still ordinary tag components —
+> they're what you build a document out of by hand (`ToHtml()`, an email body), just not the app's page.
 
 ## 8. Add a route
 
@@ -296,23 +316,24 @@ route gets a generated, type-safe URL builder:
 using Rask.Core.Routing;
 
 [Route("/users/{id}")]
-public sealed class UserPage : Component
+public sealed partial class UserPage : Component
 {
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
 
     protected override Component? Render() =>
-        Span()[$"User #{Id} — {Tab ?? "overview"}"];
+        Span[$"User #{Id} — {Tab ?? "overview"}"];
 }
 
 // elsewhere — type-safe, refactor-proof:
-NavLink(UserPage(id: 42))["View user"];
+NavLink.Href(UserPage(id: 42))["View user"];
 ```
 
-The `Router()` in your shell matches the current path and renders the page. To navigate from an event
-handler, inject the `Navigator` service through the constructor and call `nav.NavigateTo(HomePage())`,
-`nav.SetQuery("tab", "settings")`, and so on. For nested layouts (`[ParentRoute]` + `Outlet()`), 404
-pages (`[NotFound]`), and the full routing model, see [routing](routing.md).
+The `Router()` in your root component matches the current path and renders the page. To navigate from
+an event handler, inject the `Navigator` service through the constructor and call
+`nav.NavigateTo(HomePage())`, `nav.SetQuery("tab", "settings")`, and so on. For nested layouts
+(`[ParentRoute]` + `Outlet()`), 404 pages (`[NotFound]`), and the full routing model, see
+[routing](routing.md).
 
 ## Troubleshooting
 
@@ -343,7 +364,7 @@ You now have a running, routed, interactive app. From here, the One Person Frame
 shipped product — and the **[zero-to-deploy tutorial](tutorial/00-overview.md)** walks that whole path
 step by step (database, auth, jobs, email, cache, events, and deployment). In short:
 
-1. **Scaffold a feature** → [`rask generate feature`](cli.md) emits a full CQRS + EF Core CRUD vertical
+1. **Build a feature** → [tutorial chapter 2](tutorial/02-first-feature.md) writes a full CQRS + EF Core CRUD vertical
    slice (entity, value objects, validation, list/create/edit pages — and, with `--tests`, a test project)
    in one command, wiring the DI into `Program.cs` for you.
 2. **Make SQLite production-ready** → [Why one server, no PaaS](sqlite.md) — WAL, busy-timeout, and
@@ -353,7 +374,7 @@ step by step (database, auth, jobs, email, cache, events, and deployment). In sh
 
 Read **[the doctrine](one-person-framework.md)** for the why. Reference guides for the next thing you need:
 
-- **Build a form** → [forms](forms.md) — `Form<T>`, `Input(Bind: ...)`, validation.
+- **Build a form** → [forms](forms.md) — `Form<T>`, `Input(() => model.X)`, validation.
 - **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Navigator`.
 - **Load or save data** → [data access](data-access.md) — EF Core + SQLite in a Server app.
 - **Run code on mount / after render** → [lifecycle](lifecycle.md) — `OnMount*` / `OnRendered*`, async hooks.

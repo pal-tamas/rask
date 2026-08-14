@@ -7,7 +7,7 @@ namespace Rask.Example.Auth.Jwt.Features;
 
 [Route("login")]
 [AllowAnonymous]
-public sealed class LoginPage(
+public sealed partial class LoginPage(
     ICredentialStore creds,
     JwtIssuer issuer,
     JwtValidator validator,
@@ -19,24 +19,24 @@ public sealed class LoginPage(
     private string? _error;
 
     protected override Component? Render() =>
-        Div(Id: "login", Class: "card shadow-sm mx-auto", Style: "max-width:24rem")[
-            Div(Class: "card-body")[
-                H1(Class: "h3 card-title mb-3")["Sign in"],
+        Div.Id("login").Class("card shadow-sm mx-auto").Style("max-width:24rem")[
+            Div.Class("card-body")[
+                H1.Class("h3 card-title mb-3")["Sign in"],
                 _error is null
                     ? null
-                    : Div(Id: "login-error", Class: "alert alert-danger py-2")[_error],
+                    : Div.Id("login-error").Class("alert alert-danger py-2")[_error],
                 Form(_model, OnValidSubmitAsync: SubmitAsync)[
-                    Div(Class: "mb-3")[
-                        Label("username", Class: "form-label")["Username"],
-                        Input(() => _model.Username, Id: "username", Class: "form-control")
+                    Div.Class("mb-3")[
+                        Label.For("username").Class("form-label")["Username"],
+                        Input.Bind(() => _model.Username).Id("username").Class("form-control")
                     ],
-                    Div(Class: "mb-3")[
-                        Label("password", Class: "form-label")["Password"],
-                        Input(() => _model.Password, Id: "password", Type: InputType.Password, Class: "form-control")
+                    Div.Class("mb-3")[
+                        Label.For("password").Class("form-label")["Password"],
+                        Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("form-control")
                     ],
-                    Button("submit", Id: "login-submit", Class: "btn btn-primary w-100")["Sign in"]
+                    Button.Type("submit").Id("login-submit").Class("btn btn-primary w-100")["Sign in"]
                 ],
-                P(Class: "text-muted small mt-3 mb-0")[
+                P.Class("text-muted small mt-3 mb-0")[
                     "Try alice / password (user) or root / password (admin)."]
             ]
         ];

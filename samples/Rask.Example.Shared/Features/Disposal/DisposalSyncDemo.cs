@@ -2,22 +2,33 @@ namespace Rask.Example.Shared.Features;
 
 // IDisposable (sync) demo promoted out of the former DisposalPage. Mount, then unmount: the probe's
 // Dispose() runs synchronously as the parent's diff removes it from the tree.
-public sealed class DisposalSyncDemo : Component
+public sealed partial class DisposalSyncDemo : Component
 {
     private readonly List<string> _syncLog = new();
     private int _nextSyncId;
     private bool _syncMounted;
 
     protected override Component? Render() =>
-        Div()[
-            BsStack(Gap: 2, Class: Margin.Bottom(3))[
-                BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-sync-mount", Disabled: _syncMounted, OnClick: MountSync)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount sync probe"],
-                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-sync-unmount", Disabled: !_syncMounted, OnClick: UnmountSync)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount sync probe"]
+        Div[
+            BsStack.Gap(2).Class(Margin.Bottom(3))[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Size(BsSize.Sm)
+                    .Id("dispose-sync-mount")
+                    .Disabled(_syncMounted)
+                    .OnClick(MountSync)[BsIcon.Name(BsIconName.PlayCircle).Class("me-1"), "Mount sync probe"],
+                BsButton
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Id("dispose-sync-unmount")
+                    .Disabled(!_syncMounted)
+                    .OnClick(UnmountSync)[BsIcon.Name(BsIconName.StopCircle).Class("me-1"), "Unmount sync probe"]
             ],
             _syncMounted
-                ? DisposableTimerProbe(AppendSyncLog, _nextSyncId)
-                : P(Class: "text-secondary fst-italic mb-0")["Probe not mounted."],
-            DisposalDemoLog.Render(_syncLog, "dispose-sync-log")
+                ? DisposableTimerProbe.Log(AppendSyncLog).InstanceId(_nextSyncId)
+                : P.Class("text-secondary fst-italic mb-0")["Probe not mounted."],
+            DisposalDemoLog.Entries(_syncLog).ListId("dispose-sync-log")
         ];
 
     private void MountSync()

@@ -10,7 +10,7 @@ namespace Rask.Benchmarks;
 // AppendAttr(sb, prefix, suffix, value) overload writes both parts straight into the
 // pooled StringBuilder.
 [MemoryDiagnoser]
-public class DataAttributesBenchmarks
+public partial class DataAttributesBenchmarks : global::Rask.Core.RaskMarkup
 {
     private Component _large = null!;
     private Component _medium = null!;
@@ -44,11 +44,11 @@ public class DataAttributesBenchmarks
                 ["state"] = "idle",
                 ["test-id"] = $"row-{i}"
             };
-            rows.Add(C.Div(Class: "row", Data: data, Key: $"k{i}")[
-                C.Span(Data: new Dictionary<string, string?> { ["label"] = "x" })[$"Item {i}"]
+            rows.Add(Div.Class("row").Data(data).Key($"k{i}")[
+                Span.Data(new Dictionary<string, string?> { ["label"] = "x" })[$"Item {i}"]
             ]);
         }
 
-        return C.Div(Class: "container", Data: new Dictionary<string, string?> { ["root"] = "1" })[rows];
+        return Div.Class("container").Data(new Dictionary<string, string?> { ["root"] = "1" })[rows];
     }
 }

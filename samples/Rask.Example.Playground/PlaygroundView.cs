@@ -19,7 +19,7 @@ namespace Rask.Example.Playground;
 //
 // Scoped assets: PlaygroundView.js (editor mount + value, language-feature registration, framework-assembly
 // discovery) and PlaygroundView.css (layout + editor-style IDE chrome).
-public sealed class PlaygroundView : Component
+public sealed partial class PlaygroundView : Component
 {
     private readonly IJSRuntime _js;
     private readonly WasmReferenceLoader _loader;
@@ -402,7 +402,7 @@ public sealed class PlaygroundView : Component
         ];
     }
 
-    private static Component RenderPreviewError(Exception error, Callback recover) =>
+    private static Component RenderPreviewError(Exception error, Action recover) =>
         Div(Class: "pg-preview-error")[
             Strong()["The component threw while rendering:"],
             // The whole chain, not just the outermost message. The ones that matter most here say the least

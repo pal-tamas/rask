@@ -4,8 +4,8 @@
 
 `Rask.Jobs` runs **background work off the request thread**, stored in the app's own database — no message
 broker, no Redis. Enqueue a job and a hosted worker runs it later, **at-least-once**, with exponential-backoff
-retries; it also runs **delayed** and durable **interval-recurring** jobs. Scaffold one with
-`rask generate job <Name>`.
+retries; it also runs **delayed** and durable **interval-recurring** jobs. [Tutorial chapter
+4](tutorial/04-background-jobs.md) builds one end to end.
 
 ```bash
 dotnet add package Rask.Jobs

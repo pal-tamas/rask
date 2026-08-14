@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Live;
 // Phase 1 PR #1: verify FrameWriter emits the expected sequence when HtmlSerializer
 // runs under a FrameSinkScope. The frame stream is the data the diff codec will
 // consume, so the contract here pins down what every later phase relies on.
-public class RenderFrameTests
+public partial class RenderFrameTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Serialize_EmitsElementOpenAndCloseFrames_WithSubtreeLength()
@@ -16,7 +16,7 @@ public class RenderFrameTests
         //                    Attribute(class, x)
         //                    Element(span) [SubtreeLength=2]
         //                      Text(hi)
-        var tree = Div(Class: "x")[Span()["hi"]];
+        var tree = Div.Class("x")[Span["hi"]];
 
         var frames = RenderAndCaptureFrames(tree);
 
@@ -40,7 +40,7 @@ public class RenderFrameTests
         // Sanity: the frame-producing path must be invisible when no scope is active.
         // If a future change inadvertently activates the scope unconditionally, this
         // test catches the leak.
-        var tree = Div(Class: "x", Id: "y")[Span()["hi"]];
+        var tree = Div.Class("x").Id("y")[Span["hi"]];
 
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(tree, sb);
@@ -53,7 +53,7 @@ public class RenderFrameTests
     [Fact]
     public void Serialize_DoctypeAndFragment_EmitsDoctypeFrameAndWalksFragmentChildren()
     {
-        Component tree = [Doctype(), Div()["hi"]];
+        Component tree = [Doctype, Div["hi"]];
 
         var frames = RenderAndCaptureFrames(tree);
 
@@ -68,7 +68,7 @@ public class RenderFrameTests
     [Fact]
     public void Serialize_SelfClosingElement_SubtreeLengthIsOne_AndSelfClosingFlagSet()
     {
-        var tree = Br();
+        var tree = Br;
 
         var frames = RenderAndCaptureFrames(tree);
 
@@ -84,7 +84,7 @@ public class RenderFrameTests
     {
         // Element + multiple attributes: SubtreeLength must include all of them so a
         // diff consumer can skip the whole element by jumping (i + SubtreeLength).
-        var tree = A("https://example.com", "_blank", "noopener", Class: "lnk", Id: "go")["open"];
+        var tree = A.Href("https://example.com").Target("_blank").Rel("noopener").Class("lnk").Id("go")["open"];
 
         var frames = RenderAndCaptureFrames(tree);
 

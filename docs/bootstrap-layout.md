@@ -4,12 +4,12 @@ The layout primitives from [`Rask.Bootstrap`](bootstrap.md) — `BsContainer` (t
 `BsCol` (the 12-unit responsive grid), and `BsStack` (a flex row or column with a gap).
 
 ```csharp
-BsContainer()[
-    BsRow(Gutter: 4)[
-        BsCol(Md: 6)[BsCard()[BsCardBody()["Left"]]],
-        BsCol(Md: 6)[BsCard()[BsCardBody()["Right"]]]
+BsContainer[
+    BsRow.Gutter(4)[
+        BsCol.Md(6)[BsCard[BsCardBody["Left"]]],
+        BsCol.Md(6)[BsCard[BsCardBody["Right"]]]
     ],
-    BsStack(Gap: 2)[BsButton(Color: BsColor.Primary)["Save"], BsButton()["Cancel"]]
+    BsStack.Gap(2)[BsButton.Color(BsColor.Primary)["Save"], BsButton["Cancel"]]
 ]
 ```
 
@@ -46,12 +46,12 @@ class names do. `Span` is the unprefixed base that applies from the narrowest wi
 over from their own breakpoint up:
 
 ```csharp
-BsRow(Gutter: 3)[
-    BsCol()[…],                  // .col           equal width, shares the row with its siblings
-    BsCol(Auto: true)[…],        // .col-auto      just wide enough for its content
-    BsCol(Md: 6)[…],             // .col-md-6      full width below md, half from md up
-    BsCol(Span: 7, Sm: 8)[…],    // .col-7 .col-sm-8
-    BsCol(Md: 6, Lg: 4)[…]       // .col-md-6 .col-lg-4
+BsRow.Gutter(3)[
+    BsCol[…],                  // .col           equal width, shares the row with its siblings
+    BsCol.Auto(true)[…],        // .col-auto      just wide enough for its content
+    BsCol.Md(6)[…],             // .col-md-6      full width below md, half from md up
+    BsCol.Span(7).Sm(8)[…],    // .col-7 .col-sm-8
+    BsCol.Md(6).Lg(4)[…]       // .col-md-6 .col-lg-4
 ]
 ```
 
@@ -77,11 +77,11 @@ To centre columns of unequal height, pass the typed token through `Class`:
 `Vertical` for a column.
 
 ```csharp
-BsStack(Gap: 2)[BsButton()["Save"], BsButton()["Cancel"]]   // <div class="d-flex gap-2">
-BsStack(Vertical: true, Gap: 3)[…]                          // <div class="d-flex flex-column gap-3">
-BsStack(Gap: 2, Align: BsAlign.Center)[…]                   // <div class="d-flex gap-2 align-items-center">
-BsStack(Justify: BsJustify.Between, Align: BsAlign.Center)[…]
-BsStack(Gap: 2, WrapItems: true)[…]                         // items flow onto more lines
+BsStack.Gap(2)[BsButton["Save"], BsButton["Cancel"]]   // <div class="d-flex gap-2">
+BsStack.Vertical(true).Gap(3)[…]                          // <div class="d-flex flex-column gap-3">
+BsStack.Gap(2).Align(BsAlign.Center)[…]                   // <div class="d-flex gap-2 align-items-center">
+BsStack.Justify(BsJustify.Between).Align(BsAlign.Center)[…]
+BsStack.Gap(2).WrapItems(true)[…]                         // items flow onto more lines
 ```
 
 `Justify` is the main axis, `Align` the cross axis. `WrapItems` says whose wrapping it controls — the
@@ -110,7 +110,7 @@ It also means responsive direction composes, which the shorthands can't do at al
 breakpoint variant of `.vstack`/`.hstack`, while `.flex-md-row` exists:
 
 ```csharp
-BsStack(Vertical: true, Gap: 3, Class: Flex.Row(Bp.Md))   // column on a phone, row from md up
+BsStack.Vertical(true).Gap(3).Class(Flex.Row(Bp.Md))   // column on a phone, row from md up
 ```
 
 Horizontal emits no `flex-row` token, because row is already the flex default.

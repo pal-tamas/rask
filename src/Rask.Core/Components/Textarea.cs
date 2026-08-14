@@ -30,12 +30,12 @@ public sealed class Textarea<T> : Element, IFormControl<T>
     public string? Wrap { get; set; }
     public bool? Autofocus { get; set; }
     public string? Autocomplete { get; set; }
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
     public string? Dirname { get; set; }
 
     // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl.
-    public Callback<string>? OnInput { get; set; }
-    public CallbackAsync<string>? OnInputAsync { get; set; }
+    public Action<string>? OnInput { get; set; }
+    public Func<string, Task>? OnInputAsync { get; set; }
 
     // IFormControl<T> — bound mode.
     public Expression<Func<T>>? Bind { get; set; }
@@ -46,8 +46,8 @@ public sealed class Textarea<T> : Element, IFormControl<T>
 
     // IFormControl<T> — controlled mode.
     public T? Value { get; set; }
-    public Callback<T>? OnChange { get; set; }
-    public CallbackAsync<T>? OnChangeAsync { get; set; }
+    public Action<T>? OnChange { get; set; }
+    public Func<T, Task>? OnChangeAsync { get; set; }
 
     // The rendered text content, resolved in WriteAttributes (bound/controlled) and emitted by
     // RenderChildren. Null leaves the plain Children content (indexer) in place.

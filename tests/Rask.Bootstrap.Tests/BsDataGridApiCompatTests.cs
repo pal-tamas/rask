@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // The call sites below mirror the shapes a consuming app actually uses (typed and inferred, array and List
 // columns, with and without paging/detail/footers). They are compile-time assertions first — if the generated
 // factory changes shape, this file stops building.
-public class BsDataGridApiCompatTests
+public partial class BsDataGridApiCompatTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Supplier(Guid Id, string Name, string VatNumber);
 
@@ -18,16 +18,16 @@ public class BsDataGridApiCompatTests
     [Fact]
     public void TypedCallSite_WithSortableAndTemplateColumns()
     {
-        var html = BsDataGrid<Supplier>(
-            Data: Suppliers,
-            PageSize: 20,
-            RowKey: s => s.Id,
-            Columns:
-            [
+        var html = BsDataGrid
+            .Data(Suppliers)
+            .Columns([
                 new BsColumn<Supplier> { Title = "Name", Value = s => s.Name, Sortable = true, Class = "fw-semibold" },
                 new BsColumn<Supplier> { Title = "VAT", Value = s => s.VatNumber, Sortable = true },
-                new BsColumn<Supplier> { Title = "", Class = "text-end", Template = s => Span()[s.Name] },
-            ]).ToHtml();
+                new BsColumn<Supplier> { Title = "", Class = "text-end", Template = s => Span[s.Name] },
+            ])
+            .PageSize(20)
+            .RowKey(s => s.Id)
+            .ToHtml();
 
         Assert.Contains("Acme", html);
     }
@@ -41,8 +41,12 @@ public class BsDataGridApiCompatTests
             new BsColumn<Supplier> { Title = "Name", Sortable = true, Value = s => s.Name },
         ];
 
-        var html = BsDataGrid(Data: Suppliers, Columns: columns, RowKey: s => s.Id, PageSize: 50, Small: true,
-            Empty: Div()["Nothing found."]).ToHtml();
+        var html = BsDataGrid.Data(Suppliers)
+            .Columns(columns)
+            .RowKey(s => s.Id)
+            .PageSize(50)
+            .Small(true)
+            .Empty(Div["Nothing found."]).ToHtml();
 
         Assert.Contains("table-sm", html);
     }
@@ -55,12 +59,17 @@ public class BsDataGridApiCompatTests
             new BsColumn<Supplier>
             {
                 Title = "Name", Class = "text-end", Value = s => s.Name,
-                FooterTemplate = rows => Span(Class: "fw-bold")[rows.Count.ToString()],
+                FooterTemplate = rows => Span.Class("fw-bold")[rows.Count.ToString()],
             },
         ];
 
-        var html = BsDataGrid(Data: Suppliers, Columns: columns, RowKey: s => s.Id, PageSize: 50, Small: true,
-            Empty: Div()["Nothing."], ExpandedContent: s => Div()[s.Name]).ToHtml();
+        var html = BsDataGrid.Data(Suppliers)
+            .Columns(columns)
+            .RowKey(s => s.Id)
+            .PageSize(50)
+            .Small(true)
+            .Empty(Div["Nothing."])
+            .ExpandedContent(s => Div[s.Name]).ToHtml();
 
         Assert.Contains("<tfoot>", html);
     }
@@ -69,7 +78,9 @@ public class BsDataGridApiCompatTests
     public void PositionalCallSite_StillBinds()
     {
         // Guards parameter ORDER, which named arguments would hide. Data, Columns, PageSize are the first three.
-        var html = BsDataGrid<Supplier>(Suppliers, [new BsColumn<Supplier> { Title = "N", Value = s => s.Name }], 10)
+        var html = BsDataGrid.Data(Suppliers)
+            .Columns([new BsColumn<Supplier> { Title = "N", Value = s => s.Name }])
+            .PageSize(10)
             .ToHtml();
 
         Assert.Contains("Acme", html);
@@ -80,7 +91,11 @@ public class BsDataGridApiCompatTests
     {
         // A required parameter would be a breaking change: a non-nullable property with no initializer becomes
         // one (RASK001), which is why PageSize keeps its `= 0`.
-        Assert.NotNull(BsDataGrid<Supplier>().ToHtml());
+        //
+        // `Data` is named here to pin T, not because it is required — a generic component has to learn its
+        // type argument from somewhere, and the chain's first step is where. Nothing else is supplied, which
+        // is the whole of what this asserts.
+        Assert.NotNull(BsDataGrid.Data(Suppliers).ToHtml());
     }
 
     [Fact]

@@ -104,7 +104,7 @@ public sealed class RaskMetrics : IDisposable
     /// </remarks>
     public void TrackPendingHandlers(Func<int> readCount) =>
         _meter.CreateObservableGauge(
-            "rask.handlers.pending", readCount, "{handler}", "Handler dispatches queued across all sessions.");
+            "rask.handlers.pending", readCount, "{handler}", "Action dispatches queued across all sessions.");
 
     public void SessionCreated() => _sessionsCreated.Add(1);
 

@@ -81,43 +81,43 @@ public class RouteFlattenerTests
     public void Combine_NormalisesSlashes(string parent, string child, string expected) =>
         Assert.Equal(expected, RouteFlattener.Combine(parent, child));
 
-    private sealed class HomePage : Component
+    private sealed partial class HomePage : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class UserPage : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class UserNew : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class DashPage : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class DashHome : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class DashOverview : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class DashSettings : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class DeepLeaf : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 }

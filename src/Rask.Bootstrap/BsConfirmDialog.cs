@@ -6,10 +6,10 @@ namespace Rask.Bootstrap;
 // defaults to Danger (the destructive-confirm common case); wire OnConfirm to your action. Zero-JS,
 // dismissible via Cancel / the × / a backdrop click (unless StaticBackdrop). Button labels default to
 // neutral English so apps localise by passing ConfirmText / CancelText.
-public sealed class BsConfirmDialog : BsBlock
+public sealed partial class BsConfirmDialog : BsBlock
 {
     public bool? Open { get; set; }
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
 
     // Body text. Ignored when children are supplied (pass custom body content via the indexer instead).
     public string? Message { get; set; }
@@ -23,23 +23,31 @@ public sealed class BsConfirmDialog : BsBlock
     // Disable outside-click / × dismissal, forcing an explicit Confirm or Cancel.
     public bool? StaticBackdrop { get; set; }
 
-    public Callback? OnConfirm { get; set; }
-    public CallbackAsync? OnConfirmAsync { get; set; }
-    public Callback? OnCancel { get; set; }
-    public CallbackAsync? OnCancelAsync { get; set; }
+    public Action? OnConfirm { get; set; }
+    public Func<Task>? OnConfirmAsync { get; set; }
+    public Action? OnCancel { get; set; }
+    public Func<Task>? OnCancelAsync { get; set; }
 
     protected override Component? Render() =>
         Open is not true
             ? null
-            : BsModal(Id: Id, Class: Class, Open: true, Title: Title, Centered: true,
-                StaticBackdrop: StaticBackdrop, OnClose: OnCancel, OnCloseAsync: OnCancelAsync, Footer: Footer())[Body()];
+            : BsModal
+                .Id(Id)
+                .Class(Class)
+                .Open(true)
+                .Title(Title)
+                .Centered(true)
+                .StaticBackdrop(StaticBackdrop)
+                .OnClose(OnCancel)
+                .OnCloseAsync(OnCancelAsync)
+                .Footer(Footer())[Body()];
 
-    private Component Footer() =>
+    private new Component Footer() =>
     [
-        BsButton(Color: BsColor.Secondary, OnClick: OnCancel, OnClickAsync: OnCancelAsync)[CancelText],
-        BsButton(Color: ConfirmColor, OnClick: OnConfirm, OnClickAsync: OnConfirmAsync)[ConfirmText]
+        BsButton.Color(BsColor.Secondary).OnClick(OnCancel).OnClickAsync(OnCancelAsync)[CancelText],
+        BsButton.Color(ConfirmColor).OnClick(OnConfirm).OnClickAsync(OnConfirmAsync)[ConfirmText]
     ];
 
-    private IEnumerable<Component?> Body() =>
-        Message is not null ? [P(Class: Margin.Bottom(0))[Message]] : Items;
+    private new IEnumerable<Component?> Body() =>
+        Message is not null ? [P.Class(Margin.Bottom(0))[Message]] : Items;
 }

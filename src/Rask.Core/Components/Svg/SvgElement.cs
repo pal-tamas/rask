@@ -29,7 +29,7 @@ public abstract class SvgElement : Element
     public string? StrokeDashoffset { get; set; }
     public string? Opacity { get; set; }
     public string? Transform { get; set; }
-    public string? ClipPath { get; set; }
+    public new string? ClipPath { get; set; }
     public string? Color { get; set; }
     public string? Display { get; set; }
     public string? Visibility { get; set; }

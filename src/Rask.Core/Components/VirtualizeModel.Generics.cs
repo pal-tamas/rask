@@ -50,13 +50,19 @@ public static partial class Generated
                     (Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>)typed));
         }
 
-        return VirtualizeModel(
-            Body: body,
-            Items: Items,
-            ItemsProvider: erasedProvider,
-            ItemSize: ItemSize,
-            OverscanCount: OverscanCount,
-            InitialClientHeight: InitialClientHeight);
+        // Built through the CHAIN, reached by naming the assembly's entry class outright: this facade
+        // lives in `Generated`, which already declares a `VirtualizeModel` method, so the inherited entry
+        // is not in scope here and marking this class a markup host would collide with it (CS0102).
+        // Same escape the Bs controls use for the `<label>` entry their own `Label` property hides.
+        // ItemSize opens it: non-nullable with no initializer, so it is a REQUIRED step (RASK001) and
+        // the component does not exist until it has been supplied. Everything else is a setter.
+        return global::RaskEntriesRask_Core.VirtualizeModel
+            .ItemSize(ItemSize)
+            .Body(body)
+            .Items(Items)
+            .ItemsProvider(erasedProvider)
+            .OverscanCount(OverscanCount)
+            .InitialClientHeight(InitialClientHeight);
     }
 
     private static Func<ItemsProviderRequest, ValueTask<ItemsProviderResultErased>> WrapTypedProvider<T>(

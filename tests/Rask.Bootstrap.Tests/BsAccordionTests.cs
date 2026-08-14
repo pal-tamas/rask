@@ -2,7 +2,7 @@ namespace Rask.Bootstrap.Tests;
 
 // Rendered-HTML assertions for BsAccordion / BsAccordionItem. ToHtml() renders static markup (no live
 // context), which is all these structural checks need.
-public class BsAccordionTests
+public partial class BsAccordionTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Accordion_WrapsItemsInAccordionDiv() =>
@@ -13,7 +13,7 @@ public class BsAccordionTests
             "</h2>" +
             "<div class=\"accordion-collapse collapse\"><div class=\"accordion-body\">Body</div></div>" +
             "</div></div>",
-            BsAccordion()[BsAccordionItem(Title: "Section")["Body"]].ToHtml());
+            BsAccordion[BsAccordionItem.Title("Section")["Body"]].ToHtml());
 
     [Fact]
     public void AccordionItem_Open_ShowsPanelAndExpandsButton() =>
@@ -24,11 +24,11 @@ public class BsAccordionTests
             "</h2>" +
             "<div class=\"accordion-collapse collapse show\"><div class=\"accordion-body\">Panel</div></div>" +
             "</div>",
-            BsAccordionItem(Title: "Open", Open: true)["Panel"].ToHtml());
+            BsAccordionItem.Title("Open").Open(true)["Panel"].ToHtml());
 
     [Fact]
     public void Accordion_Flush_AddsFlushModifier() =>
         Assert.Equal(
             "<div class=\"accordion accordion-flush\"></div>",
-            BsAccordion(Flush: true).ToHtml());
+            BsAccordion.Flush(true).ToHtml());
 }

@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class CancellationProbe : Component
+public sealed partial class CancellationProbe : Component
 {
     private readonly Stopwatch _watch = new();
     private int _logged;
@@ -45,7 +45,7 @@ public sealed class CancellationProbe : Component
                 probe._watch.Stop();
             }
 
-            probe.Log($"#{probe.InstanceId} cancelled ({probe._watch.ElapsedMilliseconds} ms)");
+            probe.Log.Invoke($"#{probe.InstanceId} cancelled ({probe._watch.ElapsedMilliseconds} ms)");
         }, this);
 
         // Cooperative cancellation in 100ms slices. We poll the captured token
@@ -70,7 +70,7 @@ public sealed class CancellationProbe : Component
 
         _watch.Stop();
         _status = "completed";
-        Log($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");
+        Log.Invoke($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");
     }
 
     protected override Component? Render()
@@ -82,9 +82,9 @@ public sealed class CancellationProbe : Component
             _ => "badge text-bg-secondary"
         };
 
-        return BsStack(Gap: 2, Align: BsAlign.Center)[
-            Span(Class: $"{pillClass} cancel-probe-pill")[$"#{InstanceId} {_status}"],
-            Span(Class: "text-secondary small")[
+        return BsStack.Gap(2).Align(BsAlign.Center)[
+            Span.Class($"{pillClass} cancel-probe-pill")[$"#{InstanceId} {_status}"],
+            Span.Class("text-secondary small")[
                 _status == "running"
                     ? "Awaiting Task.Delay(2500ms, CancellationToken). Click Unmount to abort."
                     : "Awaited task settled — probe is still alive."

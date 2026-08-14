@@ -15,11 +15,11 @@ namespace Rask.Bootstrap;
 // Nothing else earns a prop here. Vertically centring columns of unequal height — the only other thing the
 // samples ask a row for — is BsRow(Class: Flex.Align(BsAlign.Center)): already typed, already composable,
 // and not worth a second way to say it.
-public sealed class BsRow : BsBlock
+public sealed partial class BsRow : BsBlock
 {
     public int? Gutter { get; set; }
 
-    protected override Component? Render() => Div(
-        Id: Id,
-        Class: BsClass.Join(Grid.Row, Gutter is { } gutter ? Grid.Gutter(gutter) : null, Class))[Items];
+    protected override Component? Render() => Div
+        .Id(Id)
+        .Class(BsClass.Join(Grid.Row, Gutter is { } gutter ? Grid.Gutter(gutter) : null, Class))[Items];
 }

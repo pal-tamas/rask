@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // without the showcase layout. Used by the WS dispatcher tests to verify that the
 // post-handler render emitted after a per-field IAsyncFieldValidator completes shows
 // the validator's terminal message and removes the in-flight indicator.
-public sealed class AsyncValidationApp : Component
+public sealed partial class AsyncValidationApp : Component
 {
     private readonly EditContext _ctx;
     private readonly SignupModel _model = new();
@@ -24,22 +24,17 @@ public sealed class AsyncValidationApp : Component
         _ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
     }
 
+    protected override Component? HeadAssets => new Title()["async-validation"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[
-            new Head()[new Title()["async-validation"]],
-            new Body()[
-                Form<SignupModel>(_model, Context: _ctx)[
-                    Input(() => _model.Username),
-                    ValidatingIndicator(
-                        () => _model.Username,
-                        () => Span(Class: "spinner")["Checking..."]),
-                    ValidationMessage(
-                        () => _model.Username,
-                        msgs => Div(Class: "text-danger")[msgs[0]])
-                ]
-            ]
+        Form.Model(_model).Context(_ctx)[
+            Input.Bind(() => _model.Username),
+            ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."])
+                .For(() => _model.Username),
+            ValidationMessage.Template(msgs => Div.Class("text-danger")[msgs[0]])
+                .For(() => _model.Username)
         ]
     ];
 

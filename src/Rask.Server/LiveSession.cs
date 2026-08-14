@@ -143,7 +143,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         set => Volatile.Write(ref _lastHandlerTask, value);
     }
 
-    /// <summary>Handler dispatches queued on the chain but not yet complete. Read by the drain to settle.</summary>
+    /// <summary>Action dispatches queued on the chain but not yet complete. Read by the drain to settle.</summary>
     internal int PendingHandlers => Volatile.Read(ref _pendingHandlers);
 
     // Number of handler dispatches queued on the LastHandlerTask chain but not yet completed.

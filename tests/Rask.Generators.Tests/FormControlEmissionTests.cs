@@ -14,8 +14,8 @@ public class FormControlEmissionTests
                                   public sealed class Widget : Component, IFormControl<int>
                                   {
                                       public int? Value { get; set; }
-                                      public Callback<int>? OnChange { get; set; }
-                                      public CallbackAsync<int>? OnChangeAsync { get; set; }
+                                      public Action<int>? OnChange { get; set; }
+                                      public Func<int, Task>? OnChangeAsync { get; set; }
                                       public Expression<Func<int>>? Bind { get; set; }
                                       public Validate<int>? Validate { get; set; }
                                       public ValidateAsync<int>? ValidateAsync { get; set; }
@@ -33,7 +33,7 @@ public class FormControlEmissionTests
 
         // Controlled factory carries Value/OnChange…
         Assert.Contains("global::Demo.Widget Widget(int? Value = null", output);
-        Assert.Contains("global::Rask.Core.Callback<int>? OnChange = null", output);
+        Assert.Contains("Action<int>? OnChange = null", output);
         // …and never exposes the bound members as a controlled-factory parameter that defaults to null.
         Assert.DoesNotContain("global::Rask.Core.Forms.Validate<int>? Validate = null", output);
         Assert.DoesNotContain("Expression<global::System.Func<int>>? Bind = null", output);
@@ -84,8 +84,8 @@ public class FormControlEmissionTests
                   public sealed class Picker<TItem> : Component, IFormControl<ICollection<TItem>>
                   {
                       public ICollection<TItem>? Value { get; set; }
-                      public Callback<ICollection<TItem>>? OnChange { get; set; }
-                      public CallbackAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
+                      public Action<ICollection<TItem>>? OnChange { get; set; }
+                      public Func<ICollection<TItem>, Task>? OnChangeAsync { get; set; }
                       public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
                       public Validate<ICollection<TItem>>? Validate { get; set; }
                       public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }

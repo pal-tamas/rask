@@ -24,15 +24,16 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | Guide | What it covers |
 |-------|----------------|
 | [Getting started](getting-started.md) | Prerequisites, scaffold an app, a tour of the generated files, your first component, interactivity, routing, and troubleshooting. |
-| [The `rask` CLI](cli.md) | The `Rask.Cli` .NET tool — the whole lifecycle: `rask new` (scaffold), `rask generate` (pages, components, CRUD slices), `rask db` (migrations), `rask dev` (hot-reload run), `rask deploy` (bare box → live HTTPS site), `rask info`. |
+| [The `rask` CLI](cli.md) | The `Rask.Cli` .NET tool — the whole lifecycle: `rask new` (scaffold), `rask db` (migrations), `rask dev` (hot-reload run), `rask deploy` (bare box → live HTTPS site), `rask info`. |
 | [Live playground](playground.md) | Write Rask C# in the browser with IntelliSense, as-you-type diagnostics, and a gallery of examples, then see it compile & render live (Roslyn in WebAssembly) — how it works, the entry-point convention, and its limitations. |
 | [Best practices](best-practices.md) | Production patterns and common pitfalls across component design, state, forms, data access, security, accessibility, performance and testing — each linking to the deep dive. |
+| [Building components](building-components.md) | How markup is written: naming a component and chaining onto it, the properties a component demands before it exists, bound versus controlled form controls, and what the IDE offers at each step. |
 | [Elements & the DSL](elements.md) | The primitives every component is built from: tag factories, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), toast messages (`IToaster`/`ToastOutlet`), `VirtualizeModel`, drag-and-drop. |
 | [JS interop](js-interop.md) | Scoped CSS & JS conventions, calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
-| [Browser APIs](browser-apis.md) | The map of all 46 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
-| [Capability matrix](browser-capabilities.md) | Where each of the 46 APIs works (Web / PWA / Native) and which have a native iOS/Android backend — links to a reference page per API under [`apis/`](apis/). |
+| [Browser APIs](browser-apis.md) | The map of all 50 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
+| [Capability matrix](browser-capabilities.md) | Where each of the 50 APIs works (Web / PWA / Native) and which have a native iOS/Android backend — links to a reference page per API under [`apis/`](apis/). |
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (`IWebPush`), `rask new MyApp --template wasm --pwa`. |
 | [📱 Native mobile (iOS/Android)](native.md) | Ship the same components as a native iOS/Android app with `Rask.Native` (preview): the WebView-hybrid host, the `native` template + platform heads, `NativeAppHost` Local/Server modes, `INativeWebView`, safe-area insets. |
 | [AOT compilation](aot.md) | Opt-in full WASM AOT (`-p:RaskWasmAot=true`): the reflection-free binding registry, registering custom `IParsable` types, `InvokeAsync<T>` under AOT, and the continuous analyzer gate. |
@@ -55,6 +56,8 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [Data access (EF Core)](data-access.md) | EF Core + SQLite in a Server app: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
 | [Rask.Data](data.md) | The `Entity<TId>` base + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, and domain events — via `AddRaskData()` + `ApplyRaskConventions()`. |
 | [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, plus Litestream backup. |
+| [Multi-writer SQLite (CRDT)](sqlite-crdt.md) | Several replicas of one database written independently and merged without conflicts via `UseRaskCrdt(...)` + `ApplyCrdtConventions()` (standalone `Rask.SQLite.Crdt`) — cr-sqlite behind ordinary EF Core, merging per column rather than per row, with the change feed exposed as a transport-free log. |
+| [Sharing a CRDT database](sqlite-crdt-sync.md) | `CrdtSyncEngine` over a bucket via `Rask.SQLite.Crdt.Sync` — each device writes only its own prefix so nothing needs locking; forward-only reads from a per-peer watermark, batched uploads, and a status a UI can render. The database is the queue, so a failed sync loses nothing. |
 | [Choosing a database](databases.md) | SQLite (the default) vs PostgreSQL via `rask new --database`: what `UseRaskPostgres` configures, what the file-based batteries leave behind, how deploy changes, and why multi-instance isn't safe yet. |
 | [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / notifications and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |
 | [Background jobs](jobs.md) | Durable enqueued / delayed / recurring work on the app's own database via `AddRaskJobs<Ctx>()` + `IJobQueue` (standalone `Rask.Jobs`) — at-least-once, with backoff. |
@@ -101,7 +104,7 @@ its own page:
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–035)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–042)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 
 ## Contributing

@@ -47,7 +47,7 @@ re-renders automatically when the `await` completes — no explicit `StateHasCha
 reload when a route/query param changes.
 
 ```csharp
-public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
+public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
 {
     private IReadOnlyList<Product> _products = [];
     private bool _loaded;
@@ -99,7 +99,7 @@ same rule from one source:
 public static IEnumerable<string> Validate(decimal amount) { /* the one rule */ }
 
 // In the form (reused as a method group — see forms.md §3 for inline validation):
-Input(() => _form.Price, Validate: Money.Validate, Id: "p-price", Class: "form-control")
+Input.Bind(() => _form.Price).Validate(Money.Validate).Id("p-price").Class("form-control")
 ```
 
 The EF Core mapping lives in an `IEntityTypeConfiguration<Product>` (applied with

@@ -7,8 +7,8 @@ namespace Rask.Example.Shared.Features;
 // unique route string so it can coexist with the real showcase routes.
 [Route("routing-demo/about")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class RoutingAboutPage : Component
+public sealed partial class RoutingAboutPage : Component
 {
     protected override Component? Render() =>
-        H1()["About"];
+        H1["About"];
 }

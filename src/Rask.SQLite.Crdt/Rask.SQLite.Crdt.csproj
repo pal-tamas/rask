@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.SQLite.Crdt</PackageId>
+    <Title>Rask.SQLite.Crdt — conflict-free multi-writer SQLite for EF Core</Title>
+    <Description>Wires the cr-sqlite extension into EF Core so several replicas of a SQLite database can be written independently and merged without conflicts — per column, not per row, so two devices editing different fields of the same record both keep their work. Application code stays ordinary EF Core: LINQ, change tracking, SaveChanges. Handles the integration details that otherwise fail quietly — loading the extension on every connection, finalizing before close, giving every column a default so peers on older schemas can still apply changes, and promoting tables to replicated relations after the schema exists. Exposes the change feed as an ordered log, ready to ship to peers.</Description>
+    <PackageTags>sqlite crdt cr-sqlite efcore offline-first local-first multi-writer sync dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.SQLite.Crdt.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <!-- Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one Microsoft.Data.Sqlite
+         pins (CVE in the bundled SQLite). Central transitive pinning does not lift a dependency's own
+         pin — a direct PackageReference per project is the only lever, so this repeats in every project
+         that touches SQLite. See the note in Directory.Packages.props. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+  </ItemGroup>
+
+</Project>

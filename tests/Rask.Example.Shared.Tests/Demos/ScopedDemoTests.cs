@@ -4,12 +4,12 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class ScopedDemoTests
+public sealed partial class ScopedDemoTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void ScopedRed_Render_EmitsBoxClass_AndDotChild()
     {
-        var html = new LiveHost(() => ScopedRed(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => ScopedRed, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("box", html);
         Assert.Contains("dot", html);
         Assert.Contains("should be red", html);
@@ -18,7 +18,7 @@ public sealed class ScopedDemoTests
     [Fact]
     public void ScopedBlue_Render_EmitsBoxClass_AndDotChild()
     {
-        var html = new LiveHost(() => ScopedBlue(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => ScopedBlue, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("box", html);
         Assert.Contains("dot", html);
         Assert.Contains("should be blue", html);
@@ -27,8 +27,8 @@ public sealed class ScopedDemoTests
     [Fact]
     public void ScopedRed_AndBlue_GetDistinct_DataScopeAttributes()
     {
-        var redHtml = new LiveHost(() => ScopedRed(), TestServices.Default()).RenderAsLiveRoot();
-        var blueHtml = new LiveHost(() => ScopedBlue(), TestServices.Default()).RenderAsLiveRoot();
+        var redHtml = new LiveHost(() => ScopedRed, TestServices.Default()).RenderAsLiveRoot();
+        var blueHtml = new LiveHost(() => ScopedBlue, TestServices.Default()).RenderAsLiveRoot();
 
         var redScope = ExtractDataScope(redHtml);
         var blueScope = ExtractDataScope(blueHtml);

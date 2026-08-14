@@ -10,7 +10,7 @@ namespace Rask.Core.Live;
 // different handler after that component changes what it renders into that slot. Dispatch used to key
 // on the id alone: a frame that outlived the render it was issued against ran whatever now sits there,
 // with no complaint — `{"id":"h37","type":"input","value":"…"}` arriving at a page where h37 is now a
-// parameterless Callback invoked that callback. Not a cross-origin hole (the socket is same-origin and
+// parameterless Action invoked that callback. Not a cross-origin hole (the socket is same-origin and
 // session-bound), and per-component ids make it far rarer than the page-wide counter that preceded them
 // did — a slot is no longer reassigned just because something upstream changed. The silence is what
 // makes the remainder bad: nothing says the wrong thing ran.
@@ -166,29 +166,29 @@ internal static class HandlerFrameShape
     // through DynamicInvoke() with NO arguments, so a data-carrying frame has nothing to give it.
     private static Shape ShapeOf(Delegate handler) => handler switch
     {
-        Action or Func<Task> or Callback or CallbackAsync => Shape.None,
+        Action or Func<Task> or Action or Func<Task> => Shape.None,
         Action<MouseModifiers> or Func<MouseModifiers, Task>
-            or Callback<MouseModifiers> or CallbackAsync<MouseModifiers> => Shape.Modifiers,
-        Action<string> or Func<string, Task> or Callback<string> or CallbackAsync<string> => Shape.Value,
-        Action<FormData> or Func<FormData, Task> or Callback<FormData> or CallbackAsync<FormData> => Shape.Form,
+            or Action<MouseModifiers> or Func<MouseModifiers, Task> => Shape.Modifiers,
+        Action<string> or Func<string, Task> or Action<string> or Func<string, Task> => Shape.Value,
+        Action<FormData> or Func<FormData, Task> or Action<FormData> or Func<FormData, Task> => Shape.Form,
         Action<IReadOnlyList<RaskFile>> or Func<IReadOnlyList<RaskFile>, Task>
-            or Callback<IReadOnlyList<RaskFile>> or CallbackAsync<IReadOnlyList<RaskFile>> => Shape.Files,
+            or Action<IReadOnlyList<RaskFile>> or Func<IReadOnlyList<RaskFile>, Task> => Shape.Files,
         Action<ScrollEvent> or Func<ScrollEvent, Task>
-            or Callback<ScrollEvent> or CallbackAsync<ScrollEvent> => Shape.Scroll,
+            or Action<ScrollEvent> or Func<ScrollEvent, Task> => Shape.Scroll,
         Action<KeyboardEventArgs> or Func<KeyboardEventArgs, Task>
-            or Callback<KeyboardEventArgs> or CallbackAsync<KeyboardEventArgs> => Shape.Keyboard,
-        Callback<MouseEventArgs> or CallbackAsync<MouseEventArgs> => Shape.Mouse,
-        Callback<WheelEventArgs> or CallbackAsync<WheelEventArgs> => Shape.Wheel,
-        Callback<PointerEventArgs> or CallbackAsync<PointerEventArgs> => Shape.Pointer,
-        Callback<TouchEventArgs> or CallbackAsync<TouchEventArgs> => Shape.Touch,
-        Callback<ClipboardEventArgs> or CallbackAsync<ClipboardEventArgs> => Shape.Clipboard,
-        Callback<MediaEventArgs> or CallbackAsync<MediaEventArgs> => Shape.Media,
+            or Action<KeyboardEventArgs> or Func<KeyboardEventArgs, Task> => Shape.Keyboard,
+        Action<MouseEventArgs> or Func<MouseEventArgs, Task> => Shape.Mouse,
+        Action<WheelEventArgs> or Func<WheelEventArgs, Task> => Shape.Wheel,
+        Action<PointerEventArgs> or Func<PointerEventArgs, Task> => Shape.Pointer,
+        Action<TouchEventArgs> or Func<TouchEventArgs, Task> => Shape.Touch,
+        Action<ClipboardEventArgs> or Func<ClipboardEventArgs, Task> => Shape.Clipboard,
+        Action<MediaEventArgs> or Func<MediaEventArgs, Task> => Shape.Media,
         // Last on purpose. This switch is a linear sequence of type tests, so an arm's position is a
         // cost paid by every arm below it — and measurably: placed next to its Shape.Value sibling, the
         // four patterns here cost the scroll path ~1.7ns (+6%) on every frame. A multi-select change
         // happens at human speed; scroll, pointer and mouse frames do not.
         Action<IReadOnlyList<string>> or Func<IReadOnlyList<string>, Task>
-            or Callback<IReadOnlyList<string>> or CallbackAsync<IReadOnlyList<string>> => Shape.Values,
+            or Action<IReadOnlyList<string>> or Func<IReadOnlyList<string>, Task> => Shape.Values,
         _ => Shape.None
     };
 }

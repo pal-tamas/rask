@@ -119,10 +119,12 @@
       The marketing landing site (Rask.Example.Site) is a standalone WASM app (its own hand-styled design,
       no Shared/Bootstrap/validation), so it skips them as well. So does the browser-jobs sample
       (Rask.Example.Wasm.Jobs) — note it must be matched by its exact name, since the showcase it sits
-      next to (Rask.Example.Wasm) does want these usings.
+      next to (Rask.Example.Wasm) does want these usings. The CRDT sample (Rask.Example.Crdt) is the
+      same shape as the SQLite one: a standalone app about the database, styled with plain Bootstrap
+      classes over the core elements.
     -->
     <_RaskExampleValidationUsings>$(_RaskInRepoImplicitUsings)</_RaskExampleValidationUsings>
-    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) OR $(MSBuildProjectName.StartsWith('Rask.Example.Sqlite')) OR '$(MSBuildProjectName)' == 'Rask.Example.Native.Server' OR '$(MSBuildProjectName)' == 'Rask.Example.Playground' OR '$(MSBuildProjectName)' == 'Rask.Example.Site' OR '$(MSBuildProjectName)' == 'Rask.Example.Wasm.Jobs' OR $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">false</_RaskExampleValidationUsings>
+    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) OR $(MSBuildProjectName.StartsWith('Rask.Example.Sqlite')) OR $(MSBuildProjectName.StartsWith('Rask.Example.Crdt')) OR '$(MSBuildProjectName)' == 'Rask.Example.Native.Server' OR '$(MSBuildProjectName)' == 'Rask.Example.Playground' OR '$(MSBuildProjectName)' == 'Rask.Example.Site' OR '$(MSBuildProjectName)' == 'Rask.Example.Wasm.Jobs' OR $(MSBuildProjectName.StartsWith('Rask.Example.Shop')) ">false</_RaskExampleValidationUsings>
     <!-- The showcase trio (Rask.Example.Shared + the Server/Wasm hosts that reference it) pulls in
          Rask.Bootstrap; the Auth/EfCore standalone samples don't reference it, so they must not get
          its global static usings (the namespace wouldn't resolve). Same set as the validation usings. -->
@@ -156,6 +158,14 @@
   -->
   <PropertyGroup>
     <RaskGlobalUsings Condition=" '$(RaskGlobalUsings)' == '' AND $(MSBuildProjectName.StartsWith('Rask.')) AND !$(MSBuildProjectName.StartsWith('Rask.Example.')) ">false</RaskGlobalUsings>
+    <!--
+      The builder surface (`Div[...]`) is now THE markup surface, not a spike, and its default lives
+      in the shipped src/Rask.Core/build/Rask.Core.targets so a consumer gets it too. This line is
+      kept only so an in-repo build is explicit about it; both resolve to the same value.
+      Only the assembly declaring Rask.Core.Component emits the entries, so this is effectively a
+      Rask.Core switch.
+    -->
+    <RaskBuilderSurface Condition=" '$(RaskBuilderSurface)' == '' ">true</RaskBuilderSurface>
   </PropertyGroup>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props"
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props') "/>

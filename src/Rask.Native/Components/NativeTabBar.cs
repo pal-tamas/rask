@@ -11,7 +11,7 @@ namespace Rask.Native.Components;
 ///                         NativeTab(Title: "Me",   Icon: NativeIcon.Person, To: Features.Routes.Me())],
 ///                  Selected: 0)</code>
 /// </example>
-public sealed class NativeTabBar : NativeComponent
+public sealed partial class NativeTabBar : NativeComponent
 {
     /// <summary>The tabs, in order. Nullable with no initializer so it stays a factory parameter.</summary>
     public IReadOnlyList<NativeTab>? Tabs { get; set; }

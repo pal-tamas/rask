@@ -129,11 +129,11 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             .Flag("dry-run", description: "Print the docker commands that would run without changing anything.")
             .WithJson()
             .Option("tail", valueHint: "n", description: "Log lines to show (logs only; default: 100, 'all' for everything).")
-            // No short name. '-f' is --fields CLI-wide: `rask generate feature` is the command people
-            // run most and --fields is its primary input, where `deploy logs --follow` is occasional and
-            // four more characters. `docker logs -f` muscle memory is the cost, and it is the smaller
-            // one — a short that means two things is what #601 is about.
-            .Flag("follow", description: "Stream new log lines until interrupted (logs only).")
+            // '-f' was --fields CLI-wide while `rask generate` existed, so this went without a short and
+            // paid the `docker logs -f` muscle-memory cost. That command is gone and the letter is free,
+            // so the tail of a log reads the way every other tool spells it. CliApplicationTests keeps
+            // one meaning per short, which is what makes reclaiming a freed letter safe.
+            .Flag("follow", 'f', description: "Stream new log lines until interrupted (logs only).")
             .Flag("setup-host", group: SetupGroup, description: "Prepare the host without asking (installs Docker, creates the deploy user, firewall, SSH hardening).")
             .Flag("no-setup-host", group: SetupGroup, description: "Never change the host; fail with instructions if it isn't ready.")
             .Option("deploy-user", valueHint: "name", group: SetupGroup, description: "Non-root login to create and deploy as when given a root host (default: deploy).")
@@ -713,25 +713,27 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     private async Task<bool> WaitUntilRunningAsync(string host, string container, CancellationToken cancellationToken)
     {
-        // The poll is otherwise silent for up to ReadinessAttempts × ReadinessDelay — spin so an
+        // The poll is otherwise silent for up to ReadinessAttempts × ReadinessDelay — show a status so an
         // interactive user sees it's working (a no-op when stdout is redirected/piped).
-        await using var spinner = Spinner.Start(Console, $"Waiting for {container} to become healthy…");
-        for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
+        return await Activity.RunAsync(Console, $"Waiting for {container} to become healthy…", async () =>
         {
-            // Inspect first, then wait only between retries — a container that's already up returns immediately.
-            if (attempt > 0 && ReadinessDelay > TimeSpan.Zero)
+            for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
             {
-                await Task.Delay(ReadinessDelay, cancellationToken).ConfigureAwait(false);
+                // Inspect first, then wait only between retries — a container that's already up returns immediately.
+                if (attempt > 0 && ReadinessDelay > TimeSpan.Zero)
+                {
+                    await Task.Delay(ReadinessDelay, cancellationToken).ConfigureAwait(false);
+                }
+
+                var result = await Capture(BuildInspectRunningArguments(host, container), cancellationToken).ConfigureAwait(false);
+                if (result.ExitCode == 0 && result.StandardOutput.Trim().Equals("true", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
             }
 
-            var result = await Capture(BuildInspectRunningArguments(host, container), cancellationToken).ConfigureAwait(false);
-            if (result.ExitCode == 0 && result.StandardOutput.Trim().Equals("true", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
+            return false;
+        }).ConfigureAwait(false);
     }
 
     // Probe the app over HTTP from an ephemeral curl container sharing the target's network namespace, so

@@ -5,11 +5,11 @@ The overlay components from [`Rask.Bootstrap`](bootstrap.md) — `BsModal`, `BsO
 runtime) and runs with **zero `bootstrap.js`**.
 
 ```csharp
-BsModal(Open: _open, Title: "Hi", OnClose: () => _open = false)[ /* body */ ]  // traps focus, Escape-closes, labelled — see accessibility.md
-BsModal(Open: _open, FullscreenBelow: Bp.Sm)[ /* edge-to-edge on phones, sized dialog at sm+ */ ]
+BsModal.Open(_open).Title("Hi").OnClose(() => _open = false)[ /* body */ ]  // traps focus, Escape-closes, labelled — see accessibility.md
+BsModal.Open(_open).FullscreenBelow(Bp.Sm)[ /* edge-to-edge on phones, sized dialog at sm+ */ ]
 
 // A sidebar that is a drawer on mobile and a static column on desktop:
-BsOffcanvas(Responsive: Bp.Md, Open: _open, OnClose: () => _open = false)[ /* nav */ ]
+BsOffcanvas.Responsive(Bp.Md).Open(_open).OnClose(() => _open = false)[ /* nav */ ]
 ```
 
 ## Modal & offcanvas

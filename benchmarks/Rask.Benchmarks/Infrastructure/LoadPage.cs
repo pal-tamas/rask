@@ -1,5 +1,5 @@
 using Rask.Core;
-using B = Rask.Benchmarks.Infrastructure.Generated;
+using Bench = Rask.Benchmarks.Infrastructure.Generated;
 using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.Infrastructure;
@@ -22,35 +22,26 @@ namespace Rask.Benchmarks.Infrastructure;
 ///         event loop that does no work.
 ///     </para>
 /// </remarks>
-public sealed class LoadPage(LoadPageOptions options) : Component
+public sealed partial class LoadPage(LoadPageOptions options) : Component
 {
     private int _counter;
 
-    protected override Component? Head => C.Title()["rask session load"];
+    protected override Component? HeadAssets => Title["rask session load"];
 
     protected override Component? Render()
     {
         var rows = new List<Component>(options.RowCount);
         for (var i = 0; i < options.RowCount; i++)
         {
-            rows.Add(B.FootprintRow(Index: i, Key: i));
+            rows.Add(FootprintRow.Index(i).Key(i));
         }
 
-        return
-        [
-            C.Doctype(),
-            C.Html()[
-                C.Head(),
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        // The first handler in document order — the one the client finds and clicks.
-                        C.Div(Class: "header")[
-                            C.Button(OnClick: () => _counter++)[$"rows={options.RowCount} counter={_counter}"]
-                        ],
-                        C.Table(Class: "table")[C.Tbody()[rows]]
-                    ]
-                ]
-            ]
+        return Div.Class("container").Id("root")[
+            // The first handler in document order — the one the client finds and clicks.
+            Div.Class("header")[
+                Button.OnClick(() => _counter++)[$"rows={options.RowCount} counter={_counter}"]
+            ],
+            Table.Class("table")[Tbody[rows]]
         ];
     }
 }

@@ -57,8 +57,8 @@ product, by one person in one sitting:
 ```bash
 dotnet tool install -g Rask.Cli
 
-rask new Shop --auth --docker                              # scaffold: UI + cookie auth + a Dockerfile
-rask generate feature Product Name:string Price:decimal    # a full CQRS + EF Core CRUD slice — DI wired for you
+rask new Shop --auth --docker --data                       # scaffold: UI + cookie auth + Dockerfile + SQLite
+# …write a Products slice — docs/tutorial/02-first-feature.md has the code
 rask db add InitialCreate && rask db update                # create + apply the SQLite migration
 rask dev                                                   # run it, hot-reloading, at /products
 rask deploy --host root@box --domain shop.example.com      # ship it: bare box → Docker + auto-HTTPS, zero-downtime
@@ -86,9 +86,9 @@ public sealed class Counter : Component
 
     protected override Component? Render() =>
     [
-        H1()["Counter"],
-        P()[$"Current count: {_count}"],
-        Button(OnClick: () => _count++)["Click me"]
+        H1["Counter"],
+        P[$"Current count: {_count}"],
+        Button.OnClick(() => _count++)["Click me"]
     ];
 }
 ```
@@ -114,7 +114,7 @@ no separate server to run. Add one with a package reference and a line of DI; th
 | Pillar | What one command / one line gives you | |
 |---|---|---|
 | **The `rask` CLI** | `new` · `generate` · `db` · `dev` · `deploy` — the whole lifecycle, one tool. | [→](docs/cli.md) |
-| **CRUD scaffolder** | `rask generate feature` emits an encapsulated entity, CQRS commands/queries, and list/create/edit pages — and **writes the DI into `Program.cs`**. | [→](docs/cli.md) |
+| **A CRUD slice** | An encapsulated entity, CQRS commands/queries, and list/create/edit pages — written once in the tutorial and repeated per feature. | [→](docs/tutorial/02-first-feature.md) |
 | **Data** (`Rask.Data`) | `Entity<TId>` + EF interceptors: audit stamps, soft delete, optimistic concurrency, domain events. | [→](docs/data.md) |
 | **CQRS** (`Rask.Cqrs`) | Source-generated, trim-safe queries / commands / notifications via `IDispatcher`. | [→](docs/cqrs.md) |
 | **Auth** | Cookie & JWT, Server & WASM, a declarative `Authorize` gate + route guards. | [→](docs/authentication.md) |
@@ -163,10 +163,10 @@ iOS/Android app** — a WebView hybrid where your C# runs natively on the device
 Building a product used to mean assembling a stack: a frontend framework in another language, a backend, a
 managed database, a queue, a cache, a blob store, a deploy pipeline — each rented, glued, and maintained. For
 a team that's overhead; for one person it's the whole job. Rask collapses it into **one C# codebase on one
-server**: scaffold a feature, store it in SQLite, ship it to a box — no PaaS, no glue, no second language.
+server**: write a feature, store it in SQLite, ship it to a box — no PaaS, no glue, no second language.
 
-- **You write the product, not the plumbing.** `rask generate feature` emits the vertical slice *and* wires
-  the DI; the pillars register in a line; `rask deploy` even prepares the bare server for you.
+- **You write the product, not the plumbing.** A vertical slice is a handful of small files; the pillars
+  register in a line; `rask deploy` even prepares the bare server for you.
 - **DB-backed by default.** Jobs, mail, cache, outbox — all persist to the app's own SQLite DB. Adding one is
   a package reference, not a new service to operate.
 - **Correct, concurrent, backed-up SQLite.** WAL, busy-timeout, non-blocking write retries, and continuous
@@ -209,6 +209,7 @@ The [`rask` CLI](docs/cli.md) (`Rask.Cli`, a global .NET tool) owns all scaffold
 ```bash
 dotnet tool install -g Rask.Cli          # one-time: install the CLI
 
+rask                                      # a wizard: name, project type, styling, Docker, batteries
 rask new MyApp                            # ASP.NET live-server app (the default template)
 rask new MyApp --template wasm            # standalone browser-WASM SPA
 rask new MyApp --template wasm-hosted     # browser-WASM client + ASP.NET host
@@ -216,6 +217,10 @@ rask new MyApp --template native          # native iOS + Android app (WebView hy
 
 cd MyApp && rask dev                       # run with hot reload (--open for a browser; native: dotnet build -t:Run -f net10.0-android)
 ```
+
+Run `rask` with no arguments on a terminal and it asks its way to a project, skipping any question you
+already answered on the command line. Every project comes with a `.gitignore`, an `.editorconfig`, a
+`.slnx` solution and a git repository with one commit.
 
 Add `--auth` for a cookie/JWT-wired starter, `--pwa` (WASM) for an installable offline app, or
 `--docker` (the three web templates) for a production multi-stage Dockerfile — see
@@ -293,7 +298,7 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 | **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** | URLs, route params, the form pipeline, custom `IFormControl<T>` inputs. |
 | **The back half** — **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[Email](docs/mail.md)** · **[Cache](docs/cache.md)** · **[Outbox](docs/outbox.md)** · **[Logging](docs/logging.md)** · **[SQLite](docs/sqlite.md)** | The DB-backed pillars: a DDD base entity, source-generated CQRS, cookie/JWT auth, durable jobs, transactional email, a database-backed cache, a transactional outbox, and production SQLite + backup. |
 | **[Bootstrap](docs/bootstrap.md)** | Typed Bootstrap 5.3 components (incl. the zero-JS, fully keyboard-accessible [`BsSelect`/`BsMultiSelect`](docs/bootstrap-select.md) comboboxes), zero-JS interactivity, typed utility classes. |
-| **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** | The mobile & devices track: 46 typed Web-API wrappers, installable offline PWAs, and native iOS/Android apps. |
+| **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** | The mobile & devices track: 50 typed Web-API wrappers, installable offline PWAs, and native iOS/Android apps. |
 | **[JS interop](docs/js-interop.md)** · **[Accessibility](docs/accessibility.md)** · **[AOT](docs/aot.md)** · **[Testing](docs/testing.md)** | Scoped JS + element refs; a11y; opt-in full WASM AOT; unit + E2E. |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** · **[Diagnostics](docs/diagnostics.md)** | How the day-to-day differs, side by side; every RASK build error/warning and its fix. |
 

@@ -2,7 +2,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class InlineAsyncValidateDemo : Component
+public sealed partial class InlineAsyncValidateDemo : Component
 {
     // Showcases the typed async Validate overload: a bare `async (v, ct) => …` lambda binds
     // directly to Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> on the Input,
@@ -16,11 +16,11 @@ public sealed class InlineAsyncValidateDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     private static Component Checking() =>
-        Span(Class: "validating-indicator text-muted small mt-1")[
-            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking…"
+        Span.Class("validating-indicator text-muted small mt-1")[
+            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking…"
         ];
 
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
@@ -31,8 +31,8 @@ public sealed class InlineAsyncValidateDemo : Component
             return null;
         }
 
-        return BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
-            Ul(Class: "mb-0 ps-3")[formOnly.Select((e, i) => Li(Key: i)[e.Message])]
+        return BsAlert.Color(BsColor.Danger).Class("small mb-0")[
+            Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]
         ];
     }
 
@@ -49,11 +49,7 @@ public sealed class InlineAsyncValidateDemo : Component
 
     protected override Component? Render() =>
     [
-        Form<PromoModel>(
-            _model,
-            OnValidSubmit: m => _submission = $"Redeemed: {m.Code}",
-            Class: "vstack gap-3",
-            Validate: async (m, ct) =>
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Redeemed: {m.Code}").Class("vstack gap-3").ValidateAsync(async (m, ct) =>
             {
                 await Task.Yield();
                 ct.ThrowIfCancellationRequested();
@@ -61,21 +57,23 @@ public sealed class InlineAsyncValidateDemo : Component
                     ? new[] { "Code is required." }
                     : Array.Empty<string>();
             })[
-            Div()[
-                Label("v10-code", Class: "form-label small mb-1")["Promo code"],
-                Input(() => _model.Code, Id: "v10-code", Class: "form-control",
-                    Validate: CheckCodeAsync),
-                ValidatingIndicator(() => _model.Code, Checking),
-                ValidationMessage(() => _model.Code, FieldError)
+            Div[
+                Label.For("v10-code").Class("form-label small mb-1")["Promo code"],
+                Input.Bind(() => _model.Code)
+                    .Id("v10-code")
+                    .Class("form-control")
+                    .ValidateAsync(CheckCodeAsync),
+                ValidatingIndicator.Template(Checking).For(() => _model.Code),
+                ValidationMessage.Template(FieldError).For(() => _model.Code)
             ],
-            ValidationSummary(SummaryAlert),
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Gift, Class: "me-1"), "Redeem"]
+            ValidationSummary.Template(SummaryAlert),
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Gift).Class("me-1"), "Redeem"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

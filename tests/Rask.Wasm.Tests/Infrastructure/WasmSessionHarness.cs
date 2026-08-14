@@ -30,8 +30,12 @@ internal static class WasmSessionHarness
         configure?.Invoke(services);
         var provider = services.BuildServiceProvider();
         var app = appFactory is null ? ActivatorUtilities.CreateInstance<TApp>(provider) : appFactory(provider);
+        // The same wrapper WasmHostBuilder installs: it composes the document around the app (which
+        // renders into <body>) and catches anything the subtree throws. Without it a session test would
+        // measure a bare fragment — no <head> to change, no <body> for data-rask-root to land on.
+        var root = new RootErrorBoundary(app);
         // Per-session wire shape (was the process-global LiveOptions.DiffMode).
-        var session = new WasmLiveSession(app, provider, diffMode);
+        var session = new WasmLiveSession(root, provider, diffMode);
         JSInterop.Init(session);
         return (session, provider);
     }

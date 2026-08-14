@@ -47,7 +47,7 @@ component's `<Head>`, exactly as you would any other static stylesheet:
 
 ```csharp
 // wwwroot/global.css is a normal, unscoped stylesheet.
-Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/global.css")
+Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/global.css")
 ```
 
 `LiveOptions.PathBase` keeps the URL correct under a reverse-proxy prefix (Server) or a

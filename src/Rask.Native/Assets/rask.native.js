@@ -1358,7 +1358,12 @@ window.__raskMedia = window.__raskMedia || (() => {
             video.muted = true;
             return video.play();
         },
-        stop: (id) => stop(id)
+        stop: (id) => stop(id),
+        // The id ↔ MediaStream mapping, for other framework helpers that deal in stream ids — __raskRtc
+        // sends a captured stream to a peer, and registers a peer's remote stream so C# gets an id it can
+        // attach to a <video>. Not for application use; C# never calls these two.
+        get: (id) => streams.get(id),
+        adopt: (stream) => put(stream)
     };
 })();
 
@@ -1419,6 +1424,364 @@ window.__raskLocks = window.__raskLocks || (() => {
                 (state.pending || []).forEach((l) => out.push({name: l.name, mode: l.mode, clientId: l.clientId, held: false}));
                 return out;
             });
+        }
+    };
+})();
+
+// WebRTC signaling (driven by ISignaling) — the socket two peers trade an offer, an answer and their ICE
+// candidates over before they can talk directly. The connection lives here rather than in C# for the same
+// reason the peer connection does: it must work identically on both hosts, and on the Server host a C#-side
+// socket would put the app's own server in the middle of a relay it is already hosting.
+//
+// A SEPARATE socket from the live render one, deliberately: that socket has its own frame contract, rate
+// limits and shutdown-drain semantics, and signaling traffic has no business sharing them.
+//
+// The payload is an opaque string end to end — this helper never parses an SDP or a candidate either.
+window.__raskSignal = window.__raskSignal || (() => {
+    const conns = new Map(); // id -> WebSocket
+    return {
+        isSupported: () => typeof window.WebSocket === "function",
+        open: (id, path) => new Promise((resolve, reject) => {
+            const url = new URL(path, window.location.href);
+            url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+            const ws = new WebSocket(url.href);
+            conns.set(id, ws);
+            ws.onmessage = (e) => {
+                let m;
+                try {
+                    m = JSON.parse(e.data);
+                } catch (_) {
+                    return;
+                }
+                // One flat shape for every relay message, so the C# side has a single [JSInvokable]: the
+                // peer it concerns (peerId on a join/leave, from on a signal), and one string slot that
+                // carries the app payload, the error text, or — for our own join — the peer-list JSON.
+                const peer = m.peerId || m.from || "";
+                const text = m.type === "joined"
+                    ? JSON.stringify(m.peers || [])
+                    : (m.payload != null ? m.payload : (m.message || ""));
+                invoke("RaskSignalMessage", id, m.type || "", peer, text);
+            };
+            ws.onclose = () => {
+                conns.delete(id);
+                invoke("RaskSignalClosed", id);
+            };
+            // Resolve on open, reject on a failure BEFORE it: after that, onclose is the channel for it.
+            ws.onopen = () => resolve(true);
+            ws.onerror = () => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    conns.delete(id);
+                    reject(new Error("Rask signaling: could not connect to " + url.href));
+                }
+            };
+        }),
+        send: (id, json) => {
+            const ws = conns.get(id);
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                throw new Error("Rask signaling: connection " + id + " is closed.");
+            }
+            ws.send(json);
+        },
+        close: (id) => {
+            const ws = conns.get(id);
+            if (!ws) {
+                return;
+            }
+            conns.delete(id);
+            ws.onmessage = null;
+            ws.onclose = null;
+            ws.onerror = null;
+            ws.close();
+        }
+    };
+
+    function invoke(method, ...args) {
+        return window.DotNet.invokeMethodAsync("Rask.Core", method, ...args);
+    }
+})();
+
+// WebRTC (driven by IWebRtc) — an RTCPeerConnection and its data channels can't cross interop, so each is
+// held here under an id: C# mints connection ids (it must register its handlers before ICE gathering
+// starts), JS mints channel ids (a remote peer can open one at any time, so one minting side keeps the id
+// space single). Shared here (not WASM-only): none of this needs a user gesture, so it works over the
+// Server client too.
+//
+// Everything pushed back to C# is BATCHED, and that is load-bearing rather than an optimisation: on the
+// Server host each push is one inbound WebSocket frame, and RaskServerLimits.MaxInboundFramesPerSecond
+// (1000 by default) closes the socket past it. A busy data channel or an ICE gathering burst would trip
+// that in well under a second. Buffering on a fixed FLUSH_MS timer bounds the frame rate to ~60/s no
+// matter how fast the peer sends. A timer, not requestAnimationFrame: rAF stops firing in a background
+// tab, which would stall delivery exactly when a call is backgrounded.
+//
+// Message buffers are capped. Past MAX_BUFFERED the oldest are dropped and counted, and the count rides
+// the next push so C# can surface the loss — an unbounded buffer would trade a closed socket for an
+// out-of-memory tab. ICE candidates are never dropped (a lost candidate can cost connectivity, and a
+// gathering burst is tens of entries, not thousands).
+window.__raskRtc = window.__raskRtc || (() => {
+    const conns = new Map(); // connId -> {pc, ice: [], timer: 0}
+    const chans = new Map(); // chanId -> {ch, buf: [], dropped: 0, timer: 0, listening: false}
+    let nextChan = 0;
+
+    const FLUSH_MS = 16;
+    const MAX_BUFFERED = 10000;
+
+    const toBase64 = (buffer) => {
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+
+    const fromBase64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+
+    const invoke = (method, ...args) => window.DotNet.invokeMethodAsync("Rask.Core", method, ...args);
+
+    // A call against an already-disposed connection/channel would otherwise surface as a TypeError on
+    // `undefined`, which says nothing about what the app did wrong.
+    const conn = (id) => {
+        const c = conns.get(id);
+        if (!c) {
+            throw new Error("Rask WebRTC: peer connection " + id + " is closed.");
+        }
+        return c;
+    };
+
+    const chan = (id) => {
+        const c = chans.get(id);
+        if (!c) {
+            throw new Error("Rask WebRTC: data channel " + id + " is closed.");
+        }
+        return c;
+    };
+
+    const flushIce = (id) => {
+        const c = conns.get(id);
+        if (!c) {
+            return;
+        }
+        c.timer = 0;
+        if (c.ice.length === 0) {
+            return;
+        }
+        const batch = c.ice;
+        c.ice = [];
+        invoke("RaskRtcIce", id, batch);
+    };
+
+    const flushMessages = (id) => {
+        const c = chans.get(id);
+        if (!c) {
+            return;
+        }
+        c.timer = 0;
+        if (!c.listening || c.buf.length === 0) {
+            return;
+        }
+        const batch = c.buf;
+        const dropped = c.dropped;
+        c.buf = [];
+        c.dropped = 0;
+        // The connection id rides along because it is the one C# mints: a Server host runs many sessions
+        // in one process, and channel ids minted here would collide across them.
+        invoke("RaskRtcMessages", c.connId, id, batch, dropped);
+    };
+
+    const schedule = (c, run) => {
+        if (c.timer === 0) {
+            c.timer = setTimeout(run, FLUSH_MS);
+        }
+    };
+
+    // Wires one channel — local or remote — into the id space and starts buffering immediately, so nothing
+    // sent between "the channel exists" and "C# called listen" is lost.
+    const adopt = (connId, ch) => {
+        const id = ++nextChan;
+        ch.binaryType = "arraybuffer";
+        const state = {ch: ch, connId: connId, buf: [], dropped: 0, timer: 0, listening: false};
+        chans.set(id, state);
+        ch.onmessage = (e) => {
+            if (state.buf.length >= MAX_BUFFERED) {
+                state.buf.shift();
+                state.dropped++;
+            }
+            state.buf.push(typeof e.data === "string"
+                ? {text: e.data, data: null}
+                : {text: null, data: toBase64(e.data)});
+            schedule(state, () => flushMessages(id));
+        };
+        ch.onclose = () => invoke("RaskRtcChannelClosed", connId, id);
+        return id;
+    };
+
+    const closeChannel = (id) => {
+        const c = chans.get(id);
+        if (!c) {
+            return;
+        }
+        if (c.timer !== 0) {
+            clearTimeout(c.timer);
+        }
+        chans.delete(id);
+        c.ch.onmessage = null;
+        c.ch.onclose = null;
+        try {
+            c.ch.close();
+        } catch (_) {
+            // Already closed with the connection — nothing to release.
+        }
+    };
+
+    return {
+        isSupported: () => typeof window.RTCPeerConnection === "function",
+        create: (id, config) => {
+            const servers = (config && config.iceServers ? config.iceServers : []).map((u) => ({urls: u}));
+            const init = {iceServers: servers};
+            if (config && config.iceTransportPolicy) {
+                init.iceTransportPolicy = config.iceTransportPolicy;
+            }
+            const pc = new RTCPeerConnection(init);
+            // `remote` maps a peer stream's own id to the __raskMedia id we minted for it, so a second
+            // ontrack for the same stream doesn't mint (and push) a duplicate. `senders` remembers what
+            // AddStream added, so RemoveStream can take exactly those tracks back off.
+            const state = {pc: pc, ice: [], timer: 0, remote: new Map(), senders: new Map()};
+            conns.set(id, state);
+            pc.onicecandidate = (e) => {
+                // A null candidate marks end-of-gathering; flush what's buffered rather than forwarding it.
+                if (!e.candidate) {
+                    flushIce(id);
+                    return;
+                }
+                state.ice.push({
+                    candidate: e.candidate.candidate,
+                    sdpMid: e.candidate.sdpMid,
+                    sdpMLineIndex: e.candidate.sdpMLineIndex
+                });
+                schedule(state, () => flushIce(id));
+            };
+            pc.onconnectionstatechange = () => invoke("RaskRtcState", id, pc.connectionState);
+            pc.ondatachannel = (e) => invoke("RaskRtcChannel", id, adopt(id, e.channel), e.channel.label);
+            pc.ontrack = (e) => {
+                // A peer's stream is as opaque to C# as a captured one, so it goes into __raskMedia's map
+                // and C# gets an id — the same id shape IMediaDevices and MediaCaptureTrigger hand out, so
+                // IMediaStreams.AttachAsync works on it unchanged. One push per stream, not per track: a
+                // camera+mic peer fires ontrack twice for one stream, and the app wants the stream.
+                const stream = (e.streams && e.streams[0]) || null;
+                if (!stream || state.remote.has(stream.id)) {
+                    return;
+                }
+                const streamId = window.__raskMedia.adopt(stream);
+                state.remote.set(stream.id, streamId);
+                invoke("RaskRtcTrack", id, streamId);
+            };
+        },
+        createOffer: async (id) => {
+            const c = conn(id);
+            const offer = await c.pc.createOffer();
+            return {type: offer.type, sdp: offer.sdp};
+        },
+        createAnswer: async (id) => {
+            const c = conn(id);
+            const answer = await c.pc.createAnswer();
+            return {type: answer.type, sdp: answer.sdp};
+        },
+        setLocal: (id, d) => conn(id).pc.setLocalDescription({type: d.type, sdp: d.sdp}),
+        setRemote: (id, d) => conn(id).pc.setRemoteDescription({type: d.type, sdp: d.sdp}),
+        addIce: (id, cand) => conn(id).pc.addIceCandidate({
+            candidate: cand.candidate,
+            sdpMid: cand.sdpMid,
+            sdpMLineIndex: cand.sdpMLineIndex
+        }),
+        addStream: (connId, streamId) => {
+            const c = conn(connId);
+            const stream = window.__raskMedia.get(streamId);
+            if (!stream) {
+                throw new Error("Rask WebRTC: media stream " + streamId + " is closed.");
+            }
+            if (c.senders.has(streamId)) {
+                return;
+            }
+            c.senders.set(streamId, stream.getTracks().map((t) => c.pc.addTrack(t, stream)));
+        },
+        removeStream: (connId, streamId) => {
+            const c = conn(connId);
+            const senders = c.senders.get(streamId);
+            if (!senders) {
+                return;
+            }
+            c.senders.delete(streamId);
+            senders.forEach((s) => {
+                try {
+                    c.pc.removeTrack(s);
+                } catch (_) {
+                    // The sender goes away with the connection; removing it afterwards is not an error.
+                }
+            });
+        },
+        createChannel: (connId, label, options) => {
+            const init = {};
+            if (options) {
+                if (options.ordered != null) {
+                    init.ordered = options.ordered;
+                }
+                if (options.maxRetransmits != null) {
+                    init.maxRetransmits = options.maxRetransmits;
+                }
+                if (options.protocol) {
+                    init.protocol = options.protocol;
+                }
+            }
+            return adopt(connId, conn(connId).pc.createDataChannel(label, init));
+        },
+        // Starts delivery for a channel. Anything the peer sent before this point is already buffered and
+        // rides the first push.
+        listen: (id) => {
+            const c = chans.get(id);
+            if (!c) {
+                return;
+            }
+            c.listening = true;
+            schedule(c, () => flushMessages(id));
+        },
+        sendText: (id, text) => chan(id).ch.send(text),
+        sendBytes: (id, base64) => chan(id).ch.send(fromBase64(base64)),
+        closeChannel: (id) => closeChannel(id),
+        close: (id) => {
+            const c = conns.get(id);
+            if (!c) {
+                return;
+            }
+            if (c.timer !== 0) {
+                clearTimeout(c.timer);
+            }
+            conns.delete(id);
+            // Snapshot first: closeChannel deletes from the map we'd otherwise be iterating.
+            const owned = [];
+            chans.forEach((chan, chanId) => {
+                if (chan.connId === id) {
+                    owned.push(chanId);
+                }
+            });
+            owned.forEach(closeChannel);
+            c.pc.onicecandidate = null;
+            c.pc.onconnectionstatechange = null;
+            c.pc.ondatachannel = null;
+            c.pc.ontrack = null;
+            // Remote streams were minted into __raskMedia by ontrack, so this connection owns them and has
+            // to stop their tracks — nothing else holds a reference once the connection is gone. Streams
+            // the app supplied to addStream are NOT stopped: the app still owns those.
+            c.remote.forEach((streamId) => window.__raskMedia.stop(streamId));
+            c.remote.clear();
+            c.senders.clear();
+            c.pc.close();
         }
     };
 })();
@@ -3633,10 +3996,14 @@ var raskGestureCaps = {
         var c;
         try { c = arg ? JSON.parse(arg) : {}; } catch (err) { c = {}; }
         return window.__raskMedia.getUserMedia(c).then(function (id) {
-            // Await the attach/play so "granted" reflects a stream actually running in the <video>, not just
-            // permission; a play() hiccup on a muted stream still counts as granted (permission was given).
+            // Await the attach/play so a resolved id reflects a stream actually running in the <video>, not
+            // just permission; a play() hiccup on a muted stream still counts as granted (permission was
+            // given). Resolves the stream's ID rather than the literal "granted": MediaCaptureTrigger maps
+            // it back to "granted" for OnResult, and hands it to OnStream so a Server-hosted app can keep
+            // the stream — stop it, re-attach it, or send it to a WebRTC peer. Before this the stream was
+            // unreachable from C# on the Server host.
             return Promise.resolve(window.__raskMedia.attach(id, el)).then(
-                function () { return "granted"; }, function () { return "granted"; });
+                function () { return String(id); }, function () { return String(id); });
         }, function () { return "denied"; });
     }
 };

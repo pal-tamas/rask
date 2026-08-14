@@ -51,12 +51,12 @@ public class FactoryAttributeTests
         Assert.Contains("object? Model = null", output);
         Assert.Contains("global::System.Delegate? OnValidSubmit = null", output);
 
-        // Generic overload: TModel Model + narrowed Callback<TModel>?/CallbackAsync<TModel>? pair.
+        // Generic overload: TModel Model + narrowed Action<TModel>?/Func<TModel, Task>? pair.
         Assert.Contains("public static global::Demo.FormLike FormLike<TModel>(", output);
         Assert.Contains("TModel Model", output);
-        Assert.Contains("global::Rask.Core.Callback<TModel>? OnValidSubmit = null", output);
+        Assert.Contains("global::System.Action<TModel>? OnValidSubmit = null", output);
         Assert.Contains(
-            "global::Rask.Core.CallbackAsync<TModel>? OnValidSubmitAsync = null",
+            "global::System.Func<TModel, global::System.Threading.Tasks.Task>? OnValidSubmitAsync = null",
             output);
         Assert.Contains("where TModel : class", output);
 
@@ -80,7 +80,7 @@ public class FactoryAttributeTests
                   using Rask.Core.Routing;
                   namespace Demo;
                   [Route("/")]
-                  public sealed class HomePage : Component
+                  public sealed partial class HomePage : Component
                   {
                       public override Component? Render() => this;
                   }

@@ -10,26 +10,26 @@ namespace Rask.Example.Wasm.Features;
 /// </summary>
 [Route("hid")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class HidPage : Component
+public sealed partial class HidPage : Component
 {
-    protected override Component? Head => Title()["WebHID — Rask"];
+    protected override Component? HeadAssets => Title["WebHID — Rask"];
 
     protected override Component? Render() =>
     [
-        H1(Class: "h2 mb-1")["WebHID"],
-        P(Class: "text-secondary")[
+        H1.Class("h2 mb-1")["WebHID"],
+        P.Class("text-secondary")[
             "Talk to a human-interface device that no higher-level API covers — a gamepad with custom reports, ",
             "a keyboard with extra keys, simulation controls, point-of-sale hardware — via IHid (the WebHID ",
             "API): open it, send output / feature reports, and subscribe to its live input-report stream. ",
             "WASM-only: requestDevice() needs a live user gesture and the live device handle, and it's ",
             "Chromium-family only at the time of writing."
         ],
-        CodeSample(
-            ["HidDemo.cs"],
-            Notes: "RequestDevicesAsync shows the browser chooser and returns the granted devices (empty if "
+        CodeSample
+            .Files(["HidDemo.cs"])
+            .Notes("RequestDevicesAsync shows the browser chooser and returns the granted devices (empty if "
                 + "dismissed). Open a device, then WatchInputReportsAsync pushes each input report (and an "
                 + "optional disconnect signal) to your callback; dispose the watch and the device to release. "
-                + "Report payloads cross as byte[]. Gate on IsSupportedAsync.",
-            Result: HidDemo())
+                + "Report payloads cross as byte[]. Gate on IsSupportedAsync.")
+            .Result(HidDemo)
     ];
 }

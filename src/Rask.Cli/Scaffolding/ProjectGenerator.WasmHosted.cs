@@ -13,21 +13,19 @@ internal static partial class ProjectGenerator
     /// solution (<c>{name}.Client</c> WASM SPA, <c>{name}.Server</c> ASP.NET host, <c>{name}.Shared</c>
     /// contracts). Slim by default (welcome page only); <paramref name="auth"/> adds the cookie login flow.
     /// </summary>
-    public static ScaffoldResult GenerateWasmHosted(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version)
+    public static ScaffoldResult GenerateWasmHosted(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version, bool bootstrap = true)
     {
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.sln", WasmHostedSln),
-
             // Shared — the class library both the Client and the Server reference.
             ($"{NameToken}.Shared/{NameToken}.Shared.csproj", SharedCsproj),
             ($"{NameToken}.Shared/Contracts.cs", auth ? WasmHostedSharedContractsAuth : WasmHostedSharedContracts),
 
             // Client — the browser-WASM SPA (shell in Features/Shared, welcome page in Features/Home).
-            ($"{NameToken}.Client/{NameToken}.Client.csproj", WasmHostedClientCsproj(version)),
+            ($"{NameToken}.Client/{NameToken}.Client.csproj", WasmHostedClientCsproj(bootstrap, version)),
             ($"{NameToken}.Client/Program.cs", WasmHostedClientProgram(auth, pwa)),
-            ($"{NameToken}.Client/Features/Shared/App.cs", WasmHostedClientAppShell),
-            ($"{NameToken}.Client/Features/Home/HomePage.cs", WasmHostedClientHomePage),
+            ($"{NameToken}.Client/Features/Shared/App.cs", WasmHostedClientAppShell(bootstrap)),
+            ($"{NameToken}.Client/Features/Home/HomePage.cs", WasmHostedClientHomePage(bootstrap)),
             ($"{NameToken}.Client/wwwroot/index.html", WasmIndexHtml(pwa)),
             ($"{NameToken}.Client/runtimeconfig.template.json", WasmRuntimeConfig),
 
@@ -58,23 +56,28 @@ internal static partial class ProjectGenerator
             files.Add((".dockerignore", DockerIgnore));
         }
 
+        files.AddRange(ProjectHygiene(
+            $"{NameToken}.Client/{NameToken}.Client.csproj",
+            $"{NameToken}.Server/{NameToken}.Server.csproj",
+            $"{NameToken}.Shared/{NameToken}.Shared.csproj"));
+
         var scaffoldFiles = Materialize(targetDirectory, name, files);
 
         return new ScaffoldResult(scaffoldFiles, WasmHostedNextSteps(name, docker))
         {
-            Packages = ["Rask.Wasm", "Rask.Bootstrap", "Rask.Wasm.Hosting"],
+            Packages = bootstrap ? ["Rask.Wasm", "Rask.Bootstrap", "Rask.Wasm.Hosting"] : ["Rask.Wasm", "Rask.Wasm.Hosting"],
             // No root csproj — restore (and the overwrite guard) target the solution, which pulls all three.
-            RestoreTarget = $"{name}.sln",
+            RestoreTarget = $"{name}.slnx",
         };
     }
 
     // The shell + welcome page are exactly the server/wasm ones, only re-homed into the .Client namespace so
     // the Server's cross-project reference and the client's own types line up. Reuse keeps the three in sync.
-    private static string WasmHostedClientAppShell =>
-        AppShellCs.Replace($"namespace {NameToken}.Features.Shared;", $"namespace {NameToken}.Client.Features.Shared;", StringComparison.Ordinal);
+    private static string WasmHostedClientAppShell(bool bootstrap) =>
+        AppShellCs(bootstrap).Replace($"namespace {NameToken}.Features.Shared;", $"namespace {NameToken}.Client.Features.Shared;", StringComparison.Ordinal);
 
-    private static string WasmHostedClientHomePage =>
-        HomePageCs.Replace($"namespace {NameToken}.Features.Home;", $"namespace {NameToken}.Client.Features.Home;", StringComparison.Ordinal);
+    private static string WasmHostedClientHomePage(bool bootstrap) =>
+        HomePageCs(bootstrap).Replace($"namespace {NameToken}.Features.Home;", $"namespace {NameToken}.Client.Features.Home;", StringComparison.Ordinal);
 
     private static string WasmHostedClientProgram(bool auth, bool pwa)
     {
@@ -304,35 +307,6 @@ internal static partial class ProjectGenerator
 
     // ---- wasm-hosted template files ----
 
-    private const string WasmHostedSln =
-        "\nMicrosoft Visual Studio Solution File, Format Version 12.00\n"
-        + "Project(\"{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}\") = \"Company.RaskServer.Client\", \"Company.RaskServer.Client\\Company.RaskServer.Client.csproj\", \"{B1A2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D}\"\nEndProject\n"
-        + "Project(\"{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}\") = \"Company.RaskServer.Server\", \"Company.RaskServer.Server\\Company.RaskServer.Server.csproj\", \"{C1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5E}\"\nEndProject\n"
-        + "Project(\"{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}\") = \"Company.RaskServer.Shared\", \"Company.RaskServer.Shared\\Company.RaskServer.Shared.csproj\", \"{D1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5F}\"\nEndProject\n"
-        + "Global\n"
-        + "\tGlobalSection(SolutionConfigurationPlatforms) = preSolution\n"
-        + "\t\tDebug|Any CPU = Debug|Any CPU\n"
-        + "\t\tRelease|Any CPU = Release|Any CPU\n"
-        + "\tEndGlobalSection\n"
-        + "\tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n"
-        + "\t\t{B1A2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU\n"
-        + "\t\t{B1A2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D}.Debug|Any CPU.Build.0 = Debug|Any CPU\n"
-        + "\t\t{B1A2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D}.Release|Any CPU.ActiveCfg = Release|Any CPU\n"
-        + "\t\t{B1A2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D}.Release|Any CPU.Build.0 = Release|Any CPU\n"
-        + "\t\t{C1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU\n"
-        + "\t\t{C1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5E}.Debug|Any CPU.Build.0 = Debug|Any CPU\n"
-        + "\t\t{C1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5E}.Release|Any CPU.ActiveCfg = Release|Any CPU\n"
-        + "\t\t{C1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5E}.Release|Any CPU.Build.0 = Release|Any CPU\n"
-        + "\t\t{D1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU\n"
-        + "\t\t{D1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5F}.Debug|Any CPU.Build.0 = Debug|Any CPU\n"
-        + "\t\t{D1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5F}.Release|Any CPU.ActiveCfg = Release|Any CPU\n"
-        + "\t\t{D1A2B3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5F}.Release|Any CPU.Build.0 = Release|Any CPU\n"
-        + "\tEndGlobalSection\n"
-        + "\tGlobalSection(SolutionProperties) = preSolution\n"
-        + "\t\tHideSolutionNode = FALSE\n"
-        + "\tEndGlobalSection\n"
-        + "EndGlobal\n";
-
     private const string SharedCsproj =
         """
         <Project Sdk="Microsoft.NET.Sdk">
@@ -377,21 +351,26 @@ internal static partial class ProjectGenerator
     // Shares the WebAssembly SDK property block with the standalone `wasm` template (WasmSdkPropertyGroup in
     // ProjectGenerator.Wasm.cs) so the two can't drift. The hosted client differs only in referencing the
     // Shared project (and never the --auth JSInterop/Authorization refs — hosted auth is cookie-based).
-    private static string WasmHostedClientCsproj(string version) =>
-        $"""
+    private static string WasmHostedClientCsproj(bool bootstrap, string version)
+    {
+        var bootstrapRef = bootstrap
+            ? $"\n    <PackageReference Include=\"Rask.Bootstrap\" Version=\"{version}\"/>"
+            : "";
+
+        return $"""
         <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
         {WasmSdkPropertyGroup}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>
-            <PackageReference Include="Rask.Bootstrap" Version="{version}"/>
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>{bootstrapRef}
             <ProjectReference Include="..\Company.RaskServer.Shared\Company.RaskServer.Shared.csproj"/>
           </ItemGroup>
 
         </Project>
 
         """;
+    }
 
     private static string WasmHostedServerCsproj(string version) =>
         $"""
@@ -578,7 +557,7 @@ internal static partial class ProjectGenerator
 
         [Route("login")]
         [AllowAnonymous]
-        public sealed class LoginPage(WasmLoginService login) : Component
+        public sealed partial class LoginPage(WasmLoginService login) : Component
         {
             private readonly LoginModel _model = new();
             private string? _error;
@@ -586,15 +565,15 @@ internal static partial class ProjectGenerator
             [QueryParam] public string? ReturnUrl { get; set; }
 
             protected override Component? Render() =>
-                Div(Style: "max-width:22rem;margin:3rem auto;font-family:system-ui")[
-                    H1()["Sign in"],
-                    _error is null ? null : Div(Style: "color:#b00020")[_error],
-                    Form(_model, OnValidSubmitAsync: SubmitAsync)[
-                        Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],
-                        Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: InputType.Password)],
+                Div.Style("max-width:22rem;margin:3rem auto;font-family:system-ui")[
+                    H1["Sign in"],
+                    _error is null ? null : Div.Style("color:#b00020")[_error],
+                    Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+                        Div[Label.For("username")["Username"], Input.Bind(() => _model.Username).Id("username")],
+                        Div[Label.For("password")["Password"], Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)],
                         Button("submit", Id: "login-submit")["Sign in"]
                     ],
-                    P()["Try alice / password (user) or root / password (admin)."]
+                    P["Try alice / password (user) or root / password (admin)."]
                 ];
 
             private async Task SubmitAsync(LoginModel m)
@@ -622,23 +601,23 @@ internal static partial class ProjectGenerator
         // the gate opens after sign-in.
         [Route("members")]
         [AllowAnonymous]
-        public sealed class MembersPage : Component
+        public sealed partial class MembersPage : Component
         {
             protected override Component? Render() =>
-                Div(Style: "max-width:32rem;margin:3rem auto;font-family:system-ui")[
-                    Authorize(
-                        NotAuthorized: P()["Please ", NavLink(Href: Routes.LoginPage())["sign in"], "."])[MemberContent()]
+                Div.Style("max-width:32rem;margin:3rem auto;font-family:system-ui")[
+                    Authorize
+                        .NotAuthorized(P["Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
                 ];
         }
 
-        public sealed class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
+        public sealed partial class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
         {
             protected override Component? Render() =>
                 [
-                    H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
-                    Authorize(Roles: ["admin"])[
-                        Div(Style: "color:#7a5c00")["🔑 You have admin access."]],
-                    Button(Id: "logout", OnClickAsync: login.LogoutAsync)["Sign out"]
+                    H1[$"Welcome, {userProvider.Current.Identity?.Name}"],
+                    Authorize.Roles(["admin"])[
+                        Div.Style("color:#7a5c00")["🔑 You have admin access."]],
+                    Button.Id("logout").OnClickAsync(login.LogoutAsync)["Sign out"]
                 ];
         }
 

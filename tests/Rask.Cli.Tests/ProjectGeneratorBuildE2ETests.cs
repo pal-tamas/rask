@@ -63,6 +63,52 @@ public sealed class ProjectGeneratorBuildE2ETests
     }
 
     /// <summary>
+    /// <c>--no-bootstrap</c> swaps every generated page body for plain elements and drops the
+    /// Rask.Bootstrap reference. That is the one flag where the *code* differs rather than the wiring, so
+    /// it is the one a string assertion proves least about: the Bs-free bodies have to compile without the
+    /// package that supplies <c>BsCard</c> and <c>BootstrapStyles</c>, on both the welcome page and the
+    /// error page, and the reference has to actually be gone rather than merely unused.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Generated_project_without_bootstrap_builds(bool auth)
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        var name = auth ? "E2ENoBsAuth" : "E2ENoBs";
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var result = ProjectGenerator.GenerateServer(
+                projectDir, name, new ServerBatteries { Bootstrap = false, Auth = auth }, version);
+
+            Assert.DoesNotContain("Rask.Bootstrap", result.Packages);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            Assert.DoesNotContain("Rask.Bootstrap", fs.ReadAllText(Path.Combine(projectDir, name + ".csproj")), StringComparison.Ordinal);
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, name + ".csproj")}\" -warnaserror -m:1");
+            Assert.True(exit == 0, $"[auth={auth}] --no-bootstrap project failed to build.{CliBuildE2E.Diagnostics(output)}");
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(temp);
+        }
+    }
+
+    /// <summary>
     /// <c>--data</c> pre-wires the AppDbContext + AddRaskData + a UseRaskSqlite DbContext factory, and pulls
     /// Rask.Data / Rask.SQLite.EntityFrameworkCore into the csproj. Only a real compile proves the generated
     /// Program.cs (the config-driven connection string, the ISaveChangesInterceptor injection) and the
@@ -211,71 +257,6 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    /// <summary>
-    /// A feature run that names relationship targets emits several entities at once — each in its own folder
-    /// and namespace, all sharing one DbContext that lives with the root. That shape is the first generated
-    /// code to carry cross-namespace <c>using</c>s, which string assertions can't validate: a target's handlers
-    /// name a DbContext declared in the root's namespace, and the DbContext names types in each target's.
-    /// Only a real compile proves those resolve.
-    /// </summary>
-    [SkippableFact]
-    public async Task Generated_multi_entity_feature_builds()
-    {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
-
-        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-
-        const string Name = "FE2E";
-        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
-        var projectDir = Path.Combine(temp, Name);
-        try
-        {
-            var fs = new SystemFileSystem();
-
-            var host = ProjectGenerator.GenerateServer(projectDir, Name, new ServerBatteries(), version);
-            foreach (var file in host.Files)
-            {
-                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-                fs.WriteAllText(file.Path, file.Content);
-            }
-
-            var post = new EntitySpec("Post", "Posts", [new FieldSpec("Title", "string", IsNullable: false, MaxLength: 200)]);
-            var comment = new EntitySpec("Comment", "Comments", [new FieldSpec("Body", "string", IsNullable: false, MaxLength: 200)]);
-            var feature = FeatureGenerator.Generate(
-                new ProjectContext(projectDir, Name),
-                projectDir,
-                new FeatureSpec(post, [new RelationshipSpec(Cardinality.OneToMany, IsOptional: false, post, comment)]),
-                new FeatureOptions { IdType = "Guid", Validation = "valueobjects" });
-
-            foreach (var file in feature.Files)
-            {
-                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-                fs.WriteAllText(file.Path, file.Content);
-            }
-
-            // Compile-gate the WireProgramCs splice — the one edit that turns generated files into a running
-            // app. Apply the real splice to the scaffolded Program.cs so the feature's DI (AddRaskCqrs /
-            // AddRaskData / the DbContext factory + the usings they need) is actually built, not just
-            // string-asserted. Without this the build proves the feature files compile but never the splice.
-            var programPath = Path.Combine(projectDir, "Program.cs");
-            var (splicedProgram, added) = GenerateCommand.SpliceProgramCs(
-                fs.ReadAllText(programPath), feature.ProgramUsings, feature.ProgramRegistrations);
-            Assert.NotEmpty(added); // the splice inserted the registrations
-            fs.WriteAllText(programPath, splicedProgram);
-
-            // `dotnet add package` is GenerateCommand's job, not the generator's — so add what the generator
-            // says it needs. Driving off result.Packages keeps this from drifting from what the CLI does.
-            CliBuildE2E.InjectPackages(fs, Path.Combine(projectDir, Name + ".csproj"), feature.Packages, version);
-            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
-
-            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDir, Name + ".csproj")}\" -warnaserror -m:1");
-            Assert.True(exit == 0, $"generated multi-entity feature failed to build.{CliBuildE2E.Diagnostics(output)}");
-        }
-        finally
-        {
-            CliBuildE2E.TryDeleteDirectory(temp);
-        }
-    }
 
     /// <summary>
     /// <c>--all-batteries</c>: every One Person Framework pillar wired into one app. Only a real compile

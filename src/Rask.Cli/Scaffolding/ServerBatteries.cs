@@ -11,6 +11,12 @@ namespace Rask.Cli.Scaffolding;
 internal sealed record ServerBatteries
 {
     /// <summary>Cookie authentication: login + members pages and a demo credential store.</summary>
+    /// <summary>
+    /// Render with Rask.Bootstrap's <c>Bs*</c> components (the default). When false the template emits plain
+    /// elements against a small baseline stylesheet the project owns, and no CSS-framework dependency.
+    /// </summary>
+    public bool Bootstrap { get; init; } = true;
+
     public bool Auth { get; init; }
 
     /// <summary>An installable PWA: manifest, icon, and offline page.</summary>

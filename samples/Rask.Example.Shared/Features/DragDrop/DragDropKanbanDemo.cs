@@ -3,7 +3,7 @@ using Rask.Core.DragAndDrop;
 namespace Rask.Example.Shared.Features;
 
 // Multi-column board. One drop zone per column; drag cards across columns or reorder within one.
-public sealed class DragDropKanbanDemo : Component
+public sealed partial class DragDropKanbanDemo : Component
 {
     private static readonly string[] _columns = ["todo", "doing", "done"];
 
@@ -22,7 +22,7 @@ public sealed class DragDropKanbanDemo : Component
         ["done"] = [new Card(5, "Read the codebase")]
     };
 
-    protected override Component? Render() => DragDrop(KanbanBody, MoveCard);
+    protected override Component? Render() => DragDrop.Body(KanbanBody).OnDrop(MoveCard);
 
     private Component KanbanBody(DragDropContext ctx)
     {
@@ -46,18 +46,18 @@ public sealed class DragDropKanbanDemo : Component
                     cls += " dd-drop-target";
                 }
 
-                cardChildren.Add(Div(
-                    Key: card.Id,
-                    Class: cls,
-                    Draggable: true,
-                    OnDragStart: ctx.DragStart(zone, index),
-                    OnDragOver: ctx.DragOver(zone, index),
-                    OnDropAsync: ctx.Drop(zone, index),
-                    OnDragEnd: ctx.DragEnd,
-                    Data: new Dictionary<string, string?> { ["testid"] = $"card-{card.Id}" })[
-                    BsCardBody(Class: "p-2 d-flex align-items-center gap-2")[
-                        BsIcon(Name: BsIconName.GripVertical, Class: "text-secondary"),
-                        Span()[card.Title]
+                cardChildren.Add(Div
+                    .Key(card.Id)
+                    .Class(cls)
+                    .Draggable(true)
+                    .OnDragStart(ctx.DragStart(zone, index))
+                    .OnDragOver(ctx.DragOver(zone, index))
+                    .OnDropAsync(ctx.Drop(zone, index))
+                    .OnDragEnd(ctx.DragEnd)
+                    .Data(new Dictionary<string, string?> { ["testid"] = $"card-{card.Id}" })[
+                    BsCardBody.Class("p-2 d-flex align-items-center gap-2")[
+                        BsIcon.Name(BsIconName.GripVertical).Class("text-secondary"),
+                        Span[card.Title]
                     ]
                 ]);
             }
@@ -73,22 +73,22 @@ public sealed class DragDropKanbanDemo : Component
                 bodyCls += " dd-drop-target";
             }
 
-            cols.Add(Div(Key: zone, Class: "col")[
-                Div(Class: "dd-column h-100")[
-                    Div(Class: "dd-column-header d-flex justify-content-between align-items-center")[
-                        Span(Class: "fw-semibold")[_columnLabels[zone]],
-                        BsBadge(Color: BsColor.Secondary, Pill: true)[cards.Count.ToString()]
+            cols.Add(Div.Key(zone).Class("col")[
+                Div.Class("dd-column h-100")[
+                    Div.Class("dd-column-header d-flex justify-content-between align-items-center")[
+                        Span.Class("fw-semibold")[_columnLabels[zone]],
+                        BsBadge.Color(BsColor.Secondary).Pill(true)[cards.Count.ToString()]
                     ],
-                    Div(
-                        Class: bodyCls,
-                        OnDragOver: ctx.DragOver(zone, dropAtEnd),
-                        OnDropAsync: ctx.Drop(zone, dropAtEnd),
-                        Data: new Dictionary<string, string?> { ["testid"] = $"col-{zone}" })[cardChildren]
+                    Div
+                        .Class(bodyCls)
+                        .OnDragOver(ctx.DragOver(zone, dropAtEnd))
+                        .OnDropAsync(ctx.Drop(zone, dropAtEnd))
+                        .Data(new Dictionary<string, string?> { ["testid"] = $"col-{zone}" })[cardChildren]
                 ]
             ]);
         }
 
-        return BsRow(Gutter: 3, Class: "dd-board")[cols];
+        return BsRow.Gutter(3).Class("dd-board")[cols];
     }
 
     private void MoveCard(DragDropMove move)

@@ -6,6 +6,7 @@ using Rask.Example.Server;
 using Rask.Example.Shared;
 using Rask.Server;
 using Rask.Server.Diagnostics;
+using Rask.Signaling;
 
 // CodeSample reads demo sources embedded as raksrc/{leaf}. The Server-only PWA demo (ServerPwaDemo)
 // lives in this app assembly, not Rask.Example.Shared, so register it with EmbeddedSource.
@@ -53,6 +54,11 @@ builder.Services.AddSingleton(new ShowcaseNavEntry("/server-pwa", "Server PWA", 
 // /health below. Pairs with the OpenTelemetry-ready "Rask.Server" meter + activity source — see
 // docs/observability.md.
 builder.Services.AddHealthChecks().AddRaskLiveSessions();
+// The WebRTC signaling relay (Rask.Signaling), for the ISignaling demo. RequireAuthorization is turned
+// OFF because this showcase has no sign-in — a real app SHOULD leave the default on and use
+// AuthorizeRoom to decide who belongs in which room.
+builder.Services.AddRaskSignaling(o => o.RequireAuthorization = false);
+
 // The HTTP demo's HttpClient calls back into this server for its own static
 // data/posts-1.json. Resolve the bound origin lazily from IServerAddressesFeature
 // (populated once the server is listening); fall back to localhost for the
@@ -123,6 +129,9 @@ app.MapGet("/_diag", (LiveSessionStore store) =>
 // Web Push backend endpoints (must precede the UseRask catch-all): GET /_push/key,
 // POST /_push/subscribe, /_push/unsubscribe, /_push/send.
 app.MapPushDemo();
+
+// Must precede the UseRask catch-all.
+app.MapRaskSignaling();
 
 app.UseRask<App>();
 

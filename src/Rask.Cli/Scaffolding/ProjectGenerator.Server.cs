@@ -18,8 +18,8 @@ internal static partial class ProjectGenerator
         {
             ($"{NameToken}.csproj", ServerCsproj(batteries, version)),
             ("Program.cs", ServerProgram(batteries)),
-            ("Features/Shared/App.cs", AppShellCs),
-            ("Features/Home/HomePage.cs", HomePageCs),
+            ("Features/Shared/App.cs", AppShellCs(batteries.Bootstrap)),
+            ("Features/Home/HomePage.cs", HomePageCs(batteries.Bootstrap)),
             ("Properties/launchSettings.json", LaunchSettings),
             ("appsettings.json", AppSettings),
             ("appsettings.Production.json", AppSettingsProduction),
@@ -42,7 +42,7 @@ internal static partial class ProjectGenerator
             files.Add(("Features/Push/PushSubscriptions.cs", PushSubscriptionsCs));
         }
 
-        files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs));
+        files.Add(("Features/Shared/ErrorPage.cs", ErrorPageCs(batteries.Bootstrap)));
 
         if (batteries.Pwa)
         {
@@ -56,6 +56,8 @@ internal static partial class ProjectGenerator
             files.Add((".dockerignore", DockerIgnore));
         }
 
+        files.AddRange(ProjectHygiene($"{NameToken}.csproj"));
+
         var scaffoldFiles = Materialize(targetDirectory, name, files);
 
         return new ScaffoldResult(scaffoldFiles, ServerNextSteps(name, batteries))
@@ -67,7 +69,12 @@ internal static partial class ProjectGenerator
     // The package list, in the same order the csproj emits them, so `rask new`'s summary matches the file.
     private static List<string> ServerPackages(ServerBatteries batteries)
     {
-        var packages = new List<string> { "Rask.Server", "Rask.Bootstrap" };
+        var packages = new List<string> { "Rask.Server" };
+        if (batteries.Bootstrap)
+        {
+            packages.Add("Rask.Bootstrap");
+        }
+
         if (batteries.Cqrs)
         {
             packages.Add("Rask.Cqrs");
@@ -138,7 +145,7 @@ internal static partial class ProjectGenerator
         // and pulls its EF Core provider transitively; `rask db` adds EF's Design package on the first
         // migration, so the base app builds and runs with no design-time dependency.
         var refs = new StringBuilder();
-        foreach (var package in ServerPackages(batteries).Skip(2))
+        foreach (var package in ServerPackages(batteries).Skip(1))
         {
             refs.Append($"\n    <PackageReference Include=\"{package}\" Version=\"{version}\"/>");
         }
@@ -162,8 +169,7 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
 
           <ItemGroup>
-            <PackageReference Include="Rask.Server" Version="{version}"/>
-            <PackageReference Include="Rask.Bootstrap" Version="{version}"/>{refs}
+            <PackageReference Include="Rask.Server" Version="{version}"/>{refs}
           </ItemGroup>
 
         </Project>
@@ -320,8 +326,8 @@ internal static partial class ProjectGenerator
                 // UseSqlite that also applies the production pragmas (WAL, busy_timeout, foreign_keys). The
                 // connection string defaults to a local app.db but honours a ConnectionStrings:App override —
                 // `rask deploy` sets that to a path on a mounted volume so the DB survives redeploys.
-                // `rask generate feature X …` adds its DbSet to AppDbContext (it attaches to the app's context);
-                // `rask db add <Name>` / `rask db update` create and apply the migration.
+                // Add a `DbSet<T>` to AppDbContext per entity, then `rask db add <Name>` / `rask db update`
+                // to create and apply the migration.
                 __ADDRASKDATA__
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "__CONNECTIONSTRING__";
                 __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
@@ -361,8 +367,8 @@ internal static partial class ProjectGenerator
                 // retrying. Set the real connection string via ConnectionStrings:App — in production pass it as
                 // an environment variable, e.g. `rask deploy --env "ConnectionStrings__App=..."`, so it never
                 // lands in source control.
-                // `rask generate feature X …` adds its DbSet to AppDbContext (it attaches to the app's context);
-                // `rask db add <Name>` / `rask db update` create and apply the migration.
+                // Add a `DbSet<T>` to AppDbContext per entity, then `rask db add <Name>` / `rask db update`
+                // to create and apply the migration.
                 __ADDRASKDATA__
                 var connectionString = builder.Configuration.GetConnectionString("App") ?? "__CONNECTIONSTRING__";
                 __ADDRASKOUTBOX__builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
@@ -722,7 +728,6 @@ internal static partial class ProjectGenerator
         steps.Append("  cd ").Append(name).Append('\n');
         if (batteries.Data)
         {
-            steps.Append("  rask generate feature Post Title:string Body:string\n");
             steps.Append("  rask db add Init    # create the first migration\n");
             steps.Append(batteries.Database.IsFileBased
                 ? "  rask db update      # apply it to app.db\n"
@@ -757,9 +762,9 @@ internal static partial class ProjectGenerator
 
     // ---- --data template files ----
 
-    // An empty database ready for features. `rask generate feature …` finds this context and inserts a DbSet;
-    // ApplyRaskConventions + ApplyConfigurationsFromAssembly pick up each feature's generated entity config,
-    // so the context needs no per-entity edits beyond its DbSet line.
+    // An empty database ready for features. Add one `DbSet<T>` per entity; ApplyRaskConventions +
+    // ApplyConfigurationsFromAssembly pick up each feature's IEntityTypeConfiguration automatically, so the
+    // context needs no per-entity edits beyond that line.
     private static string AppDbContextCs(ServerBatteries batteries)
     {
         var usings = new StringBuilder("using Microsoft.EntityFrameworkCore;\nusing Rask.Data;\n");
@@ -813,7 +818,12 @@ internal static partial class ProjectGenerator
 
     // The production error page. UseExceptionHandler re-executes the pipeline at this route, so it renders
     // through the app shell like any other page rather than looking like a framework error.
-    private const string ErrorPageCs =
+    // The error page's body, in Bs* components or plain elements — the only part of the page that
+    // depends on whether the project took the component library.
+    private static string ErrorPageCs(bool bootstrap) =>
+        ErrorPageTemplate.Replace("{{body}}", bootstrap ? ErrorPageBootstrapBody : ErrorPageBaselineBody, StringComparison.Ordinal);
+
+    private const string ErrorPageTemplate =
         """
         using System.Diagnostics;
         using Microsoft.AspNetCore.Authorization;
@@ -829,16 +839,25 @@ internal static partial class ProjectGenerator
         // later add a fallback authorization policy, this route must stay reachable.
         [Route("/error")]
         [AllowAnonymous]
-        public sealed class ErrorPage : Component
+        public sealed partial class ErrorPage : Component
         {
-            protected override Component? Head => [Title()["Something went wrong"]];
+            protected override Component? HeadAssets => [Title["Something went wrong"]];
 
             protected override Component? Render() =>
-                Div(Class: "mx-auto my-5", Style: "max-width:540px")[
-                    BsCard(Class: "shadow-sm")[
-                        BsCardBody()[
-                            BsCardTitle()["Something went wrong"],
-                            BsCardText(Class: "text-body-secondary")[
+        {{body}}
+        }
+
+        """;
+
+    // The correlation id is the only detail either body renders — and the comment saying why travels with
+    // the generated code, because that is where someone is standing when they consider adding more.
+    private static readonly string ErrorPageBootstrapBody =
+        """
+                Div.Class("mx-auto my-5").Style("max-width:540px")[
+                    BsCard.Class("shadow-sm")[
+                        BsCardBody[
+                            BsCardTitle["Something went wrong"],
+                            BsCardText.Class("text-body-secondary")[
                                 "The request couldn't be completed. The error has been logged."
                             ],
                             // The correlation id, and deliberately nothing else. Never render the
@@ -846,18 +865,36 @@ internal static partial class ProjectGenerator
                             // whoever hit the error, and the detail already went to ILogger where you can
                             // match it by this id.
                             Activity.Current?.Id is { Length: > 0 } traceId
-                                ? P(Class: "mb-3 small text-body-secondary")[
+                                ? P.Class("mb-3 small text-body-secondary")[
                                     "Reference: ",
-                                    Code()[traceId]
+                                    Code[traceId]
                                 ]
                                 : null,
-                            NavLink(HomeRoutes.HomePage(), Class: "btn btn-primary")["Back to the app"]
+                            NavLink.Href(HomeRoutes.HomePage()).Class("btn btn-primary")["Back to the app"]
                         ]
                     ]
                 ];
-        }
+        """.Trim('\n');
 
-        """;
+    private static readonly string ErrorPageBaselineBody =
+        """
+                Main[
+                    Div.Class("card")[
+                        H1["Something went wrong"],
+                        P["The request couldn't be completed. The error has been logged."],
+                        // The correlation id, and deliberately nothing else. Never render the exception,
+                        // its message, or a stack trace here — this page is served to whoever hit the
+                        // error, and the detail already went to ILogger where you can match it by this id.
+                        Activity.Current?.Id is { Length: > 0 } traceId
+                            ? P.Class("small")[
+                                "Reference: ",
+                                Code[traceId]
+                            ]
+                            : null,
+                        NavLink.Href(HomeRoutes.HomePage())["Back to the app"]
+                    ]
+                ];
+        """.Trim('\n');
 
     // ---- --push template files ----
 
@@ -933,7 +970,7 @@ internal static partial class ProjectGenerator
 
         [Route("login")]
         [AllowAnonymous]
-        public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
+        public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
         {
             private readonly LoginModel _model = new();
             private string? _error;
@@ -941,16 +978,16 @@ internal static partial class ProjectGenerator
             [QueryParam] public string? ReturnUrl { get; set; }
 
             protected override Component? Render() =>
-                Div(Class: "welcome-card")[
-                    H1()["Sign in"],
-                    _error is null ? null : Div(Style: "color:#b00020")[_error],
+                Div.Class("welcome-card")[
+                    H1["Sign in"],
+                    _error is null ? null : Div.Style("color:#b00020")[_error],
                     // Async submit uses the generated OnValidSubmitAsync sibling (like Button's OnClickAsync).
-                    Form(_model, OnValidSubmitAsync: SubmitAsync)[
-                        Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],
-                        Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: InputType.Password)],
-                        Button("submit")["Sign in"]
+                    Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+                        Div[Label.For("username")["Username"], Input.Bind(() => _model.Username).Id("username")],
+                        Div[Label.For("password")["Password"], Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)],
+                        Button.Type("submit")["Sign in"]
                     ],
-                    P()["Try alice / password (user) or root / password (admin)."]
+                    P["Try alice / password (user) or root / password (admin)."]
                 ];
 
             private async Task SubmitAsync(LoginModel m)
@@ -984,23 +1021,23 @@ internal static partial class ProjectGenerator
         // manual Changed subscription.
         [Route("members")]
         [Authorize]
-        public sealed class MembersPage : Component
+        public sealed partial class MembersPage : Component
         {
             protected override Component? Render() =>
-                Div(Class: "welcome-card")[
-                    Authorize(
-                        NotAuthorized: P()["Please ", NavLink(Href: Routes.LoginPage())["sign in"], "."])[MemberContent()]
+                Div.Class("welcome-card")[
+                    Authorize
+                        .NotAuthorized(P["Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
                 ];
         }
 
-        public sealed class MemberContent(IAuthSignIn auth, IUserProvider userProvider) : Component
+        public sealed partial class MemberContent(IAuthSignIn auth, IUserProvider userProvider) : Component
         {
             protected override Component? Render() =>
                 [
-                    H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
-                    Authorize(Roles: ["admin"])[
-                        Div(Style: "color:#7a5c00")["🔑 You have admin access."]],
-                    Button(OnClickAsync: () => auth.SignOutAsync(returnUrl: "/login"))["Sign out"]
+                    H1[$"Welcome, {userProvider.Current.Identity?.Name}"],
+                    Authorize.Roles(["admin"])[
+                        Div.Style("color:#7a5c00")["🔑 You have admin access."]],
+                    Button.OnClickAsync(() => auth.SignOutAsync(returnUrl: "/login"))["Sign out"]
                 ];
         }
 

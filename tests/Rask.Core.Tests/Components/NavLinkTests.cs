@@ -7,28 +7,33 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Components;
 
-public class NavLinkTests
+public partial class NavLinkTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags_WithDataRaskNav() =>
-        Assert.Equal("<a data-rask-nav></a>", NavLink().ToHtml());
+        Assert.Equal("<a data-rask-nav></a>", NavLink.ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
         Assert.Equal(
             "<a id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" href=\"/users/42\" data-rask-nav></a>",
-            NavLink("/users/42", Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" })
+            NavLink
+                .Href("/users/42")
+                .Id("i")
+                .Class("c")
+                .Style("s")
+                .Data(new Dictionary<string, string?> { ["k"] = "v" })
                 .ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<a data-rask-nav>&lt;x&gt;</a>", NavLink()["<x>"].ToHtml());
+        Assert.Equal("<a data-rask-nav>&lt;x&gt;</a>", NavLink["<x>"].ToHtml());
 
     [Fact]
     public void Render_HrefRouteUrl_RendersFullUrlWithQuery() => Assert.Equal(
-        "<a href=\"/users?id=7\" data-rask-nav></a>", NavLink(new RouteUrl("/users", "?id=7")).ToHtml());
+        "<a href=\"/users?id=7\" data-rask-nav></a>", NavLink.Href(new RouteUrl("/users", "?id=7")).ToHtml());
 
     private static IDisposable BeginRoute(string path, string? rawQuery = null)
     {
@@ -49,7 +54,7 @@ public class NavLinkTests
         }
 
         var services = new ServiceCollection().AddSingleton(state).BuildServiceProvider();
-        return LiveRenderContext.Begin(new StubComponent(Span()), services);
+        return LiveRenderContext.Begin(new StubComponent(Span), services);
     }
 
     [Fact]
@@ -58,7 +63,7 @@ public class NavLinkTests
         using var _ = BeginRoute("/dashboard");
         Assert.Equal(
             "<a class=\"nav-link active\" href=\"/dashboard\" data-rask-nav></a>",
-            NavLink("/dashboard", Class: "nav-link").ToHtml());
+            NavLink.Href("/dashboard").Class("nav-link").ToHtml());
     }
 
     [Fact]
@@ -67,7 +72,7 @@ public class NavLinkTests
         using var _ = BeginRoute("/other");
         Assert.Equal(
             "<a class=\"nav-link\" href=\"/dashboard\" data-rask-nav></a>",
-            NavLink("/dashboard", Class: "nav-link").ToHtml());
+            NavLink.Href("/dashboard").Class("nav-link").ToHtml());
     }
 
     [Fact]
@@ -76,49 +81,49 @@ public class NavLinkTests
         using var _ = BeginRoute("/dashboard");
         Assert.Equal(
             "<a class=\"active\" href=\"/dashboard\" data-rask-nav></a>",
-            NavLink("/dashboard").ToHtml());
+            NavLink.Href("/dashboard").ToHtml());
     }
 
     [Fact]
     public void Render_TrailingSlashEquivalence_StillActive()
     {
         using var _ = BeginRoute("/dashboard/");
-        Assert.Contains("class=\"active\"", NavLink("/dashboard").ToHtml());
+        Assert.Contains("class=\"active\"", NavLink.Href("/dashboard").ToHtml());
     }
 
     [Fact]
     public void Render_CaseInsensitivePath_StillActive()
     {
         using var _ = BeginRoute("/Dashboard");
-        Assert.Contains("class=\"active\"", NavLink("/dashboard").ToHtml());
+        Assert.Contains("class=\"active\"", NavLink.Href("/dashboard").ToHtml());
     }
 
     [Fact]
     public void Render_ExactMatch_QuerySubset_IsActive()
     {
         using var _ = BeginRoute("/dashboard", "?tab=billing&extra=1");
-        Assert.Contains("class=\"active\"", NavLink(new RouteUrl("/dashboard", "?tab=billing")).ToHtml());
+        Assert.Contains("class=\"active\"", NavLink.Href(new RouteUrl("/dashboard", "?tab=billing")).ToHtml());
     }
 
     [Fact]
     public void Render_ExactMatch_QueryMissing_NotActive()
     {
         using var _ = BeginRoute("/dashboard", "?tab=other");
-        Assert.DoesNotContain("active", NavLink(new RouteUrl("/dashboard", "?tab=billing")).ToHtml());
+        Assert.DoesNotContain("active", NavLink.Href(new RouteUrl("/dashboard", "?tab=billing")).ToHtml());
     }
 
     [Fact]
     public void Render_PrefixMatch_BoundaryAware_DashIsNotDashboard()
     {
         using var _ = BeginRoute("/dashboard");
-        Assert.DoesNotContain("active", NavLink("/dash", ActiveMatch: NavLinkMatch.Prefix).ToHtml());
+        Assert.DoesNotContain("active", NavLink.Href("/dash").ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
     [Fact]
     public void Render_PrefixMatch_NestedPath_IsActive()
     {
         using var _ = BeginRoute("/dashboard/settings");
-        Assert.Contains("class=\"active\"", NavLink("/dashboard", ActiveMatch: NavLinkMatch.Prefix).ToHtml());
+        Assert.Contains("class=\"active\"", NavLink.Href("/dashboard").ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
     [Fact]
@@ -126,7 +131,7 @@ public class NavLinkTests
     {
         using var _ = BeginRoute("/dashboard", "?tab=other");
         Assert.Contains("class=\"active\"",
-            NavLink(new RouteUrl("/dashboard", "?tab=billing"), ActiveMatch: NavLinkMatch.Prefix).ToHtml());
+            NavLink.Href(new RouteUrl("/dashboard", "?tab=billing")).ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
     [Fact]
@@ -134,7 +139,7 @@ public class NavLinkTests
     {
         using var _ = BeginRoute("/dashboard");
         Assert.Contains("class=\"nav-pill is-current\"",
-            NavLink("/dashboard", Class: "nav-pill", ActiveClass: "is-current").ToHtml());
+            NavLink.Href("/dashboard").Class("nav-pill").ActiveClass("is-current").ToHtml());
     }
 
     [Fact]
@@ -145,7 +150,7 @@ public class NavLinkTests
         using var _ = BeginRoute("/realtime/ETH");
         Assert.Equal(
             "<a class=\"active\" href=\"/realtime/BTC\" data-rask-nav></a>",
-            NavLink("/realtime/BTC", Match: "/realtime", ActiveMatch: NavLinkMatch.Prefix).ToHtml());
+            NavLink.Href("/realtime/BTC").Match("/realtime").ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
     [Fact]
@@ -153,7 +158,7 @@ public class NavLinkTests
     {
         using var _ = BeginRoute("/other");
         Assert.DoesNotContain("active",
-            NavLink("/realtime/BTC", Match: "/realtime", ActiveMatch: NavLinkMatch.Prefix).ToHtml());
+            NavLink.Href("/realtime/BTC").Match("/realtime").ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
     [Fact]
@@ -161,17 +166,17 @@ public class NavLinkTests
     {
         Assert.Equal(
             "<a class=\"nav-link\" href=\"/dashboard\" data-rask-nav></a>",
-            NavLink("/dashboard", Class: "nav-link").ToHtml());
+            NavLink.Href("/dashboard").Class("nav-link").ToHtml());
     }
 
     [Fact]
     public void Render_LiveRenderContext_NoRouteStateRegistered_NoActiveClass()
     {
         var services = RenderHarness.EmptyServices();
-        using var _ = LiveRenderContext.Begin(new StubComponent(Span()), services);
+        using var _ = LiveRenderContext.Begin(new StubComponent(Span), services);
 
         Assert.Equal(
             "<a class=\"nav-link\" href=\"/dashboard\" data-rask-nav></a>",
-            NavLink("/dashboard", Class: "nav-link").ToHtml());
+            NavLink.Href("/dashboard").Class("nav-link").ToHtml());
     }
 }

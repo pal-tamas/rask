@@ -20,7 +20,7 @@ rask new Shop --data --database postgres    # PostgreSQL
 rask new Shop --data --database sqlserver   # SQL Server
 ```
 
-You choose once. Everything after that — `rask generate feature`, `rask db`, `rask deploy` — reads the
+You choose once. Everything after that — your feature code, `rask db`, `rask deploy` — reads the
 provider off the project's package references, so there is no second setting to keep in step.
 
 To wire it by hand, swap the one call:
@@ -147,7 +147,7 @@ says exactly these two commands rather than printing a stack trace.
 
 ## Testing
 
-`rask generate feature --tests` writes a persistence test that round-trips the entity through a real
+A persistence test round-trips an entity through a real
 database. On SQLite it uses a temp file. On PostgreSQL it creates and drops a uniquely-named database on
 the same local server the app's default connection string points at, so `dotnet test` works against a
 local PostgreSQL with no extra setup. Point it elsewhere — CI, say — with `RASK_TEST_DB`.

@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 //
 // A clickable row is a pointer shortcut, never the only way in. The Open button is the real, keyboard-reachable
 // control, and the row click just duplicates it.
-public sealed class BsDataGridRowDemo : Component
+public sealed partial class BsDataGridRowDemo : Component
 {
     private sealed record Invoice(string Number, string Customer, decimal Amount, int DaysOverdue);
 
@@ -24,24 +24,13 @@ public sealed class BsDataGridRowDemo : Component
     private string? _opened;
 
     protected override Component? Render() =>
-        Div(Id: "grid-row-demo")[
+        Div.Id("grid-row-demo")[
             _opened is not null
-                ? BsAlert(Id: "grid-row-opened", Color: BsColor.Info, Class: Margin.Bottom(3))[$"Opened {_opened}"]
+                ? BsAlert.Id("grid-row-opened").Color(BsColor.Info).Class(Margin.Bottom(3))[$"Opened {_opened}"]
                 : null,
-            BsDataGrid(
-                Id: "bs-grid-row",
-                Data: Invoices,
-                RowKey: i => i.Number,
-                OnRowClick: i => _opened = i.Number,
-                // Overdue invoices tint red, the worst ones louder. Returning null leaves the row unstyled.
-                RowClass: i => i.DaysOverdue switch
-                {
-                    0 => null,
-                    < 30 => "table-warning",
-                    _ => "table-danger",
-                },
-                Columns:
-                [
+            BsDataGrid
+                .Data(Invoices)
+                .Columns([
                     new BsColumn<Invoice> { Title = "Invoice", Value = i => i.Number, Sortable = true },
                     new BsColumn<Invoice> { Title = "Customer", Value = i => i.Customer, Sortable = true },
                     new BsColumn<Invoice>
@@ -53,8 +42,21 @@ public sealed class BsDataGridRowDemo : Component
                     new BsColumn<Invoice>
                     {
                         Title = "", Class = Txt.End(),
-                        Template = i => BsButton(Id: $"open-{i.Number}", Color: BsColor.Primary, Outline: true,
-                            Size: BsSize.Sm, OnClick: () => _opened = i.Number)["Open"],
+                        Template = i => BsButton
+                            .Id($"open-{i.Number}")
+                            .Color(BsColor.Primary)
+                            .Outline(true)
+                            .Size(BsSize.Sm)
+                            .OnClick(() => _opened = i.Number)["Open"],
                     },
-                ])];
+                ])
+                .Id("bs-grid-row")
+                .RowKey(i => i.Number)
+                .OnRowClick(i => _opened = i.Number)
+                .RowClass(i => i.DaysOverdue switch
+                {
+                    0 => null,
+                    < 30 => "table-warning",
+                    _ => "table-danger",
+                })];
 }

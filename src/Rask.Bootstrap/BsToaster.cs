@@ -15,7 +15,7 @@ namespace Rask.Bootstrap;
 // The dismiss callback handed to the template removes the message from the outlet by Id; wiring it to
 // BsToast.OnClose covers both the × button and the auto-hide timer. ToastOutlet.Dismiss re-renders the
 // outlet itself, so no manual StateHasChanged is needed here.
-public sealed class BsToaster : Component
+public sealed partial class BsToaster : Component
 {
     // Bootstrap position utilities placing the fixed toast-container. Default: top-right, the
     // conventional toast corner. Override for e.g. "bottom-0 start-0".
@@ -25,17 +25,18 @@ public sealed class BsToaster : Component
     public int? AutoHideMs { get; set; } = 5000;
 
     protected override Component? Render() =>
-        ToastOutlet(Template: (messages, dismiss) =>
-            Div(Class: $"toast-container position-fixed {Placement} p-3")[
-                messages.Select(m => (Component)BsToast(
-                    Id: m.Id,
-                    Title: m.Title,
-                    Message: m.Message,
-                    Color: ToColor(m.Level),
-                    Icon: ToIcon(m.Level),
-                    AutoHideMs: AutoHideMs,
-                    OnClose: id => dismiss(id),
-                    Key: m.Id.ToString()))
+        ToastOutlet
+            .Template((messages, dismiss) =>
+            Div.Class($"toast-container position-fixed {Placement} p-3")[
+                messages.Select(m => (Component)BsToast
+                    .Id(m.Id)
+                    .Message(m.Message)
+                    .Title(m.Title)
+                    .Color(ToColor(m.Level))
+                    .Icon(ToIcon(m.Level))
+                    .AutoHideMs(AutoHideMs)
+                    .OnClose(id => dismiss(id))
+                    .Key(m.Id.ToString()))
             ]);
 
     private static BsColor ToColor(ToastLevel level) => level switch

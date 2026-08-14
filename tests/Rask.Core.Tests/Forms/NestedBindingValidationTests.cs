@@ -7,7 +7,7 @@ using Rask.Core.Forms;
 namespace Rask.Core.Tests.Forms;
 
 // Pins that per-keystroke / on-blur validation fires for nested-model bindings (e.g.
-// Input(() => model.Address.Street)) the same way it does for root-model bindings.
+// Input.Bind(() => model.Address.Street)) the same way it does for root-model bindings.
 //
 // The contract: Form.Model (and Form.Context) eagerly walk the model graph at setter time
 // and register the form's EditContext under every sub-object's ObjectKey via
@@ -17,7 +17,7 @@ namespace Rask.Core.Tests.Forms;
 // NotifyFieldChanged/ValidateField calls land in a different context than the validators
 // (which self-register into EditContextScope.Current during Render) and ValidationMessage
 // (which reads EditContextScope.Current). The pre-walk closes that gap.
-public class NestedBindingValidationTests
+public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task InlineValidate_NestedField_FiresOnChange()
@@ -25,9 +25,9 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
-            Input(() => p.Address.Street,
-                v =>
+        var page = RaskTest.Render(() => Form.Model(p)[
+            Input.Bind(() => p.Address.Street)
+                .Validate(v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
@@ -50,9 +50,9 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
-            Input(() => p.Address.Street,
-                v =>
+        var page = RaskTest.Render(() => Form.Model(p)[
+            Input.Bind(() => p.Address.Street)
+                .Validate(v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
@@ -78,9 +78,9 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
-            Input(() => p.Address.Street,
-                _ => new[] { "always-fail" }),
+        var page = RaskTest.Render(() => Form.Model(p)[
+            Input.Bind(() => p.Address.Street)
+                .Validate(_ => new[] { "always-fail" }),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
 
@@ -106,11 +106,11 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         var ctx = new EditContext(p);
 
-        var page = RaskTest.Render(() => Form<Person>(p, Context: ctx)[
-            Input(() => p.Address.Street,
-                _ => new[] { "model-plus-context" }),
-            ValidationMessage(() => p.Address.Street,
-                msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
+        var page = RaskTest.Render(() => Form.Model(p).Context(ctx)[
+            Input.Bind(() => p.Address.Street)
+                .Validate(_ => new[] { "model-plus-context" }),
+            ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
+                .For(() => p.Address.Street)
         ]);
 
         var initial = page.Render();
@@ -132,9 +132,9 @@ public class NestedBindingValidationTests
         var ctx = new EditContext(p);
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(Context: ctx)[
-            Input(() => p.Address.Street,
-                _ => new[] { "nested-explicit-ctx" }),
+        var page = RaskTest.Render(() => Form.Model(p).Context(ctx)[
+            Input.Bind(() => p.Address.Street)
+                .Validate(_ => new[] { "nested-explicit-ctx" }),
             RaskTest.EditContextProbe(c => captured = c)
         ]);
 
@@ -154,9 +154,9 @@ public class NestedBindingValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "old" } };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
-            Input(() => p.Address.Street,
-                v =>
+        var page = RaskTest.Render(() => Form.Model(p)[
+            Input.Bind(() => p.Address.Street)
+                .Validate(v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
@@ -184,7 +184,7 @@ public class NestedBindingValidationTests
         // the failure is render-pipeline or Server-WS-pipeline.
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
-        var page = RaskTest.Render(() => Form<StorefrontModel>(m)[
+        var page = RaskTest.Render(() => Form.Model(m)[
             Input(() => m.Address.PostalCode,
                 async (v, ct) =>
                 {
@@ -201,8 +201,8 @@ public class NestedBindingValidationTests
                     await Task.Delay(50, ct).ConfigureAwait(false);
                     return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
-            ValidationMessage(() => m.Address.PostalCode,
-                msgs => [.. msgs.Select((s, i) => Div(Class: "err", Key: i)[s])])
+            ValidationMessage.Template(msgs => [.. msgs.Select((s, i) => Div.Class("err").Key(i)[s])])
+                .For(() => m.Address.PostalCode)
         ]);
 
         var initial = page.Render();
@@ -234,7 +234,7 @@ public class NestedBindingValidationTests
         // see error clear after async settles".
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
-        var page = RaskTest.Render(() => Form(m)[
+        var page = RaskTest.Render(() => Form.Model(m)[
             Input(() => m.Address.PostalCode,
                 async (v, ct) =>
                 {
@@ -251,8 +251,8 @@ public class NestedBindingValidationTests
                     await Task.Delay(20, ct).ConfigureAwait(false);
                     return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
-            ValidationMessage(() => m.Address.PostalCode,
-                msgs => [.. msgs.Select((s, i) => Div(Class: "err", Key: i)[s])])
+            ValidationMessage.Template(msgs => [.. msgs.Select((s, i) => Div.Class("err").Key(i)[s])])
+                .For(() => m.Address.PostalCode)
         ]);
 
         var initial = page.Render();
@@ -283,11 +283,9 @@ public class NestedBindingValidationTests
         var m = new StorefrontModel { CustomerName = "", Address = new StorefrontAddress { PostalCode = "" } };
         string? submitted = null;
 
-        var page = RaskTest.Render(() => Form(
-            m,
-            mm => submitted = $"Charged to {mm.CustomerName}")[
-            Input(() => m.CustomerName,
-                v => string.IsNullOrWhiteSpace(v) ? new[] { "Name required" } : Array.Empty<string>()),
+        var page = RaskTest.Render(() => Form.Model(m).OnValidSubmit(mm => submitted = $"Charged to {mm.CustomerName}")[
+            Input.Bind(() => m.CustomerName)
+                .Validate(v => string.IsNullOrWhiteSpace(v) ? new[] { "Name required" } : Array.Empty<string>()),
             Input(() => m.Address.PostalCode,
                 async (v, ct) =>
                 {
@@ -327,12 +325,12 @@ public class NestedBindingValidationTests
         // to during the re-render that follows the event dispatch.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
-        var page = RaskTest.Render(() => Form(p)[
-            Input(() => p.Address.Street,
-                v =>
+        var page = RaskTest.Render(() => Form.Model(p)[
+            Input.Bind(() => p.Address.Street)
+                .Validate(v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
-            ValidationMessage(() => p.Address.Street,
-                msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
+            ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
+                .For(() => p.Address.Street)
         ]);
 
         var initial = page.Render();
@@ -352,12 +350,12 @@ public class NestedBindingValidationTests
         // makes the value valid must clear the message in the next render's HTML.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
-        var page = RaskTest.Render(() => Form(p)[
-            Input(() => p.Address.Street,
-                v =>
+        var page = RaskTest.Render(() => Form.Model(p)[
+            Input.Bind(() => p.Address.Street)
+                .Validate(v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
-            ValidationMessage(() => p.Address.Street,
-                msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
+            ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
+                .For(() => p.Address.Street)
         ]);
 
         var initial = page.Render();
@@ -383,9 +381,9 @@ public class NestedBindingValidationTests
         };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form(p)[
-            Input(() => p.Address.Postal.Code,
-                v =>
+        var page = RaskTest.Render(() => Form.Model(p)[
+            Input.Bind(() => p.Address.Postal.Code)
+                .Validate(v =>
                     string.IsNullOrEmpty(v) ? new[] { "postal required" } : Array.Empty<string>()),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
@@ -414,7 +412,7 @@ public class NestedBindingValidationTests
         public Address Address { get; set; } = new();
     }
 
-    private sealed class Address
+    private sealed new class Address
     {
         public string Street { get; set; } = "";
         public PostalInfo? Postal { get; set; }

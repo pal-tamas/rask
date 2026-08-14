@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.SQLite.Crdt.Sync</PackageId>
+    <Title>Rask.SQLite.Crdt.Sync — share a CRDT SQLite database through a bucket, with no server</Title>
+    <Description>Ships Rask.SQLite.Crdt's change feed to an object-storage bucket, so several devices sharing one SQLite database converge with nothing between them. Each device writes only under its own prefix, so no two clients ever write the same key and there is nothing to lock or retry; peers are found with a grouped listing and read forward from a per-peer watermark, so a sync costs what changed rather than what exists. Offline is the normal case: the database itself is the queue, so a failed sync loses nothing and losing the sync state costs only re-reading, never data.</Description>
+    <PackageTags>sqlite crdt cr-sqlite sync offline-first local-first object-storage s3 azure-blob dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.SQLite.Crdt.Sync.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.SQLite.Crdt\Rask.SQLite.Crdt.csproj"/>
+    <ProjectReference Include="..\Rask.ObjectStore\Rask.ObjectStore.csproj"/>
+  </ItemGroup>
+
+</Project>

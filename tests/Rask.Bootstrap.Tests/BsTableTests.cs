@@ -6,15 +6,16 @@ namespace Rask.Bootstrap.Tests;
 // Rendered-HTML assertions for BsTable. It had no coverage of its own until the scroll/sticky/aria surface
 // landed, so the style toggles are pinned here too: BsDataGrid renders through BsTable, and the CLI's
 // scaffolded list screens emit it verbatim, so a change in this markup is felt in both.
-public class BsTableTests
+public partial class BsTableTests : global::Rask.Core.RaskMarkup
 {
-    private static Component Body() => Tbody()[Tr()[Td()["cell"]]];
+    // `new`: hides the <body> tag entry the markup host brings in (CS0108).
+    private static new Component Body() => Tbody[Tr[Td["cell"]]];
 
     [Fact]
     public void RendersABareTable_WhenNothingIsSet()
     {
         // Responsive defaults to unset here (BsDataGrid is what defaults it to true), so no wrapper.
-        var html = BsTable()[Body()].ToHtml();
+        var html = BsTable[Body()].ToHtml();
 
         Assert.StartsWith("<table class=\"table\">", html, StringComparison.Ordinal);
         Assert.DoesNotContain("table-responsive", html, StringComparison.Ordinal);
@@ -23,8 +24,13 @@ public class BsTableTests
     [Fact]
     public void StyleToggles_MapToTheirBootstrapClasses()
     {
-        var html = BsTable(Striped: true, StripedColumns: true, Bordered: true, Hover: true, Small: true,
-            Color: BsColor.Dark)[Body()].ToHtml();
+        var html = BsTable
+            .Striped(true)
+            .StripedColumns(true)
+            .Bordered(true)
+            .Hover(true)
+            .Small(true)
+            .Color(BsColor.Dark)[Body()].ToHtml();
 
         Assert.Contains("table-striped", html, StringComparison.Ordinal);
         Assert.Contains("table-striped-columns", html, StringComparison.Ordinal);
@@ -37,7 +43,7 @@ public class BsTableTests
     [Fact]
     public void Responsive_WrapsTheTable()
     {
-        var html = BsTable(Responsive: true)[Body()].ToHtml();
+        var html = BsTable.Responsive(true)[Body()].ToHtml();
 
         Assert.StartsWith("<div class=\"table-responsive\"><table class=\"table\">", html, StringComparison.Ordinal);
     }
@@ -47,7 +53,7 @@ public class BsTableTests
     {
         // Documented contract (docs/data-grid.md): Id and Class address the <table>. A second place for them
         // to land is exactly why MaxHeight reuses this wrapper instead of adding one of its own.
-        var html = BsTable(Id: "t1", Class: "mb-0", Responsive: true)[Body()].ToHtml();
+        var html = BsTable.Id("t1").Class("mb-0").Responsive(true)[Body()].ToHtml();
 
         Assert.Contains("<div class=\"table-responsive\"><table id=\"t1\" class=\"table mb-0\">", html,
             StringComparison.Ordinal);
@@ -58,7 +64,7 @@ public class BsTableTests
     {
         // The point of the passthrough: aria-busy has to sit on the content being refetched. On the wrapper it
         // would also enclose any live region rendered beside the table, which defers announcements.
-        var html = BsTable(Responsive: true, Aria: new Dictionary<string, string?> { ["busy"] = "true" })[Body()]
+        var html = BsTable.Responsive(true).Aria(new Dictionary<string, string?> { ["busy"] = "true" })[Body()]
             .ToHtml();
 
         Assert.Contains("<table class=\"table\" aria-busy=\"true\">", html, StringComparison.Ordinal);
@@ -67,7 +73,7 @@ public class BsTableTests
     [Fact]
     public void MaxHeight_BoundsTheWrapper_SoTheBodyScrolls()
     {
-        var html = BsTable(Responsive: true, MaxHeight: "400px")[Body()].ToHtml();
+        var html = BsTable.Responsive(true).MaxHeight("400px")[Body()].ToHtml();
 
         Assert.StartsWith("<div class=\"table-responsive\" style=\"max-height:400px\">", html,
             StringComparison.Ordinal);
@@ -77,7 +83,7 @@ public class BsTableTests
     public void MaxHeight_ImpliesTheWrapper_EvenWhenResponsiveIsOff()
     {
         // Without a scroll container the height would just clip the rows, which is never what was meant.
-        var html = BsTable(MaxHeight: "60vh")[Body()].ToHtml();
+        var html = BsTable.MaxHeight("60vh")[Body()].ToHtml();
 
         Assert.StartsWith("<div class=\"table-responsive\" style=\"max-height:60vh\">", html,
             StringComparison.Ordinal);
@@ -88,7 +94,7 @@ public class BsTableTests
     {
         // Two nested .table-responsive divs would give the sticky header the wrong scroll container to
         // resolve against — the inner one, which has no bounded height.
-        var html = BsTable(Responsive: true, MaxHeight: "400px")[Body()].ToHtml();
+        var html = BsTable.Responsive(true).MaxHeight("400px")[Body()].ToHtml();
 
         Assert.Single(Regex.Matches(html, "table-responsive"));
     }
@@ -98,7 +104,7 @@ public class BsTableTests
     {
         // The class is inert on its own; the .bs-table-sticky rule needs the bounded container MaxHeight
         // renders. Pinning them together here is what documents the pairing in code.
-        var html = BsTable(StickyHeader: true, MaxHeight: "400px")[Body()].ToHtml();
+        var html = BsTable.StickyHeader(true).MaxHeight("400px")[Body()].ToHtml();
 
         Assert.Contains("<table class=\"table bs-table-sticky\">", html, StringComparison.Ordinal);
         Assert.Contains("style=\"max-height:400px\"", html, StringComparison.Ordinal);
@@ -115,7 +121,9 @@ public class BsTableTests
         // block, above the inherited pass-throughs. A required parameter (a non-nullable property with no
         // initializer, RASK001) would also be hoisted ahead of everything, which is why the new trio is
         // nullable.
-        var names = typeof(Generated).GetMethods().Single(m => m.Name == "BsTable")
+        // Fully qualified: this assembly declares components of its own now, so the generator emits a
+        // `Rask.Bootstrap.Tests.Generated` too — and a bare `Generated` binds to that nearer one.
+        var names = typeof(Rask.Bootstrap.Generated).GetMethods().Single(m => m.Name == "BsTable")
             .GetParameters();
 
         Assert.Equal(

@@ -8,12 +8,12 @@ namespace Rask.Example.EfCore.Features.Mail.SendMail;
 // directory as an .eml file (no SMTP server needed), so the send returns instantly and the user sees a
 // confirmation while delivery happens off the request thread.
 [Route("mail")]
-public sealed class SendMailPage(IMailQueue mail) : Component
+public sealed partial class SendMailPage(IMailQueue mail) : Component
 {
     private readonly SendMailForm _form = new();
     private string? _queuedFor;
 
-    protected override Component? Head => Title()["Send email — Rask EF Core"];
+    protected override Component? HeadAssets => Title["Send email — Rask EF Core"];
 
     private async Task SubmitAsync(SendMailForm form)
     {
@@ -22,42 +22,42 @@ public sealed class SendMailPage(IMailQueue mail) : Component
         await mail.SendAsync(Email
             .To(form.To)
             .Subject(form.Subject)
-            .Body(P()[form.Body]));
+            .Body(P[form.Body]));
 
         _queuedFor = form.To;
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
-            Div(Class: "card-body")[
-                H1(Class: "h4 mb-3")["Send email"],
-                P(Class: "text-secondary small")[
+        Div.Class("card shadow-sm border-0 mx-auto").Style("max-width: 32rem")[
+            Div.Class("card-body")[
+                H1.Class("h4 mb-3")["Send email"],
+                P.Class("text-secondary small")[
                     "Queued on the app's own SQLite database and delivered off the request thread. ",
                     "With no SMTP configured this demo writes each message to a pickup directory as an ",
-                    Code()[".eml"], " file."
+                    Code[".eml"], " file."
                 ],
                 _queuedFor is { } to
-                    ? Div(Class: "alert alert-success", Id: "mail-sent")[
-                        I(Class: "bi bi-check2-circle me-1"),
-                        "Queued for ", Strong()[to], " — the processor will deliver it shortly."
+                    ? Div.Class("alert alert-success").Id("mail-sent")[
+                        I.Class("bi bi-check2-circle me-1"),
+                        "Queued for ", Strong[to], " — the processor will deliver it shortly."
                     ]
                     : null,
-                Form(_form, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
-                    Div()[
-                        Label("mail-to", Class: "form-label small mb-1")["To"],
-                        Input(() => _form.To, Id: "mail-to", Class: "form-control", Placeholder: "jane@example.com")
+                Form.Model(_form).OnValidSubmitAsync(SubmitAsync).Class("vstack gap-3")[
+                    Div[
+                        Label.For("mail-to").Class("form-label small mb-1")["To"],
+                        Input.Bind(() => _form.To).Id("mail-to").Class("form-control").Placeholder("jane@example.com")
                     ],
-                    Div()[
-                        Label("mail-subject", Class: "form-label small mb-1")["Subject"],
-                        Input(() => _form.Subject, Id: "mail-subject", Class: "form-control")
+                    Div[
+                        Label.For("mail-subject").Class("form-label small mb-1")["Subject"],
+                        Input.Bind(() => _form.Subject).Id("mail-subject").Class("form-control")
                     ],
-                    Div()[
-                        Label("mail-body", Class: "form-label small mb-1")["Body"],
-                        Input(() => _form.Body, Id: "mail-body", Class: "form-control")
+                    Div[
+                        Label.For("mail-body").Class("form-label small mb-1")["Body"],
+                        Input.Bind(() => _form.Body).Id("mail-body").Class("form-control")
                     ],
-                    Div(Class: "d-flex justify-content-end pt-2")[
-                        Button("submit", Class: "btn btn-primary", Id: "mail-send")[
-                            I(Class: "bi bi-send me-1"), "Send"
+                    Div.Class("d-flex justify-content-end pt-2")[
+                        Button.Type("submit").Class("btn btn-primary").Id("mail-send")[
+                            I.Class("bi bi-send me-1"), "Send"
                         ]
                     ]
                 ]

@@ -77,6 +77,10 @@ public static class GuideCatalog
             "One Person Framework"),
         new("sqlite", "Production SQLite", "WAL + busy-timeout pragmas, continuous backup, snapshots.",
             "bi-database", "One Person Framework"),
+        new("sqlite-crdt", "Multi-writer SQLite", "Many replicas of one database, merged per column through plain EF Core.",
+            "bi-diagram-3", "One Person Framework"),
+        new("sqlite-crdt-sync", "Sharing a CRDT database", "Several devices, one database, a bucket — and no server between them.",
+            "bi-cloud-arrow-up", "One Person Framework"),
         new("databases", "Choosing a database", "SQLite by default, PostgreSQL when one box isn't enough.",
             "bi-hdd-stack", "One Person Framework"),
         new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.",
@@ -87,6 +91,9 @@ public static class GuideCatalog
             "bi-key", "One Person Framework"),
 
         // ---- Core ----
+        new("building-components", "Building components",
+            "Naming a component and chaining onto it; what a component demands before it exists.",
+            "bi-bricks", "Core"),
         new("elements", "Elements & the DSL", "Primitives, tag factories, universal props, SVG, the element catalog.",
             "bi-code-square", "Core"),
         new("routing", "Routing", "Route attributes, params, nested layouts, type-safe URLs.",
@@ -222,6 +229,7 @@ public static class GuideCatalog
         new("media-devices", "IMediaDevices", "Typed browser API: IMediaDevices.", "bi-plug", "Browser API reference", "apis/media-devices.md"),
         new("media-query", "IMediaQuery", "Typed browser API: IMediaQuery.", "bi-plug", "Browser API reference", "apis/media-query.md"),
         new("media-session", "IMediaSession", "Typed browser API: IMediaSession.", "bi-plug", "Browser API reference", "apis/media-session.md"),
+        new("media-streams", "IMediaStreams", "Typed browser API: IMediaStreams.", "bi-plug", "Browser API reference", "apis/media-streams.md"),
         new("mutation-observer", "IMutationObserver", "Typed browser API: IMutationObserver.", "bi-plug", "Browser API reference", "apis/mutation-observer.md"),
         new("navigator-info", "INavigatorInfo", "Typed browser API: INavigatorInfo.", "bi-plug", "Browser API reference", "apis/navigator-info.md"),
         new("network-info", "INetworkInfo", "Typed browser API: INetworkInfo.", "bi-plug", "Browser API reference", "apis/network-info.md"),
@@ -235,6 +243,7 @@ public static class GuideCatalog
         new("screen-info", "IScreenInfo", "Typed browser API: IScreenInfo.", "bi-plug", "Browser API reference", "apis/screen-info.md"),
         new("screen-orientation", "IScreenOrientation", "Typed browser API: IScreenOrientation.", "bi-plug", "Browser API reference", "apis/screen-orientation.md"),
         new("serial", "ISerial", "Typed browser API: ISerial.", "bi-plug", "Browser API reference", "apis/serial.md"),
+        new("signaling", "ISignaling", "Typed browser API: ISignaling.", "bi-plug", "Browser API reference", "apis/signaling.md"),
         new("share", "IShare", "Typed browser API: IShare.", "bi-plug", "Browser API reference", "apis/share.md"),
         new("speech-recognition", "ISpeechRecognition", "Typed browser API: ISpeechRecognition.", "bi-plug", "Browser API reference", "apis/speech-recognition.md"),
         new("speech-synthesis", "ISpeechSynthesis", "Typed browser API: ISpeechSynthesis.", "bi-plug", "Browser API reference", "apis/speech-synthesis.md"),
@@ -247,6 +256,7 @@ public static class GuideCatalog
         new("web-locks", "IWebLocks", "Typed browser API: IWebLocks.", "bi-plug", "Browser API reference", "apis/web-locks.md"),
         new("web-push", "IWebPush", "Typed browser API: IWebPush.", "bi-plug", "Browser API reference", "apis/web-push.md"),
         new("webauthn", "IWebAuthn", "Typed browser API: IWebAuthn.", "bi-plug", "Browser API reference", "apis/webauthn.md"),
+        new("webrtc", "IWebRtc", "Typed browser API: IWebRtc.", "bi-plug", "Browser API reference", "apis/webrtc.md"),
 
         // ---- Advanced ----
         new("testing", "Testing", "Unit testing with Rask.Testing, event handlers, E2E.",

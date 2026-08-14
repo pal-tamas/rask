@@ -4,7 +4,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-public class LiveRenderContextTests
+public partial class LiveRenderContextTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Current_OutsideOfBegin_IsNull() => Assert.Null(LiveRenderContext.Current);
@@ -12,7 +12,7 @@ public class LiveRenderContextTests
     [Fact]
     public void Current_InsideBegin_IsNonNull_AndDispose_RestoresPrevious()
     {
-        var view = new StubComponent(Span());
+        var view = new StubComponent(Span);
         Assert.Null(LiveRenderContext.Current);
         using (LiveRenderContext.Begin(view))
         {
@@ -25,7 +25,7 @@ public class LiveRenderContextTests
     [Fact]
     public void RegisterHandler_YieldsSequentialIds()
     {
-        var view = new StubComponent(Span());
+        var view = new StubComponent(Span);
         using var ctx = LiveRenderContext.Begin(view);
         var a = () => { };
         var b = () => { };

@@ -5,8 +5,8 @@ namespace Rask.Example.Shared.Features;
 ///     different scoped CSS each get their own content-addressed URL. Two
 ///     <c>&lt;link&gt;</c> tags in <c>&lt;head&gt;</c>, two distinct hashes.
 /// </summary>
-public sealed class TwinA : Component
+public sealed partial class TwinA : Component
 {
     protected override Component? Render() =>
-        Div(Class: "twin-tag")["Twin A — independent hash"];
+        Div.Class("twin-tag")["Twin A — independent hash"];
 }

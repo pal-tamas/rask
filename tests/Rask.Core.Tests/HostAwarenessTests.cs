@@ -137,7 +137,7 @@ public class HostAwarenessTests
             SeenIsWasm = IsWasm;
             SeenIsIOS = IsIOS;
             SeenIsAndroid = IsAndroid;
-            return Text("host-probe");
+            return Text.Value("host-probe");
         }
     }
 }

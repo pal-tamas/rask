@@ -461,7 +461,7 @@ public class CleanSubtreeReplayTests
 // A component that owns its handler (the closure captures `this`), so DelegateOwner resolves the owner
 // to this instance and a dispatch dirty-marks it — the wiring ReplayedHandlerOwnedByItsComponent_* checks
 // survives a frame replay.
-internal sealed class CounterRow : Component
+internal sealed partial class CounterRow : Component
 {
     private int _count;
 

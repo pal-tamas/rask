@@ -1,3 +1,5 @@
+using Rask.Core;
+
 namespace Rask.Native.Components;
 
 /// <summary>
@@ -9,10 +11,10 @@ namespace Rask.Native.Components;
 ///                         Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: OnAdd)]),
 ///                     NativeWebView()[/* shell */]];</code>
 /// </example>
-public sealed class NativeHeaderBar : NativeComponent
+public sealed partial class NativeHeaderBar : NativeComponent
 {
     /// <summary>The bar's title, shown centred (iOS) / leading (Android) per platform convention.</summary>
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
 
     /// <summary>An optional leading item (e.g. a <see cref="NativeBackButton" />), shown at the start of the bar.</summary>
     public NativeBarItem? Leading { get; set; }

@@ -14,6 +14,9 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 /// </summary>
 internal static class FormValidationChurn
 {
+    // `Form` binds a model; this benchmark measures markup, so any object will do.
+    private static readonly object Fields = new();
+
     public const int FieldCount = 10;
 
 #pragma warning disable RASK014
@@ -36,18 +39,18 @@ internal static class FormValidationChurn
             for (var i = 0; i < FieldCount; i++)
             {
                 var fieldClass = _invalid[i] ? "field invalid" : "field";
-                children.Add(C.Div(Class: fieldClass, Id: $"f{i}")[
-                    C.Label()[$"Field {i}"],
-                    C.Input(InputType.Text, Value: _values[i] ?? string.Empty),
+                children.Add(Div.Class(fieldClass).Id($"f{i}")[
+                    Label[$"Field {i}"],
+                    Input.Value(_values[i] ?? string.Empty).Type(InputType.Text),
                     _invalid[i]
-                        ? C.Div(Class: "validation-msg")["required"]
-                        : C.Div(Class: "validation-msg")
+                        ? Div.Class("validation-msg")["required"]
+                        : Div.Class("validation-msg")
                 ]);
             }
 
-            children.Add(C.Button("submit")["Save"]);
+            children.Add(Button.Type("submit")["Save"]);
 
-            return C.Form()[children];
+            return Form.Model(Fields)[children];
         }
     }
 

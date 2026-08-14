@@ -28,10 +28,19 @@ public interface IFormControl<T>
 
     // Controlled mode — the parent owns Value and is notified of changes.
     T? Value { get; set; }
-    Callback<T>? OnChange { get; set; }
-    CallbackAsync<T>? OnChangeAsync { get; set; }
+    Action<T>? OnChange { get; set; }
+    Func<T, Task>? OnChangeAsync { get; set; }
 }
 ```
+
+All six are ordinary delegates, read back and called the way any delegate is — `Validate?.Invoke(v)`,
+`OnChange?.Invoke(v)`, `await (OnChangeAsync?.Invoke(v) ?? Task.CompletedTask)`.
+
+Every one of those properties is an ordinary delegate — `Validate<T>`, `Action<T>`, `Func<T, Task>` —
+declared exactly as you would declare it anywhere else. They used to need a carrier: while a chain's
+receiver was the control itself, a delegate-typed property was *invocable*, so `.Validate(rule)` bound to
+the property rather than to the setter of the same name. The chain receives on `Build<TComponent>` now,
+so there is nothing in the way and nothing to wrap.
 
 You declare those nine properties (plus your own display props), implement `Render`, and the generator
 emits **two factories**:
@@ -55,16 +64,17 @@ using Rask.Core.Forms;
 
 namespace MyApp.Controls;
 
-public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
+public sealed partial class SegmentedControl<TValue> : Component, IFormControl<TValue>
 {
     public required IEnumerable<TValue> Options { get; set; }
+    // A plain delegate, like every callback and template on the surface.
     public Func<TValue, Component>? OptionLabel { get; set; }
     public string? Class { get; set; }
 
     // IFormControl<TValue> — controlled mode.
     public TValue? Value { get; set; }
-    public Callback<TValue>? OnChange { get; set; }
-    public CallbackAsync<TValue>? OnChangeAsync { get; set; }
+    public Action<TValue>? OnChange { get; set; }
+    public Func<TValue, Task>? OnChangeAsync { get; set; }
 
     // IFormControl<TValue> — bound mode.
     public Expression<Func<TValue>>? Bind { get; set; }
@@ -101,20 +111,16 @@ public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
         {
             var captured = option;
             var active = current is not null && comparer.Equals(captured, current);
-            buttons.Add(Button(
-                Type: "button",
-                Class: active ? "btn btn-primary" : "btn btn-outline-primary",
-                OnClickAsync: () => SelectAsync(acc, ctx, fid, captured),
-                Key: i++)[OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? ""]);
+            buttons.Add(Button.Type("button").Class(active ? "btn btn-primary" : "btn btn-outline-primary").OnClickAsync(() => SelectAsync(acc, ctx, fid, captured)).Key(i++)[OptionLabel is { } label ? label(option) : option?.ToString() ?? ""]);
         }
 
-        var children = new List<Component> { Div(Class: "btn-group")[buttons] };
+        var children = new List<Component> { Div.Class("btn-group")[buttons] };
         if (Bind is not null)
         {
-            children.Add(ValidationMessage(Bind, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]]));
+            children.Add(ValidationMessage(Bind, msgs => Div.Class("invalid-feedback d-block")[msgs[0]]));
         }
 
-        return Div(Class: Class ?? "segmented")[children];
+        return Div.Class(Class ?? "segmented")[children];
     }
 
     private async Task SelectAsync(
@@ -157,9 +163,9 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 |---|---|
 | `Validator` | `(Delegate?)Validate ?? ValidateAsync` — the single delegate the `EditContext` dispatches |
 | `RegisterValidator(accessor, ctx)` | `ctx?.RegisterFieldValidator(acc.Field, Validator, () => acc.Getter())` |
-| `InvokeAfterBindAsync(value)` | `AfterBind?.Invoke(v); if (AfterBindAsync is not null) await AfterBindAsync(v);` |
-| `InvokeOnChangeAsync(value)` | `OnChange?.Invoke(v); if (OnChangeAsync is not null) await OnChangeAsync(v);` |
-| `ControlledChangeHandler()` | a `Callback<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChangeAsync` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
+| `InvokeAfterBindAsync(value)` | `AfterBind?.Invoke(v); if (AfterBindAsync is { } h) await h(v);` |
+| `InvokeOnChangeAsync(value)` | `OnChange?.Invoke(v); await (OnChangeAsync?.InvokeAsync(v) ?? Task.CompletedTask);` |
+| `ControlledChangeHandler()` | an `Action<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChangeAsync` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
 
 `RegisterValidator` is safe (and required) to call **every render** — passing the collapsed validator each
 time also clears a stale rule when the consumer drops `Validate`.
@@ -221,7 +227,7 @@ for state the control *itself* owns.
 
 ## 7. Checklist
 
-1. `sealed class MyControl<T> : Component, IFormControl<T>` — declare the nine interface properties + your
+1. `sealed partial class MyControl<T> : Component, IFormControl<T>` — declare the nine interface properties + your
    display props.
 2. In `Render`: in bound mode `ExpressionAccessor.Parse(Bind)` → `ResolveBindingContext` →
    `((IFormControl<T>)this).RegisterValidator(acc, ctx)`; read the current value from the accessor (bound) or

@@ -6,24 +6,34 @@ namespace Rask.Example.Shared.Features;
 ///     <see cref="IPermissions" /> — query a feature's permission state (granted/denied/prompt) before
 ///     triggering it. Pairs with <see cref="IGeolocation" /> / <see cref="IClipboard" />.
 /// </summary>
-public sealed class PermissionsDemo(IPermissions permissions) : Component
+public sealed partial class PermissionsDemo(IPermissions permissions) : Component
 {
     private string? _geo;
     private string? _clip;
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
-                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "perm-geo", OnClickAsync: QueryGeo)[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                    BsButton
+                        .Color(BsColor.Primary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("perm-geo")
+                        .OnClickAsync(QueryGeo)[
                         "Query geolocation"],
-                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "perm-clip", OnClickAsync: QueryClipboard)[
+                    BsButton
+                        .Color(BsColor.Primary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("perm-clip")
+                        .OnClickAsync(QueryClipboard)[
                         "Query clipboard-read"]
                 ],
-                Div(Class: "small text-secondary")["geolocation: ", Code(Id: "perm-geo-value")[_geo ?? "(unknown)"]],
-                Div(Class: "small text-secondary")["clipboard-read: ", Code(Id: "perm-clip-value")[_clip ?? "(unknown)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "perm-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
+                Div.Class("small text-secondary")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
             ]
         ];
 

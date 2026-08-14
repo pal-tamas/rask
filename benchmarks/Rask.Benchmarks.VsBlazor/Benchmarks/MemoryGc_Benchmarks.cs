@@ -220,8 +220,10 @@ public class MemoryGc_AppendDeletePressureBenchmarks : MemoryGcBase
     }
 }
 
+[global::Rask.Core.RaskMarkup]
+
 [MemoryDiagnoser]
-public class MemoryGc_DeepTreeMutationPressureBenchmarks : MemoryGcBase
+public partial class MemoryGc_DeepTreeMutationPressureBenchmarks : MemoryGcBase
 {
     // Same shape as Scale_DeepTreeMutationByDepth at 100-deep — sustained 1,000
     // leaf-text updates per op. Tests the path tracking in FrameDiffer for the
@@ -274,10 +276,10 @@ public class MemoryGc_DeepTreeMutationPressureBenchmarks : MemoryGcBase
         // Mirror the Blazor side exactly: 100-deep div nest wrapping a leaf span,
         // no page shell. Blazor's BuildRenderTree emits no doctype/html/body either.
         var leaf =
-            Generated.Span(Class: "counter")[counter.ToString()];
+            Span.Class("counter")[counter.ToString()];
         for (var i = 0; i < Depth; i++)
         {
-            leaf = Generated.Div(Class: $"d{i}")[leaf];
+            leaf = Div.Class($"d{i}")[leaf];
         }
 
         return leaf;

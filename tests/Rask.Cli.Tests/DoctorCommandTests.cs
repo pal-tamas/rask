@@ -55,18 +55,6 @@ public class DoctorCommandTests
     }
 
     [Fact]
-    public async Task A_corrupt_generate_config_is_reported_too()
-    {
-        var (console, fs, command) = Build();
-        fs.Seed($"{ProjectDir}/.rask/generate.json", "not json at all");
-
-        var exit = await command.ExecuteAsync([], CancellationToken.None);
-
-        Assert.Equal(1, exit);
-        Assert.Contains("generate.json", console.OutText, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task A_healthy_project_passes()
     {
         var (console, fs, command) = Build();

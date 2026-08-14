@@ -17,7 +17,7 @@ public class InternalRouteStringAnalyzerTests
                   namespace Demo;
 
                   [Route("todos")]
-                  public sealed class TodosPage : Component { protected override Component? Render() => null; }
+                  public sealed partial class TodosPage : Component { protected override Component? Render() => null; }
 
                   public sealed class Menu
                   {
@@ -42,7 +42,7 @@ public class InternalRouteStringAnalyzerTests
                   namespace Demo;
 
                   [Route("todos")]
-                  public sealed class TodosPage : Component { protected override Component? Render() => null; }
+                  public sealed partial class TodosPage : Component { protected override Component? Render() => null; }
 
                   public sealed class Menu
                   {
@@ -69,7 +69,7 @@ public class InternalRouteStringAnalyzerTests
 
                   [Route("todos")]
                   [ParentRoute(typeof(Layout))]
-                  public sealed class TodosPage : Component { protected override Component? Render() => null; }
+                  public sealed partial class TodosPage : Component { protected override Component? Render() => null; }
 
                   public sealed class Menu
                   {
@@ -94,7 +94,7 @@ public class InternalRouteStringAnalyzerTests
 
                   [Route("todos")]
                   [Route("todos/new")]
-                  public sealed class TodosPage : Component { protected override Component? Render() => null; }
+                  public sealed partial class TodosPage : Component { protected override Component? Render() => null; }
 
                   public sealed class Menu
                   {
@@ -135,7 +135,7 @@ public class InternalRouteStringAnalyzerTests
                   namespace Demo;
 
                   [Route("todos")]
-                  public sealed class TodosPage : Component { protected override Component? Render() => null; }
+                  public sealed partial class TodosPage : Component { protected override Component? Render() => null; }
 
                   public sealed class Menu
                   {
@@ -155,7 +155,7 @@ public class InternalRouteStringAnalyzerTests
                   namespace Demo;
 
                   [Route("todos")]
-                  public sealed class TodosPage : Component { protected override Component? Render() => null; }
+                  public sealed partial class TodosPage : Component { protected override Component? Render() => null; }
 
                   public sealed class Menu
                   {

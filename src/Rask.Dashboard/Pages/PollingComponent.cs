@@ -27,7 +27,7 @@ namespace Rask.Dashboard.Pages;
 ///   </item>
 /// </list>
 /// </summary>
-public abstract class PollingPanel : Component
+public abstract partial class PollingPanel : Component
 {
     private object? _previous;
     private bool _running;

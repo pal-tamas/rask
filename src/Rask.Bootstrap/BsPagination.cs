@@ -2,12 +2,12 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap pagination control: <nav><ul class="pagination">…</ul></nav> holding BsPageItem
 // children. Size maps to pagination-sm / pagination-lg.
-public sealed class BsPagination : BsBlock
+public sealed partial class BsPagination : BsBlock
 {
     public BsSize? Size { get; set; }
 
     // Accessible label for the surrounding <nav>; defaults to "Page navigation".
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     protected override Component? Render()
     {
@@ -17,20 +17,20 @@ public sealed class BsPagination : BsBlock
             Class);
 
         var navAria = new Dictionary<string, string?> { ["label"] = Label ?? "Page navigation" };
-        return Nav(Id: Id, Aria: navAria)[Ul(Class: cls)[Items]];
+        return Nav.Id(Id).Aria(navAria)[Ul.Class(cls)[Items]];
     }
 }
 
 // A pagination item: <li class="page-item"><a class="page-link">…</a></li>. Active marks the
 // current page; Disabled greys it. Pass Href for a link, or OnClick to drive paging from C# (zero
 // JS — the handler re-renders through the live runtime).
-public sealed class BsPageItem : BsBlock
+public sealed partial class BsPageItem : BsBlock
 {
     public bool? Active { get; set; }
     public bool? Disabled { get; set; }
     public string? Href { get; set; }
-    public Callback? OnClick { get; set; }
-    public CallbackAsync? OnClickAsync { get; set; }
+    public Action? OnClick { get; set; }
+    public Func<Task>? OnClickAsync { get; set; }
 
     // Extra ARIA attributes for the page link itself — pass aria-label to name an icon-only control
     // (a prev/next arrow whose only child is a decorative BsIcon has no accessible name otherwise).
@@ -63,10 +63,14 @@ public sealed class BsPageItem : BsBlock
             : Aria;
 
         Component link = Href is not null
-            ? A(Class: "page-link", Href: Href, Aria: linkAria)[Items]
-            : Button(Type: "button", Class: "page-link", Aria: linkAria, OnClick: OnClick,
-                OnClickAsync: OnClickAsync)[Items];
+            ? A.Class("page-link").Href(Href).Aria(linkAria)[Items]
+            : Button
+                .Type("button")
+                .Class("page-link")
+                .Aria(linkAria)
+                .OnClick(OnClick)
+                .OnClickAsync(OnClickAsync)[Items];
 
-        return Li(Id: Id, Class: BsClass.Join(liCls, Class), Aria: liAria)[[link]];
+        return Li.Id(Id).Class(BsClass.Join(liCls, Class)).Aria(liAria)[[link]];
     }
 }

@@ -60,10 +60,10 @@ must never be served — which is why `/_push/key` returns only the public one.
 From a page, ask for permission and subscribe. `IWebPush` (in `Rask.Core.Browser`) wraps the browser API:
 
 ```csharp
-public sealed class EnablePushButton(IWebPush push, HttpClient http) : Component
+public sealed partial class EnablePushButton(IWebPush push, HttpClient http) : Component
 {
     protected override Component? Render() =>
-        BsButton(OnClickAsync: SubscribeAsync)["Notify me about my orders"];
+        BsButton.OnClickAsync(SubscribeAsync)["Notify me about my orders"];
 
     private async Task SubscribeAsync()
     {

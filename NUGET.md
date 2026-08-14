@@ -21,9 +21,9 @@ public sealed class Counter : Component
 
     protected override Component? Render() =>
     [
-        H1()["Counter"],
-        P()[$"Current count: {_count}"],
-        Button(OnClick: () => _count++)["Click me"]
+        H1["Counter"],
+        P[$"Current count: {_count}"],
+        Button.OnClick(() => _count++)["Click me"]
     ];
 }
 ```
@@ -37,7 +37,6 @@ public sealed class Counter : Component
 ```bash
 dotnet tool install -g Rask.Cli          # the rask CLI — scaffold, migrate, run, deploy
 rask new MyApp                            # or: --template wasm | wasm-hosted | native
-rask generate feature Product Name:string Price:decimal   # CQRS + EF CRUD, pages included
 rask db add Initial && rask db update     # migrations, via dotnet-ef
 rask dev                                  # run with hot reload
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
@@ -65,6 +64,7 @@ dotnet add package Rask.Outbox            # transactional outbox for domain even
 dotnet add package Rask.Logging           # durable log store (its own SQLite file)
 dotnet add package Rask.Dashboard         # the /_ops operator dashboard over every pillar
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
+dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
 dotnet add package Rask.ObjectStore       # S3 / Azure Blob client, server-side or straight from the browser
 dotnet add package Rask.Sync              # offline-first merge engine (HLC + op log, no I/O)
 dotnet add package Rask.Sync.Client       # sync it between devices through a bucket, with no server
@@ -78,6 +78,8 @@ dotnet add package Rask.SQLite.EntityFrameworkCore    # the EF Core provider glu
 dotnet add package Rask.SQLite.Litestream             # managed continuous replication
 dotnet add package Rask.SQLite.Snapshots              # scheduled Online-Backup-API copies
 dotnet add package Rask.SQLite.Browser                # a persistent SQLite database inside a WASM app
+dotnet add package Rask.SQLite.Crdt                   # many replicas, merged per column, through plain EF Core
+dotnet add package Rask.SQLite.Crdt.Sync              # share those replicas through a bucket, with no server
 dotnet add package Rask.Postgres                      # or Postgres
 dotnet add package Rask.SqlServer                     # or SQL Server
 ```

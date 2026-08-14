@@ -19,7 +19,7 @@ namespace Rask.Bootstrap;
 //
 // Horizontal emits no flex-row token, because row is already the flex default — which keeps
 // BsStack(Gap: 2) byte-identical to the "d-flex gap-2" it replaces.
-public sealed class BsStack : BsBlock
+public sealed partial class BsStack : BsBlock
 {
     public bool? Vertical { get; set; }
     public int? Gap { get; set; }
@@ -31,9 +31,9 @@ public sealed class BsStack : BsBlock
     // helper, which is CS0108 and this repo builds warnings-as-errors.)
     public bool? WrapItems { get; set; }
 
-    protected override Component? Render() => Div(
-        Id: Id,
-        Class: BsClass.Join(
+    protected override Component? Render() => Div
+        .Id(Id)
+        .Class(BsClass.Join(
             Display.Flex(),
             Vertical is true ? Flex.Column() : null,
             Gap is { } gap ? Flex.Gap(gap) : null,

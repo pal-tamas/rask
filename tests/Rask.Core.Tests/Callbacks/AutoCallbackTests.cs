@@ -75,7 +75,7 @@ public class AutoCallbackTests
         // A static method (Target == null) and a lambda closing over a local (Target == a compiler
         // closure, not a Component) have no component to re-render — Wrap returns them unchanged,
         // so there is no extra allocation and no spurious re-render (same limitation Blazor's
-        // EventCallback and the old Callback had).
+        // EventCallback and the old Action had).
         var staticMethod = NoOp;
         Assert.Same(staticMethod, AutoCallback.Wrap(staticMethod));
 
@@ -126,7 +126,7 @@ public class AutoCallbackTests
             var ctx = LiveRenderContext.Current!;
             var r = ctx.GetOrCreate(_ => Receiver);
             ctx.NotifyParameters(r, false); // stable props ⇒ Receiver caches after first render
-            return Div()[r];
+            return Div[r];
         }
     }
 
@@ -144,7 +144,7 @@ public class AutoCallbackTests
         public Func<int, Task>? OnAddAsync;
         public Action<string>? OnText;
         public int RenderCount;
-        public string? Text;
+        public new string? Text;
 
         public Receiver(Mode mode) => _mode = mode;
 
@@ -173,7 +173,7 @@ public class AutoCallbackTests
             }
 
             c.Owner = this;
-            return Span()[_mode == Mode.StringArg ? $"text={Text}" : $"count={Count}"];
+            return Span[_mode == Mode.StringArg ? $"text={Text}" : $"count={Count}"];
         }
     }
 
@@ -181,7 +181,7 @@ public class AutoCallbackTests
     {
         public Receiver? Owner;
 
-        protected override Component? Render() => Span()["x"];
+        protected override Component? Render() => Span["x"];
 
         public ValueTask Fire(int n)
         {

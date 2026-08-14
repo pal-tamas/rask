@@ -1,19 +1,15 @@
 # Chapter 6 — Caching the catalog
 
 > **Goal:** stop hitting the database for the product list on every page load.
-> **You'll run:** `rask generate cache CatalogCache --feature Products`
+> **You'll write:** a cached read accessor under `Features/Products/`.
 
 The catalog changes rarely but is read constantly. `Rask.Cache` gives you a typed cache — again backed by
 the same SQLite database, so there's nothing new to run — with the one method you'll reach for most:
 `GetOrCreateAsync`.
 
-## 1. Scaffold the cache accessor
+## 1. Write the cache accessor
 
-```bash
-rask generate cache CatalogCache --feature Products
-```
-
-That writes `Features/Products/CatalogCache.cs`: a small class that owns **one cached value** — its key, its
+Create `Features/Products/CatalogCache.cs`: a small class that owns **one cached value** — its key, its
 expiry, how to compute it, and how to invalidate it.
 
 That grouping is the point. The tempting shape is an inline `cache.GetOrCreateAsync("catalog:all", …)` at

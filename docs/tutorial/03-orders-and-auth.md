@@ -1,37 +1,73 @@
 # Chapter 3 — A second feature, and locking it down
 
 > **Goal:** add an **Orders** feature that shares the same database, then require a login to edit the catalog.
-> **You'll run:** `rask generate feature Order …`
+> **You'll write:** a second slice under `Features/Orders/`, sharing the one database.
 
 ## 1. A second feature in the same database
 
-The One Person Framework idea is *one* database for the whole product — so the generator never creates a
-second `DbContext`. It attaches this feature to the one the app already has:
+The One Person Framework idea is *one* database for the whole product — so a second feature does **not**
+get a second `DbContext`. It maps through the one the app already has.
 
-```bash
-rask generate feature Order Total:decimal ProductId:guid Placed:datetime \
-  --validation dataannotations
+`Features/Orders/Order.cs` is chapter 2's shape with different fields:
+
+```csharp
+namespace Shop.Features.Orders;
+
+public sealed class Order : Entity<Guid>
+{
+    private Order() { } // EF Core materialization
+
+    private Order(decimal total, Guid productId, DateTime placed)
+    {
+        Id = Guid.NewGuid();
+        this.Total = total;
+        this.ProductId = productId;
+        this.Placed = placed;
+    }
+
+    public decimal Total { get; private set; }
+
+    public Guid ProductId { get; private set; }
+
+    public DateTime Placed { get; private set; }
+
+    public static Order Create(decimal total, Guid productId, DateTime placed) => new(total, productId, placed);
+
+    public void Update(decimal total, Guid productId, DateTime placed)
+    {
+        this.Total = total;
+        this.ProductId = productId;
+        this.Placed = placed;
+    }
+}
 ```
 
-This writes `Features/Orders/` (entity, request, pages, CQRS handlers) and no new `DbContext`. The CLI
-reports:
+Then the same four companions as before — `OrderRequest`, `OrderConfiguration`, the command/handler/page
+files, and the list page. They're the chapter 2 files with `Product` swapped for `Order`; copy them and
+change the type, or read them in the
+[sample](https://github.com/pal-tamas/rask/tree/main/samples/Rask.Example.Shop/Features/Orders).
 
+What ties it to the existing database goes in `Features/Shared/AppDbContext.cs`, next to `Products` —
+the slice's namespace, and the set:
+
+```csharp
+using Shop.Features.Orders;   // at the top, beside the Products one
 ```
-Added 1 DbSet(s) to Features/Shared/AppDbContext.cs.
+```csharp
+public DbSet<Order> Orders => Set<Order>();   // inside the class
 ```
 
-It found `AppDbContext` by scanning the project, added `public DbSet<Order> Orders => Set<Order>();` next to
-`Products` (with the `using` it needs), and the generated `Orders` pages import the context's namespace — so it
-compiles as-is, no hand-edits. Your one `AppDbContext` now holds both `Products` and `Orders`: one database,
-one context. (If an app really does have several contexts, the CLI stops and asks which one with
-`--context <Name>` rather than guessing.)
+That's the whole of "sharing a database": one context, one connection string, one migration history,
+however many features you add. Nothing else in the slice knows or cares.
 
-> **Relating entities.** When you scaffold related entities *together* in one command, Rask generates the
-> foreign key, the navigation properties, and the EF mapping for you — e.g.
-> `rask generate feature Post Title:string 1:n Comment Body:text` gives `Comment` a `PostId` + `Post` and
-> `Post` a `Comments` collection (`n:1`, `1:1`, and `n:n` work too). Here, though, `Product` already exists
-> from Chapter 2, so we just add a plain `ProductId:guid` field to `Order` — a normal foreign key you can
-> wire a navigation onto yourself.
+> **Relating entities.** `Order.ProductId` is a plain foreign key here. To have EF understand it as a
+> relationship, add a navigation property and map it in `OrderConfiguration`:
+>
+> ```csharp
+> entity.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId);
+> ```
+>
+> See [Rask.Data](../data.md) for the full relationship shapes.
 
 ### Migrate
 
@@ -63,7 +99,7 @@ using Microsoft.AspNetCore.Authorization;
 
 [Authorize]                          // ← anonymous users are redirected to /login
 [Route("/products/new")]
-public sealed class CreateProduct : Component { … }
+public sealed partial class CreateProduct : Component { … }
 ```
 
 Leave the read-only `ProductsPage` (`/products`) public so shoppers can browse.
@@ -75,15 +111,15 @@ login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`)
 already uses in `Auth/MembersPage.cs`:
 
 ```csharp
-Authorize()[                                 // only rendered for signed-in users
-    NavLink(CreateProduct())["New product"]
+Authorize[                                 // only rendered for signed-in users
+    NavLink.Href(CreateProduct)["New product"]
 ]
 ```
 
 For role-specific bits — say a "Delete" button only admins should see — pass `Roles`:
 
 ```csharp
-Authorize(Roles: ["admin"])[ DeleteProductButton(product.Id) ]
+Authorize.Roles(["admin"])[ DeleteProductButton(product.Id) ]
 ```
 
 ## Verify

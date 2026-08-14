@@ -13,7 +13,8 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     case for a future per-payload attribute-name symbol table; the benchmark
 ///     baselines the "before" so the optimisation's impact is measurable.
 /// </summary>
-internal static class AttributeBurstUpdate
+[global::Rask.Core.RaskMarkup]
+internal static partial class AttributeBurstUpdate
 {
     public const int RowCount = 100;
     private const string AttrName = "data-loaded";
@@ -24,16 +25,16 @@ internal static class AttributeBurstUpdate
         for (var i = 0; i < RowCount; i++)
         {
             var row = loaded
-                ? C.Div(Class: "row", Data: new Dictionary<string, string?> { ["loaded"] = "true" })[
-                    C.Span()[$"Row {i}"]
+                ? Div.Class("row").Data(new Dictionary<string, string?> { ["loaded"] = "true" })[
+                    Span[$"Row {i}"]
                 ]
-                : C.Div(Class: "row")[
-                    C.Span()[$"Row {i}"]
+                : Div.Class("row")[
+                    Span[$"Row {i}"]
                 ];
             rows.Add(row);
         }
 
-        return C.Div(Class: "rows")[rows];
+        return Div.Class("rows")[rows];
     }
 
     public sealed class BlazorAttributeBurst : ComponentBase

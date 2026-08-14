@@ -1,9 +1,9 @@
 # Rask.Cli
 
 **The `rask` command-line tool** — a productivity front-door for the
-[Rask](https://github.com/pal-tamas/rask) framework. It is a thin wrapper over the .NET SDK, with SQLite
-as its only dependency: scaffold a project, run it with hot reload, manage migrations, back the database
-up and restore it, and deploy it to a single host over SSH — all with short, Rask-aware commands.
+[Rask](https://github.com/pal-tamas/rask) framework. It is a thin wrapper over the .NET SDK: scaffold a
+project, run it with hot reload, manage migrations, back the database up and restore it, and deploy it to
+a single host over SSH — all with short, Rask-aware commands.
 
 ## Install
 
@@ -19,11 +19,6 @@ rask new MyApp --data --docker
 
 # Scaffold a browser-WASM PWA instead
 rask new MyApp --template wasm --pwa
-
-# Scaffold a routed page, a component, or a full CRUD feature
-rask generate page Products
-rask generate component PriceTag
-rask generate feature Product Name:string Price:decimal
 
 # Create and apply its EF Core migration
 rask db add InitialCreate
@@ -44,9 +39,6 @@ rask info
 | Command | What it does |
 |---|---|
 | `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted\|native`), forwarding `--auth` / `--pwa` / `--cqrs` / `--data` / `--docker` (`--data` pre-wires a SQLite `AppDbContext`). Every template is generated directly — no `dotnet new` needed. |
-| `rask generate <page\|component> <Name>` | Scaffold a routed page or a component into the current project (folder-based namespace, no-overwrite, `--dry-run`). |
-| `rask generate <job\|email> <Name>` | Scaffold a background job (`IJob` + handler) or an email-body component, adding the `Rask.Jobs` / `Rask.Mail` package. Aliases: `rask g j` / `rask g e`. |
-| `rask generate feature <Name> <field:type> …` | Scaffold a full CQRS + EF Core CRUD vertical slice — encapsulated entity (`Create`/`Update`, Guid id) mapped by the app's shared `DbContext`, commands/queries + handlers, and pages that dispatch via `IDispatcher`. Aliases: `rask g f`. |
 | `rask db <add\|remove\|list\|update\|drop>` | Manage EF Core migrations — a friendly `dotnet ef` wrapper that finds the project and installs `dotnet-ef` on demand. |
 | `rask deploy` | Build and run the app on a single host over SSH (`docker -H ssh://…`). Sets a bare box up first (Docker, a non-root deploy login, firewall, SSH hardening) after asking. `--domain` fronts it with auto-HTTPS Caddy; deploys are zero-downtime and multiple apps share one box. `--github-actions` writes a workflow that deploys on push. |
 | `rask dev` | Run the app with C# Hot Reload (`dotnet watch run`). Finds the project itself, restarts on edits hot reload can't apply, `--open` for a browser. `--once` for a plain run. Args after `--` reach the app. |
@@ -54,12 +46,21 @@ rask info
 | `rask completion <bash\|zsh\|fish>` | Print a shell completion script, generated from the live command + option set. |
 
 Run `rask <command> --help` for a full reference — arguments, a described options table, and examples
-— or `rask --version` for the tool version. Output is colorized on a terminal and plain when piped or
-under `NO_COLOR`.
+— or `rask --version` for the tool version. On a terminal the output is colorized and long descriptions
+wrap; piped or under `NO_COLOR` it is plain text with no escape codes and no reflowing, so `rask doctor |
+grep` and CI logs read exactly as they always have.
+
+Run `rask` with no arguments on a terminal and it opens the new-project wizard: name, project type,
+styling, Docker, and a checklist of batteries. Anything you already passed on the command line is kept
+and its question skipped, so `rask new --template wasm` only asks for what's left. Piped or scripted,
+bare `rask` still prints the help page.
 
 ## Notes
 
-- **No external dependencies** — pure BCL, no NuGet packages of its own. It drives tools you already have: the
-  `dotnet` SDK, and for `rask deploy` the Docker CLI and `ssh` (host setup installs Docker on the *remote* box
-  from [get.docker.com](https://get.docker.com), never on yours).
+- **Two dependencies, and no services.** [Microsoft.Data.Sqlite](https://www.nuget.org/packages/Microsoft.Data.Sqlite)
+  for `rask db backup`, which needs SQLite's Online Backup API to copy a live WAL database without tearing it, and
+  [Spectre.Console](https://spectreconsole.net) for the terminal surface — the help pages, the `deploy status` and
+  `doctor` tables, the progress spinners, and the `rask new` wizard. Everything else is the BCL and tools you already
+  have: the `dotnet` SDK, and for `rask deploy` the Docker CLI and `ssh` (host setup installs Docker on the *remote*
+  box from [get.docker.com](https://get.docker.com), never on yours).
 - The CLI is the front door to Rask, the .NET One Person Framework — the whole lifecycle from `new` to `deploy`.

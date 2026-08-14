@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Cli.Scaffolding;
 
@@ -49,73 +50,140 @@ internal static partial class ProjectGenerator
     }
 
     // The app shell every page renders through (RASK021), living in Features/Shared/ — the cross-cutting
-    // bucket a new project shares across its feature slices. Styled with Bootstrap so there is no scoped
-    // .css to pair. The welcome home page is its own Features/Home slice (see HomePageCs).
-    private const string AppShellCs =
-        """
+    // bucket a new project shares across its feature slices. The welcome home page is its own Features/Home
+    // slice (see HomePageCs). With Bootstrap the styling comes from the CDN-free Rask.Bootstrap asset;
+    // without it the shell carries a small baseline of its own, so an opted-out app is still presentable.
+    private static string AppShellCs(bool bootstrap) =>
+        $$"""
         using Rask.Core.Routing;
 
         namespace Company.RaskServer.Features.Shared;
 
-        public sealed class App : Component
+        public sealed partial class App : Component
         {
             // App-level head contributions splice into the framework-managed <head>
-            // via the Component? Head override. Title is singleton — any page that
-            // overrides Head with its own Title supersedes this fallback for the tab.
-            protected override Component? Head => [
-                Title()["Company.RaskServer"],
-                Meta("utf-8"),
-                Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-                // Bootstrap 5.3 + Icons via Rask.Bootstrap (served from _content/Rask.Bootstrap).
-                BootstrapStyles()
+            // via the Component? HeadAssets override. Title is singleton — any page that
+            // overrides HeadAssets with its own Title supersedes this fallback for the tab.
+            protected override Component? HeadAssets => [
+                Title["Company.RaskServer"],
+                Meta.Charset("utf-8"),
+                Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
+        {{(bootstrap ? BootstrapHead : BaselineHead)}}
             ];
 
-            protected override Component? Render() =>
-                [
-                    Doctype(),
-                    Html("en")[
-                        Head(),
-                        Body()[Router()]
-                    ]
-                ];
+            // The body's content. Rask emits the doctype, <html lang>, <head> and <body> around this —
+            // override HtmlLang / BodyClass for their attributes, or Shell(head, body) for the rest.
+            protected override Component? Render() => Router;
         }
 
         """;
 
+    private const string BootstrapHead =
+        """
+                // Bootstrap 5.3 + Icons via Rask.Bootstrap (served from _content/Rask.Bootstrap).
+                BootstrapStyles
+        """;
+
+    // No CSS framework: a baseline inline in the shell rather than a stylesheet file, so it works the same
+    // on every template (a server app, a WASM bundle, a native WebView) with nothing extra to serve. Raw()
+    // because CSS is not HTML — encoding it would break every selector containing > or &.
+    private const string BaselineHead =
+        """"
+                // A small baseline of our own — no CSS framework. Replace this with yours.
+                Style[Raw.Value("""
+                    :root { color-scheme: light dark; --ink: #1c1b22; --muted: #5c5a6b; --bg: #faf9fe;
+                            --card: #ffffff; --line: #e6e4f0; --brand: #512BD4; }
+                    @media (prefers-color-scheme: dark) {
+                        :root { --ink: #eceaf5; --muted: #a5a2b8; --bg: #16151c; --card: #201f29; --line: #322f42; }
+                    }
+                    * { box-sizing: border-box; }
+                    body { margin: 0; padding: 2rem 1rem; background: var(--bg); color: var(--ink);
+                           font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+                    main { max-width: 34rem; margin: 0 auto; }
+                    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+                            padding: 1.75rem; box-shadow: 0 1px 3px rgb(0 0 0 / 6%); }
+                    h1 { margin: 0 0 .5rem; font-size: 1.5rem; letter-spacing: -0.01em; }
+                    p { margin: 0 0 1rem; color: var(--muted); }
+                    ul { margin: 0 0 1rem; padding-left: 1.25rem; }
+                    li { margin-bottom: .35rem; }
+                    code { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--brand);
+                           padding: .15em .4em; border-radius: 5px; font-size: .875em; }
+                    a { color: var(--brand); }
+                    .small { font-size: .875rem; }
+                    """)]
+        """";
+
     // The welcome home page that teaches the CLI — a Features/Home slice, so a new project already models
     // the "screens are feature slices" convention the CLI generates into.
-    private const string HomePageCs =
+    private static string HomePageCs(bool bootstrap) => bootstrap ? HomePageBootstrapCs : HomePageBaselineCs;
+
+    private const string HomePageBootstrapCs =
         """
         using Rask.Core.Routing;
 
         namespace Company.RaskServer.Features.Home;
 
         [Route("/")]
-        public sealed class HomePage : Component
+        public sealed partial class HomePage : Component
         {
             // BsBlock exposes only Id/Class (not Element's full HTML surface), so the width lives on a
-            // plain Div wrapper rather than a Style: on the card.
+            // plain Div wrapper rather than a .Style() on the card.
             protected override Component? Render() =>
-                Div(Class: "mx-auto my-5", Style: "max-width:540px")[
-                    BsCard(Class: "shadow-sm")[
-                        BsCardBody()[
-                            BsCardTitle()["Hello, Rask! 👋"],
-                            BsCardText(Class: "text-body-secondary")["Your app is ready. Scaffold the rest with the rask CLI:"],
-                            Ul(Class: "mb-3")[
-                                Li()[Code()["rask generate feature Product Name:string Price:decimal"], " — a full CRUD slice (entity, pages, tests)"],
-                                Li()[Code()["rask generate page About"], " — a routed page"],
-                                Li()[Code()["rask generate component Card"], " — a reusable component"],
-                                Li()[Code()["rask dev"], " — run with hot reload"]
+                Div.Class("mx-auto my-5").Style("max-width:540px")[
+                    BsCard.Class("shadow-sm")[
+                        BsCardBody[
+                            BsCardTitle["Hello, Rask! 👋"],
+                            BsCardText.Class("text-body-secondary")["Your app is ready. What to do next:"],
+                            Ul.Class("mb-3")[
+                                Li[Code["rask dev"], " — run with hot reload"],
+                                Li[Code["rask db add Init"], " then ", Code["rask db update"], " — create the database"],
+                                Li[A.Href("https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
                             ],
-                            P(Class: "mb-0 small text-body-secondary")[
+                            P.Class("mb-0 small text-body-secondary")[
                                 "Edit this page in ",
-                                Code()["HomePage.cs"],
+                                Code["HomePage.cs"],
                                 " — drop a ",
-                                Code()["HomePage.css"],
+                                Code["HomePage.css"],
                                 " beside it and its rules are scoped to this page. Full guides at ",
-                                A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
+                                A.Href("https://github.com/pal-tamas/rask")["the Rask docs"],
                                 "."
                             ]
+                        ]
+                    ]
+                ];
+        }
+
+        """;
+
+    // The same page in plain elements, against the shell's baseline CSS — no component library, so every
+    // class here is one the project owns and can rename.
+    private const string HomePageBaselineCs =
+        """
+        using Rask.Core.Routing;
+
+        namespace Company.RaskServer.Features.Home;
+
+        [Route("/")]
+        public sealed partial class HomePage : Component
+        {
+            protected override Component? Render() =>
+                Main[
+                    Div.Class("card")[
+                        H1["Hello, Rask! 👋"],
+                        P["Your app is ready. What to do next:"],
+                        Ul[
+                            Li[Code["rask dev"], " — run with hot reload"],
+                            Li[Code["rask db add Init"], " then ", Code["rask db update"], " — create the database"],
+                            Li[A.Href("https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
+                        ],
+                        P.Class("small")[
+                            "Edit this page in ",
+                            Code["HomePage.cs"],
+                            " — drop a ",
+                            Code["HomePage.css"],
+                            " beside it and its rules are scoped to this page. Full guides at ",
+                            A.Href("https://github.com/pal-tamas/rask")["the Rask docs"],
+                            "."
                         ]
                     ]
                 ];
@@ -185,6 +253,122 @@ internal static partial class ProjectGenerator
         **/.DS_Store
         Dockerfile
         .dockerignore
+
+        """;
+
+    /// <summary>
+    /// The solution file, in the XML <c>.slnx</c> format the .NET SDK reads directly. It replaces the old
+    /// <c>.sln</c> with something a human can edit and a merge can resolve: a list of project paths, and no
+    /// per-project GUIDs or configuration matrix to keep in sync by hand.
+    /// </summary>
+    /// <param name="projectPaths">Project paths relative to the solution, in the order they should appear.</param>
+    private static string Slnx(params IReadOnlyList<string> projectPaths)
+    {
+        var builder = new StringBuilder("<Solution>\n");
+        foreach (var path in projectPaths)
+        {
+            // .slnx paths are written with forward slashes on every platform.
+            builder.Append("  <Project Path=\"").Append(path.Replace('\\', '/')).Append("\" />\n");
+        }
+
+        return builder.Append("</Solution>\n").ToString();
+    }
+
+    /// <summary>
+    /// Every scaffolded project's <c>.gitignore</c>. Deliberately short: build output, IDE and OS noise, the
+    /// files that carry secrets, and the app's own SQLite database — a committed <c>app.db</c> is the most
+    /// common way a scaffolded repo ends up with real data in its history.
+    /// </summary>
+    private const string GitIgnore =
+        """
+        # Build output
+        bin/
+        obj/
+        [Bb]uild/
+        [Oo]ut/
+        artifacts/
+
+        # IDE / editor
+        .vs/
+        .vscode/
+        .idea/
+        *.user
+        *.suo
+        *.userosscache
+
+        # OS
+        .DS_Store
+        Thumbs.db
+
+        # Local configuration and secrets — appsettings.Development.json and .env hold connection
+        # strings and API keys. Keep the templates (appsettings.json, .env.example) tracked instead.
+        appsettings.Development.json
+        appsettings.Local.json
+        .env
+        !.env.example
+
+        # The app's own database, and SQLite's write-ahead log alongside it
+        *.db
+        *.db-shm
+        *.db-wal
+
+        # Publish output
+        publish/
+        *.nupkg
+
+        """;
+
+    /// <summary>
+    /// Every scaffolded project's <c>.editorconfig</c>. This is the file that makes a repo's formatting a
+    /// property of the repo rather than of whoever last opened it: <c>dotnet format</c>, Visual Studio,
+    /// Rider and VS Code all read it, so a contributor with different defaults still produces the same diff.
+    /// </summary>
+    private const string EditorConfig =
+        """
+        # Formatting for this repository. `dotnet format` applies it; every major C# editor honours it.
+        root = true
+
+        [*]
+        charset = utf-8
+        end_of_line = lf
+        indent_style = space
+        indent_size = 2
+        insert_final_newline = true
+        trim_trailing_whitespace = true
+
+        [*.{cs,csx}]
+        indent_size = 4
+
+        # Compiler diagnostics that catch real bugs, raised from suggestion to warning so they show up in
+        # a normal build rather than only under an IDE lightbulb.
+        dotnet_diagnostic.CA2007.severity = none
+        dotnet_diagnostic.IDE0005.severity = warning
+
+        # Language style
+        csharp_style_namespace_declarations = file_scoped:warning
+        csharp_using_directive_placement = outside_namespace:warning
+        csharp_prefer_braces = true:warning
+        csharp_style_var_for_built_in_types = false:suggestion
+        csharp_style_var_when_type_is_apparent = true:suggestion
+        dotnet_sort_system_directives_first = true
+        dotnet_separate_import_directive_groups = false
+        dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+        dotnet_style_readonly_field = true:warning
+        dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
+
+        # Naming: interfaces start with I, types and members are PascalCase.
+        dotnet_naming_rule.interfaces_start_with_i.symbols = interface_symbols
+        dotnet_naming_rule.interfaces_start_with_i.style = prefixed_with_i
+        dotnet_naming_rule.interfaces_start_with_i.severity = warning
+        dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+        dotnet_naming_style.prefixed_with_i.required_prefix = I
+        dotnet_naming_style.prefixed_with_i.capitalization = pascal_case
+
+        [*.{json,yml,yaml,xml,csproj,slnx,props,targets}]
+        indent_size = 2
+
+        [*.md]
+        trim_trailing_whitespace = false
 
         """;
 

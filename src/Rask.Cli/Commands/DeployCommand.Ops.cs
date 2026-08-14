@@ -1,5 +1,6 @@
 using System.Globalization;
 using Rask.Cli.Scaffolding;
+using Spectre.Console;
 
 namespace Rask.Cli.Commands;
 
@@ -98,29 +99,31 @@ internal sealed partial class DeployCommand
             Colour: a.Color.Length > 0 ? a.Color : "-",
             State: a.Status)).ToArray();
 
-        var appWidth = Math.Max(3, rows.Max(r => r.App.Length));
-        var whereWidth = Math.Max(5, rows.Max(r => r.Where.Length));
-        var colourWidth = Math.Max(6, rows.Max(r => r.Colour.Length));
+        var table = new Table()
+            .Border(TableBorder.None)
+            .HideHeaders()
+            .AddColumns("app", "url", "colour", "state");
 
-        Console.WriteLine(
-            $"  {"APP".PadRight(appWidth)}  {"URL".PadRight(whereWidth)}  {"COLOUR".PadRight(colourWidth)}  STATE",
-            ConsoleStyle.Dim);
+        table.AddRow(
+            new Text("APP", ConsoleStyling.Of(ConsoleStyle.Dim)),
+            new Text("URL", ConsoleStyling.Of(ConsoleStyle.Dim)),
+            new Text("COLOUR", ConsoleStyling.Of(ConsoleStyle.Dim)),
+            new Text("STATE", ConsoleStyling.Of(ConsoleStyle.Dim)));
 
         foreach (var row in rows)
         {
-            var line = $"  {row.App.PadRight(appWidth)}  {row.Where.PadRight(whereWidth)}  {row.Colour.PadRight(colourWidth)}  {row.State}";
-
             // This project's own app is highlighted; the others are context, and printing them plain
             // keeps it obvious at a glance which row you came here about.
-            if (string.Equals(row.App, slug, StringComparison.Ordinal))
-            {
-                Console.WriteLine(line, ConsoleStyle.Success);
-            }
-            else
-            {
-                Console.Out.WriteLine(line);
-            }
+            var style = string.Equals(row.App, slug, StringComparison.Ordinal)
+                ? ConsoleStyling.Of(ConsoleStyle.Success)
+                : Style.Plain;
+
+            table.AddRow(
+                new Text(row.App, style), new Text(row.Where, style),
+                new Text(row.Colour, style), new Text(row.State, style));
         }
+
+        Console.Ansi.Write(new RaggedRight(new Padder(table, new Padding(2, 0, 0, 0))));
 
         // Whether a rollback is even possible is the other half of "what's the state of this app".
         Console.Out.WriteLine();

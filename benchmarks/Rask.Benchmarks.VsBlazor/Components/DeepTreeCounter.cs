@@ -14,16 +14,17 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     unchanged ancestors. Counter-update at depth 0 already lives in
 ///     <c>CounterOnLargePage</c>; this row measures the path-tax explicitly.
 /// </summary>
-internal static class DeepTreeCounter
+[global::Rask.Core.RaskMarkup]
+internal static partial class DeepTreeCounter
 {
     public const int Depth = 50;
 
     public static Component BuildRask(int counter)
     {
-        var leaf = C.Span(Class: "counter")[counter.ToString()];
+        var leaf = Span.Class("counter")[counter.ToString()];
         for (var i = 0; i < Depth; i++)
         {
-            leaf = C.Div(Class: $"d{i}")[leaf];
+            leaf = Div.Class($"d{i}")[leaf];
         }
 
         return leaf;

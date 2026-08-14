@@ -23,7 +23,7 @@ public class RootShellAnalyzerTests
     private static string App(string renderBody) => $$"""
                                                       using Rask.Core;
                                                       namespace Demo;
-                                                      public sealed class App : Component
+                                                      public sealed partial class App : Component
                                                       {
                                                           private static object Doctype() => null!;
                                                           private static object Html(string lang) => null!;
@@ -34,37 +34,40 @@ public class RootShellAnalyzerTests
                                                       """;
 
     [Fact]
-    public async Task UseRask_RootMissingBody_ReportsRask021()
+    public async Task UseRask_RootRendersTheWholeShell_ReportsRask021()
     {
-        var src = EntryStubs + App("Doctype(); Html(\"en\"); Head();")
+        var src = EntryStubs + App("Doctype(); Html(\"en\"); Head(); Body();")
                              + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
 
         var d = Assert.Single(await GetDiagnosticsAsync(src));
         Assert.Equal("RASK021", d.Id);
-        Assert.Contains("Body()", d.GetMessage());
+        Assert.Contains("Doctype(), Html(), Head(), Body()", d.GetMessage());
         Assert.Contains("App", d.GetMessage());
     }
 
     [Fact]
-    public async Task UseRask_FullShell_NoDiagnostic()
+    public async Task UseRask_RootRendersOnlyItsBody_NoDiagnostic()
     {
-        var src = EntryStubs + App("Doctype(); Html(\"en\"); Head(); Body();")
+        var src = EntryStubs + App(string.Empty)
                              + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
 
         Assert.Empty(await GetDiagnosticsAsync(src));
     }
 
+    /// <summary>
+    ///     Any part of the shell is enough — a root that opens a document and forgets to close it is
+    ///     the same mistake, and the half-built page is harder to read than the whole one.
+    /// </summary>
     [Fact]
-    public async Task RunAsync_WasmEntry_RootMissingShell_ReportsRask021()
+    public async Task RunAsync_WasmEntry_RootRendersPartOfTheShell_ReportsRask021()
     {
         var src = EntryStubs + App("Body();")
                              + "namespace Demo { class Host { void M() { new Rask.Wasm.WasmHostBuilder().RunAsync<App>(); } } }";
 
         var d = Assert.Single(await GetDiagnosticsAsync(src));
         Assert.Equal("RASK021", d.Id);
-        Assert.Contains("Doctype()", d.GetMessage());
-        Assert.Contains("Html()", d.GetMessage());
-        Assert.Contains("Head()", d.GetMessage());
+        Assert.Contains("Body()", d.GetMessage());
+        Assert.DoesNotContain("Doctype()", d.GetMessage());
     }
 
     [Fact]

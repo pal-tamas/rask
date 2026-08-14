@@ -15,7 +15,8 @@
 
   <ItemGroup>
     <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
-    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

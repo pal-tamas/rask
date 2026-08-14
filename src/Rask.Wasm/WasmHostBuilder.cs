@@ -140,7 +140,10 @@ public sealed class WasmHostBuilder
     ///     builds the service provider, instantiates <typeparamref name="TApp" /> (wrapped in a root error
     ///     boundary), and performs the first render. Returns once the initial render has been applied.
     /// </summary>
-    /// <typeparam name="TApp">The root <see cref="Component" /> for the app. Must render a complete shell (RASK021).</typeparam>
+    /// <typeparam name="TApp">
+    ///     The root <see cref="Component" /> for the app. It renders into <c>&lt;body&gt;</c>; Rask composes
+    ///     the document around it (RASK021 flags a root that builds the shell itself).
+    /// </typeparam>
     public async Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
     {

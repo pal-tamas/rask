@@ -78,38 +78,38 @@ public class RouteMatcherTests
         Assert.Equal(new[] { typeof(DashPage), typeof(DashHome) }, chain);
     }
 
-    private sealed class HomePage : Component
+    private sealed partial class HomePage : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class UserPage : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class UserNew : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class OrgUserPage : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class DashPage : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class DashHome : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class DashOverview : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 }

@@ -12,7 +12,8 @@ namespace Rask.Example.Native;
 ///     The native head mounts this instead of the shared <see cref="App" /> so the showcase gets a real native
 ///     header + tab bar on iOS/Android (the shared <c>App</c> can't reference <c>Rask.Native</c>). It composes
 ///     the native bars as siblings of a <see cref="Rask.Native.Components.NativeWebView" /> that hosts the shared
-///     App's HTML shell (<c>base.Render()</c>); the web navbar is dropped under the native shell by the
+///     App's page content (<c>base.Render()</c> — the document around it is the framework's, built from this
+///     type's inherited <c>Head</c> / <c>BodyClass</c>); the web navbar is dropped under the native shell by the
 ///     <c>IsNative</c> gate in <c>ShowcaseLayout</c>. No <c>IsNative</c> guard is needed here — this type is only
 ///     ever mounted by the native heads.
 /// </summary>

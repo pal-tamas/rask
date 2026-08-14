@@ -6,15 +6,15 @@ namespace Rask.Cli.Scaffolding;
 internal static partial class ProjectGenerator
 {
     /// <summary>Generates the <c>wasm</c> template (a standalone browser-WASM SPA) into <paramref name="targetDirectory"/>.</summary>
-    public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version)
+    public static ScaffoldResult GenerateWasm(string targetDirectory, string name, bool auth, bool pwa, bool docker, string version, bool bootstrap = true)
     {
         var files = new List<(string Path, string Content)>
         {
-            ($"{NameToken}.csproj", WasmCsproj(auth, version)),
+            ($"{NameToken}.csproj", WasmCsproj(auth, bootstrap, version)),
             ("Program.cs", WasmProgram(auth, pwa)),
             // The shell + welcome page are identical to the server template's (Features/Shared + Features/Home).
-            ("Features/Shared/App.cs", AppShellCs),
-            ("Features/Home/HomePage.cs", HomePageCs),
+            ("Features/Shared/App.cs", AppShellCs(bootstrap)),
+            ("Features/Home/HomePage.cs", HomePageCs(bootstrap)),
             ("wwwroot/index.html", WasmIndexHtml(pwa)),
             ("runtimeconfig.template.json", WasmRuntimeConfig),
         };
@@ -38,11 +38,13 @@ internal static partial class ProjectGenerator
             files.Add(("nginx.conf", WasmNginxConf));
         }
 
+        files.AddRange(ProjectHygiene($"{NameToken}.csproj"));
+
         var scaffoldFiles = Materialize(targetDirectory, name, files);
 
         return new ScaffoldResult(scaffoldFiles, WasmNextSteps(name, docker))
         {
-            Packages = ["Rask.Wasm", "Rask.Bootstrap"],
+            Packages = bootstrap ? ["Rask.Wasm", "Rask.Bootstrap"] : ["Rask.Wasm"],
         };
     }
 
@@ -96,8 +98,11 @@ internal static partial class ProjectGenerator
           </PropertyGroup>
         """;
 
-    private static string WasmCsproj(bool auth, string version)
+    private static string WasmCsproj(bool auth, bool bootstrap, string version)
     {
+        var bootstrapRef = bootstrap
+            ? $"\n    <PackageReference Include=\"Rask.Bootstrap\" Version=\"{version}\"/>"
+            : "";
         var authRefs = auth
             ? $"""
 
@@ -111,8 +116,7 @@ internal static partial class ProjectGenerator
         {WasmSdkPropertyGroup}
 
           <ItemGroup>
-            <PackageReference Include="Rask.Wasm" Version="{version}"/>
-            <PackageReference Include="Rask.Bootstrap" Version="{version}"/>{authRefs}
+            <PackageReference Include="Rask.Wasm" Version="{version}"/>{bootstrapRef}{authRefs}
           </ItemGroup>
 
         </Project>
@@ -576,7 +580,7 @@ internal static partial class ProjectGenerator
 
         [Route("login")]
         [AllowAnonymous]
-        public sealed class LoginPage(JwtLoginService login) : Component
+        public sealed partial class LoginPage(JwtLoginService login) : Component
         {
             private readonly LoginModel _model = new();
             private string? _error;
@@ -584,12 +588,12 @@ internal static partial class ProjectGenerator
             [QueryParam] public string? ReturnUrl { get; set; }
 
             protected override Component? Render() =>
-                Div(Style: "max-width:22rem;margin:3rem auto;font-family:system-ui")[
-                    H1()["Sign in"],
-                    _error is null ? null : Div(Style: "color:#b00020")[_error],
-                    Form(_model, OnValidSubmitAsync: SubmitAsync)[
-                        Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],
-                        Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: InputType.Password)],
+                Div.Style("max-width:22rem;margin:3rem auto;font-family:system-ui")[
+                    H1["Sign in"],
+                    _error is null ? null : Div.Style("color:#b00020")[_error],
+                    Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+                        Div[Label.For("username")["Username"], Input.Bind(() => _model.Username).Id("username")],
+                        Div[Label.For("password")["Password"], Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)],
                         Button("submit", Id: "login-submit")["Sign in"]
                     ]
                 ];
@@ -616,23 +620,23 @@ internal static partial class ProjectGenerator
 
         [Route("members")]
         [AllowAnonymous]
-        public sealed class MembersPage : Component
+        public sealed partial class MembersPage : Component
         {
             protected override Component? Render() =>
-                Div(Style: "max-width:32rem;margin:3rem auto;font-family:system-ui")[
-                    Authorize(
-                        NotAuthorized: P()["Please ", NavLink(Href: Routes.LoginPage())["sign in"], "."])[MemberContent()]
+                Div.Style("max-width:32rem;margin:3rem auto;font-family:system-ui")[
+                    Authorize
+                        .NotAuthorized(P["Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
                 ];
         }
 
-        public sealed class MemberContent(JwtLoginService login, IUserProvider userProvider) : Component
+        public sealed partial class MemberContent(JwtLoginService login, IUserProvider userProvider) : Component
         {
             protected override Component? Render() =>
                 [
-                    H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
-                    Authorize(Roles: ["admin"])[
-                        Div(Style: "color:#7a5c00")["🔑 You have admin access."]],
-                    Button(Id: "logout", OnClickAsync: login.LogoutAsync)["Sign out"]
+                    H1[$"Welcome, {userProvider.Current.Identity?.Name}"],
+                    Authorize.Roles(["admin"])[
+                        Div.Style("color:#7a5c00")["🔑 You have admin access."]],
+                    Button.Id("logout").OnClickAsync(login.LogoutAsync)["Sign out"]
                 ];
         }
 
