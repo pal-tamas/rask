@@ -56,7 +56,7 @@ internal static partial class ProjectGenerator
     // and its nuspec therefore demands `>= <that pin>`. Scaffolding a lower version puts the generated project
     // *below* its own dependency and NuGet reports a downgrade (NU1605) — an error under -warnaserror.
     // ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin holds the two in sync.
-    internal const string AspNetCoreFrameworkVersion = "10.0.10";
+    internal const string AspNetCoreFrameworkVersion = "10.0.11";
 
     // The WebAssembly SDK <PropertyGroup> — byte-identical for the standalone `wasm` template and the
     // `wasm-hosted` client project. Shared here so the two csproj builders (WasmCsproj and
