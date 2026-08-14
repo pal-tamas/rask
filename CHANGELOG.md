@@ -256,6 +256,62 @@ them until tagged releases begin.
   `Handler`).
 
 ### Fixed
+- **A whole page became "Something went wrong" whenever `Router` was served from the render cache.**
+  Twelve browser journeys died on `Outlet() and Router rendering require an active route context`, and
+  the symptom pointed at the wrong thing entirely — every one of them timed out waiting for a sidebar
+  locator, which reads as "the sidebar did not render" when in fact *nothing* had: the whole document
+  was an error boundary.
+
+  `Router.Render()` assigns `ctx.Route`, and that is per-FRAME state — it exists only for the walk that
+  set it, and nothing else in the framework produces it. `Router` had no cache opt-out, so a frame in
+  which its props and state were both clean skipped `Render()` and left the frame with no route context
+  at all. Any `Outlet` that *did* render in that frame — a freshly created one, say — then reached
+  `RouteChainRenderer` with a null route and threw.
+
+  `Outlet` had the same defect for a different reason and is fixed alongside: its `Render()` advances
+  `RouteRenderState.Cursor`, a frame-global positional counter, so a cached `Outlet` fails to advance it
+  and the next one to render pulls the wrong link of the chain — its own parent, nested inside itself.
+  The invariant both now satisfy: **every participant in the route walk must run on every frame**, which
+  is what `BypassRenderCache` is for. The page components the chain resolves to are still cached
+  normally, so the expensive half is untouched.
+
+  Not new to the chain surface, but only *reachable* there. The generated factory re-applied every
+  property on every render, so `PropsDirty` was set unconditionally and nothing was ever really
+  render-cached; `Router` re-executed every frame by accident. Writing only what the call site names is
+  what makes the cache real, and this is what it exposed first.
+
+  **It is not free, and the number is here rather than left to be rediscovered.** A new
+  `RoutedRenderBenchmarks` renders the shape every routed app renders — a two-level chain, 20 rows,
+  steady-state re-render as a live root — and prices the opt-out:
+
+  ```
+  | RoutedFrame          Mean       Allocated
+  | Router/Outlet cached  3.410 us   3.86 KB   (and throwing — see above)
+  | Router/Outlet bypass  3.649 us   4.18 KB
+  |                      +7.0%      +8.3%
+  ```
+
+  Read that comparison carefully: the cheaper arm is not doing the same work faster, it is doing
+  *less* work — a cached `Router` skips the route match altogether, which is exactly why it left the
+  frame without a route context. The cost is one `RouteMatcher.TryMatch` (which allocates the chain
+  list and the values dictionary) plus one chain entry per `Outlet`, per frame. The page components
+  the chain resolves to are still cached normally.
+
+  The obvious way to claw most of it back — memoise the match on `RouteState.Path`, since it is a pure
+  function of the flattened leaves and the path — is deliberately NOT in this PR: it changes routing
+  cache semantics, and doing that after the gate has gone green is how a late unverified change becomes
+  a regression. Filed as #688.
+
+- **The disposal demos' log stayed on "Empty — mount and unmount the probe." forever.** `DisposalDemoLog`
+  renders a `List<string>` that the demo above it APPENDS to in place. The reference never changes, so the
+  props fold (`EqualityComparer<T>.Default` — reference equality for a `List`) reported no change and the
+  render cache replayed the stale subtree; the `<ol>` the E2E looks for was never emitted at all.
+
+  This is the invariant `ExternalStateInvalidationTests` already pins, met from the other side: a
+  component deriving its UI from state it does not own must either subscribe to a change source or opt
+  out of the cache, and a bare `List` has no event to subscribe to. Same root cause as the `Router` entry
+  above — the cache only started being real when the chain stopped re-assigning every property.
+
 - **A type that declares a nested component can be a markup host now.** Opting one in produced **CS0102 in
   generated source** — `DependencyInjectionTests.GreetingComponent` the injected entry against
   `DependencyInjectionTests.GreetingComponent` the nested class — out of a one-line opt-in, with no

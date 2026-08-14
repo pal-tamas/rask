@@ -32,6 +32,24 @@ public sealed class Router : Component
         }
     }
 
+    // Render() publishes ctx.Route — per-FRAME state that the whole subtree below reads and that
+    // exists only for as long as this frame's walk. The render cache breaks that: a Router whose
+    // props and state are both clean is skipped, ctx.Route is never assigned, and any descendant
+    // that does render (a fresh Outlet, say) reaches RouteChainRenderer with a null route and
+    // throws "requires an active route context" — the whole page becomes an error boundary.
+    //
+    // The same reasoning covers Outlet, which advances RouteRenderState.Cursor: the cursor is
+    // frame-global and positional, so the chain is only coherent if EVERY participant in the walk
+    // runs on EVERY frame. Half a cached chain hands a page the wrong chain index.
+    //
+    // This is cheap to pay: Render() here is a route match plus a chain entry, and the page
+    // components the chain resolves to are still cached normally — the expensive half is untouched.
+    //
+    // Not new to the chain surface, but only reachable there: the generated factory used to
+    // re-apply every property each render, so nothing was ever actually render-cached and this
+    // could not fire. See #682.
+    protected override bool BypassRenderCache => true;
+
     // Subscribe to RouteState.Changed so Render() re-executes on every nav and the
     // route chain reflects the new path/query. Unsubscribe in OnUnmount.
     protected override void OnMount() => _state.Changed += StateHasChanged;

@@ -12,6 +12,19 @@ internal sealed partial class DisposalDemoLog : Component
 
     public required string ListId { get; set; }
 
+    // Entries is a list this component does not own: the demo above it APPENDS to the same List<string>
+    // and re-renders itself. The reference never changes, so the props check (EqualityComparer<T>.Default,
+    // i.e. reference equality here) reports no change and the render cache replays the stale subtree —
+    // the log stays on "Empty — mount and unmount the probe." forever. Same invariant as
+    // ExternalStateInvalidationTests: a component deriving UI from state it does not own must either
+    // subscribe to a change source or opt out of the cache, and a bare List has no event to subscribe to.
+    //
+    // Worth being explicit about why this only started mattering: the generated factory used to re-apply
+    // every property on every render, so nothing was ever actually render-cached and reading a mutated
+    // collection happened to work. The chain surface writes only what the call site names, which is what
+    // makes the cache real — and this the first place it bit.
+    protected override bool BypassRenderCache => true;
+
     protected override Component? Render() =>
         [
             H3.Class("h6 text-secondary text-uppercase small mt-4")["Log"],

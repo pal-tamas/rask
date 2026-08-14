@@ -115,6 +115,19 @@ mistake, the rule notes the ID.
   protected override void OnMount()   => route.Changed += StateHasChanged;
   protected override void OnUnmount() => route.Changed -= StateHasChanged;
   ```
+- **A prop that is a mutable collection does not re-render the child when you append to it.** Props
+  are compared with `EqualityComparer<T>.Default`, which for a `List<T>` is reference equality — so a
+  parent that appends to a list it owns and calls `StateHasChanged()` re-renders *itself*, while the
+  child holding that same list is served from the render cache and never sees the new entries:
+  ```csharp
+  // the parent appends to _log and re-renders; LogView shows the OLD contents forever
+  LogView.Entries(_log)
+  ```
+  Three ways out, in order of preference: hand the child a fresh snapshot (`_log.ToArray()`) so the
+  reference genuinely changes; give the child something to subscribe to; or, when the child plainly
+  reads state it does not own and there is no event to subscribe to, opt it out with
+  `protected override bool BypassRenderCache => true;`. The same rule is what makes `Router` and
+  `Outlet` opt out — they publish per-frame route state the rest of the walk depends on.
 
 ## Forms & validation
 

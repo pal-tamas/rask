@@ -21,12 +21,22 @@ namespace Rask.Benchmarks;
 // instead writes what it names and resets the rest.
 //
 // This exists because the reset is the one part of the builder surface that costs per render rather
-// than per call site, and it just grew a second, more expensive form: a property whose setter has a
-// BODY is now assigned unconditionally instead of being skipped when it already reads as its default
-// (Router.Routes derives the routing table from being handed a null, so skipping the write rendered an
-// empty page). Five props on the shared Element/Component surface take that form — Draggable, Role,
-// TabIndex, Aria, Ref — so every element in every entry-built tree pays for it, and "it is only a
-// field write" is a claim, not a measurement.
+// than per call site. It reports allocation parity (19.7 KB on both arms, Alloc Ratio 1.00) and the
+// chain roughly 18% behind on wall clock, with error bars nowhere near touching.
+//
+// What that 18% is NOT: this comment used to name the cause as the reset's second, more expensive
+// form — a property whose setter has a BODY assigned unconditionally rather than skipped when it
+// already reads as its default (Router.Routes derives the routing table from being handed a null, so
+// skipping the write rendered an empty page), with five props on the shared surface taking that form
+// (Draggable, Role, TabIndex, Aria, Ref). That was the prediction the comment carried before anyone
+// measured it, and measuring it DISPROVED it: narrowing the unconditional path to Router.Routes alone
+// moves the ratio 1.18 -> 1.17. The other four are pure forwarding setters and cost nothing here.
+//
+// What is still open: the per-step bookkeeping every setter does (Track + Written, 150 calls a frame
+// at this size) and the reset's own shape — a mask test per prop per component per render, plus a
+// delegate-indirected reset call per entry, whether or not the chain named anything. Tracked in #683,
+// which must be settled BEFORE the generated factory is dropped: that removes the Factory arm below
+// and with it the only A/B this number can be measured against.
 [MemoryDiagnoser]
 public class BuilderSurfaceBenchmarks
 {
