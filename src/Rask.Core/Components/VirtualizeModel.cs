@@ -26,6 +26,12 @@ namespace Rask.Core.Components;
 //     async paging. Component caches loaded items by global index, requests missing windows
 //     in the background, and re-renders on completion. The first render before the count
 //     is known emits an all-placeholder window so the user can render a Loading view.
+
+/// <summary>
+///     Renders only the rows near the viewport, so a list of any length costs the same to render. Supply
+///     <c>Items</c>, or an <c>ItemsProvider</c> that fetches a window on demand, plus the row height in
+///     <c>ItemSize</c>.
+/// </summary>
 public sealed class VirtualizeModel : Component
 {
     private CancellationTokenSource? _activeFetch;
@@ -38,6 +44,9 @@ public sealed class VirtualizeModel : Component
     private int _totalCount;
     private bool _totalCountKnown;
 
+    /// <summary>
+    ///     The full set of items. For a set too large to hold in memory, use <c>ItemsProvider</c> instead.
+    /// </summary>
     public IEnumerable? Items { get; set; }
 
     // Stored as a Delegate? so the non-generic factory's signature stays simple. The typed
@@ -46,20 +55,41 @@ public sealed class VirtualizeModel : Component
     // into the erased
     //   Func<ItemsProviderRequest, ValueTask<ItemsProviderResultErased>>
     // before forwarding. Internally we cast back to the erased shape.
+
+    /// <summary>
+    ///     Fetches one window of items on demand, for a list too large — or too remote — to materialize up
+    ///     front.
+    /// </summary>
     public Delegate? ItemsProvider { get; set; }
 
+    /// <summary>
+    ///     Each row's height in pixels. The scroll maths assumes every row is exactly this tall, so a wrong
+    ///     value shows up as drift while scrolling.
+    /// </summary>
     public int ItemSize { get; set; }
+
+    /// <summary>
+    ///     How many extra rows to render beyond the viewport, trading a little work for fewer blank rows
+    ///     during a fast scroll.
+    /// </summary>
     public int? OverscanCount { get; set; }
 
     // Pre-scroll initial viewport guess. Drives the first render's window size before any
     // scroll event has arrived to set _clientHeight. Should be the scrollable container's
     // approximate visible height in px.
+
+    /// <summary>
+    ///     The viewport height to assume for the first render, before the browser has reported the real
+    ///     one.
+    /// </summary>
     public int? InitialClientHeight { get; set; }
 
     // The render fragment. Called with the type-erased VirtualizationState every render;
     // returns the user's chosen root Component for the virtualized region. Stored under the
     // name "Body" rather than "Render" to avoid colliding with Component.Render(). The
     // user-facing typed factory VirtualizeModel<T>(...) exposes this parameter as "Render".
+
+    /// <summary>Renders one row, given the virtualization state.</summary>
     public new Func<VirtualizationState, Component>? Body { get; set; }
 
     // VirtualizeModel reads mutable internal state (scroll position, item cache, total count

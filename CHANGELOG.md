@@ -8,6 +8,24 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Every public component is documented, and the documentation now reaches the call site.** A factory
+  call is what you *write*, so that is where the docs have to be: hovering `Video(` says what `<video>`
+  is and links its MDN page, and each parameter carries its own description.
+  - **The generator forwards the docs onto the factory.** A component's `<summary>` becomes its
+    factory's, and every documented property becomes a `<param>` on the matching parameter — so the
+    ~490 property descriptions below are visible at the call site rather than only on the type. Without
+    this the tooltip stayed blank however well the component was documented.
+  - **The whole HTML and SVG element surface, referenced to MDN.** All 141 element components and the
+    41 SVG ones now carry a summary and a link to their MDN reference page, plus per-attribute
+    descriptions — including the ones that are easy to get wrong (`Meter`'s `Low`/`High`/`Optimum`,
+    `Track.Kind`, `Iframe.Sandbox`, `Input`'s twenty-two types).
+  - **The Bootstrap surface too.** Every `Bs*` component, enum and utility group is documented, with
+    the accessibility caveats stated where they bite — a spinner needs a label, a close button needs an
+    accessible name, colour must never be the only signal.
+  - **Guarded against rot.** Tests pin that a documented component's summary and params reach its
+    factory, that the MDN link on an element matches its tag, and that partial documentation stays
+    warning-clean — `CS1573` fires per undocumented parameter once *any* parameter is documented, which
+    would otherwise have broken every consumer's warnings-as-errors build.
 - **A WebRTC signaling relay — `ISignaling` (client) and the new `Rask.Signaling` package (server).**
   `IWebRtc` deliberately doesn't pick a signaling channel; this is the channel for apps that don't already
   have one. `AddRaskSignaling()` + `MapRaskSignaling()` host rooms; `ISignaling.JoinAsync` joins one and

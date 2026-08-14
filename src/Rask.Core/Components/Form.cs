@@ -40,6 +40,7 @@ public sealed partial class Form<TModel> : Element
     // that self-registered into the form's context. Setter runs every render (generated factory
     // re-applies properties on cached instances), keeping the registration fresh when sub-
     // object references are swapped between renders.
+
     /// <summary>The model this form binds to. Every field inside it resolves against this object.</summary>
     public required TModel Model
     {

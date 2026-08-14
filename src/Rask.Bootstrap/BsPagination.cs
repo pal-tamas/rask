@@ -2,8 +2,13 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap pagination control: <nav><ul class="pagination">…</ul></nav> holding BsPageItem
 // children. Size maps to pagination-sm / pagination-lg.
+
+/// <summary>
+///     Page links for a long list. Give it an <c>Aria</c> label when a page has more than one.
+/// </summary>
 public sealed partial class BsPagination : BsBlock
 {
+    /// <summary>Makes the whole control smaller or larger.</summary>
     public BsSize? Size { get; set; }
 
     // Accessible label for the surrounding <nav>; defaults to "Page navigation".
@@ -24,12 +29,27 @@ public sealed partial class BsPagination : BsBlock
 // A pagination item: <li class="page-item"><a class="page-link">…</a></li>. Active marks the
 // current page; Disabled greys it. Pass Href for a link, or OnClick to drive paging from C# (zero
 // JS — the handler re-renders through the live runtime).
+
+/// <summary>
+///     One page link.
+/// </summary>
 public sealed partial class BsPageItem : BsBlock
 {
+    /// <summary>Marks this the current page.</summary>
     public bool? Active { get; set; }
+
+    /// <summary>
+    ///     Makes the link non-interactive, for previous at the first page or next at the last.
+    /// </summary>
     public bool? Disabled { get; set; }
+
+    /// <summary>Where the link goes.</summary>
     public string? Href { get; set; }
+
+    /// <summary>Runs when the page is chosen.</summary>
     public Action? OnClick { get; set; }
+
+    /// <summary>Runs when the page is chosen, asynchronously.</summary>
     public Func<Task>? OnClickAsync { get; set; }
 
     // Extra ARIA attributes for the page link itself — pass aria-label to name an icon-only control

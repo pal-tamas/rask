@@ -8,24 +8,40 @@ namespace Rask.Bootstrap;
 // decoration, whereas one red number among grey ones reads as a signal. Callers are expected to leave
 // Tone unset for ordinary counters and set Danger only when the value genuinely demands action (a
 // dead-letter count above zero, say).
+
+/// <summary>
+///     A single headline figure with its label — the tile a dashboard is built from.
+/// </summary>
 public sealed partial class BsStat : BsBlock
 {
     // The number (or short string) — the reason the tile exists.
+
+    /// <summary>The figure itself.</summary>
     public required string Value { get; set; }
 
     // What the number counts, shown above it in small caps.
+
+    /// <summary>What the figure measures.</summary>
     public new required string Label { get; set; }
 
     // Optional supporting line under the number: a unit, a threshold, a timestamp.
+
+    /// <summary>Supporting detail beneath the figure, such as a comparison with last month.</summary>
     public new string? Caption { get; set; }
 
     // Colours the value. Leave unset for the neutral default.
+
+    /// <summary>The tile's semantic colour.</summary>
     public BsColor? Tone { get; set; }
 
     // Optional icon shown beside the label.
+
+    /// <summary>An icon shown beside the figure.</summary>
     public BsIconName? Icon { get; set; }
 
     // Renders the whole tile as a link to this URL, so a tile can be the way into its detail page.
+
+    /// <summary>Makes the whole tile a link to the detail behind the figure.</summary>
     public string? Href { get; set; }
 
     protected override Component? Render()

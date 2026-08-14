@@ -5,6 +5,11 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Components;
 
+/// <summary>
+///     An <c>a</c> that knows whether it points at the current page, and adds <c>ActiveClass</c> when it
+///     does. Takes a type-safe <c>RouteUrl</c> rather than a string, so a renamed route breaks the build
+///     instead of the link.
+/// </summary>
 public sealed class NavLink : Element
 {
     // Cached at mount because LiveRenderContext.Current is null during disposal, so
@@ -12,19 +17,34 @@ public sealed class NavLink : Element
     private RouteState? _route;
     protected override string TagName => "a";
 
+    /// <summary>
+    ///     Where the link goes, as a generated route URL — <c>Routes.Orders()</c> rather than
+    ///     <c>"/orders"</c>.
+    /// </summary>
     public RouteUrl? Href { get; set; }
 
     // The path the active state is compared against, when it differs from Href. Use it for a link that
     // should stay active across a whole section: Href the canonical landing route (e.g. /realtime/BTC)
     // and Match the section root (/realtime) with ActiveMatch: Prefix. Null falls back to Href.
+
+    /// <summary>
+    ///     The URL to compare against the current location, when that differs from <c>Href</c>. Defaults to
+    ///     <c>Href</c>.
+    /// </summary>
     public RouteUrl? Match { get; set; }
 
     // null defaults to "active" at use site so the generated factory exposes ActiveClass
     // as a normal optional parameter — properties with initializers are excluded by the
     // factory generator. To opt out of active styling, pass an empty string.
+
+    /// <summary>The class added while the link is active. Defaults to <c>active</c>.</summary>
     public string? ActiveClass { get; set; }
 
     // Optional: null is treated as Exact (the default match mode).
+
+    /// <summary>
+    ///     How exactly the URL must match to count as active: the whole path, or any prefix of it.
+    /// </summary>
     public NavLinkMatch? ActiveMatch { get; set; }
 
     protected override void OnMount()

@@ -5,26 +5,61 @@ namespace Rask.Bootstrap;
 // re-implement the <button> element. Type defaults to "button" so a BsButton never implicitly submits
 // an enclosing form; pass Type:"submit" for a submit button. For a link styled as a button, use
 // A(Class:"btn btn-primary").
+
+/// <summary>
+///     A Bootstrap button. Prefer it over a raw <c>Button</c> with hand-written classes: the colour, size
+///     and outline variants are typed, so a misspelled class cannot slip through. For something that
+///     navigates rather than acts, use <c>BsLink</c> — a link styled as a button is still a link.
+/// </summary>
 public sealed partial class BsButton : BsBlock
 {
+    /// <summary>
+    ///     The semantic colour — <c>Primary</c> for the one action you want taken, <c>Secondary</c> for the
+    ///     rest, <c>Danger</c> for anything destructive.
+    /// </summary>
     public BsColor? Color { get; set; }
 
     // Outline variant (btn-outline-{color}); ignored when Color is null.
+
+    /// <summary>
+    ///     Draws the button outlined rather than filled, for a lower-emphasis action beside a solid one.
+    /// </summary>
     public bool? Outline { get; set; }
 
+    /// <summary>Makes the button smaller or larger than the default.</summary>
     public BsSize? Size { get; set; }
 
     // Toggle/pressed state: adds .active and aria-pressed="true".
+
+    /// <summary>Renders the pressed state.</summary>
     public bool? Active { get; set; }
 
+    /// <summary>
+    ///     <c>submit</c> (the default inside a form), <c>reset</c>, or <c>button</c>. Set it explicitly —
+    ///     an unset type inside a form submits it.
+    /// </summary>
     public string? Type { get; set; }
+
+    /// <summary>
+    ///     Makes the button unclickable. A disabled control cannot be focused, so it cannot explain why it
+    ///     is disabled; consider leaving it enabled and reporting the reason instead.
+    /// </summary>
     public bool? Disabled { get; set; }
+
+    /// <summary>The name submitted with the form when this button submits it.</summary>
     public string? Name { get; set; }
+
+    /// <summary>The value submitted alongside <c>Name</c>.</summary>
     public string? Value { get; set; }
     public new string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
+    /// <summary>Runs when the button is clicked, then re-renders the owning component.</summary>
     public Action? OnClick { get; set; }
+
+    /// <summary>
+    ///     Runs when the button is clicked, asynchronously, then re-renders the owning component.
+    /// </summary>
     public Func<Task>? OnClickAsync { get; set; }
 
     protected override Component? Render()

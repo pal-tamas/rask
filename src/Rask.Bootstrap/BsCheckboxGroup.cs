@@ -8,8 +8,13 @@ namespace Rask.Bootstrap;
 // IFormControl<ICollection<TItem>> for both the bound (BsCheckboxGroup(() => model.Tags, options)) and
 // controlled (Value:/OnChange:) shapes. Each item is a <div class="form-check"> with a .form-check-input
 // + .form-check-label; the embedded ValidationMessage surfaces the per-field rule.
+
+/// <summary>
+///     A group of checkboxes over a typed option list — any number of choices from a visible set.
+/// </summary>
 public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection<TItem>>
 {
+    /// <summary>The items to choose from.</summary>
     public required IEnumerable<TItem> Options { get; set; }
 
     // Controlled mode (no Bind).
@@ -24,14 +29,23 @@ public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICo
     public Action<ICollection<TItem>>? AfterBind { get; set; }
     public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
+    /// <summary>How to render each item as its label.</summary>
     public Func<TItem, Component>? OptionLabel { get; set; }
+
+    /// <summary>The name submitted for the group.</summary>
     public string? Name { get; set; }
 
     // The group's accessible name. When set, the checkboxes are wrapped in a <fieldset> named by a <legend>
     // (the correct grouping semantics + accessible name for a set of related checkboxes); when null, the bare
     // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
+
+    /// <summary>The group's label.</summary>
     public new string? Label { get; set; }
+
+    /// <summary>A class applied to each item.</summary>
     public string? ItemClass { get; set; }
+
+    /// <summary>Makes every option non-interactive.</summary>
     public bool? Disabled { get; set; }
 
     // Unique suffix for the auto-generated group name of an UNNAMED group, so two id-less controlled

@@ -3,15 +3,35 @@ namespace Rask.Bootstrap;
 // A Bootstrap table: <table class="table …">. Wraps the core Table() with the typed style toggles;
 // set Responsive to wrap it in a .table-responsive scroll container. Children are the usual thead/
 // tbody/tr/td markup (core Thead/Tbody/Tr/Td or plain elements).
+
+/// <summary>
+///     A styled data table. For sorting, paging, grouping and selection, use <c>BsDataGrid</c> instead of
+///     building them on top of this.
+/// </summary>
 public sealed partial class BsTable : BsBlock
 {
+    /// <summary>The table's semantic colour variant.</summary>
     public BsColor? Color { get; set; }
+
+    /// <summary>Shades alternate rows.</summary>
     public bool? Striped { get; set; }
+
+    /// <summary>Shades alternate columns.</summary>
     public bool? StripedColumns { get; set; }
+
+    /// <summary>Draws borders on every cell.</summary>
     public bool? Bordered { get; set; }
+
+    /// <summary>Removes all borders.</summary>
     public bool? Borderless { get; set; }
+
+    /// <summary>Highlights the row under the pointer.</summary>
     public bool? Hover { get; set; }
+
+    /// <summary>Tightens the cell padding.</summary>
     public new bool? Small { get; set; }
+
+    /// <summary>Scrolls the table horizontally on narrow screens instead of overflowing the page.</summary>
     public bool? Responsive { get; set; }
 
     // ARIA passthrough onto the <table> itself (not the responsive wrapper), the same shape BsButton
@@ -23,10 +43,14 @@ public sealed partial class BsTable : BsBlock
     // its own container instead of running down the page. This is also what StickyHeader needs: a
     // sticky header sticks to the nearest scroll container, so with nothing bounding the height there
     // is nothing to stick to.
+
+    /// <summary>Caps the table's height and scrolls inside it.</summary>
     public string? MaxHeight { get; set; }
 
     // Freezes the header row while the body scrolls under it. Only does something inside a bounded
     // scroll container — pair it with MaxHeight (see the .bs-table-sticky rule in rask-bootstrap.css).
+
+    /// <summary>Keeps the header visible while the body scrolls.</summary>
     public bool? StickyHeader { get; set; }
 
     protected override Component? Render()

@@ -10,6 +10,11 @@ namespace Rask.Bootstrap;
 // Implements IFormControl<bool> directly (not via the generic BsFormControl<T> base): an
 // unconstrained `T?` collapses to `T` for value types, so closing the generic base at bool would emit
 // an invalid `bool Value = null` factory parameter. Declaring the members as explicit bool? avoids it.
+
+/// <summary>
+///     A checkbox, radio, or switch bound to a model field. A switch is a checkbox with a different look —
+///     use it for a setting that takes effect at once.
+/// </summary>
 public sealed partial class BsCheck : BsBlock, IFormControl<bool>
 {
     // IFormControl<bool> — bound mode.
@@ -28,16 +33,29 @@ public sealed partial class BsCheck : BsBlock, IFormControl<bool>
     public Action<bool>? OnChange { get; set; }
     public Func<bool, Task>? OnChangeAsync { get; set; }
 
+    /// <summary>The control's label, rendered beside it and associated with it.</summary>
     public new string? Label { get; set; }
+
+    /// <summary>Makes the control non-interactive.</summary>
     public bool? Disabled { get; set; }
+
+    /// <summary>Blocks submission while it is unchecked.</summary>
     public bool? Required { get; set; }
+
+    /// <summary>The name submitted with the form. Radios sharing a name form one group.</summary>
     public string? Name { get; set; }
 
     // Renders the switch toggle (.form-switch + role="switch").
+
+    /// <summary>Renders it as a switch rather than a checkbox.</summary>
     public new bool? Switch { get; set; }
 
     // Lays the check inline (.form-check-inline) / right-aligned (.form-check-reverse).
+
+    /// <summary>Lays it out inline with its siblings rather than on its own line.</summary>
     public bool? Inline { get; set; }
+
+    /// <summary>Puts the label before the control instead of after.</summary>
     public bool? Reverse { get; set; }
 
     // ARIA passthrough onto the <input>, merged with the validation aria-* this control builds itself. The

@@ -12,6 +12,13 @@ namespace Rask.Core.Components;
 // the universal GlobalEventHandlers surface, so they live here rather than on Element. They flow through
 // the same LiveState DomEvents store (sync + async `Action<MediaEventArgs>` / `Func<MediaEventArgs, Task>`
 // pairs, see ElementEvents) and emit after the shared attrs.
+
+/// <summary>
+///     The attributes <c>audio</c> and <c>video</c> share. Not a tag of its own — it exists so both media
+///     elements expose one playback surface, and so their factories order those parameters identically.
+///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement">MDN:
+///     HTMLMediaElement</see>
+/// </summary>
 public abstract class HtmlMediaElement : Element
 {
     // Emit order for the media events, kept deterministic like Element's GlobalEventOrder.
@@ -21,12 +28,40 @@ public abstract class HtmlMediaElement : Element
         "loadedmetadata", "seeked", "seeking", "waiting"
     };
 
+    /// <summary>
+    ///     The URL of the media to play. Prefer <c>source</c> children when you want to offer more than one
+    ///     encoding.
+    /// </summary>
     public string? Src { get; set; }
+
+    /// <summary>
+    ///     Shows the browser's own playback controls. Without it — and without controls of your own — the
+    ///     media cannot be played at all.
+    /// </summary>
     public bool? Controls { get; set; }
+
+    /// <summary>
+    ///     Starts playback as soon as enough has buffered. Browsers block autoplay with sound until the
+    ///     user has interacted with the page; pair it with <c>Muted</c> if you need it to fire.
+    /// </summary>
     public bool? Autoplay { get; set; }
+
+    /// <summary>Restarts from the beginning each time playback reaches the end.</summary>
     public bool? Loop { get; set; }
+
+    /// <summary>Silences the audio initially.</summary>
     public bool? Muted { get; set; }
+
+    /// <summary>
+    ///     How much to fetch before playback: <c>none</c>, <c>metadata</c>, or <c>auto</c>. A hint the
+    ///     browser may ignore.
+    /// </summary>
     public string? Preload { get; set; }
+
+    /// <summary>
+    ///     The CORS mode for the fetch — <c>anonymous</c> or <c>use-credentials</c>. Required before a
+    ///     cross-origin video can be drawn to a canvas.
+    /// </summary>
     public string? CrossOrigin { get; set; }
 
     public Action<MediaEventArgs>? OnPlay { get => SyncHandler<MediaEventArgs>("play"); set => SetDomEventSync("play", value); }

@@ -13,6 +13,11 @@ namespace Rask.Bootstrap;
 //
 // Two layouts mirror the Bootstrap docs: Color set → the "Color schemes" headerless variant (body + white
 // ×); otherwise a header (icon + title + timestamp + ×) over the body.
+
+/// <summary>
+///     A transient notification. Never put an action here that exists nowhere else — a toast disappears,
+///     and anyone who needs longer to read it loses it.
+/// </summary>
 public sealed partial class BsToast : Component
 {
     // Identity passed back through OnClose so the host knows which toast to remove. Also used as the
@@ -20,21 +25,39 @@ public sealed partial class BsToast : Component
     public required int Id { get; set; }
 
     public string? Class { get; set; }
+
+    /// <summary>The toast's heading.</summary>
     public new string? Title { get; set; }
+
+    /// <summary>The toast's body text.</summary>
     public required string Message { get; set; }
 
     // A theme color renders the headerless colored layout (text-bg-{color}); null uses the header layout.
+
+    /// <summary>The semantic colour.</summary>
     public BsColor? Color { get; set; }
 
+    /// <summary>An icon shown beside the title.</summary>
     public BsIconName? Icon { get; set; }
+
+    /// <summary>A relative time shown in the header.</summary>
     public string? Timestamp { get; set; }
 
     // Invoked with this toast's Id from the × or the auto-hide timer. Bind a host method group so the
     // auto-wrapped callback re-renders the host (which drops this toast and unmounts it).
+
+    /// <summary>Runs when the toast is dismissed.</summary>
     public Action<int>? OnClose { get; set; }
+
+    /// <summary>Runs when the toast is dismissed, asynchronously.</summary>
     public Func<int, Task>? OnCloseAsync { get; set; }
 
     // Auto-hide delay in ms; null/<= 0 keeps the toast until dismissed by hand.
+
+    /// <summary>
+    ///     How long before it dismisses itself, in milliseconds. Give the reader time — and never auto-hide
+    ///     an error.
+    /// </summary>
     public int? AutoHideMs { get; set; }
 
     private Timer? _autoHideTimer;

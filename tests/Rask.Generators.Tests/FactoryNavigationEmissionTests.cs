@@ -55,14 +55,16 @@ public class FactoryNavigationEmissionTests
     [Fact]
     public void OptOut_DropsBreadcrumbButKeepsDebuggerStepThrough()
     {
-        var output = Run(Src,
+        var output = RunWith(Src,
             new Dictionary<string, string> { ["build_property.RaskFactoryNavigation"] = "false" });
 
         Assert.DoesNotContain("<see cref", output);
         Assert.Contains("[global::System.Diagnostics.DebuggerStepThrough]", output);
     }
 
-    private static string Run(string source, Dictionary<string, string> buildProps)
+    // Shared with FactoryDocCommentEmissionTests: the same opt-out has to be exercised against the
+    // doc-comment emission, and one driver-with-build-properties helper is enough.
+    internal static string RunWith(string source, Dictionary<string, string> buildProps)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
         var compilation = CSharpCompilation.Create(

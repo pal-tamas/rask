@@ -11,10 +11,20 @@ namespace Rask.Bootstrap;
 // out unavailable days. Labels localizes the nav/clear aria-labels. Native:true falls back to <input type=date>.
 //   Bound:      BsDatePicker.Bind(() => model.StartDate).Label("Start").Min(today)
 //   Controlled: BsDatePicker<DateOnly>().Value(d).OnChange(v => …)
+
+/// <summary>
+///     A date picker, bound to a model field. Set <c>Native</c> to use the platform's own picker, which is
+///     usually the better choice on mobile.
+/// </summary>
 public sealed partial class BsDatePicker<T> : BsPickerBase<T>
 {
+    /// <summary>The earliest selectable date.</summary>
     public DateOnly? Min { get; set; }
+
+    /// <summary>The latest selectable date.</summary>
     public DateOnly? Max { get; set; }
+
+    /// <summary>Decides, per date, whether it can be chosen — for blocking weekends or holidays.</summary>
     public Func<DateOnly, bool>? Disable { get; set; }
 
     private DateOnly _cursor;

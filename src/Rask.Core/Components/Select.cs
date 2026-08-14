@@ -11,6 +11,12 @@ namespace Rask.Core.Components;
 // time (WriteAttributes); the matching <option> is pre-marked selected just before the serializer reads
 // Children (EnterChildrenScope), so the initial render reflects the bound/controlled value without a
 // round-trip. Plain usage stays `Select<string>(Name: …)[Option(…)…]`; bound infers T from the expression.
+
+/// <summary>
+///     A drop-down or list box of <c>option</c> children, optionally grouped by <c>optgroup</c>. Generic in
+///     the bound value's type, so <c>Bind</c> writes the chosen value straight back to your model.
+///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/select">MDN</see>
+/// </summary>
 public sealed class Select<T> : Element, IFormControl<T>
 {
     // Set in WriteAttributes (bound/controlled); a plain select leaves _bound false and skips marking.
@@ -23,25 +29,59 @@ public sealed class Select<T> : Element, IFormControl<T>
 
     protected override string TagName => "select";
 
+    /// <summary>The name submitted with the form.</summary>
     public string? Name { get; set; }
+
+    /// <summary>Lets the user choose more than one option, and renders the control as a list box.</summary>
     public bool? Multiple { get; set; }
+
+    /// <summary>The form will not submit unless an option with a non-empty value is chosen.</summary>
     public bool? Required { get; set; }
+
+    /// <summary>Makes the control non-interactive and excludes it from submission.</summary>
     public bool? Disabled { get; set; }
+
+    /// <summary>
+    ///     How many rows to show at once. More than one renders a list box rather than a drop-down.
+    /// </summary>
     public int? Size { get; set; }
+
+    /// <summary>The <c>id</c> of the form this control belongs to.</summary>
     public new string? Form { get; set; }
+
+    /// <summary>Focuses this control on page load.</summary>
     public bool? Autofocus { get; set; }
+
+    /// <summary>The kind of value expected, so the browser can fill it.</summary>
     public string? Autocomplete { get; set; }
 
     // IFormControl<T> — controlled mode (OnChange/OnChangeAsync are the typed change callbacks).
     public Action<T>? OnChange { get; set; }
     public Func<T, Task>? OnChangeAsync { get; set; }
+
+    /// <summary>
+    ///     The selected value. Prefer <c>Bind</c>, which keeps it in step with your model in both
+    ///     directions.
+    /// </summary>
     public T? Value { get; set; }
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).
+
+    /// <summary>
+    ///     The model field this control is bound to, as an expression such as <c>() => model.Country</c>.
+    /// </summary>
     public Expression<Func<T>>? Bind { get; set; }
+
+    /// <summary>A synchronous check run on the bound value, returning an error message or null.</summary>
     public Validate<T>? Validate { get; set; }
+
+    /// <summary>An asynchronous check run on the bound value.</summary>
     public ValidateAsync<T>? ValidateAsync { get; set; }
+
+    /// <summary>Runs after a successful bind, once the model has the new value.</summary>
     public Action<T>? AfterBind { get; set; }
+
+    /// <summary>Runs after a successful bind, asynchronously.</summary>
     public Func<T, Task>? AfterBindAsync { get; set; }
 
     protected override IDisposable? EnterChildrenScope()

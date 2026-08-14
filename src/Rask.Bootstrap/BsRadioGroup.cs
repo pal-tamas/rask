@@ -9,8 +9,14 @@ namespace Rask.Bootstrap;
 // controlled factory (Value:/OnChange:). Each item is a <div class="form-check"> with a .form-check-input
 // radio + .form-check-label; the embedded ValidationMessage surfaces the per-field rule. Mode is chosen
 // by whether Bind is set.
+
+/// <summary>
+///     A group of radio buttons over a typed option list — one choice from a small, visible set. Beyond a
+///     handful of options, a <c>BsSelect</c> reads better.
+/// </summary>
 public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValue>
 {
+    /// <summary>The items to choose from.</summary>
     public required IEnumerable<TValue> Options { get; set; }
 
     // Controlled mode (used when Bind is null): the parent owns the current value.
@@ -25,16 +31,25 @@ public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValu
     public Action<TValue>? AfterBind { get; set; }
     public Func<TValue, Task>? AfterBindAsync { get; set; }
 
+    /// <summary>How to render each item as its label.</summary>
     public Func<TValue, Component>? OptionLabel { get; set; }
+
+    /// <summary>The shared name that makes these radios one group.</summary>
     public string? Name { get; set; }
 
     // The group's accessible name. When set, the radios are wrapped in a <fieldset> named by a <legend>
     // (the correct grouping semantics + accessible name for a set of related radios); when null, the bare
     // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
+
+    /// <summary>The group's label.</summary>
     public new string? Label { get; set; }
 
     // Extra wrapper classes per item, e.g. "form-check-inline".
+
+    /// <summary>A class applied to each item.</summary>
     public string? ItemClass { get; set; }
+
+    /// <summary>Makes every option non-interactive.</summary>
     public bool? Disabled { get; set; }
 
     // Unique suffix for the auto-generated group name of an UNNAMED group, so two id-less controlled
