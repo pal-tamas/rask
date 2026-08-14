@@ -4,13 +4,13 @@ using System.Text.Json;
 
 namespace Rask.Core.Tests.Live;
 
-public class MouseModifiersHandlerTests
+public partial class MouseModifiersHandlerTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task ActionMouseModifiers_ReceivesShiftFlag()
     {
         MouseModifiers? captured = null;
-        var component = new StubComponent(Span());
+        var component = new StubComponent(Span);
         component.RegisterTestHandler("h0", new Action<MouseModifiers>(m => captured = m));
 
         var payload = JsonDocument.Parse("{\"shiftKey\":true,\"ctrlKey\":false,\"altKey\":false,\"metaKey\":false}")
@@ -25,7 +25,7 @@ public class MouseModifiersHandlerTests
     public async Task ActionMouseModifiers_AllFlagsSet()
     {
         MouseModifiers? captured = null;
-        var component = new StubComponent(Span());
+        var component = new StubComponent(Span);
         component.RegisterTestHandler("h0", new Action<MouseModifiers>(m => captured = m));
 
         var payload = JsonDocument.Parse("{\"shiftKey\":true,\"ctrlKey\":true,\"altKey\":true,\"metaKey\":true}")
@@ -39,7 +39,7 @@ public class MouseModifiersHandlerTests
     public async Task ActionMouseModifiers_MissingFields_DefaultToFalse()
     {
         MouseModifiers? captured = null;
-        var component = new StubComponent(Span());
+        var component = new StubComponent(Span);
         component.RegisterTestHandler("h0", new Action<MouseModifiers>(m => captured = m));
 
         var payload = JsonDocument.Parse("{}").RootElement;
@@ -52,7 +52,7 @@ public class MouseModifiersHandlerTests
     public async Task FuncMouseModifiersTask_IsAwaited_AndReceivesFlags()
     {
         MouseModifiers? captured = null;
-        var component = new StubComponent(Span());
+        var component = new StubComponent(Span);
         component.RegisterTestHandler("h0", new Func<MouseModifiers, Task>(async m =>
         {
             await Task.Yield();

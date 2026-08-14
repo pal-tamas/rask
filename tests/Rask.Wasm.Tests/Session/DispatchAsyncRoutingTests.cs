@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
@@ -134,7 +135,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_HandlerThatThrows_ReturnsEmpty_AndSessionStaysUsable()
+    public async Task Dispatch_HandlerThatThrows_ShowsTheErrorPage_AndSessionStaysUsable()
     {
         var (session, _) = NewSession<ThrowingStubApp>(diffMode: DiffMode);
 
@@ -143,9 +144,11 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
 
         var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}"}"""));
 
-        Assert.Empty(result);
+        // The host wraps the app in a RootErrorBoundary, so a handler that throws paints the error page
+        // rather than dropping the frame — the browser has to be told something happened.
+        Assert.Contains("Something went wrong", Encoding.UTF8.GetString(result));
 
-        // Session is still usable: a subsequent valid dispatch (using an unknown handler id) still returns empty,
+        // Session is still usable: a subsequent dispatch for an unknown handler id returns empty,
         // proving the lock was released and the session didn't crash.
         var follow = await session.DispatchAsync(Utf8("""{"id":"h999"}"""));
         Assert.Empty(follow);

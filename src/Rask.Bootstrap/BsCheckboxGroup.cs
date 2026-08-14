@@ -8,14 +8,14 @@ namespace Rask.Bootstrap;
 // IFormControl<ICollection<TItem>> for both the bound (BsCheckboxGroup(() => model.Tags, options)) and
 // controlled (Value:/OnChange:) shapes. Each item is a <div class="form-check"> with a .form-check-input
 // + .form-check-label; the embedded ValidationMessage surfaces the per-field rule.
-public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection<TItem>>
+public sealed partial class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection<TItem>>
 {
     public required IEnumerable<TItem> Options { get; set; }
 
     // Controlled mode (no Bind).
     public ICollection<TItem>? Value { get; set; }
-    public Callback<ICollection<TItem>>? OnChange { get; set; }
-    public CallbackAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
+    public Action<ICollection<TItem>>? OnChange { get; set; }
+    public Func<ICollection<TItem>, Task>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
@@ -30,7 +30,7 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
     // The group's accessible name. When set, the checkboxes are wrapped in a <fieldset> named by a <legend>
     // (the correct grouping semantics + accessible name for a set of related checkboxes); when null, the bare
     // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
 
@@ -87,33 +87,29 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
             var optionValue = option;
             var optionId = $"{groupName}-{index}";
             var isChecked = selected is not null && selected.Contains(optionValue, comparer);
-            Component label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            Component label = OptionLabel is { } render ? render(option) : option?.ToString() ?? string.Empty;
 
-            children.Add(Div(Class: wrapperClass, Key: index)[
-                Input<string>(
-                    InputType.Checkbox, groupName, BindingHelpers.FormatValue(option),
-                    Checked: isChecked, Disabled: Disabled, Class: "form-check-input", Id: optionId,
-                    Aria: optionAria,
-                    OnChangeAsync: disabled
+            children.Add(Div.Class(wrapperClass).Key(index)[
+                Input.Value(BindingHelpers.FormatValue(option)).Type(InputType.Checkbox).Name(groupName).Checked(isChecked).Disabled(Disabled).Class("form-check-input").Id(optionId).Aria(optionAria).OnChangeAsync(disabled
                         ? null
                         : value => ToggleAsync(acc, ctx, fid, optionValue, comparer, bool.TryParse(value, out var b) && b)),
-                Rask.Core.Components.Generated.Label(Class: "form-check-label", For: optionId)[label]
+                global::RaskEntriesRask_Core.Label.Class("form-check-label").For(optionId)[label]
             ]);
             index++;
         }
 
         if (invalid)
         {
-            children.Add(Div(Id: errorId, Class: "invalid-feedback d-block", Role: "alert")[messages[0]]);
+            children.Add(Div.Id(errorId).Class("invalid-feedback d-block").Role("alert")[messages[0]]);
         }
 
         if (Label is not null)
         {
-            var content = new List<Component> { Legend(Class: "form-label fs-6")[Label] };
+            var content = new List<Component> { Legend.Class("form-label fs-6")[Label] };
             content.AddRange(children);
             // Disabled is NOT set on the fieldset: a disabled fieldset disables ALL descendants, which would
             // also disable interactive content in a rich OptionLabel. The checkboxes carry their own Disabled.
-            return Fieldset(Class: "border-0 p-0 m-0")[content];
+            return Fieldset.Class("border-0 p-0 m-0")[content];
         }
 
         return [.. children];

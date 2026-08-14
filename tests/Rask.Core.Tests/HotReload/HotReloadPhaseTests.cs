@@ -264,12 +264,12 @@ public class HotReloadPhaseTests
 
     private sealed class Widget : Component
     {
-        protected override Component? Render() => Div();
+        protected override Component? Render() => Div;
     }
 
     private sealed class OtherWidget : Component
     {
-        protected override Component? Render() => Div();
+        protected override Component? Render() => Div;
     }
 
     private sealed class RecordingSession : LiveSessionBase

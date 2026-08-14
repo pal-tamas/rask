@@ -60,10 +60,10 @@ Two gates, use both: `[Authorize]` at the route (redirects anonymous deep-links 
 
 ```csharp
 [Authorize]                                    // route-level; from Microsoft.AspNetCore.Authorization
-public sealed class CreateProduct : Component { … }
+public sealed partial class CreateProduct : Component { … }
 
-Authorize()[ NewProductButton() ]              // rendered only for signed-in users
-Authorize(Roles: ["admin"])[ DeleteProductButton(product.Id) ]
+Authorize[ NewProductButton() ]              // rendered only for signed-in users
+Authorize.Roles(["admin"])[ DeleteProductButton(product.Id) ]
 ```
 
 Scaffold the login itself with `rask new … --auth`.

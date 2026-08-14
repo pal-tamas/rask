@@ -65,15 +65,15 @@ using Rask.Core;
 
 namespace Demo;
 
-public sealed class Playground : Component
+public sealed partial class Playground : Component
 {
     private int _count;
 
     protected override Component? Render() =>
-        Div(Class: "card")[
-            H1()["Hello, Rask 👋"],
-            P()[$"You clicked {_count} times."],
-            Button(Class: "btn", OnClick: () => _count++)["Click me"]
+        Div.Class("card")[
+            H1["Hello, Rask 👋"],
+            P[$"You clicked {_count} times."],
+            Button.Class("btn").OnClick(() => _count++)["Click me"]
         ];
 }
 ```

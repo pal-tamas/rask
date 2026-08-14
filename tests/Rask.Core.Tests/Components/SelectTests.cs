@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Rask.Core.Tests.Components;
 
-public class SelectTests
+public partial class SelectTests : global::Rask.Core.RaskMarkup
 {
     // Preselection (MarkSelected) marks the <option> whose value matches the bound model
     // value at serialize time (Select.EnterChildrenScope), so it works whether options are
@@ -18,8 +18,8 @@ public class SelectTests
         // The exact shape that used to break: idiomatic indexer syntax, bound value matching
         // a non-first option. Factory-time MarkSelected never saw these children.
         var model = new ColorPicker { Color = "red" };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color)[Option(""), Option("red"), Option("blue")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Color)[Option.Value(""), Option.Value("red"), Option.Value("blue")]
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -33,8 +33,8 @@ public class SelectTests
     public void BoundSelect_IndexerChildren_NullValue_PreselectsEmptyOption()
     {
         var model = new ColorPicker { Color = null };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color)[Option(""), Option("red")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Color)[Option.Value(""), Option.Value("red")]
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -47,8 +47,8 @@ public class SelectTests
     public void BoundSelect_NullValue_Preselects_EmptyValueOption()
     {
         var model = new ColorPicker { Color = null };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color)[Option(""), Option("red")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Color)[Option.Value(""), Option.Value("red")]
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -62,8 +62,8 @@ public class SelectTests
     public void BoundSelect_NonNullValue_PreselectsMatchingOption()
     {
         var model = new ColorPicker { Color = "red" };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color)[Option(""), Option("red"), Option("blue")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Color)[Option.Value(""), Option.Value("red"), Option.Value("blue")]
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -81,8 +81,8 @@ public class SelectTests
         // value-type behavior. A non-nullable `string` property would set "" instead
         // (see OnInput_NonNullableString_EmptyInput_SetsEmptyString in FormBindingTests).
         var model = new ColorPicker { Color = "red" };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color)[Option(""), Option("red")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Color)[Option.Value(""), Option.Value("red")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -100,8 +100,8 @@ public class SelectTests
     public async Task BoundSelect_NullableInt_ValidChange_SetsTypedValue()
     {
         var model = new ChoiceModel { Choice = null };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Choice)[Option(""), Option("5"), Option("10")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Choice)[Option.Value(""), Option.Value("5"), Option.Value("10")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -117,8 +117,8 @@ public class SelectTests
     public async Task BoundSelect_NullableInt_EmptyChange_SetsPropertyToNull()
     {
         var model = new ChoiceModel { Choice = 5 };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Choice)[Option(""), Option("5")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Choice)[Option.Value(""), Option.Value("5")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -134,8 +134,8 @@ public class SelectTests
     public async Task BoundSelect_NullableEnum_ValidChange_ParsesEnum()
     {
         var model = new StatusModel { Status = null };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Status)[Option(""), Option("Active"), Option("Inactive")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Status)[Option.Value(""), Option.Value("Active"), Option.Value("Inactive")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -151,8 +151,8 @@ public class SelectTests
     public async Task BoundSelect_NullableEnum_EmptyChange_SetsPropertyToNull()
     {
         var model = new StatusModel { Status = SelectStatus.Active };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Status)[Option(""), Option("Active")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Status)[Option.Value(""), Option.Value("Active")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -173,8 +173,8 @@ public class SelectTests
         // convention is the contract; this test pins that an attribute-less option does
         // NOT match a null bound value.
         var model = new ColorPicker { Color = null };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color)[Option()["placeholder"], Option("red")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Color)[Option["placeholder"], Option.Value("red")]
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -190,11 +190,11 @@ public class SelectTests
         // reconciliation mismatches and the browser's live `selected` IDL property is never synced — the
         // <select> visually snaps back to the old value even though the `selected` attribute is correct.
         var model = new ColorPicker { Color = "red" };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color)[
-                Option(Value: "", Key: "e")["none"],
-                Option(Value: "red", Key: "r")["red"],
-                Option(Value: "blue", Key: "b")["blue"]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Color)[
+                Option.Value("").Key("e")["none"],
+                Option.Value("red").Key("r")["red"],
+                Option.Value("blue").Key("b")["blue"]
             ]
         ]);
 
@@ -256,8 +256,8 @@ public class SelectTests
     public async Task BoundMultiSelect_Change_BindsEveryReportedOption()
     {
         var model = new TagsModel { Tags = [] };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b"), Option.Value("c")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -275,8 +275,8 @@ public class SelectTests
         // Set, never merge: every change frame carries the absolute selection, so a replace re-syncs the
         // model even when an intermediate render was coalesced. A membership edit could not.
         var model = new TagsModel { Tags = ["a", "b"] };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b"), Option.Value("c")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -291,8 +291,8 @@ public class SelectTests
     public async Task BoundMultiSelect_EmptySelection_ClearsTheModel()
     {
         var model = new TagsModel { Tags = ["a"] };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -309,8 +309,8 @@ public class SelectTests
         // The render half. A single-value select marks the one option matching its formatted value;
         // a multi-select has to mark each member of the bound collection.
         var model = new TagsModel { Tags = ["a", "c"] };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b"), Option.Value("c")]
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -326,8 +326,8 @@ public class SelectTests
         // A browser holding a client cached from a deploy that predates the array still sends `value`
         // alone. Reporting one option is wrong, but dropping the user's pick entirely is worse.
         var model = new TagsModel { Tags = [] };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -346,8 +346,8 @@ public class SelectTests
         // model's own collection is refilled instead.
         var model = new OwnedTagsModel();
         model.Tags.Add("a");
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b"), Option.Value("c")]
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -365,8 +365,8 @@ public class SelectTests
         // Multiple:true on a model that can only hold one answer. Silently widening it would be the
         // more surprising change, so this stays on the single-value path.
         var model = new ColorPicker { Color = null };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color, Multiple: true)[Option("red"), Option("blue")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Color).Multiple(true)[Option.Value("red"), Option.Value("blue")]
         ]);
         var html = view.RenderAsLiveRoot();
 

@@ -7,7 +7,7 @@ namespace Rask.Core.Components;
 // (SelfClosing stays on Col, since Colgroup does not). Neither adds extra attributes.
 public abstract class HtmlTableColElement : Element
 {
-    public int? Span { get; set; }
+    public new int? Span { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

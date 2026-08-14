@@ -8,34 +8,33 @@ Sending events up from a child and passing values down to deep consumers without
 
 **For parent callbacks, Rask has no Blazor-style `EventCallback` wrapper.** A child raises an
 event up to its parent with a plain delegate property — `Action`, `Action<T>`, `Func<Task>`, or
-`Func<T, Task>`. (DOM event handlers further down use the named `Callback<T>` / `CallbackAsync<T>`
-delegate types, but you still never *construct* one — see below.) The generated factory wraps the delegate so that **invoking it
-re-renders the parent that owns it**, with no `StateHasChanged` threaded through by hand.
+`Func<T, Task>`. DOM event handlers further down use the same four shapes. The chain step wraps the
+delegate so that **invoking it re-renders the parent that owns it**, with no `StateHasChanged` threaded
+through by hand.
 
 ```csharp
 // Component: declares the event as a delegate prop and invokes it.
-public sealed class RatingStars : Component
+public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }
     public Action<int>? OnRate { get; set; }
 
     protected override Component? Render() =>
-        Div(Class: "d-inline-flex gap-1")[
-            Enumerable.Range(1, 5).Select(i => (Component)Button(
-                OnClick: () => OnRate?.Invoke(i),   // raise the event
-                Key: i)[i <= Value ? "★" : "☆"])
+        Div.Class("d-inline-flex gap-1")[
+            Enumerable.Range(1, 5).Select(i => (Component)Button.OnClick(() => OnRate?.Invoke(i))// raise the event
+.Key(i)[i <= Value ? "★" : "☆"])
         ];
 }
 
 // Parent: passes a lambda that mutates its own state.
-public sealed class RatingDemo : Component
+public sealed partial class RatingDemo : Component
 {
     private int _rating;
 
     protected override Component? Render() =>
-        Div()[
-            RatingStars(Value: _rating, OnRate: n => _rating = n),   // re-renders the parent
-            P()[_rating == 0 ? "Click a star." : $"You rated {_rating}/5"]
+        Div[
+            RatingStars.Value(_rating).OnRate(n => _rating = n),   // re-renders the parent
+            P[_rating == 0 ? "Click a star." : $"You rated {_rating}/5"]
         ];
 }
 ```
@@ -50,13 +49,29 @@ returns unchanged and does **not** trigger a re-render.
 Auto-wrapped delegates are excluded from the `propsChanged` diff — changing only the
 lambda identity between renders does not refire `OnPropsChanged`.
 
+**Callbacks on framework components are plain delegates.** `BsButton.OnClick` is an `Action?`,
+`Input.OnInputAsync` a `Func<string, Task>?`, `BsDataGrid.RowClass` a `Func<T, string?>?` — declared as
+what they are, called back as what they are: `button.OnClick?.Invoke()`,
+`await (form.OnSubmitAsync?.Invoke(data) ?? Task.CompletedTask)`.
+
+They briefly were not. While a chain's receiver was the component itself, a delegate-typed property was
+*invocable*, so `.OnClick(Save)` bound to the property and tried to call the handler (CS1593) instead of
+reaching the setter of the same name — so every callback property wrapped its delegate in a non-invocable
+carrier struct to get out of the way. A chain receives on `Build<TComponent>` now: the property is not on
+the receiver, the lookup never finds it, and the wrappers are gone from the surface entirely.
+**Wrapping is unchanged:** a component callback is still auto-wrapped, a DOM handler still is not.
+
+Your own delegate props need none of this; they keep working exactly as above, and their builder setter
+simply drops the `On` (`.Rate(…)` for `OnRate`). Declare the prop as a carrier if you want the setter
+to keep the property's name.
+
 **DOM events on elements.** `Element` exposes the full DOM **`GlobalEventHandlers`** surface — so
 **every** element (not a hand-picked few) carries the complete event set, just like the real DOM
-mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Callback<TArgs>`)
-and an asynchronous `OnXxxAsync` (`CallbackAsync<TArgs>`); set **at most one** per event (wiring both
+mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Action<TArgs>`)
+and an asynchronous `OnXxxAsync` (`Func<TArgs, Task>`); set **at most one** per event (wiring both
 is a compile error, [RASK027](diagnostics.md#rask027) — the runtime would keep the sync one and drop
 the async). Pass a **bare lambda or method group** — `OnMouseMove: e => { _x = e.OffsetX; }`,
-`OnKeyDown: OnKey` — never `new Callback<T>(…)`: the named parameter already gives the lambda its
+`OnKeyDown: OnKey` — never `new Action<T>(…)`: the step already gives the lambda its
 type, exactly like `OnClick: () => _count++`. The surface:
 
 - **Mouse** — `OnClick` (parameterless), `OnDoubleClick`, `OnContextMenu`, `OnMouseDown`/`Up`/`Move`/
@@ -75,9 +90,16 @@ type, exactly like `OnClick: () => _count++`. The surface:
 - **Scroll & drag** — `OnScroll` (`ScrollEvent`, rAF-coalesced); `OnDragStart`/`Over`/`Drop`/`End`
   plus `OnDrag`/`OnDragEnter`/`OnDragLeave` (parameterless — the dragged item's identity rides the
   handler's closure).
-- **Forms** — `OnBeforeInput` (`Callback<string>`), `OnSelect`, `OnInvalid`, `OnReset`.
+- **Forms** — `OnBeforeInput` (`Action<string>`), `OnSelect`, `OnInvalid`, `OnReset`.
 - **Media** — `Audio`/`Video` add the `HTMLMediaElement` events `OnPlay`/`OnPause`/`OnEnded`/
   `OnTimeUpdate`/`OnVolumeChange`/… (`MediaEventArgs`: current time, duration, paused, volume, …).
+
+You never name the carrier: you pass the lambda or method group and the implicit conversion does the
+rest, so `OnClick: Save` and `OnClick = Save` read exactly as before. It exists so a property and its
+builder setter can share a name — a delegate-typed property *is* invocable, which would make
+`.OnClick(Save)` try to call the handler (CS1593). Reading a handler back off an element is the one
+place it shows: `el.OnClick?.Invoke()`. DOM handlers are **never** auto-wrapped — they go straight to the
+DOM, where handler-owner resolution already re-renders the owner.
 
 All of these are delegated by a single capture-phase listener per event in the shared client module
 (`rask-events.js`, spliced into both the Server and WASM runtimes), so there is no per-element JS. The
@@ -106,7 +128,7 @@ cancellable async work a handler or lifecycle hook starts, so the work aborts wh
 away and a slow handler unwinds instead of pinning the session's render pipeline:
 
 ```csharp
-Button(OnClickAsync: async () =>
+Button.OnClickAsync(async () =>
     _rows = await _api.LoadAsync(CancellationToken))["Load"]
 ```
 
@@ -129,16 +151,16 @@ drilling** — React's provide/consume, type-erased so it stays trim-safe.
 ```csharp
 // Provide near the top. `Provide<T>` is a transparent node; children render under it.
 Context.Provide<Theme>(Value: _theme)[
-    ThemeCard()        // knows nothing about Theme — no prop passed through it
+    ThemeCard        // knows nothing about Theme — no prop passed through it
 ]
 
 // Consume anywhere below, in Render():
-public sealed class ThemeBadge : Component
+public sealed partial class ThemeBadge : Component
 {
     protected override Component? Render()
     {
         var theme = Context.Required<Theme>();   // throws if no provider
-        return Span(Class: theme.IsDark ? "badge bg-dark" : "badge bg-light")[theme.Name];
+        return Span.Class(theme.IsDark ? "badge bg-dark" : "badge bg-light")[theme.Name];
     }
 }
 ```

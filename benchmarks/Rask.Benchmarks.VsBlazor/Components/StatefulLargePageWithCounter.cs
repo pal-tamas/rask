@@ -20,7 +20,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 // _stateDirty=true and re-runs Render(), producing a fresh outer wrapper around the
 // cached rows with the new counter text spliced in.
 #pragma warning disable RASK014
-public sealed class StatefulLargePageWithCounter : Component
+public sealed partial class StatefulLargePageWithCounter : Component
 #pragma warning restore RASK014
 {
     public const int LargePageRowCount = 200;
@@ -42,18 +42,18 @@ public sealed class StatefulLargePageWithCounter : Component
             _rows = new List<Component>(LargePageRowCount);
             for (var i = 0; i < LargePageRowCount; i++)
             {
-                _rows.Add(C.Div(Class: "row", Id: $"r{i}")[
-                    C.Span(Class: "label")[$"Item {i}"],
-                    C.A($"/item/{i}", Class: "lnk")[$"open {i}"]
+                _rows.Add(Div.Class("row").Id($"r{i}")[
+                    Span.Class("label")[$"Item {i}"],
+                    A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
                 ]);
             }
         }
 
-        return C.Div(Class: "container", Id: "root")[
-            C.Div(Class: "counter", Id: "counter")[
-                C.Span(Class: "value")[Counter.ToString()]
+        return Div.Class("container").Id("root")[
+            Div.Class("counter").Id("counter")[
+                Span.Class("value")[Counter.ToString()]
             ],
-            C.Div(Class: "body")[_rows]
+            Div.Class("body")[_rows]
         ];
     }
 }
@@ -64,7 +64,7 @@ public sealed class StatefulLargePageWithCounter : Component
 // LargePageWithCounter.BuildRaskWithDeepTextCell() factory but reuses 199 of
 // 200 row instances across iterations.
 #pragma warning disable RASK014
-public sealed class StatefulLargePageWithDeepTextCell : Component
+public sealed partial class StatefulLargePageWithDeepTextCell : Component
 #pragma warning restore RASK014
 {
     public const int LargePageRowCount = 200;
@@ -93,16 +93,16 @@ public sealed class StatefulLargePageWithDeepTextCell : Component
                     continue; // built fresh each render
                 }
 
-                _rowsByIndex[i] = C.Div(Class: "row", Id: $"r{i}")[
-                    C.Span(Class: "label")[$"Item {i}"],
-                    C.A($"/item/{i}", Class: "lnk")[$"open {i}"]
+                _rowsByIndex[i] = Div.Class("row").Id($"r{i}")[
+                    Span.Class("label")[$"Item {i}"],
+                    A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
                 ];
             }
         }
 
-        _rowsByIndex[MutatingIndex] = C.Div(Class: "row", Id: $"r{MutatingIndex}")[
-            C.Span(Class: "label")[$"ticker {Counter}"],
-            C.A($"/item/{MutatingIndex}", Class: "lnk")[$"open {MutatingIndex}"]
+        _rowsByIndex[MutatingIndex] = Div.Class("row").Id($"r{MutatingIndex}")[
+            Span.Class("label")[$"ticker {Counter}"],
+            A.Href($"/item/{MutatingIndex}").Class("lnk")[$"open {MutatingIndex}"]
         ];
 
         _scratch ??= new List<Component>(LargePageRowCount);
@@ -112,6 +112,6 @@ public sealed class StatefulLargePageWithDeepTextCell : Component
             _scratch.Add(_rowsByIndex[i]);
         }
 
-        return C.Div(Class: "body")[_scratch];
+        return Div.Class("body")[_scratch];
     }
 }

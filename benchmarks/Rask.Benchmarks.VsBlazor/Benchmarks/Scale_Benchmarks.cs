@@ -242,8 +242,10 @@ public class Scale_KeyedAppendMiddleBenchmarks : ScaleDiffBase
     }
 }
 
+[global::Rask.Core.RaskMarkup]
+
 [MemoryDiagnoser]
-public class Scale_DeepTreeMutationByDepthBenchmarks : ScaleDiffBase
+public partial class Scale_DeepTreeMutationByDepthBenchmarks : ScaleDiffBase
 {
     private int _counter;
 
@@ -283,13 +285,13 @@ public class Scale_DeepTreeMutationByDepthBenchmarks : ScaleDiffBase
 
     private static Component BuildDeepTreeRask(int counter, int depth)
     {
-        var leaf = C.Span(Class: "counter")[counter.ToString()];
+        var leaf = Span.Class("counter")[counter.ToString()];
         for (var i = 0; i < depth; i++)
         {
-            leaf = C.Div(Class: $"d{i}")[leaf];
+            leaf = Div.Class($"d{i}")[leaf];
         }
 
-        return [C.Doctype(), C.Html()[C.Body()[leaf]]];
+        return [Doctype, Html[Body[leaf]]];
     }
 
     // DeepTreeCounter.BlazorDeepTreeCounter has Depth fixed at 50. Scale_* needs a

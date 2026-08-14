@@ -4,7 +4,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Contexts;
 
-public class ContextTests
+public partial class ContextTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Provide_ThenConsume_DescendantSeesValue()
@@ -135,7 +135,7 @@ public class ContextTests
     {
         var sp = RenderHarness.EmptyServices();
         var root = new StubComponent(() =>
-            Context.Provide(1, Key: "k1")[Div()["body"]]);
+            Context.Provide(1, Key: "k1")[Div["body"]]);
 
         var html = root.RenderAsLiveRoot(sp);
 
@@ -222,7 +222,7 @@ public class ContextTests
             RenderCount++;
             var theme = Context.Required<Theme>();
             LastSeen = theme.Name;
-            return Span()[theme.Name];
+            return Span[theme.Name];
         }
     }
 
@@ -233,7 +233,7 @@ public class ContextTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Span()["plain"];
+            return Span["plain"];
         }
     }
 
@@ -244,7 +244,7 @@ public class ContextTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Span()[Context.Has<Theme>() ? "has" : "none"];
+            return Span[Context.Has<Theme>() ? "has" : "none"];
         }
     }
 
@@ -295,8 +295,8 @@ public class ContextTests
 
     private sealed class NamedProbe : Component
     {
-        public string? A;
-        public string? B;
+        public new string? A;
+        public new string? B;
         public string? Unnamed;
 
         protected override Component? Render()

@@ -7,7 +7,7 @@ public sealed class Label : Element
     protected override string TagName => "label";
 
     public string? For { get; set; }
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

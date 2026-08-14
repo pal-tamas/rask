@@ -19,7 +19,7 @@ namespace Rask.Benchmarks;
 //   - Fresh allocates a DiffScratch per call — approximates the pre-pooling profile (every
 //     keyed parent rebuilding its working set from scratch).
 [MemoryDiagnoser]
-public class FrameDifferBenchmarks
+public partial class FrameDifferBenchmarks : global::Rask.Core.RaskMarkup
 {
     private readonly List<EditOp> _ops = new(64);
     private readonly FrameDiffer.DiffScratch _scratch = new();
@@ -226,10 +226,10 @@ public class FrameDifferBenchmarks
 
     // A guide-page section: a "sample" container mixing a Raw code block with a sibling status node.
     private static Component BuildGuidePage(int status) =>
-        C.Div(Class: "guide")[
-            C.Div(Class: "sample", Id: "sample")[
-                C.Raw(HighlightedCode),
-                C.Div(Class: "status", Id: "demo-status")[$"count: {status}"]
+        Div.Class("guide")[
+            Div.Class("sample").Id("sample")[
+                Raw.Value(HighlightedCode),
+                Div.Class("status").Id("demo-status")[$"count: {status}"]
             ]
         ];
 
@@ -242,10 +242,10 @@ public class FrameDifferBenchmarks
             // textRow flips one row's inner text so the text scenario has a single deep
             // change to recurse into; -1 leaves every row stable.
             var label = idx == textRow ? $"Item {idx}!" : $"Item {idx}";
-            rows.Add(C.Div(Key: idx)[C.Span()[label]]);
+            rows.Add(Div.Key(idx)[Span[label]]);
         }
 
-        return C.Div(Class: "list")[rows];
+        return Div.Class("list")[rows];
     }
 
     private static RenderFrame[] FramesOf(Component tree) => FramesAndHtmlOf(tree).Frames;

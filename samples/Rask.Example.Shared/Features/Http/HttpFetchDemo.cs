@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 // constructor. OnMountAsync runs once on first render; the framework's async lifecycle handler
 // triggers a re-render when the awaited task completes. Component.CancellationToken cancels on
 // unmount — navigate away mid-fetch and the in-flight request aborts.
-public sealed class HttpFetchDemo(HttpClient http) : Component
+public sealed partial class HttpFetchDemo(HttpClient http) : Component
 {
     private const int MaxTransientRetries = 3;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(150);
@@ -50,24 +50,24 @@ public sealed class HttpFetchDemo(HttpClient http) : Component
     {
         if (_error is not null)
         {
-            return BsAlert(Color: BsColor.Danger, Class: "mb-0")[
-                Strong()["Error: "], _error
+            return BsAlert.Color(BsColor.Danger).Class("mb-0")[
+                Strong["Error: "], _error
             ];
         }
 
         if (_post is null)
         {
-            return Div(Class: "text-secondary d-flex align-items-center")[
-                Span(Class: "spinner-border spinner-border-sm me-2"),
+            return Div.Class("text-secondary d-flex align-items-center")[
+                Span.Class("spinner-border spinner-border-sm me-2"),
                 "Loading…"
             ];
         }
 
-        return Article(Class: "card border-0 bg-light")[
-            BsCardBody()[
-                Div(Class: "small text-secondary text-uppercase mb-1")[$"Post #{_post.Id}"],
-                H3(Class: "h6 fw-semibold")[_post.Title],
-                P(Class: "mb-0 small")[_post.Body]
+        return Article.Class("card border-0 bg-light")[
+            BsCardBody[
+                Div.Class("small text-secondary text-uppercase mb-1")[$"Post #{_post.Id}"],
+                H3.Class("h6 fw-semibold")[_post.Title],
+                P.Class("mb-0 small")[_post.Body]
             ]
         ];
     }

@@ -9,14 +9,14 @@ namespace Rask.Bootstrap;
 // chips, bound to an ICollection<TItem>. Implements IFormControl<ICollection<TItem>> (bound +
 // controlled). Open/close, the click-outside backdrop and Esc-to-close are pure live-diff state — no
 // bootstrap.js. The chips reuse BsBadge + BsCloseButton.
-public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TItem>>
+public sealed partial class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TItem>>
 {
     public required IEnumerable<TItem> Options { get; set; }
 
     // Controlled mode (no Bind).
     public ICollection<TItem>? Value { get; set; }
-    public Callback<ICollection<TItem>>? OnChange { get; set; }
-    public CallbackAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
+    public Action<ICollection<TItem>>? OnChange { get; set; }
+    public Func<ICollection<TItem>, Task>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
@@ -36,7 +36,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
     // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (t, text) => t.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
-    public Func<TItem, string, bool>? Filter { get; set; }
+    public new Func<TItem, string, bool>? Filter { get; set; }
 
     // Opt in to a "Select all / Clear all" header row at the top of the dropdown. It toggles the currently
     // shown (filtered), enabled options in one click — adds them all, or clears them when they are already
@@ -49,7 +49,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
 
     // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public bool? Floating { get; set; }
 
     // View state only — the selection lives in the bound model / parent Value. Toggling re-renders. _filter
@@ -108,13 +108,14 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         var errorId = invalid ? prefix + "-error" : null;
 
         Component LabelOf(TItem item) =>
-            OptionLabel is not null ? OptionLabel(item) : item?.ToString() ?? string.Empty;
+            OptionLabel is { } label ? label(item) : item?.ToString() ?? string.Empty;
 
         // Filtering is opt-in: only a supplied Filter predicate shows the dropdown's search field and narrows
         // the options by what the user has typed.
-        var searchable = Filter is not null;
+        var filter = Filter;
+        var searchable = filter is not null;
         var filtered = searchable && !string.IsNullOrEmpty(_filter)
-            ? Options.Where(o => Filter!(o, _filter))
+            ? Options.Where(o => filter!(o, _filter))
             : Options;
         var filteredList = filtered as IReadOnlyList<TItem> ?? filtered.ToList();
 
@@ -158,34 +159,37 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             foreach (var item in selected!)
             {
                 var captured = item;
-                box.Add(BsBadge(Color: BsColor.Primary, Class: "d-inline-flex align-items-center", Key: i)[
+                box.Add(BsBadge.Color(BsColor.Primary).Class("d-inline-flex align-items-center").Key(i)[
                     LabelOf(captured),
-                    BsCloseButton(White: true, Class: "ms-1", Disabled: Disabled,
-                        OnClickAsync: disabled ? null : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: false))
+                    BsCloseButton
+                        .White(true)
+                        .Class("ms-1")
+                        .Disabled(Disabled)
+                        .OnClickAsync(disabled ? null : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: false))
                 ]);
                 i++;
             }
         }
         else if (!floating)
         {
-            box.Add(Span(Class: "text-secondary")[Placeholder ?? "Select…"]);
+            box.Add(Span.Class("text-secondary")[Placeholder ?? "Select…"]);
         }
 
         var rows = new List<Component?>();
         // Opt-in search field pinned at the top of the menu — only while open, so it autofocuses on open.
         if (searchable && _open)
         {
-            rows.Add(Div(Class: BsClass.Join("px-2", "pt-1", "pb-2"))[
-                Input<string>(
-                    Type: InputType.Text,
-                    Class: "form-control form-control-sm",
-                    Value: _filter ?? string.Empty,
-                    Placeholder: "Search…",
-                    Autocomplete: "off",
-                    Autofocus: true,
-                    Aria: new Dictionary<string, string?> { ["label"] = "Search" },
-                    OnInput: raw => { _filter = raw; _cursor = 0; },
-                    OnKeyDownAsync: e => OnKeyAsync(e, fromSearch: true))]);
+            rows.Add(Div.Class(BsClass.Join("px-2", "pt-1", "pb-2"))[
+                Input
+                    .Value(_filter ?? string.Empty)
+                    .Type(InputType.Text)
+                    .Class("form-control form-control-sm")
+                    .Placeholder("Search…")
+                    .Autocomplete("off")
+                    .Autofocus(true)
+                    .Aria(new Dictionary<string, string?> { ["label"] = "Search" })
+                    .OnInput(raw => { _filter = raw; _cursor = 0; })
+                    .OnKeyDownAsync(e => OnKeyAsync(e, fromSearch: true))]);
         }
 
         // Opt-in "Select all / Clear all" header: toggles every shown, ENABLED option in one click (never a
@@ -205,17 +209,17 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             if (enabledFiltered.Count > 0)
             {
                 var allOn = enabledFiltered.All(o => selected is not null && selected.Contains(o, comparer));
-                rows.Add(Button(
-                    Type: "button",
-                    Class: "dropdown-item d-flex align-items-center gap-2 fw-semibold",
-                    OnClickAsync: () => SelectAllAsync(acc, ctx, fid, enabledFiltered, comparer, add: !allOn))[
+                rows.Add(Button
+                    .Type("button")
+                    .Class("dropdown-item d-flex align-items-center gap-2 fw-semibold")
+                    .OnClickAsync(() => SelectAllAsync(acc, ctx, fid, enabledFiltered, comparer, add: !allOn))[
                     allOn ? "Clear all" : "Select all"]);
             }
         }
 
         if (searchable && flat.Count == 0)
         {
-            rows.Add(Span(Class: BsClass.Join("dropdown-item", "disabled", Txt.Muted))["No matches"]);
+            rows.Add(Span.Class(BsClass.Join("dropdown-item", "disabled", Txt.Muted))["No matches"]);
         }
         else
         {
@@ -225,7 +229,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             {
                 if (g.Header is not null)
                 {
-                    rows.Add(Div(Class: "dropdown-header", Key: "hdr-" + g.Header)[g.Header]);
+                    rows.Add(Div.Class("dropdown-header").Key("hdr-" + g.Header)[g.Header]);
                 }
 
                 foreach (var row in g.Rows)
@@ -244,19 +248,22 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
                         optAria["disabled"] = "true";
                     }
 
-                    rows.Add(Button(
-                        Type: "button",
-                        Class: BsClass.Join("dropdown-item d-flex align-items-center gap-2",
-                            _open && idx == _cursor ? "active" : null),
-                        Id: BsSelectNav.OptId(prefix, idx),
-                        Role: "option",
-                        Aria: optAria,
-                        Disabled: optionDisabled ? true : null,
-                        OnClickAsync: optionDisabled
+                    rows.Add(Button
+                        .Type("button")
+                        .Class(BsClass.Join("dropdown-item d-flex align-items-center gap-2",
+                            _open && idx == _cursor ? "active" : null))
+                        .Id(BsSelectNav.OptId(prefix, idx))
+                        .Role("option")
+                        .Aria(optAria)
+                        .Disabled(optionDisabled ? true : null)
+                        .OnClickAsync(optionDisabled
                             ? null
-                            : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked),
-                        Key: idx)[
-                        Input<string>(InputType.Checkbox, Class: "form-check-input m-0 pe-none", Checked: isChecked),
+                            : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked))
+                        .Key(idx)[
+                        Input.Of<string>()
+                            .Type(InputType.Checkbox)
+                            .Class("form-check-input m-0 pe-none")
+                            .Checked(isChecked),
                         LabelOf(captured)
                     ]);
                 }
@@ -289,15 +296,15 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             }
         }
 
-        var boxDiv = Div(
-            Class: BsClass.Join("form-select", Sizing.HAuto, Display.Flex(), Flex.Wrap(),
+        var boxDiv = Div
+            .Class(BsClass.Join("form-select", Sizing.HAuto, Display.Flex(), Flex.Wrap(),
                 Flex.Align(BsAlign.Center), Flex.Gap(1), invalid ? "is-invalid" : null,
-                disabled ? "disabled pe-none" : null),
-            Data: BsPopover.Anchor,
-            Role: "combobox",
-            TabIndex: disabled ? null : 0,
-            Aria: boxAria,
-            OnClick: disabled ? null : () =>
+                disabled ? "disabled pe-none" : null))
+            .Data(BsPopover.Anchor)
+            .Role("combobox")
+            .TabIndex(disabled ? null : 0)
+            .Aria(boxAria)
+            .OnClick(disabled ? null : () =>
             {
                 if (_open)
                 {
@@ -309,12 +316,12 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
                     _cursor = BsSelectNav.Seed(firstSelected, flat.Count, optDisabled);
                     _open = true;
                 }
-            },
-            OnKeyDownAsync: disabled ? null : e => OnKeyAsync(e, fromSearch: false))[box];
+            })
+            .OnKeyDownAsync(disabled ? null : e => OnKeyAsync(e, fromSearch: false))[box];
 
         var labelNode = Label is null
             ? null
-            : Rask.Core.Components.Generated.Label(Id: labelId, Class: floating ? null : "form-label")[Label];
+            : global::RaskEntriesRask_Core.Label.Id(labelId).Class(floating ? null : "form-label")[Label];
 
         var children = new List<Component?>();
         if (labelNode is not null && !floating)
@@ -326,21 +333,24 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         // there are chips (.bs-floating-filled) or while the search field is focused (:focus-within). The
         // dropdown menu stays a sibling inside .dropdown so it still positions correctly.
         children.Add(floating
-            ? Div(Class: BsClass.Join("form-floating bs-floating", hasChips ? "bs-floating-filled" : null,
+            ? Div
+                .Class(BsClass.Join("form-floating bs-floating", hasChips ? "bs-floating-filled" : null,
                 Position.Relative))[boxDiv, labelNode]
             : boxDiv);
-        children.Add(Div(Id: listId, Role: "listbox",
-            Aria: new Dictionary<string, string?> { ["multiselectable"] = "true" },
-            Class: _open
+        children.Add(Div
+            .Id(listId)
+            .Role("listbox")
+            .Aria(new Dictionary<string, string?> { ["multiselectable"] = "true" })
+            .Class(_open
                 ? BsClass.Join("dropdown-menu show", Display.Block(), Sizing.W(100))
                 : "dropdown-menu")[rows]);
 
         if (_open && !disabled)
         {
-            children.Add(Div(
-                Class: BsClass.Join(Position.Fixed, Position.Top0, Position.Start0, Sizing.W(100), Sizing.H(100)),
-                Style: "z-index: 999;",
-                OnClick: () => { _open = false; _filter = null; }));
+            children.Add(Div
+                .Class(BsClass.Join(Position.Fixed, Position.Top0, Position.Start0, Sizing.W(100), Sizing.H(100)))
+                .Style("z-index: 999;")
+                .OnClick(() => { _open = false; _filter = null; }));
         }
 
         // The error is a role="alert" live region carrying the id the box's aria-describedby points at, so a
@@ -349,11 +359,13 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         // headless ValidationMessage, so the error id and the box's aria-describedby stay in lockstep.
         if (invalid)
         {
-            children.Add(Div(Id: errorId, Class: BsClass.Join("invalid-feedback", Display.Block()),
-                Role: "alert")[messages[0]]);
+            children.Add(Div
+                .Id(errorId)
+                .Class(BsClass.Join("invalid-feedback", Display.Block()))
+                .Role("alert")[messages[0]]);
         }
 
-        return Div(Class: BsClass.Join("dropdown", Class), Id: Id, Data: BsPopover.Wrapper)[children];
+        return Div.Class(BsClass.Join("dropdown", Class)).Id(Id).Data(BsPopover.Wrapper)[children];
 
         // Combobox keyboard over the FILTERED list, mirroring BsSelect's OnKeyAsync: arrows move the roving
         // cursor (skipping disabled options), Home/End jump, Enter/Space toggle the cursor option's membership,

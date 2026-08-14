@@ -3,18 +3,24 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IStorageEstimator" /> — read the origin's storage quota and usage.</summary>
-public sealed class StorageEstimateDemo(IStorageEstimator storage) : Component
+public sealed partial class StorageEstimateDemo(IStorageEstimator storage) : Component
 {
     private string? _value;
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "storage-est-read", OnClickAsync: Read)[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Class("mb-2")
+                    .Id("storage-est-read")
+                    .OnClickAsync(Read)[
                     "Estimate storage"],
-                Div(Class: "small text-secondary")["Budget: ", Code(Id: "storage-est-value")[_value ?? "(not requested)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "storage-est-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("storage-est-status")[_status ?? "(idle)"]]
             ]
         ];
 

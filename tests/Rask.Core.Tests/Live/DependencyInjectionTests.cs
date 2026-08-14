@@ -6,7 +6,7 @@ using Rask.Server;
 
 namespace Rask.Core.Tests.Live;
 
-public class DependencyInjectionTests
+public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void ConstructorInjection_ResolvesServicesViaGeneratedFactory()
@@ -44,7 +44,7 @@ public class DependencyInjectionTests
             .AddSingleton<IGreeter>(new FixedGreeter("ctx"))
             .BuildServiceProvider();
 
-        var root = new StubComponent(Span());
+        var root = new StubComponent(Span);
         using var ctx = LiveRenderContext.Begin(root, services);
 
         var instance = Generated.GreetingComponent();
@@ -104,12 +104,12 @@ public class DependencyInjectionTests
         public GreetingComponent(IGreeter greeter) => _greeter = greeter;
 
         protected override Component? Render() =>
-            Span()[Text($"hello, {_greeter.Name}")];
+            Span[Text.Value($"hello, {_greeter.Name}")];
     }
 
     public sealed class ParameterlessComponent : Component
     {
-        protected override Component? Render() => Span()[Text("plain")];
+        protected override Component? Render() => Span[Text.Value("plain")];
     }
 
     public sealed class ScopedTracker : IDisposable
@@ -122,6 +122,6 @@ public class DependencyInjectionTests
     {
         public TrackerComponent(ScopedTracker tracker) => Tracker = tracker;
         public ScopedTracker Tracker { get; }
-        protected override Component? Render() => Raw("<x/>");
+        protected override Component? Render() => Raw.Value("<x/>");
     }
 }

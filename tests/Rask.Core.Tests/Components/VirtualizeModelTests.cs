@@ -5,13 +5,13 @@ using Rask.Core.Virtualization;
 
 namespace Rask.Core.Tests.Components;
 
-public class VirtualizeModelTests
+public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_HeadlessNoOwnDom_OnlyEmitsUserMarkup()
     {
         var view = new StubComponent(() => VirtualizeModel(
-            ctx => Div()["x"],
+            ctx => Div["x"],
             new List<int> { 1, 2, 3 },
             ItemSize: 20,
             InitialClientHeight: 100));
@@ -28,7 +28,7 @@ public class VirtualizeModelTests
             ctx =>
             {
                 captured = ctx;
-                return Div();
+                return Div;
             },
             items,
             ItemSize: 20,
@@ -59,7 +59,7 @@ public class VirtualizeModelTests
             ctx =>
             {
                 captured = ctx;
-                return Div()[Div(OnScroll: ctx.OnScroll)];
+                return Div[Div.OnScroll(ctx.OnScroll)];
             },
             items,
             ItemSize: 20,
@@ -99,7 +99,7 @@ public class VirtualizeModelTests
             ctx =>
             {
                 captured = ctx;
-                return Div();
+                return Div;
             },
             ItemsProvider: req =>
             {
@@ -135,7 +135,7 @@ public class VirtualizeModelTests
     public void Render_NoItemsAndNoProvider_Throws()
     {
         var view = new StubComponent(() => VirtualizeModel<int>(
-            ctx => Div(),
+            ctx => Div,
             ItemSize: 20));
 
         Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
@@ -145,7 +145,7 @@ public class VirtualizeModelTests
     public void Render_BothItemsAndProvider_Throws()
     {
         var view = new StubComponent(() => VirtualizeModel(
-            ctx => Div(),
+            ctx => Div,
             new List<int> { 1 },
             req => ValueTask.FromResult(new ItemsProviderResult<int>(Array.Empty<int>(), 0)),
             20));
@@ -157,7 +157,7 @@ public class VirtualizeModelTests
     public void Render_ItemSizeZero_Throws()
     {
         var view = new StubComponent(() => VirtualizeModel(
-            ctx => Div(),
+            ctx => Div,
             new List<int> { 1 },
             ItemSize: 0));
 
@@ -179,7 +179,7 @@ public class VirtualizeModelTests
             ctx =>
             {
                 captured = ctx;
-                return Div();
+                return Div;
             },
             items,
             ItemSize: 20,
@@ -201,9 +201,9 @@ public class VirtualizeModelTests
         // state) across re-renders.
         var items = Enumerable.Range(0, 50).ToList();
         var view = new StubComponent(() => VirtualizeModel(
-            ctx => Div()[
+            ctx => Div[
                 ctx.VisibleItems.Select(item =>
-                    Div(Data: new Dictionary<string, string?> { ["rask-key"] = item.Index.ToString() })[
+                    Div.Data(new Dictionary<string, string?> { ["rask-key"] = item.Index.ToString() })[
                         item.Value!])
             ],
             items,
@@ -240,11 +240,11 @@ public class VirtualizeModelTests
         var show = true;
         var view = new StubComponent(() => show
             ? VirtualizeModel<string>(
-                ctx => Div(),
+                ctx => Div,
                 ItemsProvider: provider,
                 ItemSize: 20,
                 InitialClientHeight: 100)
-            : Div());
+            : Div);
 
         view.RenderAsLiveRoot();
         await providerStarted.Task;
@@ -286,11 +286,11 @@ public class VirtualizeModelTests
         var show = true;
         var view = new StubComponent(() => show
             ? VirtualizeModel<string>(
-                ctx => Div(),
+                ctx => Div,
                 ItemsProvider: provider,
                 ItemSize: 20,
                 InitialClientHeight: 100)
-            : Div());
+            : Div);
 
         view.RenderAsLiveRoot();
         await providerStarted.Task;
@@ -325,7 +325,7 @@ public class VirtualizeModelTests
             ctx =>
             {
                 captured = ctx;
-                return Div();
+                return Div;
             },
             ItemsProvider: _ => throw new InvalidOperationException("provider boom"),
             ItemSize: 20,
@@ -356,7 +356,7 @@ public class VirtualizeModelTests
             ctx =>
             {
                 captured = ctx;
-                return Div();
+                return Div;
             },
             Lazy(),
             ItemSize: 20,

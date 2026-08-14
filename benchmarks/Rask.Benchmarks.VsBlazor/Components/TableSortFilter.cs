@@ -77,15 +77,15 @@ internal static class TableSortFilter
                 _scratch.Add(GetOrCreateRow(VisibleOrder[i]));
             }
 
-            return C.Div(Class: "table-shell")[
-                C.Table()[
-                    C.Thead()[C.Tr()[
-                        C.Th()["ID"],
-                        C.Th()["Name"],
-                        C.Th()["Price"],
-                        C.Th()["Status"]
+            return Div.Class("table-shell")[
+                Table[
+                    Thead[Tr[
+                        Th["ID"],
+                        Th["Name"],
+                        Th["Price"],
+                        Th["Status"]
                     ]],
-                    C.Tbody()[_scratch]
+                    Tbody[_scratch]
                 ]
             ];
         }
@@ -97,12 +97,12 @@ internal static class TableSortFilter
                 return row;
             }
 
-            row = C.Tr(
-                Data: new Dictionary<string, string?> { ["rask-key"] = id.ToString() })[
-                C.Td()[$"{id}"],
-                C.Td()[$"Item {id}"],
-                C.Td()[$"${(id * 7) + 13}"],
-                C.Td()[id % 2 == 0 ? "active" : "idle"]
+            row = Tr
+                .Data(new Dictionary<string, string?> { ["rask-key"] = id.ToString() })[
+                Td[$"{id}"],
+                Td[$"Item {id}"],
+                Td[$"${(id * 7) + 13}"],
+                Td[id % 2 == 0 ? "active" : "idle"]
             ];
             _rowCache[id] = row;
             return row;

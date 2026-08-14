@@ -41,7 +41,7 @@ Inject through the **constructor** (not a settable property — that would becom
 parameter) and call from an **event handler or lifecycle hook**, never from `Render()`:
 
 ```csharp
-public sealed class ThemeToggle(IBrowserStorage storage, IMediaQuery media) : Component
+public sealed partial class ThemeToggle(IBrowserStorage storage, IMediaQuery media) : Component
 {
     protected override async Task OnRenderedAsync(bool first)
     {

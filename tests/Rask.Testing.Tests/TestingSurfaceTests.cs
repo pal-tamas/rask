@@ -21,9 +21,9 @@ public class TestingSurfaceTests
         public int Cancels { get; private set; }
 
         protected override Component? Render() =>
-            Div()[
-                Button(Id: "cancel", OnClick: () => Cancels++)["Cancel"],
-                Button(Id: "save", OnClick: () => Saves++)["Save"]
+            Div[
+                Button.Id("cancel").OnClick(() => Cancels++)["Cancel"],
+                Button.Id("save").OnClick(() => Saves++)["Save"]
             ];
     }
 
@@ -56,7 +56,9 @@ public class TestingSurfaceTests
     private sealed class ExportPage(Navigator navigator) : Component
     {
         protected override Component? Render() =>
-            Button(Id: "export", OnClick: () =>
+            Button
+                .Id("export")
+                .OnClick(() =>
                 navigator.Download("orders.csv", "Id,Total\n1,9.99"u8.ToArray(), "text/csv"))["Export"];
     }
 
@@ -159,7 +161,7 @@ public class TestingSurfaceTests
             throw new InvalidOperationException("boom");
         }
 
-        protected override Component? Render() => Div()["x"];
+        protected override Component? Render() => Div["x"];
     }
 
     [Fact]

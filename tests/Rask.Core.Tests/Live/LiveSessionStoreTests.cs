@@ -6,7 +6,7 @@ using Rask.Server;
 
 namespace Rask.Core.Tests.Live;
 
-public class LiveSessionStoreTests
+public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
 {
     private static LiveSessionStore NewStore(IHostApplicationLifetime? lifetime = null) =>
         new(
@@ -17,8 +17,8 @@ public class LiveSessionStoreTests
     public void Create_AssignsUniqueIds()
     {
         var store = NewStore();
-        var s1 = store.Create(_ => new StubComponent(Span()));
-        var s2 = store.Create(_ => new StubComponent(Span()));
+        var s1 = store.Create(_ => new StubComponent(Span));
+        var s2 = store.Create(_ => new StubComponent(Span));
         Assert.NotEqual(s1.Id, s2.Id);
         Assert.Equal(2, store.Count);
     }
@@ -27,7 +27,7 @@ public class LiveSessionStoreTests
     public void Get_ReturnsRegisteredSession()
     {
         var store = NewStore();
-        var view = new StubComponent(Span());
+        var view = new StubComponent(Span);
         var session = store.Create(_ => view);
 
         var fetched = store.Get(session.Id);
@@ -47,7 +47,7 @@ public class LiveSessionStoreTests
     public void Remove_DropsSession()
     {
         var store = NewStore();
-        var session = store.Create(_ => new StubComponent(Span()));
+        var session = store.Create(_ => new StubComponent(Span));
 
         store.Remove(session.Id);
 
@@ -59,7 +59,7 @@ public class LiveSessionStoreTests
     public async Task ScheduleRemoval_AfterDelay_RemovesSession()
     {
         var store = NewStore();
-        var session = store.Create(_ => new StubComponent(Span()));
+        var session = store.Create(_ => new StubComponent(Span));
         var id = session.Id;
 
         store.ScheduleRemoval(id, TimeSpan.FromMilliseconds(50));
@@ -72,7 +72,7 @@ public class LiveSessionStoreTests
     public async Task ScheduleRemoval_ThenGet_CancelsRemoval_SessionStaysRegistered()
     {
         var store = NewStore();
-        var session = store.Create(_ => new StubComponent(Span()));
+        var session = store.Create(_ => new StubComponent(Span));
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(200));
         var fetched = store.Get(session.Id);
@@ -86,7 +86,7 @@ public class LiveSessionStoreTests
     public async Task ScheduleRemoval_TwiceForSameId_ReplacesEarlierSchedule()
     {
         var store = NewStore();
-        var session = store.Create(_ => new StubComponent(Span()));
+        var session = store.Create(_ => new StubComponent(Span));
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(50));
         store.ScheduleRemoval(session.Id, TimeSpan.FromSeconds(5));
@@ -110,7 +110,7 @@ public class LiveSessionStoreTests
     {
         var lifetime = new FakeLifetime();
         var store = NewStore(lifetime);
-        var session = store.Create(_ => new StubComponent(Span()));
+        var session = store.Create(_ => new StubComponent(Span));
         lifetime.StopApplication();
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromSeconds(30));
@@ -144,8 +144,8 @@ public class LiveSessionStoreTests
     public async Task RerenderAllAsync_WithSessions_CompletesWithoutThrowing()
     {
         var store = NewStore();
-        store.Create(_ => new StubComponent(Span()));
-        store.Create(_ => new StubComponent(Span()));
+        store.Create(_ => new StubComponent(Span));
+        store.Create(_ => new StubComponent(Span));
 
         var task = store.RerenderAllAsync();
         await task;
@@ -175,7 +175,7 @@ public class LiveSessionStoreTests
 
         for (var i = 0; i < 5; i++)
         {
-            Assert.NotNull(store.TryCreate(_ => new StubComponent(Span())));
+            Assert.NotNull(store.TryCreate(_ => new StubComponent(Span)));
         }
 
         Assert.Equal(5, store.Count);
@@ -187,11 +187,11 @@ public class LiveSessionStoreTests
         var store = NewStore();
         store.MaxSessions = 2;
 
-        Assert.NotNull(store.TryCreate(_ => new StubComponent(Span())));
-        Assert.NotNull(store.TryCreate(_ => new StubComponent(Span())));
+        Assert.NotNull(store.TryCreate(_ => new StubComponent(Span)));
+        Assert.NotNull(store.TryCreate(_ => new StubComponent(Span)));
 
         // Third reservation exceeds the cap: rejected, and no session is built/stored.
-        Assert.Null(store.TryCreate(_ => new StubComponent(Span())));
+        Assert.Null(store.TryCreate(_ => new StubComponent(Span)));
         Assert.Equal(2, store.Count);
     }
 
@@ -201,13 +201,13 @@ public class LiveSessionStoreTests
         var store = NewStore();
         store.MaxSessions = 1;
 
-        var first = store.TryCreate(_ => new StubComponent(Span()));
+        var first = store.TryCreate(_ => new StubComponent(Span));
         Assert.NotNull(first);
-        Assert.Null(store.TryCreate(_ => new StubComponent(Span()))); // at cap
+        Assert.Null(store.TryCreate(_ => new StubComponent(Span))); // at cap
 
         store.Remove(first!.Id); // releases the reservation
 
-        Assert.NotNull(store.TryCreate(_ => new StubComponent(Span())));
+        Assert.NotNull(store.TryCreate(_ => new StubComponent(Span)));
         Assert.Equal(1, store.Count);
     }
 
@@ -220,7 +220,7 @@ public class LiveSessionStoreTests
         // 100 concurrent reservations against a cap of 10 — the atomic reservation must admit
         // exactly 10 and reject the rest, with no torn count from the race.
         var tasks = Enumerable.Range(0, 100)
-            .Select(_ => Task.Run(() => store.TryCreate(_ => new StubComponent(Span())) is not null))
+            .Select(_ => Task.Run(() => store.TryCreate(_ => new StubComponent(Span)) is not null))
             .ToArray();
         var admitted = await Task.WhenAll(tasks);
 
@@ -254,7 +254,7 @@ public class LiveSessionStoreTests
             return ValueTask.CompletedTask;
         }
 
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 
     private sealed class FakeLifetime : IHostApplicationLifetime

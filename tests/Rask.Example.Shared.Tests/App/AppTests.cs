@@ -8,7 +8,7 @@ public sealed class AppTests
     [Fact]
     public void LiveRender_StartsWithDoctype_AndHtmlEnLang()
     {
-        var html = new Shared.App().RenderAsLiveRoot(TestServices.Default());
+        var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
 
         Assert.StartsWith("<!DOCTYPE html>", html);
         Assert.Contains("<html lang=\"en\">", html);
@@ -18,7 +18,7 @@ public sealed class AppTests
     [Fact]
     public void LiveRender_EmitsBootstrapLinksAndMeta_InHead()
     {
-        var html = new Shared.App().RenderAsLiveRoot(TestServices.Default());
+        var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
 
         // Title body content is HTML-encoded: literal "—" → "&#x2014;". GuidesIndexPage
         // (the site root) overrides App's fallback title via the framework's singleton-key
@@ -34,7 +34,7 @@ public sealed class AppTests
     [Fact]
     public void LiveRender_EmitsRouterAndRuntimeScriptSlot_InBody()
     {
-        var html = new Shared.App().RenderAsLiveRoot(TestServices.Default());
+        var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default()).Html;
 
         // Router rendered the matched chain — ShowcaseLayout contributes the navbar.
         Assert.Contains("navbar-brand", html);
@@ -46,7 +46,7 @@ public sealed class AppTests
     public void LiveRender_UnmatchedRoute_StillProducesHtml()
     {
         var routeState = new RouteState { Path = "/__no_such_path" };
-        var html = new Shared.App().RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.StartsWith("<!DOCTYPE html>", html);
         Assert.Contains("<title ", html);

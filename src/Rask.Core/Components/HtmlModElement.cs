@@ -7,7 +7,7 @@ namespace Rask.Core.Components;
 // so they derive from this base with no body of their own. `cite` is URL-sanitized.
 public abstract class HtmlModElement : Element
 {
-    public string? Cite { get; set; }
+    public new string? Cite { get; set; }
     public string? DateTime { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)

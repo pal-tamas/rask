@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.Infrastructure;
 // visible HTML. Before the diff gate stopped treating pending jsInvokes as a full-HTML
 // trigger, each keystroke shipped the whole document; now it ships a kind:"diff" frame
 // that carries the queued invoke alongside the edit ops.
-public sealed class JsInvokeBindingApp(IJSRuntime js) : Component
+public sealed partial class JsInvokeBindingApp(IJSRuntime js) : Component
 {
     private string _typed = "";
 
@@ -21,15 +21,12 @@ public sealed class JsInvokeBindingApp(IJSRuntime js) : Component
     protected override async Task OnRenderedAsync(bool firstRender) =>
         await js.InvokeVoidAsync("test.noop", firstRender);
 
+    protected override Component? HeadAssets => new Title()["js-invoke-binding"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[
-            new Head()[new Title()["js-invoke-binding"]],
-            new Body()[
-                Input(Value: _typed, OnInput: v => _typed = v),
-                new P()[$"Echo: {_typed}"]
-            ]
-        ]
+        Input.Value(_typed).OnInput(v => _typed = v),
+        new P()[$"Echo: {_typed}"]
     ];
 }

@@ -12,12 +12,12 @@ namespace Rask.Core.Tests.Components;
 // Authorizing) off the current user (IUserProvider), plus optional role/policy gating. These pin that selection. The
 // gate is built INSIDE a render delegate so its generated factory runs under a live render context
 // (which fires OnMount/OnPropsChangedAsync) — building it eagerly would skip the lifecycle.
-public class AuthorizeTests
+public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Anonymous_WithoutNotAuthorized_RendersNothing()
     {
-        var html = Render(Anonymous(), () => Authorize(Authorized: _ => Span()["AUTHED"]));
+        var html = Render(Anonymous(), () => Authorize.Authorized(_ => Span["AUTHED"]));
 
         Assert.DoesNotContain("AUTHED", html);
         Assert.DoesNotContain("DENIED", html);
@@ -27,7 +27,7 @@ public class AuthorizeTests
     public void Anonymous_RendersNotAuthorizedSlot()
     {
         var html = Render(Anonymous(),
-            () => Authorize(Authorized: _ => Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
+            () => Authorize.Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
 
         Assert.Contains("DENIED", html);
         Assert.DoesNotContain("AUTHED", html);
@@ -37,7 +37,7 @@ public class AuthorizeTests
     public void Authenticated_RendersAuthorizedSlot()
     {
         var html = Render(User("alice"),
-            () => Authorize(Authorized: _ => Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
+            () => Authorize.Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
 
         Assert.Contains("AUTHED", html);
         Assert.DoesNotContain("DENIED", html);
@@ -47,7 +47,7 @@ public class AuthorizeTests
     public void Authenticated_NoAuthorizedSlot_RendersChildrenShorthand()
     {
         // Authorize(Roles: "...")[ content ] — the children indexer is the authorized branch.
-        var html = Render(User("alice"), () => Authorize()[Span()["CHILD"]]);
+        var html = Render(User("alice"), () => Authorize[Span["CHILD"]]);
 
         Assert.Contains("CHILD", html);
     }
@@ -58,7 +58,7 @@ public class AuthorizeTests
         // The delegate form is handed the signed-in principal, so authorized markup can read the user
         // (e.g. a greeting) without injecting IUserProvider or subscribing to Changed.
         var html = Render(User("alice"),
-            () => Authorize(Authorized: user => Span()[$"Hi {user.Identity!.Name}"]));
+            () => Authorize.Authorized(user => Span[$"Hi {user.Identity!.Name}"]));
 
         Assert.Contains("Hi alice", html);
     }
@@ -68,9 +68,9 @@ public class AuthorizeTests
     {
         // Denied gate must not run the authorized delegate (it would NRE on the anonymous identity).
         var html = Render(Anonymous(),
-            () => Authorize(
-                Authorized: user => Span()[user.Identity!.Name!.ToUpperInvariant()],
-                NotAuthorized: Span()["DENIED"]));
+            () => Authorize
+                .Authorized(user => Span[user.Identity!.Name!.ToUpperInvariant()])
+                .NotAuthorized(Span["DENIED"]));
 
         Assert.Contains("DENIED", html);
     }
@@ -79,7 +79,7 @@ public class AuthorizeTests
     public void RoleMatch_RendersAuthorized()
     {
         var html = Render(User("root", "admin"),
-            () => Authorize(["admin"], Authorized: _ => Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
+            () => Authorize.Roles(["admin"]).Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
 
         Assert.Contains("AUTHED", html);
     }
@@ -88,7 +88,7 @@ public class AuthorizeTests
     public void RoleMiss_RendersNotAuthorized()
     {
         var html = Render(User("alice", "user"),
-            () => Authorize(["admin"], Authorized: _ => Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
+            () => Authorize.Roles(["admin"]).Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
 
         Assert.Contains("DENIED", html);
         Assert.DoesNotContain("AUTHED", html);
@@ -98,7 +98,7 @@ public class AuthorizeTests
     public void AnyOfRoles_MatchesOnEither()
     {
         var html = Render(User("alice", "editor"),
-            () => Authorize(["admin", "editor"], Authorized: _ => Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
+            () => Authorize.Roles(["admin", "editor"]).Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
 
         Assert.Contains("AUTHED", html);
     }
@@ -107,8 +107,10 @@ public class AuthorizeTests
     public void ProviderLoading_RendersAuthorizingSlot()
     {
         var html = Render(new LoadingUser(),
-            () => Authorize(Authorized: _ => Span()["AUTHED"], NotAuthorized: Span()["DENIED"],
-                Authorizing: Span()["LOADING"]));
+            () => Authorize
+                .Authorized(_ => Span["AUTHED"])
+                .NotAuthorized(Span["DENIED"])
+                .Authorizing(Span["LOADING"]));
 
         Assert.Contains("LOADING", html);
         Assert.DoesNotContain("AUTHED", html);
@@ -119,7 +121,7 @@ public class AuthorizeTests
     public void PolicyAllow_RendersAuthorized()
     {
         var html = Render(User("root", "admin"),
-            () => Authorize(Policy: "admins-only", Authorized: _ => Span()["AUTHED"], NotAuthorized: Span()["DENIED"]),
+            () => Authorize.Policy("admins-only").Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]),
             WithAdminsPolicy);
 
         Assert.Contains("AUTHED", html);
@@ -129,7 +131,7 @@ public class AuthorizeTests
     public void PolicyDeny_RendersNotAuthorized()
     {
         var html = Render(User("alice", "user"),
-            () => Authorize(Policy: "admins-only", Authorized: _ => Span()["AUTHED"], NotAuthorized: Span()["DENIED"]),
+            () => Authorize.Policy("admins-only").Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]),
             WithAdminsPolicy);
 
         Assert.Contains("DENIED", html);

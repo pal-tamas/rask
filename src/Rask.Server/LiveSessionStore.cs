@@ -100,7 +100,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
     /// </remarks>
     public int ConnectedCount => Volatile.Read(ref _connectedCount);
 
-    /// <summary>Handler dispatches queued across every session — the backpressure breaker's input.</summary>
+    /// <summary>Action dispatches queued across every session — the backpressure breaker's input.</summary>
     /// <remarks>
     ///     Only the <em>rejections</em> were observable before: you could see the breaker trip and had no
     ///     way to see it coming. A store-level counter rather than a sum over sessions on scrape, because

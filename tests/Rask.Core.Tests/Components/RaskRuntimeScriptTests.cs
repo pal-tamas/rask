@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Core.Tests.Components;
 
-public class RaskRuntimeScriptTests
+public partial class RaskRuntimeScriptTests : global::Rask.Core.RaskMarkup
 {
     // RaskRuntimeScript is now a deprecated no-op: the runtime <script> is injected
     // automatically at the end of <body> by HtmlSerializer (see RuntimeScriptInjectionTests).
@@ -15,7 +15,7 @@ public class RaskRuntimeScriptTests
     public void Render_NoProviderRegistered_EmitsEmpty()
     {
         var sp = RenderHarness.EmptyServices();
-        var view = new StubComponent(() => RaskRuntimeScript());
+        var view = new StubComponent(() => RaskRuntimeScript);
 
         var html = view.RenderAsLiveRoot(sp);
 
@@ -29,9 +29,9 @@ public class RaskRuntimeScriptTests
         // to the body-close hook in HtmlSerializer.
         var services = new ServiceCollection();
         services.AddSingleton<IRaskRuntimeScript>(
-            new StubRuntimeScriptProvider(Raw("<script src=\"/x.js\"></script>")));
+            new StubRuntimeScriptProvider(Raw.Value("<script src=\"/x.js\"></script>")));
         var sp = services.BuildServiceProvider();
-        var view = new StubComponent(() => RaskRuntimeScript());
+        var view = new StubComponent(() => RaskRuntimeScript);
 
         var html = view.RenderAsLiveRoot(sp);
 
@@ -41,7 +41,7 @@ public class RaskRuntimeScriptTests
     [Fact]
     public void Render_NoLiveContext_EmitsEmpty()
     {
-        var html = RaskRuntimeScript().ToHtml();
+        var html = RaskRuntimeScript.ToHtml();
 
         Assert.Equal(string.Empty, html);
     }

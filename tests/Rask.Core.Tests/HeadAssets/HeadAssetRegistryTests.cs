@@ -5,14 +5,14 @@ using Rask.Core.HeadAssets;
 
 namespace Rask.Core.Tests.HeadAssets;
 
-public class HeadAssetRegistryTests
+public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Add_DedupsIdenticalHtml()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "stylesheet", Href: "/a.css"));
-        registry.Add(Link(Rel: "stylesheet", Href: "/a.css"));
+        registry.Add(Link.Rel("stylesheet").Href("/a.css"));
+        registry.Add(Link.Rel("stylesheet").Href("/a.css"));
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);
@@ -25,8 +25,8 @@ public class HeadAssetRegistryTests
     public void Add_KeepsDistinctHtmlInOrder()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "stylesheet", Href: "/a.css"));
-        registry.Add(Link(Rel: "stylesheet", Href: "/b.css"));
+        registry.Add(Link.Rel("stylesheet").Href("/a.css"));
+        registry.Add(Link.Rel("stylesheet").Href("/b.css"));
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);
@@ -41,8 +41,8 @@ public class HeadAssetRegistryTests
     public void Add_TitleIsSingleton_LastWins()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Title()["App default"]);
-        registry.Add(Title()["Page override"]);
+        registry.Add(Title["App default"]);
+        registry.Add(Title["Page override"]);
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);
@@ -58,8 +58,8 @@ public class HeadAssetRegistryTests
         var registry = new HeadAssetRegistry();
         // The HTML spec doesn't allow arbitrary attrs on <title>, but the dedup logic
         // shouldn't be fooled by a leading-space attribute case either.
-        registry.Add(Title()["First"]);
-        registry.Add(Title()["Second"]);
+        registry.Add(Title["First"]);
+        registry.Add(Title["Second"]);
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);
         Assert.Equal(1, CountOccurrences(result, "<title "));
@@ -70,8 +70,8 @@ public class HeadAssetRegistryTests
     public void Add_BaseTagIsSingleton_LastWins()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Base("/old/"));
-        registry.Add(Base("/new/"));
+        registry.Add(Base.Href("/old/"));
+        registry.Add(Base.Href("/new/"));
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);
@@ -92,9 +92,9 @@ public class HeadAssetRegistryTests
     public void ApplyTo_EmitsDataRaskKey_OnEveryUserAsset()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "stylesheet", Href: "/bootstrap.css"));
-        registry.Add(Meta("utf-8"));
-        registry.Add(Title()["Page"]);
+        registry.Add(Link.Rel("stylesheet").Href("/bootstrap.css"));
+        registry.Add(Meta.Charset("utf-8"));
+        registry.Add(Title["Page"]);
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);
@@ -111,9 +111,9 @@ public class HeadAssetRegistryTests
         // data-rask-key — that's what lets the morph match an unchanged asset
         // (e.g. App's Bootstrap link) across renders.
         var a = new HeadAssetRegistry();
-        a.Add(Link(Rel: "stylesheet", Href: "/bootstrap.css"));
+        a.Add(Link.Rel("stylesheet").Href("/bootstrap.css"));
         var b = new HeadAssetRegistry();
-        b.Add(Link(Rel: "stylesheet", Href: "/bootstrap.css"));
+        b.Add(Link.Rel("stylesheet").Href("/bootstrap.css"));
 
         var aHtml = a.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
         var bHtml = b.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
@@ -136,10 +136,10 @@ public class HeadAssetRegistryTests
         // must not inject a second one — the user is opting into bespoke morph
         // identity (e.g. for a hand-managed link they want morphed in-place).
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(
-            Rel: "stylesheet",
-            Href: "/x.css",
-            Data: new Dictionary<string, string?> { ["rask-key"] = "user-link" }));
+        registry.Add(Link
+            .Rel("stylesheet")
+            .Href("/x.css")
+            .Data(new Dictionary<string, string?> { ["rask-key"] = "user-link" }));
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);
@@ -167,8 +167,8 @@ public class HeadAssetRegistryTests
     {
         var registry = new HeadAssetRegistry();
         registry.Add([
-            Link(Rel: "stylesheet", Href: "/x.css"),
-            Script("/x.js")
+            Link.Rel("stylesheet").Href("/x.css"),
+            Script.Src("/x.js")
         ]);
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
@@ -182,7 +182,7 @@ public class HeadAssetRegistryTests
     public void ApplyTo_NoSentinel_ReturnsUnchanged()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "stylesheet", Href: "/a.css"));
+        registry.Add(Link.Rel("stylesheet").Href("/a.css"));
         var input = "<head><title>x</title></head>";
         Assert.Equal(input, registry.ApplyTo(input));
     }
@@ -205,7 +205,7 @@ public class HeadAssetRegistryTests
     public void ApplyInPlace_SplicesOnlyTheSentinelAtTheGivenIndex()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "stylesheet", Href: "/a.css"));
+        registry.Add(Link.Rel("stylesheet").Href("/a.css"));
 
         var raw = $"<head>{HeadAssetRegistry.Sentinel}</head>"
                   + $"<body><head>{HeadAssetRegistry.Sentinel}</head></body>";

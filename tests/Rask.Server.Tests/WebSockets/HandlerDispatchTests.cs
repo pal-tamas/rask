@@ -55,7 +55,7 @@ public class HandlerDispatchTests
     [Fact]
     public async Task HandlerId_FrameTypeThatCannotFeedTheHandler_IsIgnored()
     {
-        // Handler ids are positional per render, so a frame the client sent against an earlier tree
+        // Action ids are positional per render, so a frame the client sent against an earlier tree
         // resolves to whatever now occupies that slot. h0 here is the parameterless "bump" click; an
         // `input` frame landing on it used to RUN it, with nothing to say the wrong thing had fired.
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);

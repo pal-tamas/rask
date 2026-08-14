@@ -3,7 +3,7 @@ namespace Rask.Bootstrap;
 // A Bootstrap table: <table class="table …">. Wraps the core Table() with the typed style toggles;
 // set Responsive to wrap it in a .table-responsive scroll container. Children are the usual thead/
 // tbody/tr/td markup (core Thead/Tbody/Tr/Td or plain elements).
-public sealed class BsTable : BsBlock
+public sealed partial class BsTable : BsBlock
 {
     public BsColor? Color { get; set; }
     public bool? Striped { get; set; }
@@ -11,7 +11,7 @@ public sealed class BsTable : BsBlock
     public bool? Bordered { get; set; }
     public bool? Borderless { get; set; }
     public bool? Hover { get; set; }
-    public bool? Small { get; set; }
+    public new bool? Small { get; set; }
     public bool? Responsive { get; set; }
 
     // ARIA passthrough onto the <table> itself (not the responsive wrapper), the same shape BsButton
@@ -43,14 +43,14 @@ public sealed class BsTable : BsBlock
             StickyHeader is true ? "bs-table-sticky" : null,
             Class);
 
-        var table = Table(Id: Id, Class: cls, Aria: Aria)[Items];
+        var table = Table.Id(Id).Class(cls).Aria(Aria)[Items];
 
         // MaxHeight implies the wrapper even when Responsive is off: the height has to bound a scroll
         // container, and without one it would just clip. .table-responsive declares only overflow-x, but
         // a non-visible overflow on one axis computes the other to auto — so max-height on that same
         // element is what actually makes the body scroll vertically.
         return Responsive is true || MaxHeight is not null
-            ? Div(Class: "table-responsive", Style: MaxHeight is not null ? $"max-height:{MaxHeight}" : null)[table]
+            ? Div.Class("table-responsive").Style(MaxHeight is not null ? $"max-height:{MaxHeight}" : null)[table]
             : table;
     }
 }

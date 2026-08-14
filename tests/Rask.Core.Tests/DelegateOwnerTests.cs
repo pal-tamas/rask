@@ -57,17 +57,17 @@ public class DelegateOwnerTests
     {
         public Task ToggleAsync(object a, object b, int c, T item, object d, bool add) => Task.CompletedTask;
 
-        public CallbackAsync ChipRemoveHandler(IEnumerable<T> items)
+        public Func<Task> ChipRemoveHandler(IEnumerable<T> items)
         {
             var acc = new object();
             var ctx = new object();
             var fid = 7;
             var comparer = new object();
-            CallbackAsync? result = null;
+            Func<Task>? result = null;
             foreach (var item in items)
             {
                 var captured = item;
-                CallbackAsync h = () => ToggleAsync(acc, ctx, fid, captured, comparer, add: false);
+                Func<Task> h = () => ToggleAsync(acc, ctx, fid, captured, comparer, add: false);
                 result ??= h;
             }
 

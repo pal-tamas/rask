@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
-using B = Rask.Benchmarks.Generated;
+using Bench = Rask.Benchmarks.Generated;
 
 namespace Rask.Benchmarks;
 
@@ -17,7 +17,7 @@ namespace Rask.Benchmarks;
 // for a removed element cannot be redirected onto a live handler), which is what makes the
 // past-the-table path reachable on a long-lived churny page rather than merely theoretical.
 [MemoryDiagnoser]
-public class HandlerRegistrationBenchmarks
+public partial class HandlerRegistrationBenchmarks : global::Rask.Core.RaskMarkup
 {
     private Action _action = null!;
     private RegHost _host = null!;
@@ -29,7 +29,7 @@ public class HandlerRegistrationBenchmarks
     // [Benchmark] starting from an empty slot table. The allocation is outside the measured region.
     // Construction goes through the generated factory so RASK014 is satisfied.
     [IterationSetup]
-    public void IterationSetup() => _host = (RegHost)B.RegHost();
+    public void IterationSetup() => _host = (RegHost)RegHost;
 
     [Benchmark]
     public string Register200() => RegisterMany(200);
@@ -60,7 +60,7 @@ public class HandlerRegistrationBenchmarks
 // RegHost exists because Component.RegisterHandler is internal; this subclass re-exposes
 // it as a public method so the bench can call it directly without going through the
 // full RenderAsLiveRoot path.
-internal sealed class RegHost : Component
+internal sealed partial class RegHost : Component
 {
     public new string RegisterHandler(Delegate handler) => base.RegisterHandler(handler);
 }

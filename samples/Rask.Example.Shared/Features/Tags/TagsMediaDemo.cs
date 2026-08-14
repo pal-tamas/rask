@@ -2,10 +2,10 @@ using Rask.Core.Live;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class TagsMediaDemo : Component
+public sealed partial class TagsMediaDemo : Component
 {
-    protected override Component? Render() => Img(
-        LiveOptions.PathBase + "/img/rask-placeholder.svg",
-        "Rask",
-        Class: "rounded shadow-sm");
+    protected override Component? Render() => Img
+        .Src(LiveOptions.PathBase + "/img/rask-placeholder.svg")
+        .Alt("Rask")
+        .Class("rounded shadow-sm");
 }

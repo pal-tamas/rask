@@ -10,7 +10,7 @@ namespace Rask.Benchmarks;
 // string per element, on every render. The Dictionary struct-enumerator fast path and the
 // integer AppendAttr overload remove both.
 [MemoryDiagnoser]
-public class AccessibilityAttributesBenchmarks
+public partial class AccessibilityAttributesBenchmarks : global::Rask.Core.RaskMarkup
 {
     private Component _large = null!;
     private Component _medium = null!;
@@ -43,11 +43,11 @@ public class AccessibilityAttributesBenchmarks
                 ["label"] = $"row {i}",
                 ["selected"] = "false"
             };
-            rows.Add(C.Div(Class: "row", Role: "row", TabIndex: i, Aria: aria, Key: $"k{i}")[
-                C.Span(Role: "gridcell", Aria: new Dictionary<string, string?> { ["hidden"] = "false" })[$"Item {i}"]
+            rows.Add(Div.Class("row").Role("row").TabIndex(i).Aria(aria).Key($"k{i}")[
+                Span.Role("gridcell").Aria(new Dictionary<string, string?> { ["hidden"] = "false" })[$"Item {i}"]
             ]);
         }
 
-        return C.Div(Class: "container", Role: "grid", TabIndex: 0)[rows];
+        return Div.Class("container").Role("grid").TabIndex(0)[rows];
     }
 }

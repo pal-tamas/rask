@@ -50,7 +50,7 @@ Inject `IDispatcher` and call `DispatchAsync` — one method for both queries an
 result type inferred from the message. Notifications go through `PublishAsync` on the same `IDispatcher`.
 
 ```csharp
-public sealed class CounterView(IDispatcher dispatcher) : Component
+public sealed partial class CounterView(IDispatcher dispatcher) : Component
 {
     private CounterState _view = new(0, []);
 

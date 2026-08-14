@@ -5,8 +5,8 @@
 IntelliSense instead of a stringly-typed class:
 
 ```csharp
-BsIcon(Name: BsIconName.HeartFill, Color: BsColor.Danger)
-BsIcon(Name: BsIconName.Gear)
+BsIcon.Name(BsIconName.HeartFill).Color(BsColor.Danger)
+BsIcon.Name(BsIconName.Gear)
 ```
 
 The icon font ships with the package and is linked by `BootstrapStyles()` (pass

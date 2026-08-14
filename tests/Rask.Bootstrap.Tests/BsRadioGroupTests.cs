@@ -9,12 +9,12 @@ namespace Rask.Bootstrap.Tests;
 // set in a <fieldset> named by a <legend> (the accessible name for the group); without it the bare
 // per-item fragment is kept. Validation surfaces as a role="alert" live region the radios point at
 // via aria-describedby, with aria-invalid on each input.
-public class BsRadioGroupTests
+public partial class BsRadioGroupTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void RadioGroup_Controlled_RendersRadiosWithPerItemLabelAssociation()
     {
-        var html = BsRadioGroup(Options: ["Free", "Pro"], Value: "Free", Name: "plan", OnChange: _ => { }).ToHtml();
+        var html = BsRadioGroup.Value("Free").Options(["Free", "Pro"]).Name("plan").OnChange(_ => { }).ToHtml();
         // No group Label ⇒ bare fragment, no fieldset/legend wrapper.
         Assert.DoesNotContain("<fieldset", html);
         Assert.DoesNotContain("<legend", html);
@@ -30,8 +30,13 @@ public class BsRadioGroupTests
     [Fact]
     public void RadioGroup_WithLabel_WrapsInFieldsetNamedByLegend()
     {
-        var html = BsRadioGroup(Options: ["Free", "Pro"], Value: "Free", Name: "plan", Label: "Plan",
-            OnChange: _ => { }).ToHtml();
+        var html = BsRadioGroup
+            .Value("Free")
+            .Options(["Free", "Pro"])
+            .Name("plan")
+            .Label("Plan")
+            .OnChange(_ => { })
+            .ToHtml();
         // A set of related radios becomes a <fieldset> whose <legend> is the group's accessible name.
         Assert.StartsWith("<fieldset class=\"border-0 p-0 m-0\">", html);
         Assert.Contains("<legend class=\"form-label fs-6\">Plan</legend>", html);
@@ -42,8 +47,13 @@ public class BsRadioGroupTests
     [Fact]
     public void RadioGroup_Disabled_DisablesEveryRadio()
     {
-        var html = BsRadioGroup(Options: ["Free", "Pro"], Value: "Free", Name: "plan", Disabled: true,
-            OnChange: _ => { }).ToHtml();
+        var html = BsRadioGroup
+            .Value("Free")
+            .Options(["Free", "Pro"])
+            .Name("plan")
+            .Disabled(true)
+            .OnChange(_ => { })
+            .ToHtml();
         Assert.Contains("value=\"Free\" disabled checked />", html);
         Assert.Contains("value=\"Pro\" disabled />", html);
     }
@@ -51,8 +61,13 @@ public class BsRadioGroupTests
     [Fact]
     public void RadioGroup_OptionLabel_RendersRichLabels() =>
         Assert.Contains("<label class=\"form-check-label\" for=\"plan-0\"><strong>Free</strong></label>",
-            BsRadioGroup(Options: ["Free"], Value: "Free", Name: "plan",
-                OptionLabel: p => Strong()[p], OnChange: _ => { }).ToHtml());
+            BsRadioGroup
+                .Value("Free")
+                .Options(["Free"])
+                .Name("plan")
+                .OptionLabel(p => Strong[p])
+                .OnChange(_ => { })
+                .ToHtml());
 
     [Fact]
     public async Task RadioGroup_Bound_Invalid_WiresAriaInvalidDescribedbyAndAlertFeedback()
@@ -60,9 +75,11 @@ public class BsRadioGroupTests
         // A bound radio group that fails validation must expose the failure to assistive tech: aria-invalid
         // + aria-describedby on each radio, and the error as a role="alert" live region with the matching id.
         var model = new PlanModel();
-        var view = new StubComponent(() => Form(model)[
-            BsRadioGroup(() => model.Plan, ["Free", "Pro"], Label: "Plan",
-                Validate: v => string.IsNullOrEmpty(v) ? new[] { "pick a plan" } : Array.Empty<string>())
+        var view = new StubComponent(() => Form.Model(model)[
+            BsRadioGroup.Bind(() => model.Plan)
+                .Options(["Free", "Pro"])
+                .Label("Plan")
+                .Validate(v => string.IsNullOrEmpty(v) ? new[] { "pick a plan" } : Array.Empty<string>())
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -82,8 +99,8 @@ public class BsRadioGroupTests
     {
         // Two id-less controlled groups must not both fall back to name="radio-group": the browser would
         // treat them as ONE radio group (selecting in one clears the other) and their ids would collide.
-        var nameA = Markup.Attr(BsRadioGroup(Options: ["x"], Value: "x", OnChange: _ => { }).ToHtml(), "name");
-        var nameB = Markup.Attr(BsRadioGroup(Options: ["x"], Value: "x", OnChange: _ => { }).ToHtml(), "name");
+        var nameA = Markup.Attr(BsRadioGroup.Value("x").Options(["x"]).OnChange(_ => { }).ToHtml(), "name");
+        var nameB = Markup.Attr(BsRadioGroup.Value("x").Options(["x"]).OnChange(_ => { }).ToHtml(), "name");
         Assert.StartsWith("radio-group-", nameA);
         Assert.NotEqual(nameA, nameB);
     }
@@ -91,7 +108,7 @@ public class BsRadioGroupTests
     [Fact]
     public void RadioGroup_NeitherBindNorHandler_Throws() =>
         Assert.Throws<InvalidOperationException>(() =>
-            BsRadioGroup(Options: ["a"], Value: "a").ToHtml());
+            BsRadioGroup.Value("a").Options(["a"]).ToHtml());
 
     private sealed class PlanModel
     {

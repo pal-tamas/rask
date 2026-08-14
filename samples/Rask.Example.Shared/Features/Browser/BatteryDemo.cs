@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 ///     Chromium-only, so each call is gated on <see cref="IBattery.IsSupportedAsync" />; in the native shell
 ///     it resolves to a real OS backend.
 /// </summary>
-public sealed class BatteryDemo(IBattery battery) : Component, IAsyncDisposable
+public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDisposable
 {
     private BatteryStatus? _status;
 

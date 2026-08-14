@@ -32,6 +32,11 @@ public async Task Clicking_increments()
   rebuilt from your current state each time. Use it whenever a re-render should see changed props:
   `RaskTest.Render(() => Form(model)[Input(() => model.Name)])`. The `component` overload renders one fixed
   instance, so a tree you build at the call site keeps the values it was built with.
+- **`RaskTest.RenderDocument(app, services?)`** — renders the component the way a host does, with the whole
+  document composed around it, so you can assert on the **page**: the doctype, `<html lang>`, the `<head>`
+  every mounted component contributed to, `<body class>`. `Render` adds no markup of its own, which is what
+  keeps an assertion about a component from quietly becoming one about a page — reach for this only when
+  the page is the thing under test.
 - **`RenderedComponent.Html`** — the current markup, reflecting the latest state.
 - **`.WaitForAsync(text | predicate, timeout?)`** — re-renders until the markup contains the text (or the
   predicate accepts it), then returns it; throws with the last markup after 5 seconds by default. Use it

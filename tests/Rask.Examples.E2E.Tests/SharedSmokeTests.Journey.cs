@@ -33,6 +33,11 @@ public abstract partial class SharedSmokeTests
         // No-SPA-fallback hosts (StandaloneWasm) can't refresh a deep route, but reloading the
         // /index.html shell must still boot the runtime cleanly.
         public bool ReloadShellBoots { get; init; }
+
+        // The ISignaling relay is ASP.NET-side (Rask.Signaling). The Server and WASM showcases both map
+        // it; StandaloneWasm is served by a bare static-file host with no app services, so it can't. The
+        // demo says so in its own UI on a host without one.
+        public bool SignalingRelay { get; init; }
     }
 
     protected const int HighlightSettleTimeoutMs = 35_000;
@@ -81,7 +86,7 @@ public abstract partial class SharedSmokeTests
         await WalkCqrsGuideAsync();
         await WalkAuthGuideAsync();
         await WalkFormsPagesAsync();
-        await WalkStylingDataAndAppPagesAsync();
+        await WalkStylingDataAndAppPagesAsync(opts);
         await WalkBootstrapGuideAsync();
         await WalkDataGridGuideAsync();
         await TestGuidesAsync();
@@ -1295,7 +1300,7 @@ public abstract partial class SharedSmokeTests
         await ctxDemo.Locator("button:has-text('Toggle theme')").ClickAsync();
         await Expect(ctxBadge).ToContainTextAsync("Dark", contains);
 
-        // Callback: a child's click invokes the parent's plain delegate and the framework auto-wraps it
+        // Action: a child's click invokes the parent's plain delegate and the framework auto-wraps it
         // to re-render the parent. Scoped by the demo's #callback-rating container.
         var cb = Page.Locator("#callback-rating");
         await cb.Locator("button").Nth(3).ClickAsync();
@@ -2017,7 +2022,7 @@ public abstract partial class SharedSmokeTests
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
     }
 
-    protected async Task WalkStylingDataAndAppPagesAsync()
+    protected async Task WalkStylingDataAndAppPagesAsync(ShowcaseJourneyOptions opts)
     {
         // Global (non-scoped) styles live in wwwroot/global.css, linked from App's <Head> — not in a
         // scoped {Component}.css (there is no :global() opt-out). On WASM the App's <Head> <link>s are
@@ -2124,7 +2129,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        await TestBrowserApisAsync();
+        await TestBrowserApisAsync(opts);
     }
 
     // Browser APIs guide: the 27 typed wrappers folded into docs/browser-apis.md. Browser APIs are
@@ -2132,7 +2137,7 @@ public abstract partial class SharedSmokeTests
     // one page contends for the shared JS channel — so the guide embeds each wrapper as an inline *code
     // sample* (highlighted source, no auto-mounted live result). Verify the guide renders those samples;
     // per-wrapper behaviour is covered by the demo unit tests and the WASM PWA/hardware showcase.
-    protected async Task TestBrowserApisAsync()
+    protected async Task TestBrowserApisAsync(ShowcaseJourneyOptions opts)
     {
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
         var visible = new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 };
@@ -2146,7 +2151,7 @@ public abstract partial class SharedSmokeTests
         // The demos all live on the reference subpage — the hub is prose and carries none, so walking it
         // would assert nothing (docs/browser-apis.md has zero `<!-- demo: -->` markers).
         await SideAsync("Browser APIs — reference & demos", "reference & live demos", "main .markdown-body h1");
-        await AssertGuideDemosAsync(33, "browser-apis-reference");
+        await AssertGuideDemosAsync(35, "browser-apis-reference");
         await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
@@ -2200,6 +2205,40 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#locks-try").ClickAsync();
         await Expect(Page.Locator("#locks-status")).ToContainTextAsync("acquired", contains);
 
+        // WebRTC — the whole peer-to-peer round trip, headless and with no network: two RTCPeerConnections
+        // in one page exchange a real offer/answer, gather host candidates (no STUN configured, and none
+        // needed on loopback), connect, and carry a message over a real RTCDataChannel. The received text
+        // arriving proves the batched push path end to end — JS buffer → [JSInvokable] → C# callback.
+        // WebRTC — asserts the wrapper's full round trip, deliberately stopping short of a completed peer
+        // connection. Creating the peers runs createOffer/createAnswer/setLocal/setRemote through
+        // IJSRuntime, and the candidate count is the batch the browser PUSHED BACK into C# through
+        // WebRtcInterop — so a non-zero count proves gather → coalesce → [JSInvokable] → callback end to
+        // end, in a real browser, on both hosts.
+        //
+        // What it deliberately does NOT assert is a message crossing the channel. That needs ICE to
+        // actually connect, which needs UDP the gate's browser doesn't have (its console shows
+        // net::ERR_FAILED for outbound requests) — two local peers here reach "connecting" and then
+        // "failed". Asserting connectivity would make this test a property of the machine's network
+        // rather than of the framework. Message decoding, batching, dropped-message counting and
+        // per-connection routing are covered deterministically in Rask.Core.Tests.Browser.WebRtcTests.
+        await Page.Locator("#rtc-connect").ClickAsync();
+        await Expect(Page.Locator("#rtc-candidates")).ToHaveTextAsync(
+            new Regex("^[1-9][0-9]*$"), new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Signaling — unlike the peer connection above, this one runs the whole way: the relay is a plain
+        // WebSocket, so it needs none of the UDP the harness lacks. Joining the same room twice exercises
+        // the JS client, the C# wrapper, and the server relay together — the second connection is told who
+        // was already there, and a payload addressed to the first peer comes out at the first peer.
+        if (opts.SignalingRelay)
+        {
+            await Page.Locator("#signal-join").ClickAsync();
+            await Expect(Page.Locator("#signal-log")).ToContainTextAsync("second joined", contains);
+            await Expect(Page.Locator("#signal-log")).ToContainTextAsync("saw 1 peer(s)", contains);
+            await Page.Locator("#signal-send").ClickAsync();
+            await Expect(Page.Locator("#signal-log"))
+                .ToContainTextAsync("first received \"payload #1\"", contains);
+        }
+
         // Battery — one-shot read of navigator.getBattery (headless Chromium provides a mock manager, so
         // GetStatusAsync resolves rather than returning null); the read label flips to "read".
         //
@@ -2225,6 +2264,14 @@ public abstract partial class SharedSmokeTests
             "data-rask-gesture", new Regex("install\\.prompt"), gestureAttr);
         await Expect(Page.Locator("#camera-btn")).ToHaveAttributeAsync(
             "data-rask-gesture", new Regex("media\\.start"), gestureAttr);
+        // The capture trigger now posts a result back (the stream id for OnStream), so it must carry a
+        // callback id — a fire-and-forget bundle would leave OnStream permanently silent.
+        await Expect(Page.Locator("#camera-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("\"rid\":[0-9]+"), gestureAttr);
+        // Stop stays disabled until a stream exists. Starting one needs a camera permission the harness
+        // can't grant, so this asserts the gating renders, not the stop itself.
+        await Expect(Page.Locator("#camera-stop-btn")).ToBeDisabledAsync(
+            new LocatorAssertionsToBeDisabledOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#pip-btn")).ToHaveAttributeAsync(
             "data-rask-gesture", new Regex("pip\\.request"), gestureAttr);
     }

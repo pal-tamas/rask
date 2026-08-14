@@ -214,7 +214,7 @@ public sealed class BsColumn<T>
 //   * an IQueryable — in the store, so the set can be arbitrarily large (server hosts only; see Data).
 //   * a list + TotalCount — Data is one already-sorted, already-paged slice you fetched and TotalCount is how
 //     many rows are really behind it, so the pager is right. This is the mode with the await in your hands.
-public sealed class BsDataGrid<T> : BsBlock
+public sealed partial class BsDataGrid<T> : BsBlock
 {
     private readonly HashSet<object> _expanded = [];
     private readonly int _instanceId = BsInstanceId.Next();
@@ -286,7 +286,7 @@ public sealed class BsDataGrid<T> : BsBlock
     ///         <see cref="TotalCount" /> — the same feature, with the await in your hands.
     ///     </para>
     /// </remarks>
-    public IEnumerable<T>? Data { get; set; }
+    public new IEnumerable<T>? Data { get; set; }
     public IReadOnlyList<BsColumn<T>>? Columns { get; set; }
 
     // Rows per page; 0 (default) shows everything with no pager.
@@ -294,7 +294,7 @@ public sealed class BsDataGrid<T> : BsBlock
 
     public bool Striped { get; set; } = true;
     public bool Hover { get; set; } = true;
-    public bool Small { get; set; } = false;
+    public new bool Small { get; set; } = false;
     public bool Responsive { get; set; } = true;
 
     // Stable per-row key (defaults to the row index) and an optional empty-state placeholder.
@@ -331,13 +331,13 @@ public sealed class BsDataGrid<T> : BsBlock
     public int? Page { get; set; }
 
     /// <summary>Raised with the page the user asked for. Only meaningful when <see cref="Page" /> is set.</summary>
-    public Callback<int>? OnPageChange { get; set; }
+    public Action<int>? OnPageChange { get; set; }
 
     /// <summary>
     ///     The awaited form of <see cref="OnPageChange" />: the grid awaits it before returning from the click,
     ///     so you can run the query for the new page right here.
     /// </summary>
-    public CallbackAsync<int>? OnPageChangeAsync { get; set; }
+    public Func<int, Task>? OnPageChangeAsync { get; set; }
 
     /// <summary>
     ///     The <see cref="BsColumn{T}.SortField" /> of the sorted column, or null for unsorted. Set it (with
@@ -352,14 +352,14 @@ public sealed class BsDataGrid<T> : BsBlock
     public bool SortDescending { get; set; } = false;
 
     /// <summary>Raised with the sort the user asked for. Only meaningful when <see cref="Sort" /> is in use.</summary>
-    public Callback<DataGridSort>? OnSortChange { get; set; }
+    public Action<DataGridSort>? OnSortChange { get; set; }
 
     /// <summary>
     ///     The awaited form of <see cref="OnSortChange" />. This is how the grid supports async data without any
     ///     async machinery of its own: the click awaits your handler, you run <c>CountAsync</c>/<c>ToListAsync</c>
     ///     in it and update the state the grid renders from, and the re-render shows the result.
     /// </summary>
-    public CallbackAsync<DataGridSort>? OnSortChangeAsync { get; set; }
+    public Func<DataGridSort, Task>? OnSortChangeAsync { get; set; }
 
     /// <summary>
     ///     Extra CSS classes for a row, computed from it — the hook for conditional row styling (a red
@@ -391,10 +391,10 @@ public sealed class BsDataGrid<T> : BsBlock
     ///         It costs one handler per clickable cell, so it scales with rows × columns rather than rows.
     ///     </para>
     /// </remarks>
-    public Callback<T>? OnRowClick { get; set; }
+    public Action<T>? OnRowClick { get; set; }
 
     /// <summary>The awaited form of <see cref="OnRowClick" />.</summary>
-    public CallbackAsync<T>? OnRowClickAsync { get; set; }
+    public Func<T, Task>? OnRowClickAsync { get; set; }
 
     /// <summary>
     ///     Freezes the header row while the body scrolls under it. Needs <see cref="MaxHeight" />: a sticky
@@ -466,10 +466,10 @@ public sealed class BsDataGrid<T> : BsBlock
     ///         that has since been deleted or that this user may not touch.
     ///     </para>
     /// </remarks>
-    public Callback<IReadOnlyList<object>>? OnSelectionChange { get; set; }
+    public Action<IReadOnlyList<object>>? OnSelectionChange { get; set; }
 
     /// <summary>The awaited form of <see cref="OnSelectionChange" />.</summary>
-    public CallbackAsync<IReadOnlyList<object>>? OnSelectionChangeAsync { get; set; }
+    public Func<IReadOnlyList<object>, Task>? OnSelectionChangeAsync { get; set; }
 
     /// <summary>
     ///     The columns to band rows by, outermost first, named by <see cref="BsColumn{T}.Field" /> — so this is
@@ -486,10 +486,10 @@ public sealed class BsDataGrid<T> : BsBlock
     public IReadOnlyList<string>? Grouped { get; set; }
 
     /// <summary>Raised with the group fields the user asked for, outermost first.</summary>
-    public Callback<IReadOnlyList<string>>? OnGroupedChange { get; set; }
+    public Action<IReadOnlyList<string>>? OnGroupedChange { get; set; }
 
     /// <summary>The awaited form of <see cref="OnGroupedChange" />.</summary>
-    public CallbackAsync<IReadOnlyList<string>>? OnGroupedChangeAsync { get; set; }
+    public Func<IReadOnlyList<string>, Task>? OnGroupedChangeAsync { get; set; }
 
     /// <summary>Lets a band header collapse its rows. Zero-JS, like the master-detail expander.</summary>
     public bool? GroupCollapsible { get; set; }
@@ -536,10 +536,10 @@ public sealed class BsDataGrid<T> : BsBlock
     public IReadOnlyList<string>? HiddenColumns { get; set; }
 
     /// <summary>Raised with the full set of hidden tokens after a toggle — not a delta.</summary>
-    public Callback<IReadOnlyList<string>>? OnHiddenColumnsChange { get; set; }
+    public Action<IReadOnlyList<string>>? OnHiddenColumnsChange { get; set; }
 
     /// <summary>The awaited form of <see cref="OnHiddenColumnsChange" />.</summary>
-    public CallbackAsync<IReadOnlyList<string>>? OnHiddenColumnsChangeAsync { get; set; }
+    public Func<IReadOnlyList<string>, Task>? OnHiddenColumnsChangeAsync { get; set; }
 
     /// <summary>
     ///     The <see cref="BsColumn{T}.Field" /> names in display order, so this is URL-serialisable
@@ -552,10 +552,10 @@ public sealed class BsDataGrid<T> : BsBlock
     public IReadOnlyList<string>? ColumnOrder { get; set; }
 
     /// <summary>Raised with the full column order, outermost first, after a move.</summary>
-    public Callback<IReadOnlyList<string>>? OnColumnOrderChange { get; set; }
+    public Action<IReadOnlyList<string>>? OnColumnOrderChange { get; set; }
 
     /// <summary>The awaited form of <see cref="OnColumnOrderChange" />.</summary>
-    public CallbackAsync<IReadOnlyList<string>>? OnColumnOrderChangeAsync { get; set; }
+    public Func<IReadOnlyList<string>, Task>? OnColumnOrderChangeAsync { get; set; }
 
     /// <summary>
     ///     Renders a "Columns" menu above the grid: a checkbox to show or hide each column, and move earlier/later
@@ -583,7 +583,8 @@ public sealed class BsDataGrid<T> : BsBlock
     // Column visibility and order follow the same three-way opt-in as Grouped: an empty list is a legitimate
     // controlled value ("nothing hidden" / "no explicit order"), so any of the three signals opts in.
     private bool HideControlled =>
-        HiddenColumns is not null || OnHiddenColumnsChange is not null || OnHiddenColumnsChangeAsync is not null;
+        HiddenColumns is not null || OnHiddenColumnsChange is not null
+        || OnHiddenColumnsChangeAsync is not null;
 
     private IReadOnlyList<string> CurrentHidden => HideControlled ? HiddenColumns ?? [] : _hidden;
 
@@ -695,15 +696,15 @@ public sealed class BsDataGrid<T> : BsBlock
 
     // Sync wins when both are set and the async half is skipped — the contract RASK027 states and every other
     // component follows. Wiring both is a diagnostic, not a supported way to get two calls.
-    private static Task Raise<TArg>(Callback<TArg>? sync, CallbackAsync<TArg>? async, TArg arg)
+    private static Task Raise<TArg>(Action<TArg>? sync, Func<TArg, Task>? async, TArg arg)
     {
-        if (sync is not null)
+        if (sync is { } fn)
         {
-            sync.Invoke(arg);
+            fn.Invoke(arg);
             return Task.CompletedTask;
         }
 
-        return async is not null ? async.Invoke(arg) : Task.CompletedTask;
+        return async is { } fnAsync ? fnAsync.Invoke(arg) : Task.CompletedTask;
     }
 
     // The current selection as a set. Built once per render and threaded through the cells: a controlled
@@ -1142,19 +1143,17 @@ public sealed class BsDataGrid<T> : BsBlock
     {
         var grouped = GroupColumns(columns);
 
-        return Div(
-            Id: Id is null ? null : $"{Id}-grouppanel",
-            Class: Bs.Join("bs-grid-grouppanel", Display.Flex(), Flex.Align(BsAlign.Center), "gap-2",
-                Margin.Bottom(2)),
-            // The drop target for "group by this" and for reordering. OnDragOver is what the client turns into
-            // preventDefault, and without it the browser rejects the drop outright.
-            OnDragOver: () => { },
-            OnDropAsync: () => DropOnAsync(null))[GroupPanelItems(grouped)];
+        return Div
+            .Id(Id is null ? null : $"{Id}-grouppanel")
+            .Class(Bs.Join("bs-grid-grouppanel", Display.Flex(), Flex.Align(BsAlign.Center), "gap-2",
+                Margin.Bottom(2)))
+            .OnDragOver(() => { })
+            .OnDropAsync(() => DropOnAsync(null))[GroupPanelItems(grouped)];
     }
 
     private IEnumerable<Component?> GroupPanelItems(List<BsColumn<T>> grouped)
     {
-        yield return Span(Class: Bs.Join(Txt.Color(BsColor.Secondary), Font.Small))[
+        yield return Span.Class(Bs.Join(Txt.Color(BsColor.Secondary), Font.Small))[
             grouped.Count == 0 ? "Drag a column here to group by it" : "Grouped by"];
 
         foreach (var column in grouped)
@@ -1168,19 +1167,16 @@ public sealed class BsDataGrid<T> : BsBlock
         var field = column.FieldName!;
         var at = grouped.IndexOf(column);
 
-        return Div(
-            Key: $"chip:{field}",
-            Class: Bs.Join("bs-grid-chip", Display.Flex(), Flex.Align(BsAlign.Center), "gap-1",
-                "badge text-bg-secondary"),
-            Draggable: true,
-            OnDragStart: () => _dragField = field,
-            // dragend fires after any drop, so this is the "drag the chip out to ungroup" gesture: dropping on
-            // the panel or another chip already consumed _dragField (DropOnAsync nulled it), leaving this a
-            // no-op; dropping on nothing leaves it set, and DropOutsideAsync removes the level.
-            OnDragEndAsync: () => DropOutsideAsync(),
-            OnDragOver: () => { },
-            OnDropAsync: () => DropOnAsync(field))[
-            Span()[column.Title],
+        return Div
+            .Key($"chip:{field}")
+            .Class(Bs.Join("bs-grid-chip", Display.Flex(), Flex.Align(BsAlign.Center), "gap-1",
+                "badge text-bg-secondary"))
+            .Draggable(true)
+            .OnDragStart(() => _dragField = field)
+            .OnDragEndAsync(() => DropOutsideAsync())
+            .OnDragOver(() => { })
+            .OnDropAsync(() => DropOnAsync(field))[
+            Span[column.Title],
             ChipButton(BsIconName.ChevronLeft, $"Move {column.Title} out one level", at == 0,
                 () => MoveGroupAsync(field, -1)),
             ChipButton(BsIconName.ChevronRight, $"Move {column.Title} in one level", at == grouped.Count - 1,
@@ -1191,12 +1187,12 @@ public sealed class BsDataGrid<T> : BsBlock
 
     // A real <button> per action — this is what makes the panel keyboard-operable rather than drag-only.
     private static Component ChipButton(BsIconName icon, string label, bool disabled, Func<Task> onClick) =>
-        Button(
-            Type: "button",
-            Class: Bs.Join("btn btn-sm btn-link text-reset text-decoration-none", Padding.All(0), "lh-1"),
-            Disabled: disabled ? true : null,
-            Aria: new Dictionary<string, string?> { ["label"] = label },
-            OnClickAsync: () => onClick())[BsIcon(Name: icon)];
+        Button
+            .Type("button")
+            .Class(Bs.Join("btn btn-sm btn-link text-reset text-decoration-none", Padding.All(0), "lh-1"))
+            .Disabled(disabled ? true : null)
+            .Aria(new Dictionary<string, string?> { ["label"] = label })
+            .OnClickAsync(() => onClick())[BsIcon.Name(icon)];
 
     // --- Column chooser menu -------------------------------------------------------------------------------
     //
@@ -1210,21 +1206,21 @@ public sealed class BsDataGrid<T> : BsBlock
         [ColumnChooserBar(columns), GroupPanel is true ? GroupPanelRow(columns) : null];
 
     private Component ColumnChooserBar(IReadOnlyList<BsColumn<T>> columns) =>
-        Div(
-            Id: Id is null ? null : $"{Id}-columnchooser",
-            Class: Bs.Join("bs-grid-columnchooser", Position.Relative, Margin.Bottom(2)))[
-            Button(
-                Type: "button",
-                Class: "btn btn-sm btn-outline-secondary",
-                Aria: new Dictionary<string, string?>
+        Div
+            .Id(Id is null ? null : $"{Id}-columnchooser")
+            .Class(Bs.Join("bs-grid-columnchooser", Position.Relative, Margin.Bottom(2)))[
+            Button
+                .Type("button")
+                .Class("btn btn-sm btn-outline-secondary")
+                .Aria(new Dictionary<string, string?>
                 {
                     ["expanded"] = _chooserOpen ? "true" : "false",
                     ["label"] = "Columns",
-                },
-                OnClick: () => _chooserOpen = !_chooserOpen)[
-                BsIcon(Name: BsIconName.Columns, Class: Margin.End(1)), "Columns"],
+                })
+                .OnClick(() => _chooserOpen = !_chooserOpen)[
+                BsIcon.Name(BsIconName.Columns).Class(Margin.End(1)), "Columns"],
             _chooserOpen
-                ? Div(Class: Bs.Join("bs-grid-columnmenu", "list-group", Margin.Top(1)))[
+                ? Div.Class(Bs.Join("bs-grid-columnmenu", "list-group", Margin.Top(1)))[
                     ColumnChooserItems(columns)]
                 : null
         ];
@@ -1266,12 +1262,12 @@ public sealed class BsDataGrid<T> : BsBlock
             var rank = order.IndexOf(field);
             var canMove = column.Reorderable && rank >= 0;
 
-            yield return Div(
-                Key: $"col:{field}",
-                Class: Bs.Join("bs-grid-columnitem", "list-group-item", Display.Flex(), Flex.Align(BsAlign.Center),
+            yield return Div
+                .Key($"col:{field}")
+                .Class(Bs.Join("bs-grid-columnitem", "list-group-item", Display.Flex(), Flex.Align(BsAlign.Center),
                     "gap-2", Padding.Y(1)))[
                 box,
-                Span(Class: "me-auto")[column.Title],
+                Span.Class("me-auto")[column.Title],
                 canMove
                     ? ChipButton(BsIconName.ChevronUp, $"Move {column.Title} earlier", rank == 0,
                         () => MoveColumnAsync(field, -1))
@@ -1350,12 +1346,19 @@ public sealed class BsDataGrid<T> : BsBlock
         var selected = SelectionEnabled ? SelectionSet() : null;
         var pageKeys = selected is null ? [] : PageKeys(pageRows);
 
-        var table = BsTable(Id: Id, Striped: Striped, Hover: Hover, Small: Small, Responsive: Responsive,
-            StickyHeader: StickyHeader, MaxHeight: MaxHeight, Class: Class,
-            Aria: Busy ? BsGridAria.Busy : null)[
-            Thead()[Tr()[HeaderCells(visible, columns, selected, pageKeys)]],
-            Tbody()[BodyRows(visible, columns, pageRows, selected)],
-            hasFooter ? Tfoot()[Tr()[FooterCells(visible, footerRows)]] : null
+        var table = BsTable
+            .Id(Id)
+            .Striped(Striped)
+            .Hover(Hover)
+            .Small(Small)
+            .Responsive(Responsive)
+            .StickyHeader(StickyHeader)
+            .MaxHeight(MaxHeight)
+            .Class(Class)
+            .Aria(Busy ? BsGridAria.Busy : null)[
+            Thead[Tr[HeaderCells(visible, columns, selected, pageKeys)]],
+            Tbody[BodyRows(visible, columns, pageRows, selected)],
+            hasFooter ? Tfoot[Tr[FooterCells(visible, footerRows)]] : null
         ];
 
         return Wrap(toolbar, table,
@@ -1378,12 +1381,12 @@ public sealed class BsDataGrid<T> : BsBlock
     private Component Wrap(Component? panel, Component? content, Component? pager) =>
         Loading is null
             ? [panel, content, pager]
-            : Div(Class: Position.Relative)[panel, content, pager, Busy ? Overlay() : null];
+            : Div.Class(Position.Relative)[panel, content, pager, Busy ? Overlay() : null];
 
     // The spinner sits OUTSIDE the aria-busy table (it is a sibling, not a child) so its role="status" live
     // region can actually announce. See BsGridAria.Busy.
     private static Component Overlay() =>
-        Div(Class: "bs-grid-overlay")[BsSpinner(Color: BsColor.Primary)];
+        Div.Class("bs-grid-overlay")[BsSpinner.Color(BsColor.Primary)];
 
     // Runs the query: ORDER BY the sorted column's SortBy, COUNT the whole set, and materialise one page.
     // Two round-trips, cached per (query, sort, page) so only a real change pays for them.
@@ -1545,27 +1548,31 @@ public sealed class BsDataGrid<T> : BsBlock
         Component content = column.GroupHeader is { } header
             ? header(key, band)
             : [
-                Span(Class: Font.Semibold)[$"{column.Title}: {key}"],
-                Span(Class: Bs.Join(Txt.Color(BsColor.Secondary), Margin.Start(2), Font.Small))[
+                Span.Class(Font.Semibold)[$"{column.Title}: {key}"],
+                Span.Class(Bs.Join(Txt.Color(BsColor.Secondary), Margin.Start(2), Font.Small))[
                     $"({band.Count})"],
             ];
 
         var label = GroupCollapsible is true
-            ? BsButton(
-                Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Class: Margin.End(2),
-                Aria: new Dictionary<string, string?>
+            ? BsButton
+                .Color(BsColor.Secondary)
+                .Outline(true)
+                .Size(BsSize.Sm)
+                .Class(Margin.End(2))
+                .Aria(new Dictionary<string, string?>
                 {
                     ["expanded"] = collapsed ? "false" : "true",
                     ["label"] = $"Toggle {column.Title} {key}",
-                },
-                OnClick: () => ToggleBand(path))[
-                BsIcon(Name: collapsed ? BsIconName.ChevronRight : BsIconName.ChevronDown)]
+                })
+                .OnClick(() => ToggleBand(path))[
+                BsIcon.Name(collapsed ? BsIconName.ChevronRight : BsIconName.ChevronDown)]
             : null;
 
         // Nested bands indent so the hierarchy is visible; level 0 sits flush.
-        return Tr(Key: $"band:{path}", Class: "table-group-divider")[
-            Td(Colspan: Math.Max(1, visible.Count + LeadingCells),
-                Class: level > 0 ? Padding.Start(level * 3 + 2) : null)[label, content]
+        return Tr.Key($"band:{path}").Class("table-group-divider")[
+            Td
+                .Colspan(Math.Max(1, visible.Count + LeadingCells))
+                .Class(level > 0 ? Padding.Start(level * 3 + 2) : null)[label, content]
         ];
     }
 
@@ -1574,14 +1581,14 @@ public sealed class BsDataGrid<T> : BsBlock
     // column that totals in the footer totals per band for free.
     private Component SubtotalRow(IReadOnlyList<BsColumn<T>> visible, IReadOnlyList<T> band, int level,
         string path) =>
-        Tr(Key: $"sub:{path}", Class: "table-light")[SubtotalCells(visible, band, level)];
+        Tr.Key($"sub:{path}").Class("table-light")[SubtotalCells(visible, band, level)];
 
     private IEnumerable<Component> SubtotalCells(IReadOnlyList<BsColumn<T>> visible, IReadOnlyList<T> band,
         int level)
     {
         for (var i = 0; i < LeadingCells; i++)
         {
-            yield return Td()[""];
+            yield return Td[""];
         }
 
         // `visible` has the grouped-away columns already folded out, so the "Subtotal" caption on the first cell
@@ -1589,7 +1596,7 @@ public sealed class BsDataGrid<T> : BsBlock
         for (var c = 0; c < visible.Count; c++)
         {
             var column = visible[c];
-            yield return Td(Class: Bs.Join(column.Class, Font.Semibold))[
+            yield return Td.Class(Bs.Join(column.Class, Font.Semibold))[
                 c == 0 && !column.HasFooter ? "Subtotal" : column.FooterCell(band)];
         }
     }
@@ -1616,7 +1623,7 @@ public sealed class BsDataGrid<T> : BsBlock
     {
         if (selected is not null)
         {
-            yield return Th(Class: "bs-grid-check", Scope: "col")[
+            yield return Th.Class("bs-grid-check").Scope("col")[
                 // "Select all" would be a lie next to a pager: the grid can only reach this page. The client
                 // reports the box's real `checked` as "true"/"false" rather than a toggle signal, so the
                 // server stays self-correcting even if a re-render lags a click.
@@ -1628,7 +1635,7 @@ public sealed class BsDataGrid<T> : BsBlock
 
         if (Expandable)
         {
-            yield return Th(Scope: "col")[""];
+            yield return Th.Scope("col")[""];
         }
 
         foreach (var column in visible)
@@ -1650,13 +1657,15 @@ public sealed class BsDataGrid<T> : BsBlock
                 || (SortControlled && column.SortToken is null)
                 || (Data is IQueryable<T> && column.OrderBy is null))
             {
-                yield return Th(Class: column.Class, Scope: "col",
-                    Draggable: drag is not null ? true : null,
-                    OnDragStart: drag is not null ? () => _dragField = drag : null,
-                    OnDragEnd: drag is not null ? () => _dragField = null : null,
-                    OnDragOver: canReorder ? () => { }
-                : null,
-                    OnDropAsync: canReorder ? () => DropOnHeaderAsync(field) : null)[column.Title, groupBtn];
+                yield return Th
+                    .Class(column.Class)
+                    .Scope("col")
+                    .Draggable(drag is not null ? true : null)
+                    .OnDragStart(drag is not null ? () => _dragField = drag : null)
+                    .OnDragEnd(drag is not null ? () => _dragField = null : null)
+                    .OnDragOver(canReorder ? () => { }
+                : null)
+                    .OnDropAsync(canReorder ? () => DropOnHeaderAsync(field) : null)[column.Title, groupBtn];
                 continue;
             }
 
@@ -1664,26 +1673,30 @@ public sealed class BsDataGrid<T> : BsBlock
             // IDENTITY, not its slot — so resolve the index into the full list rather than the render position.
             var index = OriginalIndex(columns, column);
             var sorted = CurrentSortColumn == index;
-            var caret = sorted
-                ? BsIcon(Name: CurrentSortDescending ? BsIconName.CaretDownFill : BsIconName.CaretUpFill,
-                    Class: Margin.Start(1))
+            Component? caret = sorted
+                ? BsIcon
+                    .Name(CurrentSortDescending ? BsIconName.CaretDownFill : BsIconName.CaretUpFill)
+                    .Class(Margin.Start(1))
                 : null;
 
             // aria-sort advertises the direction to screen readers. The control is a real <button>, so
             // keyboard focus and Enter/Space work with no JS — but Type must be explicit, because <button>
             // defaults to type=submit and a grid inside a <form> would otherwise submit it on every sort.
-            yield return Th(Class: column.Class, Scope: "col", Aria: BsGridAria.Sort(sorted, CurrentSortDescending),
-                Draggable: drag is not null ? true : null,
-                OnDragStart: drag is not null ? () => _dragField = drag : null,
-                OnDragEnd: drag is not null ? () => _dragField = null : null,
-                OnDragOver: canReorder ? () => { }
-            : null,
-                OnDropAsync: canReorder ? () => DropOnHeaderAsync(field) : null)[
-                Button(
-                    Type: "button",
-                    Class: Bs.Join("btn btn-sm btn-link text-decoration-none", Padding.All(0), Font.Semibold),
-                    Aria: Busy ? BsGridAria.Disabled : null,
-                    OnClickAsync: () => ToggleSortAsync(index))[column.Title, caret],
+            yield return Th
+                .Class(column.Class)
+                .Scope("col")
+                .Aria(BsGridAria.Sort(sorted, CurrentSortDescending))
+                .Draggable(drag is not null ? true : null)
+                .OnDragStart(drag is not null ? () => _dragField = drag : null)
+                .OnDragEnd(drag is not null ? () => _dragField = null : null)
+                .OnDragOver(canReorder ? () => { }
+            : null)
+                .OnDropAsync(canReorder ? () => DropOnHeaderAsync(field) : null)[
+                Button
+                    .Type("button")
+                    .Class(Bs.Join("btn btn-sm btn-link text-decoration-none", Padding.All(0), Font.Semibold))
+                    .Aria(Busy ? BsGridAria.Disabled : null)
+                    .OnClickAsync(() => ToggleSortAsync(index))[column.Title, caret],
                 groupBtn
             ];
         }
@@ -1713,16 +1726,16 @@ public sealed class BsDataGrid<T> : BsBlock
         var field = column.FieldName!;
         var on = CurrentGrouped.Contains(field);
 
-        return Button(
-            Type: "button",
-            Class: Bs.Join("btn btn-sm btn-link text-decoration-none", Padding.All(0), Margin.Start(1),
-                on ? Txt.Color(BsColor.Primary) : Txt.Color(BsColor.Secondary)),
-            Aria: new Dictionary<string, string?>
+        return Button
+            .Type("button")
+            .Class(Bs.Join("btn btn-sm btn-link text-decoration-none", Padding.All(0), Margin.Start(1),
+                on ? Txt.Color(BsColor.Primary) : Txt.Color(BsColor.Secondary)))
+            .Aria(new Dictionary<string, string?>
             {
                 ["pressed"] = on ? "true" : "false",
                 ["label"] = on ? $"Stop grouping by {column.Title}" : $"Group by {column.Title}",
-            },
-            OnClickAsync: () => GroupByAsync(field))[BsIcon(Name: BsIconName.Diagram3)];
+            })
+            .OnClickAsync(() => GroupByAsync(field))[BsIcon.Name(BsIconName.Diagram3)];
     }
 
     // `visible` is the columns that render (grouped-away ones already folded out); `columns` is the full list,
@@ -1824,7 +1837,7 @@ public sealed class BsDataGrid<T> : BsBlock
 
             // table-active is joined with the caller's RowClass rather than replacing it, so a row can be both
             // overdue and selected.
-            yield return Tr(Key: key, Class: BsClass.Join(RowClass?.Invoke(row), isSelected ? "table-active" : null))[
+            yield return Tr.Key(key).Class(BsClass.Join(RowClass?.Invoke(row), isSelected ? "table-active" : null))[
                 Cells(visible, row, key, r, selected, isSelected)];
 
             if (!Expandable || !_expanded.Contains(key))
@@ -1835,8 +1848,8 @@ public sealed class BsDataGrid<T> : BsBlock
             var detail = ExpandedContent!(row);
             if (detail is not null)
             {
-                yield return Tr(Key: $"{key}:detail", Id: DetailId(r))[
-                    Td(Colspan: Math.Max(1, visible.Count + LeadingCells))[detail]
+                yield return Tr.Key($"{key}:detail").Id(DetailId(r))[
+                    Td.Colspan(Math.Max(1, visible.Count + LeadingCells))[detail]
                 ];
             }
         }
@@ -1850,7 +1863,7 @@ public sealed class BsDataGrid<T> : BsBlock
             // The checkbox has no visible label, so aria-label is its only accessible name. It names the ROW
             // (via the first Value column where there is one), because twenty identical "Select row"s in a
             // list read as one control repeated rather than twenty distinct ones.
-            yield return Td(Class: "bs-grid-check")[
+            yield return Td.Class("bs-grid-check")[
                 SelectBox(isSelected, SelectRowAria(visible, row), Busy,
                     raw => SetSelectedAsync(selected, key, raw == "true"))
             ];
@@ -1858,7 +1871,7 @@ public sealed class BsDataGrid<T> : BsBlock
 
         if (Expandable)
         {
-            yield return Td()[ExpanderButton(key, index)];
+            yield return Td[ExpanderButton(key, index)];
         }
 
         // Built once and shared by every clickable cell in this row. The callback is per-row, so minting a
@@ -1872,15 +1885,15 @@ public sealed class BsDataGrid<T> : BsBlock
         {
             var clickable = click is not null && column.IsRowClickable;
 
-            yield return Td(
-                Class: BsClass.Join(column.Class, clickable ? "bs-grid-click" : null),
-                OnClickAsync: clickable ? click : null)[column.Cell(row)];
+            yield return Td
+                .Class(BsClass.Join(column.Class, clickable ? "bs-grid-click" : null))
+                .OnClickAsync(clickable ? click : null)[column.Cell(row)];
         }
     }
 
     // Null when the grid has no row-click wired, which is what keeps every cell handler-free (and the markup
     // byte-identical) for the grids that don't use the feature.
-    private CallbackAsync? RowClickHandler(T row) =>
+    private Func<Task>? RowClickHandler(T row) =>
         OnRowClick is null && OnRowClickAsync is null
             ? null
             : () => Raise(OnRowClick, OnRowClickAsync, row);
@@ -1899,9 +1912,13 @@ public sealed class BsDataGrid<T> : BsBlock
 
         aria["label"] = "Toggle details";
 
-        return BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Aria: aria,
-            OnClick: () => ToggleExpand(key))[
-            BsIcon(Name: expanded ? BsIconName.ChevronDown : BsIconName.ChevronRight)];
+        return BsButton
+            .Color(BsColor.Secondary)
+            .Outline(true)
+            .Size(BsSize.Sm)
+            .Aria(aria)
+            .OnClick(() => ToggleExpand(key))[
+            BsIcon.Name(expanded ? BsIconName.ChevronDown : BsIconName.ChevronRight)];
     }
 
     // The bare selection checkbox.
@@ -1921,17 +1938,14 @@ public sealed class BsDataGrid<T> : BsBlock
     // the owner resolves. (BsCheck sidesteps this with an explicit consumer.StateHasChanged(); a raw Element
     // has no such machinery — see the remarks on IFormControl.ControlledChangeHandler.)
     private static Component SelectBox(bool selected, IReadOnlyDictionary<string, string?> aria, bool disabled,
-        CallbackAsync<string> onChange) =>
-        Input<string>(
-            Type: InputType.Checkbox,
-            Class: "form-check-input",
-            Checked: selected,
-            // A real `disabled`, not aria-disabled: unlike the sort/pager controls (kept focusable so a fetch
-            // doesn't throw away the user's keyboard position), a box that cannot be changed shouldn't be
-            // reachable at all.
-            Disabled: disabled ? true : null,
-            Aria: aria,
-            OnChangeAsync: onChange);
+        Func<string, Task> onChange) =>
+        Input.Of<string>()
+            .Type(InputType.Checkbox)
+            .Class("form-check-input")
+            .Checked(selected)
+            .Disabled(disabled ? true : null)
+            .Aria(aria)
+            .OnChangeAsync(onChange);
 
     // Names the row's checkbox from its first Value column ("Select Espresso Machine"). Falls back to a plain
     // label when every column is a Template and there is no text to borrow.
@@ -1954,19 +1968,19 @@ public sealed class BsDataGrid<T> : BsBlock
         // off by one and the totals sit under the wrong headers.
         if (SelectionEnabled)
         {
-            yield return Td()[""];
+            yield return Td[""];
         }
 
         if (Expandable)
         {
-            yield return Td()[""];
+            yield return Td[""];
         }
 
         // `visible` has grouped-away columns already folded out, so each remaining column lines up with its
         // header.
         foreach (var column in visible)
         {
-            yield return Td(Class: column.Class)[column.FooterCell(data)];
+            yield return Td.Class(column.Class)[column.FooterCell(data)];
         }
     }
 
@@ -1977,9 +1991,9 @@ public sealed class BsDataGrid<T> : BsBlock
         var from = CurrentPage * PageSize + 1;
         var to = Math.Min((CurrentPage + 1) * PageSize, total);
 
-        return Div(Class: Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center)))[
-            Span(Class: Bs.Join(Txt.Color(BsColor.Secondary), Font.Small))[$"{from}-{to} / {total}"],
-            BsPagination(Size: BsSize.Sm, Class: Margin.Bottom(0))[PageItems(pageCount)]
+        return Div.Class(Bs.Join(Display.Flex(), Flex.Justify(BsJustify.Between), Flex.Align(BsAlign.Center)))[
+            Span.Class(Bs.Join(Txt.Color(BsColor.Secondary), Font.Small))[$"{from}-{to} / {total}"],
+            BsPagination.Size(BsSize.Sm).Class(Margin.Bottom(0))[PageItems(pageCount)]
         ];
     }
 
@@ -1989,9 +2003,11 @@ public sealed class BsDataGrid<T> : BsBlock
         // so it is where a "wait" has to be visible. BsPageItem renders aria-disabled from this.
         // The arrows' only child is a decorative (aria-hidden) BsIcon, so they need an explicit
         // accessible name — without it a screen reader announces an unlabelled button.
-        yield return BsPageItem(Key: "prev", Disabled: Busy || CurrentPage == 0,
-            Aria: new Dictionary<string, string?> { ["label"] = "Previous page" },
-            OnClickAsync: () => GoToPageAsync(CurrentPage - 1, pageCount))[BsIcon(Name: BsIconName.ChevronLeft)];
+        yield return BsPageItem
+            .Key("prev")
+            .Disabled(Busy || CurrentPage == 0)
+            .Aria(new Dictionary<string, string?> { ["label"] = "Previous page" })
+            .OnClickAsync(() => GoToPageAsync(CurrentPage - 1, pageCount))[BsIcon.Name(BsIconName.ChevronLeft)];
 
         // A small sliding window around the current page keeps the pager compact for many pages.
         var start = Math.Max(0, CurrentPage - 2);
@@ -2001,13 +2017,18 @@ public sealed class BsDataGrid<T> : BsBlock
         for (var p = start; p <= end; p++)
         {
             var target = p;
-            yield return BsPageItem(Key: p, Active: p == CurrentPage, Disabled: Busy,
-                OnClickAsync: () => GoToPageAsync(target, pageCount))[(p + 1).ToString()];
+            yield return BsPageItem
+                .Key(p)
+                .Active(p == CurrentPage)
+                .Disabled(Busy)
+                .OnClickAsync(() => GoToPageAsync(target, pageCount))[(p + 1).ToString()];
         }
 
-        yield return BsPageItem(Key: "next", Disabled: Busy || CurrentPage == pageCount - 1,
-            Aria: new Dictionary<string, string?> { ["label"] = "Next page" },
-            OnClickAsync: () => GoToPageAsync(CurrentPage + 1, pageCount))[BsIcon(Name: BsIconName.ChevronRight)];
+        yield return BsPageItem
+            .Key("next")
+            .Disabled(Busy || CurrentPage == pageCount - 1)
+            .Aria(new Dictionary<string, string?> { ["label"] = "Next page" })
+            .OnClickAsync(() => GoToPageAsync(CurrentPage + 1, pageCount))[BsIcon.Name(BsIconName.ChevronRight)];
     }
 
     // Keyed by the row's position, not by RowKey: a RowKey is arbitrary user data ("Espresso Machine", a Guid,

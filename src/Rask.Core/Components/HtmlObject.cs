@@ -13,7 +13,7 @@ public sealed class HtmlObject : Element
     public string? Name { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
     public string? UseMap { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)

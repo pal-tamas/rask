@@ -2,7 +2,7 @@ namespace Rask.Bootstrap.Tests;
 
 // Rendered-HTML assertions for BsTabs. Only the active pane is rendered (live-runtime driven, no JS).
 // Each nav <li> carries the tab Key as data-rask-key (reconciliation identity).
-public class BsTabsTests
+public partial class BsTabsTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Tabs_RendersNavAndActivePaneOnly() =>
@@ -16,9 +16,9 @@ public class BsTabsTests
             "</ul>" +
             "<div class=\"tab-content\"><div class=\"tab-pane show active\" role=\"tabpanel\">Pane A</div></div>" +
             "</div>",
-            BsTabs(
-                Tabs: [new BsTabItem("a", "Tab A", "Pane A"), new BsTabItem("b", "Tab B", "Pane B")],
-                Active: "a").ToHtml());
+            BsTabs
+                .Tabs([new BsTabItem("a", "Tab A", "Pane A"), new BsTabItem("b", "Tab B", "Pane B")])
+                .Active("a").ToHtml());
 
     [Fact]
     public void Tabs_Pills_UsesPillsVariant() =>
@@ -30,7 +30,7 @@ public class BsTabsTests
             "</ul>" +
             "<div class=\"tab-content\"><div class=\"tab-pane show active\" role=\"tabpanel\">P</div></div>" +
             "</div>",
-            BsTabs(Tabs: [new BsTabItem("k", "Only", "P")], Active: "k", Pills: true).ToHtml());
+            BsTabs.Tabs([new BsTabItem("k", "Only", "P")]).Active("k").Pills(true).ToHtml());
 
     [Fact]
     public void Tab_Disabled_AddsDisabledClass() =>
@@ -42,5 +42,5 @@ public class BsTabsTests
             "</ul>" +
             "<div class=\"tab-content\"></div>" +
             "</div>",
-            BsTabs(Tabs: [new BsTabItem("x", "Off", "hidden", Disabled: true)], Active: "other").ToHtml());
+            BsTabs.Tabs([new BsTabItem("x", "Off", "hidden", Disabled: true)]).Active("other").ToHtml());
 }

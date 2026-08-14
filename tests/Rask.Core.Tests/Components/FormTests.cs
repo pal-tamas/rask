@@ -6,35 +6,43 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Components;
 
-public class FormTests
+public partial class FormTests : global::Rask.Core.RaskMarkup
 {
+    // These assert what a <form> RENDERS, and a model renders nothing — so binding one leaves every
+    // expectation below untouched. `Form` requires it because a form with nothing to bind to has no
+    // fields that can resolve, which is a compile error now rather than a throw at first render.
+    private static readonly Person Empty = new();
+
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<form></form>", Form().ToHtml());
+        Assert.Equal("<form></form>", Form.Model(Empty).ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
         Assert.Equal(
             "<form id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" enctype=\"multipart/form-data\" target=\"_blank\" accept-charset=\"utf-8\" autocomplete=\"off\" novalidate name=\"n\"></form>",
-            Form("multipart/form-data", "_blank", "utf-8", "off", true, "n", Id: "i", Class: "c", Style: "s",
-                Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Form.Model(Empty)
+                .Enctype("multipart/form-data").Target("_blank").AcceptCharset("utf-8")
+                .Autocomplete("off").Novalidate(true).Name("n")
+                .Id("i").Class("c").Style("s")
+                .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<form>&lt;x&gt;</form>", Form()["<x>"].ToHtml());
+        Assert.Equal("<form>&lt;x&gt;</form>", Form.Model(Empty)["<x>"].ToHtml());
 
     [Fact]
     public void Render_OnSubmitOutsideLiveContext_OmitsHandlerAttribute() =>
         Assert.Equal(
             "<form></form>",
-            Form(OnSubmit: _ => { }).ToHtml());
+            Form.Model(Empty).OnSubmit(_ => { }).ToHtml());
 
     [Fact]
     public void Render_OnSubmitInsideLiveContext_EmitsDataRaskOnSubmit()
     {
-        var view = new StubComponent(() => Form(OnSubmit: _ => { }));
+        var view = new StubComponent(() => Form.Model(Empty).OnSubmit(_ => { }));
         Assert.Equal(
             "<form data-rask-on-submit=\"h0\"></form>",
             view.RenderAsLiveRoot());
@@ -43,7 +51,7 @@ public class FormTests
     [Fact]
     public void Render_OnSubmitAsyncInsideLiveContext_EmitsDataRaskOnSubmit()
     {
-        var view = new StubComponent(() => Form(OnSubmitAsync: async _ => { await Task.Yield(); }));
+        var view = new StubComponent(() => Form.Model(Empty).OnSubmitAsync(async _ => { await Task.Yield(); }));
         Assert.Equal(
             "<form data-rask-on-submit=\"h0\"></form>",
             view.RenderAsLiveRoot());
@@ -59,11 +67,10 @@ public class FormTests
         var ctx = new EditContext(p);
         ctx.AddValidator(new RejectingAsyncValidator());
 
-        var view = new StubComponent(() => Form(
-            p,
-            (Callback<Person>)(_ => validCalled++),
-            (Callback<Person>)(_ => invalidCalled++),
-            Context: ctx)[Input(() => p.Name), Input(() => p.Age)]);
+        var view = new StubComponent(() => Form.Model(p)
+            .OnValidSubmit(_ => validCalled++)
+            .OnInvalidSubmit(_ => invalidCalled++)
+            .Context(ctx)[Input.Bind(() => p.Name), Input.Bind(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
 
         var submitId = Markup.Attr(html, "data-rask-on-submit");

@@ -11,43 +11,40 @@ namespace Rask.Example.Shared.Features;
 //     ValidationContext.ObjectInstance to do cross-field comparison.
 //   • NotBanned overrides GetValidationResult and resolves IBannedWordService via
 //     ValidationContext.GetService<T>() — proves the render-scoped IServiceProvider flows through.
-public sealed class CustomAttributeDemo : Component
+public sealed partial class CustomAttributeDemo : Component
 {
     private readonly CustomAttributeModel _model = new();
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     protected override Component? Render() =>
     [
-        Form<CustomAttributeModel>(
-            _model,
-            m => _submission = $"Welcome, {m.Username}!",
-            Class: "vstack gap-3")[
-            DataAnnotationsValidator(),
-            Div()[
-                Label("v12-username", Class: "form-label small mb-1")["Username"],
-                Input(() => _model.Username, Id: "v12-username", Class: "form-control"),
-                ValidationMessage(() => _model.Username, FieldError)
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Welcome, {m.Username}!").Class("vstack gap-3")[
+            DataAnnotationsValidator,
+            Div[
+                Label.For("v12-username").Class("form-label small mb-1")["Username"],
+                Input.Bind(() => _model.Username).Id("v12-username").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Username)
             ],
-            Div()[
-                Label("v12-password", Class: "form-label small mb-1")["Password"],
-                Input(() => _model.Password, Id: "v12-password", Type: InputType.Password, Class: "form-control"),
-                ValidationMessage(() => _model.Password, FieldError)
+            Div[
+                Label.For("v12-password").Class("form-label small mb-1")["Password"],
+                Input.Bind(() => _model.Password).Id("v12-password").Type(InputType.Password).Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Password)
             ],
-            Div()[
-                Label("v12-confirm", Class: "form-label small mb-1")["Confirm password"],
-                Input(() => _model.ConfirmPassword, Id: "v12-confirm", Type: InputType.Password, Class: "form-control"),
-                ValidationMessage(() => _model.ConfirmPassword, FieldError)
+            Div[
+                Label.For("v12-confirm").Class("form-label small mb-1")["Confirm password"],
+                Input.Bind(() => _model.ConfirmPassword).Id("v12-confirm").Type(InputType.Password).Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.ShieldCheck, Class: "me-1"), "Create account"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.ShieldCheck).Class("me-1"), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

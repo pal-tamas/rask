@@ -59,26 +59,21 @@ internal static partial class ProjectGenerator
 
         namespace Company.RaskServer.Features.Shared;
 
-        public sealed class App : Component
+        public sealed partial class App : Component
         {
             // App-level head contributions splice into the framework-managed <head>
-            // via the Component? Head override. Title is singleton — any page that
-            // overrides Head with its own Title supersedes this fallback for the tab.
-            protected override Component? Head => [
-                Title()["Company.RaskServer"],
-                Meta("utf-8"),
-                Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
+            // via the Component? HeadAssets override. Title is singleton — any page that
+            // overrides HeadAssets with its own Title supersedes this fallback for the tab.
+            protected override Component? HeadAssets => [
+                Title["Company.RaskServer"],
+                Meta.Charset("utf-8"),
+                Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
         {{(bootstrap ? BootstrapHead : BaselineHead)}}
             ];
 
-            protected override Component? Render() =>
-                [
-                    Doctype(),
-                    Html("en")[
-                        Head(),
-                        Body()[Router()]
-                    ]
-                ];
+            // The body's content. Rask emits the doctype, <html lang>, <head> and <body> around this —
+            // override HtmlLang / BodyClass for their attributes, or Shell(head, body) for the rest.
+            protected override Component? Render() => Router;
         }
 
         """;
@@ -86,7 +81,7 @@ internal static partial class ProjectGenerator
     private const string BootstrapHead =
         """
                 // Bootstrap 5.3 + Icons via Rask.Bootstrap (served from _content/Rask.Bootstrap).
-                BootstrapStyles()
+                BootstrapStyles
         """;
 
     // No CSS framework: a baseline inline in the shell rather than a stylesheet file, so it works the same
@@ -95,7 +90,7 @@ internal static partial class ProjectGenerator
     private const string BaselineHead =
         """"
                 // A small baseline of our own — no CSS framework. Replace this with yours.
-                Style()[Raw("""
+                Style[Raw.Value("""
                     :root { color-scheme: light dark; --ink: #1c1b22; --muted: #5c5a6b; --bg: #faf9fe;
                             --card: #ffffff; --line: #e6e4f0; --brand: #512BD4; }
                     @media (prefers-color-scheme: dark) {
@@ -129,28 +124,28 @@ internal static partial class ProjectGenerator
         namespace Company.RaskServer.Features.Home;
 
         [Route("/")]
-        public sealed class HomePage : Component
+        public sealed partial class HomePage : Component
         {
             // BsBlock exposes only Id/Class (not Element's full HTML surface), so the width lives on a
-            // plain Div wrapper rather than a Style: on the card.
+            // plain Div wrapper rather than a .Style() on the card.
             protected override Component? Render() =>
-                Div(Class: "mx-auto my-5", Style: "max-width:540px")[
-                    BsCard(Class: "shadow-sm")[
-                        BsCardBody()[
-                            BsCardTitle()["Hello, Rask! 👋"],
-                            BsCardText(Class: "text-body-secondary")["Your app is ready. What to do next:"],
-                            Ul(Class: "mb-3")[
-                                Li()[Code()["rask dev"], " — run with hot reload"],
-                                Li()[Code()["rask db add Init"], " then ", Code()["rask db update"], " — create the database"],
-                                Li()[A(Href: "https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
+                Div.Class("mx-auto my-5").Style("max-width:540px")[
+                    BsCard.Class("shadow-sm")[
+                        BsCardBody[
+                            BsCardTitle["Hello, Rask! 👋"],
+                            BsCardText.Class("text-body-secondary")["Your app is ready. What to do next:"],
+                            Ul.Class("mb-3")[
+                                Li[Code["rask dev"], " — run with hot reload"],
+                                Li[Code["rask db add Init"], " then ", Code["rask db update"], " — create the database"],
+                                Li[A.Href("https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
                             ],
-                            P(Class: "mb-0 small text-body-secondary")[
+                            P.Class("mb-0 small text-body-secondary")[
                                 "Edit this page in ",
-                                Code()["HomePage.cs"],
+                                Code["HomePage.cs"],
                                 " — drop a ",
-                                Code()["HomePage.css"],
+                                Code["HomePage.css"],
                                 " beside it and its rules are scoped to this page. Full guides at ",
-                                A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
+                                A.Href("https://github.com/pal-tamas/rask")["the Rask docs"],
                                 "."
                             ]
                         ]
@@ -169,25 +164,25 @@ internal static partial class ProjectGenerator
         namespace Company.RaskServer.Features.Home;
 
         [Route("/")]
-        public sealed class HomePage : Component
+        public sealed partial class HomePage : Component
         {
             protected override Component? Render() =>
-                Main()[
-                    Div(Class: "card")[
-                        H1()["Hello, Rask! 👋"],
-                        P()["Your app is ready. What to do next:"],
-                        Ul()[
-                            Li()[Code()["rask dev"], " — run with hot reload"],
-                            Li()[Code()["rask db add Init"], " then ", Code()["rask db update"], " — create the database"],
-                            Li()[A(Href: "https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
+                Main[
+                    Div.Class("card")[
+                        H1["Hello, Rask! 👋"],
+                        P["Your app is ready. What to do next:"],
+                        Ul[
+                            Li[Code["rask dev"], " — run with hot reload"],
+                            Li[Code["rask db add Init"], " then ", Code["rask db update"], " — create the database"],
+                            Li[A.Href("https://github.com/pal-tamas/rask/blob/main/docs/tutorial/02-first-feature.md")["Build your first feature"], " — entity, pages and CQRS handlers, step by step"]
                         ],
-                        P(Class: "small")[
+                        P.Class("small")[
                             "Edit this page in ",
-                            Code()["HomePage.cs"],
+                            Code["HomePage.cs"],
                             " — drop a ",
-                            Code()["HomePage.css"],
+                            Code["HomePage.css"],
                             " beside it and its rules are scoped to this page. Full guides at ",
-                            A(Href: "https://github.com/pal-tamas/rask")["the Rask docs"],
+                            A.Href("https://github.com/pal-tamas/rask")["the Rask docs"],
                             "."
                         ]
                     ]

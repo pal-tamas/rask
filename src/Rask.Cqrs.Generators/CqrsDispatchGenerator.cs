@@ -36,8 +36,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
     private static readonly DiagnosticDescriptor Rask029 = new(
         "RASK029",
-        "Handler cannot be registered",
-        "Handler '{0}' {1}; it is skipped, so dispatching its request will throw at runtime — {2}",
+        "Action cannot be registered",
+        "Action '{0}' {1}; it is skipped, so dispatching its request will throw at runtime — {2}",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,

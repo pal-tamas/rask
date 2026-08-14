@@ -7,7 +7,7 @@ using Rask.Core.ScopedCss;
 namespace Rask.Core.Tests;
 
 [Collection("ScopedAssets")]
-public class HtmlSerializerTests
+public partial class HtmlSerializerTests : global::Rask.Core.RaskMarkup
 {
     public HtmlSerializerTests()
     {
@@ -20,7 +20,7 @@ public class HtmlSerializerTests
     public void Serialize_Text_EncodesValue()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize(Text("<x>&"), sb);
+        HtmlSerializer.Serialize(Text.Value("<x>&"), sb);
         Assert.Equal("&lt;x&gt;&amp;", sb.ToString());
     }
 
@@ -28,7 +28,7 @@ public class HtmlSerializerTests
     public void Serialize_Raw_EmitsValueVerbatim()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize(Raw("<i>raw</i>"), sb);
+        HtmlSerializer.Serialize(Raw.Value("<i>raw</i>"), sb);
         Assert.Equal("<i>raw</i>", sb.ToString());
     }
 
@@ -36,7 +36,7 @@ public class HtmlSerializerTests
     public void Serialize_Doctype_EmitsDoctypeLiteral()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize(Doctype(), sb);
+        HtmlSerializer.Serialize(Doctype, sb);
         Assert.Equal("<!DOCTYPE html>", sb.ToString());
     }
 
@@ -44,7 +44,7 @@ public class HtmlSerializerTests
     public void Serialize_Fragment_RendersChildrenInOrder()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize([Text("a"), Raw("<i>"), Text("b")], sb);
+        HtmlSerializer.Serialize([Text.Value("a"), Raw.Value("<i>"), Text.Value("b")], sb);
         Assert.Equal("a<i>b", sb.ToString());
     }
 
@@ -66,7 +66,7 @@ public class HtmlSerializerTests
     [Fact]
     public void Serialize_ScopeIdSet_NonShellTag_StampsDataAttribute()
     {
-        var view = new CssWrapper(Div()[Text("hi")]);
+        var view = new CssWrapper(Div[Text.Value("hi")]);
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(CssWrapper));
         Assert.Contains($"<div data-{scopeId}>hi</div>", html);
@@ -105,7 +105,7 @@ public class HtmlSerializerTests
     [Fact]
     public void Serialize_VoidElement_WithChildren_StillSelfCloses()
     {
-        var html = new VoidEl()[Text("ignored")].ToHtml();
+        var html = new VoidEl()[Text.Value("ignored")].ToHtml();
         Assert.Equal("<void />", html);
     }
 
@@ -116,7 +116,7 @@ public class HtmlSerializerTests
     [Fact]
     public void Serialize_FallthroughBranch_PushesScope_AndRecurses()
     {
-        var view = new ScopedWrapper(Div()[Text("inner")]);
+        var view = new ScopedWrapper(Div[Text.Value("inner")]);
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(ScopedWrapper));
         Assert.Contains($"<div data-{scopeId}>inner</div>", html);
@@ -126,15 +126,15 @@ public class HtmlSerializerTests
     {
         // Head() is framework-managed (no children allowed per RASK019) — its case
         // verifies the no-stamp rule alongside the rest of the shell tags.
-        "head" => Head(),
-        "body" => Body()[Text("x")],
-        "html" => Html()[Text("x")],
-        "title" => Title()[Text("x")],
-        "meta" => Meta(),
-        "link" => Link(),
-        "script" => Script()[Text("x")],
-        "style" => Style()[Text("x")],
-        "base" => Base(),
+        "head" => Head,
+        "body" => Body[Text.Value("x")],
+        "html" => Html[Text.Value("x")],
+        "title" => Title[Text.Value("x")],
+        "meta" => Meta,
+        "link" => Link,
+        "script" => Script[Text.Value("x")],
+        "style" => Style[Text.Value("x")],
+        "base" => Base,
         _ => throw new ArgumentOutOfRangeException(nameof(tag))
     };
 

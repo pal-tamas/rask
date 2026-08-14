@@ -3,10 +3,10 @@ using Rask.Core.Live;
 
 namespace Rask.Example.Playground;
 
-// Root of the playground WASM app. Renders the full document shell (RASK021); the single-page UI,
+// Root of the playground WASM app. Renders into the framework's <body>; the single-page UI,
 // editor, compile orchestration and live preview all live in PlaygroundView. Public + non-sealed to match
 // the host's ActivatorUtilities.CreateInstance + DAM contract.
-public class PlaygroundApp : Component
+public partial class PlaygroundApp : Component
 {
     // Dark-first theme init — mirrors the showcase App.cs / index.html snippet: stamp data-theme +
     // data-bs-theme on <html> from the saved choice (shared across the site/docs/playground on this
@@ -21,28 +21,19 @@ public class PlaygroundApp : Component
         "window.raskAfterMorph=function(){var s=localStorage.getItem('rask-theme');if(s)apply(s);" +
         "if(typeof prev==='function')prev();};})();";
 
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
-        Title()["Rask Playground"],
-        Meta("utf-8"),
-        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-        Script()[Raw(ThemeInitJs)],
-        Link(Rel: "icon", Type: "image/svg+xml", Href: LiveOptions.PathBase + "/icon.svg"),
+        Title["Rask Playground"],
+        Meta.Charset("utf-8"),
+        Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
+        Script[Raw.Value(ThemeInitJs)],
+        Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),
         // Typed Bootstrap + the shared design tokens (the --bs-* bridge wins over Bootstrap; global.css
         // then overrides tokens). Same order as the showcase App.cs.
-        BootstrapStyles(),
-        RaskTokens(),
-        Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/global.css")
+        BootstrapStyles,
+        RaskTokens,
+        Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/global.css")
     ];
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        Html("en")[
-            Head(),
-            Body()[
-                PlaygroundView()
-            ]
-        ]
-    ];
+    protected override Component? Render() => PlaygroundView;
 }

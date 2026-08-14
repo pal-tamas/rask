@@ -4,65 +4,68 @@ namespace Rask.Example.Shared.Features;
 
 // Sub-object binding — sub-class instance owns its own validation state under a single
 // top-of-form DataAnnotationsValidator.
-public sealed class NestedSubObjectDemo : Component
+public sealed partial class NestedSubObjectDemo : Component
 {
     private readonly CheckoutModel _model = new();
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     protected override Component? Render() =>
     [
-        Form<CheckoutModel>(
-            _model,
-            m => _submission =
-                $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).",
-            Class: "vstack gap-3")[
-            DataAnnotationsValidator(),
-            Div()[
-                Label("nf-name", Class: "form-label small mb-1")["Name"],
-                Input(() => _model.Name, Id: "nf-name", Class: "form-control"),
-                ValidationMessage(() => _model.Name, FieldError)
+        Form.Model(_model).OnValidSubmit(m => _submission =
+                $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).").Class("vstack gap-3")[
+            DataAnnotationsValidator,
+            Div[
+                Label.For("nf-name").Class("form-label small mb-1")["Name"],
+                Input.Bind(() => _model.Name).Id("nf-name").Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
-            Div()[
-                Label("nf-email", Class: "form-label small mb-1")["Email"],
-                Input(() => _model.Email, Id: "nf-email", Type: InputType.Email,
-                    Class: "form-control"),
-                ValidationMessage(() => _model.Email, FieldError)
+            Div[
+                Label.For("nf-email").Class("form-label small mb-1")["Email"],
+                Input.Bind(() => _model.Email)
+                    .Id("nf-email")
+                    .Type(InputType.Email)
+                    .Class("form-control"),
+                ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
-            Fieldset(Class: "border rounded p-3 mt-2")[
-                Legend(Class: "h6 fw-semibold")["Shipping address"],
-                Div(Class: "vstack gap-3")[
-                    Div()[
-                        Label("nf-street", Class: "form-label small mb-1")["Street"],
-                        Input(() => _model.Address.Street, Id: "nf-street",
-                            Class: "form-control"),
-                        ValidationMessage(() => _model.Address.Street, FieldError)
+            Fieldset.Class("border rounded p-3 mt-2")[
+                Legend.Class("h6 fw-semibold")["Shipping address"],
+                Div.Class("vstack gap-3")[
+                    Div[
+                        Label.For("nf-street").Class("form-label small mb-1")["Street"],
+                        Input.Bind(() => _model.Address.Street)
+                            .Id("nf-street")
+                            .Class("form-control"),
+                        ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
                     ],
-                    Div()[
-                        Label("nf-city", Class: "form-label small mb-1")["City"],
-                        Input(() => _model.Address.City, Id: "nf-city",
-                            Class: "form-control"),
-                        ValidationMessage(() => _model.Address.City, FieldError)
+                    Div[
+                        Label.For("nf-city").Class("form-label small mb-1")["City"],
+                        Input.Bind(() => _model.Address.City)
+                            .Id("nf-city")
+                            .Class("form-control"),
+                        ValidationMessage.Template(FieldError).For(() => _model.Address.City)
                     ],
-                    Div()[
-                        Label("nf-country", Class: "form-label small mb-1")["Country (ISO)"],
-                        Input(() => _model.Address.Country, Id: "nf-country",
-                            Class: "form-control", MaxLength: 2),
-                        ValidationMessage(() => _model.Address.Country, FieldError)
+                    Div[
+                        Label.For("nf-country").Class("form-label small mb-1")["Country (ISO)"],
+                        Input.Bind(() => _model.Address.Country)
+                            .Id("nf-country")
+                            .Class("form-control")
+                            .MaxLength(2),
+                        ValidationMessage.Template(FieldError).For(() => _model.Address.Country)
                     ]
                 ]
             ],
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary, Id: "nf-submit")[
-                    BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Place order"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary).Id("nf-submit")[
+                    BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Place order"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-result")[
-                BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0").Id("nf-result")[
+                BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

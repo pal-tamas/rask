@@ -13,12 +13,12 @@ namespace Rask.Example.Shared.Tests.Demos;
 // level in SharedSmokeTests.Binding_*. These tests assert the demo's own
 // composition: that the right input shapes, IDs, options, and initial echo
 // content are rendered, and that the demos' internal Holder defaults are intact.
-public sealed class BindingDemosTests
+public sealed partial class BindingDemosTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void BindingManualDemo_Render_EmitsTextInputAndEmptyEcho()
     {
-        var html = new LiveHost(() => BindingManualDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => BindingManualDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("type=\"text\"", html);
         Assert.Contains("Type something", html);
         Assert.Contains("Echo: ", html);
@@ -28,7 +28,7 @@ public sealed class BindingDemosTests
     [Fact]
     public void BindingTypedDemo_Render_EmitsNameInput_AndStrangerFallback()
     {
-        var html = new LiveHost(() => BindingTypedDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => BindingTypedDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("Your name", html);
         Assert.Contains("stranger", html);
     }
@@ -36,7 +36,7 @@ public sealed class BindingDemosTests
     [Fact]
     public void BindingTextareaDemo_Render_EmitsTextareaAndLengthEcho()
     {
-        var html = new LiveHost(() => BindingTextareaDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => BindingTextareaDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("<textarea", html);
         Assert.Contains("Jot something down", html);
         Assert.Contains("Length = 0", html);
@@ -45,7 +45,7 @@ public sealed class BindingDemosTests
     [Fact]
     public void BindingNullableDemo_Render_EmitsAllFour_NullEchos()
     {
-        var html = new LiveHost(() => BindingNullableDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => BindingNullableDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("Optional age (int?)", html);
         Assert.Contains("Optional start date", html);
         Assert.Contains("Optional colour", html);
@@ -62,7 +62,7 @@ public sealed class BindingDemosTests
     [Fact]
     public void BindingClearDefaultDemo_Render_EmitsDefaultsFromHolder()
     {
-        var html = new LiveHost(() => BindingClearDefaultDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => BindingClearDefaultDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("Age         = 30", html);
         Assert.Contains("OptionalAge = 7", html);
     }
@@ -70,7 +70,7 @@ public sealed class BindingDemosTests
     [Fact]
     public void BindingAfterBindDemo_Render_EmitsCountriesAndUsCities_ByDefault()
     {
-        var html = new LiveHost(() => BindingAfterBindDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => BindingAfterBindDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains(">United States<", html);
         Assert.Contains(">Germany<", html);
         Assert.Contains(">Japan<", html);
@@ -85,7 +85,7 @@ public sealed class BindingDemosTests
     [Fact]
     public void BindingAfterBindAsyncDemo_Render_EmitsThreeTracks_AndPickATrackHint()
     {
-        var host = new LiveHost(() => BindingAfterBindAsyncDemo(), TestServices.Default());
+        var host = new LiveHost(() => BindingAfterBindAsyncDemo, TestServices.Default());
         var html = host.RenderAsLiveRoot();
         Assert.Contains(">Frontend<", html);
         Assert.Contains(">Backend<", html);
@@ -98,7 +98,7 @@ public sealed class BindingDemosTests
     [Fact]
     public void BindingMultiDemo_Render_EmitsCheckboxNumberDateSelect_AndHolderDefaults()
     {
-        var html = new LiveHost(() => BindingMultiDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => BindingMultiDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("Subscribe to the newsletter", html);
         // Initial holder values: Subscribe=false, Age=30, StartDate=2026-01-01, Favorite=Blue.
         Assert.Contains("Subscribe = false", html);
@@ -112,7 +112,7 @@ public sealed class BindingDemosTests
     {
         // Pull the demo instance out of the LiveHost and inspect/poke its private
         // state directly to verify the AfterBind logic actually wires the city list.
-        var host = new LiveHost(() => BindingAfterBindDemo(), TestServices.Default());
+        var host = new LiveHost(() => BindingAfterBindDemo, TestServices.Default());
         host.RenderAsLiveRoot();
 
         // Use reflection to dig out the live demo instance the framework cached.

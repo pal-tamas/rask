@@ -5,21 +5,21 @@ using Rask.Core.DragAndDrop;
 
 namespace Rask.Core.Tests.Components;
 
-public class DragDropTests
+public partial class DragDropTests : global::Rask.Core.RaskMarkup
 {
     private static JsonElement Empty => JsonDocument.Parse("{}").RootElement;
 
     [Fact]
     public void Render_HeadlessNoOwnDom_OnlyEmitsBodyMarkup()
     {
-        var view = new StubComponent(() => DragDrop(ctx => Div()["x"]));
+        var view = new StubComponent(() => DragDrop.Body(ctx => Div["x"]));
         Assert.Equal("<div>x</div>", view.RenderAsLiveRoot());
     }
 
     [Fact]
     public void Render_NullBody_Throws()
     {
-        var view = new StubComponent(() => DragDrop(null!));
+        var view = new StubComponent(() => DragDrop.Body(null!));
         Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
     }
 
@@ -27,12 +27,12 @@ public class DragDropTests
     public async Task Drop_AfterDragStart_FiresOnDropWithMove()
     {
         DragDropMove? captured = null;
-        var view = new StubComponent(() => DragDrop(
-            ctx => Div()[
-                Div(Draggable: true, OnDragStart: ctx.DragStart("zoneA", 2))["src"],
-                Div(OnDropAsync: ctx.Drop("zoneB", 5))["dst"]
-            ],
-            m => captured = m));
+        var view = new StubComponent(() => DragDrop
+            .Body(ctx => Div[
+                Div.Draggable(true).OnDragStart(ctx.DragStart("zoneA", 2))["src"],
+                Div.OnDropAsync(ctx.Drop("zoneB", 5))["dst"]
+            ])
+            .OnDrop(m => captured = m));
 
         var html = view.RenderAsLiveRoot();
         var startId = Markup.Attr(html, "data-rask-on-dragstart");
@@ -52,9 +52,9 @@ public class DragDropTests
     public async Task Drop_WithoutDragStart_DoesNotFire()
     {
         var fired = false;
-        var view = new StubComponent(() => DragDrop(
-            ctx => Div(OnDropAsync: ctx.Drop("z", 0))["dst"],
-            _ => fired = true));
+        var view = new StubComponent(() => DragDrop
+            .Body(ctx => Div.OnDropAsync(ctx.Drop("z", 0))["dst"])
+            .OnDrop(_ => fired = true));
 
         var dropId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-drop");
         await view.TryInvokeHandlerAsync(dropId!, Empty);
@@ -66,16 +66,16 @@ public class DragDropTests
     public async Task DragOver_AfterDragStart_MarksDropTarget()
     {
         DragDropContext? captured = null;
-        var view = new StubComponent(() => DragDrop(
-            ctx =>
+        var view = new StubComponent(() => DragDrop
+            .Body(ctx =>
             {
                 captured = ctx;
-                return Div()[
-                    Div(Draggable: true, OnDragStart: ctx.DragStart("z", 0))["s"],
-                    Div(OnDragOver: ctx.DragOver("z", 1))["o"]
+                return Div[
+                    Div.Draggable(true).OnDragStart(ctx.DragStart("z", 0))["s"],
+                    Div.OnDragOver(ctx.DragOver("z", 1))["o"]
                 ];
-            },
-            _ => { }));
+            })
+            .OnDrop(_ => { }));
 
         var html = view.RenderAsLiveRoot();
         var startId = Markup.Attr(html, "data-rask-on-dragstart");
@@ -99,13 +99,13 @@ public class DragDropTests
     public async Task DragOver_WithoutDragStart_Ignored()
     {
         DragDropContext? captured = null;
-        var view = new StubComponent(() => DragDrop(
-            ctx =>
+        var view = new StubComponent(() => DragDrop
+            .Body(ctx =>
             {
                 captured = ctx;
-                return Div(OnDragOver: ctx.DragOver("z", 1))["o"];
-            },
-            _ => { }));
+                return Div.OnDragOver(ctx.DragOver("z", 1))["o"];
+            })
+            .OnDrop(_ => { }));
 
         var overId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-dragover");
         await view.TryInvokeHandlerAsync(overId!, Empty);
@@ -119,16 +119,16 @@ public class DragDropTests
     public async Task DragEnd_ClearsDragState()
     {
         DragDropContext? captured = null;
-        var view = new StubComponent(() => DragDrop(
-            ctx =>
+        var view = new StubComponent(() => DragDrop
+            .Body(ctx =>
             {
                 captured = ctx;
-                return Div()[
-                    Div(Draggable: true, OnDragStart: ctx.DragStart("z", 0))["s"],
-                    Div(OnDragEnd: ctx.DragEnd)["e"]
+                return Div[
+                    Div.Draggable(true).OnDragStart(ctx.DragStart("z", 0))["s"],
+                    Div.OnDragEnd(ctx.DragEnd)["e"]
                 ];
-            },
-            _ => { }));
+            })
+            .OnDrop(_ => { }));
 
         var html = view.RenderAsLiveRoot();
         await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-dragstart")!, Empty);
@@ -143,12 +143,12 @@ public class DragDropTests
     public async Task Drop_WithAsyncHandler_Awaits()
     {
         DragDropMove? captured = null;
-        var view = new StubComponent(() => DragDrop(
-            ctx => Div()[
-                Div(Draggable: true, OnDragStart: ctx.DragStart("a", 1))["src"],
-                Div(OnDropAsync: ctx.Drop("b", 0))["dst"]
-            ],
-            OnDropAsync: async m =>
+        var view = new StubComponent(() => DragDrop
+            .Body(ctx => Div[
+                Div.Draggable(true).OnDragStart(ctx.DragStart("a", 1))["src"],
+                Div.OnDropAsync(ctx.Drop("b", 0))["dst"]
+            ])
+            .OnDropAsync(async m =>
             {
                 await Task.Yield();
                 captured = m;

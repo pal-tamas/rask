@@ -1,5 +1,5 @@
 using Rask.Core;
-using B = Rask.Benchmarks.Infrastructure.Generated;
+using BI = Rask.Benchmarks.Infrastructure.Generated;
 using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.Infrastructure;
@@ -23,7 +23,7 @@ namespace Rask.Benchmarks.Infrastructure;
 ///         case that few real pages hit.
 ///     </para>
 /// </summary>
-public sealed class FootprintApp : Component
+public sealed partial class FootprintApp : Component
 {
     /// <summary>Counter rendered into the header. Bumped to make a render differ from the last one.</summary>
     public int Counter;
@@ -38,10 +38,10 @@ public sealed class FootprintApp : Component
     public bool ShowExtraAction;
 
     // Non-nullable, no initializer → a required factory parameter (RASK001). Public so the generator
-    // emits it; the reports build the page via B.FootprintApp(RowCount: n).
+    // emits it; the reports build the page via BI.FootprintApp(RowCount: n).
     public int RowCount { get; set; }
 
-    protected override Component? Head => C.Title()["rask session footprint"];
+    protected override Component? HeadAssets => C.Title()["rask session footprint"];
 
     /// <summary>
     ///     Change the rendered HTML so the next render survives the session's dedup.
@@ -66,7 +66,7 @@ public sealed class FootprintApp : Component
         var rows = new List<Component>(RowCount);
         for (var i = 0; i < RowCount; i++)
         {
-            rows.Add(B.FootprintRow(Index: i, Key: i));
+            rows.Add(BI.FootprintRow(Index: i, Key: i));
         }
 
         return
@@ -89,7 +89,7 @@ public sealed class FootprintApp : Component
 }
 
 /// <summary>One table row: a few text cells and a select button.</summary>
-public sealed class FootprintRow : Component
+public sealed partial class FootprintRow : Component
 {
     public int Index { get; set; }
 

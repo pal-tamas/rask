@@ -9,6 +9,12 @@ public sealed class Outlet : Component
     // OnUnmount can't re-resolve RouteState from the render scope.
     private RouteState? _route;
 
+    // Render() advances RouteRenderState.Cursor, which is frame-global: each Outlet takes the next
+    // link of the chain in walk order. A cached Outlet does not advance it, so the next one to
+    // render reads a cursor short by one and pulls the WRONG page — its own parent, nested inside
+    // itself. Router carries the matching note and the rest of the reasoning.
+    protected override bool BypassRenderCache => true;
+
     protected override void OnMount()
     {
         // Subscribe to RouteState.Changed so the cached subtree is invalidated when the

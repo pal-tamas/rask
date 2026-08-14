@@ -18,7 +18,7 @@ namespace Rask.Core.Components;
 // (no `type` attribute unless Type is set); bound mode and non-string T default the type from T.
 //
 // Plain usage stays string-shaped: `Input<string>("text", Value: …, OnInput: …)`. Bound usage infers T from
-// the expression: `Input(() => model.Age)` → Input<int> → <input type="number">.
+// the expression: `Input.Bind(() => model.Age)` → Input<int> → <input type="number">.
 public sealed class Input<T> : Element, IFormControl<T>
 {
     protected override string TagName => "input";
@@ -38,7 +38,7 @@ public sealed class Input<T> : Element, IFormControl<T>
     public string? Min { get; set; }
     public string? Max { get; set; }
     public string? Step { get; set; }
-    public string? Pattern { get; set; }
+    public new string? Pattern { get; set; }
     public int? Size { get; set; }
     public int? MaxLength { get; set; }
     public int? MinLength { get; set; }
@@ -47,7 +47,7 @@ public sealed class Input<T> : Element, IFormControl<T>
     public string? Alt { get; set; }
     public string? Autocomplete { get; set; }
     public bool? Autofocus { get; set; }
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
     public string? FormAction { get; set; }
     public string? FormEnctype { get; set; }
     public string? FormMethod { get; set; }
@@ -71,12 +71,13 @@ public sealed class Input<T> : Element, IFormControl<T>
     // DOM event handlers in the legacy declaration order so positional factory calls keep working.
     // OnChange/OnChangeAsync are the IFormControl<T> controlled callbacks (typed T); OnInput/OnFiles are the
     // string/file DOM handlers, not part of the interface.
-    public Callback<string>? OnInput { get; set; }
-    public Callback<T>? OnChange { get; set; }
-    public CallbackAsync<string>? OnInputAsync { get; set; }
-    public CallbackAsync<T>? OnChangeAsync { get; set; }
-    public Callback<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
-    public CallbackAsync<IReadOnlyList<RaskFileType>>? OnFilesAsync { get; set; }
+    // Calling one back is `OnInput?.Invoke(value)`.
+    public Action<string>? OnInput { get; set; }
+    public Action<T>? OnChange { get; set; }
+    public Func<string, Task>? OnInputAsync { get; set; }
+    public Func<T, Task>? OnChangeAsync { get; set; }
+    public Action<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+    public Func<IReadOnlyList<RaskFileType>, Task>? OnFilesAsync { get; set; }
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).
     public Expression<Func<T>>? Bind { get; set; }

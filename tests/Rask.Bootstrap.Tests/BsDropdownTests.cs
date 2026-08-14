@@ -1,7 +1,7 @@
 namespace Rask.Bootstrap.Tests;
 
 // Rendered-HTML assertions for BsDropdown / BsDropdownItem (live-runtime driven, no JS).
-public class BsDropdownTests
+public partial class BsDropdownTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Dropdown_Closed_RendersToggleAndHiddenMenu() =>
@@ -13,10 +13,10 @@ public class BsDropdownTests
             "<li><hr class=\"dropdown-divider\" /></li>" +
             "<li><button class=\"dropdown-item\" type=\"button\">B</button></li>" +
             "</ul></div>",
-            BsDropdown(Label: "Menu", Color: BsColor.Primary)[
-                BsDropdownItem(Href: "/a")["A"],
-                BsDropdownItem(Divider: true),
-                BsDropdownItem()["B"]
+            BsDropdown.Label("Menu").Color(BsColor.Primary)[
+                BsDropdownItem.Href("/a")["A"],
+                BsDropdownItem.Divider(true),
+                BsDropdownItem["B"]
             ].ToHtml());
 
     [Fact]
@@ -25,7 +25,7 @@ public class BsDropdownTests
             "<div class=\"dropdown\" data-rask-popover=\"\">" +
             "<button class=\"btn btn-secondary dropdown-toggle\" aria-expanded=\"true\" type=\"button\">Actions</button>" +
             "<ul class=\"dropdown-menu show\"></ul></div>",
-            BsDropdown(Label: "Actions", Color: BsColor.Secondary, Open: true).ToHtml());
+            BsDropdown.Label("Actions").Color(BsColor.Secondary).Open(true).ToHtml());
 
     [Fact]
     public void Dropdown_AlignEnd_RightAlignsMenu() =>
@@ -33,17 +33,17 @@ public class BsDropdownTests
             "<div class=\"dropdown\" data-rask-popover=\"\" data-rask-popover-align=\"end\">" +
             "<button class=\"btn btn-primary dropdown-toggle\" aria-expanded=\"false\" type=\"button\">M</button>" +
             "<ul class=\"dropdown-menu dropdown-menu-end\"></ul></div>",
-            BsDropdown(Label: "M", Color: BsColor.Primary, AlignEnd: true).ToHtml());
+            BsDropdown.Label("M").Color(BsColor.Primary).AlignEnd(true).ToHtml());
 
     [Fact]
     public void DropdownItem_Header_RendersH6() =>
         Assert.Equal(
             "<li><h6 class=\"dropdown-header\">Section</h6></li>",
-            BsDropdownItem(Header: true)["Section"].ToHtml());
+            BsDropdownItem.Header(true)["Section"].ToHtml());
 
     [Fact]
     public void DropdownItem_ActiveDisabled_ComposeClasses() =>
         Assert.Equal(
             "<li><button class=\"dropdown-item active disabled\" type=\"button\">X</button></li>",
-            BsDropdownItem(Active: true, Disabled: true)["X"].ToHtml());
+            BsDropdownItem.Active(true).Disabled(true)["X"].ToHtml());
 }

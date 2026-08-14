@@ -1,6 +1,6 @@
 namespace Rask.Core.Tests.Lifecycle;
 
-internal sealed class LifecycleTrackingComponent : Component
+internal sealed partial class LifecycleTrackingComponent : Component
 {
     public int MountAsyncCount;
     public int MountCount;
@@ -52,6 +52,6 @@ internal sealed class LifecycleTrackingComponent : Component
     protected override Component? Render()
     {
         RenderCount++;
-        return Span()[Text($"r{RenderCount}")];
+        return Span[Text.Value($"r{RenderCount}")];
     }
 }

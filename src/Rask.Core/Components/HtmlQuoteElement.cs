@@ -6,7 +6,7 @@ namespace Rask.Core.Components;
 // interface. Both carry the URL-sanitized `cite` attribute and add nothing else.
 public abstract class HtmlQuoteElement : Element
 {
-    public string? Cite { get; set; }
+    public new string? Cite { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

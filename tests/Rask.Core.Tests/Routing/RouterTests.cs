@@ -8,7 +8,7 @@ using Rask.Core.Routing;
 namespace Rask.Core.Tests.Routing;
 
 [Collection("RouteRegistry")]
-public class RouterTests
+public partial class RouterTests : global::Rask.Core.RaskMarkup
 {
     private static (StubComponent view, RouteState state, IServiceProvider sp) BuildView(IReadOnlyList<Route> routes)
     {
@@ -16,7 +16,7 @@ public class RouterTests
         var services = new ServiceCollection();
         services.AddSingleton(state);
         var sp = services.BuildServiceProvider();
-        var view = new StubComponent(() => Router(routes));
+        var view = new StubComponent(() => Router.Routes(routes));
         return (view, state, sp);
     }
 
@@ -154,7 +154,7 @@ public class RouterTests
     public void Outlet_OutsideRouter_Throws()
     {
         var sp = RenderHarness.EmptyServices();
-        var view = new StubComponent(() => Outlet());
+        var view = new StubComponent(() => Outlet);
 
         Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot(sp));
     }
@@ -175,7 +175,7 @@ public class RouterTests
             var services = new ServiceCollection();
             services.AddSingleton(state);
             var sp = services.BuildServiceProvider();
-            var view = new StubComponent(() => Router());
+            var view = new StubComponent(() => Router);
 
             state.Path = "/";
             Assert.Equal("<span>home</span>", view.RenderAsLiveRoot(sp));
@@ -198,7 +198,7 @@ public class RouterTests
         services.AddSingleton(state);
         services.AddSingleton(gate);
         var sp = services.BuildServiceProvider();
-        var view = new StubComponent(() => Router(new[] { Route<SyncInitPage>("/sync") }));
+        var view = new StubComponent(() => Router.Routes(new[] { Route<SyncInitPage>("/sync") }));
         state.Path = "/sync";
 
         var html = view.RenderAsLiveRoot(sp);
@@ -216,7 +216,7 @@ public class RouterTests
         services.AddSingleton(gate);
         var sp = services.BuildServiceProvider();
         var handle = new RecordingRenderHandle();
-        var view = new StubComponent(() => Router(new[] { Route<AsyncInitPage>("/async") })) { RenderHandle = handle };
+        var view = new StubComponent(() => Router.Routes(new[] { Route<AsyncInitPage>("/async") })) { RenderHandle = handle };
         state.Path = "/async";
 
         var initial = view.RenderAsLiveRoot(sp);
@@ -245,7 +245,7 @@ public class RouterTests
     {
         public int InitCount;
         protected override void OnMount() => InitCount++;
-        protected override Component? Render() => Span()[$"init:{InitCount}"];
+        protected override Component? Render() => Span[$"init:{InitCount}"];
     }
 
     [SkipFactory]
@@ -262,7 +262,7 @@ public class RouterTests
             Loaded = true;
         }
 
-        protected override Component? Render() => Span()[Loaded ? "ready" : "loading"];
+        protected override Component? Render() => Span[Loaded ? "ready" : "loading"];
     }
 
     private sealed class RecordingRenderHandle : IRenderHandle
@@ -277,28 +277,28 @@ public class RouterTests
     }
 
     [SkipFactory]
-    public sealed class HomePage : Component
+    public sealed partial class HomePage : Component
     {
-        protected override Component? Render() => Span()["home"];
+        protected override Component? Render() => Span["home"];
     }
 
     [SkipFactory]
     public sealed class UserPage : Component
     {
         [RouteParam] public int Id { get; set; }
-        protected override Component? Render() => Span()[$"user:{Id}"];
+        protected override Component? Render() => Span[$"user:{Id}"];
     }
 
     [SkipFactory]
     public sealed class CounterPage : Component
     {
         public int Bumps { get; set; }
-        [RouteParam][QueryParam] public string? Label { get; set; }
+        [RouteParam][QueryParam] public new string? Label { get; set; }
 
         protected override Component? Render()
         {
             Bumps++;
-            return Span()[$"{Label ?? "x"}:{Bumps}"];
+            return Span[$"{Label ?? "x"}:{Bumps}"];
         }
     }
 
@@ -313,26 +313,26 @@ public class RouterTests
         protected override Component? Render()
         {
             Renders++;
-            return Span()[$"props:{PropsChanges} renders:{Renders} path:{state.Path}"];
+            return Span[$"props:{PropsChanges} renders:{Renders} path:{state.Path}"];
         }
     }
 
     [SkipFactory]
     public sealed class DashboardPage : Component
     {
-        protected override Component? Render() => Div()[Span()["dash:"], Outlet()];
+        protected override Component? Render() => Div[Span["dash:"], Outlet];
     }
 
     [SkipFactory]
     public sealed class DashOverview : Component
     {
-        protected override Component? Render() => Span()["overview"];
+        protected override Component? Render() => Span["overview"];
     }
 
     [SkipFactory]
     public sealed class DashSettings : Component
     {
         [RouteParam] public string? Tab { get; set; }
-        protected override Component? Render() => Span()[$"settings:{Tab}"];
+        protected override Component? Render() => Span[$"settings:{Tab}"];
     }
 }

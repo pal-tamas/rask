@@ -28,13 +28,13 @@ public sealed class Select<T> : Element, IFormControl<T>
     public bool? Required { get; set; }
     public bool? Disabled { get; set; }
     public int? Size { get; set; }
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
     public bool? Autofocus { get; set; }
     public string? Autocomplete { get; set; }
 
     // IFormControl<T> — controlled mode (OnChange/OnChangeAsync are the typed change callbacks).
-    public Callback<T>? OnChange { get; set; }
-    public CallbackAsync<T>? OnChangeAsync { get; set; }
+    public Action<T>? OnChange { get; set; }
+    public Func<T, Task>? OnChangeAsync { get; set; }
     public T? Value { get; set; }
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).

@@ -2,7 +2,7 @@
 
 namespace Rask.Core.Tests.Live;
 
-public class ComponentFactoryIntegrationTests
+public partial class ComponentFactoryIntegrationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Factory_PassesRequiredProperty()
@@ -63,6 +63,6 @@ public class ComponentFactoryIntegrationTests
         public string? Subtitle { get; set; }
 
         protected override Component? Render() =>
-            Span()[Text(Subtitle is null ? Name : $"{Name}: {Subtitle}")];
+            Span[Text.Value(Subtitle is null ? Name : $"{Name}: {Subtitle}")];
     }
 }

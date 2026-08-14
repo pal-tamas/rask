@@ -10,7 +10,7 @@ namespace Rask.Validation.FluentValidation;
 //
 //   Form<SignupModel>(_model, OnValidSubmit: ...)[
 //       FluentValidationValidator(new SignupModelValidator()),
-//       Input(() => _model.Username),
+//       Input.Bind(() => _model.Username),
 //       ValidationMessage(() => _model.Username, ...)
 //   ]
 //
@@ -20,7 +20,7 @@ namespace Rask.Validation.FluentValidation;
 // — so re-renders rely on the validator instance being kept stable by the framework's
 // component caching, and a FRESH FluentValidationValidator component in a re-render with
 // a different IValidator instance will be deduped to the first registration.
-public sealed class FluentValidationValidator : Component
+public sealed partial class FluentValidationValidator : Component
 {
     public required IValidator Validator { get; set; }
 

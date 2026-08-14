@@ -5,7 +5,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Validation.DataAnnotations.Tests;
 
-public class DataAnnotationsValidatorTests
+public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task SubmitFlow_FirstInvalid_ThenFilled_RoutesToOnValidSubmit()
@@ -20,12 +20,10 @@ public class DataAnnotationsValidatorTests
         //   4. Submit a valid payload via the new handler — must reach OnValidSubmit.
         var p = new Person { Name = "", Age = 0 };
         Person? captured = null;
-        var page = RaskTest.Render(() => Form<Person>(
-            p,
-            (Callback<Person>)(m => captured = m))[
+        var page = RaskTest.Render(() => Form.Model(p).OnValidSubmit((Action<Person>)(m => captured = m))[
             DataAnnotationsValidator(),
-            Input(() => p.Name),
-            Input(() => p.Age)
+            Input.Bind(() => p.Name),
+            Input.Bind(() => p.Age)
         ]);
 
         var submit1 = page.HandlerId("submit");

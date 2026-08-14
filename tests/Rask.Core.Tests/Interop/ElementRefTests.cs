@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Rask.Core.Tests.Interop;
 
-public class ElementRefTests
+public partial class ElementRefTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void New_GeneratesUnique_SelectorSafeIds()
@@ -31,7 +31,7 @@ public class ElementRefTests
     {
         var r = ElementRef.New();
 
-        var html = Div(Ref: r)["body"].ToHtml();
+        var html = Div.Ref(r)["body"].ToHtml();
 
         Assert.Contains($"data-rask-ref=\"{r.Id}\"", html);
     }
@@ -39,7 +39,7 @@ public class ElementRefTests
     [Fact]
     public void Element_WithoutRef_EmitsNoDataRaskRef()
     {
-        var html = Div()["body"].ToHtml();
+        var html = Div["body"].ToHtml();
 
         Assert.DoesNotContain("data-rask-ref", html);
     }
@@ -50,7 +50,7 @@ public class ElementRefTests
         var r = ElementRef.New();
         // Anchor (A) has a tag-specific href; assert id/class/style/data-* (incl. rask-ref) all
         // precede it — the documented attribute order: id, class, style, data-*, tag-specific.
-        var html = A(Id: "x", Class: "c", Style: "color:red", Href: "/go", Ref: r)["link"].ToHtml();
+        var html = A.Id("x").Class("c").Style("color:red").Href("/go").Ref(r)["link"].ToHtml();
 
         var idIdx = html.IndexOf("id=\"x\"", StringComparison.Ordinal);
         var classIdx = html.IndexOf("class=\"c\"", StringComparison.Ordinal);

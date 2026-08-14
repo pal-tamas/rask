@@ -30,12 +30,15 @@ output, sanitised snippets) — **never on user input**.
 > **Security:** `Raw` skips all HTML encoding. Never feed it untrusted strings — sanitize, or use `Text`.
 
 A bare `[...]` collection expression returns multiple siblings with no surrounding tag — a `Component`
-in its own right, so it's what `Render()` returns when a component has more than one root. Handy for
-siblings at the root, especially `[Doctype(), Html(...)]` as the page entry point:
+in its own right, so it's what `Render()` returns when a component has more than one root — a heading
+and its paragraph, a layout's header/main/footer:
 
 <!-- demo:primitives-fragment -->
 
-`Doctype()` emits exactly `<!DOCTYPE html>` — special-cased, with no attributes, children, or wrapper:
+`Doctype()` emits exactly `<!DOCTYPE html>` — special-cased, with no attributes, children, or wrapper.
+An app's pages don't need it (Rask emits the doctype and the rest of the document around the root
+component — see [the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override));
+reach for it when you build a document by hand, for `ToHtml()` or an email body:
 
 <!-- demo:primitives-doctype -->
 
@@ -83,15 +86,32 @@ Every tag accepts `Id`, `Class`, `Style`, `Data`, and the accessibility props `R
 
 <!-- demo:props-id-class-style -->
 
-`Data` — a dictionary expands to `data-*` attributes; a null value renders as a bare attribute (e.g.
-`data-new`), the same way boolean attributes like `disabled` work:
+`Data` — expands to `data-*` attributes; a null value renders as a bare attribute (e.g. `data-new`),
+the same way boolean attributes like `disabled` work. Name the pair directly, or pass several:
+
+```csharp
+Div.Data("rask-no-restore")                                            // bare: data-rask-no-restore
+Div.Data("test-id", "primary")
+Div.Data(("test-id", "primary"), ("state", "idle"))
+Div.Data(new Dictionary<string, string?> { ["test-id"] = "primary" })   // still accepted
+```
+
+The name-only form is the *bare* attribute, not an empty one — `.Data("flag")` renders `data-flag`
+and `.Data("flag", "")` renders `data-flag=""`, which are different attributes.
+
+Prefer the pair form over a dictionary. It is not only shorter: a `Dictionary` for one attribute is
+three allocations — the dictionary, its bucket array and its entry array — and a chain step re-assigns
+its property on every render, so that is a per-render cost on every element carrying one. The pair
+form is a single object the element writer knows by type and writes without materialising an
+enumerator. Measured over 100 elements each carrying one `data-*`: **80.7 KB → 63.52 KB, alloc ratio
+0.79**, and ~11% faster. With three attributes each it is still ahead (87.15 KB → 75.43 KB).
 
 <!-- demo:props-data -->
 
 `Aria`, `Role`, `TabIndex` — `Aria` is the `data-*` model applied to ARIA (each entry expands to
-`aria-{key}`, value HTML-encoded, null → bare attribute); `Role` and `TabIndex` are typed because they
-aren't `aria-*` attributes. See the [accessibility guide](accessibility.md) and the RASK023 img-alt
-analyzer.
+`aria-{key}`, value HTML-encoded, null → bare attribute), and takes the same three forms
+(`Span.Aria("label", "Close")`); `Role` and `TabIndex` are typed because they aren't `aria-*`
+attributes. See the [accessibility guide](accessibility.md) and the RASK023 img-alt analyzer.
 
 <!-- demo:props-aria -->
 

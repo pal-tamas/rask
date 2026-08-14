@@ -33,6 +33,13 @@
          (RenderAsLiveRoot / TryInvokeHandlerAsync) into a supported public testing API. -->
     <InternalsVisibleTo Include="Rask.Testing"/>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
+    <!-- Rask.Bootstrap composes Core's components by FORWARDING its own carrier props into their
+         generated factory arguments (`Button(OnClick: OnClick?.Fn)`), and a factory parameter is typed
+         as the raw delegate — so it needs the carrier's internal Fn. Nothing public can stand in: a
+         method group off the carrier (`h.Invoke`) would allocate a fresh delegate per handler per
+         render and break the identity the wrap-preservation rule depends on. Retire this with the
+         factory surface (Stage E), when forwarding becomes carrier-to-carrier. -->
+    <InternalsVisibleTo Include="Rask.Bootstrap"/>
     <InternalsVisibleTo Include="Rask.Bootstrap.Tests"/>
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>

@@ -41,7 +41,7 @@ unmount, so navigating away mid-fetch aborts the in-flight request instead of wr
 
 ## Uploading files
 
-`Input<string>(Type: InputType.File, OnFiles: …)` wires a file picker to a typed handler. Each change event
+`Input<string>().Type(InputType.File).Files(…)` wires a file picker to a typed handler. Each change event
 hands the handler an `IReadOnlyList<RaskFile>`; `RaskFile` carries the metadata (name, size, content type,
 last-modified) and `OpenReadStream` gives you a `Stream` for the bytes — over a multipart POST on the
 Server, via JS chunked reads on WASM. The same component code runs unchanged on both hosts:

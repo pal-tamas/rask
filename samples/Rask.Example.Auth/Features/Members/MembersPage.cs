@@ -11,34 +11,36 @@ namespace Rask.Example.Auth.Features;
 // IUserProvider and no manual Changed subscription on the page.
 [Route("members")]
 [Authorize]
-public sealed class MembersPage : Component
+public sealed partial class MembersPage : Component
 {
     protected override Component? Render() =>
-        Div(Id: "members", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
-            Div(Class: "card-body")[
-                Authorize(
-                    Authorizing: P("members-authorizing", "text-secondary mb-0")["Signing you in…"],
-                    NotAuthorized: P("members-anon", "mb-0")[
-                        "Please ", NavLink(Routes.LoginPage())["sign in"], "."],
-                    Authorized: user => [
-                        H1("members-greeting", "h3 mb-3")[$"Welcome, {user.Identity?.Name}"],
-                        MemberContent()])
+        Div.Id("members").Class("card shadow-sm mx-auto").Style("max-width:34rem")[
+            Div.Class("card-body")[
+                Authorize
+                    .Authorizing(P.Id("members-authorizing").Class("text-secondary mb-0")["Signing you in…"])
+                    .NotAuthorized(P.Id("members-anon").Class("mb-0")[
+                        "Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])
+                    .Authorized(user => [
+                        H1.Id("members-greeting").Class("h3 mb-3")[$"Welcome, {user.Identity?.Name}"],
+                        MemberContent])
             ]
         ];
 }
 
 // The member actions, rendered only once the gate opens. The greeting now comes from the Authorized
 // delegate above, so this no longer needs IUserProvider — it injects IAuthSignIn purely for sign-out.
-public sealed class MemberContent(IAuthSignIn auth) : Component
+public sealed partial class MemberContent(IAuthSignIn auth) : Component
 {
     protected override Component? Render() =>
         [
-            P(Class: "text-secondary")["This page is gated by ", Code()["[Authorize]"],
+            P.Class("text-secondary")["This page is gated by ", Code["[Authorize]"],
                 " plus the Authorize component."],
             // Role gate: only an admin sees this.
-            Authorize(["admin"])[
-                Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."]],
-            Button(Id: "logout", OnClickAsync: () => auth.SignOutAsync("/login"),
-                Class: "btn btn-outline-primary")["Sign out"]
+            Authorize.Roles(["admin"])[
+                Div.Id("admin-note").Class("alert alert-warning py-2")["🔑 You have admin access."]],
+            Button
+                .Id("logout")
+                .OnClickAsync(() => auth.SignOutAsync("/login"))
+                .Class("btn btn-outline-primary")["Sign out"]
         ];
 }

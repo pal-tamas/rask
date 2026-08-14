@@ -5,7 +5,7 @@ namespace Rask.Bootstrap;
 // re-implement the <button> element. Type defaults to "button" so a BsButton never implicitly submits
 // an enclosing form; pass Type:"submit" for a submit button. For a link styled as a button, use
 // A(Class:"btn btn-primary").
-public sealed class BsButton : BsBlock
+public sealed partial class BsButton : BsBlock
 {
     public BsColor? Color { get; set; }
 
@@ -21,11 +21,11 @@ public sealed class BsButton : BsBlock
     public bool? Disabled { get; set; }
     public string? Name { get; set; }
     public string? Value { get; set; }
-    public string? Style { get; set; }
+    public new string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
-    public Callback? OnClick { get; set; }
-    public CallbackAsync? OnClickAsync { get; set; }
+    public Action? OnClick { get; set; }
+    public Func<Task>? OnClickAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -41,8 +41,16 @@ public sealed class BsButton : BsBlock
         // Both handlers forward straight through to the native Button (the consumer sets at most one;
         // RASK027 enforces that at their call site). The set delegate passes raw to the DOM element,
         // whose handler-owner resolution re-renders the parent.
-        return Button(Id: Id, Class: cls, Style: Style, Type: Type ?? "button",
-            Disabled: Disabled, Name: Name, Value: Value, Aria: aria,
-            OnClick: OnClick, OnClickAsync: OnClickAsync)[Items];
+        return Button
+            .Id(Id)
+            .Class(cls)
+            .Style(Style)
+            .Type(Type ?? "button")
+            .Disabled(Disabled)
+            .Name(Name)
+            .Value(Value)
+            .Aria(aria)
+            .OnClick(OnClick)
+            .OnClickAsync(OnClickAsync)[Items];
     }
 }

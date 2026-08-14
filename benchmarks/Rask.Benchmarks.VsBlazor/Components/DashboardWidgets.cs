@@ -40,69 +40,69 @@ internal static class DashboardWidgets
             {
                 _staticSidebar = new List<Component>
                 {
-                    C.Li(Class: "nav-item")[C.A("/dashboard")["Dashboard"]],
-                    C.Li(Class: "nav-item")[C.A("/reports")["Reports"]],
-                    C.Li(Class: "nav-item")[C.A("/users")["Users"]],
-                    C.Li(Class: "nav-item")[C.A("/settings")["Settings"]],
-                    C.Li(Class: "nav-item")[C.A("/help")["Help"]]
+                    Li.Class("nav-item")[A.Href("/dashboard")["Dashboard"]],
+                    Li.Class("nav-item")[A.Href("/reports")["Reports"]],
+                    Li.Class("nav-item")[A.Href("/users")["Users"]],
+                    Li.Class("nav-item")[A.Href("/settings")["Settings"]],
+                    Li.Class("nav-item")[A.Href("/help")["Help"]]
                 };
 
                 _staticAlerts = new List<Component>(AlertCount);
                 for (var i = 0; i < AlertCount; i++)
                 {
-                    _staticAlerts.Add(C.Li(Class: "alert", Id: $"a{i}")[
-                        C.Span(Class: "alert-sev")[$"Sev{(i % 3) + 1}"],
-                        C.Span(Class: "alert-msg")[$"Alert message {i}"]
+                    _staticAlerts.Add(Li.Class("alert").Id($"a{i}")[
+                        Span.Class("alert-sev")[$"Sev{(i % 3) + 1}"],
+                        Span.Class("alert-msg")[$"Alert message {i}"]
                     ]);
                 }
 
                 _staticStatusGrid = new List<Component>(StatusGridSize);
                 for (var i = 0; i < StatusGridSize; i++)
                 {
-                    _staticStatusGrid.Add(C.Div(Class: "status-cell", Id: $"s{i}")[
-                        C.Span(Class: "status-label")[$"Service {i}"],
-                        C.Span(Class: "status-value")["healthy"]
+                    _staticStatusGrid.Add(Div.Class("status-cell").Id($"s{i}")[
+                        Span.Class("status-label")[$"Service {i}"],
+                        Span.Class("status-value")["healthy"]
                     ]);
                 }
             }
 
-            return C.Div(Class: "dashboard")[
-                C.Header(Class: "topbar")[
-                    C.Span(Class: "brand")["Rask Dashboard"],
-                    C.Span(Class: "user")["alice"]
+            return Div.Class("dashboard")[
+                Header.Class("topbar")[
+                    Span.Class("brand")["Rask Dashboard"],
+                    Span.Class("user")["alice"]
                 ],
-                C.Aside(Class: "sidebar")[C.Ul()[_staticSidebar]],
-                C.Main(Class: "content")[
+                Aside.Class("sidebar")[Ul[_staticSidebar]],
+                Main.Class("content")[
                     // Widget 1: counter — the only mutating widget
-                    C.Div(Class: "widget counter-widget", Id: "w-counter")[
-                        C.Span(Class: "widget-title")["Live count"],
-                        C.Span(Class: "widget-value")[Counter.ToString()]
+                    Div.Class("widget counter-widget").Id("w-counter")[
+                        Span.Class("widget-title")["Live count"],
+                        Span.Class("widget-value")[Counter.ToString()]
                     ],
                     // Widget 2: chart placeholder
-                    C.Div(Class: "widget chart-widget", Id: "w-chart")[
-                        C.Span(Class: "widget-title")["Throughput"],
-                        C.Div(Class: "chart-canvas")
+                    Div.Class("widget chart-widget").Id("w-chart")[
+                        Span.Class("widget-title")["Throughput"],
+                        Div.Class("chart-canvas")
                     ],
                     // Widget 3: table summary
-                    C.Div(Class: "widget table-widget", Id: "w-table")[
-                        C.Span(Class: "widget-title")["Recent orders"],
-                        C.Div(Class: "summary-row")[C.Span()["Total"], C.Span()["1,234"]],
-                        C.Div(Class: "summary-row")[C.Span()["Pending"], C.Span()["56"]],
-                        C.Div(Class: "summary-row")[C.Span()["Failed"], C.Span()["3"]]
+                    Div.Class("widget table-widget").Id("w-table")[
+                        Span.Class("widget-title")["Recent orders"],
+                        Div.Class("summary-row")[Span["Total"], Span["1,234"]],
+                        Div.Class("summary-row")[Span["Pending"], Span["56"]],
+                        Div.Class("summary-row")[Span["Failed"], Span["3"]]
                     ],
                     // Widget 4: alert list
-                    C.Div(Class: "widget alerts-widget", Id: "w-alerts")[
-                        C.Span(Class: "widget-title")["Alerts"],
-                        C.Ul(Class: "alerts")[_staticAlerts!]
+                    Div.Class("widget alerts-widget").Id("w-alerts")[
+                        Span.Class("widget-title")["Alerts"],
+                        Ul.Class("alerts")[_staticAlerts!]
                     ],
                     // Widget 5: status grid
-                    C.Div(Class: "widget status-widget", Id: "w-status")[
-                        C.Span(Class: "widget-title")["Service status"],
-                        C.Div(Class: "status-grid")[_staticStatusGrid!]
+                    Div.Class("widget status-widget").Id("w-status")[
+                        Span.Class("widget-title")["Service status"],
+                        Div.Class("status-grid")[_staticStatusGrid!]
                     ],
                     // Widget 6: footer
-                    C.Div(Class: "widget footer-widget", Id: "w-footer")[
-                        C.Span()["© 2026 Rask Inc."]
+                    Div.Class("widget footer-widget").Id("w-footer")[
+                        Span["© 2026 Rask Inc."]
                     ]
                 ]
             ];

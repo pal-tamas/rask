@@ -10,13 +10,13 @@ namespace Rask.Example.Shared.Features;
 //
 // Loading is bool?, and all three states are used: null would mean "not using the feature at all", so this
 // demo starts at false (in use, idle) and flips to true around the await.
-public sealed class BsDataGridLoadingDemo : Component
+public sealed partial class BsDataGridLoadingDemo : Component
 {
     private const int PageSize = 4;
 
     private sealed record City(string Name, string Country, int Population);
 
-    private static readonly List<City> Source =
+    private static new readonly List<City> Source =
     [
         new("Tokyo", "Japan", 37_400_068),
         new("Delhi", "India", 32_226_000),
@@ -40,33 +40,10 @@ public sealed class BsDataGridLoadingDemo : Component
     private int _total = Source.Count;
 
     protected override Component? Render() =>
-        Div(Id: "grid-loading-demo")[
-            BsDataGrid(
-                Id: "bs-grid-loading",
-                Data: _rows,
-                TotalCount: _total,
-                PageSize: PageSize,
-                RowKey: c => c.Name,
-                Loading: _loading,
-                Page: _page,
-                Sort: _sort,
-                SortDescending: _sortDescending,
-                OnPageChangeAsync: async page =>
-                {
-                    _page = page;
-                    await ReloadAsync();
-                },
-                OnSortChangeAsync: async sort =>
-                {
-                    _sort = sort.Field;
-                    _sortDescending = sort.Descending;
-                    // A controlled sort owns the page too: re-sorting and staying on page 3 would show rows
-                    // nobody asked for.
-                    _page = 0;
-                    await ReloadAsync();
-                },
-                Columns:
-                [
+        Div.Id("grid-loading-demo")[
+            BsDataGrid
+                .Data(_rows)
+                .Columns([
                     new BsColumn<City> { Title = "City", Value = c => c.Name, Sortable = true, SortField = "name" },
                     new BsColumn<City>
                     {
@@ -77,7 +54,29 @@ public sealed class BsDataGridLoadingDemo : Component
                         Title = "Population", Class = Txt.End(), Sortable = true, SortField = "pop",
                         Value = c => c.Population.ToString("N0"),
                     },
-                ])];
+                ])
+                .Id("bs-grid-loading")
+                .TotalCount(_total)
+                .PageSize(PageSize)
+                .RowKey(c => c.Name)
+                .Loading(_loading)
+                .Page(_page)
+                .Sort(_sort)
+                .SortDescending(_sortDescending)
+                .OnPageChangeAsync(async page =>
+                {
+                    _page = page;
+                    await ReloadAsync();
+                })
+                .OnSortChangeAsync(async sort =>
+                {
+                    _sort = sort.Field;
+                    _sortDescending = sort.Descending;
+                    // A controlled sort owns the page too: re-sorting and staying on page 3 would show rows
+                    // nobody asked for.
+                    _page = 0;
+                    await ReloadAsync();
+                })];
 
     // Set Loading, await, clear it — and note there is no StateHasChanged anywhere.
     //

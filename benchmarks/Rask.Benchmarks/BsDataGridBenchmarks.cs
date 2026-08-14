@@ -15,7 +15,7 @@ namespace Rask.Benchmarks;
 // The pairs are deliberate. Each "…Plain" benchmark is the baseline for the feature benchmark beside it, so a
 // feature's true cost is one subtraction rather than a comparison against a different tree.
 [MemoryDiagnoser]
-public class BsDataGridBenchmarks
+public partial class BsDataGridBenchmarks : global::Rask.Core.RaskMarkup
 {
     private sealed record Product(string Name, string Category, int Stock, decimal Price, string Sku,
         string Supplier);
