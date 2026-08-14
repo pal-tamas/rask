@@ -11,13 +11,13 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 
 | Blazor | Rask |
 |--------|------|
-| `.razor` component (markup + `@code`) | `sealed class : Component` with `Render()` returning a tree |
-| `RenderFragment` / Razor markup | A factory tree — `Div()[Span(...), "hi"]`, children via an indexer |
-| `@onclick="Handler"` | `OnClick: () => ...` (a plain delegate parameter) |
-| `[Parameter] public T X { get; set; }` | `public T X { get; set; }` — becomes a factory parameter (required if non-nullable) |
+| `.razor` component (markup + `@code`) | `sealed partial class : Component` with `Render()` returning a tree |
+| `RenderFragment` / Razor markup | A chain — `Div.Class("card")[Span["hi"]]`, children via an indexer |
+| `@onclick="Handler"` | `.OnClick(() => ...)` (a plain delegate, set by a chain step) |
+| `[Parameter] public T X { get; set; }` | `public T X { get; set; }` — becomes a chain step (required if non-nullable) or an optional setter |
 | `EventCallback` / `EventCallback<T>` | **No such type.** A plain delegate prop (`Action`, `Action<T>`, `Func<Task>`, `Func<T,Task>`) |
-| `[CascadingParameter]` / `CascadingValue` | `Context.Provide<T>(Value:)` / `Context.Get<T>()` / `Context.Required<T>()` |
-| `@key="x"` | `Key: x` (last optional factory parameter) |
+| `[CascadingParameter]` / `CascadingValue` | `Context.Provide<T>(value)` / `Context.Get<T>()` / `Context.Required<T>()` |
+| `@key="x"` | `.Key(x)` — an ordinary chain step |
 | `OnInitialized` / `OnInitializedAsync` | `OnMount` / `OnMountAsync` (once per instance) |
 | `OnParametersSet` / `OnParametersSetAsync` | `OnPropsChanged` / `OnPropsChangedAsync` |
 | `OnAfterRender(firstRender)` / async | `OnRendered(firstRender)` / `OnRenderedAsync` |
@@ -25,9 +25,9 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `NavigationManager` | `Navigator` (event-handler-only) + `RouteState` (current path/params) |
 | `@page "/path"` | `[Route("/path")]` on the class |
 | route/query binding | `[RouteParam]` / `[QueryParam]` on a property |
-| `<EditForm>` + `InputText`/`InputNumber` | `Form<TModel>(model, OnValidSubmit:)` + `Input(() => model.X)` |
-| `<DataAnnotationsValidator>` | drop `DataAnnotationsValidator()` inside the `Form<T>` |
-| `<AuthorizeView>` (+ `Context="user"` / `@context.User`) | headless `Authorize(...)` — its `Authorized: user => …` slot receives the `ClaimsPrincipal`, like `@context.User` |
+| `<EditForm>` + `InputText`/`InputNumber` | `Form.Model(model).OnValidSubmit(…)` + `Input.Bind(() => model.X)` |
+| `<DataAnnotationsValidator>` | drop `DataAnnotationsValidator` inside the `Form` |
+| `<AuthorizeView>` (+ `Context="user"` / `@context.User`) | headless `Authorize` — its `.Authorized(user => …)` slot receives the `ClaimsPrincipal`, like `@context.User` |
 | `AuthenticationStateProvider` | inject `IUserProvider` and read `.Current` |
 | `[Inject] T Svc { get; set; }` | constructor injection — `partial class Page(T svc) : Component` |
 | `Component.razor.css` | sibling `{Component}.css` next to `{Component}.cs` |
@@ -49,7 +49,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 // Rask
 public sealed partial class Greeting : Component
 {
-    public required string Name { get; set; }   // non-nullable → required factory param
+    public required string Name { get; set; }   // non-nullable → a required chain step
     protected override Component? Render() => H1[$"Hello, {Name}!"];
 }
 // call site: Greeting.Name("Ada")
@@ -72,7 +72,7 @@ Button.OnClick(() => _count++)[$"Count: {_count}"]
 
 This is the biggest API difference. Blazor wraps child events in `EventCallback` so
 the parent re-renders. **Rask has no `Callback`/`EventCallback` type** — the child
-declares a plain delegate prop, and the generated factory wraps it so invoking it
+declares a plain delegate prop, and the chain step that sets it wraps it so invoking it
 re-renders the parent that owns the lambda (the lambda's `this`).
 
 ```razor
@@ -108,7 +108,7 @@ component that should update.
 
 ```csharp
 // Rask — provide high, read deep (nearest provider wins, matched by type)
-Context.Provide<Theme>(Value: _theme)[ ThemeCard ]
+Context.Provide<Theme>(_theme)[ ThemeCard ]
 // in any descendant's Render():
 var theme = Context.Required<Theme>();   // or Context.Get<T>() (null if absent)
 ```
@@ -129,11 +129,11 @@ public sealed partial class UserPage(Navigator nav) : Component   // Navigator v
 {
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
-    // navigate from a handler: nav.NavigateTo(HomePage), nav.SetQuery("tab", "x")
+    // navigate from a handler: nav.NavigateTo(Routes.HomePage()), nav.SetQuery("tab", "x")
 }
 
 // type-safe link (generated URL builder) instead of a "/users/42" string:
-NavLink.Href(UserPage(id: 42))["View user"]
+NavLink.Href(Routes.UserPage(42))["View user"]
 ```
 
 ### Forms
@@ -148,7 +148,7 @@ NavLink.Href(UserPage(id: 42))["View user"]
 
 ```csharp
 // Rask
-Form<SignupModel>(_model, OnValidSubmit: m => Save(m))[
+Form.Model(_model).OnValidSubmit(m => Save(m))[
     DataAnnotationsValidator,                  // from Rask.Validation.DataAnnotations
     Input.Bind(() => _model.Name),              // input type inferred from the CLR type
     ValidationMessage.For(() => _model.Name).Template(errs => Div.Class("field-error")[errs[0]]),
@@ -158,7 +158,7 @@ Form<SignupModel>(_model, OnValidSubmit: m => Save(m))[
 
 `Input`/`Select`/`Textarea` infer their type from the bound property (`string` →
 text, `bool` → checkbox, `int` → number, `DateOnly` → date). `ValidationMessage` and
-`ValidationSummary` are headless — you pass a `Template:` lambda for the markup. See
+`ValidationSummary` are headless — you chain a `.Template(…)` lambda for the markup. See
 [forms](forms.md) for nested models, collections, and async validation.
 
 ### Scoped CSS
@@ -173,8 +173,8 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
 ## Behavioural gotchas
 
 - **Children come through an indexer, not a `Children` parameter.** Write
-  `Div()[Span(...), "hi"]`. There is no `ChildContent` factory param, and `Children`
-  is always excluded from generated factories.
+  `Div[Span["hi"], "there"]`. There is no `ChildContent` step, and `Children`
+  is always excluded from the generated chain.
 
 - **The `..` spread fails inside `[...]`.** The C# spread element parses as a
   `Range` inside the indexer. Pass enumerables **directly** instead:
@@ -184,17 +184,17 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
   // Ul[.. items.Select(...)]                            // ✗ parses as Range
   ```
 
-- **F12 / Go-to-Definition on `Foo(...)` lands on the *generated* factory, not your
+- **F12 / Go-to-Definition on a chain step lands on the *generated* member, not your
   component class.** Stock Roslyn/ReSharper navigate a generated symbol to its
   generated document. Use the IDE's **"Navigate to Type of Symbol"** for a one-action
-  jump to the component class. (Every generated factory carries a `<see cref>`
+  jump to the component class. (Every generated member carries a `<see cref>`
   breadcrumb and `[DebuggerStepThrough]`, so hover/Quick-Doc offers a navigable link
-  and the debugger steps over the factory into your code.)
+  and the debugger steps over the generated code into yours.)
 
 - **Keyed lists matter — and Rask warns when you forget.** Like Blazor's `@key`,
-  pass `Key:` on list items so inserts/removes/reorders reconcile by identity
-  (preserving focus and input state). A Rask factory call in a list-projection
-  context (`.Select`/`.SelectMany`, or `.Add` in a loop) without a `Key:` raises
+  pass `.Key(…)` on list items so inserts/removes/reorders reconcile by identity
+  (preserving focus and input state). A Rask chain in a list-projection
+  context (`.Select`/`.SelectMany`, or `.Add` in a loop) without a `.Key(…)` raises
   **RASK022** — keyless items reconcile positionally.
 
 - **`Navigator` is event-handler-only.** Calling it outside a handler throws. Read
@@ -211,7 +211,7 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
 - **DI through the constructor** — exactly like the rest of .NET. Framework services
   (`Navigator`, `RouteState`, `HttpClient`, `IJSRuntime`) inject the same way as your
   own services. (No `[Inject]` properties — a non-nullable settable property would
-  become a required factory parameter instead.)
+  become a required chain step instead.)
 - **Scoped CSS parity** — sibling `{Component}.css`, descendant-combinator scoping,
   hot reload.
 - **`IJSRuntime`** — the same interop surface (`InvokeAsync`, `InvokeVoidAsync`).

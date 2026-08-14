@@ -186,7 +186,7 @@ classic-`<script>` IIFE, where module syntax is illegal).
 
 ## Keyed reconciliation: trusted structural ops
 
-Give list items a stable `Key:` (Blazor `@key` parity — last optional factory param)
+Give list items a stable `.Key(…)` (Blazor `@key` parity — an ordinary chain step)
 and the diff reconciles them by *identity* instead of position. This unlocks
 **trusted** Insert/Remove/Move ops that preserve focus, selection, scroll, IDL
 property state, and event listeners on surviving nodes. The client relocates a moved

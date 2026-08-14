@@ -150,7 +150,7 @@ drilling** — React's provide/consume, type-erased so it stays trim-safe.
 
 ```csharp
 // Provide near the top. `Provide<T>` is a transparent node; children render under it.
-Context.Provide<Theme>(Value: _theme)[
+Context.Provide<Theme>(_theme)[
     ThemeCard        // knows nothing about Theme — no prop passed through it
 ]
 

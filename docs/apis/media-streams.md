@@ -41,12 +41,12 @@ public sealed class Camera(IMediaStreams streams) : Component
     private MediaStreamId? _stream;
 
     protected override Component? Render() =>
-        Div()[
-            MediaCaptureTrigger(For: _video, Video: true,
-                OnStream: id => { _stream = id; StateHasChanged(); return Task.CompletedTask; },
-                Template: g => Button(Type: "button", Data: g)["Start camera"]),
-            Button(Type: "button", Disabled: _stream is null, OnClickAsync: StopAsync)["Stop camera"],
-            Video(Ref: _video, Muted: true)
+        Div[
+            MediaCaptureTrigger.For(_video).Video(true)
+                .OnStream(id => { _stream = id; StateHasChanged(); return Task.CompletedTask; })
+                .Template(g => Button.Type("button").Data(g)["Start camera"]),
+            Button.Type("button").Disabled(_stream is null).OnClickAsync(StopAsync)["Stop camera"],
+            Video.Ref(_video).Muted(true)
         ];
 
     private async Task StopAsync()

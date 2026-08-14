@@ -3,10 +3,10 @@ namespace Rask.Example.Playground;
 /// <summary>One chapter of the guided in-browser tutorial: prose, a goal, and the code it starts from.</summary>
 /// <remarks>
 ///     Same contract as <see cref="PlaygroundSample"/> — the code is a raw string so what the reader sees is
-///     exactly what compiles, defines a component named <c>Playground</c> as the entry point, and lives in a
-///     namespace (that is what makes the generator emit <c>global using static Demo.Generated;</c>, bringing a
-///     reader's own component factories into scope). The in-browser compile has no MSBuild implicit usings, so
-///     every snippet spells out its <c>using</c>s.
+///     exactly what compiles, defines a component named <c>Playground</c> as the entry point, lives in a
+///     namespace (as a real Rask project does), and declares every component <c>partial</c>, which is what lets
+///     the generator inject the builder entries that make a reader's own components chainable. The in-browser
+///     compile has no MSBuild implicit usings, so every snippet spells out its <c>using</c>s.
 ///     <para>
 ///         Chapters with <see cref="TutorialChapter.NeedsDatabase"/> run real EF Core against a real SQLite
 ///         database inside the tab. Each one owns its own file (<c>ch5.db</c>, <c>ch6.db</c>, …) in the
@@ -40,8 +40,9 @@ public static class TutorialChapters
             "Render some HTML from C#.",
             [
                 "A component is a class deriving from Component that overrides Render().",
-                "Div(), H1(), P(), Ul(), Li() are generated factories — one per HTML tag.",
-                "Children go in the indexer: Div()[H1()[\"Hi\"]]. Attributes are named arguments.",
+                "Markup is a chain: name a component, then dot onto it — Div.Class(\"card\"). No new, no factory call.",
+                "Children go in the [] indexer: Div[H1[\"Hi\"]]. A tag you set nothing on needs no parentheses.",
+                "Declare components partial — that is where the generator puts the chain surface.",
                 "Try it: add a third item to the list, then press Run.",
             ],
             """
@@ -52,15 +53,19 @@ public static class TutorialChapters
             // Welcome! This C# is compiled inside your browser — Roslyn and the Rask source generator run
             // in WebAssembly, with no server involved. Press Run (or Ctrl/Cmd + Enter) to see the result.
             // The entry point is always a component named `Playground`.
-            public sealed class Playground : Component
+            //
+            // Markup is a chain. `Div` is a div, so pressing `.` after it lists everything a div has —
+            // the documentation is at the call site. Set nothing on a tag and you need no parentheses
+            // at all: `H1["Rask Coffee"]`.
+            public sealed partial class Playground : Component
             {
                 protected override Component? Render() =>
-                    Div(Class: "card")[
-                        H1()["Rask Coffee ☕"],
-                        P(Class: "muted")["Everything below is rendered from the C# on the left."],
-                        Ul(Class: "list")[
-                            Li()["Espresso"],
-                            Li()["Flat white"]
+                    Div.Class("card")[
+                        H1["Rask Coffee ☕"],
+                        P.Class("muted")["Everything below is rendered from the C# on the left."],
+                        Ul.Class("list")[
+                            Li["Espresso"],
+                            Li["Flat white"]
                         ]
                     ];
             }
@@ -73,7 +78,7 @@ public static class TutorialChapters
             "Hold state in a field and change it from an event handler.",
             [
                 "State is an ordinary C# field — no observables, no setState.",
-                "OnClick takes a plain delegate; Rask re-renders the component when it returns.",
+                ".OnClick(…) takes a plain delegate; Rask re-renders the component when it returns.",
                 "The framework diffs the result and patches only what changed.",
                 "Try it: add a \"Reset\" button that sets _stock back to 0.",
             ],
@@ -84,17 +89,17 @@ public static class TutorialChapters
 
             // State lives in fields. A handler mutates the field, and Rask re-renders — there is nothing
             // to subscribe to and nothing to notify.
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private int _stock;
 
                 protected override Component? Render() =>
-                    Div(Class: "card")[
-                        H1()["Espresso"],
-                        P()[$"{_stock} bags in stock."],
-                        Div(Class: "row")[
-                            Button(Class: "btn", OnClick: () => _stock++)["Restock"],
-                            Button(Class: "btn", OnClick: () => _stock--, Disabled: _stock == 0)["Sell"]
+                    Div.Class("card")[
+                        H1["Espresso"],
+                        P[$"{_stock} bags in stock."],
+                        Div.Class("row")[
+                            Button.Class("btn").OnClick(() => _stock++)["Restock"],
+                            Button.Class("btn").OnClick(() => _stock--).Disabled(_stock == 0)["Sell"]
                         ]
                     ];
             }
@@ -106,9 +111,9 @@ public static class TutorialChapters
             "Composition and lists",
             "Extract a child component and render a keyed list of them.",
             [
-                "Every public component gets a generated factory — call ProductCard(Name: …), never `new`.",
-                "Public properties become factory parameters, so the parent passes data by name.",
-                "Key: gives a list item a stable identity, so the diff moves rows instead of rewriting them.",
+                "Your own components join the chain too — ProductCard.Name(…), never `new`.",
+                "A property that cannot be defaulted becomes a STEP the chain asks for first; the rest are optional.",
+                ".Key(…) gives a list item a stable identity, so the diff moves rows instead of rewriting them.",
                 "Try it: add a Price property to ProductCard and render it.",
             ],
             """
@@ -118,38 +123,43 @@ public static class TutorialChapters
 
             namespace Demo;
 
-            // A child component. The generator emits a `ProductCard(...)` factory from its public
-            // properties — that factory is how you build one (constructing components with `new` is a
-            // compile error, RASK014).
-            public sealed class ProductCard : Component
+            // A child component. The generator gives it a chain entry of its own, built from its public
+            // properties — that chain is how you build one (constructing components with `new` is a
+            // compile error, RASK014). It has to be `partial` for the generator to have somewhere to put it.
+            public sealed partial class ProductCard : Component
             {
-                public string Name { get; set; } = "";
-                public bool InStock { get; set; }
+                // A card with no name is not a card, so `Name` is a STEP: the chain will not hand you a
+                // ProductCard until you have set it, which makes forgetting it a compile error here rather
+                // than a blank row at runtime. `InStock` has a sensible default, so it is a plain setter.
+                public required string Name { get; set; }
+                public bool InStock { get; set; } = true;
 
                 protected override Component? Render() =>
-                    Li(Class: InStock ? "item" : "item muted")[
-                        Span()[Name],
-                        Span(Class: "muted")[InStock ? " — in stock" : " — sold out"]
+                    Li.Class(InStock ? "item" : "item muted")[
+                        Span[Name],
+                        Span.Class("muted")[InStock ? " — in stock" : " — sold out"]
                     ];
             }
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private readonly List<string> _sold = new() { "Flat white" };
 
                 private static readonly string[] Menu = ["Espresso", "Flat white", "Cold brew"];
 
                 protected override Component? Render() =>
-                    Div(Class: "card")[
-                        H1()["Menu"],
-                        Ul(Class: "list")[
-                            // Key: is the row's identity across re-renders — always set it on a list.
-                            Menu.Select(name => ProductCard(
-                                Key: name,
-                                Name: name,
-                                InStock: !_sold.Contains(name)))
+                    Div.Class("card")[
+                        H1["Menu"],
+                        Ul.Class("list")[
+                            // .Key(…) is the row's identity across re-renders — always set it on a list.
+                            // A chain that ends in [ … ] is already a Component; this one ends on a
+                            // setter, so it is still a builder — hence the cast on a whole list of them.
+                            Menu.Select(name => (Component)ProductCard
+                                .Name(name)
+                                .InStock(!_sold.Contains(name))
+                                .Key(name))
                         ],
-                        Button(Class: "btn", OnClick: () => _sold.Clear())["Restock everything"]
+                        Button.Class("btn").OnClick(() => _sold.Clear())["Restock everything"]
                     ];
             }
             """),
@@ -160,9 +170,10 @@ public static class TutorialChapters
             "Forms and validation",
             "Bind inputs to a model and validate them as the reader types.",
             [
-                "Input(() => model.Field) is a two-way binding — no name strings, no event plumbing.",
-                "Validate: runs per field; Form's own Validate: runs across the whole model.",
-                "ValidationMessage renders one field's errors, ValidationSummary the form-level ones.",
+                "Input.Bind(() => model.Field) is a two-way binding — no name strings, no event plumbing.",
+                "A control opens with .Bind(…) or .Value(…): it cannot exist until it knows what it holds.",
+                ".Validate(…) runs per field; Form's own .Validate(…) runs across the whole model.",
+                "ValidationMessage.Template(…).For(…) renders one field's errors; ValidationSummary the form-level ones.",
                 "Try it: require the price to be greater than zero.",
             ],
             """
@@ -174,32 +185,36 @@ public static class TutorialChapters
 
             namespace Demo;
 
-            // Form<T> binds to a plain model object and re-validates as you type. Nothing here is
+            // Form binds to a plain model object and re-validates as you type. Nothing here is
             // Rask-specific except the components — the model is an ordinary class.
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private readonly NewProduct _model = new();
                 private readonly List<string> _added = new();
 
                 protected override Component? Render() =>
-                    Div(Class: "card")[
-                        H1()["Add a product"],
-                        Form(_model, OnValidSubmit: Add)[
-                            Label()["Name"],
-                            Input(() => _model.Name, Class: "field", Placeholder: "Cold brew",
-                                Validate: v => v.Trim().Length > 0
+                    Div.Class("card")[
+                        H1["Add a product"],
+                        Form.Model(_model).OnValidSubmit(Add)[
+                            Label["Name"],
+                            // .Bind(…) opens the chain: an input has to know what it binds to before it
+                            // is an input at all. The type comes with it — no Input<string>() anywhere.
+                            Input.Bind(() => _model.Name)
+                                .Class("field")
+                                .Placeholder("Cold brew")
+                                .Validate(v => v.Trim().Length > 0
                                     ? Array.Empty<string>()
                                     : new[] { "Name is required." }),
-                            ValidationMessage(() => _model.Name, Errors),
+                            ValidationMessage.Template(Errors).For(() => _model.Name),
 
-                            Label()["Price"],
-                            Input(() => _model.Price, Class: "field"),
+                            Label["Price"],
+                            Input.Bind(() => _model.Price).Class("field"),
 
-                            Button(Type: "submit", Class: "btn")["Add"]
+                            Button.Type("submit").Class("btn")["Add"]
                         ],
                         _added.Count == 0
                             ? null
-                            : Ul(Class: "list")[_added.Select(name => Li(Key: name)[name])]
+                            : Ul.Class("list")[_added.Select(name => Li.Key(name)[name])]
                     ];
 
                 private void Add(NewProduct model)
@@ -210,7 +225,7 @@ public static class TutorialChapters
                 }
 
                 private static Component Errors(IReadOnlyList<string> messages) =>
-                    [.. messages.Select((m, i) => P(Key: i, Class: "error")[m])];
+                    [.. messages.Select((m, i) => P.Key(i).Class("error")[m])];
 
                 private sealed class NewProduct
                 {
@@ -243,8 +258,8 @@ public static class TutorialChapters
 
             namespace Demo;
 
-            // An entity. Entity<Guid> (from Rask.Data) owns the identity and the audit stamps, which is
-            // exactly what `rask generate feature Product …` scaffolds for you in a real project.
+            // An entity. Entity<Guid> (from Rask.Data) owns the identity and the audit stamps — the same
+            // shape the tutorial in docs/tutorial builds a real feature slice around.
             public sealed class Product : Entity<Guid>
             {
                 private Product() { }   // EF Core materialises rows through this.
@@ -281,7 +296,7 @@ public static class TutorialChapters
                 }
             }
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private IReadOnlyList<Product> _products = [];
 
@@ -306,19 +321,19 @@ public static class TutorialChapters
                 }
 
                 protected override Component? Render() =>
-                    Div(Class: "card")[
-                        H1()["Stock"],
-                        Button(Class: "btn", OnClickAsync: AddAsync)["Add a bag of espresso"],
+                    Div.Class("card")[
+                        H1["Stock"],
+                        Button.Class("btn").OnClickAsync(AddAsync)["Add a bag of espresso"],
                         _products.Count == 0
-                            ? P(Class: "muted")["No rows yet — press the button."]
-                            : Ul(Class: "list")[
-                                _products.Select(p => Li(Key: p.Id)[
-                                    Span()[$"{p.Name} — {p.Price:0.00}"],
+                            ? P.Class("muted")["No rows yet — press the button."]
+                            : Ul.Class("list")[
+                                _products.Select(p => Li.Key(p.Id)[
+                                    Span[$"{p.Name} — {p.Price:0.00}"],
                                     // CreatedAt was filled in by the interceptor, not by Create().
-                                    Span(Class: "muted")[$" (added {p.CreatedAt:HH:mm:ss})"]
+                                    Span.Class("muted")[$" (added {p.CreatedAt:HH:mm:ss})"]
                                 ])
                             ],
-                        P(Class: "muted")[$"{_products.Count} row(s) in the products table."]
+                        P.Class("muted")[$"{_products.Count} row(s) in the products table."]
                     ];
             }
             """,
@@ -369,7 +384,7 @@ public static class TutorialChapters
                     modelBuilder.ApplyRaskConventions();
             }
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private readonly Search _search = new();
                 private IReadOnlyList<Product> _results = [];
@@ -406,16 +421,16 @@ public static class TutorialChapters
                 }
 
                 protected override Component? Render() =>
-                    Div(Class: "card")[
-                        H1()["Catalogue"],
-                        Div(Class: "row")[
-                            Input(() => _search.Term, Class: "field", Placeholder: "Search by name…"),
-                            Button(Class: "btn", OnClickAsync: SearchAsync)["Search"]
+                    Div.Class("card")[
+                        H1["Catalogue"],
+                        Div.Class("row")[
+                            Input.Bind(() => _search.Term).Class("field").Placeholder("Search by name…"),
+                            Button.Class("btn").OnClickAsync(SearchAsync)["Search"]
                         ],
                         _results.Count == 0
-                            ? P(Class: "muted")["Nothing matched."]
-                            : Ul(Class: "list")[
-                                _results.Select(p => Li(Key: p.Id)[$"{p.Name} — {p.Price:0.00}"])
+                            ? P.Class("muted")["Nothing matched."]
+                            : Ul.Class("list")[
+                                _results.Select(p => Li.Key(p.Id)[$"{p.Name} — {p.Price:0.00}"])
                             ]
                     ];
 
@@ -480,7 +495,7 @@ public static class TutorialChapters
                     modelBuilder.ApplyRaskConventions();
             }
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private bool _showDeleted;
                 private IReadOnlyList<Product> _products = [];
@@ -538,19 +553,19 @@ public static class TutorialChapters
                 }
 
                 protected override Component? Render() =>
-                    Div(Class: "card")[
-                        H1()["Catalogue"],
-                        Ul(Class: "list")[
-                            _products.Select(p => Li(Key: p.Id, Class: p.DeletedAt is null ? null : "done")[
-                                Span()[$"{p.Name} — {p.Price:0.00}"],
-                                Button(Class: "link", OnClickAsync: () => RepriceAsync(p.Id))["+50c"],
-                                Button(Class: "link", OnClickAsync: () => DeleteAsync(p.Id))["Delete"]
+                    Div.Class("card")[
+                        H1["Catalogue"],
+                        Ul.Class("list")[
+                            _products.Select(p => Li.Key(p.Id).Class(p.DeletedAt is null ? null : "done")[
+                                Span[$"{p.Name} — {p.Price:0.00}"],
+                                Button.Class("link").OnClickAsync(() => RepriceAsync(p.Id))["+50c"],
+                                Button.Class("link").OnClickAsync(() => DeleteAsync(p.Id))["Delete"]
                             ])
                         ],
-                        Button(Class: "btn", OnClickAsync: ToggleAsync)[
+                        Button.Class("btn").OnClickAsync(ToggleAsync)[
                             _showDeleted ? "Hide deleted" : "Show deleted"
                         ],
-                        P(Class: "muted")[
+                        P.Class("muted")[
                             _showDeleted
                                 ? "IgnoreQueryFilters() — deleted rows are still there, just stamped."
                                 : "The default query filter hides anything with a DeletedAt."
@@ -638,7 +653,7 @@ public static class TutorialChapters
                 }
             }
 
-            public sealed class Playground : Component
+            public sealed partial class Playground : Component
             {
                 private IReadOnlyList<Order> _orders = [];
 
@@ -662,21 +677,21 @@ public static class TutorialChapters
                 }
 
                 protected override Component? Render() =>
-                    Div(Class: "card")[
-                        H1()["Orders"],
+                    Div.Class("card")[
+                        H1["Orders"],
                         // A list of children goes in an indexer of its own — an enumerable can't sit
                         // alongside single components in the same one.
-                        Div()[
-                            _orders.Select(o => Div(Key: o.Id)[
-                                H2()[$"{o.Customer} — {o.Total:0.00}"],
-                                Ul(Class: "list")[
-                                    o.Lines.Select(l => Li(Key: l.Id)[
+                        Div[
+                            _orders.Select(o => Div.Key(o.Id)[
+                                H2[$"{o.Customer} — {o.Total:0.00}"],
+                                Ul.Class("list")[
+                                    o.Lines.Select(l => Li.Key(l.Id)[
                                         $"{l.Quantity} × {l.Product} @ {l.Price:0.00}"
                                     ])
                                 ]
                             ])
                         ],
-                        P(Class: "muted")["Done! Run `rask new` on your machine for the rest of the story."]
+                        P.Class("muted")["Done! Run `rask new` on your machine for the rest of the story."]
                     ];
             }
             """,
