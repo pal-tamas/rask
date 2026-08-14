@@ -1402,6 +1402,78 @@ window.__raskLocks = window.__raskLocks || (() => {
     };
 })();
 
+// WebRTC signaling (driven by ISignaling) — the socket two peers trade an offer, an answer and their ICE
+// candidates over before they can talk directly. The connection lives here rather than in C# for the same
+// reason the peer connection does: it must work identically on both hosts, and on the Server host a C#-side
+// socket would put the app's own server in the middle of a relay it is already hosting.
+//
+// A SEPARATE socket from the live render one, deliberately: that socket has its own frame contract, rate
+// limits and shutdown-drain semantics, and signaling traffic has no business sharing them.
+//
+// The payload is an opaque string end to end — this helper never parses an SDP or a candidate either.
+window.__raskSignal = window.__raskSignal || (() => {
+    const conns = new Map(); // id -> WebSocket
+    return {
+        isSupported: () => typeof window.WebSocket === "function",
+        open: (id, path) => new Promise((resolve, reject) => {
+            const url = new URL(path, window.location.href);
+            url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+            const ws = new WebSocket(url.href);
+            conns.set(id, ws);
+            ws.onmessage = (e) => {
+                let m;
+                try {
+                    m = JSON.parse(e.data);
+                } catch (_) {
+                    return;
+                }
+                // One flat shape for every relay message, so the C# side has a single [JSInvokable]: the
+                // peer it concerns (peerId on a join/leave, from on a signal), and one string slot that
+                // carries the app payload, the error text, or — for our own join — the peer-list JSON.
+                const peer = m.peerId || m.from || "";
+                const text = m.type === "joined"
+                    ? JSON.stringify(m.peers || [])
+                    : (m.payload != null ? m.payload : (m.message || ""));
+                invoke("RaskSignalMessage", id, m.type || "", peer, text);
+            };
+            ws.onclose = () => {
+                conns.delete(id);
+                invoke("RaskSignalClosed", id);
+            };
+            // Resolve on open, reject on a failure BEFORE it: after that, onclose is the channel for it.
+            ws.onopen = () => resolve(true);
+            ws.onerror = () => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    conns.delete(id);
+                    reject(new Error("Rask signaling: could not connect to " + url.href));
+                }
+            };
+        }),
+        send: (id, json) => {
+            const ws = conns.get(id);
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                throw new Error("Rask signaling: connection " + id + " is closed.");
+            }
+            ws.send(json);
+        },
+        close: (id) => {
+            const ws = conns.get(id);
+            if (!ws) {
+                return;
+            }
+            conns.delete(id);
+            ws.onmessage = null;
+            ws.onclose = null;
+            ws.onerror = null;
+            ws.close();
+        }
+    };
+
+    function invoke(method, ...args) {
+        return window.DotNet.invokeMethodAsync("Rask.Core", method, ...args);
+    }
+})();
+
 // WebRTC (driven by IWebRtc) — an RTCPeerConnection and its data channels can't cross interop, so each is
 // held here under an id: C# mints connection ids (it must register its handlers before ICE gathering
 // starts), JS mints channel ids (a remote peer can open one at any time, so one minting side keeps the id

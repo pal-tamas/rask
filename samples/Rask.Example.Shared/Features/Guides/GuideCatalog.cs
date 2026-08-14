@@ -243,6 +243,7 @@ public static class GuideCatalog
         new("screen-info", "IScreenInfo", "Typed browser API: IScreenInfo.", "bi-plug", "Browser API reference", "apis/screen-info.md"),
         new("screen-orientation", "IScreenOrientation", "Typed browser API: IScreenOrientation.", "bi-plug", "Browser API reference", "apis/screen-orientation.md"),
         new("serial", "ISerial", "Typed browser API: ISerial.", "bi-plug", "Browser API reference", "apis/serial.md"),
+        new("signaling", "ISignaling", "Typed browser API: ISignaling.", "bi-plug", "Browser API reference", "apis/signaling.md"),
         new("share", "IShare", "Typed browser API: IShare.", "bi-plug", "Browser API reference", "apis/share.md"),
         new("speech-recognition", "ISpeechRecognition", "Typed browser API: ISpeechRecognition.", "bi-plug", "Browser API reference", "apis/speech-recognition.md"),
         new("speech-synthesis", "ISpeechSynthesis", "Typed browser API: ISpeechSynthesis.", "bi-plug", "Browser API reference", "apis/speech-synthesis.md"),

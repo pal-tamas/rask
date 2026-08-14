@@ -91,6 +91,9 @@ jobs:
       - name: Pack Rask.WebPush
         run: dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Signaling
+        run: dotnet pack src/Rask.Signaling/Rask.Signaling.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.ObjectStore
         run: dotnet pack src/Rask.ObjectStore/Rask.ObjectStore.csproj -c Release --no-build -o ./artifacts
 

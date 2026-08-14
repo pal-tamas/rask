@@ -80,24 +80,27 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                 // MediaCaptureTrigger fills this <video> from the camera; PictureInPictureTrigger then pops
                 // that same element out — both resolve the element from its ElementRef.
                 BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true)[
+                    // For and Template are the required steps, so they come first: until both are named
+                    // the receiver is still a pending-required wrapper and has no optional setters on it.
                     MediaCaptureTrigger
                         .For(_preview)
-                        .Video(true)
-                        .FacingMode("user")
-                        // OnStream keeps the started stream reachable from C# — the only way a Server-hosted
-                        // app can hold one, and what makes the stop button below possible at all.
-                        .OnStream(id =>
-                        {
-                            _camera = id;
-                            StateHasChanged(); // sanctioned pattern for an externally-pushed result
-                            return Task.CompletedTask;
-                        })
                         .Template(g =>
                             Button
                                 .Type("button")
                                 .Class("btn btn-outline-secondary btn-sm")
                                 .Id("camera-btn")
-                                .Data(g)["Start camera"]),
+                                .Data(g)["Start camera"])
+                        .Video(true)
+                        .FacingMode("user")
+                        // OnStream keeps the started stream reachable from C# — the only way a Server-hosted
+                        // app can hold one, and what makes the stop button below possible at all. No
+                        // StateHasChanged: the trigger is a Component, so its callback is auto-wrapped and
+                        // this demo repaints when the handler returns (RASK026).
+                        .OnStream(id =>
+                        {
+                            _camera = id;
+                            return Task.CompletedTask;
+                        }),
                     Button
                         .Type("button")
                         .Class("btn btn-outline-secondary btn-sm")

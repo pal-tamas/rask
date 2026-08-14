@@ -39,6 +39,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IWebLocks` | Web Locks API | Serialise work across an origin's tabs/workers — hold a named lock for a callback | callback-scoped |
 | `IBroadcastChannel` | `BroadcastChannel` | Cross-tab messaging | **subscription** |
 | `IMediaStreams` | `MediaStream` | Attach a live stream to a `<video>`, or stop it (releasing the camera) | one-shot |
+| `ISignaling` | WebSocket | Join a room on Rask's signaling relay and pass payloads to one peer | **subscription** |
 | `IWebRtc` | WebRTC | Peer-to-peer data channels between two browsers (you supply the signaling) | **subscription** |
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
@@ -136,6 +137,8 @@ Most wrappers are one-shot request/response. Several are **subscriptions**, wher
 each change back into C#:
 
 - **`IBroadcastChannel`** — `OpenAsync(name, onMessage)` → connection (`PostAsync`, `IAsyncDisposable`)
+- **`ISignaling`** — `JoinAsync(room, handlers, path?)` → connection (`SendAsync`, `IAsyncDisposable`);
+  pairs with `AddRaskSignaling()` / `MapRaskSignaling()` on the server
 - **`IWebRtc`** — `CreateAsync(config, handlers)` → connection (`IAsyncDisposable`); its channels'
   `ListenAsync(onMessages)` delivers **batches**, not single messages — on Server each push is a WebSocket
   frame, so the framework coalesces them

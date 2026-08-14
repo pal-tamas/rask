@@ -8,6 +8,26 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A WebRTC signaling relay — `ISignaling` (client) and the new `Rask.Signaling` package (server).**
+  `IWebRtc` deliberately doesn't pick a signaling channel; this is the channel for apps that don't already
+  have one. `AddRaskSignaling()` + `MapRaskSignaling()` host rooms; `ISignaling.JoinAsync` joins one and
+  relays opaque payloads to a named peer.
+  - **It's a relay between untrusted peers, so it behaves like one.** Peer ids are minted by the server and
+    never taken from the client; a message reaches only a peer in the *sender's own room*, checked at
+    delivery rather than trusted from the message; nothing is ever echoed back to its sender; payload size,
+    message rate, room size and room count are capped. A refused join says the same thing whether the room
+    was full or the caller wasn't allowed in, so nobody can probe which rooms exist.
+  - **Authentication is required by default.** A relay anyone can join is a way to reach other people's
+    browsers, so opening it is a decision (`RequireAuthorization = false`), not an accident.
+    `AuthorizeRoom` is the per-room hook for the question the framework can't answer — is *this* user a
+    member of *this* conversation.
+  - **The payload is an opaque string end to end.** The relay never parses an SDP or an ICE candidate;
+    only the two browsers need to understand it, and parsing attacker-controlled SDP server-side would be
+    surface for no benefit.
+  - **Its own package, not part of `Rask.Server`.** It needs only ASP.NET routing and WebSockets, so any
+    host can map it — including a static-file host serving a published WASM bundle.
+  - **Rooms are in memory, per process.** Signaling is short-lived so there's nothing worth persisting, but
+    a multi-instance deployment needs sticky routing on the signaling path; documented rather than implied.
 - **Media over WebRTC, and a captured stream a Server app can actually keep — `IMediaStreams`.** A
   `MediaStream` can't cross interop, so the framework holds it under a `MediaStreamId`; `IMediaStreams`
   attaches one to a `<video>` or stops it. Neither needs a user gesture, so it works on every host.
