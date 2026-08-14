@@ -234,7 +234,7 @@ public class App : Component
                     Feature("⚿", "Auth, four ways", "Cookie & JWT on both Server and WASM, route guards, and an ", Code()["--auth"], " template switch. Identity, Keycloak, Auth0, OIDC."),
                     Feature("⇄", "CQRS", "Source-generated, trim-safe queries, commands, notifications and pipeline behaviors via ", Code()["AddRaskCqrs()"], " — standalone, zero reflection."),
                     Feature("▚", "PWA & Web Push", "Typed manifest, a default service worker, and VAPID/RFC-8291 Web Push with zero external deps. ", Code()["--pwa"], " and you're installable."),
-                    Feature("◈", "46 typed browser APIs", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
+                    Feature("◈", "48 typed browser APIs", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
                     Feature("⌂", "Secure by default", "Strings are HTML-encoded, URL attributes are scheme-sanitized (", Code()["javascript:"], " → ", Code()["about:blank"], "). Safe output is the default, not a flag."),
                     Feature("↻", "C# Hot Reload", "Edit ", Code()["Render()"], " or scoped css/js under ", Code()["dotnet watch"], " and it re-renders live — the closest a compiled framework gets to a no-build loop.")
                 ]

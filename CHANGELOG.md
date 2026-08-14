@@ -7,7 +7,30 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **WebRTC — `IWebRtc`, the 48th typed browser API.** Peer connections and data channels, so two browsers
+  can exchange data directly instead of through your server. It lives in `Rask.Core.Browser` and needs no
+  user activation, so it works on **every host** — Server, WASM and Native — from one injected service.
+  - **You supply the signaling.** `RtcDescription` and `RtcIceCandidate` are plain serializable records, so
+    the offer/answer/ICE exchange rides whatever channel you already have — a WebSocket, an HTTP endpoint,
+    or `IBroadcastChannel` between two tabs. The demo runs both peers in one page, so signaling is a method
+    call and everything else is real.
+  - **Incoming messages and ICE candidates arrive in batches**, not one callback each. On the Server host
+    every push from the browser costs an inbound WebSocket frame, and the host closes a socket past
+    `RaskServerLimits.MaxInboundFramesPerSecond` (1000 by default) — a busy data channel delivered one
+    message per push would end the session in under a second. The client buffers on a short timer instead,
+    which bounds the push rate no matter how fast the peer sends, and WASM gets the same shape so the two
+    hosts stay identical. Past a cap the oldest messages are dropped and counted rather than growing the
+    buffer without bound; the count is reported through `RaskDiagnostics`. ICE candidates are never dropped.
+  - **A channel buffers from the moment it exists and delivers once you call `ListenAsync`**, so a channel
+    the remote peer opened loses nothing between arriving at `OnDataChannel` and being listened to.
+  - **ICE server URLs are checked** — `stun:`, `turn:` or `turns:` only — and `IceTransportPolicy = "relay"`
+    is documented as the way to stop a peer learning your local network addresses.
+
 ### Fixed
+- **The browser-API counts in the docs were a release behind.** Six places said "46 wrappers" and the
+  capability matrix said "34 transport-agnostic" while the repo already shipped 47 and 35 — the
+  `IOriginPrivateFileSystem` change never bumped them. Corrected to 48 and 36 alongside this one.
 - **Tutorial chapter 7 contradicted chapter 3.** It told the reader to write `Create(string customer,
   decimal total)` on an `Order` that chapter 3 gave `Total`/`ProductId`/`Placed` and no `Customer` —
   the snippets came from a generator run with different fields, which the old `--force` regeneration

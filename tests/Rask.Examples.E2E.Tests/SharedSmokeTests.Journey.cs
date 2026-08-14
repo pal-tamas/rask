@@ -2146,7 +2146,7 @@ public abstract partial class SharedSmokeTests
         // The demos all live on the reference subpage — the hub is prose and carries none, so walking it
         // would assert nothing (docs/browser-apis.md has zero `<!-- demo: -->` markers).
         await SideAsync("Browser APIs — reference & demos", "reference & live demos", "main .markdown-body h1");
-        await AssertGuideDemosAsync(33, "browser-apis-reference");
+        await AssertGuideDemosAsync(34, "browser-apis-reference");
         await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
@@ -2199,6 +2199,26 @@ public abstract partial class SharedSmokeTests
         // the __raskLocks helper under a C#-minted id.
         await Page.Locator("#locks-try").ClickAsync();
         await Expect(Page.Locator("#locks-status")).ToContainTextAsync("acquired", contains);
+
+        // WebRTC — the whole peer-to-peer round trip, headless and with no network: two RTCPeerConnections
+        // in one page exchange a real offer/answer, gather host candidates (no STUN configured, and none
+        // needed on loopback), connect, and carry a message over a real RTCDataChannel. The received text
+        // arriving proves the batched push path end to end — JS buffer → [JSInvokable] → C# callback.
+        // WebRTC — asserts the wrapper's full round trip, deliberately stopping short of a completed peer
+        // connection. Creating the peers runs createOffer/createAnswer/setLocal/setRemote through
+        // IJSRuntime, and the candidate count is the batch the browser PUSHED BACK into C# through
+        // WebRtcInterop — so a non-zero count proves gather → coalesce → [JSInvokable] → callback end to
+        // end, in a real browser, on both hosts.
+        //
+        // What it deliberately does NOT assert is a message crossing the channel. That needs ICE to
+        // actually connect, which needs UDP the gate's browser doesn't have (its console shows
+        // net::ERR_FAILED for outbound requests) — two local peers here reach "connecting" and then
+        // "failed". Asserting connectivity would make this test a property of the machine's network
+        // rather than of the framework. Message decoding, batching, dropped-message counting and
+        // per-connection routing are covered deterministically in Rask.Core.Tests.Browser.WebRtcTests.
+        await Page.Locator("#rtc-connect").ClickAsync();
+        await Expect(Page.Locator("#rtc-candidates")).ToHaveTextAsync(
+            new Regex("^[1-9][0-9]*$"), new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         // Battery — one-shot read of navigator.getBattery (headless Chromium provides a mock manager, so
         // GetStatusAsync resolves rather than returning null); the read label flips to "read".
