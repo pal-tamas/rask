@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Rask.Core.Browser;
 using Rask.Core.Components;
 
 namespace Rask.Core.Tests.Components;
@@ -114,5 +115,55 @@ public class GestureTriggerTests
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
         await GestureResultInterop.Result(rid, "accepted");
         Assert.Equal("accepted", outcome);
+    }
+
+    [Fact]
+    public async Task MediaCaptureTrigger_HandsTheStreamIdToOnStream_AndStillSaysGrantedToOnResult()
+    {
+        // The capability now resolves the stream's id instead of the literal "granted". OnResult must keep
+        // its original vocabulary — the id is an addition, not a replacement.
+        MediaStreamId? stream = null;
+        string? result = null;
+        var html = MediaCaptureTrigger(
+            For: ElementRef.New(),
+            OnStream: id => { stream = id; return Task.CompletedTask; },
+            OnResult: value => { result = value; return Task.CompletedTask; },
+            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+
+        var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
+        await GestureResultInterop.Result(rid, "12");
+
+        Assert.Equal(new MediaStreamId(12), stream);
+        Assert.Equal("granted", result);
+    }
+
+    [Fact]
+    public async Task MediaCaptureTrigger_ARefusalReachesOnResultOnly()
+    {
+        var streamed = false;
+        string? result = null;
+        var html = MediaCaptureTrigger(
+            For: ElementRef.New(),
+            OnStream: _ => { streamed = true; return Task.CompletedTask; },
+            OnResult: value => { result = value; return Task.CompletedTask; },
+            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+
+        var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
+        await GestureResultInterop.Result(rid, "denied");
+
+        Assert.False(streamed);
+        Assert.Equal("denied", result);
+    }
+
+    [Fact]
+    public void MediaCaptureTrigger_WithNoCallbacks_StaysFireAndForget()
+    {
+        // No callback means no result to route, so no id should be registered — otherwise every render
+        // leaks an entry into the process-wide gesture registry for nobody to consume.
+        var html = MediaCaptureTrigger(
+            For: ElementRef.New(),
+            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+
+        Assert.Contains("&quot;rid&quot;:null", html);
     }
 }

@@ -38,6 +38,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
 | `IWebLocks` | Web Locks API | Serialise work across an origin's tabs/workers — hold a named lock for a callback | callback-scoped |
 | `IBroadcastChannel` | `BroadcastChannel` | Cross-tab messaging | **subscription** |
+| `IMediaStreams` | `MediaStream` | Attach a live stream to a `<video>`, or stop it (releasing the camera) | one-shot |
 | `IWebRtc` | WebRTC | Peer-to-peer data channels between two browsers (you supply the signaling) | **subscription** |
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
@@ -98,6 +99,8 @@ EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
 InstallTrigger(OnOutcome: o => { outcome = o; return Task.CompletedTask; },
     g => Button(Type: "button", Data: g)["Install app"])
 MediaCaptureTrigger(For: preview, Video: true,
+    // Keeps the stream reachable from C# — the only way a Server-hosted app can stop it later.
+    OnStream: id => { camera = id; StateHasChanged(); return Task.CompletedTask; },
     Template: g => Button(Type: "button", Data: g)["Start camera"])
 PictureInPictureTrigger(For: preview,
     Template: g => Button(Type: "button", Data: g)["Pop out video"])

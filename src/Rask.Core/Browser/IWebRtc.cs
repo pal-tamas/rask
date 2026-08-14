@@ -98,6 +98,14 @@ public sealed record RtcHandlers
     ///     it to start receiving; anything the peer already sent is buffered and arrives in the first batch.
     /// </summary>
     public Func<IRtcDataChannel, Task>? OnDataChannel { get; init; }
+
+    /// <summary>
+    ///     The <b>remote</b> peer's media arrived. Attach it to a <c>&lt;video&gt;</c> with
+    ///     <see cref="IMediaStreams.AttachAsync" />. Fires once per stream, not per track — a peer sending
+    ///     camera and microphone sends two tracks in one stream, and the stream is what you attach. The
+    ///     stream is stopped for you when the connection is disposed.
+    /// </summary>
+    public Func<MediaStreamId, Task>? OnTrack { get; init; }
 }
 
 /// <summary>
@@ -176,6 +184,23 @@ public interface IPeerConnection : IAsyncDisposable
     ///     receiving. The peer sees it through <see cref="RtcHandlers.OnDataChannel" />.
     /// </summary>
     ValueTask<IRtcDataChannel> CreateDataChannelAsync(string label, RtcDataChannelOptions? options = null);
+
+    /// <summary>
+    ///     Sends a captured camera/microphone/screen stream to the peer, who receives it through
+    ///     <see cref="RtcHandlers.OnTrack" />. Adding the same stream twice is a no-op. Adding or removing
+    ///     a stream renegotiates, so exchange a fresh offer/answer afterwards.
+    ///     <para>
+    ///         The stream stays yours: disposing the connection does <b>not</b> stop it. Stop it with
+    ///         <see cref="IMediaStreams.StopAsync" /> when you are done, or the camera stays open.
+    ///     </para>
+    /// </summary>
+    ValueTask AddStreamAsync(MediaStreamId stream);
+
+    /// <summary>
+    ///     Stops sending a stream added with <see cref="AddStreamAsync" />, without stopping the stream
+    ///     itself. Removing a stream that isn't being sent is a no-op.
+    /// </summary>
+    ValueTask RemoveStreamAsync(MediaStreamId stream);
 }
 
 /// <summary>One data channel on a peer connection. Dispose to close it.</summary>
@@ -332,6 +357,13 @@ public static class WebRtcInterop
         return handler(decoded);
     }
 
+    /// <summary>Infrastructure. Invoked by the JS bridge when the peer's media arrives; do not call.</summary>
+    [JSInvokable("RaskRtcTrack")]
+    public static Task Track(int id, int streamId) =>
+        Connections.TryGetValue(id, out var r) && r.Handlers.OnTrack is not null
+            ? r.Handlers.OnTrack(new MediaStreamId(streamId))
+            : Task.CompletedTask;
+
     /// <summary>Infrastructure. Invoked by the JS bridge when a channel closes; do not call.</summary>
     [JSInvokable("RaskRtcChannelClosed")]
     public static Task ChannelClosed(int connectionId, int channelId)
@@ -443,6 +475,12 @@ public sealed class WebRtc : IWebRtc
             ArgumentNullException.ThrowIfNull(candidate);
             return js.InvokeVoidAsync("__raskRtc.addIce", id, candidate);
         }
+
+        public ValueTask AddStreamAsync(MediaStreamId stream) =>
+            js.InvokeVoidAsync("__raskRtc.addStream", id, stream.Value);
+
+        public ValueTask RemoveStreamAsync(MediaStreamId stream) =>
+            js.InvokeVoidAsync("__raskRtc.removeStream", id, stream.Value);
 
         public async ValueTask<IRtcDataChannel> CreateDataChannelAsync(
             string label, RtcDataChannelOptions? options = null)
