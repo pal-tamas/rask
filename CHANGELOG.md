@@ -310,6 +310,23 @@ them until tagged releases begin.
   `Handler`).
 
 ### Fixed
+- **A dependency bump could fail the build of a project that has no scoped assets at all.** The
+  scoped-asset bake refuses to write an empty bundle silently (#650) — but the check that decides whether
+  "zero files" is a failure asked only whether *some* assembly had been skipped, on the reasoning that
+  "zero written plus a skip is never a legitimate no-scoped-assets project". That reasoning was wrong, and
+  the skip need not be an assembly that could ever hold a scoped asset.
+
+  Bumping the `Microsoft.Extensions` family was enough to prove it: the app then carries a
+  `Microsoft.Extensions.DependencyModel` newer than the one MSBuild already has loaded, `Assembly.LoadFrom`
+  throws on identity, and `Rask.Example.Wasm.Jobs` — which genuinely has no scoped assets — failed a build
+  that was entirely correct, with an error blaming node reuse.
+
+  The check now also requires that the registry was **never read**, which is what actually distinguishes
+  the two: if `Rask.Core` loaded and the registry was read, "zero files" is an answer rather than a
+  failure, and `FailOnEmpty` still speaks for the projects that assert they should have produced some. The
+  decision is extracted as `BakeScopedAssetsTask.IsNodeReuseBakeFailure` and pinned by a table test — it
+  is three booleans that had already been wrong once in a way no build caught.
+
 - **`rask new` scaffolded projects that could not compile, and every in-repo gate said they were fine.**
   `RaskBuilderSurface` — the switch that emits the chain entries — defaulted to **false**, and the repo
   turned it on only in its own `Directory.Build.props`. So the solution build, the 5,956-test unit gate,
