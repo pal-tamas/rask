@@ -37,6 +37,8 @@ Native column marks an API with a native C# backend (the rest run through the We
 | [`IOriginPrivateFileSystem`](apis/origin-private-file-system.md) | ✅ | ✅ | ✅ | — |
 | [`IWebAuthn`](apis/webauthn.md) | ✅ | ✅ | ✅ | — |
 | [`IWebLocks`](apis/web-locks.md) | ✅ | ✅ | ✅ | — |
+| [`IMediaStreams`](apis/media-streams.md) | ✅ | ✅ | ✅ | — |
+| [`IWebRtc`](apis/webrtc.md) | ✅ | ✅ | ✅ | — |
 | [`IBroadcastChannel`](apis/broadcast-channel.md) | ✅ | ✅ | ✅ | — |
 | [`IIntersectionObserver`](apis/intersection-observer.md) | ✅ | ✅ | ✅ | — |
 | [`IResizeObserver`](apis/resize-observer.md) | ✅ | ✅ | ✅ | — |
@@ -61,7 +63,7 @@ Native column marks an API with a native C# backend (the rest run through the We
 
 ## Notes
 
-- **Web / Server** is the ASP.NET host (per-session, over WebSocket). The 34 transport-agnostic
+- **Web / Server** is the ASP.NET host (per-session, over WebSocket). The 37 transport-agnostic
   wrappers register there; the activation-gated ones (🟡) can't be injected but are reachable through
   declarative **gesture components** that run the call inside the click gesture. All six ship:
   [`FullscreenTrigger`](apis/fullscreen.md), [`ScreenOrientationTrigger`](apis/screen-orientation.md),

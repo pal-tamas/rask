@@ -1,4 +1,5 @@
 using Rask.Core;
+using Rask.Core.Browser;
 using Rask.Core.Components;
 
 namespace Rask.Example.Shared.Features;
@@ -12,11 +13,12 @@ namespace Rask.Example.Shared.Features;
 ///     joined here by <c>ScreenOrientationTrigger</c>, <c>InstallTrigger</c>, <c>MediaCaptureTrigger</c>, and
 ///     <c>PictureInPictureTrigger</c> (the last two target a <c>&lt;video&gt;</c> via its <c>ElementRef</c>).
 /// </summary>
-public sealed partial class GestureBridgeDemo : Component
+public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
 {
     private readonly ElementRef _preview = ElementRef.New();
     private string? _color;
     private string? _install;
+    private MediaStreamId? _camera;
 
     protected override Component? Render() =>
         BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
@@ -80,14 +82,28 @@ public sealed partial class GestureBridgeDemo : Component
                 BsStack.Gap(2).Align(BsAlign.Center).WrapItems(true)[
                     MediaCaptureTrigger
                         .For(_preview)
+                        .Video(true)
+                        .FacingMode("user")
+                        // OnStream keeps the started stream reachable from C# — the only way a Server-hosted
+                        // app can hold one, and what makes the stop button below possible at all.
+                        .OnStream(id =>
+                        {
+                            _camera = id;
+                            StateHasChanged(); // sanctioned pattern for an externally-pushed result
+                            return Task.CompletedTask;
+                        })
                         .Template(g =>
                             Button
                                 .Type("button")
                                 .Class("btn btn-outline-secondary btn-sm")
                                 .Id("camera-btn")
-                                .Data(g)["Start camera"])
-                        .Video(true)
-                        .FacingMode("user"),
+                                .Data(g)["Start camera"]),
+                    Button
+                        .Type("button")
+                        .Class("btn btn-outline-secondary btn-sm")
+                        .Id("camera-stop-btn")
+                        .Disabled(_camera is null)
+                        .OnClickAsync(StopCameraAsync)["Stop camera"],
                     PictureInPictureTrigger
                         .For(_preview)
                         .Template(g =>
@@ -106,7 +122,22 @@ public sealed partial class GestureBridgeDemo : Component
                     "Every button runs inside its own click gesture, so they all work on the Server too. ",
                     "Camera + picture-in-picture need HTTPS and a real device; install needs an installable PWA ",
                     "(", Code["AddRaskPwa"], "); orientation lock only takes effect while fullscreen (pair it ",
-                    "with the fullscreen button on a phone); the eyedropper needs a Chromium browser."]
+                    "with the fullscreen button on a phone); the eyedropper needs a Chromium browser. ",
+                    "Stopping the camera goes through ", Code["IMediaStreams"], " on the id the capture ",
+                    "trigger handed back — releasing the device and its hardware indicator."]
             ]
         ];
+
+    // Stopping is not optional: a live stream holds the camera (and its indicator) open until every track
+    // is stopped, and nothing else in the page will do it.
+    private async Task StopCameraAsync()
+    {
+        if (_camera is not { } id)
+        {
+            return;
+        }
+
+        await streams.StopAsync(id);
+        _camera = null;
+    }
 }

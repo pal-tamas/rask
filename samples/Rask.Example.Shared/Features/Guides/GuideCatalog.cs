@@ -229,6 +229,7 @@ public static class GuideCatalog
         new("media-devices", "IMediaDevices", "Typed browser API: IMediaDevices.", "bi-plug", "Browser API reference", "apis/media-devices.md"),
         new("media-query", "IMediaQuery", "Typed browser API: IMediaQuery.", "bi-plug", "Browser API reference", "apis/media-query.md"),
         new("media-session", "IMediaSession", "Typed browser API: IMediaSession.", "bi-plug", "Browser API reference", "apis/media-session.md"),
+        new("media-streams", "IMediaStreams", "Typed browser API: IMediaStreams.", "bi-plug", "Browser API reference", "apis/media-streams.md"),
         new("mutation-observer", "IMutationObserver", "Typed browser API: IMutationObserver.", "bi-plug", "Browser API reference", "apis/mutation-observer.md"),
         new("navigator-info", "INavigatorInfo", "Typed browser API: INavigatorInfo.", "bi-plug", "Browser API reference", "apis/navigator-info.md"),
         new("network-info", "INetworkInfo", "Typed browser API: INetworkInfo.", "bi-plug", "Browser API reference", "apis/network-info.md"),
@@ -254,6 +255,7 @@ public static class GuideCatalog
         new("web-locks", "IWebLocks", "Typed browser API: IWebLocks.", "bi-plug", "Browser API reference", "apis/web-locks.md"),
         new("web-push", "IWebPush", "Typed browser API: IWebPush.", "bi-plug", "Browser API reference", "apis/web-push.md"),
         new("webauthn", "IWebAuthn", "Typed browser API: IWebAuthn.", "bi-plug", "Browser API reference", "apis/webauthn.md"),
+        new("webrtc", "IWebRtc", "Typed browser API: IWebRtc.", "bi-plug", "Browser API reference", "apis/webrtc.md"),
 
         // ---- Advanced ----
         new("testing", "Testing", "Unit testing with Rask.Testing, event handlers, E2E.",

@@ -38,6 +38,8 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
 | `IWebLocks` | Web Locks API | Serialise work across an origin's tabs/workers — hold a named lock for a callback | callback-scoped |
 | `IBroadcastChannel` | `BroadcastChannel` | Cross-tab messaging | **subscription** |
+| `IMediaStreams` | `MediaStream` | Attach a live stream to a `<video>`, or stop it (releasing the camera) | one-shot |
+| `IWebRtc` | WebRTC | Peer-to-peer data channels between two browsers (you supply the signaling) | **subscription** |
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
 | `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
@@ -96,7 +98,10 @@ EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
     g => Button.Type("button").Data(g)["Pick a colour"])
 InstallTrigger(OnOutcome: o => { outcome = o; return Task.CompletedTask; },
     g => Button.Type("button").Data(g)["Install app"])
-MediaCaptureTrigger.For(preview).Video(true).Template(g => Button.Type("button").Data(g)["Start camera"])
+MediaCaptureTrigger.For(preview).Video(true)
+    // Keeps the stream reachable from C# — the only way a Server-hosted app can stop it later.
+    .OnStream(id => { camera = id; StateHasChanged(); return Task.CompletedTask; })
+    .Template(g => Button.Type("button").Data(g)["Start camera"])
 PictureInPictureTrigger.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
 ```
 
@@ -131,6 +136,9 @@ Most wrappers are one-shot request/response. Several are **subscriptions**, wher
 each change back into C#:
 
 - **`IBroadcastChannel`** — `OpenAsync(name, onMessage)` → connection (`PostAsync`, `IAsyncDisposable`)
+- **`IWebRtc`** — `CreateAsync(config, handlers)` → connection (`IAsyncDisposable`); its channels'
+  `ListenAsync(onMessages)` delivers **batches**, not single messages — on Server each push is a WebSocket
+  frame, so the framework coalesces them
 - **`IIntersectionObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
 - **`IResizeObserver`** — `ObserveAsync(elementRef, onChange)` → `IAsyncDisposable`
 - **`IMutationObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
