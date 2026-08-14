@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Signaling</PackageId>
+    <Title>Rask.Signaling — WebRTC Signaling Relay</Title>
+    <Description>The WebRTC signaling relay Rask's ISignaling client connects to — rooms, server-minted peer ids, and opaque payload relay between peers, with authorization, size and rate limits. Depends on nothing from Rask.Server: any ASP.NET host can map it, including a static-file host serving a published WASM bundle. The relay never parses an SDP or an ICE candidate; it forwards whatever the client sent to one named peer in the same room.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — this is a transport-neutral
+         server-side relay, not a web-UI component library. -->
+    <PackageTags>webrtc signaling relay peer-to-peer websocket dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Signaling.Tests"/>
+  </ItemGroup>
+
+</Project>

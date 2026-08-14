@@ -12,7 +12,7 @@ namespace Rask.Benchmarks;
 // 50 (half changed) to size the worst case and decide whether name-indexing the old attributes is
 // worth the per-diff dictionary it would cost.
 [MemoryDiagnoser]
-public class LargeAttributeDiffBenchmarks
+public partial class LargeAttributeDiffBenchmarks : global::Rask.Core.RaskMarkup
 {
     private readonly List<EditOp> _ops = new(64);
     private readonly FrameDiffer.DiffScratch _scratch = new();
@@ -33,8 +33,8 @@ public class LargeAttributeDiffBenchmarks
             after["k" + i] = i % 2 == 0 ? "v" + i : "changed" + i; // half the values change
         }
 
-        _before = FramesOf(C.Div(Data: before));
-        (_after, _afterHtml) = FramesAndHtmlOf(C.Div(Data: after));
+        _before = FramesOf(Div.Data(before));
+        (_after, _afterHtml) = FramesAndHtmlOf(Div.Data(after));
     }
 
     [Benchmark]

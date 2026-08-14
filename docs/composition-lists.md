@@ -13,15 +13,13 @@ plus `ItemSize` (row height in px, required) and optional `OverscanCount`.
 
 ```csharp
 VirtualizeModel<Row>(
-    ctx => Div(Style: "height:400px; overflow:auto;", OnScroll: ctx.OnScroll)[
-        Div(Style: $"height:{ctx.OffsetBefore}px"),          // top spacer
-        Table()[Tbody()[
-            ctx.VisibleItems.Select(item => Tr(
-                Style: $"height:{ctx.ItemSize}px;",
-                Data: new() { ["rask-key"] = item.Index.ToString() })[  // key → reuse <tr> on scroll
-                Td()[item.IsPlaceholder ? "—" : item.Value!.Name])
+    ctx => Div.Style("height:400px; overflow:auto;").OnScroll(ctx.OnScroll)[
+        Div.Style($"height:{ctx.OffsetBefore}px"),          // top spacer
+        Table[Tbody[
+            ctx.VisibleItems.Select(item => Tr.Style($"height:{ctx.ItemSize}px;").Data(new() { ["rask-key"] = item.Index.ToString() })[  // key → reuse <tr> on scroll
+                Td[item.IsPlaceholder ? "—" : item.Value!.Name])
         ]],
-        Div(Style: $"height:{ctx.OffsetAfter}px")             // bottom spacer
+        Div.Style($"height:{ctx.OffsetAfter}px")             // bottom spacer
     ],
     _rows,                 // Items (in memory)
     ItemSize: 32,
@@ -76,7 +74,7 @@ one **inserts a keyed detail `<tr>`** right after it. The diff reconciles that a
 client-side navigation. Inject it and queue a message; a single `ToastOutlet` shows it once.
 
 ```csharp
-public sealed class SavePage(IToaster toast, Navigator nav) : Component
+public sealed partial class SavePage(IToaster toast, Navigator nav) : Component
 {
     private void Save()
     {
@@ -96,10 +94,10 @@ Show them by mounting **one** outlet in your app layout. The headless `ToastOutl
 you own it through `Template`, which receives the messages plus a `dismiss(id)` callback:
 
 ```csharp
-ToastOutlet(Template: (messages, dismiss) =>
-    Div()[messages.Select(m => (Component)Div(Class: "alert", Key: m.Id.ToString())[
+ToastOutlet.Template((messages, dismiss) =>
+    Div[messages.Select(m => (Component)Div.Class("alert").Key(m.Id.ToString())[
         m.Message,
-        Button(OnClick: () => dismiss(m.Id))["×"]])])
+        Button.OnClick(() => dismiss(m.Id))["×"]])])
 ```
 
 `ToastOutlet` calls `Consume()` (which drains the queue) on mount and whenever `IToaster.Changed` fires,

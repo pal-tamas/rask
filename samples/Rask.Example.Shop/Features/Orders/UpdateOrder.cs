@@ -36,7 +36,7 @@ public sealed class UpdateOrderCommandHandler(IDbContextFactory<AppDbContext> db
 }
 
 [Route("/orders/{id:guid}/edit")]
-public sealed class UpdateOrder(IDispatcher dispatcher, Navigator navigator) : Component
+public sealed partial class UpdateOrder(IDispatcher dispatcher, Navigator navigator) : Component
 {
     private readonly OrderRequest _form = new();
     private bool _loaded;
@@ -45,7 +45,7 @@ public sealed class UpdateOrder(IDispatcher dispatcher, Navigator navigator) : C
 
     [RouteParam] public Guid Id { get; set; }
 
-    protected override Component? Head => Title()["Edit Order"];
+    protected override Component? HeadAssets => Title["Edit Order"];
 
     protected override async Task OnPropsChangedAsync()
     {
@@ -78,30 +78,30 @@ public sealed class UpdateOrder(IDispatcher dispatcher, Navigator navigator) : C
     {
         if (!_loaded)
         {
-            return Div()["Loading…"];
+            return Div["Loading…"];
         }
 
         if (!_found)
         {
-            return Div()["Order not found. ", NavLink(Routes.OrdersPage())["Back to the list"], "."];
+            return Div["Order not found. ", NavLink.Href(Routes.OrdersPage())["Back to the list"], "."];
         }
 
-        return Div()[
-            Div()[
-                H1()["Edit Order"],
-                _error is null ? null : Div(Role: "alert")[_error],
-                Form(_form, OnValidSubmitAsync: SubmitAsync)[
-                    Div()[
-                        Label("customer")["Customer"],
-                        Input(() => _form.Customer, Validate: OrderCustomer.Validate, Id: "customer")
+        return Div[
+            Div[
+                H1["Edit Order"],
+                _error is null ? null : Div.Role("alert")[_error],
+                Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
+                    Div[
+                        Label.For("customer")["Customer"],
+                        Input.Bind(() => _form.Customer).Validate(OrderCustomer.Validate).Id("customer")
                     ],
-                    Div()[
-                        Label("total")["Total"],
-                        Input(() => _form.Total, Id: "total")
+                    Div[
+                        Label.For("total")["Total"],
+                        Input.Bind(() => _form.Total).Id("total")
                     ],
-                    Div()[
-                        NavLink(Routes.OrdersPage())["Cancel"],
-                        Button("submit")["Save changes"]
+                    Div[
+                        NavLink.Href(Routes.OrdersPage())["Cancel"],
+                        Button.Type("submit")["Save changes"]
                     ]
                 ]
             ]

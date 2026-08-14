@@ -6,7 +6,7 @@ using static Rask.Example.Shared.Features.Generated;
 
 namespace Rask.Example.Shared.Tests.Pages;
 
-public sealed class HttpPageTests
+public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task OnMountAsync_FetchesPost_PopulatesArticle()
@@ -18,7 +18,7 @@ public sealed class HttpPageTests
         // Drive HttpFetchDemo directly through LiveHost — its standalone /http page was folded into
         // docs/http-and-files.md. Re-rendering the SAME host preserves the demo instance so the
         // awaited fetch's continuation result is observed.
-        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
+        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
         await WaitFor.True(() => fakeHttp.RequestCount >= 1, TimeSpan.FromSeconds(2));
         await Task.Delay(50);
         var html = page.Render();
@@ -37,7 +37,7 @@ public sealed class HttpPageTests
         var (http, _) = FakeHttp.Throwing(
             new HttpRequestException("boom", null, HttpStatusCode.InternalServerError));
 
-        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
+        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
         // Loading shows initially; after the fetch faults the error banner should appear on next render.
         await Task.Delay(120);
         var html = page.Render();
@@ -57,7 +57,7 @@ public sealed class HttpPageTests
         var attempts = 0;
         var handler = new FakeHttp
         {
-            Handler = _ => Interlocked.Increment(ref attempts) <= 1
+            Action = _ => Interlocked.Increment(ref attempts) <= 1
                 ? throw new HttpRequestException("TypeError: Load failed")
                 : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                 {
@@ -71,7 +71,7 @@ public sealed class HttpPageTests
         // page's source-code pane (which now contains "alert-danger"/"spinner-border" as literal
         // text). Re-rendering the SAME host preserves the demo instance, so the retried fetch's
         // continuation result is observed.
-        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
+        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
         await WaitFor.True(() => handler.RequestCount >= 2, TimeSpan.FromSeconds(2));
         await Task.Delay(50);
         var html = page.Render();
@@ -92,7 +92,7 @@ public sealed class HttpPageTests
         // Re-rendering the SAME host preserves the demo instance so the retry loop's terminal
         // error (set on a continuation) is observed; the loop makes MaxTransientRetries + 1
         // attempts then stops.
-        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
+        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
         await WaitFor.True(() => handler.RequestCount > 3, TimeSpan.FromSeconds(3));
         await Task.Delay(50);
         var html = page.Render();
@@ -110,7 +110,7 @@ public sealed class HttpPageTests
         // never throws out of the lifecycle — the page/guide stays alive around it.
         var (http, _) = FakeHttp.WithStatus(HttpStatusCode.NotFound);
 
-        var page = RaskTest.Render(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
+        var page = RaskTest.Render(() => HttpFetchDemo, LiveHost.Services((typeof(HttpClient), (object)http)));
         await Task.Delay(120);
         var html = page.Render();
 

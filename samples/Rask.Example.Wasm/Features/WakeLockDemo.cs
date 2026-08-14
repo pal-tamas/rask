@@ -7,21 +7,22 @@ namespace Rask.Example.Wasm.Features;
 ///     auto-released when the page is hidden and re-acquired when it returns; disposing the sentinel
 ///     (here, toggling off — and on unmount via <see cref="IAsyncDisposable" />) releases it for good.
 /// </summary>
-public sealed class WakeLockDemo(IWakeLock wakeLock) : Component, IAsyncDisposable
+public sealed partial class WakeLockDemo(IWakeLock wakeLock) : Component, IAsyncDisposable
 {
     private IWakeLockSentinel? _sentinel;
     private string? _status;
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(
-                        Class: _sentinel is null ? "btn btn-primary btn-sm" : "btn btn-danger btn-sm",
-                        Id: "wakelock-toggle", OnClickAsync: Toggle)[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button
+                        .Class(_sentinel is null ? "btn btn-primary btn-sm" : "btn btn-danger btn-sm")
+                        .Id("wakelock-toggle")
+                        .OnClickAsync(Toggle)[
                         _sentinel is null ? "Keep screen awake" : "Release"]
                 ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "wakelock-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]
             ]
         ];
 

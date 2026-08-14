@@ -9,29 +9,29 @@ namespace Rask.Example.Auth.Jwt.Features;
 // the JWT held in ProtectedSessionStorage. The Authorize component re-renders when that principal changes.
 [Route("members")]
 [AllowAnonymous]
-public sealed class MembersPage : Component
+public sealed partial class MembersPage : Component
 {
     protected override Component? Render() =>
-        Div(Id: "members", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
-            Div(Class: "card-body")[
-                Authorize(
-                    NotAuthorized: P("members-anon", "mb-0")[
-                        "Please ", NavLink(Routes.LoginPage())["sign in"], "."])[MemberContent()]
+        Div.Id("members").Class("card shadow-sm mx-auto").Style("max-width:34rem")[
+            Div.Class("card-body")[
+                Authorize
+                    .NotAuthorized(P.Id("members-anon").Class("mb-0")[
+                        "Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
             ]
         ];
 }
 
-public sealed class MemberContent(ProtectedSessionStorage store, SessionUserProvider users, Navigator nav)
+public sealed partial class MemberContent(ProtectedSessionStorage store, SessionUserProvider users, Navigator nav)
     : Component
 {
     protected override Component? Render() =>
         [
-            H1("members-greeting", "h3 mb-3")[$"Welcome, {users.Current.Identity?.Name}"],
-            P(Class: "text-secondary")["Signed in with a JWT held in ", Code()["ProtectedSessionStorage"],
+            H1.Id("members-greeting").Class("h3 mb-3")[$"Welcome, {users.Current.Identity?.Name}"],
+            P.Class("text-secondary")["Signed in with a JWT held in ", Code["ProtectedSessionStorage"],
                 " — encrypted at rest, decrypted only server-side."],
-            Authorize(["admin"])[
-                Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."]],
-            Button(Id: "logout", OnClickAsync: SignOutAsync, Class: "btn btn-outline-primary")["Sign out"]
+            Authorize.Roles(["admin"])[
+                Div.Id("admin-note").Class("alert alert-warning py-2")["🔑 You have admin access."]],
+            Button.Id("logout").OnClickAsync(SignOutAsync).Class("btn btn-outline-primary")["Sign out"]
         ];
 
     private async Task SignOutAsync()

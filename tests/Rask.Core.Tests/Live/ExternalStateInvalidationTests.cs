@@ -16,7 +16,7 @@ namespace Rask.Core.Tests.Live;
 // exactly what StateHasChanged produces during a diff. That is *why* the component must subscribe to the
 // source's Changed event (`route.Changed += StateHasChanged`): without it, an external change that nothing
 // else touches is served stale from the cache. This test pins both halves.
-public class ExternalStateInvalidationTests
+public partial class ExternalStateInvalidationTests : global::Rask.Core.RaskMarkup
 {
     // Stand-in for RouteState: state the component reads but the cache doesn't track.
     private sealed class ExternalSource
@@ -46,7 +46,7 @@ public class ExternalStateInvalidationTests
         var view = new StubComponent(() =>
         {
             built++;
-            return Div(Class: "nav")[Span(Class: "active")[source.Value]];
+            return Div.Class("nav")[Span.Class("active")[source.Value]];
         });
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();

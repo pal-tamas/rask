@@ -19,7 +19,7 @@ namespace Rask.Native.Components;
 ///         <c>RASK032</c> guard.
 ///     </para>
 /// </summary>
-public abstract class NativeComponent : Component
+public abstract partial class NativeComponent : Component
 {
     private protected NativeComponent() { }
 

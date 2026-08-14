@@ -14,7 +14,7 @@ namespace Rask.Example.Shared;
 // inferred from the lambda at the call site. The label comes from the bound property's
 // [Display(Name)] attribute (falling back to the property name), so a field is just:
 //   FloatingInput(() => model.Name)
-public sealed class FloatingInput<TProp> : Component
+public sealed partial class FloatingInput<TProp> : Component
 {
     public required Expression<Func<TProp>> Bind { get; set; }
 
@@ -24,10 +24,10 @@ public sealed class FloatingInput<TProp> : Component
     protected override Component? Render()
     {
         var (id, label) = FloatingField.Resolve(Bind);
-        return Div(Class: "form-floating mb-3")[
-            Input(Bind, Id: id, Placeholder: label, Class: "form-control"),
-            Label(id)[label],
-            ValidationMessage(Bind, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]])
+        return Div.Class("form-floating mb-3")[
+            Input.Bind(Bind).Id(id).Placeholder(label).Class("form-control"),
+            Label.For(id)[label],
+            ValidationMessage.Template(msgs => Div.Class("invalid-feedback d-block")[msgs[0]]).For(Bind)
         ];
     }
 }

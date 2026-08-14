@@ -6,7 +6,7 @@ namespace Rask.Bootstrap;
 // A(Class:"btn btn-primary") shape BsButton's docs used to point at. It renders a plain <a> (not an
 // SPA NavLink) — for an in-app nav link that also styles as a button, wrap a NavLink yourself; this is
 // the CTA/external-link case (Playground, GitHub, docs cross-links).
-public sealed class BsLink : BsBlock
+public sealed partial class BsLink : BsBlock
 {
     public string? Href { get; set; }
     public string? Target { get; set; }
@@ -22,7 +22,7 @@ public sealed class BsLink : BsBlock
     // Toggle/pressed state: adds .active and aria-pressed="true" (parity with BsButton).
     public bool? Active { get; set; }
 
-    public string? Style { get; set; }
+    public new string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
     protected override Component? Render()
@@ -36,6 +36,6 @@ public sealed class BsLink : BsBlock
 
         var aria = Active is true ? BsClass.WithAria(Aria, "pressed", "true") : Aria;
 
-        return A(Id: Id, Class: cls, Style: Style, Href: Href, Target: Target, Rel: Rel, Aria: aria)[Items];
+        return A.Id(Id).Class(cls).Style(Style).Href(Href).Target(Target).Rel(Rel).Aria(aria)[Items];
     }
 }

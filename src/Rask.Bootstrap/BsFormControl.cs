@@ -4,11 +4,12 @@ using Rask.Core.Forms;
 namespace Rask.Bootstrap;
 
 // Base for the Bootstrap form controls (BsInput/BsTextarea/BsSelect/BsCheck). Implements
-// IFormControl<T> so the generator emits the bound factory (BsInput(() => model.Email, …)) and the
-// controlled factory (Value:/OnChange:); the controls themselves WRAP the core Input/Select/Textarea
-// and reuse the framework binding helpers (RegisterValidator/StringSetHandler/…) — no re-implemented
+// IFormControl<T> so the generator emits the bound builder entry (BsInput.Bind(() => model.Email)) and the
+// controlled one (BsInput<T>(), then .Value(…)/.OnChange(…)); the controls themselves WRAP the core
+// Input/Select/Textarea and reuse the framework binding helpers (RegisterValidator/StringSetHandler/…)
+// — no re-implemented
 // binding. Mirrors the worked-example controls (RadioGroup/CheckboxGroup).
-public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
+public abstract partial class BsFormControl<T> : BsBlock, IFormControl<T>
 {
     // IFormControl<T> — bound mode.
     public Expression<Func<T>>? Bind { get; set; }
@@ -19,11 +20,11 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
 
     // IFormControl<T> — controlled mode.
     public T? Value { get; set; }
-    public Callback<T>? OnChange { get; set; }
-    public CallbackAsync<T>? OnChangeAsync { get; set; }
+    public Action<T>? OnChange { get; set; }
+    public Func<T, Task>? OnChangeAsync { get; set; }
 
     // Shared Bootstrap field props.
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
     public bool? Disabled { get; set; }
     public bool? Required { get; set; }
     public BsSize? Size { get; set; }
@@ -74,11 +75,11 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
 
     // The change handler for a string-valued control: the model writeback (bound) or the typed
     // controlled-change bridge. Reused by BsInput/BsSelect/BsTextarea.
-    private protected CallbackAsync<string>? StringChangeHandler(in Bound b) =>
+    private protected Func<string, Task>? StringChangeHandler(in Bound b) =>
         b is { IsBound: true, Accessor: { } acc }
             ? BindingHelpers.StringSetHandler(acc, b.Context, b.Field, validateOnSet: false,
                 afterBind: BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync))
-            : (CallbackAsync<string>?)((IFormControl<T>)this).ControlledChangeHandler();
+            : (Func<string, Task>?)((IFormControl<T>)this).ControlledChangeHandler();
 
     // The id used to tie the <label for> to the control.
     private protected string? ControlId(in Bound b) => Id ?? b.Accessor?.PropertyName ?? Name;
@@ -120,15 +121,15 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
         // Help text and error feedback carry the ids the control's aria-describedby points at, and the
         // error container is a role="alert" live region so a screen reader announces the message the
         // moment validation fails (on submit/blur), associated with — not detached from — the field.
-        var help = HelpText is not null ? Div(Id: HelpTextId(controlId), Class: "form-text")[HelpText] : null;
+        var help = HelpText is not null ? Div.Id(HelpTextId(controlId)).Class("form-text")[HelpText] : null;
         var feedback = b.Invalid
-            ? Div(Id: ErrorId(controlId, b), Class: "invalid-feedback d-block", Role: "alert")[b.Messages[0]]
+            ? Div.Id(ErrorId(controlId, b)).Class("invalid-feedback d-block").Role("alert")[b.Messages[0]]
             : null;
 
         if (Floating is true && Label is not null)
         {
-            return Div()[
-                Div(Class: "form-floating")[
+            return Div[
+                Div.Class("form-floating")[
                     control,
                     RequiredLabel(controlId, null)
                 ],
@@ -137,7 +138,7 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
             ];
         }
 
-        return Div()[
+        return Div[
             Label is not null ? RequiredLabel(controlId, "form-label") : null,
             control,
             help,
@@ -149,8 +150,8 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
     // field is marked consistently without each call site repeating the markup. Absent Required, the
     // asterisk span is null and the label renders exactly as before.
     private Component RequiredLabel(string? controlId, string? cls) =>
-        Rask.Core.Components.Generated.Label(For: controlId, Class: cls)[
+        global::RaskEntriesRask_Core.Label.For(controlId).Class(cls)[
             Label,
-            Required is true ? Span(Class: "text-danger ms-1")["*"] : null
+            Required is true ? Span.Class("text-danger ms-1")["*"] : null
         ];
 }

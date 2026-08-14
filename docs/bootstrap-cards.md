@@ -6,11 +6,11 @@ The content containers from [`Rask.Bootstrap`](bootstrap.md) — `BsCard` (with
 and `BsBreadcrumb`(+item).
 
 ```csharp
-BsCard(Class: Bs.Join(Shadow.Sm))[
-    BsCardHeader()["Order #1024"],
-    BsCardBody()[ BsCardTitle()["Summary"], BsCardText()["3 items · shipped"] ]
+BsCard.Class(Bs.Join(Shadow.Sm))[
+    BsCardHeader["Order #1024"],
+    BsCardBody[ BsCardTitle["Summary"], BsCardText["3 items · shipped"] ]
 ]
-BsListGroup()[ BsListGroupItem()["One"], BsListGroupItem(Active: true)["Two"] ]
+BsListGroup[ BsListGroupItem["One"], BsListGroupItem.Active(true)["Two"] ]
 ```
 
 Outgrown `BsTable`? [`BsDataGrid<T>`](data-grid.md) adds typed columns, click-to-sort headers, paging,
@@ -23,9 +23,9 @@ length and bounds the scroll container; `StickyHeader` then freezes the header r
 under it:
 
 ```csharp
-BsTable(Striped: true, MaxHeight: "400px", StickyHeader: true)[
-    Thead()[Tr()[Th(Scope: "col")["Product"], Th(Scope: "col")["Price"]]],
-    Tbody()[rows.Select(r => Tr()[Td()[r.Name], Td()[r.Price.ToString("C")]])]
+BsTable.Striped(true).MaxHeight("400px").StickyHeader(true)[
+    Thead[Tr[Th.Scope("col")["Product"], Th.Scope("col")["Price"]]],
+    Tbody[rows.Select(r => Tr[Td[r.Name], Td[r.Price.ToString("C")]])]
 ]
 ```
 
@@ -54,8 +54,8 @@ Cards, driven entirely by Rask's live runtime — **no `bootstrap.js`**:
 text with `aria-current="page"`. `Label` renames the wrapping `<nav>` for assistive tech.
 
 ```csharp
-BsBreadcrumb()[
-    BsBreadcrumbItem(Href: "/")["Home"], BsBreadcrumbItem(Active: true)["Data"]
+BsBreadcrumb[
+    BsBreadcrumbItem.Href("/")["Home"], BsBreadcrumbItem.Active(true)["Data"]
 ]
 ```
 
@@ -68,7 +68,7 @@ pass `Href` for a clickable item (`.list-group-item-action`). Set `Numbered` for
 or `Flush` to drop the outer borders.
 
 ```csharp
-BsListGroup()[ BsListGroupItem(Active: true)["One"], BsListGroupItem(Href: "/two")["Two"] ]
+BsListGroup[ BsListGroupItem.Active(true)["One"], BsListGroupItem.Href("/two")["Two"] ]
 ```
 
 <!-- demo:bootstrap-listgroup -->
@@ -80,7 +80,7 @@ grid width), optionally tinted with `Color` and scaled with `Size`. `Animation` 
 it so it shimmers while content loads.
 
 ```csharp
-BsPlaceholder(Col: 7, Animation: BsPlaceholderAnimation.Glow)
+BsPlaceholder.Col(7).Animation(BsPlaceholderAnimation.Glow)
 ```
 
 <!-- demo:bootstrap-placeholder -->
@@ -92,7 +92,7 @@ BsPlaceholder(Col: 7, Animation: BsPlaceholderAnimation.Glow)
 columns, click-to-sort and paging, reach for [`BsDataGrid<T>`](data-grid.md) instead.
 
 ```csharp
-BsTable(Striped: true, Hover: true)[ Thead()[Tr()[Th()["Name"]]], Tbody()[Tr()[Td()["Ada"]]] ]
+BsTable.Striped(true).Hover(true)[ Thead[Tr[Th["Name"]]], Tbody[Tr[Td["Ada"]]] ]
 ```
 
 <!-- demo:bootstrap-table -->
@@ -104,8 +104,8 @@ BsTable(Striped: true, Hover: true)[ Thead()[Tr()[Th()["Name"]]], Tbody()[Tr()[T
 `Disabled` greys the ends — all zero-JS through the live runtime.
 
 ```csharp
-BsPagination()[
-    BsPageItem(Disabled: true)["Previous"], BsPageItem(Active: true)["1"], BsPageItem()["2"]
+BsPagination[
+    BsPageItem.Disabled(true)["Previous"], BsPageItem.Active(true)["1"], BsPageItem["2"]
 ]
 ```
 

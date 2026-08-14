@@ -3,18 +3,24 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IMediaQuery" /> — evaluate CSS media queries and user preferences from C#.</summary>
-public sealed class MediaQueryDemo(IMediaQuery media) : Component
+public sealed partial class MediaQueryDemo(IMediaQuery media) : Component
 {
     private string? _value;
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "media-read", OnClickAsync: Read)[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Class("mb-2")
+                    .Id("media-read")
+                    .OnClickAsync(Read)[
                     "Evaluate media queries"],
-                Div(Class: "small text-secondary")["Result: ", Code(Id: "media-value")[_value ?? "(not requested)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "media-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Result: ", Code.Id("media-value")[_value ?? "(not requested)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("media-status")[_status ?? "(idle)"]]
             ]
         ];
 

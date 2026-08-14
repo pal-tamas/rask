@@ -7,28 +7,26 @@ Safe-area insets, the browser-wrapper and native device backends, and the bounde
 ## Safe-area insets (notch / status bar)
 
 The boot shell requests an **edge-to-edge viewport** (`viewport-fit=cover`), so without padding the
-UI would render *under* the status bar, notch / Dynamic Island, and home indicator. The template's
-`App.cs` pads `Body` by the device safe-area insets so content always clears them:
+UI would render *under* the status bar, notch / Dynamic Island, and home indicator. Rask builds the
+document around the root component, so the template's `App.cs` reaches the `<body>` through a `Shell`
+override — the padding is a style, which is the one thing `BodyClass` can't carry:
 
 ```csharp
 protected override Component? Head =>
 [
-    Title()["Rask App"],
-    Meta("utf-8"),
-    Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover")
+    Title["Rask App"],
+    Meta.Charset("utf-8"),
+    Meta.Name("viewport").Content("width=device-width, initial-scale=1, viewport-fit=cover")
 ];
 
-protected override Component? Render() =>
-[
-    Doctype(),
+// head is the framework's <head> — place it, or the page loses every head asset.
+protected override Component Shell(Component head, Component body) =>
     Html("en")[
-        Head(),
+        head,
         // Pad the body by the device safe-area insets so content clears the status bar / notch /
         // home indicator (the boot shell requests an edge-to-edge viewport with viewport-fit=cover).
-        Body(Style: "margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
-                    "env(safe-area-inset-bottom) env(safe-area-inset-left)")[
-            /* nav, router, … */
-        ]
+        Body.Style("margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
+                    "env(safe-area-inset-bottom) env(safe-area-inset-left)")[body]
     ];
 ```
 
@@ -115,28 +113,25 @@ backends behind the *same* interfaces (biometrics, native push via APNs/FCM) are
 ## Native header & footer
 
 A native page is a small **composed tree**: the native bars (`NativeHeaderBar` / `NativeTabBar` /
-`NativeToolbar`) as siblings of a **`NativeWebView`**, which hosts the ordinary page shell
-(`Doctype`/`Html`/`Head`/`Body`). The native host projects the bars to a **real `UINavigationBar` +
-`UITabBar`/`UIToolbar`** on iOS, and a top bar + bottom tab/tool bar on Android, and serializes the
-`NativeWebView`'s HTML into the WebView between them. The bars are ordinary factory-built components — you
-compose them in `Render()`, they work like any other component:
+`NativeToolbar`) as siblings of a **`NativeWebView`**, which hosts the ordinary page content (the
+document around it is the framework's, as on Server and WASM). The native host projects the bars to a
+**real `UINavigationBar` + `UITabBar`/`UIToolbar`** on iOS, and a top bar + bottom tab/tool bar on
+Android, and serializes the `NativeWebView`'s HTML into the WebView between them. The bars are ordinary
+factory-built components — you compose them in `Render()`, they work like any other component:
 
 ```csharp
 protected override Component? Render() =>
 [
-    NativeHeaderBar(Title: "Dashboard", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: OnAdd)]),
-    NativeWebView()[
-        Doctype(),
-        Html("en")[Head(), Body()[Router()]]
-    ],
-    NativeTabBar(Tabs: [
-        NativeTab(Title: "Home", Icon: NativeIcon.Home, To: Features.Routes.HomePage()),
-        NativeTab(Title: "Me",   Icon: NativeIcon.Person, To: Features.Routes.MePage()),
-    ], Selected: 0)
+    NativeHeaderBar.Title("Dashboard").Trailing([NativeBarButton.Icon(NativeIcon.Add).OnClick(OnAdd)]),
+    NativeWebView[Router],
+    NativeTabBar.Tabs([
+        NativeTab.Title("Home").Icon(NativeIcon.Home).To(Features.Routes.HomePage()),
+        NativeTab.Title("Me").Icon(NativeIcon.Person).To(Features.Routes.MePage()),
+    ]).Selected(0)
 ];
 ```
 
-- **`NativeWebView` hosts the HTML** — its children are the normal page shell; only native bars may sit outside
+- **`NativeWebView` hosts the HTML** — its children are the page's content; only native bars may sit outside
   it. A bar nested inside the HTML (an element child, or inside `NativeWebView`'s content) is a **RASK032**
   compile error — bars belong at the layout level, as siblings of `NativeWebView`.
 - **Type-safe icons** — `NativeIcon` pairs an iOS SF Symbol with an Android drawable/Material name; use a
@@ -191,13 +186,10 @@ Set colors **per bar** — every slot is optional, and an unset slot keeps the p
 fully opt-in and backward compatible):
 
 ```csharp
-NativeHeaderBar(Title: "Home",
-    Background: NativeColor.Hex("#1E88E5"),
-    Tint: NativeColor.White,                                 // leading/trailing button color
-    TitleColor: NativeColor.White),
-NativeTabBar(Tabs: [...],
-    Tint: NativeColor.Hex("#1E88E5"),                        // the selected tab
-    UnselectedTint: NativeColor.Hex("#6B7280")),
+NativeHeaderBar.Title("Home").Background(NativeColor.Hex("#1E88E5")).Tint(NativeColor.White)// leading/trailing button color
+.TitleColor(NativeColor.White),
+NativeTabBar.Tabs([...]).Tint(NativeColor.Hex("#1E88E5"))// the selected tab
+.UnselectedTint(NativeColor.Hex("#6B7280")),
 ```
 
 For an app-wide default, register a **`NativeTheme`** on `host.Services` (like `INativeChrome`); a per-bar

@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 // Holds a Timer started in OnMount and stopped in OnUnmount. Demonstrates the "use the
 // lifecycle hook for things that mirror OnMount" pattern — no IDisposable required.
-public sealed class UnmountTimerProbe : Component
+public sealed partial class UnmountTimerProbe : Component
 {
     private int _ticks;
     private Timer? _timer;
@@ -12,7 +12,7 @@ public sealed class UnmountTimerProbe : Component
 
     protected override void OnMount()
     {
-        Log($"#{InstanceId} ticker started");
+        Log.Invoke($"#{InstanceId} ticker started");
         _timer = new Timer(_ =>
         {
             Interlocked.Increment(ref _ticks);
@@ -24,12 +24,12 @@ public sealed class UnmountTimerProbe : Component
     {
         _timer?.Dispose();
         _timer = null;
-        Log($"#{InstanceId} ticker stopped after {_ticks} tick(s)");
+        Log.Invoke($"#{InstanceId} ticker stopped after {_ticks} tick(s)");
     }
 
     protected override Component? Render() =>
-        BsStack(Gap: 2, Align: BsAlign.Center)[
-            BsBadge(Color: BsColor.Warning)[$"#{InstanceId} tick {_ticks}"],
-            Span(Class: "text-secondary small")["Stop me to fire OnUnmount and dispose the Timer."]
+        BsStack.Gap(2).Align(BsAlign.Center)[
+            BsBadge.Color(BsColor.Warning)[$"#{InstanceId} tick {_ticks}"],
+            Span.Class("text-secondary small")["Stop me to fire OnUnmount and dispose the Timer."]
         ];
 }

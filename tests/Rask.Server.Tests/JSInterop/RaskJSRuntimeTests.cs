@@ -209,7 +209,7 @@ public class RaskJSRuntimeTests
 }
 
 #pragma warning disable RASK014 // private test-helper Component subclasses
-internal sealed class JsRoundTripApp : Component
+internal sealed partial class JsRoundTripApp : Component
 {
     private readonly IJSRuntime _js;
 
@@ -218,11 +218,10 @@ internal sealed class JsRoundTripApp : Component
     public static TaskCompletionSource<string?> LastResult { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
-    ];
+    protected override Component? HeadAssets => new Title()["t"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => Text.Value("ready");
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {
@@ -243,7 +242,7 @@ internal sealed class JsRoundTripApp : Component
     }
 }
 
-internal sealed class JsClickApp : Component
+internal sealed partial class JsClickApp : Component
 {
     public static string? LastStatus;
 
@@ -252,14 +251,10 @@ internal sealed class JsClickApp : Component
     public JsClickApp(IJSRuntime js) => _js = js;
     public static TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        new Html()[new Head()[new Title()["t"]],
-            new Body()[
-                Button(OnClickAsync: SetAsync)["set"]
-            ]]
-    ];
+    protected override Component? HeadAssets => new Title()["t"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => Button.OnClickAsync(SetAsync)["set"];
 
     private async Task SetAsync()
     {
@@ -269,17 +264,16 @@ internal sealed class JsClickApp : Component
     }
 }
 
-internal sealed class JsRenderStormApp : Component
+internal sealed partial class JsRenderStormApp : Component
 {
     private readonly IJSRuntime _js;
 
     public JsRenderStormApp(IJSRuntime js) => _js = js;
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
-    ];
+    protected override Component? HeadAssets => new Title()["t"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => Text.Value("ready");
 
     // Intentionally NO firstRender guard — the whole point is to assert the framework
     // doesn't loop even with this anti-pattern. Mirrors the original CodeSample shape
@@ -288,7 +282,7 @@ internal sealed class JsRenderStormApp : Component
         await _js.InvokeVoidAsync("noop");
 }
 
-internal sealed class JsErrorApp : Component
+internal sealed partial class JsErrorApp : Component
 {
     private readonly IJSRuntime _js;
 
@@ -297,11 +291,10 @@ internal sealed class JsErrorApp : Component
     public static TaskCompletionSource<Exception> Caught { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? Render() =>
-    [
-        Doctype(),
-        new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
-    ];
+    protected override Component? HeadAssets => new Title()["t"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => Text.Value("ready");
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {

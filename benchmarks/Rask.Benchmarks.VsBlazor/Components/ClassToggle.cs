@@ -15,7 +15,8 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     (a real-world hot attribute with strict equality semantics) and uses a
 ///     navigation-shaped tree rather than an attribute-heavy synthetic one.
 /// </summary>
-internal static class ClassToggle
+[global::Rask.Core.RaskMarkup]
+internal static partial class ClassToggle
 {
     public const int SidebarItemCount = 20;
 
@@ -25,12 +26,12 @@ internal static class ClassToggle
         for (var i = 0; i < SidebarItemCount; i++)
         {
             var cls = i == activeIndex ? "nav-item active" : "nav-item";
-            items.Add(C.Li(Class: cls)[
-                C.A($"/page/{i}")[$"Page {i}"]
+            items.Add(Li.Class(cls)[
+                A.Href($"/page/{i}")[$"Page {i}"]
             ]);
         }
 
-        return C.Nav(Class: "sidebar")[C.Ul()[items]];
+        return Nav.Class("sidebar")[Ul[items]];
     }
 
     public sealed class BlazorClassToggle : ComponentBase

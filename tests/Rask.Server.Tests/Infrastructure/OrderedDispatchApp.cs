@@ -13,22 +13,19 @@ namespace Rask.Server.Tests.Infrastructure;
 ///     With ordered dispatch the rendered HTML's `Sequence=N0N1N2…` content
 ///     always matches the order the buttons were clicked.
 /// </summary>
-public sealed class OrderedDispatchApp : Component
+public sealed partial class OrderedDispatchApp : Component
 {
     private const int HandlerCount = 10;
 
     public string Sequence { get; private set; } = "";
 
+    protected override Component? HeadAssets => new Title()["ordered-dispatch"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[
-            new Head()[new Title()["ordered-dispatch"]],
-            new Body()[
-                new P()[$"Sequence={Sequence}"],
-                Buttons()
-            ]
-        ]
+        new P()[$"Sequence={Sequence}"],
+        Buttons()
     ];
 
     private Component Buttons()
@@ -37,7 +34,7 @@ public sealed class OrderedDispatchApp : Component
         for (var i = 0; i < HandlerCount; i++)
         {
             var captured = i;
-            children.Add(Button(OnClickAsync: () => RecordAsync(captured), Key: captured)[$"#{captured}"]);
+            children.Add(Button.OnClickAsync(() => RecordAsync(captured)).Key(captured)[$"#{captured}"]);
         }
 
         return [.. children.ToArray()];

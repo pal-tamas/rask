@@ -1,3 +1,5 @@
+using Rask.Core;
+
 namespace Rask.Native.Components;
 
 /// <summary>
@@ -5,10 +7,10 @@ namespace Rask.Native.Components;
 ///     Projected to a <c>UIAction</c> in an iOS <c>UIMenu</c> / an Android <c>PopupMenu</c> item; selecting it
 ///     runs <see cref="OnClick" /> on the render thread and re-renders, like any Rask callback.
 /// </summary>
-public sealed class NativeMenuItem : NativeBarItem
+public sealed partial class NativeMenuItem : NativeBarItem
 {
     /// <summary>The menu entry's label. Required.</summary>
-    public required string Title { get; set; }
+    public new required string Title { get; set; }
 
     /// <summary>An optional leading icon for the entry.</summary>
     public NativeIcon? Icon { get; set; }

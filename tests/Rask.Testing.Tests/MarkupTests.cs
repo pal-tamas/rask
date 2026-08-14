@@ -4,17 +4,17 @@ namespace Rask.Testing.Tests;
 
 // HandlerId/Attr reach the first match only, which is useless for a component that wires many elements to
 // the same event (a grid's sort headers, a list's row buttons). These pin the all-matches API.
-public class MarkupTests
+public partial class MarkupTests : global::Rask.Core.RaskMarkup
 {
     private sealed class Trio : Component
     {
         public List<string> Clicked { get; } = [];
 
         protected override Component? Render() =>
-            Div()[
-                Button(Type: "button", OnClick: () => Clicked.Add("a"))["a"],
-                Button(Type: "button", OnClick: () => Clicked.Add("b"))["b"],
-                Button(Type: "button", OnClick: () => Clicked.Add("c"))["c"]
+            Div[
+                Button.Type("button").OnClick(() => Clicked.Add("a"))["a"],
+                Button.Type("button").OnClick(() => Clicked.Add("b"))["b"],
+                Button.Type("button").OnClick(() => Clicked.Add("c"))["c"]
             ];
     }
 
@@ -46,7 +46,7 @@ public class MarkupTests
     [Fact]
     public void HandlerIds_NoneWired_IsEmpty()
     {
-        var page = RaskTest.Render(Div()["nothing to click"]);
+        var page = RaskTest.Render(Div["nothing to click"]);
 
         Assert.Empty(page.HandlerIds("click"));
     }
@@ -54,9 +54,9 @@ public class MarkupTests
     private sealed class TwoLabelled : Component
     {
         protected override Component? Render() =>
-            Div()[
-                Button(Type: "button", Aria: new Dictionary<string, string?> { ["label"] = "Close" })["x"],
-                Button(Type: "button", Aria: new Dictionary<string, string?> { ["label"] = "Open" })["o"]
+            Div[
+                Button.Type("button").Aria(new Dictionary<string, string?> { ["label"] = "Close" })["x"],
+                Button.Type("button").Aria(new Dictionary<string, string?> { ["label"] = "Open" })["o"]
             ];
     }
 

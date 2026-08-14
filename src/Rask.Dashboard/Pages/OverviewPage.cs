@@ -9,7 +9,7 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("")]
 [ParentRoute(typeof(DashboardLayout))]
-public sealed class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDashboardOptions options) : PollingPanel
+public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDashboardOptions options) : PollingPanel
 {
     private readonly List<(IQueuePanel Panel, QueueCounts Counts)> _queues = [];
 
@@ -33,21 +33,20 @@ public sealed class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDashboardO
     {
         if (IsLoading)
         {
-            return DashboardParts.Loading();
+            return DashboardLoading;
         }
 
         if (_queues.Count == 0)
         {
-            return DashboardParts.Empty(
-                "No batteries registered",
-                "Add Rask.Jobs, Rask.Outbox, Rask.Mail or Rask.Cache and map their tables to see them here.");
+            return DashboardEmpty.Heading("No batteries registered")
+                .Detail("Add Rask.Jobs, Rask.Outbox, Rask.Mail or Rask.Cache and map their tables to see them here.");
         }
 
         return [
-            DashboardParts.Error(LoadError),
+            DashboardError.Message(LoadError),
             FailureBanner(),
-            BsRow(Class: "g-3")[_queues.SelectMany(q => Tiles(q.Panel, q.Counts))],
-            DashboardParts.Parked(IsParked, ResumeAsync),
+            BsRow.Class("g-3")[_queues.SelectMany(q => Tiles(q.Panel, q.Counts))],
+            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
 
@@ -62,11 +61,11 @@ public sealed class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDashboardO
         }
 
         var worst = _queues.Where(q => q.Counts.Failed > 0).OrderByDescending(q => q.Counts.Failed).ToList();
-        return BsAlert(Color: BsColor.Danger, Class: "d-flex align-items-center gap-2")[
-            BsIcon(Name: BsIconName.ExclamationTriangle),
-            Span()[
+        return BsAlert.Color(BsColor.Danger).Class("d-flex align-items-center gap-2")[
+            BsIcon.Name(BsIconName.ExclamationTriangle),
+            Span[
                 $"{failed} dead letter{(failed == 1 ? "" : "s")} — ",
-                Span()[string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}"))],
+                Span[string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}"))],
                 ". These have run out of attempts and will not be retried."
             ]
         ];
@@ -74,23 +73,23 @@ public sealed class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDashboardO
 
     private IEnumerable<Component> Tiles(IQueuePanel panel, QueueCounts counts)
     {
-        yield return BsCol(Sm: 6, Lg: 3)[
-            BsStat(
-                Value: counts.Outstanding.ToString(),
-                Label: $"{panel.Title} outstanding",
-                Icon: panel.Icon,
-                Caption: counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting",
-                Href: Routes.QueuePage(panel.Slug))
+        yield return BsCol.Sm(6).Lg(3)[
+            BsStat
+                .Value(counts.Outstanding.ToString())
+                .Label($"{panel.Title} outstanding")
+                .Icon(panel.Icon)
+                .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting")
+                .Href(Routes.QueuePage(panel.Slug))
         ];
 
-        yield return BsCol(Sm: 6, Lg: 3)[
-            BsStat(
-                Value: counts.Failed.ToString(),
-                Label: $"{panel.Title} failed",
-                Icon: BsIconName.ExclamationTriangle,
-                Tone: counts.Failed > 0 ? BsColor.Danger : null,
-                Caption: $"after {panel.MaxAttempts} attempts",
-                Href: Routes.QueuePage(panel.Slug))
+        yield return BsCol.Sm(6).Lg(3)[
+            BsStat
+                .Value(counts.Failed.ToString())
+                .Label($"{panel.Title} failed")
+                .Icon(BsIconName.ExclamationTriangle)
+                .Tone(counts.Failed > 0 ? BsColor.Danger : null)
+                .Caption($"after {panel.MaxAttempts} attempts")
+                .Href(Routes.QueuePage(panel.Slug))
         ];
     }
 }

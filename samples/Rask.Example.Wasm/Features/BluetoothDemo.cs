@@ -8,7 +8,7 @@ namespace Rask.Example.Wasm.Features;
 ///     needs a live user gesture and the live device handle, and it's Chromium-family only at the time of
 ///     writing. Reads the <c>battery_level</c> characteristic (0–100%).
 /// </summary>
-public sealed class BluetoothDemo(IBluetooth bluetooth) : Component, IAsyncDisposable
+public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAsyncDisposable
 {
     private IBluetoothDevice? _device;
     private IAsyncDisposable? _disconnectWatch;
@@ -17,23 +17,26 @@ public sealed class BluetoothDemo(IBluetooth bluetooth) : Component, IAsyncDispo
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "bt-request", OnClickAsync: PairAndRead)[
-                        I(Class: "bi bi-bluetooth me-1"), "Pair & read battery"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "bt-disconnect", Disabled: _device is null,
-                        OnClickAsync: Disconnect)["Disconnect"]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button.Class("btn btn-primary btn-sm").Id("bt-request").OnClickAsync(PairAndRead)[
+                        I.Class("bi bi-bluetooth me-1"), "Pair & read battery"],
+                    Button
+                        .Class("btn btn-outline-danger btn-sm")
+                        .Id("bt-disconnect")
+                        .Disabled(_device is null)
+                        .OnClickAsync(Disconnect)["Disconnect"]
                 ],
                 _name is null
-                    ? Div(Class: "small text-secondary")["No device paired."]
-                    : Dl(Class: "row small mb-2", Id: "bt-info")[
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Device"],
-                        Dd(Class: "col-7 col-sm-8")[_name],
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Battery"],
-                        Dd(Class: "col-7 col-sm-8")[Code(Id: "bt-battery")[_battery]]
+                    ? Div.Class("small text-secondary")["No device paired."]
+                    : Dl.Class("row small mb-2").Id("bt-info")[
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Device"],
+                        Dd.Class("col-7 col-sm-8")[_name],
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Battery"],
+                        Dd.Class("col-7 col-sm-8")[Code.Id("bt-battery")[_battery]]
                     ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "bt-status")[_status]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("bt-status")[_status]]
             ]
         ];
 

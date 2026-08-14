@@ -6,7 +6,7 @@ namespace Rask.Core;
 ///     or fires it off the DOM-event path. Emitted by <c>ComponentFactoryGenerator</c> around every
 ///     qualifying event-callback prop (a <see cref="System.Action" />/<see cref="System.Func{Task}" />
 ///     -shaped delegate on a non-<see cref="Element" /> component), so plain delegates "just work"
-///     with no ceremony — the implicit replacement for the old <c>Callback</c> struct.
+///     with no ceremony — the implicit replacement for the old <c>Action</c> struct.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -114,12 +114,34 @@ public static class AutoCallback
         };
     }
 
-    // Named-type overloads — the framework's own components declare callbacks as Callback/CallbackAsync
-    // (see Callbacks.cs). Same typed wrapper as above (no DynamicInvoke), so the re-render path stays
-    // allocation-equivalent. The Action/Func overloads remain for consumer code that uses standard delegates.
-
-    /// <summary>Wrap a no-arg sync <see cref="Callback" /> so it re-renders its owner after running.</summary>
-    public static Callback? Wrap(Callback? d)
+    /// <summary>
+    ///     Wrap a one-argument callback whose delegate type is only known at run time, so it re-renders its
+    ///     owner after running — awaiting first when it is asynchronous.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         For the properties that <em>fold</em> a typed callback into a bare <see cref="Delegate" />.
+    ///         <c>Form.OnValidSubmit</c> is the case: its generic factory takes
+    ///         <c>Action&lt;TModel&gt;</c> and <c>Func&lt;TModel, Task&gt;</c>, wraps whichever it was
+    ///         given, and stores the result untyped — and <c>Form</c> calls it back with
+    ///         <c>DynamicInvoke(model)</c>. A builder chain reaches the same property through a setter that
+    ///         has only the property's own type to work with, so without this the wrap silently did not
+    ///         happen and the component that owns the handler was never repainted.
+    ///     </para>
+    ///     <para>
+    ///         Sync stays sync: an <see cref="Action{T}" /> wrapper for a void-returning delegate, a
+    ///         <see cref="Func{T, TResult}" /> returning <see cref="Task" /> for a task-returning one, so a
+    ///         synchronous submit does not acquire an asynchronous hop it did not have. Both are shaped to
+    ///         take one argument, which is what the folded call site invokes them with.
+    ///     </para>
+    ///     <para>
+    ///         This is the one <c>Wrap</c> that costs a <c>DynamicInvoke</c> per call, because the typed
+    ///         overloads above have a delegate type to invoke directly and this one does not. It is
+    ///         confined to folded properties, which are submit-shaped — one invocation per user action, not
+    ///         a render hot path — and the call it replaces was already a <c>DynamicInvoke</c>.
+    ///     </para>
+    /// </remarks>
+    public static Delegate? Wrap(Delegate? d)
     {
         if (d is null)
         {
@@ -131,72 +153,24 @@ public static class AutoCallback
             return d;
         }
 
-        return () =>
+        if (typeof(Task).IsAssignableFrom(d.Method.ReturnType))
         {
-            d();
+            return new Func<object?, Task>(async arg =>
+            {
+                r.MarkDirtyForAsyncHandler();
+                if (d.DynamicInvoke(arg) is Task t)
+                {
+                    await t.ConfigureAwait(false);
+                }
+
+                r.StateHasChanged();
+            });
+        }
+
+        return new Action<object?>(arg =>
+        {
+            d.DynamicInvoke(arg);
             r.StateHasChanged();
-        };
-    }
-
-    /// <summary>Wrap a one-arg sync <see cref="Callback{T}" /> so it re-renders its owner after running.</summary>
-    public static Callback<T>? Wrap<T>(Callback<T>? d)
-    {
-        if (d is null)
-        {
-            return null;
-        }
-
-        if (DelegateOwner.Resolve(d) is not { } r)
-        {
-            return d;
-        }
-
-        return arg =>
-        {
-            d(arg);
-            r.StateHasChanged();
-        };
-    }
-
-    /// <summary>Wrap a no-arg <see cref="CallbackAsync" /> so it awaits, then re-renders its owner.</summary>
-    public static CallbackAsync? Wrap(CallbackAsync? d)
-    {
-        if (d is null)
-        {
-            return null;
-        }
-
-        if (DelegateOwner.Resolve(d) is not { } r)
-        {
-            return d;
-        }
-
-        return async () =>
-        {
-            r.MarkDirtyForAsyncHandler();
-            await d().ConfigureAwait(false);
-            r.StateHasChanged();
-        };
-    }
-
-    /// <summary>Wrap a one-arg <see cref="CallbackAsync{T}" /> so it awaits, then re-renders its owner.</summary>
-    public static CallbackAsync<T>? Wrap<T>(CallbackAsync<T>? d)
-    {
-        if (d is null)
-        {
-            return null;
-        }
-
-        if (DelegateOwner.Resolve(d) is not { } r)
-        {
-            return d;
-        }
-
-        return async arg =>
-        {
-            r.MarkDirtyForAsyncHandler();
-            await d(arg).ConfigureAwait(false);
-            r.StateHasChanged();
-        };
+        });
     }
 }

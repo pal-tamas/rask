@@ -154,7 +154,7 @@ public class NotFoundGeneratorTests
                   using Rask.Core.Routing;
                   namespace Demo;
                   [Route("/")]
-                  public sealed class HomePage : Component { public override Component? Render() => this; }
+                  public sealed partial class HomePage : Component { public override Component? Render() => this; }
 
                   [NotFound]
                   public sealed class MyNotFound : Component { public override Component? Render() => this; }

@@ -3,8 +3,8 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 /// <summary>
 ///     Serves the <em>published</em> <c>Rask.Example.Site</c> marketing landing app from the shared
 ///     static-file host (<see cref="StaticWwwrootHostFixture" />) — the GitHub Pages front-door scenario.
-///     The landing page is itself a Rask WASM app, so this exercises the framework rendering a whole
-///     document shell (RASK021) plus its live counter/tabs and the scoped hero-canvas module.
+///     The landing page is itself a Rask WASM app, so this exercises the framework composing a whole
+///     document around a body-only root, plus its live counter/tabs and the scoped hero-canvas module.
 /// </summary>
 public sealed class SiteWasmAppFixture : StaticWwwrootHostFixture
 {

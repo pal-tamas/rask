@@ -9,12 +9,12 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 // Both render pure elements with no handlers, no page-level Key, and no nested user components, so
 // they are cache-eligible.
 #pragma warning disable RASK014 // benchmark-internal components, constructed directly in the report
-public sealed class RaskLargePage : Component
+public sealed partial class RaskLargePage : Component
 {
     protected override Component? Render() => LargePageWithCounter.BuildRask(0);
 }
 
-public sealed class RaskKeyedListPage : Component
+public sealed partial class RaskKeyedListPage : Component
 {
     protected override Component? Render()
     {

@@ -74,10 +74,10 @@ public class UserGatingTests
             User.Identity?.IsAuthenticated == true
                 ?
                 [
-                    Span()["secret"],
-                    User.IsInRole("admin") ? Div(Class: "admin-panel")["admin"] : null
+                    Span["secret"],
+                    User.IsInRole("admin") ? Div.Class("admin-panel")["admin"] : null
                 ]
-                : Span()["public"];
+                : Span["public"];
     }
 
     private sealed class FixedUser(ClaimsPrincipal principal) : IUserProvider

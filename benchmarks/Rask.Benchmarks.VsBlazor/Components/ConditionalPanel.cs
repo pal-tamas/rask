@@ -18,7 +18,8 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     <c>min(diff, full)</c> calculation in <c>vs-blazor.md</c> stays honest
 ///     about what the wire actually carries.
 /// </summary>
-internal static class ConditionalPanel
+[global::Rask.Core.RaskMarkup]
+internal static partial class ConditionalPanel
 {
     public const int PanelRowCount = 50;
 
@@ -27,18 +28,18 @@ internal static class ConditionalPanel
         var rows = new List<Component>(PanelRowCount);
         for (var i = 0; i < PanelRowCount; i++)
         {
-            rows.Add(C.Li(Class: "panel-row")[$"Detail {i}"]);
+            rows.Add(Li.Class("panel-row")[$"Detail {i}"]);
         }
 
-        var body = new List<Component>(3) { C.Header()[C.H1()["Dashboard"]] };
+        var body = new List<Component>(3) { Header[H1["Dashboard"]] };
         if (showPanel)
         {
-            body.Add(C.Div(Class: "panel")[C.Ul()[rows]]);
+            body.Add(Div.Class("panel")[Ul[rows]]);
         }
 
-        body.Add(C.Footer()[C.Span()["© Rask"]]);
+        body.Add(Footer[Span["© Rask"]]);
 
-        return C.Div(Class: "shell")[body];
+        return Div.Class("shell")[body];
     }
 
     public sealed class BlazorConditionalPanel : ComponentBase

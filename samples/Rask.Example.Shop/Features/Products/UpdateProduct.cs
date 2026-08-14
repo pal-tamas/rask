@@ -37,7 +37,7 @@ public sealed class UpdateProductCommandHandler(IDbContextFactory<AppDbContext> 
 }
 
 [Route("/products/{id:guid}/edit")]
-public sealed class UpdateProduct(IDispatcher dispatcher, Navigator navigator) : Component
+public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navigator) : Component
 {
     private readonly ProductRequest _form = new();
     private bool _loaded;
@@ -46,7 +46,7 @@ public sealed class UpdateProduct(IDispatcher dispatcher, Navigator navigator) :
 
     [RouteParam] public Guid Id { get; set; }
 
-    protected override Component? Head => Title()["Edit Product"];
+    protected override Component? HeadAssets => Title["Edit Product"];
 
     protected override async Task OnPropsChangedAsync()
     {
@@ -85,35 +85,35 @@ public sealed class UpdateProduct(IDispatcher dispatcher, Navigator navigator) :
     {
         if (!_loaded)
         {
-            return Div()["Loading…"];
+            return Div["Loading…"];
         }
 
         if (!_found)
         {
-            return Div()["Product not found. ", NavLink(Routes.ProductsPage())["Back to the list"], "."];
+            return Div["Product not found. ", NavLink.Href(Routes.ProductsPage())["Back to the list"], "."];
         }
 
-        return Div()[
-            Div()[
-                H1()["Edit Product"],
-                _error is null ? null : Div(Role: "alert")[_error],
-                Form(_form, OnValidSubmitAsync: SubmitAsync)[
-                    Input(() => _form.Version, Type: InputType.Hidden),
-                    Div()[
-                        Label("name")["Name"],
-                        Input(() => _form.Name, Validate: ProductName.Validate, Id: "name")
+        return Div[
+            Div[
+                H1["Edit Product"],
+                _error is null ? null : Div.Role("alert")[_error],
+                Form.Model(_form).OnValidSubmitAsync(SubmitAsync)[
+                    Input.Bind(() => _form.Version).Type(InputType.Hidden),
+                    Div[
+                        Label.For("name")["Name"],
+                        Input.Bind(() => _form.Name).Validate(ProductName.Validate).Id("name")
                     ],
-                    Div()[
-                        Label("price")["Price"],
-                        Input(() => _form.Price, Id: "price")
+                    Div[
+                        Label.For("price")["Price"],
+                        Input.Bind(() => _form.Price).Id("price")
                     ],
-                    Div()[
-                        Label("instock")["InStock"],
-                        Input(() => _form.InStock, Id: "instock")
+                    Div[
+                        Label.For("instock")["InStock"],
+                        Input.Bind(() => _form.InStock).Id("instock")
                     ],
-                    Div()[
-                        NavLink(Routes.ProductsPage())["Cancel"],
-                        Button("submit")["Save changes"]
+                    Div[
+                        NavLink.Href(Routes.ProductsPage())["Cancel"],
+                        Button.Type("submit")["Save changes"]
                     ]
                 ]
             ]

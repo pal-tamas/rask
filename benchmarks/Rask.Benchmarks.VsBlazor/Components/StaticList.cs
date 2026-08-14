@@ -9,20 +9,21 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     A list of N identically-shaped rows. Scales the render hot path linearly. Used at
 ///     [Params(5, 100, 1000)] to expose any per-row constant in either framework.
 /// </summary>
-internal static class StaticList
+[global::Rask.Core.RaskMarkup]
+internal static partial class StaticList
 {
     public static Component BuildRask(int rowCount)
     {
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}")[
-                C.Span(Class: "label")[$"Item {i}"],
-                C.A($"/item/{i}", Class: "lnk")[$"open {i}"]
+            rows.Add(Div.Class("row").Id($"r{i}")[
+                Span.Class("label")[$"Item {i}"],
+                A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
             ]);
         }
 
-        return C.Div(Class: "list")[rows];
+        return Div.Class("list")[rows];
     }
 
     public sealed class BlazorStaticList : ComponentBase

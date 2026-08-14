@@ -29,8 +29,8 @@ public sealed class AddressModel
 **Sub-object binding** uses the same `Bind: () => …` shape:
 
 ```csharp
-Input(Bind: () => _model.Address.Street),
-ValidationMessage(For: () => _model.Address.Street, Template: errs => Div(Class: "err")[errs[0]]),
+Input.Bind(() => _model.Address.Street),
+ValidationMessage.For(() => _model.Address.Street).Template(errs => Div.Class("err")[errs[0]]),
 ```
 
 **Collection binding — `foreach` + per-item capture** (the canonical pattern). Each iteration closes
@@ -39,10 +39,10 @@ over a distinct `item`, so each row's lambda targets its own instance:
 ```csharp
 foreach (var item in _model.Items)
 {
-    rows.Add(Tr()[
-        Td()[Input(Bind: () => item.Description)],
-        Td()[Input(Bind: () => item.Quantity)],
-        Td()[Button(Type: "button", OnClick: () => _model.Items.Remove(item))["×"]]
+    rows.Add(Tr[
+        Td[Input.Bind(() => item.Description)],
+        Td[Input.Bind(() => item.Quantity)],
+        Td[Button.Type("button").OnClick(() => _model.Items.Remove(item))["×"]]
     ]);
 }
 ```
@@ -55,10 +55,10 @@ the classic `for` closure trap — copy the index into a per-iteration local:
 for (var idx = 0; idx < _model.Items.Count; idx++)
 {
     var i = idx;                                  // per-iteration capture, NOT idx
-    rows.Add(Tr()[
-        Td()[$"#{i + 1}"],
-        Td()[Input(Bind: () => _model.Items[i].Description)],
-        Td()[Input(Bind: () => _model.Items[i].Quantity)]
+    rows.Add(Tr[
+        Td[$"#{i + 1}"],
+        Td[Input.Bind(() => _model.Items[i].Description)],
+        Td[Input.Bind(() => _model.Items[i].Quantity)]
     ]);
 }
 ```
@@ -103,7 +103,7 @@ is the framework primitive; the control is yours to build or take from the packa
 
 ```csharp
 // Bound — two-way binds the model, with an optional per-field Validate rule.
-Form(_prefs)[
+Form.Model(_prefs)[
     RadioGroup(() => _prefs.Plan,                       // single value
         new[] { Plan.Free, Plan.Pro, Plan.Team },
         ItemClass: "form-check-inline"),
@@ -152,12 +152,12 @@ option renderings. The single-value twin is `BsSelect<T>`: same data-driven API 
 `OptionLabel`) and custom `.dropdown-menu` listbox (zero-JS, keyboard + ARIA `combobox`/`listbox`),
 binding one `TItem`; `Native: true` falls back to the plain OS `<select>`.
 
-**A plain `<select multiple>` bound to a collection.** `Select<T>(Bind: …, Multiple: true)` binds the
+**A plain `<select multiple>` bound to a collection.** `Select(() => …).Multiple(true)` binds the
 whole selection when `T` is a string collection — `string[]`, `List<string>`, `HashSet<string>`, or the
 `IReadOnlyList<string>` / `IList<string>` / `ICollection<string>` / `IEnumerable<string>` interfaces:
 
 ```csharp
-Select(() => model.Tags, Multiple: true)[
+Select.Bind(() => model.Tags).Multiple(true)[
     Option("news"), Option("sport"), Option("weather")
 ]
 ```
@@ -201,8 +201,8 @@ Two things to know when building a form:
 - **`data-rask-no-restore` opts out** a field, or every field under it:
 
 ```csharp
-Div(Data: new Dictionary<string, string?> { ["rask-no-restore"] = "" })[
-    Input(() => _model.CouponCode, Class: "form-control")   // never carried across a reload
+Div.Data("rask-no-restore")[
+    Input.Bind(() => _model.CouponCode).Class("form-control")   // never carried across a reload
 ]
 ```
 

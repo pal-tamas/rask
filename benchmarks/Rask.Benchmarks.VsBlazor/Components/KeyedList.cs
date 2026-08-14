@@ -94,7 +94,7 @@ internal static class KeyedList
                 _scratch.Add(GetOrCreateRow(order[i]));
             }
 
-            return C.Div(Class: "list")[_scratch];
+            return Div.Class("list")[_scratch];
         }
 
         private Component GetOrCreateRow(int key)
@@ -104,10 +104,10 @@ internal static class KeyedList
                 return row;
             }
 
-            row = C.Div(
-                Class: "row",
-                Data: new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[
-                C.Span()[$"Item {key}"]
+            row = Div
+                .Class("row")
+                .Data(new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[
+                Span[$"Item {key}"]
             ];
             _rowsByKey[key] = row;
             return row;

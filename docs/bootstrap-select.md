@@ -6,7 +6,11 @@ validation, and run with **zero `bootstrap.js`**. For the plain inputs see
 [form controls](bootstrap-forms.md).
 
 ```csharp
-BsSelect(() => model.Plan, plans, OptionLabel: p => Text(p), Filter: (p, t) => p.Contains(t, StringComparison.OrdinalIgnoreCase))
+BsSelect
+    .Bind(() => model.Plan)
+    .Options(plans)
+    .OptionLabel(p => Text(p))
+    .Filter((p, t) => p.Contains(t, StringComparison.OrdinalIgnoreCase))
 ```
 
 `BsSelect<T>` is a custom combobox — a `.form-select` display box (showing the option's rich

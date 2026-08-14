@@ -1,7 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
 using Rask.Core.ScopedAssets;
-using B = Rask.Benchmarks.Generated;
+using Bench = Rask.Benchmarks.Generated;
 using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks;
@@ -12,7 +12,7 @@ namespace Rask.Benchmarks;
 // Component.ToHtml. Three sizes so PR2's allocation delta is visible across small,
 // medium, and large render trees.
 [MemoryDiagnoser]
-public class HtmlSerializerBenchmarks
+public partial class HtmlSerializerBenchmarks : global::Rask.Core.RaskMarkup
 {
     private Component _large = null!;
     private Component _medium = null!;
@@ -74,20 +74,20 @@ public class HtmlSerializerBenchmarks
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
-                C.Span(Class: "label")[$"Item {i}"],
-                C.A($"/item/{i}", "_blank", "noopener", Class: "lnk")[$"open {i}"],
-                C.Img($"/img/{i}.png", $"item {i}", 32, 32, "lazy"),
-                C.Input<string>(InputType.Text, $"f{i}", $"v{i}", "edit", MaxLength: 64)
+            rows.Add(Div.Class("row").Id($"r{i}").Style("display:flex;gap:8px;").Key(i)[
+                Span.Class("label")[$"Item {i}"],
+                A.Href($"/item/{i}").Target("_blank").Rel("noopener").Class("lnk")[$"open {i}"],
+                Img.Src($"/img/{i}.png").Alt($"item {i}").Width(32).Height(32).Loading("lazy"),
+                Input.Value($"v{i}").Type(InputType.Text).Name($"f{i}").Placeholder("edit").MaxLength(64)
             ]);
         }
 
-        return C.Div(Class: "container", Id: "root")[
-            C.Div(Class: "header")[
-                C.Span(Class: "title")["Benchmark Tree"],
-                C.Button("button", Class: "btn", Disabled: false)["Click"]
+        return Div.Class("container").Id("root")[
+            Div.Class("header")[
+                Span.Class("title")["Benchmark Tree"],
+                Button.Type("button").Class("btn").Disabled(false)["Click"]
             ],
-            C.Div(Class: "body")[rows]
+            Div.Class("body")[rows]
         ];
     }
 
@@ -98,17 +98,17 @@ public class HtmlSerializerBenchmarks
         {
             rows.Add((i & 3) switch
             {
-                0 => B.ScopedRowA(i),
-                1 => B.ScopedRowB(i),
-                2 => B.ScopedRowC(i),
-                _ => B.ScopedRowD(i)
+                0 => ScopedRowA.Index(i),
+                1 => ScopedRowB.Index(i),
+                2 => ScopedRowC.Index(i),
+                _ => ScopedRowD.Index(i)
             });
         }
 
         return [
-            C.Doctype(),
-            C.Html()[
-                C.Body()[C.Div(Class: "list")[rows]]
+            Doctype,
+            Html[
+                Body[Div.Class("list")[rows]]
             ]
         ];
     }
@@ -121,16 +121,16 @@ public class HtmlSerializerBenchmarks
             // All values are encoding-free ASCII so the HtmlEncoder.Encode call returns
             // a string allocation that's literally identical to the input. The proposed
             // fast-path (scan-for-special-chars, append verbatim) elides that allocation.
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
-                C.Span(Class: "label")[$"item {i}"],
-                C.Span(Class: "value")[$"value {i}"],
-                C.Span(Class: "meta")[$"meta {i}"],
-                C.Span(Class: "tail")[$"tail {i}"]
+            rows.Add(Div.Class("row").Id($"r{i}").Key(i)[
+                Span.Class("label")[$"item {i}"],
+                Span.Class("value")[$"value {i}"],
+                Span.Class("meta")[$"meta {i}"],
+                Span.Class("tail")[$"tail {i}"]
             ]);
         }
 
-        return C.Div(Class: "container", Id: "root")[
-            C.Div(Class: "body")[rows]
+        return Div.Class("container").Id("root")[
+            Div.Class("body")[rows]
         ];
     }
 }
@@ -139,27 +139,27 @@ public class HtmlSerializerBenchmarks
 // distinct ScopedCssRegistry entries. The cycle in BuildScopedCssTree avoids the
 // degenerate "all-same-type" cache-hit case that would mask the lookup cost.
 #pragma warning disable RASK014
-public sealed class ScopedRowA : Component
+public sealed partial class ScopedRowA : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => C.Div(Class: "row", Id: $"a{Index}")[C.Span()[$"a {Index}"]];
+    protected override Component? Render() => Div.Class("row").Id($"a{Index}")[Span[$"a {Index}"]];
 }
 
-public sealed class ScopedRowB : Component
+public sealed partial class ScopedRowB : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => C.Div(Class: "row", Id: $"b{Index}")[C.Span()[$"b {Index}"]];
+    protected override Component? Render() => Div.Class("row").Id($"b{Index}")[Span[$"b {Index}"]];
 }
 
-public sealed class ScopedRowC : Component
+public sealed partial class ScopedRowC : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => C.Div(Class: "row", Id: $"c{Index}")[C.Span()[$"c {Index}"]];
+    protected override Component? Render() => Div.Class("row").Id($"c{Index}")[Span[$"c {Index}"]];
 }
 
-public sealed class ScopedRowD : Component
+public sealed partial class ScopedRowD : Component
 {
     public int Index { get; set; }
-    protected override Component? Render() => C.Div(Class: "row", Id: $"d{Index}")[C.Span()[$"d {Index}"]];
+    protected override Component? Render() => Div.Class("row").Id($"d{Index}")[Span[$"d {Index}"]];
 }
 #pragma warning restore RASK014

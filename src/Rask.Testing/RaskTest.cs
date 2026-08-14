@@ -34,11 +34,28 @@ public static class RaskTest
     }
 
     /// <summary>
+    ///     Renders a finished markup chain — <c>RaskTest.Render(BsAlert.Color(BsColor.Danger)["boom"])</c>.
+    /// </summary>
+    /// <remarks>
+    ///     An overload rather than a conversion at the call site: <c>T</c> above is constrained to
+    ///     <see cref="Component" />, and a generic type parameter is inferred before any user-defined
+    ///     conversion is considered, so a chain cannot reach it (CS0315). Taking the chain directly keeps
+    ///     the test reading as the markup it renders, and the handle stays typed as the component so
+    ///     <see cref="RenderedComponent{T}.Instance" /> is still the thing under test.
+    /// </remarks>
+    /// <typeparam name="T">The component the chain built.</typeparam>
+    /// <param name="chain">The markup under test.</param>
+    /// <param name="services">Services available to the component. Defaults to an empty provider.</param>
+    public static RenderedComponent<T> Render<T>(Build<T> chain, IServiceProvider? services = null)
+        where T : Component
+        => Render(chain.Value, services);
+
+    /// <summary>
     ///     Renders the component produced by <paramref name="factory" /> as a live root and returns a handle
     ///     to the result. The factory runs on <b>every</b> render, so the tree is rebuilt from your current
     ///     state each time — use this (rather than the <see cref="Render{T}(T, IServiceProvider)" />
     ///     overload, which renders one fixed instance) whenever a re-render should see changed props:
-    ///     <c>RaskTest.Render(() => Form(model)[Input(() => model.Name)])</c>. Returning <c>null</c> renders
+    ///     <c>RaskTest.Render(() => Form(model)[Input.Bind(() => model.Name)])</c>. Returning <c>null</c> renders
     ///     nothing — for a child built by its generated factory, that also drives it through its unmount path.
     /// </summary>
     /// <param name="factory">Builds the component under test; invoked once per render.</param>
@@ -53,6 +70,34 @@ public static class RaskTest
     }
 
     /// <summary>
+    ///     Renders <paramref name="app" /> the way a host does — as the application root, with the whole
+    ///     document composed around it. Use this to assert on the page rather than on the component: the
+    ///     doctype, <c>&lt;html lang&gt;</c>, the <c>&lt;head&gt;</c> every mounted component contributed
+    ///     to, and the <c>&lt;body&gt;</c> the app rendered into.
+    ///     <code>
+    ///     var page = RaskTest.RenderDocument(new App(), services);
+    ///     Assert.Contains("&gt;My app&lt;/title&gt;", page.Html);   // the head block keys its tags, so match the body
+    ///     </code>
+    ///     <see cref="Render{T}(T, IServiceProvider)" /> is the one to use for everything else — it adds no
+    ///     markup of its own, so an assertion about a component is not an assertion about a page.
+    /// </summary>
+    /// <typeparam name="T">The app root's type, inferred from <paramref name="app" />.</typeparam>
+    /// <param name="app">The root component the host would mount.</param>
+    /// <param name="services">
+    ///     Services available to the app. Defaults to an empty provider.
+    /// </param>
+    public static RenderedComponent<T> RenderDocument<T>(T app, IServiceProvider? services = null)
+        where T : Component
+    {
+        ArgumentNullException.ThrowIfNull(app);
+
+        // The same wrapper Rask.Server / Rask.Wasm / Rask.Native install: it composes the shell from the
+        // app's Shell / HtmlLang / BodyClass and catches anything the subtree throws. Going through it
+        // rather than reimplementing the composition is the point — a test asserts what a browser gets.
+        return new RenderedComponent<T>(new RootErrorBoundary(app), app, services ?? EmptyServices);
+    }
+
+    /// <summary>
     ///     A zero-markup component that hands <paramref name="capture" /> the <see cref="EditContext" /> the
     ///     surrounding form is using, so a test can assert validation state (<c>GetValidationMessages</c>,
     ///     <c>IsValidating</c>, <c>IsModified</c>) that never reaches the markup. Place it <b>inside</b> the
@@ -60,7 +105,7 @@ public static class RaskTest
     ///     <code>
     ///     EditContext? ctx = null;
     ///     var page = RaskTest.Render(() => Form(model)[
-    ///         Input(() => model.Name),
+    ///         Input.Bind(() => model.Name),
     ///         RaskTest.EditContextProbe(c => ctx = c)
     ///     ]);
     ///     </code>

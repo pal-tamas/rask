@@ -11,9 +11,9 @@ namespace Rask.Bootstrap;
 // is on), PageUp/Down nudge the hour, Home/End jump to the earliest/latest selectable time, Enter/Escape
 // close; typing into the box also commits live. Labels localizes the column/clear aria-labels. Native:true
 // falls back to <input type=time>.
-//   Bound:      BsTimePicker(() => model.Alarm, Label: "Alarm", MinuteStep: 15)
-//   Controlled: BsTimePicker(Value: t, OnChange: v => …)
-public sealed class BsTimePicker<T> : BsPickerBase<T>
+//   Bound:      BsTimePicker(() => model.Alarm).Label("Alarm").MinuteStep(15)
+//   Controlled: BsTimePicker<TimeOnly>().Value(t).OnChange(v => …)
+public sealed partial class BsTimePicker<T> : BsPickerBase<T>
 {
     public int? MinuteStep { get; set; }
     public TimeOnly? Min { get; set; }
@@ -53,7 +53,7 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
             ["controls"] = gridId,
         };
 
-        var popover = Div(Id: gridId, Class: MenuClass())[
+        var popover = Div.Id(gridId).Class(MenuClass())[
             PickerParts.TimeColumns(selected, step, showSeconds, secStep, Min, Max, Culture, PickerLabels,
                 hour => WriteTimeAsync(acc, ctx, fid, selected, hour, null, null),
                 minute => WriteTimeAsync(acc, ctx, fid, selected, null, minute, null),

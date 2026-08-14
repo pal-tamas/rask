@@ -24,9 +24,9 @@ namespace Rask.Bootstrap;
 //
 // (Not to be confused with BsColumn<T>, which is a data-grid column definition — a config object passed to
 // BsDataGrid's Columns, not a component.)
-public sealed class BsCol : BsBlock
+public sealed partial class BsCol : BsBlock
 {
-    public int? Span { get; set; }
+    public new int? Span { get; set; }
     public bool? Auto { get; set; }
     public int? Sm { get; set; }
     public int? Md { get; set; }

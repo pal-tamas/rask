@@ -8,7 +8,7 @@ namespace Rask.Example.Wasm.Features;
 ///     once the browser deems the app installable (valid manifest + service worker over HTTPS) and it
 ///     isn't already installed.
 /// </summary>
-public sealed class InstallPromptDemo(IInstallPrompt install) : Component
+public sealed partial class InstallPromptDemo(IInstallPrompt install) : Component
 {
     private bool _canInstall;
     private bool _installed;
@@ -59,16 +59,22 @@ public sealed class InstallPromptDemo(IInstallPrompt install) : Component
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "install-button",
-                        Disabled: !_canInstall, OnClickAsync: Install)[
-                        I(Class: "bi bi-download me-1"), "Install app"],
-                    Button(Class: "btn btn-outline-secondary btn-sm", Id: "install-refresh", OnClickAsync: RefreshAsync)[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button
+                        .Class("btn btn-primary btn-sm")
+                        .Id("install-button")
+                        .Disabled(!_canInstall)
+                        .OnClickAsync(Install)[
+                        I.Class("bi bi-download me-1"), "Install app"],
+                    Button
+                        .Class("btn btn-outline-secondary btn-sm")
+                        .Id("install-refresh")
+                        .OnClickAsync(RefreshAsync)[
                         "Re-check"]
                 ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "install-status")[_status]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("install-status")[_status]]
             ]
         ];
 }

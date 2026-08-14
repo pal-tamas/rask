@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Rask.Core.Browser;
 using Rask.Core.Components;
 
 namespace Rask.Core.Tests.Components;
@@ -7,7 +8,7 @@ namespace Rask.Core.Tests.Components;
 // render whatever the Template returns and hand it the data-rask-gesture bundle. The shared client runs the
 // capability inside the click gesture — so activation-gated APIs work even on the Server transport — and
 // posts any result back through GestureResultInterop. No IJSRuntime, no host-specific registration.
-public class GestureTriggerTests
+public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void FullscreenTrigger_StampsCapWithNullRid_DataAttrBeforeTagSpecific()
@@ -15,7 +16,7 @@ public class GestureTriggerTests
         // Fire-and-forget (no result) → rid is null. Attribute order: data-* before tag-specific (type).
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;fullscreen.request&quot;,&quot;rid&quot;:null}\" type=\"button\">Full screen</button>",
-            FullscreenTrigger(g => Button(Type: "button", Data: g)["Full screen"]).ToHtml());
+            FullscreenTrigger.Template(g => Button.Type("button").Data(g)["Full screen"]).ToHtml());
     }
 
     [Fact]
@@ -23,15 +24,15 @@ public class GestureTriggerTests
     {
         Assert.Equal(
             "<a data-rask-gesture=\"{&quot;cap&quot;:&quot;pip.request&quot;,&quot;rid&quot;:null}\" href=\"#\">PiP</a>",
-            GestureTrigger(Capability: "pip.request", Template: g => A(Href: "#", Data: g)["PiP"]).ToHtml());
+            GestureTrigger.Capability("pip.request").Template(g => A.Href("#").Data(g)["PiP"]).ToHtml());
     }
 
     [Fact]
     public void EyeDropperTrigger_WithCallback_StampsCapAndANumericResultId()
     {
-        var html = EyeDropperTrigger(
-            OnColor: _ => Task.CompletedTask,
-            Template: g => Button(Type: "button", Data: g)["Pick"]).ToHtml();
+        var html = EyeDropperTrigger
+            .Template(g => Button.Type("button").Data(g)["Pick"])
+            .OnColor(_ => Task.CompletedTask).ToHtml();
 
         Assert.Matches(@"data-rask-gesture=""\{&quot;cap&quot;:&quot;eyedropper\.open&quot;,&quot;rid&quot;:\d+\}""", html);
     }
@@ -40,9 +41,9 @@ public class GestureTriggerTests
     public async Task GestureResultInterop_RoutesTheResultToTheTriggersCallback_ThenIsOneShot()
     {
         string? received = null;
-        var html = EyeDropperTrigger(
-            OnColor: value => { received = value; return Task.CompletedTask; },
-            Template: g => Button(Type: "button", Data: g)["Pick"]).ToHtml();
+        var html = EyeDropperTrigger
+            .Template(g => Button.Type("button").Data(g)["Pick"])
+            .OnColor(value => { received = value; return Task.CompletedTask; }).ToHtml();
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
 
         await GestureResultInterop.Result(rid, "#ff8800");
@@ -61,8 +62,9 @@ public class GestureTriggerTests
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;orientation.lock&quot;,&quot;rid&quot;:null,"
             + "&quot;arg&quot;:&quot;landscape&quot;}\" type=\"button\">Rotate</button>",
-            ScreenOrientationTrigger(Orientation: "landscape",
-                Template: g => Button(Type: "button", Data: g)["Rotate"]).ToHtml());
+            ScreenOrientationTrigger
+                .Orientation("landscape")
+                .Template(g => Button.Type("button").Data(g)["Rotate"]).ToHtml());
     }
 
     [Fact]
@@ -72,8 +74,9 @@ public class GestureTriggerTests
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;pip.request&quot;,&quot;rid&quot;:null,"
             + $"&quot;el&quot;:&quot;{video.Id}&quot;}}\" type=\"button\">Pop out</button>",
-            PictureInPictureTrigger(For: video,
-                Template: g => Button(Type: "button", Data: g)["Pop out"]).ToHtml());
+            PictureInPictureTrigger
+                .For(video)
+                .Template(g => Button.Type("button").Data(g)["Pop out"]).ToHtml());
     }
 
     [Fact]
@@ -83,15 +86,18 @@ public class GestureTriggerTests
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;fullscreen.request&quot;,&quot;rid&quot;:null,"
             + $"&quot;el&quot;:&quot;{box.Id}&quot;}}\" type=\"button\">Full screen</button>",
-            FullscreenTrigger(Template: g => Button(Type: "button", Data: g)["Full screen"], For: box).ToHtml());
+            FullscreenTrigger.Template(g => Button.Type("button").Data(g)["Full screen"]).For(box).ToHtml());
     }
 
     [Fact]
     public void MediaCaptureTrigger_StampsMediaStartCapWithTargetRefAndConstraintsArg()
     {
         var preview = ElementRef.New();
-        var html = MediaCaptureTrigger(For: preview, Video: true, FacingMode: "user",
-            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+        var html = MediaCaptureTrigger
+            .For(preview)
+            .Template(g => Button.Type("button").Data(g)["Start camera"])
+            .Video(true)
+            .FacingMode("user").ToHtml();
 
         Assert.Contains("&quot;cap&quot;:&quot;media.start&quot;", html);
         Assert.Contains($"&quot;el&quot;:&quot;{preview.Id}&quot;", html);
@@ -105,14 +111,64 @@ public class GestureTriggerTests
     public async Task InstallTrigger_StampsInstallPromptCap_AndRoutesTheOutcomeToOnOutcome()
     {
         string? outcome = null;
-        var html = InstallTrigger(
-            OnOutcome: value => { outcome = value; return Task.CompletedTask; },
-            Template: g => Button(Type: "button", Data: g)["Install"]).ToHtml();
+        var html = InstallTrigger
+            .Template(g => Button.Type("button").Data(g)["Install"])
+            .OnOutcome(value => { outcome = value; return Task.CompletedTask; }).ToHtml();
 
         Assert.Matches(@"data-rask-gesture=""\{&quot;cap&quot;:&quot;install\.prompt&quot;,&quot;rid&quot;:\d+\}""", html);
 
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
         await GestureResultInterop.Result(rid, "accepted");
         Assert.Equal("accepted", outcome);
+    }
+
+    [Fact]
+    public async Task MediaCaptureTrigger_HandsTheStreamIdToOnStream_AndStillSaysGrantedToOnResult()
+    {
+        // The capability now resolves the stream's id instead of the literal "granted". OnResult must keep
+        // its original vocabulary — the id is an addition, not a replacement.
+        MediaStreamId? stream = null;
+        string? result = null;
+        var html = MediaCaptureTrigger(
+            For: ElementRef.New(),
+            OnStream: id => { stream = id; return Task.CompletedTask; },
+            OnResult: value => { result = value; return Task.CompletedTask; },
+            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+
+        var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
+        await GestureResultInterop.Result(rid, "12");
+
+        Assert.Equal(new MediaStreamId(12), stream);
+        Assert.Equal("granted", result);
+    }
+
+    [Fact]
+    public async Task MediaCaptureTrigger_ARefusalReachesOnResultOnly()
+    {
+        var streamed = false;
+        string? result = null;
+        var html = MediaCaptureTrigger(
+            For: ElementRef.New(),
+            OnStream: _ => { streamed = true; return Task.CompletedTask; },
+            OnResult: value => { result = value; return Task.CompletedTask; },
+            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+
+        var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
+        await GestureResultInterop.Result(rid, "denied");
+
+        Assert.False(streamed);
+        Assert.Equal("denied", result);
+    }
+
+    [Fact]
+    public void MediaCaptureTrigger_WithNoCallbacks_StaysFireAndForget()
+    {
+        // No callback means no result to route, so no id should be registered — otherwise every render
+        // leaks an entry into the process-wide gesture registry for nobody to consume.
+        var html = MediaCaptureTrigger(
+            For: ElementRef.New(),
+            Template: g => Button(Type: "button", Data: g)["Start camera"]).ToHtml();
+
+        Assert.Contains("&quot;rid&quot;:null", html);
     }
 }

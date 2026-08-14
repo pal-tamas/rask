@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // Demonstrates element refs end to end: a built-in (FocusAsync) and a hand-off to user scoped
 // JS (ElementRefDemo.js receives the resolved DOM element to measure it). The refs are fields so
 // their ids stay stable across renders.
-public sealed class ElementRefDemo : Component
+public sealed partial class ElementRefDemo : Component
 {
     private readonly ElementRef _box = ElementRef.New();
     private readonly ElementRef _input = ElementRef.New();
@@ -15,21 +15,21 @@ public sealed class ElementRefDemo : Component
     public ElementRefDemo(IJSRuntime js) => _js = js;
 
     protected override Component? Render() =>
-        Div()[
-            Input<string>(
-                InputType.Text,
-                Class: "form-control mb-2",
-                Placeholder: "Focus me from C#",
-                Ref: _input),
-            BsStack(Gap: 2, Class: Margin.Bottom(3))[
-                BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClickAsync: FocusInput)["Focus the input"],
-                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: MeasureBox)["Measure the box"]
+        Div[
+            Input.Value<string>(null)
+                .Type(InputType.Text)
+                .Class("form-control mb-2")
+                .Placeholder("Focus me from C#")
+                .Ref(_input),
+            BsStack.Gap(2).Class(Margin.Bottom(3))[
+                BsButton.Color(BsColor.Primary).Size(BsSize.Sm).OnClickAsync(FocusInput)["Focus the input"],
+                BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClickAsync(MeasureBox)["Measure the box"]
             ],
-            Div(Ref: _box, Class: "border rounded p-3 bg-light")[
+            Div.Ref(_box).Class("border rounded p-3 bg-light")[
                 "A box carrying an ElementRef — its width is read by passing the ref to JS."
             ],
             _measured.Length > 0
-                ? P(Class: "small text-secondary mt-2 mb-0")[_measured]
+                ? P.Class("small text-secondary mt-2 mb-0")[_measured]
                 : null
         ];
 

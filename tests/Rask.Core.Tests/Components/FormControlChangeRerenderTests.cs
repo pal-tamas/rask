@@ -15,7 +15,7 @@ namespace Rask.Core.Tests.Components;
 // consumer after invoking it. Bound mode (two-way Bind) never had the bug: its handler is a
 // BindingHelpers closure whose Target is not a Component, so the owner stays the consumer that
 // rendered the control. Both are pinned here.
-public class FormControlChangeRerenderTests
+public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task ControlledSelect_OnChange_RerendersConsumer_NotJustSelect()
@@ -155,7 +155,7 @@ public class FormControlChangeRerenderTests
             var ctx = LiveRenderContext.Current!;
             var p = ctx.GetOrCreate(_ => Picker);
             ctx.NotifyParameters(p, false); // stable props ⇒ Picker caches after first render
-            return Div()[p];
+            return Div[p];
         }
     }
 
@@ -169,11 +169,11 @@ public class FormControlChangeRerenderTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Div()[
-                Select<string>(OnChange: v => _pick = v)[
-                    Option("rask"), Option("blazor")
+            return Div[
+                Select.Value<string>(null).OnChange(v => _pick = v)[
+                    Option.Value("rask"), Option.Value("blazor")
                 ],
-                Span()["Picked: ", _pick]
+                Span["Picked: ", _pick]
             ];
         }
     }
@@ -187,7 +187,7 @@ public class FormControlChangeRerenderTests
             var ctx = LiveRenderContext.Current!;
             var e = ctx.GetOrCreate(_ => Echo);
             ctx.NotifyParameters(e, false);
-            return Div()[e];
+            return Div[e];
         }
     }
 
@@ -199,9 +199,9 @@ public class FormControlChangeRerenderTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Div()[
-                Input<string>(OnChange: v => _text = v),
-                Span()["Echo: ", _text]
+            return Div[
+                Input.Value<string>(null).OnChange(v => _text = v),
+                Span["Echo: ", _text]
             ];
         }
     }
@@ -215,7 +215,7 @@ public class FormControlChangeRerenderTests
             var ctx = LiveRenderContext.Current!;
             var r = ctx.GetOrCreate(_ => Rows);
             ctx.NotifyParameters(r, false); // stable props ⇒ cached unless the change dirties it
-            return Div()[r];
+            return Div[r];
         }
     }
 
@@ -237,9 +237,9 @@ public class FormControlChangeRerenderTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Div()[
-                new Wrapper { Body = [.. _names.Select((n, i) => Input<string>(Value: n, OnChange: v => _names[i] = v, Key: i))] },
-                Span()["Names: ", string.Join(",", _names)]
+            return Div[
+                new Wrapper { Body = [.. _names.Select((n, i) => Input.Value(n).OnChange(v => _names[i] = v).Key(i))] },
+                Span["Names: ", string.Join(",", _names)]
             ];
         }
     }
@@ -248,21 +248,21 @@ public class FormControlChangeRerenderTests
     // — is this wrapper and never the component whose state the handler mutates.
     private sealed class Wrapper : Component
     {
-        public IReadOnlyList<Component> Body { get; set; } = [];
+        public new IReadOnlyList<Component> Body { get; set; } = [];
 
-        protected override Component? Render() => Div()[Body];
+        protected override Component? Render() => Div[Body];
     }
 
     private sealed class BoundHost : Component
     {
-        public readonly BoundForm Form = new();
+        public new readonly BoundForm Form = new();
 
         protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var f = ctx.GetOrCreate(_ => Form);
             ctx.NotifyParameters(f, false);
-            return Div()[f];
+            return Div[f];
         }
     }
 
@@ -274,9 +274,9 @@ public class FormControlChangeRerenderTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Form(_model)[
-                Select(() => _model.Color)[Option("red"), Option("blue")],
-                Span()["Bound: ", _model.Color ?? ""]
+            return Form.Model(_model)[
+                Select.Bind(() => _model.Color)[Option.Value("red"), Option.Value("blue")],
+                Span["Bound: ", _model.Color ?? ""]
             ];
         }
 
@@ -295,7 +295,7 @@ public class FormControlChangeRerenderTests
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Consumer);
             ctx.NotifyParameters(c, false);
-            return Div()[c];
+            return Div[c];
         }
     }
 
@@ -309,9 +309,9 @@ public class FormControlChangeRerenderTests
         protected override Component? Render()
         {
             RenderCount++;
-            return Form(_model)[
+            return Form.Model(_model)[
                 new BindWrapper { Bind = () => _model.Name },
-                Span()["Name: ", _model.Name]
+                Span["Name: ", _model.Name]
             ];
         }
 
@@ -327,6 +327,6 @@ public class FormControlChangeRerenderTests
     {
         public System.Linq.Expressions.Expression<Func<string>>? Bind { get; set; }
 
-        protected override Component? Render() => Input(Bind!);
+        protected override Component? Render() => Input.Bind(Bind!);
     }
 }

@@ -5,14 +5,14 @@ using Rask.Core.Live;
 namespace Rask.Core.Tests.Lifecycle;
 
 [Collection("ConsoleRedirect")]
-public class AsyncLifecycleErrorBoundaryTests
+public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task OnMountAsync_Throws_TripsAncestorBoundary()
     {
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(new Component[] { child }, null);
 
         // Drive a render so the descendant gets stamped with its Boundary, then its
@@ -34,7 +34,7 @@ public class AsyncLifecycleErrorBoundaryTests
     {
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.PropsAsync);
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(new Component[] { child }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
@@ -84,7 +84,7 @@ public class AsyncLifecycleErrorBoundaryTests
         // Without a render request, the live root would never re-render with the fallback.
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         var handle = new RecordingHandle();
         boundary.RenderHandle = handle;
         boundary.SetProps(new Component[] { child }, null);
@@ -150,7 +150,7 @@ public class AsyncLifecycleErrorBoundaryTests
             throw new InvalidOperationException("props-async");
         }
 
-        protected override Component? Render() => Span()[Text("loading")];
+        protected override Component? Render() => Span[Text.Value("loading")];
     }
 
     private sealed class RecordingHandle : IRenderHandle

@@ -13,7 +13,7 @@ public class RoutesGeneratorTests
                   using Rask.Core.Routing;
                   namespace Demo;
                   [Route("/")]
-                  public sealed class HomePage : Component
+                  public sealed partial class HomePage : Component
                   {
                       public override Component? Render() => this;
                   }
@@ -165,7 +165,7 @@ public class RoutesGeneratorTests
                   using Rask.Core.Routing;
                   namespace Demo;
                   [Route("/")]
-                  public sealed class HomePage : Component
+                  public sealed partial class HomePage : Component
                   {
                       [QueryParam("q")] public string? Search { get; set; }
                       public override Component? Render() => this;
@@ -189,7 +189,7 @@ public class RoutesGeneratorTests
                   using Rask.Core.Routing;
                   namespace Demo;
                   [Route("/")]
-                  public sealed class HomePage : Component
+                  public sealed partial class HomePage : Component
                   {
                       [QueryParam("a b&c")] public string? Search { get; set; }
                       public override Component? Render() => this;
@@ -319,7 +319,7 @@ public class RoutesGeneratorTests
                   using Rask.Core;
                   using Rask.Core.Routing;
                   namespace Demo;
-                  [Route("/")] public sealed class HomePage : Component { public override Component? Render() => this; }
+                  [Route("/")] public sealed partial class HomePage : Component { public override Component? Render() => this; }
                   [Route("/dashboard")] public sealed class DashPage : Component { public override Component? Render() => this; }
                   [Route("overview")] [ParentRoute(typeof(DashPage))]
                   public sealed class DashOverview : Component { public override Component? Render() => this; }
@@ -674,7 +674,7 @@ public class RoutesGeneratorTests
                   [Route("/todos")]
                   [Route("/todos/new")]
                   [Route("/todos/{id:guid}/edit")]
-                  public sealed class TodosPage : Component
+                  public sealed partial class TodosPage : Component
                   {
                       [RouteParam] public System.Guid? Id { get; set; }
                       public override Component? Render() => this;
@@ -705,7 +705,7 @@ public class RoutesGeneratorTests
                   [Route("/todos")]
                   [Route("/todos/new")]
                   [Route("/todos/{id:guid}/edit")]
-                  public sealed class TodosPage : Component
+                  public sealed partial class TodosPage : Component
                   {
                       [RouteParam] public System.Guid? Id { get; set; }
                       public override Component? Render() => this;

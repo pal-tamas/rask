@@ -134,7 +134,10 @@ public sealed class NativeAppHost
     ///     first render is pushed when the WebView's client posts its <c>ready</c> message, so this is safe
     ///     to call before the WebView has finished loading the shell.
     /// </summary>
-    /// <typeparam name="TApp">The root <see cref="Component" />. Must render a complete page shell (RASK021).</typeparam>
+    /// <typeparam name="TApp">
+    ///     The root <see cref="Component" />. It renders into <c>&lt;body&gt;</c>; Rask composes the
+    ///     document around it (RASK021 flags a root that builds the shell itself).
+    /// </typeparam>
     public async Task<NativeApp> RunLocalAsync<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         INativeWebView webView, string initialPath = "/")

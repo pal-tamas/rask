@@ -18,7 +18,7 @@ namespace Rask.Example.Shared.Features;
 // A grouped column folds away by default: its value is the same for every row in its band and already names
 // the band header, so the column would be a run of duplicates. "Show grouped column" flips ShowGroupedColumns
 // to keep it — the value then appears in the band header AND repeated down every row.
-public sealed class BsDataGridGroupDemo : Component
+public sealed partial class BsDataGridGroupDemo : Component
 {
     private sealed record Deal(string Account, string Region, string Rep, decimal Amount);
 
@@ -39,30 +39,41 @@ public sealed class BsDataGridGroupDemo : Component
     private bool _showGrouped;
 
     protected override Component? Render() =>
-        Div(Id: "grid-group-demo")[
+        Div.Id("grid-group-demo")[
             // A stand-in for the drag panel: the same Grouped state, driven by buttons.
-            Div(Class: Bs.Join(Display.Flex(), "gap-2", Margin.Bottom(3)))[
-                BsButton(Id: "group-region", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    Active: Is("region"), OnClick: () => _grouped = ["region"])["By region"],
-                BsButton(Id: "group-nested", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    Active: Is("region", "rep"), OnClick: () => _grouped = ["region", "rep"])["Region ▸ rep"],
-                BsButton(Id: "group-none", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    Active: _grouped.Count == 0, OnClick: () => _grouped = [])["Ungrouped"],
-                BsButton(Id: "group-show-col", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm,
-                    Active: _showGrouped, OnClick: () => _showGrouped = !_showGrouped)["Show grouped column"]
+            Div.Class(Bs.Join(Display.Flex(), "gap-2", Margin.Bottom(3)))[
+                BsButton
+                    .Id("group-region")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Active(Is("region"))
+                    .OnClick(() => _grouped = ["region"])["By region"],
+                BsButton
+                    .Id("group-nested")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Active(Is("region", "rep"))
+                    .OnClick(() => _grouped = ["region", "rep"])["Region ▸ rep"],
+                BsButton
+                    .Id("group-none")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Active(_grouped.Count == 0)
+                    .OnClick(() => _grouped = [])["Ungrouped"],
+                BsButton
+                    .Id("group-show-col")
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Active(_showGrouped)
+                    .OnClick(() => _showGrouped = !_showGrouped)["Show grouped column"]
             ],
-            BsDataGrid(
-                Id: "bs-grid-group",
-                Data: Deals,
-                RowKey: d => d.Account,
-                Grouped: _grouped,
-                OnGroupedChange: g => _grouped = [.. g],
-                GroupPanel: true,
-                GroupCollapsible: true,
-                GroupSubtotals: true,
-                ShowGroupedColumns: _showGrouped,
-                Columns:
-                [
+            BsDataGrid
+                .Data(Deals)
+                .Columns([
                     new BsColumn<Deal> { Title = "Account", Value = d => d.Account, Field = d => d.Account, Sortable = true },
                     new BsColumn<Deal>
                     {
@@ -82,7 +93,15 @@ public sealed class BsDataGridGroupDemo : Component
                         Value = d => d.Amount.ToString("C0"),
                         Footer = rows => rows.Sum(d => d.Amount).ToString("C0"),
                     },
-                ])];
+                ])
+                .Id("bs-grid-group")
+                .RowKey(d => d.Account)
+                .Grouped(_grouped)
+                .OnGroupedChange(g => _grouped = [.. g])
+                .GroupPanel(true)
+                .GroupCollapsible(true)
+                .GroupSubtotals(true)
+                .ShowGroupedColumns(_showGrouped)];
 
     private bool Is(params string[] fields) => _grouped.SequenceEqual(fields);
 }

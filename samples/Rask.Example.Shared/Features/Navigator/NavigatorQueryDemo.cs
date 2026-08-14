@@ -6,21 +6,21 @@ namespace Rask.Example.Shared.Features;
 // host it live. Every button mutates the CURRENT URL's query through the scoped Navigator service and the
 // component re-renders to reflect it — watch the address bar. Scoped to query mutation (SetQuery /
 // RemoveQuery / ClearQuery) so it stays on the guide page rather than navigating away.
-public sealed class NavigatorQueryDemo(Navigator nav, RouteState route) : Component
+public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) : Component
 {
     protected override Component? Render() =>
-        Div()[
-            BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(3)))[
-                BsCardBody()[
-                    BsRow(Gutter: 3)[
-                        BsCol(Md: 6)[
-                            Span(Class: "text-secondary small text-uppercase")["Path"],
-                            Div()[Code(Class: "fs-6", Id: "nav-path")[route.Path]]
+        Div[
+            BsCard.Class(Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(3)))[
+                BsCardBody[
+                    BsRow.Gutter(3)[
+                        BsCol.Md(6)[
+                            Span.Class("text-secondary small text-uppercase")["Path"],
+                            Div[Code.Class("fs-6").Id("nav-path")[route.Path]]
                         ],
-                        BsCol(Md: 6)[
-                            Span(Class: "text-secondary small text-uppercase")["Query"],
-                            Div()[
-                                Code(Class: "fs-6", Id: "nav-query")[
+                        BsCol.Md(6)[
+                            Span.Class("text-secondary small text-uppercase")["Query"],
+                            Div[
+                                Code.Class("fs-6").Id("nav-query")[
                                     route.Query.Count == 0 ? "(empty)" : BuildQuery(route)
                                 ]
                             ]
@@ -28,16 +28,41 @@ public sealed class NavigatorQueryDemo(Navigator nav, RouteState route) : Compon
                     ]
                 ]
             ],
-            Div(Class: "btn-group flex-wrap")[
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "nav-set-page1", OnClick: () => nav.SetQuery("page", "1"))[
+            Div.Class("btn-group flex-wrap")[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Id("nav-set-page1")
+                    .OnClick(() => nav.SetQuery("page", "1"))[
                     "SetQuery page=1"],
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "nav-set-page2", OnClick: () => nav.SetQuery("page", "2"))[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Id("nav-set-page2")
+                    .OnClick(() => nav.SetQuery("page", "2"))[
                     "SetQuery page=2"],
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "nav-set-sort", OnClick: () => nav.SetQuery("sort", "asc"))[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Id("nav-set-sort")
+                    .OnClick(() => nav.SetQuery("sort", "asc"))[
                     "SetQuery sort=asc"],
-                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "nav-remove-page", OnClick: () => nav.RemoveQuery("page"))[
+                BsButton
+                    .Color(BsColor.Secondary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Id("nav-remove-page")
+                    .OnClick(() => nav.RemoveQuery("page"))[
                     "RemoveQuery page"],
-                BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "nav-clear", OnClick: () => nav.ClearQuery())["ClearQuery"]
+                BsButton
+                    .Color(BsColor.Danger)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Id("nav-clear")
+                    .OnClick(() => nav.ClearQuery())["ClearQuery"]
             ]
         ];
 

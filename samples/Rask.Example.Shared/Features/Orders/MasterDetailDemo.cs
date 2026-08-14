@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 // collapse as a keyed Remove — sibling expanded rows keep their own inner sort across the reconcile. Each
 // detail panel hosts its own plain <table> of line items with an independent sort, so the demo owns three
 // pieces of state: the expanded set, the outer sort, and a per-order inner sort.
-public sealed class MasterDetailDemo : Component
+public sealed partial class MasterDetailDemo : Component
 {
     private static readonly Order[] _orders = BuildOrders();
 
@@ -44,16 +44,16 @@ public sealed class MasterDetailDemo : Component
     {
         var orders = SortOrders(_orders, _orderSort);
 
-        return BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            Div(Class: "table-responsive")[
-                Table(Id: "md-orders", Class: "table table-hover align-middle mb-0")[
-                    Thead(Class: "table-light")[
-                        Tr()[_orderColumns.Select(c =>
+        return BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            Div.Class("table-responsive")[
+                Table.Id("md-orders").Class("table table-hover align-middle mb-0")[
+                    Thead.Class("table-light")[
+                        Tr[_orderColumns.Select(c =>
                             c.Sortable
                                 ? SortHeader(c.Id, c.Header, _orderSort, ToggleOrderSort)
-                                : Th(Scope: "col", Key: c.Id))]
+                                : Th.Scope("col").Key(c.Id))]
                     ],
-                    Tbody()[BuildOrderRows(orders)]
+                    Tbody[BuildOrderRows(orders)]
                 ]
             ]
         ];
@@ -66,28 +66,31 @@ public sealed class MasterDetailDemo : Component
         {
             var open = _expanded.Contains(order.Id);
 
-            rows.Add(Tr(Key: order.Id, Class: "md-row")[
-                Td(Style: "width:44px;")[
-                    Button(Class: "btn btn-sm btn-link p-0 text-decoration-none", Data: new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" }, OnClick: () => Toggle(order.Id))[
-                        I(Class: open ? "bi bi-chevron-down" : "bi bi-chevron-right")
+            rows.Add(Tr.Key(order.Id).Class("md-row")[
+                Td.Style("width:44px;")[
+                    Button
+                        .Class("btn btn-sm btn-link p-0 text-decoration-none")
+                        .Data(new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" })
+                        .OnClick(() => Toggle(order.Id))[
+                        I.Class(open ? "bi bi-chevron-down" : "bi bi-chevron-right")
                     ]
                 ],
-                Td(Class: "fw-semibold")[order.Customer],
-                Td(Class: "text-secondary small")[order.Placed.ToString("yyyy-MM-dd")],
-                Td()[Span(Class: $"badge {StatusBadge(order.Status)}")[order.Status]],
-                Td(Class: "text-secondary")[order.Items.Count],
-                Td(Style: "text-align:right; font-variant-numeric:tabular-nums;")[
+                Td.Class("fw-semibold")[order.Customer],
+                Td.Class("text-secondary small")[order.Placed.ToString("yyyy-MM-dd")],
+                Td[Span.Class($"badge {StatusBadge(order.Status)}")[order.Status]],
+                Td.Class("text-secondary")[order.Items.Count],
+                Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)
                 ]
             ]);
 
             if (open)
             {
-                rows.Add(Tr(Key: $"detail-{order.Id}", Class: "md-detail")[
-                    Td(Colspan: _orderColumns.Length, Class: "p-0 bg-light")[
-                        Div(
-                            Class: "p-3",
-                            Data: new Dictionary<string, string?> { ["testid"] = $"inner-{order.Id}" })[
+                rows.Add(Tr.Key($"detail-{order.Id}").Class("md-detail")[
+                    Td.Colspan(_orderColumns.Length).Class("p-0 bg-light")[
+                        Div
+                            .Class("p-3")
+                            .Data(new Dictionary<string, string?> { ["testid"] = $"inner-{order.Id}" })[
                             InnerGrid(order)
                         ]
                     ]
@@ -103,21 +106,21 @@ public sealed class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return Table(Class: "table table-sm table-striped align-middle mb-0 bg-white")[
-            Thead()[
-                Tr()[_itemColumns.Select(c =>
+        return Table.Class("table table-sm table-striped align-middle mb-0 bg-white")[
+            Thead[
+                Tr[_itemColumns.Select(c =>
                     SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))]
             ],
-            Tbody()[
+            Tbody[
                 items.Select(it =>
-                    Tr(Key: it.Id)[
-                        Td()[Code()[it.Sku]],
-                        Td()[it.Product],
-                        Td(Class: "text-secondary")[it.Qty],
-                        Td(Style: "text-align:right; font-variant-numeric:tabular-nums;")[
+                    Tr.Key(it.Id)[
+                        Td[Code[it.Sku]],
+                        Td[it.Product],
+                        Td.Class("text-secondary")[it.Qty],
+                        Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                             "$" + it.UnitPrice.ToString("N2", CultureInfo.InvariantCulture)
                         ],
-                        Td(Style: "text-align:right; font-variant-numeric:tabular-nums;")[
+                        Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                             "$" + it.LineTotal.ToString("N2", CultureInfo.InvariantCulture)
                         ]
                     ])
@@ -205,14 +208,14 @@ public sealed class MasterDetailDemo : Component
             ? sort.Asc ? "bi-chevron-up" : "bi-chevron-down"
             : "bi-chevron-expand text-secondary opacity-50";
 
-        return Th(Scope: "col", Key: columnId)[
-            Button(
-                "button",
-                Class: "btn btn-link p-0 text-decoration-none text-dark fw-semibold d-inline-flex " +
-                       "align-items-center gap-1",
-                OnClick: () => toggle(columnId))[
-                Span()[header],
-                I(Class: $"bi {icon} small")
+        return Th.Scope("col").Key(columnId)[
+            Button
+                .Type("button")
+                .Class("btn btn-link p-0 text-decoration-none text-dark fw-semibold d-inline-flex " +
+                       "align-items-center gap-1")
+                .OnClick(() => toggle(columnId))[
+                Span[header],
+                I.Class($"bi {icon} small")
             ]
         ];
     }

@@ -4,7 +4,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-public class ReconciliationTests
+public partial class ReconciliationTests : global::Rask.Core.RaskMarkup
 {
     private static readonly IServiceProvider EmptyServices =
         RenderHarness.EmptyServices();
@@ -12,7 +12,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_FreshContext_AllocatesAndStores()
     {
-        var root = new StubComponent(Span());
+        var root = new StubComponent(Span);
         var factoryCalls = 0;
         using var ctx = LiveRenderContext.Begin(root, EmptyServices);
 
@@ -29,7 +29,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_ReusesPreviousInstance_AtSamePosition()
     {
-        var root = new StubComponent(Span());
+        var root = new StubComponent(Span);
         var prev = new CounterStub { Value = 7 };
         var previousChildren = new Dictionary<(Type, int), Component> { [(typeof(CounterStub), 0)] = prev };
 
@@ -50,7 +50,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_TypeMismatch_AllocatesFresh()
     {
-        var root = new StubComponent(Span());
+        var root = new StubComponent(Span);
         var prev = new OtherStub();
         var previousChildren = new Dictionary<(Type, int), Component> { [(typeof(CounterStub), 0)] = prev };
 
@@ -64,7 +64,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_SequentialPositions_GetDistinctKeys()
     {
-        var root = new StubComponent(Span());
+        var root = new StubComponent(Span);
         var p0 = new CounterStub { Value = 1 };
         var p1 = new CounterStub { Value = 2 };
         var previousChildren = new Dictionary<(Type, int), Component>
@@ -130,11 +130,11 @@ public class ReconciliationTests
             foreach (var _ in Enumerable.Range(0, 3))
             {
                 evaluated++;
-                yield return Span();
+                yield return Span;
             }
         }
 
-        var div = Div()[Lazy()];
+        var div = Div[Lazy()];
 
         Assert.Equal(3, evaluated); // fully enumerated by the indexer, not deferred
         Assert.IsType<Component[]>(div.Children); // stored as a materialised array
@@ -143,9 +143,9 @@ public class ReconciliationTests
     [Fact]
     public void ChildrenIndexer_AlreadyMaterialisedCollection_PassesThroughWithoutCopy()
     {
-        var list = new List<Component> { Span(), Div() };
+        var list = new List<Component> { Span, Div };
 
-        var div = Div()[(IEnumerable<Component>)list];
+        var div = Div[(IEnumerable<Component>)list];
 
         Assert.Same(list, div.Children); // no redundant copy for a ready collection
     }
@@ -153,12 +153,12 @@ public class ReconciliationTests
     private sealed class CounterStub : Component
     {
         public int Value;
-        protected override Component? Render() => Raw($"<x>{Value}</x>");
+        protected override Component? Render() => Raw.Value($"<x>{Value}</x>");
     }
 
     private sealed class OtherStub : Component
     {
-        protected override Component? Render() => Raw("<y/>");
+        protected override Component? Render() => Raw.Value("<y/>");
     }
 }
 

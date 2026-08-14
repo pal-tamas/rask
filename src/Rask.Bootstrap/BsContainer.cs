@@ -11,7 +11,7 @@ namespace Rask.Bootstrap;
 // FluidBelow is named for what it does, not for the class it emits: Bootstrap's .container-md reads as
 // "a container at md" but is really the fluid one below md (it picks up a max-width only from md up). It
 // supersedes Fluid when both are set — the same precedence BsModal.FullscreenBelow has over Fullscreen.
-public sealed class BsContainer : BsBlock
+public sealed partial class BsContainer : BsBlock
 {
     public bool? Fluid { get; set; }
     public Bp? FluidBelow { get; set; }

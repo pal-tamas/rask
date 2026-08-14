@@ -9,7 +9,7 @@ public sealed class ValidationMessage : Component
 
     // Headless: caller owns the markup. Invoked only when at least one message exists
     // for the bound field; the empty case renders nothing.
-    public required Func<IReadOnlyList<string>, Component> Template { get; set; }
+    public new required Func<IReadOnlyList<string>, Component> Template { get; set; }
 
     // No manual BypassRenderCache: reading EditContext.GetValidationMessages in Render() auto-latches
     // the render-cache opt-out (see EditContext.MarkReader / Component._readsAmbientState), so a message
@@ -36,7 +36,7 @@ public sealed class ValidationMessage : Component
             return new Fragment();
         }
 
-        return Template(msgs);
+        return Template!(msgs);
     }
 }
 
@@ -45,7 +45,7 @@ public sealed class ValidationSummary : Component
     // Headless: caller owns the markup. Invoked only when the form has at least one
     // message; each entry pairs the offending field name (empty for form-level messages)
     // with its error text.
-    public required Func<IReadOnlyList<ValidationEntry>, Component?> Template { get; set; }
+    public new required Func<IReadOnlyList<ValidationEntry>, Component?> Template { get; set; }
 
     // Reads EditContext.GetValidationEntries in Render() — auto-latches the cache opt-out; see
     // ValidationMessage for the rationale.
@@ -64,7 +64,7 @@ public sealed class ValidationSummary : Component
             return null;
         }
 
-        return Template(entries);
+        return Template!(entries);
     }
 }
 
@@ -82,7 +82,7 @@ public sealed class ValidatingIndicator : Component
     // sticky-window expiry.
     public LambdaExpression? For { get; set; }
 
-    public required Func<Component> Template { get; set; }
+    public new required Func<Component> Template { get; set; }
 
     // Reads EditContext.ShouldShowValidatingIndicator(field) in Render() — auto-latches the cache
     // opt-out; see ValidationMessage for the rationale.
@@ -102,6 +102,6 @@ public sealed class ValidatingIndicator : Component
         }
 
         var acc = ExpressionAccessor.Parse(For);
-        return ctx.ShouldShowValidatingIndicator(acc.Field) ? Template() : new Fragment();
+        return ctx.ShouldShowValidatingIndicator(acc.Field) ? Template!() : new Fragment();
     }
 }

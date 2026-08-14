@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 ///     <c>StateHasChanged()</c>, the sanctioned pattern for an externally-pushed update). Honored fully only
 ///     while media is actually playing.
 /// </summary>
-public sealed class MediaSessionDemo(IMediaSession media) : Component, IAsyncDisposable
+public sealed partial class MediaSessionDemo(IMediaSession media) : Component, IAsyncDisposable
 {
     private readonly List<IAsyncDisposable> _handlers = [];
     private string _status = "(idle)";
@@ -54,21 +54,25 @@ public sealed class MediaSessionDemo(IMediaSession media) : Component, IAsyncDis
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(3))[
-                    Button(Class: "btn btn-sm btn-primary", Id: "ms-publish", OnClickAsync: Publish)["Publish metadata"],
-                    Button(Class: "btn btn-sm btn-outline-primary", Id: "ms-playing",
-                        OnClickAsync: () => SetState(PlaybackState.Playing, "playing"))["Mark playing"],
-                    Button(Class: "btn btn-sm btn-outline-primary", Id: "ms-paused",
-                        OnClickAsync: () => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
-                    Button(Class: "btn btn-sm btn-outline-danger", Id: "ms-clear", OnClickAsync: Clear)["Clear"]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(3))[
+                    Button.Class("btn btn-sm btn-primary").Id("ms-publish").OnClickAsync(Publish)["Publish metadata"],
+                    Button
+                        .Class("btn btn-sm btn-outline-primary")
+                        .Id("ms-playing")
+                        .OnClickAsync(() => SetState(PlaybackState.Playing, "playing"))["Mark playing"],
+                    Button
+                        .Class("btn btn-sm btn-outline-primary")
+                        .Id("ms-paused")
+                        .OnClickAsync(() => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
+                    Button.Class("btn btn-sm btn-outline-danger").Id("ms-clear").OnClickAsync(Clear)["Clear"]
                 ],
-                P(Class: "small text-secondary mb-2")[
+                P.Class("small text-secondary mb-2")[
                     "After publishing, use your keyboard's media keys (or the OS media controls) — the action "
                     + "shows below. Lock-screen integration activates fully while audio is playing."],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "ms-status")[_status]],
-                Div(Class: "small text-secondary")["Last action: ", Code(Id: "ms-last")[_last]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("ms-status")[_status]],
+                Div.Class("small text-secondary")["Last action: ", Code.Id("ms-last")[_last]]
             ]
         ];
 

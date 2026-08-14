@@ -8,13 +8,13 @@ namespace Rask.Core.Tests.Live;
 // streams, runs the diff, and asserts the edit-op count + shape. The acceptance
 // criteria from the plan (≤ 200 bytes for CounterOnLargePage, etc.) starts with
 // these ops — minimal ops yield minimal wire bytes.
-public class FrameDifferTests
+public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Diff_IdenticalTrees_ProducesZeroOps()
     {
-        var before = Frames(Div(Class: "row")[Span()["Item 5"]]);
-        var after = Frames(Div(Class: "row")[Span()["Item 5"]]);
+        var before = Frames(Div.Class("row")[Span["Item 5"]]);
+        var after = Frames(Div.Class("row")[Span["Item 5"]]);
 
         var ops = new List<EditOp>();
         var count = FrameDiffer.Diff(before, after, ops);
@@ -30,8 +30,8 @@ public class FrameDifferTests
         // text node changes deep in an otherwise-identical tree. The diff should be
         // a single UpdateText op — not a full RemoveSubtree + InsertSubtree of the
         // surrounding element.
-        var before = Frames(Div(Class: "counter")[Span()["5"]]);
-        var after = Frames(Div(Class: "counter")[Span()["6"]]);
+        var before = Frames(Div.Class("counter")[Span["5"]]);
+        var after = Frames(Div.Class("counter")[Span["6"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -47,7 +47,7 @@ public class FrameDifferTests
         // The browser merges adjacent text into ONE DOM node; the frame model must match or
         // the diff's per-frame domSlot walk drifts past the real childNodes. Two string children
         // with nothing between them must emit a single Text frame holding the concatenation.
-        var frames = Frames(Div()["Toggle ?tab=", "profile"]);
+        var frames = Frames(Div["Toggle ?tab=", "profile"]);
 
         var text = Assert.Single(frames, f => f.Kind == RenderFrameKind.Text);
         Assert.Equal("Toggle ?tab=profile", text.Name);
@@ -60,8 +60,8 @@ public class FrameDifferTests
         // dynamic value — `[<icon/>, "Toggle ?tab=", value]`. The browser coalesces the two texts
         // into one node, so the changed value must ship as ONE UpdateText carrying the full merged
         // string, targeting the single coalesced slot — not an op at a domSlot that doesn't exist.
-        var before = Frames(Div()[Span(), "Toggle ?tab=", "profile"]);
-        var after = Frames(Div()[Span(), "Toggle ?tab=", "activity"]);
+        var before = Frames(Div[Span, "Toggle ?tab=", "profile"]);
+        var after = Frames(Div[Span, "Toggle ?tab=", "activity"]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -77,7 +77,7 @@ public class FrameDifferTests
         // A Fragment is transparent — it emits no HTML of its own — so text on either side of it
         // is DOM-adjacent and coalesces. The contiguity (HtmlEnd == htmlStart) check catches this
         // case that a children-list-level merge would miss.
-        var frames = Frames(Div()["a", ["b"]]);
+        var frames = Frames(Div["a", ["b"]]);
 
         var text = Assert.Single(frames, f => f.Kind == RenderFrameKind.Text);
         Assert.Equal("ab", text.Name);
@@ -88,7 +88,7 @@ public class FrameDifferTests
     {
         // An element between two texts breaks DOM adjacency (`<span></span>` advances the HTML), so
         // the frames must stay separate — merging them would mis-map the diff onto the real DOM.
-        var frames = Frames(Div()["a", Span(), "b"]).Where(f => f.Kind == RenderFrameKind.Text).ToArray();
+        var frames = Frames(Div["a", Span, "b"]).Where(f => f.Kind == RenderFrameKind.Text).ToArray();
 
         Assert.Equal(2, frames.Length);
         Assert.Equal("a", frames[0].Name);
@@ -100,7 +100,7 @@ public class FrameDifferTests
     {
         // The inner text "a" closes with `</span>` before the sibling text "b" starts, so they are
         // not contiguous and must not merge — even though "a" is the most recently emitted frame.
-        var frames = Frames(Div()[Span()["a"], "b"]).Where(f => f.Kind == RenderFrameKind.Text).ToArray();
+        var frames = Frames(Div[Span["a"], "b"]).Where(f => f.Kind == RenderFrameKind.Text).ToArray();
 
         Assert.Equal(2, frames.Length);
         Assert.Equal("a", frames[0].Name);
@@ -113,7 +113,7 @@ public class FrameDifferTests
         // An empty string child produces no HTML and so no DOM node. If it emitted a Text frame,
         // the diff would count a node the browser never created and every following sibling's
         // domSlot would drift by one — the trailing Span here would be patched at the wrong index.
-        var (frames, html) = FramesAndHtml(Div()[Span(Id: "a"), "", Span(Id: "b")]);
+        var (frames, html) = FramesAndHtml(Div[Span.Id("a"), "", Span.Id("b")]);
 
         Assert.DoesNotContain(frames, f => f.Kind == RenderFrameKind.Text);
         Assert.Equal("<div><span id=\"a\"></span><span id=\"b\"></span></div>", html);
@@ -124,7 +124,7 @@ public class FrameDifferTests
     {
         // An empty text in the middle of two real texts must drop out without breaking the
         // coalescing of the survivors — the DOM has the single node "ab".
-        var frames = Frames(Div()["a", "", "b"]);
+        var frames = Frames(Div["a", "", "b"]);
 
         var text = Assert.Single(frames, f => f.Kind == RenderFrameKind.Text);
         Assert.Equal("ab", text.Name);
@@ -135,8 +135,8 @@ public class FrameDifferTests
     {
         // An identical Raw value must produce no ops — the verbatim markup is the same
         // string, so there is nothing to patch (and certainly no spurious UpdateText).
-        var before = Frames(Code()[Raw("<span class=\"keyword\">class</span> Foo")]);
-        var after = Frames(Code()[Raw("<span class=\"keyword\">class</span> Foo")]);
+        var before = Frames(Code[Raw.Value("<span class=\"keyword\">class</span> Foo")]);
+        var after = Frames(Code[Raw.Value("<span class=\"keyword\">class</span> Foo")]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -153,8 +153,8 @@ public class FrameDifferTests
         // (which sets textContent — escaping the markup into literal <span> text and only
         // touching the first node). It must ship as a Remove + Insert that routes to the
         // full-HTML morph so the browser reparses the new markup.
-        var before = Frames(Code()[Raw("<span class=\"keyword\">class</span> Foo")]);
-        var (after, afterHtml) = FramesAndHtml(Code()[Raw("<span class=\"cssSelector\">.box </span>{ }")]);
+        var before = Frames(Code[Raw.Value("<span class=\"keyword\">class</span> Foo")]);
+        var (after, afterHtml) = FramesAndHtml(Code[Raw.Value("<span class=\"cssSelector\">.box </span>{ }")]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops, afterHtml);
@@ -176,8 +176,8 @@ public class FrameDifferTests
         // patched positionally (the domSlot index assumes Raw == 1 node). Instead of bailing the whole
         // document to a full-HTML morph, the differ ships ONE trusted MorphSubtree at the Raw-owning
         // parent, carrying its new inner HTML — the client morphs just that subtree.
-        var before = Frames(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
-        var (after, afterHtml) = FramesAndHtml(Div()[Raw("<a></a><b></b>"), Span()["y"]]);
+        var before = Frames(Div[Raw.Value("<a></a><b></b>"), Span["x"]]);
+        var (after, afterHtml) = FramesAndHtml(Div[Raw.Value("<a></a><b></b>"), Span["y"]]);
 
         var ops = new List<EditOp>();
         var scratch = new FrameDiffer.DiffScratch();
@@ -205,8 +205,8 @@ public class FrameDifferTests
         // The scoped morph needs the render HTML to slice the fragment. One-shot / test callers that
         // inspect ops without a wire build pass no newHtml — the differ then keeps the full-HTML
         // fallback (ForceFullHtml) exactly as before, rather than emitting a fragment-less morph.
-        var before = Frames(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
-        var after = Frames(Div()[Raw("<a></a><b></b>"), Span()["y"]]);
+        var before = Frames(Div[Raw.Value("<a></a><b></b>"), Span["x"]]);
+        var after = Frames(Div[Raw.Value("<a></a><b></b>"), Span["y"]]);
 
         var ops = new List<EditOp>();
         var scratch = new FrameDiffer.DiffScratch();
@@ -222,8 +222,8 @@ public class FrameDifferTests
         // The taint is one level deep: the inner div mixes a Raw with a <span>. The morph must target
         // the INNER div (the Raw-owning parent), not the outer div — the outer level is untainted, so
         // its positional path stays reliable and only the tainted subtree is re-morphed.
-        var before = Frames(Div()[Div()[Raw("<a></a><b></b>"), Span()["x"]]]);
-        var (after, afterHtml) = FramesAndHtml(Div()[Div()[Raw("<a></a><b></b>"), Span()["y"]]]);
+        var before = Frames(Div[Div[Raw.Value("<a></a><b></b>"), Span["x"]]]);
+        var (after, afterHtml) = FramesAndHtml(Div[Div[Raw.Value("<a></a><b></b>"), Span["y"]]]);
 
         var ops = new List<EditOp>();
         var scratch = new FrameDiffer.DiffScratch();
@@ -243,8 +243,8 @@ public class FrameDifferTests
     {
         // The Raw-tainted parent lost all its children (Raw + span removed). A verbatim empty-string
         // fragment morphs its children to nothing — still a scoped diff op, no full-document fallback.
-        var before = Frames(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
-        var (after, afterHtml) = FramesAndHtml(Div());
+        var before = Frames(Div[Raw.Value("<a></a><b></b>"), Span["x"]]);
+        var (after, afterHtml) = FramesAndHtml(Div);
 
         var ops = new List<EditOp>();
         var scratch = new FrameDiffer.DiffScratch();
@@ -264,8 +264,8 @@ public class FrameDifferTests
     {
         // The morph fallback only fires when something actually changed at the Raw-tainted level —
         // an idle re-render of a page that happens to contain a Raw-with-siblings still ships nothing.
-        var before = Frames(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
-        var (after, afterHtml) = FramesAndHtml(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
+        var before = Frames(Div[Raw.Value("<a></a><b></b>"), Span["x"]]);
+        var (after, afterHtml) = FramesAndHtml(Div[Raw.Value("<a></a><b></b>"), Span["x"]]);
 
         var ops = new List<EditOp>();
         var scratch = new FrameDiffer.DiffScratch();
@@ -281,8 +281,8 @@ public class FrameDifferTests
         // A solitary Raw spans the whole parent — no sibling index follows it — so a sole-child Raw
         // is safe and must not trip the morph fallback. (A CHANGED sole Raw still ships Remove+Insert
         // via SiblingMatches, covered by Diff_RawValueChanged_*; here the surrounding text changes.)
-        var before = Frames(Div()[Code()[Raw("<i>x</i>")], Span()["a"]]);
-        var (after, afterHtml) = FramesAndHtml(Div()[Code()[Raw("<i>x</i>")], Span()["b"]]);
+        var before = Frames(Div[Code[Raw.Value("<i>x</i>")], Span["a"]]);
+        var (after, afterHtml) = FramesAndHtml(Div[Code[Raw.Value("<i>x</i>")], Span["b"]]);
 
         var ops = new List<EditOp>();
         var scratch = new FrameDiffer.DiffScratch();
@@ -297,8 +297,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_AttributeValueChanged_ProducesSingleSetAttributeOp()
     {
-        var before = Frames(Input<string>(InputType.Text, "f", "old", "edit"));
-        var after = Frames(Input<string>(InputType.Text, "f", "new", "edit"));
+        var before = Frames(Input.Value("old").Type(InputType.Text).Name("f").Placeholder("edit"));
+        var after = Frames(Input.Value("new").Type(InputType.Text).Name("f").Placeholder("edit"));
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -320,8 +320,8 @@ public class FrameDifferTests
         // checkbox losing its event handler (so it stopped responding after a click) and
         // gaining a spurious value="". Name-keyed diffing emits exactly one op for the
         // toggled attribute and leaves `list` (emitted AFTER `checked`) untouched.
-        var unchecked_ = Frames(Input<string>(InputType.Checkbox, "n", List: "dl"));
-        var checked_ = Frames(Input<string>(InputType.Checkbox, "n", Checked: true, List: "dl"));
+        var unchecked_ = Frames(Input.Value<string>(null).Type(InputType.Checkbox).Name("n").List("dl"));
+        var checked_ = Frames(Input.Value<string>(null).Type(InputType.Checkbox).Name("n").Checked(true).List("dl"));
 
         var on = new List<EditOp>();
         FrameDiffer.Diff(unchecked_, checked_, on);
@@ -339,8 +339,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_ChildAdded_ProducesInsertSubtreeOp()
     {
-        var before = Frames(Ul()[Li()["a"], Li()["b"]]);
-        var after = Frames(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
+        var before = Frames(Ul[Li["a"], Li["b"]]);
+        var after = Frames(Ul[Li["a"], Li["b"], Li["c"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -352,8 +352,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_ChildRemoved_ProducesRemoveSubtreeOp()
     {
-        var before = Frames(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
-        var after = Frames(Ul()[Li()["a"], Li()["b"]]);
+        var before = Frames(Ul[Li["a"], Li["b"], Li["c"]]);
+        var after = Frames(Ul[Li["a"], Li["b"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -370,8 +370,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_NestedTailInsert_IsTrustedAndClientSupported()
     {
-        var before = Frames(Ul()[Li()["a"], Li()["b"]]);
-        var after = Frames(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
+        var before = Frames(Ul[Li["a"], Li["b"]]);
+        var after = Frames(Ul[Li["a"], Li["b"], Li["c"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -385,8 +385,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_NestedTailRemove_IsTrusted()
     {
-        var before = Frames(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
-        var after = Frames(Ul()[Li()["a"], Li()["b"]]);
+        var before = Frames(Ul[Li["a"], Li["b"], Li["c"]]);
+        var after = Frames(Ul[Li["a"], Li["b"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -401,8 +401,8 @@ public class FrameDifferTests
     {
         // The form-validation pattern: a message container gains its first (text) child. Pure tail
         // insert into an empty nested parent — production should ship the diff, not the whole form.
-        var before = Frames(Div(Class: "field")[Div(Class: "msg")]);
-        var after = Frames(Div(Class: "field")[Div(Class: "msg")["required"]]);
+        var before = Frames(Div.Class("field")[Div.Class("msg")]);
+        var after = Frames(Div.Class("field")[Div.Class("msg")["required"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -419,8 +419,8 @@ public class FrameDifferTests
         // Top-level siblings (path empty) are where the WASM shell's comment nodes live, so the
         // raw-childNodes slot the client uses can diverge from the server's relevant-node index —
         // keep those structural ops untrusted (full-HTML morph).
-        var before = Frames([Ul()["a"], Ul()["b"]]);
-        var after = Frames([Ul()["a"], Ul()["b"], Ul()["c"]]);
+        var before = Frames([Ul["a"], Ul["b"]]);
+        var after = Frames([Ul["a"], Ul["b"], Ul["c"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -436,8 +436,8 @@ public class FrameDifferTests
     {
         // A tag mismatch mid-level (span -> div) is a replace — the divergence-prone case — so even a
         // trailing insert at that same level stays untrusted.
-        var before = Frames(Ul()[Span()["a"], Li()["b"]]);
-        var after = Frames(Ul()[Div()["a"], Li()["b"], Li()["c"]]);
+        var before = Frames(Ul[Span["a"], Li["b"]]);
+        var after = Frames(Ul[Div["a"], Li["b"], Li["c"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -454,8 +454,8 @@ public class FrameDifferTests
         // span produces an UpdateText op whose Path walks: root-fragment-omitted →
         // div(0) → span(0) → text(0). The client uses this exact path to descend its
         // DOM tree and update the right node.
-        var before = Frames(Div()[Span()["one"]]);
-        var after = Frames(Div()[Span()["two"]]);
+        var before = Frames(Div[Span["one"]]);
+        var after = Frames(Div[Span["two"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -473,8 +473,8 @@ public class FrameDifferTests
     {
         // The element being changed is the SECOND div of the parent. Verifies the
         // sibling slot counter advances correctly past the first sibling.
-        var before = Frames(Div()[Div(Class: "a")["one"], Div(Class: "b")["two"]]);
-        var after = Frames(Div()[Div(Class: "a")["one"], Div(Class: "z")["two"]]);
+        var before = Frames(Div[Div.Class("a")["one"], Div.Class("b")["two"]]);
+        var after = Frames(Div[Div.Class("a")["one"], Div.Class("z")["two"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -512,8 +512,8 @@ public class FrameDifferTests
         // (HtmlStart/HtmlEnd) instead of allocating a Value string. The wire codec slices the
         // fragment from the same HTML at write time — verified here by both the range and a full
         // BuildPayloadUtf8Diff round-trip, which is what the client actually receives.
-        var before = Frames(Ul()[Li()["a"], Li()["b"]]);
-        var (afterFrames, afterHtml) = FramesAndHtml(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
+        var before = Frames(Ul[Li["a"], Li["b"]]);
+        var (afterFrames, afterHtml) = FramesAndHtml(Ul[Li["a"], Li["b"], Li["c"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, afterFrames, ops, afterHtml);
@@ -529,8 +529,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_WithoutNewHtml_InsertSubtreeOmitsFragment()
     {
-        var before = Frames(Ul()[Li()["a"]]);
-        var afterFrames = Frames(Ul()[Li()["a"], Li()["b"]]);
+        var before = Frames(Ul[Li["a"]]);
+        var afterFrames = Frames(Ul[Li["a"], Li["b"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, afterFrames, ops);
@@ -738,13 +738,13 @@ public class FrameDifferTests
         // One child without data-rask-key drops the whole parent back to the positional
         // walk. Mirrors the morph engine's all-or-nothing keyed detection so the diff
         // codec doesn't disagree with the client about which path applied.
-        var before = Frames(Ul()[
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one"],
-            Li()["two"]
+        var before = Frames(Ul[
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "a" })["one"],
+            Li["two"]
         ]);
-        var afterFrames = Frames(Ul()[
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one!"],
-            Li()["two"]
+        var afterFrames = Frames(Ul[
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "a" })["one!"],
+            Li["two"]
         ]);
 
         var ops = new List<EditOp>();
@@ -760,13 +760,13 @@ public class FrameDifferTests
     [Fact]
     public void Diff_KeyedList_DuplicateKeys_FallsBackToPositional()
     {
-        var before = Frames(Ul()[
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a"],
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+        var before = Frames(Ul[
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "dup" })["a"],
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
         ]);
-        var afterFrames = Frames(Ul()[
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a!"],
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+        var afterFrames = Frames(Ul[
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "dup" })["a!"],
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
         ]);
 
         var ops = new List<EditOp>();
@@ -780,13 +780,13 @@ public class FrameDifferTests
     [Fact]
     public void Diff_KeyedList_DuplicateKeys_ReportsTheOffendingKey()
     {
-        var before = Frames(Ul()[
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a"],
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["b"]
+        var before = Frames(Ul[
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a"],
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "row-7" })["b"]
         ]);
-        var after = Frames(Ul()[
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a!"],
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["b"]
+        var after = Frames(Ul[
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a!"],
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "row-7" })["b"]
         ]);
 
         var reported = new List<string>();
@@ -807,13 +807,13 @@ public class FrameDifferTests
     [Fact]
     public void Diff_KeyedList_UniqueKeys_DoesNotReport()
     {
-        var before = Frames(Ul()[
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["1"],
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "b" })["2"]
+        var before = Frames(Ul[
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "a" })["1"],
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "b" })["2"]
         ]);
-        var after = Frames(Ul()[
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["1!"],
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "b" })["2"]
+        var after = Frames(Ul[
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "a" })["1!"],
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "b" })["2"]
         ]);
 
         var reported = new List<string>();
@@ -837,11 +837,11 @@ public class FrameDifferTests
         // Same data-rask-key but the element kind changed (Li → Span). The keyed branch
         // treats this as a fresh node: remove the old, insert the new at the same slot.
         // Both ops carry Trusted so the gate ships them as diff.
-        var before = Frames(Ul()[
-            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["original"]
+        var before = Frames(Ul[
+            Li.Data(new Dictionary<string, string?> { ["rask-key"] = "x" })["original"]
         ]);
-        var (afterFrames, afterHtml) = FramesAndHtml(Ul()[
-            Span(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["replaced"]
+        var (afterFrames, afterHtml) = FramesAndHtml(Ul[
+            Span.Data(new Dictionary<string, string?> { ["rask-key"] = "x" })["replaced"]
         ]);
 
         var ops = new List<EditOp>();
@@ -1002,14 +1002,14 @@ public class FrameDifferTests
         // single trusted PermutationBatch, at the right parent depths and non-interleaved.
         static Component Row(int key, bool innerSwapped)
         {
-            Component a = Span(Key: $"{key}a")["A"];
-            Component b = Span(Key: $"{key}b")["B"];
-            var li = Li(Key: key);
+            Component a = Span.Key($"{key}a")["A"];
+            Component b = Span.Key($"{key}b")["B"];
+            var li = Li.Key(key);
             return innerSwapped ? li[b, a] : li[a, b];
         }
 
-        var before = Frames(Ul()[new List<Component> { Row(0, false), Row(1, false) }]);
-        var (afterFrames, afterHtml) = FramesAndHtml(Ul()[new List<Component> { Row(1, false), Row(0, true) }]);
+        var before = Frames(Ul[new List<Component> { Row(0, false), Row(1, false) }]);
+        var (afterFrames, afterHtml) = FramesAndHtml(Ul[new List<Component> { Row(1, false), Row(0, true) }]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
@@ -1030,12 +1030,12 @@ public class FrameDifferTests
         var rows = new List<Component>(keys.Length);
         foreach (var k in keys)
         {
-            rows.Add(Li(Data: new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
+            rows.Add(Li.Data(new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
                 $"Item {k}"
             ]);
         }
 
-        return Ul()[rows];
+        return Ul[rows];
     }
 
     private static Component BuildMixedRows(params (int Key, bool Keyed)[] rows)
@@ -1044,11 +1044,11 @@ public class FrameDifferTests
         foreach (var (key, keyed) in rows)
         {
             children.Add(keyed
-                ? Li(Data: new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[$"Item {key}"]
-                : Li()[$"Item {key}"]);
+                ? Li.Data(new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[$"Item {key}"]
+                : Li[$"Item {key}"]);
         }
 
-        return Ul()[children];
+        return Ul[children];
     }
 
     // Same shape as BuildKeyedRows but keyed via the first-class Key property instead of a
@@ -1058,10 +1058,10 @@ public class FrameDifferTests
         var rows = new List<Component>(keys.Length);
         foreach (var k in keys)
         {
-            rows.Add(Li(Key: k)[$"Item {k}"]);
+            rows.Add(Li.Key(k)[$"Item {k}"]);
         }
 
-        return Ul()[rows];
+        return Ul[rows];
     }
 
     private static Component BuildKeyedRowsWithLabel(params (string Key, string Label)[] rows)
@@ -1069,10 +1069,10 @@ public class FrameDifferTests
         var items = new List<Component>(rows.Length);
         foreach (var (key, label) in rows)
         {
-            items.Add(Li(Data: new Dictionary<string, string?> { ["rask-key"] = key })[label]);
+            items.Add(Li.Data(new Dictionary<string, string?> { ["rask-key"] = key })[label]);
         }
 
-        return Ul()[items];
+        return Ul[items];
     }
 
     private static RenderFrame[] Frames(Component tree)
@@ -1099,14 +1099,14 @@ public class FrameDifferTests
         var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(Div(Class: "row", Id: $"r{i}", Key: i)[
-                Span(Class: "label")[$"Item {i}"]
+            rows.Add(Div.Class("row").Id($"r{i}").Key(i)[
+                Span.Class("label")[$"Item {i}"]
             ]);
         }
 
-        return Div(Class: "container")[
-            Div(Class: "counter")[Span(Class: "value")[counter.ToString()]],
-            Div(Class: "body")[rows]
+        return Div.Class("container")[
+            Div.Class("counter")[Span.Class("value")[counter.ToString()]],
+            Div.Class("body")[rows]
         ];
     }
 }

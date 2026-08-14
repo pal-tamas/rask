@@ -16,7 +16,9 @@ public sealed class PageBaselineTests
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
     {
         var routeState = new RouteState { Path = path };
-        var html = RaskTest.Render(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
+        // RenderDocument, not Render: the <title> assertion below is about the <head>, which exists only
+        // when the document is composed around the app the way a host composes it.
+        var html = RaskTest.RenderDocument(new Shared.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.NotNull(pageType);
         // <title> now carries data-rask-key="tag:title" so the morph reconciles it by

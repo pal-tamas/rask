@@ -14,7 +14,8 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     per-element attribute diff in <c>FrameDiffer.DiffAttributes</c> picks up all
 ///     N changes without falling out into a sibling Remove/Insert.
 /// </summary>
-internal static class ThemeSwitch
+[global::Rask.Core.RaskMarkup]
+internal static partial class ThemeSwitch
 {
     public static Component BuildRask(bool dark)
     {
@@ -28,12 +29,12 @@ internal static class ThemeSwitch
             ["theme-contrast"] = dark ? "high" : "normal"
         };
 
-        return C.Div(Class: cls, Style: style, Data: data)[
-            C.Section(Class: "card")[
-                C.H2()["Welcome"],
-                C.P()["Pick a theme to taste."]
+        return Div.Class(cls).Style(style).Data(data)[
+            Section.Class("card")[
+                H2["Welcome"],
+                P["Pick a theme to taste."]
             ],
-            C.Button("button")[$"Toggle ({(dark ? "dark" : "light")})"]
+            Button.Type("button")[$"Toggle ({(dark ? "dark" : "light")})"]
         ];
     }
 

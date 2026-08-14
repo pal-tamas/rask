@@ -21,8 +21,9 @@ public sealed class SendTimeoutTests
 {
     private sealed class Shell : Component
     {
-        protected override Component? Render() =>
-            [Doctype(), new Html()[new Head(), new Body()[new H1()["hi"]]]];
+        protected override string? HtmlLang => null;
+
+        protected override Component? Render() => new H1()["hi"];
     }
 
     private static LiveSessionStore NewStore(TimeSpan sendTimeout)

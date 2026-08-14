@@ -15,7 +15,7 @@ namespace Rask.Bootstrap;
 // BsBlock itself exposes the Id/Class pass-through that the generated factory surfaces as optional
 // parameters, without pulling in Element's full HTML attribute/event surface. Abstract, so the
 // factory generator skips it; subclasses inherit Id/Class as leading optional factory params.
-public abstract class BsBlock : Component
+public abstract partial class BsBlock : Component
 {
     public string? Id { get; set; }
     public string? Class { get; set; }
@@ -28,7 +28,7 @@ public abstract class BsBlock : Component
     // Renders a <div class="{baseClass} {Class}" id="{Id}"> wrapper around the children — the shape
     // most container parts share (card sections, etc.).
     private protected Component Wrap(string baseClass) =>
-        Div(Id: Id, Class: BsClass.Join(baseClass, Class))[Items];
+        Div.Id(Id).Class(BsClass.Join(baseClass, Class))[Items];
 
     // The children followed by extra trailing children (e.g. an alert's close button), as one
     // sequence for the children indexer (the `..` spread is unsupported — pass an enumerable).

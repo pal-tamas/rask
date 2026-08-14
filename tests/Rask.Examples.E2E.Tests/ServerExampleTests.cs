@@ -22,6 +22,7 @@ public sealed class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFi
             DeepLink = true,
             OfflineReconnect = true,
             Slow3g = true,
+            SignalingRelay = true,
         }));
 
     // Server PWA: the app is installable (manifest linked + served with app-rooted URLs, SW

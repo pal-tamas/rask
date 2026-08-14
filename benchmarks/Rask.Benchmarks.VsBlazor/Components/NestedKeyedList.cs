@@ -88,7 +88,7 @@ internal static class NestedKeyedList
                 _scratch.Add(_cardsByKey![_order[i]]);
             }
 
-            return C.Div(Class: "deck")[_scratch];
+            return Div.Class("deck")[_scratch];
         }
 
         private void EnsureSeeded()
@@ -104,18 +104,18 @@ internal static class NestedKeyedList
                 var rows = new List<Component>(InnerRowCount);
                 for (var r = 0; r < InnerRowCount; r++)
                 {
-                    rows.Add(C.Li(
-                        Class: "row",
-                        Data: new Dictionary<string, string?> { ["rask-key"] = $"{k}.{r}" })[
-                        C.Span()[$"Card {k} · row {r}"]
+                    rows.Add(Li
+                        .Class("row")
+                        .Data(new Dictionary<string, string?> { ["rask-key"] = $"{k}.{r}" })[
+                        Span[$"Card {k} · row {r}"]
                     ]);
                 }
 
-                _cardsByKey[k] = C.Div(
-                    Class: "card",
-                    Data: new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
-                    C.H3()[$"Card {k}"],
-                    C.Ul()[rows]
+                _cardsByKey[k] = Div
+                    .Class("card")
+                    .Data(new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
+                    H3[$"Card {k}"],
+                    Ul[rows]
                 ];
             }
 
