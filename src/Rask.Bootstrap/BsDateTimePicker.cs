@@ -10,9 +10,9 @@ namespace Rask.Bootstrap;
 // calendar, and the time columns grey out-of-range items on the boundary day. Seconds:true adds a seconds
 // column. Keyboard mirrors BsDatePicker for the grid; Labels localizes the nav/column/clear aria-labels.
 // Native:true falls back to <input type=datetime-local>. Reuses PickerParts.CalendarGrid + TimeColumns.
-//   Bound:      BsDateTimePicker(() => model.When, Label: "When")
-//   Controlled: BsDateTimePicker(Value: dt, OnChange: v => …)
-public sealed class BsDateTimePicker<T> : BsPickerBase<T>
+//   Bound:      BsDateTimePicker.Bind(() => model.When).Label("When")
+//   Controlled: BsDateTimePicker<DateTime>().Value(dt).OnChange(v => …)
+public sealed partial class BsDateTimePicker<T> : BsPickerBase<T>
 {
     public DateTime? Min { get; set; }
     public DateTime? Max { get; set; }
@@ -77,12 +77,12 @@ public sealed class BsDateTimePicker<T> : BsPickerBase<T>
         var maxTime = Max is { } mxv && timeDate == DateOnly.FromDateTime(mxv)
             ? TimeOnly.FromDateTime(mxv) : (TimeOnly?)null;
 
-        var popover = Div(Class: MenuClass())[
+        var popover = Div.Class(MenuClass())[
             PickerParts.MonthHeader(_cursor, Culture,
                 () => _cursor = ClampCursor(_cursor.AddMonths(-1)),
                 () => _cursor = ClampCursor(_cursor.AddMonths(1)),
                 PrevMonthDisabled(_cursor), NextMonthDisabled(_cursor), PickerLabels),
-            Div(Class: BsClass.Join("bs-datetime", Display.Flex(), Flex.Gap(2)))[
+            Div.Class(BsClass.Join("bs-datetime", Display.Flex(), Flex.Gap(2)))[
                 PickerParts.CalendarGrid(_cursor, _cursor, selDate, minDate, maxDate, Disable, Culture,
                     prefix, gridId, day => PickDayAsync(acc, ctx, fid, selected, offset, day)),
                 PickerParts.TimeColumns(selTime, step, showSeconds, secStep, minTime, maxTime, Culture,

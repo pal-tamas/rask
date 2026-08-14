@@ -14,7 +14,9 @@ public class TestJSRuntimeTests
         public string? Read { get; private set; }
 
         protected override Component? Render() =>
-            Button(Type: "button", OnClick: async () =>
+            Button
+                .Type("button")
+                .OnClick(async () =>
             {
                 await js.InvokeVoidAsync("raskApi.clipboard.write", "hello");
                 Read = await js.InvokeAsync<string>("raskApi.clipboard.read");

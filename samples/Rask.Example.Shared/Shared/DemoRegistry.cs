@@ -127,6 +127,8 @@ public static class DemoRegistry
             ["browser-webauthn"] = () => CodeSample(["WebAuthnDemo.cs"], Result: WebAuthnDemo()),
             ["browser-broadcast-channel"] = () => CodeSample(["BroadcastChannelDemo.cs"], Result: BroadcastChannelDemo()),
             ["browser-web-locks"] = () => CodeSample(["WebLocksDemo.cs"], Result: WebLocksDemo()),
+            ["browser-signaling"] = () => CodeSample(["SignalingDemo.cs"], Result: SignalingDemo()),
+            ["browser-webrtc"] = () => CodeSample(["WebRtcDemo.cs"], Result: WebRtcDemo()),
             ["browser-notifications"] = () => CodeSample(["NotificationsDemo.cs"], Result: NotificationsDemo()),
             ["browser-share"] = () => CodeSample(
                 ["ShareDemo.cs"],

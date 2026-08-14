@@ -4,14 +4,14 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-public class EventHandlerErrorBoundaryTests
+public partial class EventHandlerErrorBoundaryTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task SyncHandlerThrow_TripsAncestorBoundary()
     {
         var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(true);
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(new Component[] { handlerOwner }, null);
 
         // ToHtml stamps handlerOwner.Boundary AND registers the handler under the live
@@ -35,7 +35,7 @@ public class EventHandlerErrorBoundaryTests
     {
         var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(false);
-        var boundary = ErrorBoundary();
+        var boundary = ErrorBoundary.Value;
         boundary.SetProps(new Component[] { handlerOwner }, null);
 
         using var ctx = LiveRenderContext.Begin(boundary, sp);
@@ -92,7 +92,7 @@ public class EventHandlerErrorBoundaryTests
                     throw new InvalidOperationException("handler-async")));
             }
 
-            return Span()[Text("owner")];
+            return Span[Text.Value("owner")];
         }
     }
 }

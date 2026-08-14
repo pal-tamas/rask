@@ -133,7 +133,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record GetValue : IQuery<string>;
             public class Outer
             {
-                private sealed class Handler : IQueryHandler<GetValue, string>
+                private sealed class Action : IQueryHandler<GetValue, string>
                 {
                     public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
                 }
@@ -201,7 +201,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record GetValue : IQuery<string>;
             public class Outer
             {
-                private sealed class Handler : IQueryHandler<GetValue, string>
+                private sealed class Action : IQueryHandler<GetValue, string>
                 {
                     public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
                 }
@@ -219,7 +219,7 @@ public sealed class CqrsDispatchGeneratorTests
         // fails with CS0234.
         var run = CqrsGeneratorFixture.Run(Preamble + """
             public sealed record GetValue : IQuery<string>;
-            file sealed class Handler : IQueryHandler<GetValue, string>
+            file sealed class Action : IQueryHandler<GetValue, string>
             {
                 public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
             }

@@ -105,7 +105,7 @@ instead, inject `IInstallPrompt` (WASM-only). The framework captures the browser
 ```csharp
 using Rask.Wasm.Browser;
 
-public sealed class InstallButton(IInstallPrompt install) : Component
+public sealed partial class InstallButton(IInstallPrompt install) : Component
 {
     private bool _canInstall;
 
@@ -117,7 +117,7 @@ public sealed class InstallButton(IInstallPrompt install) : Component
     }
 
     protected override Component? Render() => _canInstall
-        ? Button(OnClickAsync: Prompt)["Install app"]
+        ? Button.OnClickAsync(Prompt)["Install app"]
         : Text("");
 
     private async Task Prompt()
@@ -173,7 +173,7 @@ on **both** hosts — on WASM always, and on Server once you opt in with
 an event handler:
 
 ```csharp
-public sealed class PushButton(IWebPush push) : Component
+public sealed partial class PushButton(IWebPush push) : Component
 {
     private async Task Enable()
     {

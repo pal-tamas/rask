@@ -1,19 +1,19 @@
 namespace Rask.Core.Tests.Components;
 
-public class PTests
+public partial class PTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<p></p>", P().ToHtml());
+        Assert.Equal("<p></p>", P.ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
         Assert.Equal("<p id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></p>",
-            P("i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            P.Id("i").Class("c").Style("s").Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<p>&lt;x&gt;</p>", P()["<x>"].ToHtml());
+        Assert.Equal("<p>&lt;x&gt;</p>", P["<x>"].ToHtml());
 }

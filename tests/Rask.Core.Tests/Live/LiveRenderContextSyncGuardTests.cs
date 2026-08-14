@@ -5,7 +5,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-public class LiveRenderContextSyncGuardTests
+public partial class LiveRenderContextSyncGuardTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void CurrentSync_WhenThreadHoldsDisposedContext_ReadsAsNull()
@@ -13,7 +13,7 @@ public class LiveRenderContextSyncGuardTests
         var services = RenderHarness.EmptyServices();
 
         LiveRenderContext disposed;
-        using (var scope = RenderHarness.Render(new StubComponent(Span()), services))
+        using (var scope = RenderHarness.Render(new StubComponent(Span), services))
         {
             disposed = scope.Context;
             Assert.Same(disposed, LiveRenderContext.CurrentSync); // active mid-render
@@ -31,7 +31,7 @@ public class LiveRenderContextSyncGuardTests
 
             // Observable effect: a handler emits no attribute outside an active live context,
             // instead of attributing to a leftover context from an unrelated render.
-            Assert.Equal("<button></button>", Button(OnClick: () => { }).ToHtml());
+            Assert.Equal("<button></button>", Button.OnClick(() => { }).ToHtml());
         }
         finally
         {

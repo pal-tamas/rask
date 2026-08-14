@@ -14,32 +14,26 @@ namespace Rask.Core.Tests.Diagnostics;
 ///     Each case asserts the two things that were missing — enough context to find the offending thing,
 ///     and a concrete instruction — rather than the exact sentence, so rewording stays free.
 /// </remarks>
-public class ActionableExceptionMessageTests
+public partial class ActionableExceptionMessageTests : global::Rask.Core.RaskMarkup
 {
     // #611 calls this "the worst one", and it turned out to be unreachable: both callers of
     // ResolveContext already gate on `Model is not null || Context is not null`, which is exactly the
     // condition the throw checks. A Form with neither renders as a plain <form>, deliberately. So these
     // drive ResolveContext directly — the guard is kept for the next caller, and the message is worth
     // fixing for when that happens, but nobody has ever seen the old one.
-    [Fact]
-    public void A_form_with_neither_a_model_nor_a_context_renders_as_a_plain_form()
-    {
-        var view = new StubComponent(() => Form(Id: "plain")[Div()]);
-
-        var html = view.RenderAsLiveRoot();
-
-        Assert.Contains("<form id=\"plain\">", html, StringComparison.Ordinal);
-    }
+    // `A_form_with_neither_a_model_nor_a_context_renders_as_a_plain_form` was here. `Model` is a chain
+    // STEP now, so a form with nothing to bind to cannot be written — there is no plain <form> to render.
+    // The guard below is still reachable by handing it a null model, which is why it and its message stay.
 
     [Fact]
     public void The_form_binding_guard_names_the_form_and_shows_both_ways_to_give_it_one()
     {
-        var form = new Form { Id = "signup" };
+        var form = new Form<object> { Model = null!, Id = "signup" };
 
         var ex = Assert.Throws<InvalidOperationException>(() => form.ResolveContext());
 
         Assert.Contains("#signup", ex.Message, StringComparison.Ordinal);       // which form
-        Assert.Contains("Form(model)", ex.Message, StringComparison.Ordinal);   // the shape
+        Assert.Contains("Form.Model(model)", ex.Message, StringComparison.Ordinal); // the shape
         Assert.Contains("EditContext", ex.Message, StringComparison.Ordinal);   // the other way
         // "Context" alone was ambiguous between the Context<T> component and an EditContext.
         Assert.DoesNotContain("Form requires Model or Context.", ex.Message, StringComparison.Ordinal);
@@ -48,7 +42,7 @@ public class ActionableExceptionMessageTests
     [Fact]
     public void The_form_binding_guard_invents_no_label_when_there_is_nothing_to_name()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => new Form().ResolveContext());
+        var ex = Assert.Throws<InvalidOperationException>(() => new Form<object> { Model = null! }.ResolveContext());
 
         Assert.Contains("Form has neither", ex.Message, StringComparison.Ordinal);
     }
@@ -87,7 +81,7 @@ public class ActionableExceptionMessageTests
     [Fact]
     public void DragDrop_without_a_body_shows_the_delegate_shape()
     {
-        var view = new StubComponent(() => DragDrop());
+        var view = new StubComponent(() => DragDrop);
 
         var ex = Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
 

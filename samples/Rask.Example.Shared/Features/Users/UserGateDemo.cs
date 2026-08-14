@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Auth-gating by injecting IUserProvider and reading .Current — no AuthorizeView component. The demo
 // injects the toggleable provider to sign in/out; Render() branches on _auth.Current. It subscribes
 // to the provider's Changed event so a sign-in originating anywhere re-renders this component.
-public sealed class UserGateDemo : Component
+public sealed partial class UserGateDemo : Component
 {
     private readonly DemoUserProvider _auth;
 
@@ -14,21 +14,24 @@ public sealed class UserGateDemo : Component
     protected override void OnUnmount() => _auth.Changed -= StateHasChanged;
 
     protected override Component? Render() =>
-        Div(Id: "user-gate")[
+        Div.Id("user-gate")[
             _auth.Current.Identity?.IsAuthenticated == true
                 ? [
-                    P()["Signed in as ", Strong()[_auth.Current.Identity!.Name ?? "?"]],
+                    P["Signed in as ", Strong[_auth.Current.Identity!.Name ?? "?"]],
                     // Role-gated: only an admin sees this panel.
                     _auth.Current.IsInRole("admin")
-                        ? BsAlert(Color: BsColor.Warning, Class: "py-2")["🔑 Admin-only panel"]
+                        ? BsAlert.Color(BsColor.Warning).Class("py-2")["🔑 Admin-only panel"]
                         : null,
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: _auth.SignOut)["Sign out"]]
+                    BsButton.Color(BsColor.Secondary).Outline(true).Size(BsSize.Sm).OnClick(_auth.SignOut)["Sign out"]]
                 : [
-                    P(Class: "text-secondary")["You are signed out."],
-                    BsStack(Gap: 2)[
-                        BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _auth.SignIn("alice", "user"))[
+                    P.Class("text-secondary")["You are signed out."],
+                    BsStack.Gap(2)[
+                        BsButton.Color(BsColor.Primary).Size(BsSize.Sm).OnClick(() => _auth.SignIn("alice", "user"))[
                             "Sign in as user"],
-                        BsButton(Color: BsColor.Warning, Size: BsSize.Sm, OnClick: () => _auth.SignIn("rootadmin", "admin"))[
+                        BsButton
+                            .Color(BsColor.Warning)
+                            .Size(BsSize.Sm)
+                            .OnClick(() => _auth.SignIn("rootadmin", "admin"))[
                             "Sign in as admin"]
                     ]]
         ];

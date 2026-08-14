@@ -9,10 +9,10 @@ For the overlay navigation (modal, offcanvas, dropdown) see
 
 ```csharp
 // A navbar shell + a vertical nav whose items SPA-route and self-highlight.
-BsNavbar(Color: BsColor.Dark, Theme: BsTheme.Dark, Sticky: true)[ /* brand, actions */ ]
-BsNav(Vertical: true, Pills: true)[
-    BsNavItem(Href: Routes.HomePage())["Home"],
-    BsNavItem(Href: Routes.OrdersPage(), Match: "/orders", ActiveMatch: NavLinkMatch.Prefix)["Orders"]
+BsNavbar.Color(BsColor.Dark).Theme(BsTheme.Dark).Sticky(true)[ /* brand, actions */ ]
+BsNav.Vertical(true).Pills(true)[
+    BsNavItem.Href(Routes.HomePage())["Home"],
+    BsNavItem.Href(Routes.OrdersPage()).Match("/orders").ActiveMatch(NavLinkMatch.Prefix)["Orders"]
 ]
 ```
 

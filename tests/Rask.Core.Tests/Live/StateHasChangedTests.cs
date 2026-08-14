@@ -6,19 +6,19 @@ using Rask.Server;
 
 namespace Rask.Core.Tests.Live;
 
-public class StateHasChangedTests
+public partial class StateHasChangedTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void StateHasChanged_NoHandle_DoesNotThrow()
     {
-        var c = new StubComponent(Span());
+        var c = new StubComponent(Span);
         c.StateHasChanged();
     }
 
     [Fact]
     public async Task StateHasChangedAsync_NoHandle_ReturnsCompletedTask()
     {
-        var c = new StubComponent(Span());
+        var c = new StubComponent(Span);
         await c.StateHasChangedAsync();
     }
 
@@ -72,7 +72,7 @@ public class StateHasChangedTests
     public void StateHasChangedFromChild_PropagatesHandleViaLiveRenderContext()
     {
         var session = NewSession(out _);
-        var child = new StubComponent(Span());
+        var child = new StubComponent(Span);
 
         using (LiveRenderContext.Begin(session.View, session.Services))
         {
@@ -85,6 +85,6 @@ public class StateHasChangedTests
     {
         var sp = RenderHarness.EmptyServices();
         scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        return new LiveSession("test-session", new StubComponent(Span()), scope, LiveDiffMode.Auto);
+        return new LiveSession("test-session", new StubComponent(Span), scope, LiveDiffMode.Auto);
     }
 }

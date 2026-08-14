@@ -5,12 +5,12 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-public class LiveRenderContextEditContextTests
+public partial class LiveRenderContextEditContextTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void GetOrCreateEditContext_SameModel_ReturnsCachedInstance()
     {
-        var view = new StubComponent(Span());
+        var view = new StubComponent(Span);
         var model = new Model();
         using var ctx = LiveRenderContext.Begin(view);
 
@@ -24,7 +24,7 @@ public class LiveRenderContextEditContextTests
     [Fact]
     public void GetOrCreateEditContext_DifferentModels_ReturnsDifferentInstances()
     {
-        var view = new StubComponent(Span());
+        var view = new StubComponent(Span);
         using var ctx = LiveRenderContext.Begin(view);
 
         var ec1 = ctx.GetOrCreateEditContext(new Model());
@@ -36,7 +36,7 @@ public class LiveRenderContextEditContextTests
     [Fact]
     public void GetOrCreateEditContext_FactoryUsed_OnFirstCallOnly()
     {
-        var view = new StubComponent(Span());
+        var view = new StubComponent(Span);
         var model = new Model();
         using var ctx = LiveRenderContext.Begin(view);
         var calls = 0;
@@ -61,10 +61,10 @@ public class LiveRenderContextEditContextTests
         // form `__sp => new T() { ... }` which ignores the services parameter. The context
         // therefore passes null through cleanly so tag factories work in tests that
         // construct a LiveRenderContext without an IServiceProvider.
-        var view = new StubComponent(Span());
+        var view = new StubComponent(Span);
         using var ctx = LiveRenderContext.Begin(view);
 
-        var span = ctx.GetOrCreate<Span>(_ => Span());
+        var span = ctx.GetOrCreate<Span>(_ => Span);
 
         Assert.NotNull(span);
     }

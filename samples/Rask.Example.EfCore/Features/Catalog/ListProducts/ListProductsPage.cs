@@ -10,12 +10,12 @@ namespace Rask.Example.EfCore.Features.Catalog.ListProducts;
 // stance: each slice owns its own data access.
 [Route("/")]
 [Route("products")]
-public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
+public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
 {
     private IReadOnlyList<Product> _products = [];
     private bool _loaded;
 
-    protected override Component? Head => Title()["Products — Rask EF Core"];
+    protected override Component? HeadAssets => Title["Products — Rask EF Core"];
 
     // Runs on every mount — navigating back from the create/edit slices remounts this page, so the
     // list always reflects the latest committed state.
@@ -42,44 +42,50 @@ public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbConte
 
     protected override Component? Render() =>
     [
-        Div(Class: "d-flex justify-content-between align-items-center mb-3")[
-            Div()[
-                H1(Class: "h3 mb-1")["Products"],
-                P(Class: "text-secondary mb-0")["EF Core + SQLite CRUD, organised as vertical slices."]
+        Div.Class("d-flex justify-content-between align-items-center mb-3")[
+            Div[
+                H1.Class("h3 mb-1")["Products"],
+                P.Class("text-secondary mb-0")["EF Core + SQLite CRUD, organised as vertical slices."]
             ],
-            NavLink(global::Rask.Example.EfCore.Features.Catalog.CreateProduct.Routes.CreateProductPage(), Class: "btn btn-primary")[
-                I(Class: "bi bi-plus-lg me-1"), "New product"
+            NavLink
+                .Href(global::Rask.Example.EfCore.Features.Catalog.CreateProduct.Routes.CreateProductPage())
+                .Class("btn btn-primary")[
+                I.Class("bi bi-plus-lg me-1"), "New product"
             ]
         ],
         !_loaded
-            ? Div(Class: "text-secondary")[
-                Span(Class: "spinner-border spinner-border-sm me-2"), "Loading…"
+            ? Div.Class("text-secondary")[
+                Span.Class("spinner-border spinner-border-sm me-2"), "Loading…"
             ]
             : _products.Count == 0
-                ? Div(Class: "alert alert-info")["No products yet — click \"New product\" to add one."]
-                : Table(Class: "table table-striped align-middle bg-white shadow-sm rounded overflow-hidden")[
-                    Thead()[
-                        Tr()[
-                            Th()["#"],
-                            Th()["Name"],
-                            Th(Class: "text-end")["Price"],
-                            Th(Class: "text-end")["Stock"],
-                            Th()[""]
+                ? Div.Class("alert alert-info")["No products yet — click \"New product\" to add one."]
+                : Table.Class("table table-striped align-middle bg-white shadow-sm rounded overflow-hidden")[
+                    Thead[
+                        Tr[
+                            Th["#"],
+                            Th["Name"],
+                            Th.Class("text-end")["Price"],
+                            Th.Class("text-end")["Stock"],
+                            Th[""]
                         ]
                     ],
-                    Tbody()[
-                        _products.Select(p => Tr(Key: p.Id)[
-                            Td(Class: "text-muted")[p.Id.ToString(CultureInfo.InvariantCulture)],
-                            Td(Class: "fw-semibold")[p.Name.Value],
-                            Td(Class: "text-end")[p.Price.ToString()],
-                            Td(Class: "text-end")[p.Stock.Value.ToString(CultureInfo.InvariantCulture)],
-                            Td(Class: "text-end text-nowrap")[
-                                NavLink($"/products/{p.Id}/edit", Class: "btn btn-outline-secondary btn-sm me-1")[
-                                    I(Class: "bi bi-pencil")
+                    Tbody[
+                        _products.Select(p => Tr.Key(p.Id)[
+                            Td.Class("text-muted")[p.Id.ToString(CultureInfo.InvariantCulture)],
+                            Td.Class("fw-semibold")[p.Name.Value],
+                            Td.Class("text-end")[p.Price.ToString()],
+                            Td.Class("text-end")[p.Stock.Value.ToString(CultureInfo.InvariantCulture)],
+                            Td.Class("text-end text-nowrap")[
+                                NavLink
+                                    .Href($"/products/{p.Id}/edit")
+                                    .Class("btn btn-outline-secondary btn-sm me-1")[
+                                    I.Class("bi bi-pencil")
                                 ],
-                                Button("button", Class: "btn btn-outline-danger btn-sm",
-                                    OnClickAsync: () => DeleteAsync(p.Id))[
-                                    I(Class: "bi bi-trash")
+                                Button
+                                    .Type("button")
+                                    .Class("btn btn-outline-danger btn-sm")
+                                    .OnClickAsync(() => DeleteAsync(p.Id))[
+                                    I.Class("bi bi-trash")
                                 ]
                             ]
                         ])

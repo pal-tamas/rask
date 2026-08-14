@@ -7,24 +7,40 @@ namespace Rask.Example.Shared.Features;
 ///     badge from the page. Both work on every host; in the native shell they resolve to real OS backends
 ///     (UNUserNotificationCenter / NotificationManager and the native app-icon badge), which a WebView can't do.
 /// </summary>
-public sealed class NotificationsDemo(INotifications notifications, IBadge badge) : Component
+public sealed partial class NotificationsDemo(INotifications notifications, IBadge badge) : Component
 {
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
-                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "notif-permission",
-                        OnClickAsync: RequestPermission)["Request permission"],
-                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "notif-show",
-                        OnClickAsync: Notify)["Notify"],
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "badge-set",
-                        OnClickAsync: SetBadge)["Set badge 3"],
-                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "badge-clear",
-                        OnClickAsync: ClearBadge)["Clear badge"]
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                    BsButton
+                        .Color(BsColor.Primary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("notif-permission")
+                        .OnClickAsync(RequestPermission)["Request permission"],
+                    BsButton
+                        .Color(BsColor.Primary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("notif-show")
+                        .OnClickAsync(Notify)["Notify"],
+                    BsButton
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("badge-set")
+                        .OnClickAsync(SetBadge)["Set badge 3"],
+                    BsButton
+                        .Color(BsColor.Danger)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("badge-clear")
+                        .OnClickAsync(ClearBadge)["Clear badge"]
                 ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "notif-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
             ]
         ];
 

@@ -151,6 +151,22 @@ both to watch one wait for the other.
 
 <!-- demo:browser-web-locks -->
 
+**`IWebRtc`** — connect two browsers directly for peer-to-peer data. You supply the signaling (a WebSocket,
+an HTTP endpoint, even `IBroadcastChannel` between two tabs); the wrapper handles the offer/answer exchange,
+ICE, and data channels. Incoming messages and candidates arrive in **batches** — on the Server host each push
+costs a WebSocket frame, so one push per message would end the session under load. The demo runs both peers
+in one page, so signaling is a method call and everything else is real.
+
+<!-- demo:browser-webrtc -->
+
+**`ISignaling`** — the relay two peers trade an offer, an answer and their ICE candidates over, for apps
+that don't already have a channel of their own. Host it with `AddRaskSignaling()` + `MapRaskSignaling()`.
+Peer ids are minted by the server, a message only reaches a peer in the sender's own room, and nothing is
+ever echoed back to its sender. The demo joins the same room twice from one page, so you can watch the whole
+exchange.
+
+<!-- demo:browser-signaling -->
+
 **`INotifications` + `IBadge`** — raise a local notification and set the app-icon badge from the page. In the
 [native shell](native.md) these resolve to real OS backends (UNUserNotificationCenter / NotificationManager and
 the native app-icon badge) that a WebView cannot provide; on Server/WASM they use the browser's Notifications

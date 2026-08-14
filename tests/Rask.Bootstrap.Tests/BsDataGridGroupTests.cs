@@ -6,7 +6,7 @@ namespace Rask.Bootstrap.Tests;
 
 // Grouping: the Field-derived column name, banding over consecutive rows, the ordering that makes the bands
 // whole, nesting, collapse and subtotals.
-public class BsDataGridGroupTests
+public partial class BsDataGridGroupTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, string Category, string Supplier, int Qty);
 
@@ -67,8 +67,11 @@ public class BsDataGridGroupTests
     {
         // The whole point of Field being an expression: the token is read off the property, so it cannot drift.
         // Value could never do this — a compiled Func carries no member name.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         Assert.Contains("Category: Fruit", html, StringComparison.Ordinal);
     }
@@ -77,8 +80,11 @@ public class BsDataGridGroupTests
     public void Field_AlsoNamesAControlledSort()
     {
         // Sorting keys off the same name, so a column needs naming once. SortField still wins where set.
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Sort: "name", OnSortChange: _ => { }));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Sort("name")
+            .OnSortChange(_ => { }));
 
         // A Sortable column with a resolvable name renders a real sort control.
         Assert.Contains("aria-sort=\"ascending\"", grid.Html, StringComparison.Ordinal);
@@ -87,7 +93,7 @@ public class BsDataGridGroupTests
     [Fact]
     public void WithoutGrouping_NoBands()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).ToHtml();
 
         Assert.DoesNotContain("table-group-divider", html, StringComparison.Ordinal);
     }
@@ -97,8 +103,11 @@ public class BsDataGridGroupTests
     {
         // THE load-bearing test. The source is interleaved (Fruit, Veg, Fruit, Veg, Fruit); banding it as-is
         // would emit five bands. The grid orders by the group key first, so each category appears exactly once.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         Assert.Equal(["Category: Fruit (3)", "Category: Veg (2)"], BandTitles(html));
         Assert.Equal(["Apple", "Banana", "Cherry", "Carrot", "Leek"], FirstCells(html));
@@ -109,9 +118,14 @@ public class BsDataGridGroupTests
     {
         // "Group by category, sort by name descending" has to mean descending INSIDE each band — a sort that
         // won over the grouping would scatter the bands.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { },
-            Sort: "name", SortDescending: true, OnSortChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .Sort("name")
+            .SortDescending(true)
+            .OnSortChange(_ => { }).ToHtml();
 
         Assert.Equal(["Category: Fruit (3)", "Category: Veg (2)"], BandTitles(html));
         Assert.Equal(["Cherry", "Banana", "Apple", "Leek", "Carrot"], FirstCells(html));
@@ -120,8 +134,11 @@ public class BsDataGridGroupTests
     [Fact]
     public void NestedGrouping_BandsWithinBands()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category", "supplier"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category", "supplier"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         Assert.Equal(
             [
@@ -134,8 +151,12 @@ public class BsDataGridGroupTests
     [Fact]
     public void TheBandHeader_SpansEveryVisibleColumn_IncludingTheLeadingOnes()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name, Selectable: true,
-            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Selectable(true)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         // 4 data columns, Category grouped away (3 visible), + the checkbox column = 4.
         Assert.Contains("<td colspan=\"4\">", html, StringComparison.Ordinal);
@@ -146,8 +167,11 @@ public class BsDataGridGroupTests
     {
         // A grouped column repeats one value down its whole band under a header the band header already carries,
         // so by default it folds away — the value lives only in the band header.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         Assert.Equal(["Name", "Supplier", "Qty"], HeaderTitles(html)); // Category's <th> is gone
         Assert.Contains("Category: Fruit", html, StringComparison.Ordinal); // but the band header keeps it
@@ -158,8 +182,12 @@ public class BsDataGridGroupTests
     [Fact]
     public void ShowGroupedColumns_KeepsTheGroupedColumn_InHeaderAndCells()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }, ShowGroupedColumns: true).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .ShowGroupedColumns(true).ToHtml();
 
         Assert.Equal(["Name", "Category", "Supplier", "Qty"], HeaderTitles(html)); // all four stay
         // The value shows both in the band header AND repeated in every row (the pre-hide behaviour).
@@ -170,8 +198,11 @@ public class BsDataGridGroupTests
     [Fact]
     public void MultiLevelGrouping_HidesEveryGroupedColumn()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category", "supplier"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category", "supplier"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         // Both grouped columns fold away; only the ungrouped Name and Qty remain.
         Assert.Equal(["Name", "Qty"], HeaderTitles(html));
@@ -191,8 +222,12 @@ public class BsDataGridGroupTests
             new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Footer = rs => rs.Sum(x => x.Qty) },
         ];
 
-        var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }, GroupSubtotals: true).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(columns)
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .GroupSubtotals(true).ToHtml();
 
         var firstSubtotal = Regex.Match(html, "<tr class=\"table-light\"[^>]*>(.*?)</tr>", RegexOptions.Singleline)
             .Groups[1].Value;
@@ -215,13 +250,20 @@ public class BsDataGridGroupTests
             },
         ];
 
-        var grouped = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var grouped = BsDataGrid.Data(Rows)
+            .Columns(columns)
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
         Assert.DoesNotContain("<tfoot>", grouped, StringComparison.Ordinal);
 
         // Kept (opt-out) or ungrouped, the footer is back.
-        var shown = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }, ShowGroupedColumns: true).ToHtml();
+        var shown = BsDataGrid.Data(Rows)
+            .Columns(columns)
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .ShowGroupedColumns(true).ToHtml();
         Assert.Contains("<tfoot>", shown, StringComparison.Ordinal);
     }
 
@@ -238,8 +280,11 @@ public class BsDataGridGroupTests
             },
         ];
 
-        var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(columns)
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         Assert.DoesNotContain("colspan=\"0\"", html, StringComparison.Ordinal);
         Assert.Contains("<td colspan=\"1\">", html, StringComparison.Ordinal);
@@ -250,21 +295,31 @@ public class BsDataGridGroupTests
     {
         // Grouped is URL input: ?group=deleteMe must render an ungrouped grid, never throw. Same for a column
         // that exists but isn't Groupable.
-        var unknown = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["nope"], OnGroupedChange: _ => { }).ToHtml();
+        var unknown = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["nope"])
+            .OnGroupedChange(_ => { }).ToHtml();
         Assert.DoesNotContain("table-group-divider", unknown, StringComparison.Ordinal);
 
         // "name" is a real column with a Field, but not Groupable.
-        var notGroupable = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["name"], OnGroupedChange: _ => { }).ToHtml();
+        var notGroupable = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["name"])
+            .OnGroupedChange(_ => { }).ToHtml();
         Assert.DoesNotContain("table-group-divider", notGroupable, StringComparison.Ordinal);
     }
 
     [Fact]
     public void GroupCollapsible_RendersAToggle_WithAriaExpanded_ButNoDanglingAriaControls()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }, GroupCollapsible: true).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .GroupCollapsible(true).ToHtml();
 
         Assert.Contains("aria-expanded=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"Toggle Category Fruit\"", html, StringComparison.Ordinal);
@@ -276,8 +331,12 @@ public class BsDataGridGroupTests
     [Fact]
     public async Task CollapsingABand_HidesItsRows_AndLeavesTheOthers()
     {
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }, GroupCollapsible: true));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .GroupCollapsible(true));
 
         Assert.Equal(5, FirstCells(grid.Html).Length);
 
@@ -295,8 +354,12 @@ public class BsDataGridGroupTests
     [Fact]
     public async Task CollapseIsKeyedByValue_SoItFollowsTheBandAcrossASort()
     {
-        var grid = RaskTest.Render(BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }, GroupCollapsible: true));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .GroupCollapsible(true));
 
         var toggles = Regex.Matches(grid.Html, "data-rask-on-click=\"([^\"]+)\"")
             .Select(m => m.Groups[1].Value).ToArray();
@@ -314,8 +377,12 @@ public class BsDataGridGroupTests
     [Fact]
     public void GroupSubtotals_TotalTheBand_ReusingTheColumnFooter()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }, GroupSubtotals: true).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .GroupSubtotals(true).ToHtml();
 
         var subtotals = Regex.Matches(html, "<tr class=\"table-light\"[^>]*>(.*?)</tr>", RegexOptions.Singleline)
             .Select(m => Regex.Replace(m.Groups[1].Value, "<[^>]+>", "|")).ToArray();
@@ -332,8 +399,12 @@ public class BsDataGridGroupTests
     public void GroupSubtotals_OnNestedBands_TotalTheInnermostOnly()
     {
         // One subtotal per innermost band, not a cascade of identical rows at every level.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["category", "supplier"], OnGroupedChange: _ => { }, GroupSubtotals: true).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["category", "supplier"])
+            .OnGroupedChange(_ => { })
+            .GroupSubtotals(true).ToHtml();
 
         Assert.Equal(4, Regex.Matches(html, "<tr class=\"table-light\"[^>]*>").Count); // 4 innermost bands
     }
@@ -354,12 +425,16 @@ public class BsDataGridGroupTests
             new BsColumn<Row>
             {
                 Title = "Qty", Value = r => r.Qty,
-                FooterTemplate = rs => BsBadge()[rs.Sum(x => x.Qty).ToString()],
+                FooterTemplate = rs => BsBadge[rs.Sum(x => x.Qty).ToString()],
             },
         ];
 
-        var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }, GroupSubtotals: true).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(columns)
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { })
+            .GroupSubtotals(true).ToHtml();
 
         var subtotals = Regex.Matches(html, "<tr class=\"table-light\"[^>]*>(.*?)</tr>", RegexOptions.Singleline)
             .Select(m => m.Groups[1].Value).ToArray();
@@ -374,7 +449,7 @@ public class BsDataGridGroupTests
     {
         // No Grouped/OnGroupedChange passed at all -> the grid keeps its own list. Nothing renders a control
         // yet (that is the panel, PR6), so drive the intent directly through a controlled render instead.
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name).ToHtml();
+        var html = BsDataGrid.Data(Rows).Columns(Columns()).RowKey(r => r.Name).ToHtml();
         Assert.DoesNotContain("table-group-divider", html, StringComparison.Ordinal);
 
         await Task.CompletedTask;
@@ -383,8 +458,11 @@ public class BsDataGridGroupTests
     [Fact]
     public void ControlledGrouping_RendersWhatItIsGiven()
     {
-        var html = BsDataGrid(Data: Rows, Columns: Columns(), RowKey: r => r.Name,
-            Grouped: ["supplier"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(Columns())
+            .RowKey(r => r.Name)
+            .Grouped(["supplier"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         Assert.Equal(["Supplier: Acme (3)", "Supplier: Bolt (2)"], BandTitles(html));
     }
@@ -404,8 +482,12 @@ public class BsDataGridGroupTests
 
         // ShowGroupedColumns keeps the sole column visible — the point here is that the CELL shows the whole
         // name while the BAND is keyed by the initial, which is only observable with the column rendered.
-        var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
-            Grouped: ["name"], OnGroupedChange: _ => { }, ShowGroupedColumns: true).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(columns)
+            .RowKey(r => r.Name)
+            .Grouped(["name"])
+            .OnGroupedChange(_ => { })
+            .ShowGroupedColumns(true).ToHtml();
 
         Assert.Equal(["Initial: A (1)", "Initial: B (1)", "Initial: C (2)", "Initial: L (1)"], BandTitles(html));
         Assert.Equal(["Apple", "Banana", "Carrot", "Cherry", "Leek"], FirstCells(html));
@@ -419,12 +501,15 @@ public class BsDataGridGroupTests
             new BsColumn<Row>
             {
                 Title = "Category", Value = r => r.Category, Field = r => r.Category, Groupable = true,
-                GroupHeader = (key, band) => Span(Class: "custom")[$"{key} has {band.Count}"],
+                GroupHeader = (key, band) => Span.Class("custom")[$"{key} has {band.Count}"],
             },
         ];
 
-        var html = BsDataGrid(Data: Rows, Columns: columns, RowKey: r => r.Name,
-            Grouped: ["category"], OnGroupedChange: _ => { }).ToHtml();
+        var html = BsDataGrid.Data(Rows)
+            .Columns(columns)
+            .RowKey(r => r.Name)
+            .Grouped(["category"])
+            .OnGroupedChange(_ => { }).ToHtml();
 
         Assert.Contains("<span class=\"custom\">Fruit has 3</span>", html, StringComparison.Ordinal);
     }

@@ -10,14 +10,14 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class ValidationDemosTests
+public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
 {
     // --- Render smoke: every demo renders the expected field/button identifiers ---
 
     [Fact]
     public void ValidationFieldsDemo_Render_EmitsAllInputs()
     {
-        var html = new LiveHost(() => ValidationFieldsDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => ValidationFieldsDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v1-name", html);
         Assert.Contains("v1-email", html);
         Assert.Contains("v1-age", html);
@@ -28,7 +28,7 @@ public sealed class ValidationDemosTests
     [Fact]
     public void ValidationSummaryDemo_Render_EmitsFormButtons_NoSummaryByDefault()
     {
-        var html = new LiveHost(() => ValidationSummaryDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => ValidationSummaryDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v2-name", html);
         // Summary alert is only emitted after a failed submit.
         Assert.DoesNotContain("Please fix", html);
@@ -37,7 +37,7 @@ public sealed class ValidationDemosTests
     [Fact]
     public void InlineValidateDemo_Render_EmitsEmailPasswordConfirm_FormFields()
     {
-        var html = new LiveHost(() => InlineValidateDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => InlineValidateDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v4-email", html);
         Assert.Contains("v4-password", html);
         Assert.Contains("v4-confirm", html);
@@ -46,7 +46,7 @@ public sealed class ValidationDemosTests
     [Fact]
     public void NestedAsyncWithLiveTotalsDemo_Render_EmitsItemRowsAndTotalsBlock()
     {
-        var html = new LiveHost(() => NestedAsyncWithLiveTotalsDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => NestedAsyncWithLiveTotalsDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v-nlive-name", html);
         Assert.Contains("v-nlive-postal", html);
         Assert.Contains("v-nlive-item0-name", html);
@@ -62,7 +62,7 @@ public sealed class ValidationDemosTests
     [Fact]
     public void InlineAsyncValidateDemo_Render_EmitsPromoInput()
     {
-        var html = new LiveHost(() => InlineAsyncValidateDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => InlineAsyncValidateDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v10-code", html);
         Assert.Contains(">Redeem<", html);
     }
@@ -70,14 +70,14 @@ public sealed class ValidationDemosTests
     [Fact]
     public void AsyncValidationDemo_Render_EmitsUsernameInput()
     {
-        var html = new LiveHost(() => AsyncValidationDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => AsyncValidationDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v3-username", html);
     }
 
     [Fact]
     public void CrossFieldSummaryDemo_Render_EmitsDepartReturnInputs_AndBookButton()
     {
-        var html = new LiveHost(() => CrossFieldSummaryDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => CrossFieldSummaryDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v5-depart", html);
         Assert.Contains("v5-return", html);
         Assert.Contains(">Book<", html);
@@ -86,7 +86,7 @@ public sealed class ValidationDemosTests
     [Fact]
     public void ValidatableObjectDemo_Render_EmitsBookingFields()
     {
-        var html = new LiveHost(() => ValidatableObjectDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => ValidatableObjectDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v11-name", html);
         Assert.Contains("v11-departure", html);
         Assert.Contains("v11-arrival", html);
@@ -95,7 +95,7 @@ public sealed class ValidationDemosTests
     [Fact]
     public void ProgrammaticValidateDemo_Render_EmitsValidateNowAndSubmitButtons()
     {
-        var html = new LiveHost(() => ProgrammaticValidateDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => ProgrammaticValidateDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v6-title", html);
         Assert.Contains("v6-validate-now", html);
         Assert.Contains("v6-submit", html);
@@ -104,7 +104,7 @@ public sealed class ValidationDemosTests
     [Fact]
     public void FluentValidationDemo_Render_EmitsProductAndQuantityInputs()
     {
-        var html = new LiveHost(() => FluentValidationDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => FluentValidationDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v7-product", html);
         Assert.Contains("v7-quantity", html);
     }
@@ -112,21 +112,21 @@ public sealed class ValidationDemosTests
     [Fact]
     public void FirstErrorWinsDemo_Render_EmitsLicenseInput()
     {
-        var html = new LiveHost(() => FirstErrorWinsDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => FirstErrorWinsDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v8-code", html);
     }
 
     [Fact]
     public void FluentValidationAsyncDemo_Render_EmitsTicketInput()
     {
-        var html = new LiveHost(() => FluentValidationAsyncDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => FluentValidationAsyncDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v9-code", html);
     }
 
     [Fact]
     public void CustomAttributeDemo_Render_EmitsUsernamePasswordConfirmInputs()
     {
-        var html = new LiveHost(() => CustomAttributeDemo(), TestServices.Default()).RenderAsLiveRoot();
+        var html = new LiveHost(() => CustomAttributeDemo, TestServices.Default()).RenderAsLiveRoot();
         Assert.Contains("v12-username", html);
         Assert.Contains("v12-password", html);
         Assert.Contains("v12-confirm", html);

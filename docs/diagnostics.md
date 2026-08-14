@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK035)
+# Rask diagnostics (RASK001–RASK044)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -16,6 +16,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK023** | inserts `Alt: ""` |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK027** | removes the `OnXAsync` argument, keeping the sync one |
+| **CS0108** | adds `new` to a member that [hides a builder entry](#cs0108-a-member-hides-a-builder-entry) |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -55,7 +56,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK018](#rask018) | Error | Ambiguous scoped-JS match |
 | [RASK019](#rask019) | Error | `<head>` is a framework-managed slot |
 | [RASK020](#rask020) | Warning | Scoped-JS simple-name collision |
-| [RASK021](#rask021) | Warning | Root component must render a complete page shell |
+| [RASK021](#rask021) | Warning | Root component must not render the page shell |
 | [RASK022](#rask022) | Warning | List item is missing a `Key` |
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `UseRask()` |
@@ -70,6 +71,16 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
 | [RASK034](#rask034) | Warning | BsDataGrid column has no Field, so the column chooser can't show/hide or reorder it |
 | [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
+| [RASK036](#rask036) | Warning | A builder-entry host must be `partial` |
+| [RASK037](#rask037) | Warning | `using` alias is hidden by a builder entry |
+| [RASK038](#rask038) | Error | Builder chain does not set a required property |
+| [RASK039](#rask039) | Warning | Builder chain is split across statements, so its required properties can't be checked |
+| [RASK040](#rask040) | Warning | Two components share a simple name, so neither can have a builder entry |
+| [RASK041](#rask041) | Warning | The builder surface's shared pending-bit budget is exhausted |
+| [RASK042](#rask042) | — | *Retired* — delegate-typed property cannot receive a builder setter |
+| [RASK043](#rask043) | Warning | Component factory is not imported in a type that has no builder entries |
+| [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
+| [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 
 ---
 
@@ -81,7 +92,7 @@ generated factory. This is informational: the generator already enforces it posi
 property isn't marked `required` at the language level.
 
 ```csharp
-public sealed class Badge : Component
+public sealed partial class Badge : Component
 {
     public string Label { get; set; }   // RASK001 suggestion: add `required`
 }
@@ -199,8 +210,8 @@ specific path.
 factories so keys, children, and DI wiring are handled consistently.
 
 ```csharp
-// ✗ new Div()
-// ✓ Div(Class: "card")[ ... ]
+// ✗ new Div
+// ✓ Div.Class("card")[ ... ]
 ```
 
 **Fix:** call the generated factory (`Div(...)`, `Counter(...)`). In test files that deliberately
@@ -260,14 +271,29 @@ sub-namespace inside the JS file. Promote to an error with
 `<WarningsAsErrors>RASK020</WarningsAsErrors>`.
 
 ## RASK021
-**Root component must render a complete page shell** · Warning
+**Root component must not render the page shell** · Warning
 
-The root `TApp` doesn't render a full shell. A root `Render()` must produce
-`Doctype()`, `Html(...)[ Head(), Body()[ ... ] ]`. A runtime backstop (`ValidateRootShell`) also
-enforces this, so an incomplete shell that slips past the analyzer still fails at render.
+The root `TApp` renders into `<body>` — Rask emits the doctype, `<html>`, `<head>` and `<body>` around
+whatever it returns. A root that builds them itself nests a second document *inside* the body, which
+the HTML parser silently unwraps: the page keeps rendering, and quietly loses the nested tags'
+attributes. Nothing fails, so this warning is the only signal there is.
 
-**Fix:** make the root render the complete shell — typically `[ Doctype(), Html(...)[...] ]`.
-Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
+```csharp
+// ✗ RASK021 — the root builds the document
+protected override Component? Render() =>
+    [Doctype, Html("en")[Head, Body[Router]]];
+
+// ✓ the root renders the body's content
+protected override Component? Render() => Router;
+```
+
+**Fix:** return the body's content (usually `Router()`) and move the shell's pieces to the overrides
+that own them — `<head>` content to `Head`, `<html lang>` to `HtmlLang`, `<body class>` to `BodyClass`,
+and a genuinely custom document to `Shell(head, body)`, which receives the framework's `<head>` and the
+rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
+`Doctype`/`Html`/`Head`/`Body` stay ordinary tag components for documents you build by hand
+(`ToHtml()`, an email body) — they have just left the app-authoring path. See
+[the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override).
 
 ## RASK022
 **List item is missing a `Key`** · Warning
@@ -277,8 +303,8 @@ A Rask factory call appears in a sibling-list context (a `.Select`/`.SelectMany`
 input state and emits untrusted structural diffs on insert/remove/move.
 
 ```csharp
-// ✗ items.Select(i => Li()[ i.Name ])
-// ✓ items.Select(i => Li(Key: i.Id)[ i.Name ])
+// ✗ items.Select(i => Li[ i.Name ])
+// ✓ items.Select(i => Li.Key(i.Id)[ i.Name ])
 ```
 
 **Fix:** pass a stable `Key:` (an entity id, not the loop index). See
@@ -292,9 +318,9 @@ An `Img(...)` factory call supplies no `Alt`. Without a text alternative, screen
 announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/WAI/WCAG21/Understanding/non-text-content).
 
 ```csharp
-// ✗ Img(Src: "/logo.png")
-// ✓ Img(Src: "/logo.png", Alt: "Rask logo")
-// ✓ Img(Src: "/divider.png", Alt: "")   // decorative: empty alt hides it from assistive tech
+// ✗ Img.Src("/logo.png")
+// ✓ Img.Src("/logo.png").Alt("Rask logo")
+// ✓ Img.Src("/divider.png").Alt("")   // decorative: empty alt hides it from assistive tech
 ```
 
 **Fix:** pass a meaningful `Alt:`, or the empty string `Alt: ""` for a purely decorative image so
@@ -331,11 +357,11 @@ A generic `Input<T>` derives its HTML input `type` from `T` (`bool`→checkbox, 
 
 ```csharp
 // ✗ Age is int — a number input can't be an email field:
-Input(() => model.Age, Type: InputType.Email)
+Input.Bind(() => model.Age).Type(InputType.Email)
 // ✓ let the type derive from T (int → number):
-Input(() => model.Age)
+Input.Bind(() => model.Age)
 // ✓ or use a string-only type on a string field:
-Input(() => model.Email, Type: InputType.Email)
+Input.Bind(() => model.Email).Type(InputType.Email)
 ```
 
 **Fix:** drop the explicit `Type` (it's inferred from `T`), or bind a `string`. The warning fires only
@@ -354,9 +380,9 @@ or the `AfterBind`/`AfterBindAsync` hooks is dead weight. The tell-tale anti-pat
 
 ```csharp
 // ✗ redundant — the framework re-renders this component after OnChange runs:
-Select<string>(Value: _pick, OnChange: v => { _pick = v; StateHasChanged(); })
+Select<string>().Value(_pick).OnChange(v => { _pick = v; StateHasChanged(); })
 // ✓ just update state; the render is automatic:
-Select<string>(Value: _pick, OnChange: v => _pick = v)
+Select<string>().Value(_pick).OnChange(v => _pick = v)
 
 // ✗ AfterBind only to force a re-render of a sibling readout:
 RadioGroup(() => model.Plan, options, AfterBind: _ => StateHasChanged())
@@ -381,11 +407,11 @@ ignores the async one, which is rarely what the author intended. Set exactly one
 
 ```csharp
 // ✗ both set — OnClickAsync is silently dropped at runtime:
-Button(OnClick: () => Toggle(), OnClickAsync: async () => await SaveAsync())["Save"]
+Button.OnClick(() => Toggle()).OnClickAsync(async () => await SaveAsync())["Save"]
 // ✓ pick one — the async handler, since it awaits:
-Button(OnClickAsync: async () => await SaveAsync())["Save"]
+Button.OnClickAsync(async () => await SaveAsync())["Save"]
 // ✓ passing null for the sibling is allowed (a deliberate "at most one" conditional):
-Button(OnClick: useAsync ? null : Sync, OnClickAsync: useAsync ? Async : null)["Save"]
+Button.OnClick(useAsync ? null : Sync).OnClickAsync(useAsync ? Async : null)["Save"]
 ```
 
 **Fix:** remove one of the two handlers (keep the async `OnXAsync` if it awaits, else the sync `OnX`).
@@ -447,7 +473,7 @@ file — can reorder parameters and silently rebind such a call. The first one o
 
 ```csharp
 // ✗ Div("main", "container", "color:red")                 // three positional — order-fragile, hard to read
-// ✓ Div(Id: "main", Class: "container", Style: "color:red") // explicit, refactor-proof
+// ✓ Div.Id("main").Class("container").Style("color:red") // explicit, refactor-proof
 ```
 
 **Fix:** name the arguments (`Prop: value`). Hidden by default (no build output, no effect on the
@@ -467,8 +493,8 @@ these all collide: `/Products` ↔ `/products` (literals match case-insensitivel
 nested-route collisions are not flagged (the check under-reports rather than risk a false positive).
 
 ```csharp
-[Route("/products")] public sealed class ProductList : Component { }   // first — canonical
-[Route("/Products")] public sealed class ProductGrid : Component { }   // ✗ RASK031: same URL as ProductList
+[Route("/products")] public sealed partial class ProductList : Component { }   // first — canonical
+[Route("/Products")] public sealed partial class ProductGrid : Component { }   // ✗ RASK031: same URL as ProductList
 ```
 
 A warning, not an error — a collision is a real bug, but the app still runs (it just picks arbitrarily),
@@ -489,17 +515,17 @@ analyzer flags a native component passed to any element-children indexer.
 
 ```csharp
 // ✗ RASK032 — native chrome as an element child
-protected override Component? Render() => Div()[NativeHeaderBar(Title: "Home")];
+protected override Component? Render() => Div[NativeHeaderBar.Title("Home")];
 
 // ✗ RASK032 — native chrome inside the NativeWebView's HTML content
-protected override Component? Render() => NativeWebView()[NativeHeaderBar(Title: "Home")];
+protected override Component? Render() => NativeWebView[NativeHeaderBar.Title("Home")];
 
 // ✓ correct — bars are siblings of NativeWebView at the layout level
 protected override Component? Render() =>
 [
-    NativeHeaderBar(Title: "Home"),
-    NativeWebView()[Doctype(), Html("en")[Head(), Body()[Router()]]],
-    NativeTabBar(Tabs: [...], Selected: 0)
+    NativeHeaderBar.Title("Home"),
+    NativeWebView[Router],
+    NativeTabBar.Tabs([...]).Selected(0)
 ];
 ```
 
@@ -525,10 +551,10 @@ It deliberately leaves alone:
   `/todos/new` on a page whose primary route is `todos` has no `Routes.*()` equivalent and is not flagged.
 
 ```csharp
-[Route("todos")] public sealed class TodosPage : Component { /* … */ }
+[Route("todos")] public sealed partial class TodosPage : Component { /* … */ }
 
 nav.NavigateTo("/todos");            // ✗ RASK033 — use Routes.TodosPage()
-NavLink(Href: "/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conversion
+NavLink.Href("/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conversion
 
 nav.NavigateTo(Routes.TodosPage());  // ✓ type-safe; a renamed route is a compile error
 nav.NavigateTo("/todos/new");        // ✓ secondary template — no factory, left alone
@@ -558,8 +584,7 @@ It leaves alone:
   reach of the call-site check).
 
 ```csharp
-BsDataGrid(Data: deals, ColumnChooser: true, Columns:
-[
+BsDataGrid.Data(deals).ColumnChooser(true).Columns([
     new BsColumn<Deal> { Title = "Region", Value = d => d.Region },              // ✗ RASK034 — no token
     new BsColumn<Deal> { Title = "Amount", Field = d => d.Amount },              // ✓ named "amount"
     new BsColumn<Deal> { Title = "", Template = d => Actions(d),
@@ -608,3 +633,341 @@ public static class OrderEvents
 non-generic — nesting inside a plain `static class` is the usual way to keep events grouped. Suppress with
 `#pragma warning disable RASK035` / `.editorconfig` (`dotnet_diagnostic.RASK035.severity = none`) only if
 you never enqueue that type.
+
+## RASK036
+**A builder-entry host must be `partial`** · Warning
+
+Rask's own components (`Div`, `BsCard`, …) get their entries from `Rask.Core.RaskMarkup`, which
+`Component` derives from — so every component inherits them, and so does anything else that derives
+from `RaskMarkup` (a test class, a fixture, a factory of demo components). **Your** components cannot
+ride there: a source generator can only add members to types in the compilation it is running in, and
+`RaskMarkup` lives in a referenced assembly. `using static` is not a way out either — a static-imported
+member loses to a same-named type in scope (CS0119), which is the whole reason the entries are
+inherited rather than imported.
+
+So the entry for each of your components is injected into every *other* type of yours that might name
+one — every component, and every `RaskMarkup` host — which needs a `partial` to inject it into:
+
+```csharp
+public sealed class Dashboard : Component        // ✗ RASK036 — no partial to inject into
+{
+    protected override Component? Render() => Div[SalesCard];   // CS0103: 'SalesCard' not found
+}
+
+public sealed partial class Dashboard : Component   // ✓
+{
+    protected override Component? Render() => Div[SalesCard];
+}
+
+public partial class DashboardTests : RaskMarkup     // ✓ — same rule outside a component
+{
+    [Fact]
+    public void It_renders() => Assert.Equal("<div>…</div>", Div[SalesCard].ToHtml());
+}
+
+[RaskMarkup]                                         // ✓ — and when the base slot is not yours
+public static partial class Demos                    //     to spend, or there is none to spend
+{
+    public static Component Badge() => Div[SalesCard];
+}
+```
+
+For a host that **derives** from `RaskMarkup`, nothing else is lost: the component still renders, still
+gets its own entry *elsewhere*, and its generated factory is unaffected — `Generated.SalesCard(…)` keeps
+working from anywhere. An **`[RaskMarkup]`** host loses more, and the message says so: the generated
+`partial` is where its base — or, when the base slot is already spent, the framework tags themselves —
+would have come from, so without `partial` it gets no builder surface at all. Nested types are skipped
+without a warning either way, because injecting into one would need every enclosing type to be `partial`
+as well.
+
+**Fix:** add `partial`. Suppress with `#pragma warning disable RASK036` / `.editorconfig`
+(`dotnet_diagnostic.RASK036.severity = none`) if you build every component through the factory.
+
+## RASK037
+**`using` alias is hidden by a builder entry** · Warning
+
+On the builder surface every component type contributes an **entry** — a member named after itself,
+inherited by every component (`Div`, `Card`, `Line`). Inside a component body a member beats a
+`using` alias in simple-name lookup, so an alias that shares an entry's name quietly stops meaning
+what it says:
+
+```csharp
+using B = Acme.Benchmarks;               // ✗ RASK037 — the <b> tag's entry wins
+
+public sealed partial class Report : Component
+{
+    protected override Component? Render() =>
+        Div[B.Summary.Render()];         // CS1061: 'B' does not contain a definition for 'Summary'
+}
+```
+
+The compiler's own message is **CS1061** at the *use*, naming a `B` nobody wrote and pointing nowhere
+near the alias. It is also unreachable by a quick-fix: by the time the error exists the alias has
+already lost the lookup. RASK037 reports it at the alias instead, before it is ever used.
+
+The analyzer flags an alias only when an entry actually claims the name — either on a component
+declared in the same file, or (for a `global using` alias) on `Component` itself. Aliases in files
+that declare no component are left alone.
+
+**Fix:** rename the alias to something no tag or component uses (`using Bench = Acme.Benchmarks;`).
+The two-letter tag names are the ones that bite: `A`, `B`, `I`, `P`, `Td`, `Tr`. Suppress with
+`#pragma warning disable RASK037` / `.editorconfig` (`dotnet_diagnostic.RASK037.severity = none`) if
+the alias is only ever used outside a component body.
+
+## RASK038
+**Builder chain does not set a required property** · Error
+
+A non-nullable property with no member initializer is **required** — see [RASK001](#rask001), which
+describes the same rule for the generated factory, where the language enforces it as a missing
+argument. A builder chain has no arguments: the property is set by a setter somewhere along the
+chain, so leaving it out compiles cleanly and the component renders with a `null` it was never
+supposed to hold. This analyzer walks the chain and reports what it never named.
+
+```csharp
+public sealed partial class Card : Component
+{
+    public string Title { get; set; }          // required: non-nullable, no initializer
+    public string? Note  { get; set; }         // optional
+}
+
+Card.Note("later")                             // ✗ RASK038 — 'Title' is never set
+Card.Title("Q3").Note("later")                 // ✓
+```
+
+Order does not matter, and child indexing (`Card.Title("Q3")[…]`) is part of the same expression. A
+property whose setter drops an `On` prefix (`OnSave` → `.Save(…)`) counts under either spelling.
+
+Properties **declared in your own compilation** are read straight off the syntax, where the member
+initializer is right there. A property from a **referenced assembly** cannot be: an initializer
+compiles into the constructor and leaves no trace in metadata, so `string Title` and
+`string Title = ""` are the same symbol from outside. The owning assembly therefore publishes the
+answer — the factory generator emits one
+`[assembly: RaskRequiredProperties("Rask.Bootstrap.BsIcon", "Name")]` per component with such a
+property — and this analyzer reads it back. A library built by an older Rask, or by no Rask at all,
+publishes nothing, and its properties are then counted only when they carry the language's `required`
+modifier, which metadata does preserve.
+
+**Fix:** add the setter to the chain, or — if the property really is optional — give it a nullable
+type or a member initializer, which is what marks it optional for both surfaces. Suppress with
+`#pragma warning disable RASK038` / `.editorconfig` (`dotnet_diagnostic.RASK038.severity = none`).
+
+## RASK039
+**Builder chain is split across statements, so its required properties can't be checked** · Warning
+
+[RASK038](#rask038) is only sound while the chain is a single expression. Store it in a local or a
+field and the remaining setters can be applied anywhere — in a branch, a loop, another method — so
+claiming a property is missing would be a guess. Rask reports the gap in the analysis instead of a
+wrong answer:
+
+```csharp
+var card = Card.Note("later");          // ✗ RASK039 — 'Title' may or may not be set below
+if (highlight) card = card.Title("!");  //   …and here it depends on a runtime value
+return card;
+```
+
+The warning only appears when something is still missing at the end of the visible chain: a stored
+chain that is already complete says nothing.
+
+**Fix:** keep the chain in one expression, or set the required properties before storing it.
+Suppress with `#pragma warning disable RASK039` / `.editorconfig`
+(`dotnet_diagnostic.RASK039.severity = none`) if you assemble components across statements by design.
+
+## RASK040
+**Two components share a simple name, so neither can have a builder entry** · Warning
+
+A factory is keyed by *namespace* — it lives in a per-namespace `Generated` class, so
+`Features.Products.Generated.Card(…)` and `Features.Orders.Generated.Card(…)` coexist happily. An
+entry is keyed by **simple name**: it is a single member named after its type, and one name can only
+stand for one type.
+
+```csharp
+namespace Features.Products { public sealed partial class Card : Component { } }   // ✗ RASK040
+namespace Features.Orders   { public sealed partial class Card : Component { } }   // ✗ RASK040
+```
+
+Neither component gets an entry, because choosing which type `Card` means is the author's decision,
+not the generator's. Both stay reachable through their generated factories, so nothing stops
+compiling — you just cannot write `Card` bare.
+
+**Fix:** rename one of them (`ProductCard` / `OrderCard`). Suppress with
+`#pragma warning disable RASK040` / `.editorconfig` (`dotnet_diagnostic.RASK040.severity = none`) if
+you are happy to reach both through `Generated.Card(…)`.
+
+## RASK041
+**The builder surface's shared pending-bit budget is exhausted** · Warning
+
+This one is for people *changing Rask itself*, not for app code. A chain writes only the properties
+it names, so a builder entry marks its folding properties **pending** and resets whatever is still
+pending when the parent's `Render()` returns — that is what makes `Div.Id("x")` on one render and a
+bare `Div` on the next drop the `id`, exactly as the factory does. The pending bits are split so a
+component compiled against one `Rask.Core` cannot collide with a shared property added in a later
+one: the shared `Element`/`Component` surface owns the low 16 (`BuilderRuntime.OwnPendingBit`), each
+component's own properties get the rest.
+
+Those 16 are handed out in ordinal **name** order, which is the trap: adding a 17th folding property
+to `Element` does not push *itself* off the end — it pushes whichever alphabetically-later property
+was last (`Title`, `TabIndex`) onto the eager reset path, which reports that property changed on
+every render and defeats the render cache for it. Nothing fails to compile and no test goes red,
+which is why the generator counts them.
+
+**Fix:** raise `Rask.Core.BuilderRuntime.OwnPendingBit` and the generator's mirrored `OwnPendingBit`
+constant **together** (they are a wire format between an app and the Rask it was built against), or
+make the new property non-folding.
+
+## RASK042
+**Retired** — delegate-typed property cannot receive a builder setter
+
+Reported while a chain's receiver was the component itself: a delegate-typed property is *invocable*, so
+`.OnClick(Save)` bound to the property instead of to the same-named setter, and the setter was
+unreachable dead code. The fix at the time was to wrap the delegate in a carrier.
+
+A chain now receives on `Build<TComponent>`, so the property is not on the receiver, the lookup that
+caused this cannot happen, and a callback property is an ordinary `Action` / `Func<…>`. The ID is not
+reused.
+
+## RASK043
+**Component factory is not imported here** · Warning
+
+The builder surface is reachable only from **inside a type that has the entries**. They are *inherited
+members* — that is the whole design, because a static-imported property loses to a same-named type
+(CS0119) while a member of the enclosing type wins. A component is such a type; so is anything
+deriving from **`Rask.Core.RaskMarkup`**, which is `Component`'s own base and carries the framework
+entries and nothing else; and so is anything marked **`[RaskMarkup]`**, which is the same opt-in for a
+type that has no base slot to spend. Code that is none of those reaches components through the generated **factory**,
+which is a *method* and so may share its component's name under C#'s invocable-member rule. That is
+exactly why the factory works in these positions and an entry cannot.
+
+Leave the `using static` out and the simple name binds to the component **type** instead:
+
+```csharp
+using Rask.Core.Components;
+
+internal static class Parts
+{
+    public static Component Loading() => Div.Class("spinner")["…"];   // ✗ RASK043 — CS0119
+}
+```
+
+```csharp
+using Rask.Core;
+
+// ✓ a static class can derive from nothing, so the attribute is the way in — it stays static and the
+//   framework entries are injected as its own members. Prefer `: RaskMarkup` when the base slot is
+//   free; the attribute takes it for you in that case anyway, and only injects when it cannot.
+[RaskMarkup]
+internal static partial class Parts
+{
+    public static Component Loading() => Div.Class("spinner")["…"];
+}
+```
+
+```csharp
+using Rask.Core.Components;
+using static Rask.Core.Components.Generated;                          // ✓ the factory is a method
+
+internal static class Parts
+{
+    public static Component Loading() => Div.Class("spinner")["…"];
+}
+```
+
+The compiler's own report is **CS0119** ("'Div' is a type, which is not valid in the given context"),
+often with a **CS0021** on the `[…]` that would have carried the children, or a **CS0120** in a static
+context — none of which mentions Rask, the factory, or the one line that fixes it.
+
+**Fix:** derive the enclosing type from `Rask.Core.RaskMarkup` (a `static class` cannot derive from
+anything — make it a sealed class with a private constructor, or nest it inside a host, since
+simple-name lookup walks out through enclosing types) — or, if it was really a component all along,
+make it one. The `using static …Generated;` the message names is the third option, and the one that
+disappears when the factory does. Suppress with
+`#pragma warning disable RASK043` / `.editorconfig`
+(`dotnet_diagnostic.RASK043.severity = none`).
+
+## CS0108 (a member hides a builder entry)
+
+Not a Rask diagnostic, but a Rask quick-fix. Because every component type contributes an entry named
+after itself, any member that shares a tag's or a component's name now **hides** one, and the
+compiler asks for `new`:
+
+```csharp
+public sealed partial class BsModal : Component
+{
+    public new Component? Footer { get; set; }        // vs the <footer> entry
+    private new Component Section(string t) => …;     // vs the <section> entry
+    public new sealed record Line(int X, int Y);      // vs the SVG <line> entry
+}
+```
+
+The lightbulb inserts `new` where `csharp_preferred_modifier_order` wants it (after the accessibility,
+before `sealed` / `readonly`), and is offered **only** inside a component — hiding in your own class
+hierarchy is your design decision, not the framework's.
+
+> Deliberately a code fix and not a `DiagnosticSuppressor`. A suppressor satisfies the compiler, but
+> `dotnet format` does not honour suppressors and applies the underlying fix anyway, so the format
+> gate never settles.
+
+The related `using`-alias collision cannot be fixed this way — it surfaces as a hard CS1061 after the
+alias has already lost the lookup, which is what [RASK037](#rask037) exists for.
+
+---
+
+## RASK044
+**Builder chain sets the same property twice** · Warning
+
+A setter writes its property and hands the component back, so a chain that names one twice simply
+overwrites it. The last call wins, the earlier one has no effect, and the compiler is perfectly happy —
+which is why this needs saying out loud.
+
+```csharp
+Card.Title("Coffee").Note("Dark roast").Title("Tea")   // ✗ RASK044 — renders "Tea"
+Card.Title("Coffee").Note("Dark roast")                // ✓
+```
+
+Two writes to one property are always either a merge artefact or a copied line that was not adjusted.
+Nothing about the shape is legitimate: if the value really is conditional, compute it once and pass it.
+
+```csharp
+Card.Title(featured ? "Coffee" : "Tea")                // ✓
+```
+
+**Reported once per chain**, naming the property, not once per extra call.
+
+Two *separate* chains are not a duplicate — `Div[Card.Title("a"), Card.Title("b")]` is two components
+that each name `Title` once, which is ordinary markup.
+
+**Why an analyzer and not the type.** The chain already makes some mistakes unwritable: a required
+property cannot be omitted, and `Bind` and `Value` cannot both be used, because each step returns a type
+that offers only what is still legal. Extending that to *every* setter would mean one state per subset of
+the surface — 2^n over roughly ninety properties — where the required-property machinery pays 2^k over
+the few that are required. So this one is reported rather than prevented.
+
+Silence it per line with `#pragma warning disable RASK044`, or per project in `.editorconfig`
+(`dotnet_diagnostic.RASK044.severity = none`).
+
+## RASK045
+**Component built by a chain is assigned to afterwards** · Warning
+
+A chain states everything a component was given, in one expression, where the reader of the call site
+can see it. An assignment after the chain has ended is invisible from there, and nothing reconciles the
+two — a chain step and a later write to the same property simply disagree, and the write wins.
+
+```csharp
+Card c = Card.Note("a");
+c.Note = "b";                       // ✗ RASK045 — the chain says "a", the reader has to find this line
+
+Card.Note("b")                      // ✓ one expression, one answer
+```
+
+Only a component a **chain** produced is held to this. One built any other way — `new`, a factory, a
+field the component assigned itself — is not reported: the surface it came through is what decides, and
+only a chain promises to be the whole story.
+
+It has to be an analyzer rather than a property of the type. `Build<T>` converts implicitly to the
+component it built, which is what keeps the chain out of the way at every call site that wants the
+component itself (a property typed as a particular component, a strongly-typed children collection, a
+test asserting on the result). Once it has converted, the result is an ordinary component with ordinary
+settable properties, and nothing in the type system is left to forbid the write.
+
+**Fix:** move the assignment into the chain — every property a chain can reach has a step of the same
+name. Suppress with `#pragma warning disable RASK045` / `.editorconfig`
+(`dotnet_diagnostic.RASK045.severity = none`) where a component genuinely has to be completed later.

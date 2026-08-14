@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 ///     <see cref="ICookies" /> — read/write non-<c>HttpOnly</c> cookies via <c>document.cookie</c>,
 ///     identical on Server and WASM.
 /// </summary>
-public sealed class CookiesDemo(ICookies cookies) : Component
+public sealed partial class CookiesDemo(ICookies cookies) : Component
 {
     private const string Name = "rask_browser_cookie";
 
@@ -15,21 +15,21 @@ public sealed class CookiesDemo(ICookies cookies) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                Div(Class: "input-group input-group-sm mb-2")[
-                    Input(
-                        Id: "cookie-input",
-                        Class: "form-control",
-                        Value: _input,
-                        Placeholder: "Cookie value",
-                        OnInput: v => _input = v),
-                    BsButton(Color: BsColor.Primary, Id: "cookie-set", OnClickAsync: Set)["Set"],
-                    BsButton(Color: BsColor.Primary, Outline: true, Id: "cookie-get", OnClickAsync: Get)["Get"],
-                    BsButton(Color: BsColor.Danger, Outline: true, Id: "cookie-delete", OnClickAsync: Delete)["Delete"]
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                Div.Class("input-group input-group-sm mb-2")[
+                    Input
+                        .Value(_input)
+                        .Id("cookie-input")
+                        .Class("form-control")
+                        .Placeholder("Cookie value")
+                        .OnInput(v => _input = v),
+                    BsButton.Color(BsColor.Primary).Id("cookie-set").OnClickAsync(Set)["Set"],
+                    BsButton.Color(BsColor.Primary).Outline(true).Id("cookie-get").OnClickAsync(Get)["Get"],
+                    BsButton.Color(BsColor.Danger).Outline(true).Id("cookie-delete").OnClickAsync(Delete)["Delete"]
                 ],
-                Div(Class: "small text-secondary")["Value: ", Code(Id: "cookie-read-value")[_read ?? "(null)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "cookie-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]
             ]
         ];
 

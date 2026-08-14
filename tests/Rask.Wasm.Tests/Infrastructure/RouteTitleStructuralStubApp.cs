@@ -10,22 +10,19 @@ namespace Rask.Wasm.Tests.Infrastructure;
 // "/destination" renders an unkeyed list. The diff therefore produces untrusted positional
 // structural ops, which DiffOpsAreClientSupported rejects → the nav falls back to full HTML
 // (head fragment never sent). Pairs with the head-fragment test to lock that contract.
-internal sealed class RouteTitleStructuralStubApp : Component
+internal sealed partial class RouteTitleStructuralStubApp : Component
 {
     private readonly RouteState _routeState;
 
     public RouteTitleStructuralStubApp(RouteState routeState) => _routeState = routeState;
 
+    protected override Component? HeadAssets => Title[$"title-{_routeState.Path}"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        Html()[
-            Head()[Title()[$"title-{_routeState.Path}"]],
-            Body()[
-                _routeState.Path == "/destination"
-                    ? Ul()[Li()["a"], Li()["b"], Li()["c"]]
-                    : Div()["plain"]
-            ]
-        ]
+        _routeState.Path == "/destination"
+            ? Ul[Li["a"], Li["b"], Li["c"]]
+            : Div["plain"]
     ];
 }

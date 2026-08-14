@@ -37,10 +37,10 @@ public sealed class GestureTrigger : Component
     public Func<string?, Task>? OnResult { get; set; }
 
     /// <summary>Renders your trigger element, given the attribute bundle to apply via its <c>Data</c> prop.</summary>
-    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr(Capability, OnResult));
+    protected override Component Render() => Template!(GestureBridge.Attr(Capability, OnResult));
 }
 
 /// <summary>Present an element/page fullscreen from a click gesture (works on Server, unlike the imperative <c>IFullscreen</c>).</summary>
@@ -50,10 +50,10 @@ public sealed class FullscreenTrigger : Component
     public ElementRef? For { get; set; }
 
     /// <summary>Renders your trigger element; its click requests fullscreen for the page (or <see cref="For" />).</summary>
-    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("fullscreen.request", null, el: For?.Id));
+    protected override Component Render() => Template!(GestureBridge.Attr("fullscreen.request", null, el: For?.Id));
 }
 
 /// <summary>Open the eyedropper from a click gesture and receive the picked colour (hex, or <c>null</c> if cancelled).</summary>
@@ -63,10 +63,10 @@ public sealed class EyeDropperTrigger : Component
     public Func<string?, Task>? OnColor { get; set; }
 
     /// <summary>Renders your trigger element; its click opens the eyedropper.</summary>
-    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("eyedropper.open", OnColor));
+    protected override Component Render() => Template!(GestureBridge.Attr("eyedropper.open", OnColor));
 }
 
 /// <summary>
@@ -81,10 +81,10 @@ public sealed class ScreenOrientationTrigger : Component
     public required string Orientation { get; set; }
 
     /// <summary>Renders your trigger element; its click locks the orientation (a no-op unless the page is fullscreen).</summary>
-    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("orientation.lock", null, arg: Orientation));
+    protected override Component Render() => Template!(GestureBridge.Attr("orientation.lock", null, arg: Orientation));
 }
 
 /// <summary>
@@ -97,10 +97,10 @@ public sealed class PictureInPictureTrigger : Component
     public required ElementRef For { get; set; }
 
     /// <summary>Renders your trigger element; its click opens the picture-in-picture miniplayer for <see cref="For" />.</summary>
-    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("pip.request", null, el: For.Id));
+    protected override Component Render() => Template!(GestureBridge.Attr("pip.request", null, el: For.Id));
 }
 
 /// <summary>
@@ -115,10 +115,10 @@ public sealed class InstallTrigger : Component
     public Func<string?, Task>? OnOutcome { get; set; }
 
     /// <summary>Renders your trigger element; its click shows the browser's install prompt.</summary>
-    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template(GestureBridge.Attr("install.prompt", OnOutcome));
+    protected override Component Render() => Template!(GestureBridge.Attr("install.prompt", OnOutcome));
 }
 
 /// <summary>
@@ -134,10 +134,10 @@ public sealed class MediaCaptureTrigger : Component
     public required ElementRef For { get; set; }
 
     /// <summary>Capture the microphone. Defaults to <c>false</c>.</summary>
-    public bool Audio { get; set; } = false;
+    public new bool Audio { get; set; } = false;
 
     /// <summary>Capture the camera. Defaults to <c>true</c>.</summary>
-    public bool Video { get; set; } = true;
+    public new bool Video { get; set; } = true;
 
     /// <summary>Optional camera facing mode — <c>"user"</c> (front) or <c>"environment"</c> (rear).</summary>
     public string? FacingMode { get; set; }
@@ -145,8 +145,17 @@ public sealed class MediaCaptureTrigger : Component
     /// <summary>Invoked with <c>"granted"</c> when the stream starts, or <c>"denied"</c> if the user refuses.</summary>
     public Func<string?, Task>? OnResult { get; set; }
 
+    /// <summary>
+    ///     Invoked with the started stream's <see cref="MediaStreamId" />, so the stream stays reachable
+    ///     from C# after the gesture — stop it with <see cref="IMediaStreams.StopAsync" />, re-attach it to
+    ///     another <c>&lt;video&gt;</c>, or send it to a peer with <c>IPeerConnection.AddStreamAsync</c>.
+    ///     Not invoked when the user refuses. This is the only way a <b>Server</b>-hosted app can hold on to
+    ///     a captured stream.
+    /// </summary>
+    public Func<MediaStreamId, Task>? OnStream { get; set; }
+
     /// <summary>Renders your trigger element; its click starts the capture and attaches it to <see cref="For" />.</summary>
-    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
     protected override Component Render()
@@ -154,7 +163,28 @@ public sealed class MediaCaptureTrigger : Component
         var constraints = JsonSerializer.Serialize(
             new GestureMediaConstraints(Video, Audio, FacingMode),
             RaskBrowserJsonContext.Default.GestureMediaConstraints);
-        return Template(GestureBridge.Attr("media.start", OnResult, arg: constraints, el: For.Id));
+        // Stay fire-and-forget when the app wants no result: passing a non-null sink would register a
+        // callback id on every render for nobody to consume.
+        var sink = OnResult is null && OnStream is null ? (Func<string?, Task>?)null : Dispatch;
+        return Template!(GestureBridge.Attr("media.start", sink, arg: constraints, el: For.Id));
+    }
+
+    // The capability resolves the stream's id, or "denied". The bridge posts exactly one result per click,
+    // so both callbacks are fed from that one value here rather than costing a second round trip — and
+    // OnResult keeps the "granted"/"denied" vocabulary it always had.
+    private async Task Dispatch(string? result)
+    {
+        var started = int.TryParse(result, out var streamId);
+
+        if (started && OnStream is not null)
+        {
+            await OnStream(new MediaStreamId(streamId));
+        }
+
+        if (OnResult is not null)
+        {
+            await OnResult(started ? "granted" : "denied");
+        }
     }
 }
 

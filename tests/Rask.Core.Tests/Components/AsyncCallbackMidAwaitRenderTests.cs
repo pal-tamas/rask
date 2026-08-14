@@ -73,7 +73,7 @@ public class AsyncCallbackMidAwaitRenderTests
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Consumer);
             ctx.NotifyParameters(c, false);
-            return Div()[c];
+            return Div[c];
         }
     }
 
@@ -87,9 +87,9 @@ public class AsyncCallbackMidAwaitRenderTests
         private string _state = "idle";
 
         protected override Component? Render() =>
-            Div()[
+            Div[
                 new Child { OnActAsync = ActAsync },
-                Span()["state: ", _state]
+                Span["state: ", _state]
             ];
 
         // Deliberately no StateHasChanged: the framework owns both renders.
@@ -110,6 +110,6 @@ public class AsyncCallbackMidAwaitRenderTests
         public Func<Task>? OnActAsync { get; set; }
 
         protected override Component? Render() =>
-            Button(OnClickAsync: () => AutoCallback.Wrap(OnActAsync)!())["go"];
+            Button.OnClickAsync(() => AutoCallback.Wrap(OnActAsync)!())["go"];
     }
 }

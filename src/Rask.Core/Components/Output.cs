@@ -7,7 +7,7 @@ public sealed class Output : Element
     protected override string TagName => "output";
 
     public string? For { get; set; }
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
     public string? Name { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)

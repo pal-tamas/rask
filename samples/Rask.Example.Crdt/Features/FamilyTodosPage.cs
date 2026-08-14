@@ -10,7 +10,7 @@ namespace Rask.Example.Crdt.Features;
 // The point to see: take two devices offline, edit DIFFERENT FIELDS of the same todo on each, then
 // bring both back and sync — both edits survive, because merging is per column rather than per row.
 [Route("/")]
-public sealed class FamilyTodosPage(FamilyDevices family) : Component
+public sealed partial class FamilyTodosPage(FamilyDevices family) : Component
 {
     private const string WiringSnippet =
         """
@@ -27,7 +27,7 @@ public sealed class FamilyTodosPage(FamilyDevices family) : Component
     private readonly Dictionary<string, IReadOnlyList<Todo>> _todos = [];
     private readonly Dictionary<string, string> _drafts = [];
 
-    protected override Component? Head => Title()["Family todos — Rask"];
+    protected override Component? HeadAssets => Title()["Family todos — Rask"];
 
     protected override async Task OnMountAsync() => await RefreshAsync();
 

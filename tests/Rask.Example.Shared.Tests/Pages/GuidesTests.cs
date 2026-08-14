@@ -10,12 +10,12 @@ namespace Rask.Example.Shared.Tests.Pages;
 
 // The Guides section: the Markdown component (renders docs/*.md with Markdig + SPA link rewriting),
 // the GuideCatalog (embedded-doc lookup), and the index/detail pages.
-public sealed class GuidesTests
+public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Markdown_RendersHeadingsAndInlineMarkup()
     {
-        var html = Markdown("# Title\n\nHello **world**.").ToHtml();
+        var html = Markdown.Source("# Title\n\nHello **world**.").ToHtml();
         Assert.Contains("<div class=\"markdown-body\">", html);
         Assert.Contains("Title", html);
         Assert.Contains("<strong>world</strong>", html);
@@ -23,25 +23,25 @@ public sealed class GuidesTests
 
     [Fact]
     public void Markdown_RewritesInternalGuideLink_ToSpaRoute() =>
-        Assert.Contains("href=\"/guides/routing\" data-rask-nav", Markdown("[Routing](routing.md)").ToHtml());
+        Assert.Contains("href=\"/guides/routing\" data-rask-nav", Markdown.Source("[Routing](routing.md)").ToHtml());
 
     [Fact]
     public void Markdown_RewritesFragmentAndSubdirLinks()
     {
-        Assert.Contains("href=\"/guides/forms#binding\" data-rask-nav", Markdown("[x](forms.md#binding)").ToHtml());
+        Assert.Contains("href=\"/guides/forms#binding\" data-rask-nav", Markdown.Source("[x](forms.md#binding)").ToHtml());
         Assert.Contains("href=\"/guides/live-rendering\" data-rask-nav",
-            Markdown("[x](architecture/live-rendering.md)").ToHtml());
+            Markdown.Source("[x](architecture/live-rendering.md)").ToHtml());
     }
 
     [Fact]
     public void Markdown_RewritesRepoRootLink_ToGitHub() =>
         Assert.Contains("href=\"https://github.com/pal-tamas/rask/blob/main/README.md\"",
-            Markdown("[readme](../README.md)").ToHtml());
+            Markdown.Source("[readme](../README.md)").ToHtml());
 
     [Fact]
     public void Markdown_LeavesExternalAndAnchorLinksUntouched()
     {
-        var html = Markdown("[g](https://example.com) and [a](#section)").ToHtml();
+        var html = Markdown.Source("[g](https://example.com) and [a](#section)").ToHtml();
         Assert.Contains("href=\"https://example.com\"", html);
         Assert.DoesNotContain("/guides/", html);
     }

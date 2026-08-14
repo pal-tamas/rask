@@ -1,7 +1,7 @@
 namespace Rask.Bootstrap.Tests;
 
 // Rendered-HTML assertions for BsPagination / BsPageItem.
-public class BsPaginationTests
+public partial class BsPaginationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Pagination_WrapsItemsInNavAndUl() =>
@@ -9,14 +9,14 @@ public class BsPaginationTests
             "<nav aria-label=\"Page navigation\"><ul class=\"pagination\">" +
             "<li class=\"page-item\"><a class=\"page-link\" href=\"/page/2\">2</a></li>" +
             "</ul></nav>",
-            BsPagination()[BsPageItem(Href: "/page/2")["2"]].ToHtml());
+            BsPagination[BsPageItem.Href("/page/2")["2"]].ToHtml());
 
     [Fact]
     public void PageItem_Active_MarksCurrentPage() =>
         Assert.Equal(
             "<li class=\"page-item active\" aria-current=\"page\">" +
             "<button class=\"page-link\" type=\"button\">3</button></li>",
-            BsPageItem(Active: true)["3"].ToHtml());
+            BsPageItem.Active(true)["3"].ToHtml());
 
     [Fact]
     // .disabled only greys the item and kills pointer-events — a mouse is stopped, a keyboard is not. So the
@@ -27,18 +27,18 @@ public class BsPaginationTests
         Assert.Equal(
             "<li class=\"page-item disabled\">" +
             "<button class=\"page-link\" aria-disabled=\"true\" type=\"button\">4</button></li>",
-            BsPageItem(Disabled: true)["4"].ToHtml());
+            BsPageItem.Disabled(true)["4"].ToHtml());
 
     [Fact]
     public void PageItem_Disabled_MarksALinkToo() =>
         Assert.Equal(
             "<li class=\"page-item disabled\">" +
             "<a class=\"page-link\" aria-disabled=\"true\" href=\"/p/4\">4</a></li>",
-            BsPageItem(Disabled: true, Href: "/p/4")["4"].ToHtml());
+            BsPageItem.Disabled(true).Href("/p/4")["4"].ToHtml());
 
     [Fact]
     public void PageItem_Enabled_CarriesNoAriaDisabled() =>
-        Assert.DoesNotContain("aria-disabled", BsPageItem()["4"].ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-disabled", BsPageItem["4"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     // An icon-only arrow (its only child is a decorative BsIcon) has no accessible name, so Aria lets the
@@ -47,7 +47,7 @@ public class BsPaginationTests
         Assert.Equal(
             "<li class=\"page-item\">" +
             "<button class=\"page-link\" aria-label=\"Previous page\" type=\"button\"></button></li>",
-            BsPageItem(Aria: new Dictionary<string, string?> { ["label"] = "Previous page" }).ToHtml());
+            BsPageItem.Aria(new Dictionary<string, string?> { ["label"] = "Previous page" }).ToHtml());
 
     [Fact]
     // A disabled arrow keeps both its name and its state: the caller's aria-label serialises first (it seeds
@@ -57,18 +57,18 @@ public class BsPaginationTests
             "<li class=\"page-item disabled\">" +
             "<button class=\"page-link\" aria-label=\"Previous page\" aria-disabled=\"true\" type=\"button\">" +
             "</button></li>",
-            BsPageItem(Disabled: true, Aria: new Dictionary<string, string?> { ["label"] = "Previous page" })
+            BsPageItem.Disabled(true).Aria(new Dictionary<string, string?> { ["label"] = "Previous page" })
                 .ToHtml());
 
     [Fact]
     public void Pagination_Size_MapsToPaginationModifier() =>
         Assert.Equal(
             "<nav aria-label=\"Page navigation\"><ul class=\"pagination pagination-lg\"></ul></nav>",
-            BsPagination(Size: BsSize.Lg).ToHtml());
+            BsPagination.Size(BsSize.Lg).ToHtml());
 
     [Fact]
     public void Pagination_CustomLabel_OverridesNavAria() =>
         Assert.Equal(
             "<nav aria-label=\"Results\"><ul class=\"pagination\"></ul></nav>",
-            BsPagination(Label: "Results").ToHtml());
+            BsPagination.Label("Results").ToHtml());
 }

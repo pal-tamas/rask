@@ -39,7 +39,7 @@ public sealed class DefaultErrorPage : Component
     private readonly Exception _error;
     private readonly bool _isDevelopment;
 
-    private readonly Callback? _recover;
+    private readonly Action? _recover;
 
     public DefaultErrorPage(Exception error) : this(error, IsDevelopmentEnvironment())
     {
@@ -56,14 +56,14 @@ public sealed class DefaultErrorPage : Component
     ///     that faults deterministically simply throws again and lands back here, which is the honest
     ///     outcome and is what React's boundary does too.
     /// </remarks>
-    public DefaultErrorPage(Exception error, Callback recover)
+    public DefaultErrorPage(Exception error, Action recover)
         : this(error, IsDevelopmentEnvironment(), recover)
     {
     }
 
     // Test seam: construct with an explicit environment so unit tests need no process-global env var
     // (setting ASPNETCORE_ENVIRONMENT would race other tests that render this page).
-    internal DefaultErrorPage(Exception error, bool isDevelopment, Callback? recover = null)
+    internal DefaultErrorPage(Exception error, bool isDevelopment, Action? recover = null)
     {
         _error = error;
         _isDevelopment = isDevelopment;
@@ -72,11 +72,42 @@ public sealed class DefaultErrorPage : Component
 
     protected override bool BypassRenderCache => true;
 
+    /// <summary>
+    ///     Whether this page stands in for the <b>whole</b> app rather than one failed subtree — set only
+    ///     by the root boundary, and the condition on <see cref="HeadAssets" /> below.
+    /// </summary>
+    internal bool OwnsDocument { get; init; }
+
+    /// <summary>
+    ///     What this page needs in <c>&lt;head&gt;</c> to stand on its own — but only when it <em>is</em>
+    ///     the page.
+    /// </summary>
+    /// <remarks>
+    ///     The framework owns the document, so the fallback renders inside the app's shell rather than
+    ///     replacing it — which is what keeps the <c>&lt;html&gt;</c> attributes and the body class across
+    ///     a fault. But the head is built from the components that are actually mounted, and an App whose
+    ///     <c>Render()</c> threw contributed none of its own: without this the error page would arrive
+    ///     with no charset (mangling any non-ASCII in the message) and no title. Gated on
+    ///     <see cref="OwnsDocument" /> because a <em>nested</em> boundary's fallback replaces one widget
+    ///     while the rest of the page is fine — retitling the tab "Application error" because a sidebar
+    ///     failed would be a worse lie than the missing title it fixes. The registry resolves
+    ///     <c>&lt;title&gt;</c> as a singleton with the last contributor winning, so the root fallback
+    ///     does replace the app's title, exactly while the fault is on screen.
+    /// </remarks>
+    protected override Component? HeadAssets => OwnsDocument
+        ?
+        [
+            Meta.Charset("utf-8"),
+            Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
+            Title["Application error"]
+        ]
+        : null;
+
     protected override Component? Render()
     {
         var children = new List<Component>
         {
-            Generated.H1(Style: "margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"]
+            H1.Style("margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"]
         };
 
         // Try again first, when the boundary handed us a way to: it keeps the session, the state and the
@@ -85,19 +116,19 @@ public sealed class DefaultErrorPage : Component
         // and then a reload is what you want.
         if (_recover is { } recover)
         {
-            children.Add(Generated.Button(
-                Type: "button",
-                Style: ReloadButtonStyle,
-                OnClick: recover)["Try again"]);
+            children.Add(Button
+                .Type("button")
+                .Style(ReloadButtonStyle)
+                .OnClick(recover)["Try again"]);
         }
 
         // In-app recovery so the user isn't stranded on the fault: the runtime wires data-rask-reload
         // to location.reload() (CSP-clean, both hosts). If the runtime never loaded, the browser's own
         // reload is the fallback.
-        children.Add(Generated.Button(
-            Type: "button",
-            Style: ReloadButtonStyle,
-            Data: new Dictionary<string, string?> { ["rask-reload"] = "" })["Reload this page"]);
+        children.Add(Button
+            .Type("button")
+            .Style(ReloadButtonStyle)
+            .Data(new Dictionary<string, string?> { ["rask-reload"] = "" })["Reload this page"]);
 
         var chain = Unwind(_error);
 
@@ -110,19 +141,18 @@ public sealed class DefaultErrorPage : Component
         {
             for (var i = 1; i < chain.Count; i++)
             {
-                children.Add(Generated.Details(Open: true)[
-                    Generated.Summary(Style: CausedByStyle)[
+                children.Add(Details.Open(true)[
+                    Summary.Style(CausedByStyle)[
                         $"Caused by: {TypeName(chain[i])}"],
-                    Generated.Div(Style: "padding-left:0.75rem;border-left:2px solid #f5c2c0;margin-top:0.5rem;")[
+                    Div.Style("padding-left:0.75rem;border-left:2px solid #f5c2c0;margin-top:0.5rem;")[
                         RenderException(chain[i])]
                 ]);
             }
         }
 
-        return Generated.Div(
-                Class: "rask-error-boundary",
-                Style:
-                "max-width:720px;margin:4rem auto;padding:1.5rem;font-family:system-ui,sans-serif;color:#1f2937;"
+        return Div
+            .Class("rask-error-boundary")
+            .Style("max-width:720px;margin:4rem auto;padding:1.5rem;font-family:system-ui,sans-serif;color:#1f2937;"
                 + "border:1px solid #f5c2c0;background:#fff5f5;border-radius:0.5rem;")
             [children];
     }
@@ -132,8 +162,8 @@ public sealed class DefaultErrorPage : Component
     // never inject markup.
     private IEnumerable<Component> RenderException(Exception ex)
     {
-        yield return Generated.P(Style: TypeStyle)[TypeName(ex)];
-        yield return Generated.Pre(Style: MessageStyle)[ex.Message];
+        yield return P.Style(TypeStyle)[TypeName(ex)];
+        yield return Pre.Style(MessageStyle)[ex.Message];
 
         if (!_isDevelopment)
         {
@@ -156,7 +186,7 @@ public sealed class DefaultErrorPage : Component
         {
             if (!string.IsNullOrEmpty(ex.StackTrace))
             {
-                yield return Generated.Pre(Style: FrameStyle)[ex.StackTrace];
+                yield return Pre.Style(FrameStyle)[ex.StackTrace];
             }
 
             yield break;
@@ -168,12 +198,12 @@ public sealed class DefaultErrorPage : Component
             var file = frame.GetFileName();
             var line = frame.GetFileLineNumber();
 
-            yield return Generated.Div(Style: FrameStyle)[
+            yield return Div.Style(FrameStyle)[
                 file is not null && line > 0 ? $"at {method}  in {file}:line {line}" : $"at {method}"];
 
             if (file is not null && line > 0 && ReadSourceExcerpt(file, line, SourceRadius) is { } excerpt)
             {
-                yield return Generated.Pre(Style: ExcerptStyle)[excerpt];
+                yield return Pre.Style(ExcerptStyle)[excerpt];
             }
         }
     }

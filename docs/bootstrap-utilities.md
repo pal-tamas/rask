@@ -5,8 +5,8 @@ tokens**, grouped by family, composed into a `Class` with `Bs.Join(...)` (it ski
 returns `null` when nothing is present, so it leaves `Class` unset rather than emitting `class=""`):
 
 ```csharp
-BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))
-Div(Class: Bs.Join(Display.Flex(), Flex.Gap(2), Flex.Justify(BsJustify.Between)))
+BsCard.Class(Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))
+Div.Class(Bs.Join(Display.Flex(), Flex.Gap(2), Flex.Justify(BsJustify.Between)))
 ```
 
 Spacing, display, flex and text-alignment helpers take an optional **responsive breakpoint** `Bp`

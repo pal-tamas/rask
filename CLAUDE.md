@@ -49,24 +49,35 @@ dotnet run --project samples/Rask.Example.Server
 - `Component` (base: `Render`, `Children`, `Key`, `TagName`, `WriteAttributes`) → `Element` (universal
   HTML attrs). `Text` encodes; `Raw` is verbatim. `Fragment`/`Doctype` special-cased in `HtmlSerializer`.
 - **Attribute render order: id, class, style, title, data-*, role, tabindex, aria-*, then tag-specific — tests assert it; preserve it.**
-- Children via the indexer `Div()[Span(), "hi"]` (no `Children:` param; `..` spread breaks — pass enumerables).
-  Page root must render the full shell (`Doctype`/`Html`/`Head`/`Body`) — RASK021. Runtime `<script>` auto-appended.
+- Markup is a CHAIN: `Div.Class("card")[Span["hi"]]` — no `new`, no factory call. Children via the
+  indexer (no `Children:` param; `..` spread breaks — pass enumerables). A component's REQUIRED props are
+  chain steps taken first (any order); `Bind` vs `Value` are mutually exclusive openings; type arguments
+  are inferred from the opening step, or stated with `.Of<T>()`. See `docs/building-components.md`.
+- **The chain's receiver is `Build<TComponent>`, never the component** — that is what lets a callback prop
+  be a plain delegate: C# stops at a delegate-typed property when resolving `x.OnClick(fn)` and never
+  reaches an extension method (CS1593). Converts implicitly to the component (and so to `Component`), so
+  markup is unaffected. Two consequences: a component's STATIC members need qualifying inside a markup
+  host (the "Color Color" rule no longer merges them), and `cond ? chain : null` needs a `Component?`
+  target rather than `var`.
+  Page root renders into `<body>`; Rask adds the shell (`Head`/`HtmlLang`/`BodyClass`/`Shell`) + runtime `<script>` — RASK021.
 - **Factory params** (generated per public prop): nullable→optional(null); non-nullable no-initializer→**required**
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
   settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
 - **`Key`** — reconciliation identity (last factory `Key:` param), enables trusted structural diff; not a reactive prop.
-- **Callbacks** are plain delegate props (`Action<T>`/`Func<T,Task>`); the factory wraps them to re-render the
-  owning parent. **Refs**: `ElementRef.New()` in a field, pass to `IJSRuntime`. **Context**: `Context.Provide<T>` /
-  `Context.Get<T>`/`Required`/`Has`. Construct components via the **factory**, never `new` outside Core (RASK014).
+- **Callbacks are PLAIN DELEGATES** — `Action?`, `Func<Task>?`, `Action<T>?`, `Func<T, Task>?`, and any
+  `Func<…>` for a template or selector. No wrapper types: the `Build<T>` receiver is what lets the setter
+  keep the property's name. Auto-wrapped to re-render the owning parent.
+  **Refs**: `ElementRef.New()` in a field, pass to `IJSRuntime`. **Context**: `Context.Provide<T>` /
+  `Context.Get<T>`/`Required`/`Has`. Construct components via the **chain**, never `new` outside Core (RASK014).
 
 ## Subsystems → read `docs/`
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/JS + typed browser APIs
-(`docs/js-interop.md`, `docs/browser-apis.md` — the 46-wrapper map), forms +
+(`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–035 (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–045 (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Core/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–035 are documented in `docs/diagnostics.md`.
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–045 are documented in `docs/diagnostics.md`.

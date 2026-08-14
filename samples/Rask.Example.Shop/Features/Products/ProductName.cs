@@ -1,7 +1,7 @@
 namespace Rask.Example.Shop.Features.Products;
 
 // Value object for Name — the validation rule lives here and is reused by the form
-// (Input(..., Validate: ProductName.Validate)) and by Create.
+// (Input(...).Validate(ProductName.Validate)) and by Create.
 public readonly record struct ProductName
 {
     public const int MaxLength = 200;

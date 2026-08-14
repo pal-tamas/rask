@@ -25,7 +25,7 @@ public class RoutesRegistryRefreshTests
         namespace Demo;
 
         [Route("/")]
-        public sealed class HomePage : Component
+        public sealed partial class HomePage : Component
         {
             protected override Component? Render() => Div();
         }

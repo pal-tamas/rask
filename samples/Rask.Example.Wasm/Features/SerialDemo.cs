@@ -9,7 +9,7 @@ namespace Rask.Example.Wasm.Features;
 ///     the log. WASM-only: <c>requestPort()</c> needs a live user gesture and the live port stream, and it's
 ///     Chromium-family only at the time of writing.
 /// </summary>
-public sealed class SerialDemo(ISerial serial) : Component, IAsyncDisposable
+public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDisposable
 {
     private ISerialPort? _port;
     private int _baudRate = 9600;
@@ -18,38 +18,49 @@ public sealed class SerialDemo(ISerial serial) : Component, IAsyncDisposable
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap align-items-center mb-2")[
-                    Label(Class: "small text-secondary mb-0", For: "serial-baud")["Baud"],
-                    Input(
-                        Id: "serial-baud",
-                        Type: InputType.Number,
-                        Class: "form-control form-control-sm",
-                        Style: "width: 7rem",
-                        Value: _baudRate.ToString(),
-                        Disabled: _port is not null,
-                        OnInput: v => int.TryParse(v, out _baudRate)),
-                    Button(Class: "btn btn-primary btn-sm", Id: "serial-connect", Disabled: _port is not null,
-                        OnClickAsync: Connect)[I(Class: "bi bi-usb-plug me-1"), "Connect"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "serial-disconnect", Disabled: _port is null,
-                        OnClickAsync: Disconnect)["Disconnect"]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("d-flex gap-2 flex-wrap align-items-center mb-2")[
+                    Label.Class("small text-secondary mb-0").For("serial-baud")["Baud"],
+                    Input
+                        .Value(_baudRate.ToString())
+                        .Id("serial-baud")
+                        .Type(InputType.Number)
+                        .Class("form-control form-control-sm")
+                        .Style("width: 7rem")
+                        .Disabled(_port is not null)
+                        .OnInput(v => int.TryParse(v, out _baudRate)),
+                    Button
+                        .Class("btn btn-primary btn-sm")
+                        .Id("serial-connect")
+                        .Disabled(_port is not null)
+                        .OnClickAsync(Connect)[I.Class("bi bi-usb-plug me-1"), "Connect"],
+                    Button
+                        .Class("btn btn-outline-danger btn-sm")
+                        .Id("serial-disconnect")
+                        .Disabled(_port is null)
+                        .OnClickAsync(Disconnect)["Disconnect"]
                 ],
-                Div(Class: "input-group input-group-sm mb-2")[
-                    Input(
-                        Id: "serial-outgoing",
-                        Class: "form-control",
-                        Value: _outgoing,
-                        Placeholder: "Line to send",
-                        Disabled: _port is null,
-                        OnInput: v => _outgoing = v),
-                    Button(Class: "btn btn-primary", Id: "serial-send", Disabled: _port is null,
-                        OnClickAsync: Send)["Send"]
+                Div.Class("input-group input-group-sm mb-2")[
+                    Input
+                        .Value(_outgoing)
+                        .Id("serial-outgoing")
+                        .Class("form-control")
+                        .Placeholder("Line to send")
+                        .Disabled(_port is null)
+                        .OnInput(v => _outgoing = v),
+                    Button
+                        .Class("btn btn-primary")
+                        .Id("serial-send")
+                        .Disabled(_port is null)
+                        .OnClickAsync(Send)["Send"]
                 ],
-                Pre(Class: "small bg-dark text-light rounded p-2 mb-2", Id: "serial-log",
-                    Style: "min-height: 6rem; max-height: 12rem; overflow: auto")[
+                Pre
+                    .Class("small bg-dark text-light rounded p-2 mb-2")
+                    .Id("serial-log")
+                    .Style("min-height: 6rem; max-height: 12rem; overflow: auto")[
                     _log.Count == 0 ? "(no data yet)" : string.Join("\n", _log)],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "serial-status")[_status]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("serial-status")[_status]]
             ]
         ];
 

@@ -20,9 +20,9 @@ Put `[Route("/path")]` on a `Component`. That's the whole registration:
 
 ```csharp
 [Route("/about")]
-public sealed class AboutPage : Component
+public sealed partial class AboutPage : Component
 {
-    protected override Component? Render() => H1()["About"];
+    protected override Component? Render() => H1["About"];
 }
 ```
 
@@ -36,18 +36,11 @@ A route only matters once a `Router()` is somewhere in the tree to match against
 root (`App`):
 
 ```csharp
-public sealed class App : Component
+public sealed partial class App : Component
 {
+    // The root renders into <body> — Rask composes the document around it.
     protected override Component? Render() =>
-        [
-            Doctype(),
-            Html("en")[
-                Head(),
-                Body()[
-                    Router()        // matches RouteState.Path and renders the page
-                ]
-            ]
-        ];
+        Router;                   // matches RouteState.Path and renders the page
 }
 ```
 
@@ -61,11 +54,11 @@ formatter's parameters mirror the route's bound properties:
 
 ```csharp
 [Route("/")]
-public sealed class HomePage : Component { /* ... */ }
+public sealed partial class HomePage : Component { /* ... */ }
 // → Routes.HomePage()  returns a RouteUrl for "/"
 
 [Route("/users/{id:int}")]
-public sealed class UserPage : Component
+public sealed partial class UserPage : Component
 {
     [RouteParam] public int Id { get; set; }
 }
@@ -77,7 +70,7 @@ to and from `string`, so you can pass it straight to `NavLink`, `Navigator.Navig
 expected:
 
 ```csharp
-NavLink(Href: Routes.UserPage(Id: 42))["View user"];
+NavLink.Href(Routes.UserPage(Id: 42))["View user"];
 ```
 
 Path values are formatted through `RouteValueFormatter.Format`, so an `int`, `Guid`, `DateOnly`, etc. round-trips
@@ -97,12 +90,12 @@ Two attributes bind URL pieces to properties on the page:
 
 ```csharp
 [Route("/users/{id}")]
-public sealed class UserPage : Component
+public sealed partial class UserPage : Component
 {
     [RouteParam] public int Id { get; set; }       // /users/42  → Id = 42
     [QueryParam] public string? Tab { get; set; }   // ?tab=profile → Tab = "profile"
 
-    protected override Component? Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
+    protected override Component? Render() => Span[$"User #{Id} — {Tab ?? "overview"}"];
 }
 ```
 
@@ -138,22 +131,22 @@ parent's, and the parent renders the matched child wherever it places an `Outlet
 
 ```csharp
 [Route("/")]
-public sealed class Layout : Component
+public sealed partial class Layout : Component
 {
     protected override Component? Render() =>
-        Div()[
-            Nav()[ /* sidebar */ ],
-            Main()[Outlet()]        // the matched child page renders here
+        Div[
+            Nav[ /* sidebar */ ],
+            Main[Outlet]        // the matched child page renders here
         ];
 }
 
 [Route("about"), ParentRoute(typeof(Layout))]
-public sealed class AboutPage : Component
+public sealed partial class AboutPage : Component
 {
-    protected override Component? Render() => H1()["About"];
+    protected override Component? Render() => H1["About"];
 }
 
-// /about now matches Layout → AboutPage, with AboutPage rendered into Layout's Outlet().
+// /about now matches Layout → AboutPage, with AboutPage rendered into Layout's Outlet.
 ```
 
 An empty child template (`[Route("")]`) means "the default child for this layout". The showcase app is built this way:
@@ -170,10 +163,10 @@ every page declares `[ParentRoute(typeof(ShowcaseLayout))]` and the layout hosts
 like any other framework service:
 
 ```csharp
-public sealed class ProductsPage(Navigator nav) : Component
+public sealed partial class ProductsPage(Navigator nav) : Component
 {
     protected override Component? Render() =>
-        Button(OnClick: () => nav.NavigateTo("/dashboard"))["Open dashboard"];
+        Button.OnClick(() => nav.NavigateTo("/dashboard"))["Open dashboard"];
 }
 ```
 
@@ -245,11 +238,11 @@ is handled entirely in the client runtime and applies to both transports.
 `RouteState` is the scoped, per-session source of truth for the current location. Inject it to read the live URL:
 
 ```csharp
-public sealed class CurrentLocation(RouteState route) : Component
+public sealed partial class CurrentLocation(RouteState route) : Component
 {
     protected override Component? Render() =>
-        Div()[
-            "path: ", Code()[route.Path],
+        Div[
+            "path: ", Code[route.Path],
             " query count: ", route.Query.Count
         ];
 }
@@ -269,13 +262,13 @@ breadcrumb, header path display) won't be re-rendered by the router, so it must 
 `OnMount`, unsubscribe in `OnUnmount`:
 
 ```csharp
-public sealed class PathDisplay(RouteState route) : Component
+public sealed partial class PathDisplay(RouteState route) : Component
 {
     protected override void OnMount() => route.Changed += StateHasChanged;
     protected override void OnUnmount() => route.Changed -= StateHasChanged;
 
     protected override Component? Render() =>
-        Span()["path: ", Code()[route.Path]];
+        Span["path: ", Code[route.Path]];
 }
 ```
 
@@ -293,9 +286,9 @@ framework falls back to a minimal built-in page if no app-defined one exists.
 
 ```csharp
 [NotFound]
-public sealed class NotFoundPage : Component
+public sealed partial class NotFoundPage : Component
 {
-    protected override Component? Render() => H1()["Page not found"];
+    protected override Component? Render() => H1["Page not found"];
 }
 ```
 

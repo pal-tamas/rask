@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.Infrastructure;
 ///     then blocks on <see cref="ReleaseRender" /> until the test releases it. That lets a test
 ///     hold a render in flight deterministically and dispose the session underneath it.
 /// </summary>
-public sealed class GatedRenderApp : Component
+public sealed partial class GatedRenderApp : Component
 {
     /// <summary>Completes when a gated render has entered <see cref="Render" />.</summary>
     public static TaskCompletionSource RenderEntered { get; private set; } = NewLatch();
@@ -29,6 +29,9 @@ public sealed class GatedRenderApp : Component
         ReleaseRender.Reset();
     }
 
+    protected override Component? HeadAssets => new Title()["gated"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render()
     {
         if (_gateNextRender)
@@ -41,14 +44,8 @@ public sealed class GatedRenderApp : Component
 
         return
         [
-            Doctype(),
-            new Html()[
-                new Head()[new Title()["gated"]],
-                new Body()[
-                    new P()["gated-render"],
-                    Button(OnClickAsync: GateAsync)["go"]
-                ]
-            ]
+            new P()["gated-render"],
+            Button.OnClickAsync(GateAsync)["go"]
         ];
     }
 

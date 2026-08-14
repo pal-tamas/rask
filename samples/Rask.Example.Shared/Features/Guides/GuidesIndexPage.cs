@@ -8,17 +8,17 @@ namespace Rask.Example.Shared.Features;
 // GuidePage renders the markdown with Markdig.
 [Route("")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class GuidesIndexPage : Component
+public sealed partial class GuidesIndexPage : Component
 {
-    protected override Component? Head => Title()["Guides — Rask"];
+    protected override Component? HeadAssets => Title["Guides — Rask"];
 
     protected override Component? Render() =>
     [
-        PageHeader.Render(
-            "Guides",
-            "Narrative documentation for the framework — the same guides that ship in the repo's docs/ "
-            + "folder, rendered here. Each guide embeds runnable demos inline and reads like a proper "
-            + "narrative guide, with a Chapters index, an on-this-page rail, and prev/next navigation."),
-        Div()[GuideCards.Render()]
+        PageHeader
+            .Title("Guides")
+            .Lead("Narrative documentation for the framework — the same guides that ship in the repo's docs/ "
+                  + "folder, rendered here. Each guide embeds runnable demos inline and reads like a proper "
+                  + "narrative guide, with a Chapters index, an on-this-page rail, and prev/next navigation."),
+        Div[GuideCards]
     ];
 }

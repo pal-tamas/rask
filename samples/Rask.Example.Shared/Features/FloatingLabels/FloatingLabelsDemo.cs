@@ -3,40 +3,37 @@ using Rask.Example.Shared;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class FloatingLabelsDemo : Component
+public sealed partial class FloatingLabelsDemo : Component
 {
     private readonly AccountModel _model = new();
     private string? _submission;
 
     protected override Component? Render() =>
     [
-        Form<AccountModel>(
-            _model,
-            m => _submission = $"Created account for {m.FullName} <{m.Email}>",
-            Class: "vstack gap-2")[
-            DataAnnotationsValidator(),
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Created account for {m.FullName} <{m.Email}>").Class("vstack gap-2")[
+            DataAnnotationsValidator,
             // One line per field — the Floating* components wrap Input/Select/Textarea + Label +
             // ValidationMessage in Bootstrap's .form-floating markup. The label is read from each
             // property's [Display(Name)], the input type is inferred from the property's CLR type,
             // and validation flows from the [Required]/[Range]/etc. attributes through
             // DataAnnotationsValidator(). Every property is nullable — Rask clears to null.
-            FloatingInput(() => _model.FullName),
-            FloatingInput(() => _model.Email),
-            FloatingInput(() => _model.Age),
-            FloatingSelect(() => _model.Plan)[
-                Option("")["— choose —"],
-                Option("free")["Free"],
-                Option("pro")["Pro"],
-                Option("team")["Team"]
+            FloatingInput.Bind(() => _model.FullName),
+            FloatingInput.Bind(() => _model.Email),
+            FloatingInput.Bind(() => _model.Age),
+            FloatingSelect.Bind(() => _model.Plan)[
+                Option.Value("")["— choose —"],
+                Option.Value("free")["Free"],
+                Option.Value("pro")["Pro"],
+                Option.Value("team")["Team"]
             ],
-            FloatingTextarea(() => _model.Bio),
-            Div(Class: "mt-1")[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.PersonPlus, Class: "me-1"), "Create account"]
+            FloatingTextarea.Bind(() => _model.Bio),
+            Div.Class("mt-1")[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.PersonPlus).Class("me-1"), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

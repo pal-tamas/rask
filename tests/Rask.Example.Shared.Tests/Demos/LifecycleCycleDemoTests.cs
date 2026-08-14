@@ -8,12 +8,12 @@ namespace Rask.Example.Shared.Tests.Demos;
 // LifecycleCycleDemo is the mount/unmount-cycle widget promoted out of the former LifecyclePage when the
 // lifecycle pages were folded into the guides. It owns the mount flag, the id counter, and the
 // parent-held log that survives the probe's unmount.
-public sealed class LifecycleCycleDemoTests
+public sealed partial class LifecycleCycleDemoTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_AtRest_ShowsProbeNotMounted_AndEmptyLog()
     {
-        var host = new LiveHost(() => LifecycleCycleDemo(), TestServices.Default());
+        var host = new LiveHost(() => LifecycleCycleDemo, TestServices.Default());
 
         var html = host.RenderAsLiveRoot();
 

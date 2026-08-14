@@ -176,7 +176,7 @@ a host that receives it back **rebuilds** the page around it. Nothing resumes â€
 which is exactly why what you declare is what comes back:
 
 ```csharp
-public sealed class OrdersPage(IPersistentState state) : Component
+public sealed partial class OrdersPage(IPersistentState state) : Component
 {
     private string _filter = "";
 

@@ -58,7 +58,7 @@ A typical async-data page uses `OnMountAsync` to fetch once and renders a placeh
 
 ```csharp
 [Route("/weather")]
-public sealed class Weather(IWeatherForecastService service) : Component
+public sealed partial class Weather(IWeatherForecastService service) : Component
 {
     private WeatherForecast[]? _forecasts;
 
@@ -67,8 +67,8 @@ public sealed class Weather(IWeatherForecastService service) : Component
 
     protected override Component? Render() =>
         _forecasts is null
-            ? P()[Em()["Loading..."]]
-            : Table()[/* render rows */];
+            ? P[Em["Loading..."]]
+            : Table[/* render rows */];
 }
 ```
 
@@ -137,9 +137,9 @@ unless you put a closer boundary in the way.
 protected override async Task OnMountAsync() => _rows = await api.LoadAsync();
 
 // With one, the blast radius is the subtree you chose.
-ErrorBoundary(Fallback: (ex, retry) => Div()[
-    P()["Could not load the rows."],
-    Button(OnClick: retry)["Try again"]
+ErrorBoundary.Fallback((ex, retry) => Div[
+    P["Could not load the rows."],
+    Button.OnClick(retry)["Try again"]
 ])[
     RowList()
 ]
@@ -208,7 +208,7 @@ calls, `Task.Delay`, or any cancellable async work started in a lifecycle hook s
 navigates away:
 
 ```csharp
-public sealed class CancellationProbe : Component
+public sealed partial class CancellationProbe : Component
 {
     public required Action<string> Log { get; set; }
     public required int InstanceId { get; set; }

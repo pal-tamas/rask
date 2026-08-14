@@ -4,7 +4,7 @@ namespace Rask.Testing.Tests;
 
 // The factory overload exists because Render(Component) renders one fixed instance: a tree built once by
 // the caller can never reflect state that changes afterwards. These pin that distinction.
-public class RaskTestFactoryTests
+public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
 {
     private sealed class Model
     {
@@ -15,7 +15,7 @@ public class RaskTestFactoryTests
     public void RenderFactory_ReRunsTheFactory_SoARerenderSeesChangedState()
     {
         var model = new Model();
-        var page = RaskTest.Render(() => Div()[$"Name: {model.Name}"]);
+        var page = RaskTest.Render(() => Div[$"Name: {model.Name}"]);
         Assert.Contains("Name: Ada", page.Html);
 
         model.Name = "Grace";
@@ -30,7 +30,7 @@ public class RaskTestFactoryTests
         // The contrast that justifies the factory overload: the tree here is built once, at the call site,
         // so re-rendering replays the same baked children.
         var model = new Model();
-        var page = RaskTest.Render(Div()[$"Name: {model.Name}"]);
+        var page = RaskTest.Render(Div[$"Name: {model.Name}"]);
 
         model.Name = "Grace";
         page.Render();
@@ -39,11 +39,11 @@ public class RaskTestFactoryTests
         Assert.DoesNotContain("Name: Grace", page.Html);
     }
 
-    private sealed class Greeting : Component
+    private sealed partial class Greeting : Component
     {
         public string Name { get; set; } = "";
 
-        protected override Component? Render() => Span()[$"Hi {Name}"];
+        protected override Component? Render() => Span[$"Hi {Name}"];
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class RaskTestFactoryTests
         private bool _on;
 
         protected override Component? Render() =>
-            Button(Type: "button", OnClick: () => _on = !_on)[_on ? "on" : "off"];
+            Button.Type("button").OnClick(() => _on = !_on)[_on ? "on" : "off"];
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class RaskTestFactoryTests
     public void RenderFactory_ReturningNull_RendersNothing()
     {
         var mounted = true;
-        var page = RaskTest.Render(() => mounted ? Span()["here"] : null);
+        var page = RaskTest.Render(() => mounted ? Span["here"] : null);
         Assert.Contains("here", page.Html);
 
         mounted = false;

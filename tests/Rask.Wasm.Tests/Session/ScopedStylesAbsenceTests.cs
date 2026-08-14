@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Rask.Core;
 using Rask.Core.ScopedAssets;
-using static Rask.Core.Components.Generated;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
 
@@ -51,15 +50,10 @@ public class ScopedStylesAbsenceTests : ResettingTestBase
 
     private sealed class ScopedCssStubApp : Component
     {
-        protected override Component? Head => Title()["wasm-stub"];
+        protected override Component? HeadAssets => Title["wasm-stub"];
 
-        protected override Component? Render() =>
-        [
-            Doctype(),
-            Html()[
-                Head(),
-                Body()[Div(Class: "tag")["hi"]]
-            ]
-        ];
+        protected override string? HtmlLang => null;
+
+        protected override Component? Render() => Div.Class("tag")["hi"];
     }
 }

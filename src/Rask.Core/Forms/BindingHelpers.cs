@@ -213,7 +213,7 @@ public static class BindingHelpers
     // `AfterBindAsync` factory parameters on Input/Select/Textarea). It only fires when a parse
     // actually mutated the model, so the user never sees a stale value; we run it after
     // NotifyFieldChanged so validators that observe IsModified see the new state.
-    public static CallbackAsync<string> StringSetHandler(
+    public static Func<string, Task> StringSetHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet,
         Func<Task>? afterBind = null) =>
         async raw =>
@@ -245,7 +245,7 @@ public static class BindingHelpers
             }
         };
 
-    public static CallbackAsync<string> TouchAndValidateHandler(
+    public static Func<string, Task> TouchAndValidateHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool setOnChange,
         Func<Task>? afterBind = null) =>
         async raw =>
@@ -290,7 +290,7 @@ public static class BindingHelpers
     ///     coalesced or missed. A membership edit built from a render-time snapshot cannot recover from a
     ///     one-step desync — see the note on that method.
     /// </remarks>
-    public static CallbackAsync<IReadOnlyList<string>> MultiSelectSetHandler<T>(
+    public static Func<IReadOnlyList<string>, Task> MultiSelectSetHandler<T>(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid,
         Func<Task>? afterBind = null) =>
         async picked =>
@@ -401,7 +401,7 @@ public static class BindingHelpers
     // inverting, which surfaced as the checkbox "sticking" after a few clicks once those
     // clicks started shipping diffs (which don't re-base an unchanged checked attribute)
     // instead of full HTML (whose morph re-based it every time).
-    public static CallbackAsync<string> BoolSetHandler(
+    public static Func<string, Task> BoolSetHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid,
         Func<Task>? afterBind = null) =>
         async value =>

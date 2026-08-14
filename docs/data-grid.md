@@ -6,12 +6,7 @@ totals, custom cells, an empty state, and expandable master-detail rows. It is *
 so all of it works with **zero JavaScript** — no `bootstrap.js`, no grid plugin.
 
 ```csharp
-BsDataGrid(
-    Data: products,
-    PageSize: 10,
-    RowKey: p => p.Id,
-    Columns:
-    [
+BsDataGrid.Data(products).PageSize(10).RowKey(p => p.Id).Columns([
         new BsColumn<Product> { Title = "Product", Value = p => p.Name, Sortable = true },
         new BsColumn<Product> { Title = "Price", Value = p => p.Price.ToString("C"), Class = Txt.End() },
     ])
@@ -56,8 +51,8 @@ new BsColumn<Product>
     Sortable = true,
     SortKey = p => p.Stock,                       // sort by the number...
     Template = p => p.Stock == 0                  // ...but render a badge
-        ? BsBadge(Color: BsColor.Danger)["Out of stock"]
-        : BsBadge(Color: BsColor.Success)[p.Stock.ToString()],
+        ? BsBadge.Color(BsColor.Danger)["Out of stock"]
+        : BsBadge.Color(BsColor.Success)[p.Stock.ToString()],
 }
 ```
 
@@ -141,7 +136,7 @@ and `Class` is joined last so it wins the cascade.
 `StickyHeader` freezes the header row while the body scrolls under it. The pager stays outside the scroll box.
 
 ```csharp
-BsDataGrid(Data: readings, MaxHeight: "280px", StickyHeader: true, Columns: [...])
+BsDataGrid.Data(readings).MaxHeight("280px").StickyHeader(true).Columns([...])
 ```
 
 **`StickyHeader` needs `MaxHeight`.** A sticky header sticks to its nearest scroll container, so with nothing

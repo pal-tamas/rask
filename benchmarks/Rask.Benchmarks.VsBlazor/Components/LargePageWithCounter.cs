@@ -10,7 +10,8 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     DOM is unchanged across renders, only one text node mutates. This is what the
 ///     Rask diff codec advertises 1,802× wire-byte reduction on.
 /// </summary>
-internal static class LargePageWithCounter
+[global::Rask.Core.RaskMarkup]
+internal static partial class LargePageWithCounter
 {
     public const int LargePageRowCount = 200;
 
@@ -19,17 +20,17 @@ internal static class LargePageWithCounter
         var rows = new List<Component>(LargePageRowCount);
         for (var i = 0; i < LargePageRowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}")[
-                C.Span(Class: "label")[$"Item {i}"],
-                C.A($"/item/{i}", Class: "lnk")[$"open {i}"]
+            rows.Add(Div.Class("row").Id($"r{i}")[
+                Span.Class("label")[$"Item {i}"],
+                A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
             ]);
         }
 
-        return C.Div(Class: "container", Id: "root")[
-            C.Div(Class: "counter", Id: "counter")[
-                C.Span(Class: "value")[counter.ToString()]
+        return Div.Class("container").Id("root")[
+            Div.Class("counter").Id("counter")[
+                Span.Class("value")[counter.ToString()]
             ],
-            C.Div(Class: "body")[rows]
+            Div.Class("body")[rows]
         ];
     }
 
@@ -43,13 +44,13 @@ internal static class LargePageWithCounter
         for (var i = 0; i < LargePageRowCount; i++)
         {
             var text = i == LargePageRowCount / 2 ? $"ticker {counter}" : $"Item {i}";
-            rows.Add(C.Div(Class: "row", Id: $"r{i}")[
-                C.Span(Class: "label")[text],
-                C.A($"/item/{i}", Class: "lnk")[$"open {i}"]
+            rows.Add(Div.Class("row").Id($"r{i}")[
+                Span.Class("label")[text],
+                A.Href($"/item/{i}").Class("lnk")[$"open {i}"]
             ]);
         }
 
-        return C.Div(Class: "body")[rows];
+        return Div.Class("body")[rows];
     }
 
     public sealed class BlazorLargePageWithCounter : ComponentBase

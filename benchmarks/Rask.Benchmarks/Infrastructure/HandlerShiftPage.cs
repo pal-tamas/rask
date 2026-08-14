@@ -1,5 +1,5 @@
 using Rask.Core;
-using B = Rask.Benchmarks.Infrastructure.Generated;
+using BI = Rask.Benchmarks.Infrastructure.Generated;
 using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.Infrastructure;
@@ -16,7 +16,7 @@ namespace Rask.Benchmarks.Infrastructure;
 ///         keyed handler-bearing row the session reports measure, so the two reports describe one page.
 ///     </para>
 /// </summary>
-public sealed class HandlerShiftPage : Component
+public sealed partial class HandlerShiftPage : Component
 {
     /// <summary>Set to render one extra button — one extra handler — above the rows.</summary>
     public bool ShowToolbarAction;
@@ -29,7 +29,7 @@ public sealed class HandlerShiftPage : Component
         var rows = new List<Component>(RowCount);
         for (var i = 0; i < RowCount; i++)
         {
-            rows.Add(B.FootprintRow(Index: i, Key: i));
+            rows.Add(BI.FootprintRow(Index: i, Key: i));
         }
 
         return

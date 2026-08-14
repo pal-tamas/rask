@@ -52,7 +52,7 @@ internal static class NavSwitch
 
         public int ActiveTab { get; private set; }
 
-        public void Switch(int tab)
+        public new void Switch(int tab)
         {
             ActiveTab = tab;
             StateHasChanged();
@@ -64,8 +64,8 @@ internal static class NavSwitch
             for (var t = 0; t < TabCount; t++)
             {
                 var isActive = t == ActiveTab;
-                tabs.Add(C.Li(Class: isActive ? "tab active" : "tab")[
-                    C.A($"#t{t}")[$"Tab {t}"]
+                tabs.Add(Li.Class(isActive ? "tab active" : "tab")[
+                    A.Href($"#t{t}")[$"Tab {t}"]
                 ]);
             }
 
@@ -75,18 +75,18 @@ internal static class NavSwitch
                 content = new List<Component>(RowsPerTab);
                 for (var i = 0; i < RowsPerTab; i++)
                 {
-                    content.Add(C.Div(Class: "row")[
-                        C.Span(Class: "label")[$"Tab {ActiveTab} row {i}"],
-                        C.A($"/tab/{ActiveTab}/{i}")[$"open {i}"]
+                    content.Add(Div.Class("row")[
+                        Span.Class("label")[$"Tab {ActiveTab} row {i}"],
+                        A.Href($"/tab/{ActiveTab}/{i}")[$"open {i}"]
                     ]);
                 }
 
                 _tabContentCache[ActiveTab] = content;
             }
 
-            return C.Div(Class: "nav-shell")[
-                C.Nav()[C.Ul()[tabs]],
-                C.Main($"tab-{ActiveTab}")[content]
+            return Div.Class("nav-shell")[
+                Nav[Ul[tabs]],
+                Main.Id($"tab-{ActiveTab}")[content]
             ];
         }
     }

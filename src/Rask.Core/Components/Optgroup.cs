@@ -7,7 +7,7 @@ public sealed class Optgroup : Element
     protected override string TagName => "optgroup";
 
     public bool? Disabled { get; set; }
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

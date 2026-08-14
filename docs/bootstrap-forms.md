@@ -10,8 +10,8 @@ The data-driven comboboxes and the date/time controls have their own pages:
 [selects & multiselect](bootstrap-select.md) and [date & time pickers](bootstrap-pickers.md).
 
 ```csharp
-BsInput(() => model.Email, Label: "Email", Type: InputType.Email)   // .is-invalid + .invalid-feedback built in
-BsCheck(() => model.AcceptTerms, Label: "I accept the terms")
+BsInput.Bind(() => model.Email).Label("Email").Type(InputType.Email)   // .is-invalid + .invalid-feedback built in
+BsCheck.Bind(() => model.AcceptTerms).Label("I accept the terms")
 BsRadioGroup(() => model.Plan, options, Label: "Plan")              // <fieldset>/<legend> group
 ```
 
@@ -24,10 +24,10 @@ input add-ons around any control.
 `<input>`, so a Bootstrap number, date, range, or file field is fully configurable:
 
 ```csharp
-BsInput(() => model.Age, Label: "Age", Min: "0", Max: "120", Step: "1")
-BsInput(() => model.Code, Label: "Code", Pattern: "[A-Z]{3}", MaxLength: 3, InputMode: "text")
-BsInput(Type: InputType.File, Label: "Avatar", Accept: "image/*", Capture: "user", Multiple: true,
-        OnFilesAsync: SaveAsync)
+BsInput.Bind(() => model.Age).Label("Age").Min("0").Max("120").Step("1")
+BsInput.Bind(() => model.Code).Label("Code").Pattern("[A-Z]{3}").MaxLength(3).InputMode("text")
+BsInput<string>().Type(InputType.File).Label("Avatar").Accept("image/*").Capture("user").Multiple(true)
+        .OnFilesAsync(SaveAsync)
 ```
 
 - **Constraints & affordances**: `Min`, `Max`, `Step`, `Pattern`, `MaxLength`, `MinLength`, `List`

@@ -4,19 +4,19 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IPerformance" /> — high-resolution clock and page-load (navigation) timing.</summary>
-public sealed class PerformanceDemo(IPerformance performance) : Component
+public sealed partial class PerformanceDemo(IPerformance performance) : Component
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     private string? _value;
     private string? _status;
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "perf-read", OnClickAsync: Read)[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Button.Class("btn btn-outline-primary btn-sm mb-2").Id("perf-read").OnClickAsync(Read)[
                     "Read performance timing"],
-                Div(Class: "small text-secondary")["Timing: ", Code(Id: "perf-value")[_value ?? "(not requested)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "perf-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Timing: ", Code.Id("perf-value")[_value ?? "(not requested)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("perf-status")[_status ?? "(idle)"]]
             ]
         ];
 

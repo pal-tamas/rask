@@ -38,6 +38,9 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
 | `IWebLocks` | Web Locks API | Serialise work across an origin's tabs/workers — hold a named lock for a callback | callback-scoped |
 | `IBroadcastChannel` | `BroadcastChannel` | Cross-tab messaging | **subscription** |
+| `IMediaStreams` | `MediaStream` | Attach a live stream to a `<video>`, or stop it (releasing the camera) | one-shot |
+| `ISignaling` | WebSocket | Join a room on Rask's signaling relay and pass payloads to one peer | **subscription** |
+| `IWebRtc` | WebRTC | Peer-to-peer data channels between two browsers (you supply the signaling) | **subscription** |
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
 | `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
@@ -59,7 +62,7 @@ it hands you the `data-rask-share` attribute to spread onto it:
 
 ```csharp
 Shareable(new ShareData { Title = "Rask", Url = "https://…" },
-    share => Button(Type: "button", Class: "btn btn-primary", Data: share)["Share"])
+    share => Button.Type("button").Class("btn btn-primary").Data(share)["Share"])
 ```
 
 The shared client fires `navigator.share` **inside the click gesture** — no round-trip, so the transient
@@ -89,17 +92,18 @@ Capabilities that return a value (the eyedropper's hex, the install outcome) pos
 `OnResult` / `OnColor` / `OnOutcome` callback; the two `<video>` triggers target an element via its `ElementRef`.
 
 ```csharp
-FullscreenTrigger(g => Button(Type: "button", Data: g)["Full screen"])
+FullscreenTrigger(g => Button.Type("button").Data(g)["Full screen"])
 ScreenOrientationTrigger(Orientation: "landscape",
-    g => Button(Type: "button", Data: g)["Lock landscape"])
+    g => Button.Type("button").Data(g)["Lock landscape"])
 EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
-    g => Button(Type: "button", Data: g)["Pick a colour"])
+    g => Button.Type("button").Data(g)["Pick a colour"])
 InstallTrigger(OnOutcome: o => { outcome = o; return Task.CompletedTask; },
-    g => Button(Type: "button", Data: g)["Install app"])
-MediaCaptureTrigger(For: preview, Video: true,
-    Template: g => Button(Type: "button", Data: g)["Start camera"])
-PictureInPictureTrigger(For: preview,
-    Template: g => Button(Type: "button", Data: g)["Pop out video"])
+    g => Button.Type("button").Data(g)["Install app"])
+MediaCaptureTrigger.For(preview).Video(true)
+    // Keeps the stream reachable from C# — the only way a Server-hosted app can stop it later.
+    .OnStream(id => { camera = id; StateHasChanged(); return Task.CompletedTask; })
+    .Template(g => Button.Type("button").Data(g)["Start camera"])
+PictureInPictureTrigger.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
 ```
 
 All six ship: `FullscreenTrigger`, `ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`,
@@ -133,6 +137,11 @@ Most wrappers are one-shot request/response. Several are **subscriptions**, wher
 each change back into C#:
 
 - **`IBroadcastChannel`** — `OpenAsync(name, onMessage)` → connection (`PostAsync`, `IAsyncDisposable`)
+- **`ISignaling`** — `JoinAsync(room, handlers, path?)` → connection (`SendAsync`, `IAsyncDisposable`);
+  pairs with `AddRaskSignaling()` / `MapRaskSignaling()` on the server
+- **`IWebRtc`** — `CreateAsync(config, handlers)` → connection (`IAsyncDisposable`); its channels'
+  `ListenAsync(onMessages)` delivers **batches**, not single messages — on Server each push is a WebSocket
+  frame, so the framework coalesces them
 - **`IIntersectionObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
 - **`IResizeObserver`** — `ObserveAsync(elementRef, onChange)` → `IAsyncDisposable`
 - **`IMutationObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
@@ -159,12 +168,12 @@ handler, **not** a generated-factory callback, so [RASK026](diagnostics.md) (whi
 `StateHasChanged` inside `OnChange`/`OnClick`/`Bind`/… callbacks) does not apply.
 
 ```csharp
-public sealed class LazyImages(IIntersectionObserver io) : Component, IAsyncDisposable
+public sealed partial class LazyImages(IIntersectionObserver io) : Component, IAsyncDisposable
 {
     private readonly ElementRef _sentinel = ElementRef.New();
     private IAsyncDisposable? _obs;
 
-    protected override Component? Render() => Div(Ref: _sentinel)[ /* … */ ];
+    protected override Component? Render() => Div.Ref(_sentinel)[ /* … */ ];
 
     protected override async Task OnRenderedAsync(bool first)
     {

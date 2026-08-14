@@ -557,7 +557,7 @@ internal static partial class ProjectGenerator
 
         [Route("login")]
         [AllowAnonymous]
-        public sealed class LoginPage(WasmLoginService login) : Component
+        public sealed partial class LoginPage(WasmLoginService login) : Component
         {
             private readonly LoginModel _model = new();
             private string? _error;
@@ -565,15 +565,15 @@ internal static partial class ProjectGenerator
             [QueryParam] public string? ReturnUrl { get; set; }
 
             protected override Component? Render() =>
-                Div(Style: "max-width:22rem;margin:3rem auto;font-family:system-ui")[
-                    H1()["Sign in"],
-                    _error is null ? null : Div(Style: "color:#b00020")[_error],
-                    Form(_model, OnValidSubmitAsync: SubmitAsync)[
-                        Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],
-                        Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: InputType.Password)],
+                Div.Style("max-width:22rem;margin:3rem auto;font-family:system-ui")[
+                    H1["Sign in"],
+                    _error is null ? null : Div.Style("color:#b00020")[_error],
+                    Form.Model(_model).OnValidSubmitAsync(SubmitAsync)[
+                        Div[Label.For("username")["Username"], Input.Bind(() => _model.Username).Id("username")],
+                        Div[Label.For("password")["Password"], Input.Bind(() => _model.Password).Id("password").Type(InputType.Password)],
                         Button("submit", Id: "login-submit")["Sign in"]
                     ],
-                    P()["Try alice / password (user) or root / password (admin)."]
+                    P["Try alice / password (user) or root / password (admin)."]
                 ];
 
             private async Task SubmitAsync(LoginModel m)
@@ -601,23 +601,23 @@ internal static partial class ProjectGenerator
         // the gate opens after sign-in.
         [Route("members")]
         [AllowAnonymous]
-        public sealed class MembersPage : Component
+        public sealed partial class MembersPage : Component
         {
             protected override Component? Render() =>
-                Div(Style: "max-width:32rem;margin:3rem auto;font-family:system-ui")[
-                    Authorize(
-                        NotAuthorized: P()["Please ", NavLink(Href: Routes.LoginPage())["sign in"], "."])[MemberContent()]
+                Div.Style("max-width:32rem;margin:3rem auto;font-family:system-ui")[
+                    Authorize
+                        .NotAuthorized(P["Please ", NavLink.Href(Routes.LoginPage())["sign in"], "."])[MemberContent]
                 ];
         }
 
-        public sealed class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
+        public sealed partial class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
         {
             protected override Component? Render() =>
                 [
-                    H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
-                    Authorize(Roles: ["admin"])[
-                        Div(Style: "color:#7a5c00")["🔑 You have admin access."]],
-                    Button(Id: "logout", OnClickAsync: login.LogoutAsync)["Sign out"]
+                    H1[$"Welcome, {userProvider.Current.Identity?.Name}"],
+                    Authorize.Roles(["admin"])[
+                        Div.Style("color:#7a5c00")["🔑 You have admin access."]],
+                    Button.Id("logout").OnClickAsync(login.LogoutAsync)["Sign out"]
                 ];
         }
 

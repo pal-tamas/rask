@@ -22,7 +22,7 @@ namespace Rask.Example.Shop.Features.Ops;
 /// </para>
 /// </remarks>
 [Route("ops")]
-public sealed class OpsPage(IDbContextFactory<AppDbContext> factory, IJobQueue jobs, PopularProducts popular, IConfiguration config)
+public sealed partial class OpsPage(IDbContextFactory<AppDbContext> factory, IJobQueue jobs, PopularProducts popular, IConfiguration config)
     : Component, IDisposable
 {
     private const int MaxTicks = 120; // ~4 minutes of watching, then it stops on its own.
@@ -33,7 +33,7 @@ public sealed class OpsPage(IDbContextFactory<AppDbContext> factory, IJobQueue j
     private string? _cacheSource;
     private string? _message;
 
-    protected override Component? Head => [Title()["Ops — Rask.Example.Shop"]];
+    protected override Component? HeadAssets => [Title["Ops — Rask.Example.Shop"]];
 
     protected override async Task OnMountAsync()
     {
@@ -134,15 +134,15 @@ public sealed class OpsPage(IDbContextFactory<AppDbContext> factory, IJobQueue j
     }
 
     protected override Component? Render() =>
-        Div(Class: "container py-4")[
-            H1()["Ops"],
-            P(Class: "text-muted")[
+        Div.Class("container py-4")[
+            H1["Ops"],
+            P.Class("text-muted")[
                 "Every pillar below keeps its state in the same SQLite file as Products and Orders. "
                 + "This page polls it once a second."
             ],
-            _message is null ? null : Div(Id: "ops-message", Class: "alert alert-info")[_message],
+            _message is null ? null : Div.Id("ops-message").Class("alert alert-info")[_message],
 
-            Div(Class: "row g-3")[
+            Div.Class("row g-3")[
                 Stat("ops-products", "Products", _stats.Products.ToString()),
                 Stat("ops-orders", "Orders", _stats.Orders.ToString()),
                 Stat("ops-outbox-processed", "Outbox processed", $"{_stats.OutboxProcessed}/{_stats.OutboxTotal}"),
@@ -153,30 +153,30 @@ public sealed class OpsPage(IDbContextFactory<AppDbContext> factory, IJobQueue j
                 Stat("ops-snapshots", "Snapshots on disk", _stats.Snapshots.ToString())
             ],
 
-            H2(Class: "mt-4 h5")["SQLite pragmas"],
-            P()[
-                "journal_mode = ", Code(Id: "ops-journal-mode")[_stats.JournalMode],
-                " · foreign_keys = ", Code(Id: "ops-foreign-keys")[_stats.ForeignKeys]
+            H2.Class("mt-4 h5")["SQLite pragmas"],
+            P[
+                "journal_mode = ", Code.Id("ops-journal-mode")[_stats.JournalMode],
+                " · foreign_keys = ", Code.Id("ops-foreign-keys")[_stats.ForeignKeys]
             ],
 
-            H2(Class: "mt-4 h5")["Try the pillars"],
-            Div(Class: "d-flex gap-2 flex-wrap")[
-                BsButton(Id: "ops-enqueue-job", OnClickAsync: EnqueueJobAsync)["Enqueue a job"],
-                BsButton(Id: "ops-cache-load", OnClickAsync: LoadCachedAsync)["Load cached value"],
-                BsButton(Id: "ops-cache-clear", OnClickAsync: ClearCacheAsync)["Clear cache"]
+            H2.Class("mt-4 h5")["Try the pillars"],
+            Div.Class("d-flex gap-2 flex-wrap")[
+                BsButton.Id("ops-enqueue-job").OnClickAsync(EnqueueJobAsync)["Enqueue a job"],
+                BsButton.Id("ops-cache-load").OnClickAsync(LoadCachedAsync)["Load cached value"],
+                BsButton.Id("ops-cache-clear").OnClickAsync(ClearCacheAsync)["Clear cache"]
             ],
             _cacheSource is null
                 ? null
-                : P(Class: "mt-2")[
-                    Span(Id: "ops-cache-source")[_cacheSource], " — ", Span(Id: "ops-cache-value")[_cacheValue ?? ""]
+                : P.Class("mt-2")[
+                    Span.Id("ops-cache-source")[_cacheSource], " — ", Span.Id("ops-cache-value")[_cacheValue ?? ""]
                 ]
         ];
 
     private static Component Stat(string id, string label, string value) =>
-        Div(Class: "col-6 col-md-3")[
-            Div(Class: "border rounded p-3")[
-                Div(Class: "text-muted small")[label],
-                Div(Id: id, Class: "fs-4")[value]
+        Div.Class("col-6 col-md-3")[
+            Div.Class("border rounded p-3")[
+                Div.Class("text-muted small")[label],
+                Div.Id(id).Class("fs-4")[value]
             ]
         ];
 

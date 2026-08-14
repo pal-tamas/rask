@@ -5,10 +5,10 @@ namespace Rask.Bootstrap;
 // state. Click-outside-to-close works without JS: the outer .modal carries OnClose while a no-op
 // "shield" handler on .modal-dialog stops inner clicks from bubbling to it (Rask invokes only the
 // nearest data-rask-on-click handler). Set StaticBackdrop to disable outside-click dismissal.
-public sealed class BsModal : BsBlock
+public sealed partial class BsModal : BsBlock
 {
     public bool? Open { get; set; }
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
     public BsSize? Size { get; set; }
     public bool? Centered { get; set; }
     public bool? Scrollable { get; set; }
@@ -24,13 +24,13 @@ public sealed class BsModal : BsBlock
     public bool? HideClose { get; set; }
 
     // Optional footer content (e.g. action buttons) placed in .modal-footer.
-    public Component? Footer { get; set; }
+    public new Component? Footer { get; set; }
 
-    public Callback? OnClose { get; set; }
-    public CallbackAsync? OnCloseAsync { get; set; }
+    public Action? OnClose { get; set; }
+    public Func<Task>? OnCloseAsync { get; set; }
 
     // Shields clicks inside the dialog from the outer close handler (nearest-handler delegation).
-    private static readonly Callback Shield = () => { };
+    private static readonly Action Shield = () => { };
 
     protected override Component? Render()
     {
@@ -73,22 +73,29 @@ public sealed class BsModal : BsBlock
             data["rask-dismiss"] = "";
         }
 
-        var content = Div(Class: "modal-content")[
+        var content = Div.Class("modal-content")[
             showHeader
-                ? Div(Class: "modal-header")[
-                    Title is not null ? H5(Id: titleId, Class: "modal-title")[Title] : null,
+                ? Div.Class("modal-header")[
+                    Title is not null ? H5.Id(titleId).Class("modal-title")[Title] : null,
                     HideClose is not true
-                        ? BsCloseButton(OnClick: OnClose, OnClickAsync: OnCloseAsync)
+                        ? BsCloseButton.OnClick(OnClose).OnClickAsync(OnCloseAsync)
                         : null]
                 : null,
-            Div(Class: "modal-body")[Items],
-            Footer is { } footer ? Div(Class: "modal-footer")[footer] : null];
+            Div.Class("modal-body")[Items],
+            Footer is { } footer ? Div.Class("modal-footer")[footer] : null];
 
-        var modal = Div(Id: Id, Class: "modal fade show", Style: "display:block", TabIndex: -1,
-            Role: "dialog", Aria: aria, Data: data,
-            OnClick: staticBackdrop ? null : OnClose, OnClickAsync: staticBackdrop ? null : OnCloseAsync)[
-                Div(Class: dialogCls, OnClick: staticBackdrop ? null : Shield)[content]];
+        var modal = Div
+            .Id(Id)
+            .Class("modal fade show")
+            .Style("display:block")
+            .TabIndex(-1)
+            .Role("dialog")
+            .Aria(aria)
+            .Data(data)
+            .OnClick(staticBackdrop ? null : OnClose)
+            .OnClickAsync(staticBackdrop ? null : OnCloseAsync)[
+                Div.Class(dialogCls).OnClick(staticBackdrop ? null : Shield)[content]];
 
-        return [modal, Div(Class: "modal-backdrop fade show")];
+        return [modal, Div.Class("modal-backdrop fade show")];
     }
 }

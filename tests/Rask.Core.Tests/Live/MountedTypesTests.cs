@@ -13,7 +13,7 @@ namespace Rask.Core.Tests.Live;
 ///     this set; before it was unconditional, JS-only components silently dropped out.
 /// </summary>
 [Collection("ScopedAssets")]
-public class MountedTypesTests
+public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
 {
     public MountedTypesTests() => ScopedAssetRegistry.InvalidateAll();
 
@@ -22,7 +22,7 @@ public class MountedTypesTests
     {
         // Only the root StubComponent itself is a user component — its render returns a
         // bare Span. Asserting that the set contains StubComponent but nothing else.
-        var view = new StubComponent(Span());
+        var view = new StubComponent(Span);
         using var ctx = LiveRenderContext.Begin(view);
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(view, sb);
@@ -95,7 +95,7 @@ public class MountedTypesTests
     [Fact]
     public void NInstancesOfSameComponentType_AppearOnce()
     {
-        var view = new StubComponent(() => Div()[
+        var view = new StubComponent(() => Div[
             new CssOnly(), new CssOnly(), new CssOnly(), new CssOnly(), new CssOnly()
         ]);
         ScopedAssetRegistry.RegisterCss(typeof(CssOnly), ".x { color: red; }");
@@ -182,22 +182,22 @@ public class MountedTypesTests
 
     private sealed class CssOnly : Component
     {
-        protected override Component? Render() => Div();
+        protected override Component? Render() => Div;
     }
 
     private sealed class JsOnly : Component
     {
-        protected override Component? Render() => Div();
+        protected override Component? Render() => Div;
     }
 
     private sealed class BothAssets : Component
     {
-        protected override Component? Render() => Div();
+        protected override Component? Render() => Div;
     }
 
     private sealed class NoAssets : Component
     {
-        protected override Component? Render() => Div();
+        protected override Component? Render() => Div;
     }
 
     private sealed class Outer : Component
@@ -212,6 +212,6 @@ public class MountedTypesTests
 
     private sealed class Inner : Component
     {
-        protected override Component? Render() => Span();
+        protected override Component? Render() => Span;
     }
 }

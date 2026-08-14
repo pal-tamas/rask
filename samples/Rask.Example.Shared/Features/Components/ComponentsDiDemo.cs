@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 // property would become a *required* factory parameter the caller has to pass,
 // and the `required` keyword on a property + a DI-only constructor (no
 // parameterless ctor) is the RASK002 warning.
-public sealed class WeatherCard(HttpClient http) : Component
+public sealed partial class WeatherCard(HttpClient http) : Component
 {
     private Forecast? _forecast;
 
@@ -33,10 +33,10 @@ public sealed class WeatherCard(HttpClient http) : Component
 
     protected override Component? Render() =>
         _forecast is null
-            ? P()[Em()["Loading…"]]
-            : Article()[
-                H3()[City],
-                P()[$"{_forecast.Summary}, {_forecast.TemperatureC} °C"]
+            ? P[Em["Loading…"]]
+            : Article[
+                H3[City],
+                P[$"{_forecast.Summary}, {_forecast.TemperatureC} °C"]
             ];
 
     public sealed record Forecast(
@@ -45,9 +45,9 @@ public sealed class WeatherCard(HttpClient http) : Component
 }
 
 // Call site is unchanged — ActivatorUtilities resolves `http`:
-public sealed class ComponentsDiDemo : Component
+public sealed partial class ComponentsDiDemo : Component
 {
-    protected override Component? Render() => WeatherCard(City: "Helsinki");
+    protected override Component? Render() => WeatherCard.City("Helsinki");
 }
 
 [JsonSerializable(typeof(WeatherCard.Forecast))]

@@ -17,12 +17,12 @@ public sealed class ListOrdersQueryHandler(IDbContextFactory<AppDbContext> dbCon
 }
 
 [Route("/orders")]
-public sealed class OrdersPage(IDispatcher dispatcher) : Component
+public sealed partial class OrdersPage(IDispatcher dispatcher) : Component
 {
     private IReadOnlyList<Order> _items = [];
     private bool _loaded;
 
-    protected override Component? Head => Title()["Orders"];
+    protected override Component? HeadAssets => Title["Orders"];
 
     protected override async Task OnMountAsync() => await LoadAsync();
 
@@ -34,32 +34,32 @@ public sealed class OrdersPage(IDispatcher dispatcher) : Component
 
     protected override Component? Render() =>
     [
-        Div()[
-            H1()["Orders"],
+        Div[
+            H1["Orders"],
 
-            NavLink(Routes.CreateOrder())["New Order"]
+            NavLink.Href(Routes.CreateOrder())["New Order"]
         ],
         !_loaded
-            ? Div()["Loading…"]
+            ? Div["Loading…"]
             : _items.Count == 0
-                ? Div()["No Orders yet."]
-                : Table()[
-                    Thead()[
-                        Tr()[
-                            Th()["#"],
-                            Th()["Customer"],
-                            Th()["Total"],
-                            Th()[""]
+                ? Div["No Orders yet."]
+                : Table[
+                    Thead[
+                        Tr[
+                            Th["#"],
+                            Th["Customer"],
+                            Th["Total"],
+                            Th[""]
                         ]
                     ],
-                    Tbody()[
-                        _items.Select(x => Tr(Key: x.Id)[
-                            Td()[$"{x.Id}"],
-                            Td()[x.Customer.Value],
-                            Td()[$"{x.Total}"],
-                            Td()[
-                                NavLink(Routes.UpdateOrder(x.Id))["Edit"],
-                                DeleteOrder(Id: x.Id, OnDeleted: LoadAsync)
+                    Tbody[
+                        _items.Select(x => Tr.Key(x.Id)[
+                            Td[$"{x.Id}"],
+                            Td[x.Customer.Value],
+                            Td[$"{x.Total}"],
+                            Td[
+                                NavLink.Href(Routes.UpdateOrder(x.Id))["Edit"],
+                                DeleteOrder.Id(x.Id).OnDeleted(LoadAsync)
                             ]
                         ])
                     ]

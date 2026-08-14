@@ -13,7 +13,7 @@ namespace Rask.Example.Shared.Features;
 // A grouped column already folds away on its own; hiding is the other reason a column leaves the table. The
 // two compose: the grid funnels reorder, hide and grouped-away through one visible-column list, so sort,
 // footers and the band colspans all follow without extra wiring.
-public sealed class BsDataGridColumnsDemo : Component
+public sealed partial class BsDataGridColumnsDemo : Component
 {
     private sealed record Deal(string Account, string Region, string Rep, decimal Amount);
 
@@ -32,18 +32,10 @@ public sealed class BsDataGridColumnsDemo : Component
     private List<string> _order = [];
 
     protected override Component? Render() =>
-        Div(Id: "grid-columns-demo")[
-            BsDataGrid(
-                Id: "bs-grid-columns",
-                Data: Deals,
-                RowKey: d => d.Account,
-                ColumnChooser: true,
-                HiddenColumns: _hidden,
-                OnHiddenColumnsChange: h => _hidden = [.. h],
-                ColumnOrder: _order,
-                OnColumnOrderChange: o => _order = [.. o],
-                Columns:
-                [
+        Div.Id("grid-columns-demo")[
+            BsDataGrid
+                .Data(Deals)
+                .Columns([
                     new BsColumn<Deal>
                     {
                         Title = "Account", Value = d => d.Account, Field = d => d.Account, Sortable = true,
@@ -63,5 +55,12 @@ public sealed class BsDataGridColumnsDemo : Component
                         Value = d => d.Amount.ToString("C0"),
                         Footer = rows => rows.Sum(d => d.Amount).ToString("C0"),
                     },
-                ])];
+                ])
+                .Id("bs-grid-columns")
+                .RowKey(d => d.Account)
+                .ColumnChooser(true)
+                .HiddenColumns(_hidden)
+                .OnHiddenColumnsChange(h => _hidden = [.. h])
+                .ColumnOrder(_order)
+                .OnColumnOrderChange(o => _order = [.. o])];
 }

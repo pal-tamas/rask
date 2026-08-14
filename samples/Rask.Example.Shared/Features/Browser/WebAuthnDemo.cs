@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 ///     and verified by your <em>backend</em>; this demo generates it client-side and just displays the
 ///     returned attestation/assertion (no server verification), to show the browser round-trip.
 /// </summary>
-public sealed class WebAuthnDemo(IWebAuthn webAuthn) : Component
+public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
 {
     // A stable user handle for this demo session (a real app uses the account's server-side id).
     private readonly string _userId = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16));
@@ -47,16 +47,19 @@ public sealed class WebAuthnDemo(IWebAuthn webAuthn) : Component
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
-                    Button(Class: "btn btn-primary btn-sm", Id: "webauthn-create", OnClickAsync: Create)[
-                        I(Class: "bi bi-fingerprint me-1"), "Create passkey"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "webauthn-auth",
-                        Disabled: _credentialId is null, OnClickAsync: Authenticate)["Authenticate"]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                    Button.Class("btn btn-primary btn-sm").Id("webauthn-create").OnClickAsync(Create)[
+                        I.Class("bi bi-fingerprint me-1"), "Create passkey"],
+                    Button
+                        .Class("btn btn-outline-primary btn-sm")
+                        .Id("webauthn-auth")
+                        .Disabled(_credentialId is null)
+                        .OnClickAsync(Authenticate)["Authenticate"]
                 ],
-                Div(Class: "small text-secondary")["Support: ", Code(Id: "webauthn-support")[_support]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "webauthn-status")[_status]]
+                Div.Class("small text-secondary")["Support: ", Code.Id("webauthn-support")[_support]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("webauthn-status")[_status]]
             ]
         ];
 

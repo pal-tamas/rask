@@ -91,9 +91,9 @@ public class StableHandlerIdTests
 
     private sealed class ThreeHandlers : Component
     {
-        public int A;
-        public int B;
-        public int C;
+        public int CountA;
+        public int CountB;
+        public int CountC;
         public int Version;
 
         public void Touch()
@@ -104,9 +104,9 @@ public class StableHandlerIdTests
 
         protected override Component? Render() =>
             Div(Class: "three")[
-                Div(Class: "h-a", OnClick: () => A++)[$"a{Version}"],
-                Div(Class: "h-b", OnClick: () => B++)["b"],
-                Div(Class: "h-c", OnClick: () => C++)["c"]
+                Div(Class: "h-a", OnClick: () => CountA++)[$"a{Version}"],
+                Div(Class: "h-b", OnClick: () => CountB++)["b"],
+                Div(Class: "h-c", OnClick: () => CountC++)["c"]
             ];
     }
 
@@ -132,7 +132,7 @@ public class StableHandlerIdTests
         Assert.True(await root.TryInvokeHandlerAsync(a, EmptyPayload));
         Assert.True(await root.TryInvokeHandlerAsync(b, EmptyPayload));
         Assert.True(await root.TryInvokeHandlerAsync(c, EmptyPayload));
-        Assert.Equal((1, 1, 1), (three.A, three.B, three.C));
+        Assert.Equal((1, 1, 1), (three.CountA, three.CountB, three.CountC));
     }
 
     // ---- Numbering follows the RENDERING component, not the delegate's target --------------------

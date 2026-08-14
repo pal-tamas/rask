@@ -7,7 +7,7 @@ namespace Rask.Example.Wasm.Features;
 ///     live. WASM-only: requestDevice() needs a live user gesture and the live device handle, and it's
 ///     Chromium-family only at the time of writing. Move/press the device after "Watch" to see reports arrive.
 /// </summary>
-public sealed class HidDemo(IHid hid) : Component, IAsyncDisposable
+public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
 {
     private IHidDevice? _device;
     private HidDeviceInfo? _info;
@@ -17,29 +17,35 @@ public sealed class HidDemo(IHid hid) : Component, IAsyncDisposable
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "hid-request", OnClickAsync: RequestDevice)[
-                        I(Class: "bi bi-controller me-1"), "Pair device"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "hid-watch",
-                        Disabled: _device is null || _watch is not null, OnClickAsync: Watch)["Open & watch"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "hid-close", Disabled: _device is null,
-                        OnClickAsync: Release)["Release"]
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button.Class("btn btn-primary btn-sm").Id("hid-request").OnClickAsync(RequestDevice)[
+                        I.Class("bi bi-controller me-1"), "Pair device"],
+                    Button
+                        .Class("btn btn-outline-primary btn-sm")
+                        .Id("hid-watch")
+                        .Disabled(_device is null || _watch is not null)
+                        .OnClickAsync(Watch)["Open & watch"],
+                    Button
+                        .Class("btn btn-outline-danger btn-sm")
+                        .Id("hid-close")
+                        .Disabled(_device is null)
+                        .OnClickAsync(Release)["Release"]
                 ],
                 _info is null
-                    ? Div(Class: "small text-secondary")["No device paired."]
-                    : Dl(Class: "row small mb-2", Id: "hid-info")[
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Vendor ID"],
-                        Dd(Class: "col-7 col-sm-8")[Code()["0x" + _info.VendorId.ToString("x4")]],
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Product ID"],
-                        Dd(Class: "col-7 col-sm-8")[Code()["0x" + _info.ProductId.ToString("x4")]],
-                        Dt(Class: "col-5 col-sm-4 text-secondary")["Product"],
-                        Dd(Class: "col-7 col-sm-8")[_info.ProductName ?? "—"]
+                    ? Div.Class("small text-secondary")["No device paired."]
+                    : Dl.Class("row small mb-2").Id("hid-info")[
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Vendor ID"],
+                        Dd.Class("col-7 col-sm-8")[Code["0x" + _info.VendorId.ToString("x4")]],
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Product ID"],
+                        Dd.Class("col-7 col-sm-8")[Code["0x" + _info.ProductId.ToString("x4")]],
+                        Dt.Class("col-5 col-sm-4 text-secondary")["Product"],
+                        Dd.Class("col-7 col-sm-8")[_info.ProductName ?? "—"]
                     ],
-                Div(Class: "small text-secondary")["Reports: ", Code(Id: "hid-count")[_reportCount.ToString()]],
-                Div(Class: "small text-secondary")["Last: ", Code(Id: "hid-last")[_lastReport]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "hid-status")[_status]]
+                Div.Class("small text-secondary")["Reports: ", Code.Id("hid-count")[_reportCount.ToString()]],
+                Div.Class("small text-secondary")["Last: ", Code.Id("hid-last")[_lastReport]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("hid-status")[_status]]
             ]
         ];
 

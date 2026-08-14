@@ -26,7 +26,7 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("logs")]
 [ParentRoute(typeof(DashboardLayout))]
-public sealed class LogsPage(
+public sealed partial class LogsPage(
     DashboardLogBuffer buffer,
     RaskDashboardOptions options,
     TimeProvider timeProvider,
@@ -137,22 +137,21 @@ public sealed class LogsPage(
     {
         if (!options.CaptureLogs && !HasStore)
         {
-            return DashboardParts.Empty(
-                "Log capture is off",
-                "Set CaptureLogs = true on RaskDashboardOptions to keep a tail of recent entries, or add "
+            return DashboardEmpty.Heading("Log capture is off")
+                .Detail("Set CaptureLogs = true on RaskDashboardOptions to keep a tail of recent entries, or add "
                 + "Rask.Logging to keep them across restarts.");
         }
 
         return [
-            Div(Class: "d-flex align-items-center gap-3 mb-3")[
-                H1(Class: "h4 mb-0")["Logs"],
-                Span(Class: "text-body-secondary small")[Caption()],
-                HasStore ? Div(Class: "ms-auto")[ModeTabs()] : null
+            Div.Class("d-flex align-items-center gap-3 mb-3")[
+                H1.Class("h4 mb-0")["Logs"],
+                Span.Class("text-body-secondary small")[Caption()],
+                HasStore ? Div.Class("ms-auto")[ModeTabs()] : null
             ],
-            DashboardParts.Error(LoadError),
+            DashboardError.Message(LoadError),
             Filters(),
             IsHistory ? HistoryBody() : LiveBody(),
-            DashboardParts.Parked(IsParked, ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
 
@@ -161,26 +160,26 @@ public sealed class LogsPage(
     // reaches this buffer however low LogMinimumLevel is set. Promising "Information and above" while
     // appsettings.Production.json says Warning is how an operator concludes the panel is broken when it is
     // working exactly as configured.
-    private string Caption() => IsHistory
+    private new string Caption() => IsHistory
         ? $"{_history.TotalCount} stored entries, kept across restarts"
         : $"at most {options.LogBufferSize} entries, {options.LogMinimumLevel} and above, in memory only";
 
     private Component ModeTabs() =>
-        BsNav(Class: "nav-pills gap-1")[
+        BsNav.Class("nav-pills gap-1")[
             ModeTab(null, "Live"),
             ModeTab("history", "History")
         ];
 
     private Component ModeTab(string? view, string label) =>
-        BsNavItem(Key: label)[
-            BsLink(
-                Routes.LogsPage(View: view, Level: Level, Category: Category),
-                Class: Bs.Join("nav-link", IsHistory == (view is not null) ? "active" : null))[label]
+        BsNavItem.Key(label)[
+            BsLink
+                .Href(Routes.LogsPage(View: view, Level: Level, Category: Category))
+                .Class(Bs.Join("nav-link", IsHistory == (view is not null) ? "active" : null))[label]
         ];
 
     private Component Filters() =>
-        Div(Class: "d-flex flex-wrap align-items-center gap-2 mb-3")[
-            BsNav(Class: "nav-pills gap-1")[
+        Div.Class("d-flex flex-wrap align-items-center gap-2 mb-3")[
+            BsNav.Class("nav-pills gap-1")[
                 LevelPill(null, "All"),
                 LevelPill(LogLevel.Information, "Info+"),
                 LevelPill(LogLevel.Warning, "Warning+"),
@@ -191,10 +190,10 @@ public sealed class LogsPage(
         ];
 
     private Component LevelPill(LogLevel? level, string label) =>
-        BsNavItem(Key: label)[
-            BsLink(
-                Link(level: level?.ToString(), category: Category),
-                Class: Bs.Join("nav-link", MinimumLevel == level ? "active" : null))[label]
+        BsNavItem.Key(label)[
+            BsLink
+                .Href(Link(level: level?.ToString(), category: Category))
+                .Class(Bs.Join("nav-link", MinimumLevel == level ? "active" : null))[label]
         ];
 
     // A dropdown rather than a pill row: a real application has dozens of logger categories, and only the
@@ -207,41 +206,41 @@ public sealed class LogsPage(
             return null;
         }
 
-        return BsDropdown(
-            Label: Category is { Length: > 0 } ? Category : "All categories",
-            Color: BsColor.Secondary,
-            Outline: true,
-            Size: BsSize.Sm)[CategoryItems(categories)];
+        return BsDropdown
+            .Label(Category is { Length: > 0 } ? Category : "All categories")
+            .Color(BsColor.Secondary)
+            .Outline(true)
+            .Size(BsSize.Sm)[CategoryItems(categories)];
     }
 
     // One sequence rather than a mixed argument list: the children indexer takes either individual
     // components or an enumerable, not both.
     private IEnumerable<Component> CategoryItems(IReadOnlyList<string> categories)
     {
-        yield return BsDropdownItem(
-            Key: "__all",
-            Href: Link(level: Level, category: null),
-            Active: string.IsNullOrEmpty(Category))["All categories"];
+        yield return BsDropdownItem
+            .Key("__all")
+            .Href(Link(level: Level, category: null))
+            .Active(string.IsNullOrEmpty(Category))["All categories"];
 
-        yield return BsDropdownItem(Key: "__divider", Divider: true);
+        yield return BsDropdownItem.Key("__divider").Divider(true);
 
         foreach (var category in categories)
         {
-            yield return BsDropdownItem(
-                Key: category,
-                Href: Link(level: Level, category: category),
-                Active: string.Equals(category, Category, StringComparison.Ordinal))[category];
+            yield return BsDropdownItem
+                .Key(category)
+                .Href(Link(level: Level, category: category))
+                .Active(string.Equals(category, Category, StringComparison.Ordinal))[category];
         }
     }
 
     private Component SearchBox() =>
-        Input<string>(
-            Type: InputType.Search,
-            Class: "form-control form-control-sm",
-            Style: "max-width:18rem",
-            Placeholder: "Search message or exception",
-            Value: Query,
-            OnChangeAsync: SearchAsync);
+        Input
+            .Value(Query)
+            .Type(InputType.Search)
+            .Class("form-control form-control-sm")
+            .Style("max-width:18rem")
+            .Placeholder("Search message or exception")
+            .OnChangeAsync(SearchAsync);
 
     private async Task SearchAsync(string value)
     {
@@ -255,7 +254,7 @@ public sealed class LogsPage(
     /// The current view's URL with the given facets. Every filter is carried explicitly so that changing one
     /// composes with the others instead of silently resetting them.
     /// </summary>
-    private string Link(string? level, string? category, int? page = null) =>
+    private new string Link(string? level, string? category, int? page = null) =>
         Routes.LogsPage(
             View: IsHistory ? "history" : null,
             Level: level,
@@ -269,9 +268,8 @@ public sealed class LogsPage(
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         return entries.Count == 0
-            ? DashboardParts.Empty(
-                "Nothing captured yet",
-                "Entries appear here as the application logs them — subject to the app's own "
+            ? DashboardEmpty.Heading("Nothing captured yet")
+                .Detail("Entries appear here as the application logs them — subject to the app's own "
                 + "Logging:LogLevel configuration, which filters before the dashboard sees them.")
             : Table(entries.Select(ToRow), now);
     }
@@ -280,15 +278,14 @@ public sealed class LogsPage(
     {
         if (IsLoading)
         {
-            return DashboardParts.Loading();
+            return DashboardLoading;
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         return _history.Entries.Count == 0
-            ? DashboardParts.Empty(
-                "Nothing stored matches",
-                "Either nothing has been logged into the store yet, or no entry matches this filter. "
+            ? DashboardEmpty.Heading("Nothing stored matches")
+                .Detail("Either nothing has been logged into the store yet, or no entry matches this filter. "
                 + "Retention drops entries by age and by count.")
             : [Table(_history.Entries.Select(ToRow), now), Pager()];
     }
@@ -301,9 +298,9 @@ public sealed class LogsPage(
         }
 
         var page = CurrentPage;
-        return Div(Class: "d-flex align-items-center gap-2")[
+        return Div.Class("d-flex align-items-center gap-2")[
             PagerLink("Previous", page - 1, page <= 1),
-            Span(Class: "small text-body-secondary")[
+            Span.Class("small text-body-secondary")[
                 $"Page {page} of {_history.PageCount} — {_history.TotalCount} entries"
             ],
             PagerLink("Next", page + 1, page >= _history.PageCount)
@@ -313,10 +310,10 @@ public sealed class LogsPage(
     // A link rather than a button: paging is navigation, so it stays shareable, back-navigable, and needs
     // no round trip to the server to decide where it goes.
     private Component PagerLink(string label, int page, bool disabled) =>
-        BsLink(
-            disabled ? "#" : Link(Level, Category, page),
-            Class: Bs.Join("btn btn-outline-secondary btn-sm", disabled ? "disabled" : null),
-            Aria: disabled ? new Dictionary<string, string?> { ["disabled"] = "true" } : null)[label];
+        BsLink
+            .Href(disabled ? "#" : Link(Level, Category, page))
+            .Class(Bs.Join("btn btn-outline-secondary btn-sm", disabled ? "disabled" : null))
+            .Aria(disabled ? new Dictionary<string, string?> { ["disabled"] = "true" } : null)[label];
 
     // One row shape for both surfaces, so the two modes cannot drift into rendering an entry differently.
     // The live tail has no scopes: it is the in-memory ring buffer, which predates the store and captures
@@ -328,21 +325,21 @@ public sealed class LogsPage(
         record.Id, record.Timestamp, record.Level, record.Category, record.Message, record.Exception,
         record.Scopes);
 
-    private static Component Table(IEnumerable<LogRow> rows, DateTime now) =>
-        BsTable(Small: true, Hover: true, Responsive: true)[
-            Thead()[Tr()[Th()["When"], Th()["Level"], Th()["Category"], Th()["Message"]]],
-            Tbody()[rows.Select(r => Tr(Key: r.Key)[
-                Td(Class: "text-nowrap text-body-secondary", Title: r.Timestamp.UtcDateTime.ToString("u"))[
+    private static new Component Table(IEnumerable<LogRow> rows, DateTime now) =>
+        BsTable.Small(true).Hover(true).Responsive(true)[
+            Thead[Tr[Th["When"], Th["Level"], Th["Category"], Th["Message"]]],
+            Tbody[rows.Select(r => Tr.Key(r.Key)[
+                Td.Class("text-nowrap text-body-secondary").Title(r.Timestamp.UtcDateTime.ToString("u"))[
                     DashboardParts.Ago(r.Timestamp.UtcDateTime, now)
                 ],
-                Td()[LevelBadge(r.Level)],
-                Td(Class: "font-monospace small text-body-secondary")[r.Category],
-                Td()[
-                    Div()[r.Message],
+                Td[LevelBadge(r.Level)],
+                Td.Class("font-monospace small text-body-secondary")[r.Category],
+                Td[
+                    Div[r.Message],
                     // The stack trace is the reason an error entry is worth surfacing at all, but it would
                     // drown the table, so it renders muted beneath rather than in a separate view.
                     r.Exception is { } ex
-                        ? Pre(Class: "small text-body-secondary text-wrap mb-0 mt-1")[ex]
+                        ? Pre.Class("small text-body-secondary text-wrap mb-0 mt-1")[ex]
                         : null,
                     // The ambient state the entry was written under — the request id, the user id. This is
                     // what turns one line into a thread you can pull: copy a value into the scope filter
@@ -355,20 +352,21 @@ public sealed class LogsPage(
     private static Component? ScopeChips(IReadOnlyList<LogScopeValue>? scopes) =>
         scopes is null || scopes.Count == 0
             ? null
-            : Div(Class: "d-flex flex-wrap gap-1 mt-1")[
+            : Div.Class("d-flex flex-wrap gap-1 mt-1")[
                 scopes.Select(s =>
-                    BsBadge(Color: BsColor.Secondary, Class: "fw-normal font-monospace", Key: s.Key)[
+                    BsBadge.Color(BsColor.Secondary).Class("fw-normal font-monospace").Key(s.Key)[
                         $"{s.Key}={s.Value}"
                     ])
             ];
 
-    private static Component LevelBadge(LogLevel level) => BsBadge(Color: level switch
-    {
-        LogLevel.Critical or LogLevel.Error => BsColor.Danger,
-        LogLevel.Warning => BsColor.Warning,
-        LogLevel.Information => BsColor.Info,
-        _ => BsColor.Secondary,
-    })[level.ToString()];
+    private static Component LevelBadge(LogLevel level) => BsBadge
+        .Color(level switch
+        {
+            LogLevel.Critical or LogLevel.Error => BsColor.Danger,
+            LogLevel.Warning => BsColor.Warning,
+            LogLevel.Information => BsColor.Info,
+            _ => BsColor.Secondary,
+        })[level.ToString()];
 
     private void OnLogged()
     {

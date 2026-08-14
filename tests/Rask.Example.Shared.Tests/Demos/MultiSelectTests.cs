@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Tests.Demos;
 // or driven by Value + OnChange (controlled mode). These drive the live handlers directly (open, select,
 // deselect, Esc, click-outside) and assert the bound collection / emitted selection / rendered chips. The
 // full browser flow is covered in SharedSmokeTests (Multi-select branch).
-public sealed class MultiSelectTests
+public sealed partial class MultiSelectTests : global::Rask.Core.RaskMarkup
 {
     private static readonly string[] Options = ["a", "b", "c"];
 
@@ -18,7 +18,7 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         var page = RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options)],
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags).Options(Options)],
             TestServices.Default());
         return (page, model);
     }
@@ -149,9 +149,9 @@ public sealed class MultiSelectTests
         // through), never toggle the cursor option — the box handler owns Space-to-toggle, the search doesn't.
         var model = new Bag();
         var page = RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(
-                () => model.Tags, Options,
-                Filter: (o, t) => o.Contains(t, StringComparison.OrdinalIgnoreCase))],
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags)
+                .Options(Options)
+                .Filter((o, t) => o.Contains(t, StringComparison.OrdinalIgnoreCase))],
             TestServices.Default());
         await page.InvokeAsync(ClickIds(page.Render())[0]); // open → search field appears
 
@@ -230,11 +230,10 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         var page = RaskTest.Render(
-            () => Form(model)[
-                BsMultiSelect<string>(
-                    () => model.Tags,
-                    Options,
-                    Validate: tags => tags.Count >= 2 ? Array.Empty<string>() : ["Pick at least two."])],
+            () => Form.Model(model)[
+                BsMultiSelect.Bind(() => model.Tags)
+                    .Options(Options)
+                    .Validate(tags => tags.Count >= 2 ? Array.Empty<string>() : ["Pick at least two."])],
             TestServices.Default());
 
         var ids = ClickIds(page.Render());
@@ -252,7 +251,7 @@ public sealed class MultiSelectTests
         var model = new Bag();
         ICollection<string>? seen = null;
         var page = RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, AfterBind: c => seen = c)],
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags).Options(Options).AfterBind(c => seen = c)],
             TestServices.Default());
 
         var ids = ClickIds(page.Render());
@@ -269,8 +268,9 @@ public sealed class MultiSelectTests
         var model = new Bag();
         var fired = false;
         var page = RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(
-                () => model.Tags, Options, AfterBindAsync: _ =>
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags)
+                .Options(Options)
+                .AfterBindAsync(_ =>
                 {
                     fired = true;
                     return Task.CompletedTask;
@@ -288,7 +288,7 @@ public sealed class MultiSelectTests
         var value = new List<string> { "a" };
         ICollection<string>? emitted = null;
         var page = RaskTest.Render(
-            () => BsMultiSelect<string>(Options, Value: value, OnChange: next => emitted = next),
+            () => BsMultiSelect.Value(value).Options(Options).OnChange(next => emitted = next),
             TestServices.Default());
 
         var ids = ClickIds(page.Render()); // [box, chip-remove-a, opt-a, opt-b, opt-c]
@@ -305,7 +305,10 @@ public sealed class MultiSelectTests
         var value = new List<string>();
         ICollection<string>? emitted = null;
         var page = RaskTest.Render(
-            () => BsMultiSelect<string>(Options, Value: value, OnChangeAsync: next =>
+            () => BsMultiSelect
+                .Value(value)
+                .Options(Options)
+                .OnChangeAsync(next =>
             {
                 emitted = next;
                 return Task.CompletedTask;
@@ -321,7 +324,7 @@ public sealed class MultiSelectTests
     public void Controlled_NoValidationMessage_NoEditContext()
     {
         var page = RaskTest.Render(
-            () => BsMultiSelect<string>(Options, Value: new List<string>(), OnChange: _ => { }),
+            () => BsMultiSelect.Value(new List<string>()).Options(Options).OnChange(_ => { }),
             TestServices.Default());
 
         var html = page.Render();
@@ -334,7 +337,7 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         var page = RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, Disabled: true)],
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags).Options(Options).Disabled(true)],
             TestServices.Default());
 
         var html = page.Render();
@@ -350,24 +353,21 @@ public sealed class MultiSelectTests
         var model = new Bag();
         // Render() renders as it is called, so the render-time throw surfaces from the call itself.
         Assert.Throws<ArgumentNullException>(() => RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(() => model.Tags, null!)],
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags).Options(null!)],
             TestServices.Default()));
     }
 
-    [Fact]
-    public void NeitherBindNorValue_Throws()
-    {
-        Assert.Throws<InvalidOperationException>(() => RaskTest.Render(
-            () => BsMultiSelect<string>(Options),
-            TestServices.Default()));
-    }
+    // `NeitherBindNorValue_Throws` was here. A control that names neither `Bind` nor `Value` cannot be
+    // written any more: those are the two openings, and `Options` is reachable only from the state one of
+    // them produces. The render-time throw it asserted is now a compile error, and a test cannot assert
+    // one — so the guarantee lives in the type instead of here.
 
     [Fact]
     public async Task OptionDisabled_NotToggleableByClick_AndSkippedByKeyboard()
     {
         var model = new Bag();
         var page = RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, OptionDisabled: o => o == "b")],
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags).Options(Options).OptionDisabled(o => o == "b")],
             TestServices.Default());
         await page.InvokeAsync(ClickIds(page.Render())[0]); // open, cursor seeded to option 0 ("a")
 
@@ -386,7 +386,7 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         var page = RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, SelectAll: true)],
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags).Options(Options).SelectAll(true)],
             TestServices.Default());
         await page.InvokeAsync(ClickIds(page.Render())[0]); // open
 
@@ -405,8 +405,10 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         var page = RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(
-                () => model.Tags, Options, SelectAll: true, OptionDisabled: o => o == "b")],
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags)
+                .Options(Options)
+                .SelectAll(true)
+                .OptionDisabled(o => o == "b")],
             TestServices.Default());
         await page.InvokeAsync(ClickIds(page.Render())[0]); // open
 
@@ -420,7 +422,7 @@ public sealed class MultiSelectTests
         var value = new List<string>();
         ICollection<string>? emitted = null;
         var page = RaskTest.Render(
-            () => BsMultiSelect<string>(Options, Value: value, SelectAll: true, OnChange: next => emitted = next),
+            () => BsMultiSelect.Value(value).Options(Options).SelectAll(true).OnChange(next => emitted = next),
             TestServices.Default());
         await page.InvokeAsync(ClickIds(page.Render())[0]); // open
 
@@ -437,10 +439,10 @@ public sealed class MultiSelectTests
         // order is a(0), c(1), b(2), d(3). Disable "c" (flat 1).
         var model = new Bag();
         var page = RaskTest.Render(
-            () => Form(model)[BsMultiSelect<string>(
-                () => model.Tags, ["a", "b", "c", "d"],
-                OptionGroup: o => o is "a" or "c" ? "Odd" : "Even",
-                OptionDisabled: o => o == "c")],
+            () => Form.Model(model)[BsMultiSelect.Bind(() => model.Tags)
+                .Options(["a", "b", "c", "d"])
+                .OptionGroup(o => o is "a" or "c" ? "Odd" : "Even")
+                .OptionDisabled(o => o == "c")],
             TestServices.Default());
         await page.InvokeAsync(ClickIds(page.Render())[0]); // open, cursor seeds to flat 0 ("a")
 

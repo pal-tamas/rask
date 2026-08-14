@@ -3,18 +3,24 @@ using Rask.Core.Browser;
 namespace Rask.Example.Shared.Features;
 
 /// <summary><see cref="IScreenInfo" /> — read the display size, color depth, and device pixel ratio.</summary>
-public sealed class ScreenInfoDemo(IScreenInfo screen) : Component
+public sealed partial class ScreenInfoDemo(IScreenInfo screen) : Component
 {
     private string? _value;
     private string? _status;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "screen-read", OnClickAsync: Read)[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsButton
+                    .Color(BsColor.Primary)
+                    .Outline(true)
+                    .Size(BsSize.Sm)
+                    .Class("mb-2")
+                    .Id("screen-read")
+                    .OnClickAsync(Read)[
                     "Read screen info"],
-                Div(Class: "small text-secondary")["Display: ", Code(Id: "screen-value")[_value ?? "(not requested)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "screen-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Display: ", Code.Id("screen-value")[_value ?? "(not requested)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("screen-status")[_status ?? "(idle)"]]
             ]
         ];
 

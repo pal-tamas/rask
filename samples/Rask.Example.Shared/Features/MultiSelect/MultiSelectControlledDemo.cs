@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // OnChange instead of Bind is the React-style controlled shape — useful when the selection is not a form
 // model property. The control still re-renders its host automatically, so the "Selected:" summary updates
 // without any StateHasChanged.
-public sealed class MultiSelectControlledDemo : Component
+public sealed partial class MultiSelectControlledDemo : Component
 {
     private static readonly string[] AllTopics =
         ["News", "Sports", "Tech", "Music", "Travel"];
@@ -13,17 +13,17 @@ public sealed class MultiSelectControlledDemo : Component
     private ICollection<string> _topics = [];
 
     protected override Component? Render() =>
-        Div(Class: "vstack gap-3")[
-            Div()[
-                Label(Class: "form-label fw-semibold")["Topics"],
-                BsMultiSelect<string>(
-                    AllTopics,
-                    Value: _topics.ToList(),
-                    OnChange: next => _topics = next,
-                    Id: "ms-controlled",
-                    Placeholder: "Choose topics…")
+        Div.Class("vstack gap-3")[
+            Div[
+                Label.Class("form-label fw-semibold")["Topics"],
+                BsMultiSelect
+                    .Value(_topics.ToList())
+                    .Options(AllTopics)
+                    .OnChange(next => _topics = next)
+                    .Id("ms-controlled")
+                    .Placeholder("Choose topics…")
             ],
-            P(Class: "small text-secondary mb-0", Id: "ms-controlled-summary")[
+            P.Class("small text-secondary mb-0").Id("ms-controlled-summary")[
                 "Selected: " + (_topics.Count == 0 ? "none" : string.Join(", ", _topics))
             ]
         ];

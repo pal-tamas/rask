@@ -425,19 +425,14 @@ internal static class HtmlSerializer
                     component.Boundary = liveCtx.CurrentBoundary;
                 }
 
-                // Collect this component's Head contribution before entering its render
-                // scope. The registry is consumed once at the end of RenderAsLiveRoot when
-                // it replaces the RaskHeadAssets sentinel — components that go away on the
-                // next render just stop contributing and their head tags fall out naturally.
-                if (liveCtx is not null && component.HeadInternal is { } head)
-                {
-                    liveCtx.HeadAssets.Add(head);
-                }
-
                 // Native header/footer collection — only when the host opts in (the native host with an
-                // INativeChrome backend). Reading the overrides here, mid-walk, keeps the native factories
-                // DI-correct (ambient context) and picks the deepest override (last non-null wins). Pure no-op
-                // on Server/WASM: CollectsNativeChrome is false, so the overrides are never even read.
+                // INativeChrome backend). Nothing is EVALUATED here: there is no Header/Footer override on
+                // Component, so this hands the already-built component to the session, which type-switches
+                // it (Rask.Core names no Rask.Native type). Which is why this sits outside the component's
+                // own parent scope while the Head collection had to move inside it — no user expression runs
+                // here, so nothing can take a positional identity from the wrong parent. Reporting pre-order,
+                // before the subtree walk, is what makes the deepest bar of each kind win. Pure no-op on
+                // Server/WASM: CollectsNativeChrome is false, so this never even runs.
                 if (liveCtx is not null && liveCtx.CollectsNativeChrome)
                 {
                     liveCtx.CollectNativeChrome(component);
@@ -491,7 +486,21 @@ internal static class HtmlSerializer
 
                     try
                     {
-                        Serialize(component.RenderForLive(), sb);
+                        var rendered = component.RenderForLive();
+
+                        // Collect this component's Head contribution — produced by the render that just
+                        // ran (Component.RenderForLive), which is what owns anything it built, and read
+                        // back here rather than re-evaluated. Still before its subtree is walked, so the
+                        // registry keeps walk order: an ancestor's head precedes every descendant's. The
+                        // registry is consumed once at the end of RenderAsLiveRoot when it replaces the
+                        // RaskHeadAssets sentinel — components that go away on the next render just stop
+                        // contributing and their head tags fall out naturally.
+                        if (liveCtx is not null && component.CachedHeadInternal is { } head)
+                        {
+                            liveCtx.HeadAssets.Add(head);
+                        }
+
+                        Serialize(rendered, sb);
                     }
                     finally
                     {

@@ -5,7 +5,7 @@ namespace Rask.Bootstrap.Tests;
 
 // Enforces the library convention: Bs components WRAP the core components and never subclass Element
 // to mint a new element type. See BsBlock for the full convention.
-public class BsArchitectureTests
+public partial class BsArchitectureTests : global::Rask.Core.RaskMarkup
 {
     private static readonly Assembly Lib = typeof(BsButton).Assembly;
 
@@ -35,11 +35,11 @@ public class BsArchitectureTests
     public void Button_EmitsEveryColor(BsColor color, string infix) =>
         Assert.Equal(
             $"<button class=\"btn btn-{infix}\" type=\"button\">x</button>",
-            BsButton(Color: color)["x"].ToHtml());
+            BsButton.Color(color)["x"].ToHtml());
 
     [Theory]
     [InlineData(BsColor.Primary, "alert-primary")]
     [InlineData(BsColor.Danger, "alert-danger")]
     public void Alert_EmitsColorClass(BsColor color, string cls) =>
-        Assert.Contains(cls, BsAlert(Color: color)["x"].ToHtml());
+        Assert.Contains(cls, BsAlert.Color(color)["x"].ToHtml());
 }

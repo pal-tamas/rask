@@ -10,7 +10,7 @@ namespace Rask.Benchmarks;
 // the actual WS send. The most representative metric for this PR because it compounds
 // the attribute-writer change (RenderHtml) with the payload-build change (BuildPayloadUtf8).
 [MemoryDiagnoser]
-public class RenderRoundTripBenchmarks
+public partial class RenderRoundTripBenchmarks : global::Rask.Core.RaskMarkup
 {
     private Component _tree = null!;
 
@@ -30,20 +30,20 @@ public class RenderRoundTripBenchmarks
         var rows = new List<Component>(15);
         for (var i = 0; i < 15; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
-                C.Span(Class: "label")[$"Item {i}"],
-                C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
-                C.Input<string>(InputType.Text, $"f{i}", $"v{i}")
+            rows.Add(Div.Class("row").Id($"r{i}").Key(i)[
+                Span.Class("label")[$"Item {i}"],
+                A.Href($"/item/{i}").Class("lnk")[$"open {i}"],
+                Input.Value($"v{i}").Type(InputType.Text).Name($"f{i}")
             ]);
         }
 
         return [
-            C.Doctype(),
-            C.Html()[
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        C.Div(Class: "header")[C.Span()["Bench"]],
-                        C.Div(Class: "body")[rows]
+            Doctype,
+            Html[
+                Body[
+                    Div.Class("container").Id("root")[
+                        Div.Class("header")[Span["Bench"]],
+                        Div.Class("body")[rows]
                     ]
                 ]
             ]

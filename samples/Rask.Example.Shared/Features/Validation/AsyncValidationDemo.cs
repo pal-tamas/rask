@@ -3,7 +3,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class AsyncValidationDemo : Component
+public sealed partial class AsyncValidationDemo : Component
 {
     private readonly EditContext _ctx;
     private readonly SignupModel _model = new();
@@ -16,32 +16,28 @@ public sealed class AsyncValidationDemo : Component
     }
 
     private static Component Checking() =>
-        Span(Class: "validating-indicator text-muted small mt-1")[
-            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking availability..."
+        Span.Class("validating-indicator text-muted small mt-1")[
+            BsIcon.Name(BsIconName.ArrowClockwise).Class("me-1"), "Checking availability..."
         ];
 
     protected override Component? Render() =>
     [
-        Form<SignupModel>(
-            _model,
-            m => _submission = $"Signed up: {m.Username}",
-            Context: _ctx,
-            Class: "vstack gap-3")[
-            DataAnnotationsValidator(),
-            Div()[
-                Label("v3-username", Class: "form-label small mb-1")["Username"],
-                Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
-                ValidatingIndicator(() => _model.Username, Checking),
-                ValidationMessage(() => _model.Username,
-                    msgs => [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])])
+        Form.Model(_model).OnValidSubmit(m => _submission = $"Signed up: {m.Username}").Context(_ctx).Class("vstack gap-3")[
+            DataAnnotationsValidator,
+            Div[
+                Label.For("v3-username").Class("form-label small mb-1")["Username"],
+                Input.Bind(() => _model.Username).Id("v3-username").Class("form-control"),
+                ValidatingIndicator.Template(Checking).For(() => _model.Username),
+                ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])])
+                    .For(() => _model.Username)
             ],
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Sign up"]
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Sign up"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 
