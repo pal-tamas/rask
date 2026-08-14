@@ -21,12 +21,17 @@ Three things hand you a `MediaStreamId`, and all three produce the same kind:
 
 | Source | Host | How |
 |---|---|---|
-| [`MediaCaptureTrigger`](media-devices.md) | every host | its `OnStream` callback, from the click gesture |
+| [`MediaCaptureTrigger`](media-devices.md) | Server + WASM | its `OnStream` callback, from the click gesture |
 | [`IMediaDevices`](media-devices.md) | WASM | `IMediaStreamHandle.Id` |
 | [`IWebRtc`](webrtc.md) | every host | `RtcHandlers.OnTrack`, for a peer's remote stream |
 
 So a camera acquired on the Server host can be sent to a WebRTC peer, and a peer's incoming video can be
 attached to a `<video>`, with the same two calls in both directions.
+
+Attaching and stopping work on **every** host, including native — neither needs a permission. *Acquiring*
+is the part that doesn't: in the native shell the WebView gates capture on its own permission callback
+(`WebChromeClient.onPermissionRequest` / `WKUIDelegate`), which Rask's shell doesn't currently wire, which
+is why the capability matrix marks [`IMediaDevices`](media-devices.md) unavailable on Native.
 
 ```csharp
 public sealed class Camera(IMediaStreams streams) : Component
