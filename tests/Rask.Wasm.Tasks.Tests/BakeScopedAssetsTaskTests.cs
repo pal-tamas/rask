@@ -199,6 +199,22 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         Assert.Equal(first, second);
     }
 
+    // The #650 guard, pinned as the three-input decision it is. It was wrong in exactly one of these
+    // rows — a project with no scoped assets, where an unrelated assembly failed to load — and nothing
+    // caught it until a Microsoft.Extensions bump made an unrelated assembly fail to load. That row is
+    // the second one.
+    [Theory]
+    // written, skipped, registryResolved, expected
+    [InlineData(0, 1, false, true)]   // the real #650: registry never read, nothing baked -> fail
+    [InlineData(0, 1, true, false)]   // registry READ and this project has no scoped assets -> fine
+    [InlineData(0, 0, false, false)]  // nothing skipped: not this failure mode
+    [InlineData(3, 1, false, false)]  // files were written despite a skip: not known to be wrong
+    [InlineData(3, 0, true, false)]   // the ordinary happy path
+    public void IsNodeReuseBakeFailure_OnlyWhenTheRegistryWasNeverRead(
+        int written, int skipped, bool registryResolved, bool expected) =>
+        Assert.Equal(expected,
+            BakeScopedAssetsTask.IsNodeReuseBakeFailure(written, skipped, registryResolved));
+
     /// <summary>
     ///     Minimal IBuildEngine stub for task tests. The bake task only calls Log.*; all
     ///     messages are captured into <see cref="Messages" /> for assertions that care
