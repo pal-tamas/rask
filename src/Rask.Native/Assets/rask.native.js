@@ -1358,7 +1358,12 @@ window.__raskMedia = window.__raskMedia || (() => {
             video.muted = true;
             return video.play();
         },
-        stop: (id) => stop(id)
+        stop: (id) => stop(id),
+        // The id ↔ MediaStream mapping, for other framework helpers that deal in stream ids — __raskRtc
+        // sends a captured stream to a peer, and registers a peer's remote stream so C# gets an id it can
+        // attach to a <video>. Not for application use; C# never calls these two.
+        get: (id) => streams.get(id),
+        adopt: (stream) => put(stream)
     };
 })();
 
@@ -1572,7 +1577,10 @@ window.__raskRtc = window.__raskRtc || (() => {
                 init.iceTransportPolicy = config.iceTransportPolicy;
             }
             const pc = new RTCPeerConnection(init);
-            const state = {pc: pc, ice: [], timer: 0};
+            // `remote` maps a peer stream's own id to the __raskMedia id we minted for it, so a second
+            // ontrack for the same stream doesn't mint (and push) a duplicate. `senders` remembers what
+            // AddStream added, so RemoveStream can take exactly those tracks back off.
+            const state = {pc: pc, ice: [], timer: 0, remote: new Map(), senders: new Map()};
             conns.set(id, state);
             pc.onicecandidate = (e) => {
                 // A null candidate marks end-of-gathering; flush what's buffered rather than forwarding it.
@@ -1589,6 +1597,19 @@ window.__raskRtc = window.__raskRtc || (() => {
             };
             pc.onconnectionstatechange = () => invoke("RaskRtcState", id, pc.connectionState);
             pc.ondatachannel = (e) => invoke("RaskRtcChannel", id, adopt(id, e.channel), e.channel.label);
+            pc.ontrack = (e) => {
+                // A peer's stream is as opaque to C# as a captured one, so it goes into __raskMedia's map
+                // and C# gets an id — the same id shape IMediaDevices and MediaCaptureTrigger hand out, so
+                // IMediaStreams.AttachAsync works on it unchanged. One push per stream, not per track: a
+                // camera+mic peer fires ontrack twice for one stream, and the app wants the stream.
+                const stream = (e.streams && e.streams[0]) || null;
+                if (!stream || state.remote.has(stream.id)) {
+                    return;
+                }
+                const streamId = window.__raskMedia.adopt(stream);
+                state.remote.set(stream.id, streamId);
+                invoke("RaskRtcTrack", id, streamId);
+            };
         },
         createOffer: async (id) => {
             const c = conn(id);
@@ -1607,6 +1628,32 @@ window.__raskRtc = window.__raskRtc || (() => {
             sdpMid: cand.sdpMid,
             sdpMLineIndex: cand.sdpMLineIndex
         }),
+        addStream: (connId, streamId) => {
+            const c = conn(connId);
+            const stream = window.__raskMedia.get(streamId);
+            if (!stream) {
+                throw new Error("Rask WebRTC: media stream " + streamId + " is closed.");
+            }
+            if (c.senders.has(streamId)) {
+                return;
+            }
+            c.senders.set(streamId, stream.getTracks().map((t) => c.pc.addTrack(t, stream)));
+        },
+        removeStream: (connId, streamId) => {
+            const c = conn(connId);
+            const senders = c.senders.get(streamId);
+            if (!senders) {
+                return;
+            }
+            c.senders.delete(streamId);
+            senders.forEach((s) => {
+                try {
+                    c.pc.removeTrack(s);
+                } catch (_) {
+                    // The sender goes away with the connection; removing it afterwards is not an error.
+                }
+            });
+        },
         createChannel: (connId, label, options) => {
             const init = {};
             if (options) {
@@ -1655,6 +1702,13 @@ window.__raskRtc = window.__raskRtc || (() => {
             c.pc.onicecandidate = null;
             c.pc.onconnectionstatechange = null;
             c.pc.ondatachannel = null;
+            c.pc.ontrack = null;
+            // Remote streams were minted into __raskMedia by ontrack, so this connection owns them and has
+            // to stop their tracks — nothing else holds a reference once the connection is gone. Streams
+            // the app supplied to addStream are NOT stopped: the app still owns those.
+            c.remote.forEach((streamId) => window.__raskMedia.stop(streamId));
+            c.remote.clear();
+            c.senders.clear();
             c.pc.close();
         }
     };
@@ -3870,10 +3924,14 @@ var raskGestureCaps = {
         var c;
         try { c = arg ? JSON.parse(arg) : {}; } catch (err) { c = {}; }
         return window.__raskMedia.getUserMedia(c).then(function (id) {
-            // Await the attach/play so "granted" reflects a stream actually running in the <video>, not just
-            // permission; a play() hiccup on a muted stream still counts as granted (permission was given).
+            // Await the attach/play so a resolved id reflects a stream actually running in the <video>, not
+            // just permission; a play() hiccup on a muted stream still counts as granted (permission was
+            // given). Resolves the stream's ID rather than the literal "granted": MediaCaptureTrigger maps
+            // it back to "granted" for OnResult, and hands it to OnStream so a Server-hosted app can keep
+            // the stream — stop it, re-attach it, or send it to a WebRTC peer. Before this the stream was
+            // unreachable from C# on the Server host.
             return Promise.resolve(window.__raskMedia.attach(id, el)).then(
-                function () { return "granted"; }, function () { return "granted"; });
+                function () { return String(id); }, function () { return String(id); });
         }, function () { return "denied"; });
     }
 };

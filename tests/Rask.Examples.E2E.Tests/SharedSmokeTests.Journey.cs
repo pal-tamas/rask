@@ -2245,6 +2245,14 @@ public abstract partial class SharedSmokeTests
             "data-rask-gesture", new Regex("install\\.prompt"), gestureAttr);
         await Expect(Page.Locator("#camera-btn")).ToHaveAttributeAsync(
             "data-rask-gesture", new Regex("media\\.start"), gestureAttr);
+        // The capture trigger now posts a result back (the stream id for OnStream), so it must carry a
+        // callback id — a fire-and-forget bundle would leave OnStream permanently silent.
+        await Expect(Page.Locator("#camera-btn")).ToHaveAttributeAsync(
+            "data-rask-gesture", new Regex("\"rid\":[0-9]+"), gestureAttr);
+        // Stop stays disabled until a stream exists. Starting one needs a camera permission the harness
+        // can't grant, so this asserts the gating renders, not the stop itself.
+        await Expect(Page.Locator("#camera-stop-btn")).ToBeDisabledAsync(
+            new LocatorAssertionsToBeDisabledOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#pip-btn")).ToHaveAttributeAsync(
             "data-rask-gesture", new Regex("pip\\.request"), gestureAttr);
     }

@@ -424,11 +424,70 @@ public class WebRtcTests
     }
 
     [Fact]
+    public async Task AddStreamAsync_AndRemoveStreamAsync_PassTheRawStreamId()
+    {
+        var js = new FakeJsRuntime();
+        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
+        var id = js.ArgsFor("__raskRtc.create")![0];
+
+        await conn.AddStreamAsync(new MediaStreamId(9));
+        await conn.RemoveStreamAsync(new MediaStreamId(9));
+
+        // The raw int, not the wrapper: __raskMedia keys its stream map by number.
+        Assert.Equal([id, 9], js.ArgsFor("__raskRtc.addStream"));
+        Assert.Equal([id, 9], js.ArgsFor("__raskRtc.removeStream"));
+    }
+
+    [Fact]
+    public async Task Track_DeliversTheRemoteStreamAsAMediaStreamId()
+    {
+        var js = new FakeJsRuntime();
+        MediaStreamId? received = null;
+
+        await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers
+        {
+            OnTrack = s =>
+            {
+                received = s;
+                return Task.CompletedTask;
+            }
+        });
+        var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
+
+        await WebRtcInterop.Track(id, 21);
+
+        // The same id currency IMediaStreams.AttachAsync takes, so a peer's stream attaches like any other.
+        Assert.Equal(new MediaStreamId(21), received);
+    }
+
+    [Fact]
+    public async Task Track_ForADisposedConnection_IsIgnored()
+    {
+        var js = new FakeJsRuntime();
+        var fired = false;
+        var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers
+        {
+            OnTrack = _ =>
+            {
+                fired = true;
+                return Task.CompletedTask;
+            }
+        });
+        var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
+
+        await conn.DisposeAsync();
+        await WebRtcInterop.Track(id, 5);
+
+        Assert.False(fired);
+    }
+
+    [Fact]
     public async Task Pushes_ForAnUnknownIdAreIgnored()
     {
         await WebRtcInterop.Ice(int.MaxValue, [new RtcIceCandidate("a", null, null)]);
         await WebRtcInterop.State(int.MaxValue, "connected");
         await WebRtcInterop.Channel(int.MaxValue, 1, "x");
+        await WebRtcInterop.Track(int.MaxValue, 1);
         await WebRtcInterop.Messages(int.MaxValue, 1, [new RtcMessageWire("x", null)], 0);
         await WebRtcInterop.ChannelClosed(int.MaxValue, 1);
     }

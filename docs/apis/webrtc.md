@@ -82,6 +82,32 @@ outruns the answer. Hold incoming candidates in a list until you have applied th
 drain it. This is the single most common way a first WebRTC integration fails, and it is not something the
 wrapper can hide — only your signaling knows when the exchange completed.
 
+## Sending camera, microphone or screen
+
+Acquire a stream, then hand its [`MediaStreamId`](media-streams.md) to the connection:
+
+```csharp
+// Server host: the click gesture acquires it, OnStream hands back the id.
+MediaCaptureTrigger(For: _preview, Video: true, Audio: true,
+    OnStream: async id => await _conn!.AddStreamAsync(id),
+    Template: g => Button(Type: "button", Data: g)["Start camera"])
+
+// The peer's media comes back the same way, and attaches like any other stream.
+new RtcHandlers { OnTrack = id => streams.AttachToAsync(id, _remoteVideo) }
+```
+
+Screen sharing needs nothing extra — `getDisplayMedia` yields the same kind of id as the camera.
+
+`OnTrack` fires **once per stream, not per track**: a peer sending camera and microphone sends two tracks in
+one stream, and the stream is what you attach.
+
+Ownership splits in the way you'd want. A stream **you** added stays yours — disposing the connection stops
+sending it but leaves it running, so stop it yourself with `IMediaStreams.StopAsync`. A **remote** stream
+from `OnTrack` belongs to the connection, and disposing the connection stops it.
+
+Adding or removing a stream **renegotiates**: exchange a fresh offer/answer afterwards, or the peer never
+sees the change.
+
 ## ICE servers, and what they leak
 
 `RtcConfiguration.IceServers` is empty by default, which means host candidates only — enough for two peers
