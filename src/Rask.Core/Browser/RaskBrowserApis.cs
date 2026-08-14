@@ -75,6 +75,7 @@ public static class RaskBrowserApis
         services.AddBrowserApi<IPageVisibility, PageVisibilityInfo>(lifetime);
         services.AddBrowserApi<IWebLocks, WebLocks>(lifetime);
         services.AddBrowserApi<IMediaStreams, MediaStreams>(lifetime);
+        services.AddBrowserApi<ISignaling, Signaling>(lifetime);
         services.AddBrowserApi<IWebRtc, WebRtc>(lifetime);
         services.AddBrowserApi<IBattery, Battery>(lifetime);
         // Transport-agnostic PWA APIs (IJSRuntime-backed, no transient activation): push subscribe, local

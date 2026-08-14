@@ -2978,6 +2978,32 @@ button .btn .btn-primary .btn-sm
 div .small .text-secondary
 code
 
+=== browser-signaling ===
+div .border-0 .card .mb-4 .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-code-label
+button .sample-copy
+i .bi .bi-clipboard .me-1
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .border-0 .card .shadow-sm
+div .card-body
+div .d-flex .gap-2 .mb-2
+button .btn .btn-primary .btn-sm
+button .btn .btn-secondary .btn-sm
+div .mb-1 .small .text-secondary
+span
+div .mb-1 .small .text-secondary
+div .fst-italic .small .text-secondary
+
 === browser-speech ===
 div .border-0 .card .mb-4 .sample-card .shadow-sm
 div .sample-code-col

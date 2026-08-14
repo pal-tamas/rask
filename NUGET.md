@@ -64,6 +64,7 @@ dotnet add package Rask.Outbox            # transactional outbox for domain even
 dotnet add package Rask.Logging           # durable log store (its own SQLite file)
 dotnet add package Rask.Dashboard         # the /_ops operator dashboard over every pillar
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
+dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
 dotnet add package Rask.ObjectStore       # S3 / Azure Blob client, server-side or straight from the browser
 dotnet add package Rask.Sync              # offline-first merge engine (HLC + op log, no I/O)
 dotnet add package Rask.Sync.Client       # sync it between devices through a bucket, with no server

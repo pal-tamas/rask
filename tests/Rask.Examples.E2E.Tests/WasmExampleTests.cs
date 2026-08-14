@@ -22,6 +22,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             DeepLink = true,
             OfflineReconnect = false,
             Slow3g = true,
+            SignalingRelay = true,
         }));
 
     // The WASM-only PWA example page (PwaDemo) lives in the WASM host and is surfaced in the shared

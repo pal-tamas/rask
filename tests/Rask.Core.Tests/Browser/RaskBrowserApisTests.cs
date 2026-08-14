@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Browser;
 // native platform or the app) wins and the JS-backed wrapper is only the fallback.
 public class RaskBrowserApisTests
 {
-    // The 37 transport-agnostic wrappers AddCoreBrowserApis must register — service type → default impl.
+    // The 38 transport-agnostic wrappers AddCoreBrowserApis must register — service type → default impl.
     // Keep in sync with the registrar; AddCoreBrowserApis_RegistersNothingBeyondThePinnedSet enforces it.
     private static readonly (Type Service, Type Impl)[] CoreApis =
     [
@@ -44,6 +44,7 @@ public class RaskBrowserApisTests
         (typeof(IPageVisibility), typeof(PageVisibilityInfo)),
         (typeof(IWebLocks), typeof(WebLocks)),
         (typeof(IMediaStreams), typeof(MediaStreams)),
+        (typeof(ISignaling), typeof(Signaling)),
         (typeof(IWebRtc), typeof(WebRtc)),
         (typeof(IBattery), typeof(Battery)),
         (typeof(IWebPush), typeof(WebPush)),
