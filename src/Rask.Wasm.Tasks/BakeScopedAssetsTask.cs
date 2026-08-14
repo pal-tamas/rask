@@ -105,17 +105,26 @@ public sealed class BakeScopedAssetsTask : Task
             Log.LogMessage(MessageImportance.High,
                 $"Rask asset bake: wrote {written} file(s) under '{Path.Combine(BundleDir, "_rask", "a")}'.");
 
-            // The bake produced nothing AND we skipped an assembly because this process had already loaded
-            // one by that name. That combination is never a legitimate "this project has no scoped assets":
-            // it is the MSBuild node-reuse race (#650), where LoadFrom throws on a reused worker and the
-            // bake quietly bakes an empty bundle. Measured at roughly one publish in three, and silent —
+            // The bake produced nothing, we skipped an assembly because this process had already loaded one
+            // by that name, AND the registry itself was never read. That combination is the MSBuild
+            // node-reuse race (#650): LoadFrom throws on a reused worker, the registry is never reached, and
+            // the bake quietly writes an empty bundle. Measured at roughly one publish in three, and silent —
             // the app then boots with every /_rask/a/ URL 404ing, which reads as a broken app rather than a
             // broken build. Failing here is what stops that shipping.
             //
-            // Deliberately conditioned on written == 0 as well as the skip: a bake that still produced its
-            // files despite skipping something is not known to be wrong, and failing it would turn a real
-            // fix into a new source of false build breaks.
-            if (written == 0 && _skippedAlreadyLoaded.Count > 0)
+            // !registryResolved is load-bearing, and was missing. Without it this fires on a project that
+            // legitimately has NO scoped assets (Rask.Example.Wasm.Jobs is one) the moment ANY assembly is
+            // skipped — and the skip need not be one that could ever hold a scoped asset. A Microsoft
+            // .Extensions bump was enough: the app then carries a DependencyModel newer than the one MSBuild
+            // already has loaded, LoadFrom throws on identity, and a build that was entirely correct failed
+            // on an assembly that cannot contain a registration. If the registry WAS read, "zero files" is
+            // an answer, not a failure — and the FailOnEmpty check below is what speaks for the projects
+            // that assert they should have produced some.
+            //
+            // Still conditioned on written == 0: a bake that produced its files despite skipping something
+            // is not known to be wrong, and failing it would turn a real fix into a new source of false
+            // build breaks.
+            if (IsNodeReuseBakeFailure(written, _skippedAlreadyLoaded.Count, registryResolved))
             {
                 Log.LogError(
                     "Rask asset bake: zero /_rask/a/ files were written because " +
@@ -147,6 +156,19 @@ public sealed class BakeScopedAssetsTask : Task
             return true;
         }
     }
+
+    /// <summary>
+    ///     Whether an empty bake is the MSBuild node-reuse race (#650) rather than a project that simply
+    ///     has no scoped assets.
+    /// </summary>
+    /// <remarks>
+    ///     Extracted so the decision can be pinned by a test. It is three booleans and it has already been
+    ///     wrong once, in a way no build caught: without <paramref name="registryResolved" /> it fired on any
+    ///     project with no scoped assets the moment ANY assembly was skipped, including one that could never
+    ///     hold a registration. A Microsoft.Extensions version bump was enough to trigger it.
+    /// </remarks>
+    internal static bool IsNodeReuseBakeFailure(int written, int skippedAlreadyLoaded, bool registryResolved)
+        => written == 0 && skippedAlreadyLoaded > 0 && !registryResolved;
 
     private int BakeFromAssemblies(out bool registryResolved)
     {

@@ -46,4 +46,8 @@
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.Wasm\build\" SkipUnchangedFiles="true"/>
   </Target>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Wasm.Tasks.Tests"/>
+  </ItemGroup>
+
 </Project>
