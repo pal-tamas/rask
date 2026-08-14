@@ -18,7 +18,8 @@ if (args.Length == 0)
           read    read-under-write: wal-readers-only | wal-read-under-write | delete-read-under-write
           mixed   ~90/10 read/write web traffic over 10k seeded rows: mixed-raw | mixed-ef
           soak    mixed traffic held for minutes: soak-mixed | soak-wal-pinned
-          all     write + read + mixed
+          split   app writes under battery churn, one file or three: {one-file,split}-{idle,busy}
+          all     write + read + mixed + split
           check   the regression gate (invariants and same-run ratios; never absolute ms)
 
         options:
@@ -59,10 +60,14 @@ switch (args[0])
     case "soak":
         await RunSweepAsync("soak", MixedScenarios.Soak);
         break;
+    case "split":
+        await RunSweepAsync("split", SplitStoreScenarios.All);
+        break;
     case "all":
         await RunSweepAsync("write", WriteScenarios.All);
         await RunSweepAsync("read", ReadScenarios.For(options.Writers));
         await RunSweepAsync("mixed", MixedScenarios.All);
+        await RunSweepAsync("split", SplitStoreScenarios.All);
         break;
     case "check":
         return await LoadGate.RunAsync(options, cts.Token);

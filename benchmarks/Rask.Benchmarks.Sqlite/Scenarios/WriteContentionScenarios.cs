@@ -13,9 +13,6 @@ namespace Rask.Benchmarks.Sqlite.Scenarios;
 /// <summary>Shared plumbing: one private database, the same INSERT, the same read-back.</summary>
 internal abstract class WriteScenario(string label) : LoadScenario
 {
-    protected const string Insert = "INSERT INTO writes(worker, payload) VALUES ($worker, $payload);";
-    protected const string Payload = "rask-load";
-
     protected LoadDb Db { get; } = new(label);
 
     internal override string DbPath => Db.Path;
@@ -62,9 +59,9 @@ internal sealed class RawNonBlockingScenario() : WriteScenario("raw-nonblocking"
         await _factory!.ExecuteInImmediateTransactionAsync(async (connection, ct) =>
         {
             await using var command = connection.CreateCommand();
-            command.CommandText = Insert;
+            command.CommandText = WriteScenarios.Insert;
             command.Parameters.AddWithValue("$worker", vuser);
-            command.Parameters.AddWithValue("$payload", Payload);
+            command.Parameters.AddWithValue("$payload", WriteScenarios.Payload);
             await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
 
@@ -110,9 +107,9 @@ internal sealed class RawNativeBusyTimeoutScenario() : WriteScenario("raw-native
         await using (var command = connection.CreateCommand())
         {
             command.Transaction = transaction;
-            command.CommandText = Insert;
+            command.CommandText = WriteScenarios.Insert;
             command.Parameters.AddWithValue("$worker", vuser);
-            command.Parameters.AddWithValue("$payload", Payload);
+            command.Parameters.AddWithValue("$payload", WriteScenarios.Payload);
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -155,7 +152,7 @@ internal sealed class EfScenario : WriteScenario
     internal override async ValueTask<OpOutcome> ExecuteAsync(int vuser, CancellationToken cancellationToken)
     {
         await using var context = new WritesDbContext(_options!);
-        context.Writes.Add(new WriteRow { Worker = vuser, Payload = Payload });
+        context.Writes.Add(new WriteRow { Worker = vuser, Payload = WriteScenarios.Payload });
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return OpOutcome.Ok;
     }
@@ -165,6 +162,12 @@ internal static class WriteScenarios
 {
     internal const string WritesSchema =
         "CREATE TABLE writes(id INTEGER PRIMARY KEY, worker INTEGER NOT NULL, payload TEXT NOT NULL);";
+
+    // The app write, shared with workload E (SplitStoreScenarios) so a split-store row can be read directly
+    // against a raw-nonblocking row: same statement, same schema, only the background load differs.
+    internal const string Insert = "INSERT INTO writes(worker, payload) VALUES ($worker, $payload);";
+
+    internal const string Payload = "rask-load";
 
     internal static IReadOnlyList<Func<LoadScenario>> All =>
     [
