@@ -3,6 +3,7 @@
 > Share text/URL from code to the OS share sheet.
 
 - **Wraps:** Web Share API
+- **MDN:** [Navigator.share](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share)
 - **Home:** `Rask.Client.Browser` (WASM + Native)
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ✅

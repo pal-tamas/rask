@@ -9,6 +9,7 @@ namespace Rask.Core.Components;
 ///     An <c>a</c> that knows whether it points at the current page, and adds <c>ActiveClass</c> when it
 ///     does. Takes a type-safe <c>RouteUrl</c> rather than a string, so a renamed route breaks the build
 ///     instead of the link.
+///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a">MDN</see>
 /// </summary>
 public sealed class NavLink : Element
 {

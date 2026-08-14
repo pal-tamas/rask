@@ -3,6 +3,7 @@
 > Charge level and charging state.
 
 - **Wraps:** Battery Status API (`navigator.getBattery`)
+- **MDN:** [Battery Status API](https://developer.mozilla.org/en-US/docs/Web/API/Battery_Status_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot (`GetStatusAsync`) + subscription (`WatchAsync` pushes to a callback)
 - **Availability:** Web/Server ⚠️ (Chromium-only) · PWA/WASM ⚠️ (Chromium-only) · Native ✅ ★

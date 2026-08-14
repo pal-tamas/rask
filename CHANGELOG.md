@@ -26,6 +26,20 @@ them until tagged releases begin.
     factory, that the MDN link on an element matches its tag, and that partial documentation stays
     warning-clean — `CS1573` fires per undocumented parameter once *any* parameter is documented, which
     would otherwise have broken every consumer's warnings-as-errors build.
+  - **The guides reference MDN too.** Each of the 50 browser-API guides names the MDN page it wraps,
+    and the element catalog in [`elements.md`](docs/elements.md) links all 104 tags. The paths are the
+    post-move ones (`Web/HTML/Reference/Elements/{tag}`, `Web/SVG/Reference/Element/{tag}`) — the older
+    shape now redirects, and a test keeps it from creeping back.
+
+### Fixed
+- **The README advertised `rask generate`, removed in #672.** Two places in the README and one in the
+  roadmap still listed it in the CLI's command set, while `docs/cli.md` says plainly that it does not
+  exist.
+- **Eight shipping packages were missing from the README.** `Rask.Signaling`, `Rask.ObjectStore`,
+  `Rask.Postgres`, `Rask.SqlServer`, `Rask.Sync`, `Rask.Sync.Client`, `Rask.SQLite.Crdt` and
+  `Rask.SQLite.Crdt.Sync` had no badge and no row in the package → project-type → entry-point table.
+  `Rask.Signaling` appeared nowhere but `NUGET.md`, so the WebRTC epic's server half was effectively
+  undiscoverable; `llms.txt` now covers the realtime surface as well.
 - **A WebRTC signaling relay — `ISignaling` (client) and the new `Rask.Signaling` package (server).**
   `IWebRtc` deliberately doesn't pick a signaling channel; this is the channel for apps that don't already
   have one. `AddRaskSignaling()` + `MapRaskSignaling()` host rooms; `ISignaling.JoinAsync` joins one and

@@ -3,6 +3,7 @@
 > Connect two browsers directly for peer-to-peer data.
 
 - **Wraps:** WebRTC (RTCPeerConnection, RTCDataChannel)
+- **MDN:** [WebRTC API](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** subscription
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

@@ -3,6 +3,7 @@
 > Talk to a serial device (Arduino/GPS).
 
 - **Wraps:** Web Serial API
+- **MDN:** [Web Serial API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ⬜ · PWA/WASM ✅ · Native ⬜

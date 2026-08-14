@@ -3,6 +3,7 @@
 > Read/lock the screen orientation.
 
 - **Wraps:** Screen Orientation API
+- **MDN:** [Screen Orientation API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Orientation_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅ · Native ⬜

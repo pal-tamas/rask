@@ -3,6 +3,7 @@
 > Display size, colour depth, and device-pixel ratio.
 
 - **Wraps:** Screen API + `devicePixelRatio`
+- **MDN:** [Screen](https://developer.mozilla.org/en-US/docs/Web/API/Screen)
 - **Home:** `Rask.Core.Browser` (all hosts)
 - **Shape:** one-shot
 - **Availability:** Web/Server ✅ · PWA/WASM ✅ · Native ✅

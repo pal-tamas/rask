@@ -3,6 +3,7 @@
 > Pair a BLE device and read/write GATT.
 
 - **Wraps:** Web Bluetooth API
+- **MDN:** [Web Bluetooth API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API)
 - **Home:** `Rask.Wasm.Browser` (WASM only)
 - **Shape:** subscription (pushes to a callback)
 - **Availability:** Web/Server ⬜ · PWA/WASM ✅ · Native ⬜

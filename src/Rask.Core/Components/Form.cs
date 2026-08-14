@@ -14,6 +14,12 @@ namespace Rask.Core.Components;
 // whole generator path went with them. The three-way validator fan-out went too: it existed so a sync
 // and an async validator could each be a required, correctly-typed PARAMETER, and as two setters they
 // simply coexist.
+/// <summary>
+///     A form over a model of type <c>TModel</c>. Submission is handled in-process — the bound fields
+///     are parsed and validated, then <c>OnValidSubmit</c> or <c>OnInvalidSubmit</c> runs — so there is
+///     no <c>action</c> or <c>method</c> to set: the page reacts rather than navigating away.
+///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form">MDN</see>
+/// </summary>
 public sealed partial class Form<TModel> : Element
 {
     private EditContext? _context;
@@ -21,11 +27,22 @@ public sealed partial class Form<TModel> : Element
     private TModel _model = default!;
     protected override string TagName => "form";
 
+    /// <summary>How the form data is encoded. Only <c>multipart/form-data</c> can carry a file upload.</summary>
     public string? Enctype { get; set; }
+
+    /// <summary>Which browsing context the response opens in.</summary>
     public string? Target { get; set; }
+
+    /// <summary>The character encodings the server accepts. Use <c>UTF-8</c>.</summary>
     public string? AcceptCharset { get; set; }
+
+    /// <summary>The default autocomplete behaviour for the controls inside. <c>off</c> is widely ignored by browsers.</summary>
     public string? Autocomplete { get; set; }
+
+    /// <summary>Skips the browser's own validation on submit, leaving validation entirely to the bound validators.</summary>
     public bool? Novalidate { get; set; }
+
+    /// <summary>The form's name, which must be unique in the document.</summary>
     public string? Name { get; set; }
     // Calling one back is `OnSubmit?.Invoke(data)`.
     public Action<FormData>? OnSubmit { get; set; }

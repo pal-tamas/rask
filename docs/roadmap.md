@@ -13,7 +13,7 @@ service to operate.
 | Pillar | Status | Where |
 |--------|--------|-------|
 | **UI across three hosts** | ✅ | Server (WebSocket live diff), WASM (client-side + PWA), Native iOS/Android *(preview)* — one component. |
-| **The `rask` CLI** | ✅ | [`cli.md`](cli.md) — `new` / `dev` / `generate` / `db` / `deploy`. |
+| **The `rask` CLI** | ✅ | [`cli.md`](cli.md) — `new` / `dev` / `db` / `deploy`. |
 | **CRUD pattern** | ✅ | A CQRS + EF Core vertical slice — encapsulated entity, validation, pages — documented as code in [tutorial chapter 2](tutorial/02-first-feature.md), with jobs, email and cache following the same shape. |
 | **CQRS / mediator** | ✅ | [`Rask.Cqrs`](cqrs.md) — source-generated, reflection-free. |
 | **Data layer** | ✅ | [`Rask.Data`](data.md) — `Entity<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
