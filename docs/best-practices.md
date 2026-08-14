@@ -36,7 +36,7 @@ mistake, the rule notes the ID.
   property becomes a *required factory parameter* — so `public IJSRuntime Js { get; set; }` would
   force callers to pass it. Take services as ctor parameters instead:
   ```csharp
-  public sealed class Weather(IWeatherForecastService service) : Component { /* ... */ }
+  public sealed partial class Weather(IWeatherForecastService service) : Component { /* ... */ }
   ```
   Combining a `required` property with a DI constructor is contradictory — that's **RASK002**.
 - **Know what becomes a factory parameter.** The generator derives parameters from your public

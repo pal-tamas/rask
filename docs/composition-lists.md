@@ -74,7 +74,7 @@ one **inserts a keyed detail `<tr>`** right after it. The diff reconciles that a
 client-side navigation. Inject it and queue a message; a single `ToastOutlet` shows it once.
 
 ```csharp
-public sealed class SavePage(IToaster toast, Navigator nav) : Component
+public sealed partial class SavePage(IToaster toast, Navigator nav) : Component
 {
     private void Save()
     {

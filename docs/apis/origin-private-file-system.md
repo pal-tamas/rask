@@ -13,7 +13,7 @@ addresses files by path and reopens the same paths on every visit, which is what
 `IIndexedDb` — the right home for a SQLite file or a downloaded bundle.
 
 ```csharp
-public sealed class Notes(IOriginPrivateFileSystem fs) : Component
+public sealed partial class Notes(IOriginPrivateFileSystem fs) : Component
 {
     private async Task Save(byte[] page)
     {

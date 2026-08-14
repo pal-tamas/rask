@@ -38,7 +38,7 @@ public sealed class DemoCredentialStore : ICredentialStore
 ```csharp
 [Route("login")]
 [AllowAnonymous]
-public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
+public sealed partial class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Component
 {
     private readonly LoginModel _model = new();
     private string? _error;
@@ -81,7 +81,7 @@ subscription:
 ```csharp
 [Route("secure")]
 [Authorize]
-public sealed class SecurePage : Component
+public sealed partial class SecurePage : Component
 {
     protected override Component? Render() =>
         Authorize.Authorizing(P["Signing you in…"]).NotAuthorized(P["Please sign in."]).Authorized(user => Div[      // ← receives the current principal, re-runs on sign-in/out

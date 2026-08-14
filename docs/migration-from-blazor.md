@@ -29,7 +29,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `<DataAnnotationsValidator>` | drop `DataAnnotationsValidator()` inside the `Form<T>` |
 | `<AuthorizeView>` (+ `Context="user"` / `@context.User`) | headless `Authorize(...)` — its `Authorized: user => …` slot receives the `ClaimsPrincipal`, like `@context.User` |
 | `AuthenticationStateProvider` | inject `IUserProvider` and read `.Current` |
-| `[Inject] T Svc { get; set; }` | constructor injection — `class Page(T svc) : Component` |
+| `[Inject] T Svc { get; set; }` | constructor injection — `partial class Page(T svc) : Component` |
 | `Component.razor.css` | sibling `{Component}.css` next to `{Component}.cs` |
 | `IJSRuntime` | `IJSRuntime` (injected via the constructor) |
 
@@ -47,7 +47,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 
 ```csharp
 // Rask
-public sealed class Greeting : Component
+public sealed partial class Greeting : Component
 {
     public required string Name { get; set; }   // non-nullable → required factory param
     protected override Component? Render() => H1[$"Hello, {Name}!"];
@@ -83,7 +83,7 @@ re-renders the parent that owns the lambda (the lambda's `this`).
 
 ```csharp
 // Rask: child declares a plain delegate; parent passes a lambda over its own state
-public sealed class RatingStars : Component
+public sealed partial class RatingStars : Component
 {
     public Action<int>? OnRate { get; set; }
     protected override Component? Render() =>
@@ -125,7 +125,7 @@ var theme = Context.Required<Theme>();   // or Context.Get<T>() (null if absent)
 ```csharp
 // Rask
 [Route("/users/{id}")]
-public sealed class UserPage(Navigator nav) : Component   // Navigator via ctor
+public sealed partial class UserPage(Navigator nav) : Component   // Navigator via ctor
 {
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }

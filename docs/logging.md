@@ -99,7 +99,7 @@ o.ExcludedCategories.Add("Microsoft.EntityFrameworkCore.Database");
 ### Reading it back
 
 ```csharp
-public sealed class IncidentPage(ILogStore store) : Component
+public sealed partial class IncidentPage(ILogStore store) : Component
 {
     // …
     var page = await store.QueryAsync(new LogQuery

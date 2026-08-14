@@ -65,7 +65,7 @@ using Rask.Core;
 
 namespace Demo;
 
-public sealed class Playground : Component
+public sealed partial class Playground : Component
 {
     private int _count;
 

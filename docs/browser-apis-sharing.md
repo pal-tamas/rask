@@ -157,7 +157,7 @@ handler, **not** a generated-factory callback, so [RASK026](diagnostics.md) (whi
 `StateHasChanged` inside `OnChange`/`OnClick`/`Bind`/… callbacks) does not apply.
 
 ```csharp
-public sealed class LazyImages(IIntersectionObserver io) : Component, IAsyncDisposable
+public sealed partial class LazyImages(IIntersectionObserver io) : Component, IAsyncDisposable
 {
     private readonly ElementRef _sentinel = ElementRef.New();
     private IAsyncDisposable? _obs;

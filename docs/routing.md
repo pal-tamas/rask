@@ -20,7 +20,7 @@ Put `[Route("/path")]` on a `Component`. That's the whole registration:
 
 ```csharp
 [Route("/about")]
-public sealed class AboutPage : Component
+public sealed partial class AboutPage : Component
 {
     protected override Component? Render() => H1["About"];
 }
@@ -36,7 +36,7 @@ A route only matters once a `Router()` is somewhere in the tree to match against
 root (`App`):
 
 ```csharp
-public sealed class App : Component
+public sealed partial class App : Component
 {
     // The root renders into <body> — Rask composes the document around it.
     protected override Component? Render() =>
@@ -54,11 +54,11 @@ formatter's parameters mirror the route's bound properties:
 
 ```csharp
 [Route("/")]
-public sealed class HomePage : Component { /* ... */ }
+public sealed partial class HomePage : Component { /* ... */ }
 // → Routes.HomePage()  returns a RouteUrl for "/"
 
 [Route("/users/{id:int}")]
-public sealed class UserPage : Component
+public sealed partial class UserPage : Component
 {
     [RouteParam] public int Id { get; set; }
 }
@@ -90,7 +90,7 @@ Two attributes bind URL pieces to properties on the page:
 
 ```csharp
 [Route("/users/{id}")]
-public sealed class UserPage : Component
+public sealed partial class UserPage : Component
 {
     [RouteParam] public int Id { get; set; }       // /users/42  → Id = 42
     [QueryParam] public string? Tab { get; set; }   // ?tab=profile → Tab = "profile"
@@ -131,7 +131,7 @@ parent's, and the parent renders the matched child wherever it places an `Outlet
 
 ```csharp
 [Route("/")]
-public sealed class Layout : Component
+public sealed partial class Layout : Component
 {
     protected override Component? Render() =>
         Div[
@@ -141,7 +141,7 @@ public sealed class Layout : Component
 }
 
 [Route("about"), ParentRoute(typeof(Layout))]
-public sealed class AboutPage : Component
+public sealed partial class AboutPage : Component
 {
     protected override Component? Render() => H1["About"];
 }
@@ -163,7 +163,7 @@ every page declares `[ParentRoute(typeof(ShowcaseLayout))]` and the layout hosts
 like any other framework service:
 
 ```csharp
-public sealed class ProductsPage(Navigator nav) : Component
+public sealed partial class ProductsPage(Navigator nav) : Component
 {
     protected override Component? Render() =>
         Button.OnClick(() => nav.NavigateTo("/dashboard"))["Open dashboard"];
@@ -238,7 +238,7 @@ is handled entirely in the client runtime and applies to both transports.
 `RouteState` is the scoped, per-session source of truth for the current location. Inject it to read the live URL:
 
 ```csharp
-public sealed class CurrentLocation(RouteState route) : Component
+public sealed partial class CurrentLocation(RouteState route) : Component
 {
     protected override Component? Render() =>
         Div[
@@ -262,7 +262,7 @@ breadcrumb, header path display) won't be re-rendered by the router, so it must 
 `OnMount`, unsubscribe in `OnUnmount`:
 
 ```csharp
-public sealed class PathDisplay(RouteState route) : Component
+public sealed partial class PathDisplay(RouteState route) : Component
 {
     protected override void OnMount() => route.Changed += StateHasChanged;
     protected override void OnUnmount() => route.Changed -= StateHasChanged;
@@ -286,7 +286,7 @@ framework falls back to a minimal built-in page if no app-defined one exists.
 
 ```csharp
 [NotFound]
-public sealed class NotFoundPage : Component
+public sealed partial class NotFoundPage : Component
 {
     protected override Component? Render() => H1["Page not found"];
 }

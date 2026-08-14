@@ -47,7 +47,7 @@ re-renders automatically when the `await` completes — no explicit `StateHasCha
 reload when a route/query param changes.
 
 ```csharp
-public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
+public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext> dbContextFactory) : Component
 {
     private IReadOnlyList<Product> _products = [];
     private bool _loaded;

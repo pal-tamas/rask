@@ -14,7 +14,7 @@ Create `Features/Shared/OrderReceipt.cs` — a component whose `Render()` is the
 ```csharp
 namespace Shop.Features.Shared;
 
-public sealed class OrderReceipt : Component
+public sealed partial class OrderReceipt : Component
 {
     protected override Component? Render() =>
     [
@@ -27,7 +27,7 @@ Give it the order data and build a real body. A component carries data on **publ
 the generated factory fills in), so add an `OrderId` and a `Total` and render them:
 
 ```csharp
-public sealed class OrderReceipt : Component
+public sealed partial class OrderReceipt : Component
 {
     public Guid OrderId { get; set; }
     public decimal Total { get; set; }

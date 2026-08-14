@@ -115,7 +115,7 @@ caller happens to re-render. The moment you need either, promote to Tier 1.
 its props, with **no mutable fields**:
 
 ```csharp
-public sealed class Greeting : Component
+public sealed partial class Greeting : Component
 {
     public required string Name { get; set; }   // non-nullable, no initializer → required factory param
     protected override Component? Render() => P["Hello, ", Strong[Name], "!"];
@@ -132,7 +132,7 @@ contribution, and safe context reads — it simply carries no local state.
 fields** and mutates them in handlers:
 
 ```csharp
-public sealed class Counter : Component
+public sealed partial class Counter : Component
 {
     private int _count;
     protected override Component? Render() =>

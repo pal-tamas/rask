@@ -159,9 +159,11 @@
   <PropertyGroup>
     <RaskGlobalUsings Condition=" '$(RaskGlobalUsings)' == '' AND $(MSBuildProjectName.StartsWith('Rask.')) AND !$(MSBuildProjectName.StartsWith('Rask.Example.')) ">false</RaskGlobalUsings>
     <!--
-      EXPERIMENTAL builder surface (`Div[...]`). Off by default for consumers; on in-repo so the
-      spike's tests exercise it. Only the assembly declaring Rask.Core.Component emits the entries,
-      so this is effectively a Rask.Core switch.
+      The builder surface (`Div[...]`) is now THE markup surface, not a spike, and its default lives
+      in the shipped src/Rask.Core/build/Rask.Core.targets so a consumer gets it too. This line is
+      kept only so an in-repo build is explicit about it; both resolve to the same value.
+      Only the assembly declaring Rask.Core.Component emits the entries, so this is effectively a
+      Rask.Core switch.
     -->
     <RaskBuilderSurface Condition=" '$(RaskBuilderSurface)' == '' ">true</RaskBuilderSurface>
   </PropertyGroup>

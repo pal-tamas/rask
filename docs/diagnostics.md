@@ -92,7 +92,7 @@ generated factory. This is informational: the generator already enforces it posi
 property isn't marked `required` at the language level.
 
 ```csharp
-public sealed class Badge : Component
+public sealed partial class Badge : Component
 {
     public string Label { get; set; }   // RASK001 suggestion: add `required`
 }
@@ -493,8 +493,8 @@ these all collide: `/Products` ↔ `/products` (literals match case-insensitivel
 nested-route collisions are not flagged (the check under-reports rather than risk a false positive).
 
 ```csharp
-[Route("/products")] public sealed class ProductList : Component { }   // first — canonical
-[Route("/Products")] public sealed class ProductGrid : Component { }   // ✗ RASK031: same URL as ProductList
+[Route("/products")] public sealed partial class ProductList : Component { }   // first — canonical
+[Route("/Products")] public sealed partial class ProductGrid : Component { }   // ✗ RASK031: same URL as ProductList
 ```
 
 A warning, not an error — a collision is a real bug, but the app still runs (it just picks arbitrarily),
@@ -551,7 +551,7 @@ It deliberately leaves alone:
   `/todos/new` on a page whose primary route is `todos` has no `Routes.*()` equivalent and is not flagged.
 
 ```csharp
-[Route("todos")] public sealed class TodosPage : Component { /* … */ }
+[Route("todos")] public sealed partial class TodosPage : Component { /* … */ }
 
 nav.NavigateTo("/todos");            // ✗ RASK033 — use Routes.TodosPage()
 NavLink.Href("/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conversion
@@ -724,7 +724,7 @@ chain, so leaving it out compiles cleanly and the component renders with a `null
 supposed to hold. This analyzer walks the chain and reports what it never named.
 
 ```csharp
-public sealed class Card : Component
+public sealed partial class Card : Component
 {
     public string Title { get; set; }          // required: non-nullable, no initializer
     public string? Note  { get; set; }         // optional

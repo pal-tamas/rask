@@ -58,7 +58,7 @@ A typical async-data page uses `OnMountAsync` to fetch once and renders a placeh
 
 ```csharp
 [Route("/weather")]
-public sealed class Weather(IWeatherForecastService service) : Component
+public sealed partial class Weather(IWeatherForecastService service) : Component
 {
     private WeatherForecast[]? _forecasts;
 
@@ -208,7 +208,7 @@ calls, `Task.Delay`, or any cancellable async work started in a lifecycle hook s
 navigates away:
 
 ```csharp
-public sealed class CancellationProbe : Component
+public sealed partial class CancellationProbe : Component
 {
     public required Action<string> Log { get; set; }
     public required int InstanceId { get; set; }

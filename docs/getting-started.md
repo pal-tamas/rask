@@ -116,7 +116,7 @@ every component — `Div()[ ... ]` — and strings, other components, and value 
 child node automatically:
 
 ```csharp
-public sealed class Greeting : Component
+public sealed partial class Greeting : Component
 {
     protected override Component? Render() =>
         Div.Class("greeting")[
@@ -153,7 +153,7 @@ code works for both.
 
 ```csharp
 [Route("/counter")]
-public sealed class Counter : Component
+public sealed partial class Counter : Component
 {
     private int _count;
 
@@ -173,7 +173,7 @@ wraps it so invoking it re-renders the **parent** that owns the lambda. There is
 type, and the child stays oblivious to the parent:
 
 ```csharp
-public sealed class RatingStars : Component
+public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }
     public Action<int>? OnRate { get; set; }            // a plain delegate prop
@@ -185,7 +185,7 @@ public sealed class RatingStars : Component
         ];
 }
 
-public sealed class RatingDemo : Component
+public sealed partial class RatingDemo : Component
 {
     private int _rating;
 
@@ -212,7 +212,7 @@ Its parameters are derived from your public settable properties:
 | `Children`                                        | always excluded (children attach via the indexer) |
 
 ```csharp
-public sealed class Card : Component
+public sealed partial class Card : Component
 {
     public required string Title { get; set; }     // required factory param
     public string? Subtitle { get; set; }          // optional, default null
@@ -233,7 +233,7 @@ parameter (and `required` on a property with a DI-only constructor is the **RASK
 through the primary constructor instead:
 
 ```csharp
-public sealed class Weather(IWeatherForecastService service) : Component { ... }
+public sealed partial class Weather(IWeatherForecastService service) : Component { ... }
 ```
 
 <!-- demo:components-di -->
@@ -253,7 +253,7 @@ what the root rendered and the auto-appended runtime `<script>`. So a root is ju
 contributions and a `Router()`:
 
 ```csharp
-public sealed class App : Component
+public sealed partial class App : Component
 {
     // App-level head; pages can override their own Head to set a per-page Title.
     protected override Component? Head => [
@@ -316,7 +316,7 @@ route gets a generated, type-safe URL builder:
 using Rask.Core.Routing;
 
 [Route("/users/{id}")]
-public sealed class UserPage : Component
+public sealed partial class UserPage : Component
 {
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }

@@ -18,7 +18,7 @@ and assert on the re-rendered HTML through a small public API — no browser, se
 ```csharp
 using Rask.Testing;
 
-public sealed class Counter : Component
+public sealed partial class Counter : Component
 {
     private int _count;
     protected override Component? Render() =>

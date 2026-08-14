@@ -256,6 +256,31 @@ them until tagged releases begin.
   `Handler`).
 
 ### Fixed
+- **`rask new` scaffolded projects that could not compile, and every in-repo gate said they were fine.**
+  `RaskBuilderSurface` — the switch that emits the chain entries — defaulted to **false**, and the repo
+  turned it on only in its own `Directory.Build.props`. So the solution build, the 5,956-test unit gate,
+  the warnings-as-errors analyzer build and the 64/64 browser E2E all passed, while the code the CLI
+  writes did not build at all: with no entries emitted, `BsCard[…]` binds to the `Generated.BsCard(…)`
+  factory **method** and a reader gets `CS0119` / `CS0021` / `CS0428` out of markup the framework itself
+  generated.
+
+  The default now lives in the shipped `src/Rask.Core/build/Rask.Core.targets` and is **true** — the
+  chain is the surface the docs, the guides and the scaffolder are written in, so it cannot be opt-in.
+  Set `<RaskBuilderSurface>false</RaskBuilderSurface>` to get the factories alone.
+
+  Worth stating as a rule rather than an anecdote: **the only gate that crosses the package boundary is
+  the CLI build gate** (`scripts/run-cli-build-e2e.sh`, run by the pre-push hook). The in-repo build
+  *references* the projects instead of restoring them, so it never imports the packaged targets and
+  anything about packaging is invisible to it. All 26 `rask new` cases were red while everything else
+  was green.
+
+- **The docs taught component classes that do not compile.** 59 component declarations across 28 doc
+  pages — the whole tutorial included — were written without `partial`. On the chain surface a
+  generator has to inject each non-framework component's entry into every type that might name one, and
+  it can only inject into a `partial`; that is RASK036, and the tutorial gate builds with
+  `-warnaserror`. Every one now carries the modifier, except the deliberate counter-example in
+  RASK036's own section.
+
 - **A whole page became "Something went wrong" whenever `Router` was served from the render cache.**
   Twelve browser journeys died on `Outlet() and Router rendering require an active route context`, and
   the symptom pointed at the wrong thing entirely — every one of them timed out waiting for a sidebar

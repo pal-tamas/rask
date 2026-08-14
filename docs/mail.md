@@ -25,7 +25,7 @@ you already use for pages — no separate templating language.
 ## Use
 
 ```csharp
-public sealed class WelcomeEmail : Component
+public sealed partial class WelcomeEmail : Component
 {
     public string Name { get; set; } = "";
 

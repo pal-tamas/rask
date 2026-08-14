@@ -64,7 +64,7 @@ using Rask.Core.Forms;
 
 namespace MyApp.Controls;
 
-public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
+public sealed partial class SegmentedControl<TValue> : Component, IFormControl<TValue>
 {
     public required IEnumerable<TValue> Options { get; set; }
     // A plain delegate, like every callback and template on the surface.
@@ -227,7 +227,7 @@ for state the control *itself* owns.
 
 ## 7. Checklist
 
-1. `sealed class MyControl<T> : Component, IFormControl<T>` — declare the nine interface properties + your
+1. `sealed partial class MyControl<T> : Component, IFormControl<T>` — declare the nine interface properties + your
    display props.
 2. In `Render`: in bound mode `ExpressionAccessor.Parse(Bind)` → `ResolveBindingContext` →
    `((IFormControl<T>)this).RegisterValidator(acc, ctx)`; read the current value from the accessor (bound) or

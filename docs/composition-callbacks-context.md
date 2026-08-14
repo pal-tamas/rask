@@ -14,7 +14,7 @@ through by hand.
 
 ```csharp
 // Component: declares the event as a delegate prop and invokes it.
-public sealed class RatingStars : Component
+public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }
     public Action<int>? OnRate { get; set; }
@@ -27,7 +27,7 @@ public sealed class RatingStars : Component
 }
 
 // Parent: passes a lambda that mutates its own state.
-public sealed class RatingDemo : Component
+public sealed partial class RatingDemo : Component
 {
     private int _rating;
 
@@ -155,7 +155,7 @@ Context.Provide<Theme>(Value: _theme)[
 ]
 
 // Consume anywhere below, in Render():
-public sealed class ThemeBadge : Component
+public sealed partial class ThemeBadge : Component
 {
     protected override Component? Render()
     {

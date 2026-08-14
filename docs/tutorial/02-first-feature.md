@@ -148,7 +148,7 @@ And the page that uses it, in the same file:
 
 ```csharp
 [Route("/products/new")]
-public sealed class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Component
+public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Component
 {
     private readonly ProductRequest _form = new();
     private string? _error;
@@ -244,7 +244,7 @@ public sealed class UpdateProductCommandHandler(IDbContextFactory<AppDbContext> 
 }
 
 [Route("/products/{id:guid}/edit")]
-public sealed class UpdateProduct(IDispatcher dispatcher, Navigator navigator) : Component
+public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navigator) : Component
 {
     private readonly ProductRequest _form = new();
     private bool _loaded;
@@ -354,7 +354,7 @@ public sealed class DeleteProductCommandHandler(IDbContextFactory<AppDbContext> 
 
 // A reusable delete button: dispatches the delete command, then invokes OnDeleted so the caller
 // (the list page) can refresh.
-public sealed class DeleteProduct(IDispatcher dispatcher) : Component
+public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component
 {
     public Guid Id { get; set; }
 
@@ -398,7 +398,7 @@ public sealed class ListProductsQueryHandler(IDbContextFactory<AppDbContext> dbC
 }
 
 [Route("/products")]
-public sealed class ProductsPage(IDispatcher dispatcher) : Component
+public sealed partial class ProductsPage(IDispatcher dispatcher) : Component
 {
     private IReadOnlyList<Product> _items = [];
     private bool _loaded;

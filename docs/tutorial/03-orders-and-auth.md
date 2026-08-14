@@ -99,7 +99,7 @@ using Microsoft.AspNetCore.Authorization;
 
 [Authorize]                          // ← anonymous users are redirected to /login
 [Route("/products/new")]
-public sealed class CreateProduct : Component { … }
+public sealed partial class CreateProduct : Component { … }
 ```
 
 Leave the read-only `ProductsPage` (`/products`) public so shoppers can browse.
