@@ -251,6 +251,7 @@ public static class GuideCatalog
         new("web-locks", "IWebLocks", "Typed browser API: IWebLocks.", "bi-plug", "Browser API reference", "apis/web-locks.md"),
         new("web-push", "IWebPush", "Typed browser API: IWebPush.", "bi-plug", "Browser API reference", "apis/web-push.md"),
         new("webauthn", "IWebAuthn", "Typed browser API: IWebAuthn.", "bi-plug", "Browser API reference", "apis/webauthn.md"),
+        new("webrtc", "IWebRtc", "Typed browser API: IWebRtc.", "bi-plug", "Browser API reference", "apis/webrtc.md"),
 
         // ---- Advanced ----
         new("testing", "Testing", "Unit testing with Rask.Testing, event handlers, E2E.",

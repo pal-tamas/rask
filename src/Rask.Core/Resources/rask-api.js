@@ -1396,3 +1396,240 @@ window.__raskLocks = window.__raskLocks || (() => {
         }
     };
 })();
+
+// WebRTC (driven by IWebRtc) — an RTCPeerConnection and its data channels can't cross interop, so each is
+// held here under an id: C# mints connection ids (it must register its handlers before ICE gathering
+// starts), JS mints channel ids (a remote peer can open one at any time, so one minting side keeps the id
+// space single). Shared here (not WASM-only): none of this needs a user gesture, so it works over the
+// Server client too.
+//
+// Everything pushed back to C# is BATCHED, and that is load-bearing rather than an optimisation: on the
+// Server host each push is one inbound WebSocket frame, and RaskServerLimits.MaxInboundFramesPerSecond
+// (1000 by default) closes the socket past it. A busy data channel or an ICE gathering burst would trip
+// that in well under a second. Buffering on a fixed FLUSH_MS timer bounds the frame rate to ~60/s no
+// matter how fast the peer sends. A timer, not requestAnimationFrame: rAF stops firing in a background
+// tab, which would stall delivery exactly when a call is backgrounded.
+//
+// Message buffers are capped. Past MAX_BUFFERED the oldest are dropped and counted, and the count rides
+// the next push so C# can surface the loss — an unbounded buffer would trade a closed socket for an
+// out-of-memory tab. ICE candidates are never dropped (a lost candidate can cost connectivity, and a
+// gathering burst is tens of entries, not thousands).
+window.__raskRtc = window.__raskRtc || (() => {
+    const conns = new Map(); // connId -> {pc, ice: [], timer: 0}
+    const chans = new Map(); // chanId -> {ch, buf: [], dropped: 0, timer: 0, listening: false}
+    let nextChan = 0;
+
+    const FLUSH_MS = 16;
+    const MAX_BUFFERED = 10000;
+
+    const toBase64 = (buffer) => {
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+
+    const fromBase64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+
+    const invoke = (method, ...args) => window.DotNet.invokeMethodAsync("Rask.Core", method, ...args);
+
+    // A call against an already-disposed connection/channel would otherwise surface as a TypeError on
+    // `undefined`, which says nothing about what the app did wrong.
+    const conn = (id) => {
+        const c = conns.get(id);
+        if (!c) {
+            throw new Error("Rask WebRTC: peer connection " + id + " is closed.");
+        }
+        return c;
+    };
+
+    const chan = (id) => {
+        const c = chans.get(id);
+        if (!c) {
+            throw new Error("Rask WebRTC: data channel " + id + " is closed.");
+        }
+        return c;
+    };
+
+    const flushIce = (id) => {
+        const c = conns.get(id);
+        if (!c) {
+            return;
+        }
+        c.timer = 0;
+        if (c.ice.length === 0) {
+            return;
+        }
+        const batch = c.ice;
+        c.ice = [];
+        invoke("RaskRtcIce", id, batch);
+    };
+
+    const flushMessages = (id) => {
+        const c = chans.get(id);
+        if (!c) {
+            return;
+        }
+        c.timer = 0;
+        if (!c.listening || c.buf.length === 0) {
+            return;
+        }
+        const batch = c.buf;
+        const dropped = c.dropped;
+        c.buf = [];
+        c.dropped = 0;
+        // The connection id rides along because it is the one C# mints: a Server host runs many sessions
+        // in one process, and channel ids minted here would collide across them.
+        invoke("RaskRtcMessages", c.connId, id, batch, dropped);
+    };
+
+    const schedule = (c, run) => {
+        if (c.timer === 0) {
+            c.timer = setTimeout(run, FLUSH_MS);
+        }
+    };
+
+    // Wires one channel — local or remote — into the id space and starts buffering immediately, so nothing
+    // sent between "the channel exists" and "C# called listen" is lost.
+    const adopt = (connId, ch) => {
+        const id = ++nextChan;
+        ch.binaryType = "arraybuffer";
+        const state = {ch: ch, connId: connId, buf: [], dropped: 0, timer: 0, listening: false};
+        chans.set(id, state);
+        ch.onmessage = (e) => {
+            if (state.buf.length >= MAX_BUFFERED) {
+                state.buf.shift();
+                state.dropped++;
+            }
+            state.buf.push(typeof e.data === "string"
+                ? {text: e.data, data: null}
+                : {text: null, data: toBase64(e.data)});
+            schedule(state, () => flushMessages(id));
+        };
+        ch.onclose = () => invoke("RaskRtcChannelClosed", connId, id);
+        return id;
+    };
+
+    const closeChannel = (id) => {
+        const c = chans.get(id);
+        if (!c) {
+            return;
+        }
+        if (c.timer !== 0) {
+            clearTimeout(c.timer);
+        }
+        chans.delete(id);
+        c.ch.onmessage = null;
+        c.ch.onclose = null;
+        try {
+            c.ch.close();
+        } catch (_) {
+            // Already closed with the connection — nothing to release.
+        }
+    };
+
+    return {
+        isSupported: () => typeof window.RTCPeerConnection === "function",
+        create: (id, config) => {
+            const servers = (config && config.iceServers ? config.iceServers : []).map((u) => ({urls: u}));
+            const init = {iceServers: servers};
+            if (config && config.iceTransportPolicy) {
+                init.iceTransportPolicy = config.iceTransportPolicy;
+            }
+            const pc = new RTCPeerConnection(init);
+            const state = {pc: pc, ice: [], timer: 0};
+            conns.set(id, state);
+            pc.onicecandidate = (e) => {
+                // A null candidate marks end-of-gathering; flush what's buffered rather than forwarding it.
+                if (!e.candidate) {
+                    flushIce(id);
+                    return;
+                }
+                state.ice.push({
+                    candidate: e.candidate.candidate,
+                    sdpMid: e.candidate.sdpMid,
+                    sdpMLineIndex: e.candidate.sdpMLineIndex
+                });
+                schedule(state, () => flushIce(id));
+            };
+            pc.onconnectionstatechange = () => invoke("RaskRtcState", id, pc.connectionState);
+            pc.ondatachannel = (e) => invoke("RaskRtcChannel", id, adopt(id, e.channel), e.channel.label);
+        },
+        createOffer: async (id) => {
+            const c = conn(id);
+            const offer = await c.pc.createOffer();
+            return {type: offer.type, sdp: offer.sdp};
+        },
+        createAnswer: async (id) => {
+            const c = conn(id);
+            const answer = await c.pc.createAnswer();
+            return {type: answer.type, sdp: answer.sdp};
+        },
+        setLocal: (id, d) => conn(id).pc.setLocalDescription({type: d.type, sdp: d.sdp}),
+        setRemote: (id, d) => conn(id).pc.setRemoteDescription({type: d.type, sdp: d.sdp}),
+        addIce: (id, cand) => conn(id).pc.addIceCandidate({
+            candidate: cand.candidate,
+            sdpMid: cand.sdpMid,
+            sdpMLineIndex: cand.sdpMLineIndex
+        }),
+        createChannel: (connId, label, options) => {
+            const init = {};
+            if (options) {
+                if (options.ordered != null) {
+                    init.ordered = options.ordered;
+                }
+                if (options.maxRetransmits != null) {
+                    init.maxRetransmits = options.maxRetransmits;
+                }
+                if (options.protocol) {
+                    init.protocol = options.protocol;
+                }
+            }
+            return adopt(connId, conn(connId).pc.createDataChannel(label, init));
+        },
+        // Starts delivery for a channel. Anything the peer sent before this point is already buffered and
+        // rides the first push.
+        listen: (id) => {
+            const c = chans.get(id);
+            if (!c) {
+                return;
+            }
+            c.listening = true;
+            schedule(c, () => flushMessages(id));
+        },
+        sendText: (id, text) => chan(id).ch.send(text),
+        sendBytes: (id, base64) => chan(id).ch.send(fromBase64(base64)),
+        closeChannel: (id) => closeChannel(id),
+        close: (id) => {
+            const c = conns.get(id);
+            if (!c) {
+                return;
+            }
+            if (c.timer !== 0) {
+                clearTimeout(c.timer);
+            }
+            conns.delete(id);
+            // Snapshot first: closeChannel deletes from the map we'd otherwise be iterating.
+            const owned = [];
+            chans.forEach((chan, chanId) => {
+                if (chan.connId === id) {
+                    owned.push(chanId);
+                }
+            });
+            owned.forEach(closeChannel);
+            c.pc.onicecandidate = null;
+            c.pc.onconnectionstatechange = null;
+            c.pc.ondatachannel = null;
+            c.pc.close();
+        }
+    };
+})();

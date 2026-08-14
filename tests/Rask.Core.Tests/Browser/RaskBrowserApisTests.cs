@@ -43,6 +43,7 @@ public class RaskBrowserApisTests
         (typeof(IVibration), typeof(Vibration)),
         (typeof(IPageVisibility), typeof(PageVisibilityInfo)),
         (typeof(IWebLocks), typeof(WebLocks)),
+        (typeof(IWebRtc), typeof(WebRtc)),
         (typeof(IBattery), typeof(Battery)),
         (typeof(IWebPush), typeof(WebPush)),
         (typeof(INotifications), typeof(Notifications)),
