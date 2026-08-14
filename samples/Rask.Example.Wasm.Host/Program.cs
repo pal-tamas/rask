@@ -1,5 +1,6 @@
 using Rask.Example.Shared;
 using Rask.Example.Wasm.Host;
+using Rask.Signaling;
 using Rask.Wasm.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 // response-compression middleware ahead of UseStaticFiles when this registration is
 // present; without it the bundle still serves, just uncompressed.
 builder.Services.AddRask();
+// The WebRTC signaling relay (Rask.Signaling), for the ISignaling demo. RequireAuthorization is turned
+// OFF because this showcase has no sign-in — a real app SHOULD leave the default on and use
+// AuthorizeRoom to decide who belongs in which room.
+builder.Services.AddRaskSignaling(o => o.RequireAuthorization = false);
+
 // Server-side Web Push (Rask.WebPush): this host both serves the WASM PWA and signs/encrypts the
 // pushes it sends — the complete subscribe → send → notify loop in one app. See docs/pwa.md.
 builder.Services.AddPushDemo(builder.Configuration);
@@ -40,6 +46,11 @@ app.MapPushDemo();
 // RASK_PATHBASE / RASK_BUNDLE_DIR env vars let the E2E sub-path fixture
 // (Rask.Examples.E2E.Tests/SubPathWasmAppFixture) point the same example host
 // at a re-published AppBundle under a prefix without a dedicated executable.
+// The signaling relay must precede the UseRask catch-all, and needs WebSocket support in the pipeline
+// — this host only serves static files, so nothing else here would have added it.
+app.UseWebSockets();
+app.MapRaskSignaling();
+
 // In a real app you'd just hardcode the pathBase you want.
 app.UseRask<App>(
     Environment.GetEnvironmentVariable("RASK_BUNDLE_DIR"),

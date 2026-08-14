@@ -44,6 +44,8 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(SaveFilePickerOptions))]
 [JsonSerializable(typeof(FileSystemHandleInfo))]
 [JsonSerializable(typeof(FileSystemHandleInfo[]))]
+[JsonSerializable(typeof(SignalingJoin))]
+[JsonSerializable(typeof(SignalingSignal))]
 [JsonSerializable(typeof(RtcConfiguration))]
 [JsonSerializable(typeof(RtcDescription))]
 [JsonSerializable(typeof(RtcIceCandidate))]
