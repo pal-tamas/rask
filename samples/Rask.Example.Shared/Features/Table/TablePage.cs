@@ -9,17 +9,17 @@ namespace Rask.Example.Shared.Features;
 // against the new query, so the state is shareable, bookmarkable, and replayed by browser back/forward for free.
 [Route("table")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class TablePage(Navigator nav) : Component
+public sealed partial class TablePage(Navigator nav) : Component
 {
     private static readonly Person[] _people = BuildPeople(120);
 
-    [QueryParam] public string? Filter { get; set; }
+    [QueryParam] public new string? Filter { get; set; }
     [QueryParam("sort")] public string? SortKey { get; set; }
     [QueryParam("dir")] public string? Dir { get; set; }
     [QueryParam] public int? Page { get; set; }
     [QueryParam] public int? Size { get; set; }
 
-    protected override Component? Head => Title()["Data table — Rask"];
+    protected override Component? HeadAssets => Title["Data table — Rask"];
 
     private static Person[] BuildPeople(int count)
     {
@@ -77,78 +77,75 @@ public sealed class TablePage(Navigator nav) : Component
 
         return
         [
-            PageHeader.Render(
-                "Data table",
-                "Sortable columns, paged rows, search and a page-size selector — a BsDataGrid whose sort and " +
-                "page are owned by the URL query string."),
-            BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-                BsCardHeader(Class: "bg-white d-flex flex-wrap gap-2 align-items-center justify-content-between")[
-                    Div(Class: "input-group input-group-sm", Style: "max-width:320px;")[
-                        Span(Class: "input-group-text bg-white")[BsIcon(Name: BsIconName.Search)],
-                        Input(
-                            InputType.Search,
-                            Class: "form-control",
-                            Placeholder: "Filter name, city, department…",
-                            Value: Filter ?? string.Empty,
-                            OnInput: v => nav.SetQuery(
+            PageHeader
+                .Title("Data table")
+                .Lead("Sortable columns, paged rows, search and a page-size selector — a BsDataGrid whose sort and " +
+                      "page are owned by the URL query string."),
+            BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+                BsCardHeader.Class("bg-white d-flex flex-wrap gap-2 align-items-center justify-content-between")[
+                    Div.Class("input-group input-group-sm").Style("max-width:320px;")[
+                        Span.Class("input-group-text bg-white")[BsIcon.Name(BsIconName.Search)],
+                        Input
+                            .Value(Filter ?? string.Empty)
+                            .Type(InputType.Search)
+                            .Class("form-control")
+                            .Placeholder("Filter name, city, department…")
+                            .OnInput(v => nav.SetQuery(
                                 KeyValuePair.Create<string, string?>("filter", v ?? string.Empty),
                                 KeyValuePair.Create<string, string?>("page", "1")))
                     ],
-                    BsStack(Gap: 2, Align: BsAlign.Center)[
-                        Label(Class: "small text-secondary mb-0")["Rows per page"],
-                        Select<string>(
-                            Class: "form-select form-select-sm",
-                            Style: "max-width:90px;",
-                            OnChange: v => nav.SetQuery(
+                    BsStack.Gap(2).Align(BsAlign.Center)[
+                        Label.Class("small text-secondary mb-0")["Rows per page"],
+                        Select.Value<string>(null)
+                            .Class("form-select form-select-sm")
+                            .Style("max-width:90px;")
+                            .OnChange(v => nav.SetQuery(
                                 KeyValuePair.Create<string, string?>("size", v),
                                 KeyValuePair.Create<string, string?>("page", "1")))[
-                            Option("5", size == 5)["5"],
-                            Option("10", size == 10)["10"],
-                            Option("25", size == 25)["25"],
-                            Option("50", size == 50)["50"]
+                            Option.Value("5").Selected(size == 5)["5"],
+                            Option.Value("10").Selected(size == 10)["10"],
+                            Option.Value("25").Selected(size == 25)["25"],
+                            Option.Value("50").Selected(size == 50)["50"]
                         ]
                     ]
                 ],
-                BsCardBody(Class: "pt-0")[
+                BsCardBody.Class("pt-0")[
                     // Page and Sort are the URL's, so the grid renders what the query says and reports clicks
                     // instead of moving itself. Page is 0-based here and 1-based in the URL (nicer to share).
-                    BsDataGrid(
-                        Id: "people-grid",
-                        Data: filtered,
-                        PageSize: size,
-                        RowKey: p => p.Id,
-                        Class: "align-middle",
-                        Page: Math.Max(0, (Page ?? 1) - 1),
-                        OnPageChange: p => nav.SetQuery("page", (p + 1).ToString(CultureInfo.InvariantCulture)),
-                        Sort: sortKey.Length == 0 ? null : sortKey,
-                        SortDescending: !dirAsc,
-                        // The grid says which column was clicked; the cycle (asc → desc → unsorted) is this
-                        // page's policy, so it stays here.
-                        OnSortChange: s => CycleSort(s.Field, sortKey, dirAsc),
-                        Empty: Div(Class: "text-center text-secondary py-4")[
-                            BsIcon(Name: BsIconName.Search, Class: "me-2"),
+                    BsDataGrid
+                        .Data(filtered)
+                        .Columns(BuildColumns())
+                        .Id("people-grid")
+                        .PageSize(size)
+                        .RowKey(p => p.Id)
+                        .Class("align-middle")
+                        .Page(Math.Max(0, (Page ?? 1) - 1))
+                        .OnPageChange(p => nav.SetQuery("page", (p + 1).ToString(CultureInfo.InvariantCulture)))
+                        .Sort(sortKey.Length == 0 ? null : sortKey)
+                        .SortDescending(!dirAsc)
+                        .OnSortChange(s => CycleSort(s.Field, sortKey, dirAsc))
+                        .Empty(Div.Class("text-center text-secondary py-4")[
+                            BsIcon.Name(BsIconName.Search).Class("me-2"),
                             "No people match your search."
-                        ],
-                        Columns: BuildColumns())
+                        ])
                 ]
             ],
             filter.Length > 0
-                ? P(Class: "small text-secondary mt-2 mb-0")[
+                ? P.Class("small text-secondary mt-2 mb-0")[
                     $"Filtered from {_people.Length} total."]
                 : null,
-            P(Class: "small text-secondary mt-3 mb-0")[
+            P.Class("small text-secondary mt-3 mb-0")[
                 "The page holds every bit of UI state in ",
-                Code()["[QueryParam]"],
+                Code["[QueryParam]"],
                 " properties and writes each header click and pager button back through ",
-                Code()["Navigator.SetQuery"],
+                Code["Navigator.SetQuery"],
                 ". The page is re-resolved against the new query, so browser back / forward replay the state for " +
                 "free. Try sorting + paging, then copy the URL — it's shareable."
             ],
-            CodeSample(
-                ["TablePage.cs"],
-                Title: "Source",
-                Notes:
-                "The whole page above, verbatim. The [QueryParam] properties bind sort, filter, page and size " +
+            CodeSample
+                .Files(["TablePage.cs"])
+                .Title("Source")
+                .Notes("The whole page above, verbatim. The [QueryParam] properties bind sort, filter, page and size " +
                 "from the URL. BsDataGrid takes Page/Sort as inputs and raises OnPageChange/OnSortChange instead " +
                 "of tracking them itself, so the URL — not the component — is the single source of truth.")
         ];
@@ -190,7 +187,7 @@ public sealed class TablePage(Navigator nav) : Component
         new BsColumn<Person>
         {
             Title = "Department", Sortable = true, SortField = "department", SortKey = p => p.Department,
-            Template = p => Span(Class: $"badge {DeptBadge(p.Department)}")[p.Department],
+            Template = p => Span.Class($"badge {DeptBadge(p.Department)}")[p.Department],
         },
         new BsColumn<Person>
         {

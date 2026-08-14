@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // Passing an IQueryable as Data: the grid orders, counts and pages it in the store rather than in memory.
 // These use a LINQ-to-Objects queryable, which exercises the same Queryable.OrderBy/Count/Skip/Take
 // composition an EF provider translates to SQL; the real-SQL proof is the EF Core sample.
-public class BsDataGridQueryTests
+public partial class BsDataGridQueryTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -69,8 +69,9 @@ public class BsDataGridQueryTests
     [Fact]
     public void Query_PagesFromTheStore_AndCountsTheWholeSet()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: Columns(), PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(Columns())
+            .PageSize(2)));
 
         Assert.Equal(["Banana", "Apple"], BodyCells(grid.Html, 0));
         // The pager is sized from Count() over the whole query, not from the materialised page.
@@ -81,8 +82,9 @@ public class BsDataGridQueryTests
     [Fact]
     public async Task Query_SortsInTheStore_ViaSortBy()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: Columns(), PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(Columns())
+            .PageSize(2)));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]); // by Name
         Assert.Equal(["Apple", "Banana"], BodyCells(html, 0));
@@ -97,8 +99,9 @@ public class BsDataGridQueryTests
     public async Task Query_SortsByTheValueNotItsText()
     {
         // SortBy is an expression over the property, so ordering is numeric even though the cell renders text.
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: Columns(), PageSize: 5)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(Columns())
+            .PageSize(5)));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[1]); // by Qty
 
@@ -108,8 +111,9 @@ public class BsDataGridQueryTests
     [Fact]
     public async Task Query_PagingWalksTheStore()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: Columns(), PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(Columns())
+            .PageSize(2)));
 
         // [0] Name, [1] Qty, [2] prev, [3] p1, [4] p2, [5] p3, [6] next.
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[5]); // page 3
@@ -128,8 +132,9 @@ public class BsDataGridQueryTests
             new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Sortable = true, SortBy = r => r.Qty },
         ];
 
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: All.AsQueryable(), Columns: columns, PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(All.AsQueryable())
+            .Columns(columns)
+            .PageSize(2)));
 
         Assert.Contains("<th scope=\"col\">Name</th>", grid.Html);
         Assert.Single(Regex.Matches(grid.Html, "aria-sort"));
@@ -138,8 +143,10 @@ public class BsDataGridQueryTests
     [Fact]
     public void Query_EmptyResult_RendersTheEmptyState()
     {
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: new List<Row>().AsQueryable(), Columns: Columns(), PageSize: 2, Empty: Div()["nothing"])));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(new List<Row>().AsQueryable())
+            .Columns(Columns())
+            .PageSize(2)
+            .Empty(Div["nothing"])));
 
         Assert.Contains("<div>nothing</div>", grid.Html);
         Assert.DoesNotContain("<table", grid.Html);
@@ -151,8 +158,9 @@ public class BsDataGridQueryTests
         // Render runs on every re-render. Without the cache, expanding a detail row would re-issue the query.
         var source = new CountingSource();
         var query = source.Rows().AsQueryable();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: query, Columns: Columns(), PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(query)
+            .Columns(Columns())
+            .PageSize(2)));
 
         var afterFirst = source.Executions;
         Assert.True(afterFirst > 0, "the first render must run the query");
@@ -168,8 +176,9 @@ public class BsDataGridQueryTests
     {
         var source = new CountingSource();
         var query = source.Rows().AsQueryable();
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: query, Columns: Columns(), PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(query)
+            .Columns(Columns())
+            .PageSize(2)));
         var afterFirst = source.Executions;
 
         await grid.InvokeAsync(grid.HandlerIds("click")[0]); // sort
@@ -185,8 +194,9 @@ public class BsDataGridQueryTests
         var source = new CountingSource();
         var lazy = source.Rows().Where(r => r.Qty > 0); // lazy, and NOT an IReadOnlyList
 
-        var grid = RaskTest.Render(new Host(() => BsDataGrid<Row>(
-            Data: lazy, Columns: Columns(), PageSize: 2)));
+        var grid = RaskTest.Render(new Host(() => BsDataGrid.Data(lazy)
+            .Columns(Columns())
+            .PageSize(2)));
 
         Assert.Equal(1, source.Executions);
         Assert.Contains("1-2 / 5", grid.Html);

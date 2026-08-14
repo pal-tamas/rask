@@ -19,7 +19,7 @@ public sealed class VirtualizationState
         int itemSize,
         int offsetBefore,
         int offsetAfter,
-        Callback<ScrollEvent> onScroll)
+        Action<ScrollEvent> onScroll)
     {
         VisibleValues = visibleValues;
         VisibleIndices = visibleIndices;
@@ -40,5 +40,5 @@ public sealed class VirtualizationState
     public int ItemSize { get; }
     public int OffsetBefore { get; }
     public int OffsetAfter { get; }
-    public Callback<ScrollEvent> OnScroll { get; }
+    public Action<ScrollEvent> OnScroll { get; }
 }

@@ -223,102 +223,102 @@ public class AssetLoadingBenchmarks
 // hits a different bucket — defeating any same-type cache that would mask real
 // per-key lookup cost.
 #pragma warning disable RASK014
-public sealed class AssetRow000 : Component
+public sealed partial class AssetRow000 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow001 : Component
+public sealed partial class AssetRow001 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow002 : Component
+public sealed partial class AssetRow002 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow003 : Component
+public sealed partial class AssetRow003 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow004 : Component
+public sealed partial class AssetRow004 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow005 : Component
+public sealed partial class AssetRow005 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow006 : Component
+public sealed partial class AssetRow006 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow007 : Component
+public sealed partial class AssetRow007 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow008 : Component
+public sealed partial class AssetRow008 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow009 : Component
+public sealed partial class AssetRow009 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow010 : Component
+public sealed partial class AssetRow010 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow011 : Component
+public sealed partial class AssetRow011 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow012 : Component
+public sealed partial class AssetRow012 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow013 : Component
+public sealed partial class AssetRow013 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow014 : Component
+public sealed partial class AssetRow014 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow015 : Component
+public sealed partial class AssetRow015 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow016 : Component
+public sealed partial class AssetRow016 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow017 : Component
+public sealed partial class AssetRow017 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow018 : Component
+public sealed partial class AssetRow018 : Component
 {
     protected override Component? Render() => this;
 }
 
-public sealed class AssetRow019 : Component
+public sealed partial class AssetRow019 : Component
 {
     protected override Component? Render() => this;
 }

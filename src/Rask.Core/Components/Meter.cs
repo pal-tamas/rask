@@ -13,7 +13,7 @@ public sealed class Meter : Element
     public double? Low { get; set; }
     public double? High { get; set; }
     public double? Optimum { get; set; }
-    public string? Form { get; set; }
+    public new string? Form { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

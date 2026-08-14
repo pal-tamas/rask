@@ -5,16 +5,17 @@ using Rask.Core.Components;
 
 namespace Rask.Server.Tests.Infrastructure;
 
-public sealed class ThrowingApp : Component
+public sealed partial class ThrowingApp : Component
 {
     public int Counter;
 
+    protected override Component? HeadAssets => new Title()["throw"];
+    protected override string? HtmlLang => null;
+
     protected override Component? Render() =>
     [
-        Doctype(),
-        new Html()[new Head()[new Title()["throw"]],
-            new Body()[new P()[$"count={Counter}"],
-                Button(OnClick: () => throw new InvalidOperationException("boom"))["throw"],
-                Button(OnClick: () => Counter++)["bump"]]]
+        new P()[$"count={Counter}"],
+        Button.OnClick(() => throw new InvalidOperationException("boom"))["throw"],
+        Button.OnClick(() => Counter++)["bump"]
     ];
 }

@@ -2,13 +2,13 @@ using Rask.Core.Forms;
 
 namespace Rask.Example.Shared.Features;
 
-public sealed class InlineValidateDemo : Component
+public sealed partial class InlineValidateDemo : Component
 {
     private readonly LoginModel _model = new();
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger small mt-1")[m])];
 
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
     {
@@ -19,46 +19,48 @@ public sealed class InlineValidateDemo : Component
             return null;
         }
 
-        return BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
-            Ul(Class: "mb-0 ps-3")[
-                formOnly.Select((e, i) => Li(Key: i)[e.Message])
+        return BsAlert.Color(BsColor.Danger).Class("small mb-0")[
+            Ul.Class("mb-0 ps-3")[
+                formOnly.Select((e, i) => Li.Key(i)[e.Message])
             ]
         ];
     }
 
     protected override Component? Render() =>
     [
-        Form(
-            _model,
-            OnValidSubmit: m => _submission = $"Welcome, {m.Email}",
-            Class: "vstack gap-3",
-            Validate: m =>
+        Form.Model(_model)
+            .OnValidSubmit(m => _submission = $"Welcome, {m.Email}")
+            .Class("vstack gap-3")
+            .Validate(m =>
                 m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
-            Div()[
-                Label("v4-email", Class: "form-label small mb-1")["Email"],
-                Input(() => _model.Email, Id: "v4-email", Type: InputType.Email, Class: "form-control",
-                    Validate: v =>
+            Div[
+                Label.For("v4-email").Class("form-label small mb-1")["Email"],
+                Input.Bind(() => _model.Email)
+                    .Id("v4-email")
+                    .Type(InputType.Email)
+                    .Class("form-control")
+                    .Validate(v =>
                         v.Contains('@')
                             ? Array.Empty<string>()
                             : new[] { "Email looks wrong." }),
-                ValidationMessage(() => _model.Email, FieldError)
+                ValidationMessage.Template(FieldError).For(() => _model.Email)
             ],
-            Div()[
-                Label("v4-password", Class: "form-label small mb-1")["Password"],
-                Input(() => _model.Password, Id: "v4-password", Type: InputType.Password, Class: "form-control")
+            Div[
+                Label.For("v4-password").Class("form-label small mb-1")["Password"],
+                Input.Bind(() => _model.Password).Id("v4-password").Type(InputType.Password).Class("form-control")
             ],
-            Div()[
-                Label("v4-confirm", Class: "form-label small mb-1")["Confirm"],
-                Input(() => _model.Confirm, Id: "v4-confirm", Type: InputType.Password, Class: "form-control")
+            Div[
+                Label.For("v4-confirm").Class("form-label small mb-1")["Confirm"],
+                Input.Bind(() => _model.Confirm).Id("v4-confirm").Type(InputType.Password).Class("form-control")
             ],
-            ValidationSummary(SummaryAlert),
-            Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Sign in"]
+            ValidationSummary.Template(SummaryAlert),
+            Div[
+                BsButton.Type("submit").Color(BsColor.Primary)[BsIcon.Name(BsIconName.Check2Circle).Class("me-1"), "Sign in"]
             ]
         ],
         _submission is null
             ? null
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
+            : BsAlert.Color(BsColor.Success).Class("small mt-3 mb-0")[BsIcon.Name(BsIconName.CheckCircle).Class("me-2"), _submission]
     ];
 }
 

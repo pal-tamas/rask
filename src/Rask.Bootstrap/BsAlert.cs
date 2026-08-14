@@ -3,15 +3,15 @@ namespace Rask.Bootstrap;
 // A Bootstrap alert: <div class="alert alert-{color}" role="alert">. When Dismissible, a .btn-close
 // button is appended; with zero JavaScript the close is wired to OnClose, which the parent uses to
 // stop rendering the alert (state-driven, the Rask way) — Bootstrap's own dismiss JS is not used.
-public sealed class BsAlert : BsBlock
+public sealed partial class BsAlert : BsBlock
 {
     public BsColor? Color { get; set; }
 
     // Renders a close button (.alert-dismissible + .btn-close). Pair with OnClose to remove the alert.
     public bool? Dismissible { get; set; }
 
-    public Callback? OnClose { get; set; }
-    public CallbackAsync? OnCloseAsync { get; set; }
+    public Action? OnClose { get; set; }
+    public Func<Task>? OnCloseAsync { get; set; }
 
     protected override Component? Render()
     {
@@ -24,10 +24,10 @@ public sealed class BsAlert : BsBlock
 
         if (!dismissible)
         {
-            return Div(Id: Id, Class: cls, Role: "alert")[Items];
+            return Div.Id(Id).Class(cls).Role("alert")[Items];
         }
 
-        return Div(Id: Id, Class: cls, Role: "alert")[
-            ItemsWith(BsCloseButton(OnClick: OnClose, OnClickAsync: OnCloseAsync))];
+        return Div.Id(Id).Class(cls).Role("alert")[
+            ItemsWith(BsCloseButton.OnClick(OnClose).OnClickAsync(OnCloseAsync))];
     }
 }

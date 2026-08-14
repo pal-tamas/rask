@@ -21,12 +21,12 @@ namespace Rask.Example.Shop.Features.Orders;
 /// something derived from the transaction — the distinction the two pillars exist to keep separate.
 /// </para>
 /// </remarks>
-public sealed class OrderCreatedHandler(
+public sealed partial class OrderCreatedHandler(
     IDbContextFactory<AppDbContext> factory,
     IMailQueue mail,
     IJobQueue jobs,
     ILogger<OrderCreatedHandler> logger)
-    : INotificationHandler<OrderCreated>
+    : RaskMarkup, INotificationHandler<OrderCreated>
 {
     public async Task HandleAsync(OrderCreated notification, CancellationToken cancellationToken)
     {
@@ -47,7 +47,7 @@ public sealed class OrderCreatedHandler(
         await mail.SendAsync(
             Email.To("customer@example.com")
                 .Subject($"Order confirmed: {order.Customer.Value}")
-                .Body(OrderConfirmation(Customer: order.Customer.Value, Total: order.Total)),
+                .Body(OrderConfirmation.Total(order.Total).Customer(order.Customer.Value)),
             cancellationToken).ConfigureAwait(false);
 
         // Delayed rather than immediate: the cart cleanup only makes sense once the order has settled.

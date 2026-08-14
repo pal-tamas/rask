@@ -104,13 +104,13 @@ public sealed partial class Markdown : Component
     // Non-nullable + no initializer ⇒ the factory generator emits Source as a required positional
     // parameter (mirrors CodeSample.Files). Rask assigns it after construction, so CS8618 is expected.
 #pragma warning disable CS8618
-    public string Source { get; set; }
+    public new string Source { get; set; }
 #pragma warning restore CS8618
 
     protected override Component? Render() =>
         DemoMarkerRegex().IsMatch(Source)
-            ? Div(Class: "markdown-body")[Segments()]
-            : Div(Class: "markdown-body")[Raw(HtmlCache.GetOrAdd(Source, RenderHtml))];
+            ? Div.Class("markdown-body")[Segments()]
+            : Div.Class("markdown-body")[Raw.Value(HtmlCache.GetOrAdd(Source, RenderHtml))];
 
     // Renders the split segments: prose runs become Raw() HTML chunks (each rendered and cached
     // independently) and each demo segment becomes the resolved demo component. An unknown key renders a
@@ -123,14 +123,14 @@ public sealed partial class Markdown : Component
         {
             if (!segment.IsDemo)
             {
-                yield return Raw(HtmlCache.GetOrAdd(segment.Value, RenderHtml));
+                yield return Raw.Value(HtmlCache.GetOrAdd(segment.Value, RenderHtml));
                 continue;
             }
 
-            yield return Div(Class: "guide-demo", Key: $"demo-{index}")[
+            yield return Div.Class("guide-demo").Key($"demo-{index}")[
                 DemoRegistry.Contains(segment.Value)
                     ? DemoRegistry.Build(segment.Value)
-                    : Div(Class: "alert alert-warning")[$"Unknown demo “{segment.Value}”."]
+                    : Div.Class("alert alert-warning")[$"Unknown demo “{segment.Value}”."]
             ];
             index++;
         }

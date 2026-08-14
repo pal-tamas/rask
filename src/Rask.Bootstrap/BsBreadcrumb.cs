@@ -2,21 +2,21 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap breadcrumb: <nav aria-label="breadcrumb"><ol class="breadcrumb">…</ol></nav> holding
 // BsBreadcrumbItem children.
-public sealed class BsBreadcrumb : BsBlock
+public sealed partial class BsBreadcrumb : BsBlock
 {
     // Accessible label for the surrounding <nav>; defaults to "breadcrumb".
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     protected override Component? Render()
     {
         var navAria = new Dictionary<string, string?> { ["label"] = Label ?? "breadcrumb" };
-        return Nav(Id: Id, Aria: navAria)[Ol(Class: BsClass.Join("breadcrumb", Class))[Items]];
+        return Nav.Id(Id).Aria(navAria)[Ol.Class(BsClass.Join("breadcrumb", Class))[Items]];
     }
 }
 
 // A breadcrumb item: <li class="breadcrumb-item">. Pass Href for a link; mark the current page with
 // Active (renders plain text + aria-current="page").
-public sealed class BsBreadcrumbItem : BsBlock
+public sealed partial class BsBreadcrumbItem : BsBlock
 {
     public bool? Active { get; set; }
     public string? Href { get; set; }
@@ -28,7 +28,7 @@ public sealed class BsBreadcrumbItem : BsBlock
         var aria = active ? new Dictionary<string, string?> { ["current"] = "page" } : null;
 
         return Href is not null && !active
-            ? Li(Id: Id, Class: cls, Aria: aria)[A(Href: Href)[Items]]
-            : Li(Id: Id, Class: cls, Aria: aria)[Items];
+            ? Li.Id(Id).Class(cls).Aria(aria)[A.Href(Href)[Items]]
+            : Li.Id(Id).Class(cls).Aria(aria)[Items];
     }
 }

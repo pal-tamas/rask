@@ -9,14 +9,15 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     A 50-deep nest of identical divs. Stresses per-element overhead (open + close)
 ///     and the depth-stack walking the serializer/renderer does.
 /// </summary>
-internal static class NestedTree
+[global::Rask.Core.RaskMarkup]
+internal static partial class NestedTree
 {
     public static Component BuildRask(int depth)
     {
-        var leaf = C.Span()["leaf"];
+        var leaf = Span["leaf"];
         for (var i = 0; i < depth; i++)
         {
-            leaf = C.Div(Class: $"d{i}")[leaf];
+            leaf = Div.Class($"d{i}")[leaf];
         }
 
         return leaf;

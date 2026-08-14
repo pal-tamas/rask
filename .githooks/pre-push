@@ -37,7 +37,7 @@ if [ "${RASK_SKIP_CLI_BUILD_E2E:-}" = "1" ]; then
 elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
   echo "pre-push: no origin/main to diff against — running the CLI build gate to be safe."
   "$root/scripts/run-cli-build-e2e.sh" || { echo "pre-push: CLI build gate FAILED — push aborted." >&2; exit 1; }
-elif ! git diff --name-only origin/main...HEAD | grep -qE "$generator_paths"; then
+elif ! git diff --name-only origin/main...HEAD | grep -E "$generator_paths" >/dev/null; then
   : # nothing in this push can change what the generators emit
 else
   echo "pre-push: this push touches the generators or the packages they emit — running the CLI build gate."
@@ -58,7 +58,7 @@ if [ "${RASK_SKIP_WATCH_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_WATCH_E2E=1 set — skipping the watch hot-reload gate."
 elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
   echo "pre-push: no origin/main to diff against — skipping the watch hot-reload gate."
-elif ! git diff --name-only origin/main...HEAD | grep -qE "$watch_paths"; then
+elif ! git diff --name-only origin/main...HEAD | grep -E "$watch_paths" >/dev/null; then
   : # nothing in this push can change the hot-reload loop
 else
   echo "pre-push: this push touches the hot-reload loop — running the watch gate."
@@ -79,7 +79,7 @@ if [ "${RASK_SKIP_DEPLOY_E2E:-}" = "1" ]; then
   echo "pre-push: RASK_SKIP_DEPLOY_E2E=1 set — skipping the deploy gate."
 elif ! git rev-parse --verify --quiet origin/main >/dev/null; then
   echo "pre-push: no origin/main to diff against — skipping the deploy gate."
-elif ! git diff --name-only origin/main...HEAD | grep -qE "$deploy_paths"; then
+elif ! git diff --name-only origin/main...HEAD | grep -E "$deploy_paths" >/dev/null; then
   : # nothing in this push touches the deploy path
 else
   echo "pre-push: this push changes the deploy path — running the deploy gate against a container host."

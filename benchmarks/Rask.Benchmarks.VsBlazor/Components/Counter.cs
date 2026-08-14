@@ -9,12 +9,13 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     Counter scenario: one button + one span holding an integer value. The minimal
 ///     "state mutates, one node updates" pair for the diff codec.
 /// </summary>
-internal static class Counter
+[global::Rask.Core.RaskMarkup]
+internal static partial class Counter
 {
     public static Component BuildRask(int value) =>
-        C.Div(Class: "counter", Id: "counter")[
-            C.Span(Class: "value")[value.ToString()],
-            C.Button(Class: "inc")["+"]
+        Div.Class("counter").Id("counter")[
+            Span.Class("value")[value.ToString()],
+            Button.Class("inc")["+"]
         ];
 
     public sealed class BlazorCounter : ComponentBase

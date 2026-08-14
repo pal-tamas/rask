@@ -7,26 +7,30 @@ namespace Rask.Example.Wasm.Features;
 ///     fullscreen app, lock/unlock it. Locking is usually rejected outside fullscreen and is often
 ///     unsupported on desktop, so each call is wrapped in try/catch.
 /// </summary>
-public sealed class OrientationDemo(IScreenOrientation orientation) : Component
+public sealed partial class OrientationDemo(IScreenOrientation orientation) : Component
 {
     private string? _current;
     private string? _status;
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "orientation-read", OnClickAsync: Read)["Read current"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "orientation-portrait",
-                        OnClickAsync: () => Lock(OrientationLock.Portrait))["Lock portrait"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "orientation-landscape",
-                        OnClickAsync: () => Lock(OrientationLock.Landscape))["Lock landscape"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "orientation-unlock", OnClickAsync: Unlock)[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button.Class("btn btn-primary btn-sm").Id("orientation-read").OnClickAsync(Read)["Read current"],
+                    Button
+                        .Class("btn btn-outline-primary btn-sm")
+                        .Id("orientation-portrait")
+                        .OnClickAsync(() => Lock(OrientationLock.Portrait))["Lock portrait"],
+                    Button
+                        .Class("btn btn-outline-primary btn-sm")
+                        .Id("orientation-landscape")
+                        .OnClickAsync(() => Lock(OrientationLock.Landscape))["Lock landscape"],
+                    Button.Class("btn btn-outline-danger btn-sm").Id("orientation-unlock").OnClickAsync(Unlock)[
                         "Unlock"]
                 ],
-                Div(Class: "small text-secondary mb-1")[
-                    "Current: ", Code(Id: "orientation-current")[_current ?? "(read to see)"]],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "orientation-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary mb-1")[
+                    "Current: ", Code.Id("orientation-current")[_current ?? "(read to see)"]],
+                Div.Class("small text-secondary")["Status: ", Code.Id("orientation-status")[_status ?? "(idle)"]]
             ]
         ];
 

@@ -14,7 +14,7 @@ namespace Rask.Core.Tests.HeadAssets;
 ///     single content-hashed bundle, so the head carries exactly one tag per kind.
 /// </summary>
 [Collection("ScopedAssets")]
-public class HeadAssetEmissionTests
+public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
 {
     public HeadAssetEmissionTests() => ScopedAssetRegistry.InvalidateAll();
 
@@ -139,7 +139,7 @@ public class HeadAssetEmissionTests
     public void UserCdnLink_AppearsBeforeScopedBundleLink_InCascadeOrder()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "stylesheet", Href: "https://cdn.example/bootstrap.css"));
+        registry.Add(Link.Rel("stylesheet").Href("https://cdn.example/bootstrap.css"));
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
@@ -154,7 +154,7 @@ public class HeadAssetEmissionTests
     public void UserCdnScript_AppearsBeforeScopedBundleScript()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Script("https://cdn.example/chartjs.js"));
+        registry.Add(Script.Src("https://cdn.example/chartjs.js"));
         ScopedAssetRegistry.RegisterJs(typeof(JsOnly), "export function f() {}");
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
@@ -169,7 +169,7 @@ public class HeadAssetEmissionTests
     public void UserInlineStyle_PreservedVerbatim_NoScopeRewriting()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Style()[":root { --accent: hotpink; }"]);
+        registry.Add(Style[":root { --accent: hotpink; }"]);
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Contains(":root { --accent: hotpink; }", html);
@@ -180,7 +180,7 @@ public class HeadAssetEmissionTests
     public void UserInlineScript_PreservedVerbatim_NoDeferInjection()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Script()["window.__inlineRan = true;"]);
+        registry.Add(Script["window.__inlineRan = true;"]);
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Contains("window.__inlineRan = true;", html);
@@ -191,8 +191,8 @@ public class HeadAssetEmissionTests
     public void SameCdnLink_DeclaredTwice_DedupedToSingleEmission()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "stylesheet", Href: "https://cdn.example/bootstrap.css"));
-        registry.Add(Link(Rel: "stylesheet", Href: "https://cdn.example/bootstrap.css"));
+        registry.Add(Link.Rel("stylesheet").Href("https://cdn.example/bootstrap.css"));
+        registry.Add(Link.Rel("stylesheet").Href("https://cdn.example/bootstrap.css"));
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Equal(1, CountOccurrences(html, "bootstrap.css"));
@@ -202,8 +202,8 @@ public class HeadAssetEmissionTests
     public void SameCdnUrlDifferentMedia_BothEmitted()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "stylesheet", Href: "https://cdn.example/x.css", Media: "screen"));
-        registry.Add(Link(Rel: "stylesheet", Href: "https://cdn.example/x.css", Media: "print"));
+        registry.Add(Link.Rel("stylesheet").Href("https://cdn.example/x.css").Media("screen"));
+        registry.Add(Link.Rel("stylesheet").Href("https://cdn.example/x.css").Media("print"));
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Equal(2, CountOccurrences(html, "<link "));
@@ -213,9 +213,10 @@ public class HeadAssetEmissionTests
     public void UserSuppliedDataRaskKey_PreservesUserKey()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "stylesheet",
-            Href: "https://cdn.example/x.css",
-            Data: new Dictionary<string, string?> { ["rask-key"] = "my-bootstrap" }));
+        registry.Add(Link
+            .Rel("stylesheet")
+            .Href("https://cdn.example/x.css")
+            .Data(new Dictionary<string, string?> { ["rask-key"] = "my-bootstrap" }));
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Contains("data-rask-key=\"my-bootstrap\"", html);
@@ -225,10 +226,10 @@ public class HeadAssetEmissionTests
     public void SingletonDedup_StillWorks_TitleAndBase()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Title("First"));
-        registry.Add(Title("Second"));
-        registry.Add(Base("/old/"));
-        registry.Add(Base("/new/"));
+        registry.Add(Title.Id("First"));
+        registry.Add(Title.Id("Second"));
+        registry.Add(Base.Href("/old/"));
+        registry.Add(Base.Href("/new/"));
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Equal(1, CountOccurrences(html, "<title"));

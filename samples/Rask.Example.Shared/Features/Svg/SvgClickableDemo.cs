@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-public sealed class SvgClickableDemo : Component
+public sealed partial class SvgClickableDemo : Component
 {
     private static readonly (string Name, string Hex)[] Swatches =
     [
@@ -14,10 +14,10 @@ public sealed class SvgClickableDemo : Component
 
     protected override Component? Render() =>
         [
-            Svg("240", "48", "0 0 240 48")[BuildSwatches()],
-            P(Class: "mt-2 mb-0 small text-secondary")[
+            Svg.Width("240").Height("48").ViewBox("0 0 240 48")[BuildSwatches()],
+            P.Class("mt-2 mb-0 small text-secondary")[
                 "Selected colour: ",
-                Strong()[Swatches[_selected].Name]
+                Strong[Swatches[_selected].Name]
             ]
         ];
 
@@ -29,17 +29,17 @@ public sealed class SvgClickableDemo : Component
         {
             var index = i;
             var (_, hex) = Swatches[i];
-            children.Add(Circle(
-                (24 + (i * 56)).ToString(),
-                "24",
-                "18",
-                Fill: i == _selected ? hex : "#e5e7eb",
-                Stroke: "#1f2937",
-                StrokeWidth: "2",
-                PointerEvents: "all",
-                Style: "cursor: pointer;",
-                OnClick: () => _selected = index,
-                Key: hex));
+            children.Add(Circle
+                .Cx((24 + (i * 56)).ToString())
+                .Cy("24")
+                .R("18")
+                .Fill(i == _selected ? hex : "#e5e7eb")
+                .Stroke("#1f2937")
+                .StrokeWidth("2")
+                .PointerEvents("all")
+                .Style("cursor: pointer;")
+                .OnClick(() => _selected = index)
+                .Key(hex));
         }
 
         return children;

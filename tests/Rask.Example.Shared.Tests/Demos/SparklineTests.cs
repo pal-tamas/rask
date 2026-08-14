@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Tests.Demos;
 
 // Sparkline is a pure, stateless SVG line chart. These tests render it directly and
 // assert on the emitted markup — no JavaScript, no canvas, no live transport involved.
-public sealed class SparklineTests
+public sealed partial class SparklineTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_Empty_RendersNoDataFrame()
@@ -66,7 +66,7 @@ public sealed class SparklineTests
     }
 
     private static string Render(params double[] values) =>
-        new LiveHost(() => Sparkline(values), LiveHost.Services()).RenderAsLiveRoot();
+        new LiveHost(() => Sparkline.Values(values), LiveHost.Services()).RenderAsLiveRoot();
 
     private static (double X, double Y)[] PolylinePoints(string html)
     {

@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 ///     waits for the first to release. "Try (no wait)" uses <c>ifAvailable</c>, so it reports
 ///     <c>false</c> immediately while the lock is held. "Query" snapshots the locks the origin holds now.
 /// </summary>
-public sealed class WebLocksDemo(IWebLocks locks) : Component
+public sealed partial class WebLocksDemo(IWebLocks locks) : Component
 {
     private const string LockName = "rask-web-locks-demo";
     private string _status = "(idle)";
@@ -16,21 +16,31 @@ public sealed class WebLocksDemo(IWebLocks locks) : Component
     private IReadOnlyList<LockInfo> _snapshot = [];
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-            BsCardBody()[
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
-                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "locks-hold", OnClickAsync: Hold)[
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody[
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
+                    BsButton.Color(BsColor.Primary).Size(BsSize.Sm).Id("locks-hold").OnClickAsync(Hold)[
                         "Hold exclusive for 2s"],
-                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "locks-try", OnClickAsync: TryHold)[
+                    BsButton
+                        .Color(BsColor.Primary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("locks-try")
+                        .OnClickAsync(TryHold)[
                         "Try (no wait)"],
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "locks-query", OnClickAsync: Query)[
+                    BsButton
+                        .Color(BsColor.Secondary)
+                        .Outline(true)
+                        .Size(BsSize.Sm)
+                        .Id("locks-query")
+                        .OnClickAsync(Query)[
                         "Query held locks"]
                 ],
-                Div(Class: "small text-secondary mb-1")["Status: ", Code(Id: "locks-status")[_status]],
+                Div.Class("small text-secondary mb-1")["Status: ", Code.Id("locks-status")[_status]],
                 _snapshot.Count == 0
-                    ? Div(Class: "small text-secondary fst-italic", Id: "locks-snapshot")["(query to see held locks)"]
-                    : Ul(Class: "small mb-0", Id: "locks-snapshot")[
-                        _snapshot.Select(l => Li(Key: $"{l.Name}:{l.ClientId}:{l.Held}")[
+                    ? Div.Class("small text-secondary fst-italic").Id("locks-snapshot")["(query to see held locks)"]
+                    : Ul.Class("small mb-0").Id("locks-snapshot")[
+                        _snapshot.Select(l => Li.Key($"{l.Name}:{l.ClientId}:{l.Held}")[
                             $"{l.Name} — {l.Mode} — {(l.Held ? "held" : "pending")}"])
                     ]
             ]

@@ -45,6 +45,6 @@ lean hot path are co-equal acceptance criteria, not trade-offs to make quietly.
 
 ## Rask invariants
 - Attribute render order (id, class, style, data-*, then tag-specific).
-- Root renders a full shell — RASK021. Keyed lists in projections — RASK022.
+- Root renders into `<body>`, never the shell itself — RASK021. Keyed lists in projections — RASK022.
 - Components constructed via the generated factory, not `new` — RASK014.
 - Inject framework services through the ctor, not as non-nullable settable props (RASK002).

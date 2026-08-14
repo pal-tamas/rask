@@ -9,14 +9,14 @@ namespace Rask.Bootstrap;
 // controlled factory (Value:/OnChange:). Each item is a <div class="form-check"> with a .form-check-input
 // radio + .form-check-label; the embedded ValidationMessage surfaces the per-field rule. Mode is chosen
 // by whether Bind is set.
-public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
+public sealed partial class BsRadioGroup<TValue> : Component, IFormControl<TValue>
 {
     public required IEnumerable<TValue> Options { get; set; }
 
     // Controlled mode (used when Bind is null): the parent owns the current value.
     public TValue? Value { get; set; }
-    public Callback<TValue>? OnChange { get; set; }
-    public CallbackAsync<TValue>? OnChangeAsync { get; set; }
+    public Action<TValue>? OnChange { get; set; }
+    public Func<TValue, Task>? OnChangeAsync { get; set; }
 
     // Bound mode (IFormControl members).
     public Expression<Func<TValue>>? Bind { get; set; }
@@ -31,7 +31,7 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
     // The group's accessible name. When set, the radios are wrapped in a <fieldset> named by a <legend>
     // (the correct grouping semantics + accessible name for a set of related radios); when null, the bare
     // per-item fragment is kept so callers that supply their own fieldset/heading aren't double-wrapped.
-    public string? Label { get; set; }
+    public new string? Label { get; set; }
 
     // Extra wrapper classes per item, e.g. "form-check-inline".
     public string? ItemClass { get; set; }
@@ -91,31 +91,36 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
             var optionValue = option;
             var optionId = $"{groupName}-{index}";
             var isChecked = current is not null && comparer.Equals(optionValue, current);
-            Component label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            Component label = OptionLabel is { } render ? render(option) : option?.ToString() ?? string.Empty;
 
-            children.Add(Div(Class: wrapperClass, Key: index)[
-                Input<string>(
-                    InputType.Radio, groupName, BindingHelpers.FormatValue(option),
-                    Checked: isChecked, Disabled: Disabled, Class: "form-check-input", Id: optionId,
-                    Aria: optionAria,
-                    OnChangeAsync: disabled ? null : _ => SelectAsync(acc, ctx, fid, optionValue)),
-                Rask.Core.Components.Generated.Label(Class: "form-check-label", For: optionId)[label]
+            children.Add(Div.Class(wrapperClass).Key(index)[
+                Input
+                    .Value(BindingHelpers.FormatValue(option))
+                    .Type(InputType.Radio)
+                    .Name(groupName)
+                    .Checked(isChecked)
+                    .Disabled(Disabled)
+                    .Class("form-check-input")
+                    .Id(optionId)
+                    .Aria(optionAria)
+                    .OnChangeAsync(disabled ? null : _ => SelectAsync(acc, ctx, fid, optionValue)),
+                global::RaskEntriesRask_Core.Label.Class("form-check-label").For(optionId)[label]
             ]);
             index++;
         }
 
         if (invalid)
         {
-            children.Add(Div(Id: errorId, Class: "invalid-feedback d-block", Role: "alert")[messages[0]]);
+            children.Add(Div.Id(errorId).Class("invalid-feedback d-block").Role("alert")[messages[0]]);
         }
 
         if (Label is not null)
         {
-            var content = new List<Component> { Legend(Class: "form-label fs-6")[Label] };
+            var content = new List<Component> { Legend.Class("form-label fs-6")[Label] };
             content.AddRange(children);
             // Disabled is NOT set on the fieldset: a disabled fieldset disables ALL descendants, which would
             // also disable interactive content in a rich OptionLabel. The radios carry their own Disabled.
-            return Fieldset(Class: "border-0 p-0 m-0")[content];
+            return Fieldset.Class("border-0 p-0 m-0")[content];
         }
 
         return [.. children];

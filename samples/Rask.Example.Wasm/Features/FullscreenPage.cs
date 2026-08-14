@@ -10,22 +10,22 @@ namespace Rask.Example.Wasm.Features;
 /// </summary>
 [Route("fullscreen")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class FullscreenPage : Component
+public sealed partial class FullscreenPage : Component
 {
-    protected override Component? Head => Title()["Fullscreen — Rask"];
+    protected override Component? HeadAssets => Title["Fullscreen — Rask"];
 
     protected override Component? Render() =>
     [
-        H1(Class: "h2 mb-1")["Fullscreen"],
-        P(Class: "text-secondary")[
+        H1.Class("h2 mb-1")["Fullscreen"],
+        P.Class("text-secondary")[
             "Present an element — or the whole page — fullscreen via IFullscreen (the Fullscreen API), ",
             "passing an ElementRef to target one box. WASM-only: requestFullscreen needs a live user ",
             "gesture. Pairs with Orientation — locking the orientation generally requires fullscreen first."
         ],
-        CodeSample(
-            ["FullscreenDemo.cs"],
-            Notes: "RequestAsync(ElementRef?) fullscreens that element (or the page when null); ExitAsync "
-                + "leaves. Gate on IsSupportedAsync and wrap in try/catch — a request without activation rejects.",
-            Result: FullscreenDemo())
+        CodeSample
+            .Files(["FullscreenDemo.cs"])
+            .Notes("RequestAsync(ElementRef?) fullscreens that element (or the page when null); ExitAsync "
+                + "leaves. Gate on IsSupportedAsync and wrap in try/catch — a request without activation rejects.")
+            .Result(FullscreenDemo)
     ];
 }

@@ -14,7 +14,8 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     wrapper libraries that emit data-test-id, data-state, data-component, etc. on
 ///     every element.
 /// </summary>
-internal static class AttributeHeavyElements
+[global::Rask.Core.RaskMarkup]
+internal static partial class AttributeHeavyElements
 {
     public const int ElementCount = 100;
 
@@ -30,14 +31,14 @@ internal static class AttributeHeavyElements
                 data[$"k{d}"] = $"v{i}-{d}";
             }
 
-            elements.Add(C.Div(
-                Class: "row item",
-                Id: $"r{i}",
-                Style: "display:block",
-                Data: data));
+            elements.Add(Div
+                .Class("row item")
+                .Id($"r{i}")
+                .Style("display:block")
+                .Data(data));
         }
 
-        return C.Div(Class: "container")[elements];
+        return Div.Class("container")[elements];
     }
 
     /// <summary>
@@ -59,14 +60,14 @@ internal static class AttributeHeavyElements
                 data[$"k{d}"] = v;
             }
 
-            elements.Add(C.Div(
-                Class: "row item",
-                Id: $"r{i}",
-                Style: "display:block",
-                Data: data));
+            elements.Add(Div
+                .Class("row item")
+                .Id($"r{i}")
+                .Style("display:block")
+                .Data(data));
         }
 
-        return C.Div(Class: "container")[elements];
+        return Div.Class("container")[elements];
     }
 
     public sealed class BlazorAttributeHeavy : ComponentBase

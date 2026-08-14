@@ -7,15 +7,15 @@ namespace Rask.Example.Shared.Tests.Infrastructure;
 internal sealed class FakeHttp : HttpMessageHandler
 {
     public int RequestCount;
-    public Func<HttpRequestMessage, Task<HttpResponseMessage>>? Handler { get; set; }
+    public Func<HttpRequestMessage, Task<HttpResponseMessage>>? Action { get; set; }
     public List<HttpRequestMessage> Requests { get; } = [];
 
-    public static (HttpClient Client, FakeHttp Handler) WithPrices(params (string Asset, decimal Price)[] prices)
+    public static (HttpClient Client, FakeHttp Action) WithPrices(params (string Asset, decimal Price)[] prices)
     {
         var byAsset = prices.ToDictionary(p => p.Asset, p => p.Price, StringComparer.OrdinalIgnoreCase);
         var handler = new FakeHttp
         {
-            Handler = req =>
+            Action = req =>
             {
                 // CoinGecko: /api/v3/simple/price?ids={id}&vs_currencies=usd → {"id":{"usd":N}}.
                 // Unknown ids return an empty object (not 404), matching the live API.
@@ -34,11 +34,11 @@ internal sealed class FakeHttp : HttpMessageHandler
         return (new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") }, handler);
     }
 
-    public static (HttpClient Client, FakeHttp Handler) WithJson(string body, HttpStatusCode status = HttpStatusCode.OK)
+    public static (HttpClient Client, FakeHttp Action) WithJson(string body, HttpStatusCode status = HttpStatusCode.OK)
     {
         var handler = new FakeHttp
         {
-            Handler = _ => Task.FromResult(new HttpResponseMessage(status)
+            Action = _ => Task.FromResult(new HttpResponseMessage(status)
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/json")
             })
@@ -46,15 +46,15 @@ internal sealed class FakeHttp : HttpMessageHandler
         return (new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") }, handler);
     }
 
-    public static (HttpClient Client, FakeHttp Handler) WithStatus(HttpStatusCode status)
+    public static (HttpClient Client, FakeHttp Action) WithStatus(HttpStatusCode status)
     {
-        var handler = new FakeHttp { Handler = _ => Task.FromResult(new HttpResponseMessage(status)) };
+        var handler = new FakeHttp { Action = _ => Task.FromResult(new HttpResponseMessage(status)) };
         return (new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") }, handler);
     }
 
-    public static (HttpClient Client, FakeHttp Handler) Throwing(Exception ex)
+    public static (HttpClient Client, FakeHttp Action) Throwing(Exception ex)
     {
-        var handler = new FakeHttp { Handler = _ => throw ex };
+        var handler = new FakeHttp { Action = _ => throw ex };
         return (new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") }, handler);
     }
 
@@ -66,8 +66,8 @@ internal sealed class FakeHttp : HttpMessageHandler
             Requests.Add(request);
         }
 
-        return Handler is null
+        return Action is null
             ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound))
-            : Handler(request);
+            : Action(request);
     }
 }

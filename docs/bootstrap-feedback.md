@@ -5,9 +5,9 @@ with the close driven by controlled state), `BsSpinner` (`BsSpinnerKind.Border`/
 `BsProgress`.
 
 ```csharp
-BsAlert(Color: BsColor.Warning, Open: _show, OnClose: () => _show = false)["Heads up!"]
-BsSpinner(Kind: BsSpinnerKind.Border, Color: BsColor.Primary)
-BsProgress(Value: 60)
+BsAlert.Color(BsColor.Warning).Open(_show).OnClose(() => _show = false)["Heads up!"]
+BsSpinner.Kind(BsSpinnerKind.Border).Color(BsColor.Primary)
+BsProgress.Value(60)
 ```
 
 ## Live example

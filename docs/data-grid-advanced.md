@@ -13,8 +13,7 @@ by — outermost first:
 ```csharp
 new BsColumn<Deal> { Title = "Region", Value = d => d.Region, Field = d => d.Region, Groupable = true }
 ...
-BsDataGrid(Data: deals, Grouped: ["region", "rep"], OnGroupedChange: g => _grouped = [.. g],
-    GroupCollapsible: true, GroupSubtotals: true, Columns: [...])
+BsDataGrid.Data(deals).Grouped(["region", "rep"]).OnGroupedChange(g => _grouped = [.. g]).GroupCollapsible(true).GroupSubtotals(true).Columns([...])
 ```
 
 <!-- demo:data-grid-group -->
@@ -64,8 +63,7 @@ row (the behaviour before this default). Nothing else changes; grouping still or
 same way.
 
 ```csharp
-BsDataGrid(Data: deals, Grouped: ["region"], OnGroupedChange: g => _grouped = [.. g],
-    ShowGroupedColumns: true, Columns: [...]) // keep the Region column visible while grouped
+BsDataGrid.Data(deals).Grouped(["region"]).OnGroupedChange(g => _grouped = [.. g]).ShowGroupedColumns(true).Columns([...]) // keep the Region column visible while grouped
 ```
 
 ### Collapsing and subtotals
@@ -83,8 +81,7 @@ sees **the rows on this page**.
 header, so the user can group, renest and ungroup:
 
 ```csharp
-BsDataGrid(Data: deals, GroupPanel: true, Grouped: _grouped,
-    OnGroupedChange: g => _grouped = [.. g], Columns: [...])
+BsDataGrid.Data(deals).GroupPanel(true).Grouped(_grouped).OnGroupedChange(g => _grouped = [.. g]).Columns([...])
 ```
 
 Drag a header into the panel to group by it, drag the chips to renest, drag one out to ungroup.
@@ -117,10 +114,7 @@ the low-cardinality things (region, status, month); that is what a band is for.
 move earlier/later buttons to reorder it.
 
 ```csharp
-BsDataGrid(Data: deals, ColumnChooser: true,
-    HiddenColumns: _hidden, OnHiddenColumnsChange: h => _hidden = [.. h],
-    ColumnOrder: _order,   OnColumnOrderChange: o => _order = [.. o],
-    Columns: [...])
+BsDataGrid.Data(deals).ColumnChooser(true).HiddenColumns(_hidden).OnHiddenColumnsChange(h => _hidden = [.. h]).ColumnOrder(_order).OnColumnOrderChange(o => _order = [.. o]).Columns([...])
 ```
 
 <!-- demo:data-grid-columns -->
@@ -173,9 +167,7 @@ on but idle the cost is making each header a drag source — about **+2%** over 
 selection and reports it through `OnSelectionChange`:
 
 ```csharp
-BsDataGrid(Data: tasks, Selectable: true, RowKey: t => t.Id,
-    OnSelectionChange: keys => _selected = keys,
-    Columns: [...])
+BsDataGrid.Data(tasks).Selectable(true).RowKey(t => t.Id).OnSelectionChange(keys => _selected = keys).Columns([...])
 ```
 
 <!-- demo:data-grid-selection -->
@@ -224,15 +216,13 @@ meaning *nothing picked*, so `null` unambiguously means the grid owns it.
 cancelled order:
 
 ```csharp
-BsDataGrid(Data: invoices, RowKey: i => i.Number,
-    RowClass: i => i.DaysOverdue switch { 0 => null, < 30 => "table-warning", _ => "table-danger" },
-    Columns: [...])
+BsDataGrid.Data(invoices).RowKey(i => i.Number).RowClass(i => i.DaysOverdue switch { 0 => null, < 30 => "table-warning", _ => "table-danger" }).Columns([...])
 ```
 
 `OnRowClick` (and its awaited twin `OnRowClickAsync`) raises the row the user clicked:
 
 ```csharp
-BsDataGrid(Data: invoices, RowKey: i => i.Number, OnRowClick: i => Open(i.Number), Columns: [...])
+BsDataGrid.Data(invoices).RowKey(i => i.Number).OnRowClick(i => Open(i.Number)).Columns([...])
 ```
 
 <!-- demo:data-grid-row -->

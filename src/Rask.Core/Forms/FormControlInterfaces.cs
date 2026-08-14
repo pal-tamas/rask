@@ -10,7 +10,7 @@ namespace Rask.Core.Forms;
 //
 // Members use fixed names (Bind/Validate/…/Value/OnChange/…) — the generator recognizes them by
 // name and excludes the bound-mode members from the controlled factory (so no [SkipFactory] is
-// needed). `Validate<T>`/`ValidateAsync<T>` (this namespace) and `Callback<T>`/`CallbackAsync<T>`
+// needed). `Validate<T>`/`ValidateAsync<T>` (this namespace) and `Action<T>`/`Func<T, Task>`
 // (Rask.Core) are the framework's named delegate types; the generator collapses the sync/async
 // validator pair into the none/sync/async factory fan-out, and auto-wraps OnChange/OnChangeAsync
 // (AutoCallback) so invoking them re-renders the consumer.
@@ -26,6 +26,10 @@ public interface IFormControl;
 public interface IFormControl<T> : IFormControl
 {
     // Bound mode — two-way binds an lvalue of type T and drives the ambient EditContext.
+    //
+    // Ordinary delegates. They were briefly carriers — while a chain's receiver was the control itself,
+    // `control.Validate(rule)` bound to the delegate-typed property and failed (CS1593) instead of
+    // reaching the same-named setter. The receiver is `Build<TControl>` now, so nothing is in the way.
     Expression<Func<T>>? Bind { get; set; }
     Validate<T>? Validate { get; set; }
     ValidateAsync<T>? ValidateAsync { get; set; }
@@ -34,8 +38,8 @@ public interface IFormControl<T> : IFormControl
 
     // Controlled mode — the parent owns Value and is notified of changes.
     T? Value { get; set; }
-    Callback<T>? OnChange { get; set; }
-    CallbackAsync<T>? OnChangeAsync { get; set; }
+    Action<T>? OnChange { get; set; }
+    Func<T, Task>? OnChangeAsync { get; set; }
 
     // The single delegate the EditContext dispatches — sync or async, whichever the consumer set.
     Delegate? Validator => (Delegate?)Validate ?? ValidateAsync;
@@ -66,9 +70,9 @@ public interface IFormControl<T> : IFormControl
     async Task InvokeAfterBindAsync(T value)
     {
         AfterBind?.Invoke(value);
-        if (AfterBindAsync is not null)
+        if (AfterBindAsync is { } hook)
         {
-            await AfterBindAsync(value).ConfigureAwait(false);
+            await hook(value).ConfigureAwait(false);
         }
     }
 
@@ -76,9 +80,9 @@ public interface IFormControl<T> : IFormControl
     async Task InvokeOnChangeAsync(T value)
     {
         OnChange?.Invoke(value);
-        if (OnChangeAsync is not null)
+        if (OnChangeAsync is { } notify)
         {
-            await OnChangeAsync(value).ConfigureAwait(false);
+            await notify(value).ConfigureAwait(false);
         }
     }
 
@@ -110,7 +114,7 @@ public interface IFormControl<T> : IFormControl
         // dirty-marking the control itself.
         var consumer = DelegateOwner.Resolve(OnChange) ?? DelegateOwner.Resolve(OnChangeAsync);
 
-        return new CallbackAsync<string>(async raw =>
+        return new Func<string, Task>(async raw =>
         {
             if (BindingHelpers.TryParseValue(typeof(T), raw, out var parsed) && parsed is T value)
             {

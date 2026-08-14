@@ -63,15 +63,16 @@ The `server` template is deliberately small — a handful of files, no example p
 - **`Program.cs`** — host setup. `builder.Services.AddRask()` registers the framework and
   `app.UseRask<App>()` mounts your root component. This is where every pillar you add in later chapters gets
   one line of registration. `--auth` already added the cookie-authentication services here.
-- **`Features/Shared/App.cs`** — the **root component**: the one place that renders the full HTML shell
-  (`Doctype`/`Html`/`Head`/`Body`) and drops a `Router()` where the current page appears. It lives in
-  `Features/Shared/` — the bucket for cross-cutting code the whole app shares.
+- **`Features/Shared/App.cs`** — the **root component**: it renders into `<body>` (Rask builds the
+  document around it, filling `<head>` from every component's `Head` override) and drops a `Router()`
+  where the current page appears. It lives in `Features/Shared/` — the bucket for cross-cutting code the
+  whole app shares.
 - **`Features/Home/HomePage.cs`** — the `/` welcome page, its own feature slice. Edit or replace it.
 - **`Features/Auth/`** — from `--auth`: `LoginPage` (`/login`), the protected `MembersPage` (`/members`),
   and a `DemoCredentialStore` you'll swap for a real user store later.
 
 Everything the CLI generates lands under `Features/`: a screen is its own `Features/<Name>/` slice, and
-cross-cutting code (the shell, components, jobs, emails, the `DbContext`) sits in `Features/Shared/`. You'll
+cross-cutting code (the app root, components, jobs, emails, the `DbContext`) sits in `Features/Shared/`. You'll
 add your first `Features/<Name>/` slice in the next chapter.
 
 For the component model itself — state, event handlers, the factory methods, routing — see

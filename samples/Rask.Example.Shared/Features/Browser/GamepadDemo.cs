@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 ///     framework runs the <c>requestAnimationFrame</c> poll and pushes a reading only when a pad's state
 ///     changes; this demo keeps the latest reading per connected pad.
 /// </summary>
-public sealed class GamepadDemo(IGamepad gamepad) : Component, IAsyncDisposable
+public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDisposable
 {
     private readonly Dictionary<int, GamepadReading> _pads = [];
     private IAsyncDisposable? _watch;
@@ -46,17 +46,17 @@ public sealed class GamepadDemo(IGamepad gamepad) : Component, IAsyncDisposable
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Div(Class: "small text-secondary mb-2")["Status: ", Code(Id: "gamepad-status")[_status]],
-                Div(Class: "small text-secondary mb-2")[
-                    "Connected pads: ", Code(Id: "gamepad-count")[_pads.Count.ToString()]],
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Div.Class("small text-secondary mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
+                Div.Class("small text-secondary mb-2")[
+                    "Connected pads: ", Code.Id("gamepad-count")[_pads.Count.ToString()]],
                 _pads.Count == 0
-                    ? Div(Class: "text-secondary small")["No controllers connected."]
-                    : Ul(Class: "list-group list-group-flush")[
-                        _pads.Values.Select(p => (Component)Li(Class: "list-group-item px-0", Key: p.Index)[
-                            Div(Class: "small fw-semibold")[$"#{p.Index} — {p.Id}"],
-                            Div(Class: "small text-secondary")[
+                    ? Div.Class("text-secondary small")["No controllers connected."]
+                    : Ul.Class("list-group list-group-flush")[
+                        _pads.Values.Select(p => (Component)Li.Class("list-group-item px-0").Key(p.Index)[
+                            Div.Class("small fw-semibold")[$"#{p.Index} — {p.Id}"],
+                            Div.Class("small text-secondary")[
                                 $"axes [{string.Join(", ", p.Axes.Select(a => a.ToString("0.00")))}] · "
                                 + $"buttons pressed {p.Buttons.Count(b => b > 0.5)}/{p.Buttons.Count}"]
                         ])

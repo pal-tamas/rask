@@ -4,9 +4,9 @@ namespace Rask.Bootstrap;
 
 // A Bootstrap text input. Wraps the core Input and adds the .form-control class, an optional label,
 // help text, and the .is-invalid + .invalid-feedback validation display. Bound:
-// BsInput(() => model.Email, Label: "Email"); controlled: BsInput(Value: x, OnChange: …). The HTML
+// BsInput.Bind(() => model.Email).Label("Email"); controlled: BsInput<T>().Value(x).OnChange(…). The HTML
 // input type is derived from T (or set explicitly via Type).
-public sealed class BsInput<T> : BsFormControl<T>
+public sealed partial class BsInput<T> : BsFormControl<T>
 {
     public InputType? Type { get; set; }
     public string? Placeholder { get; set; }
@@ -20,7 +20,7 @@ public sealed class BsInput<T> : BsFormControl<T>
     public string? Min { get; set; }
     public string? Max { get; set; }
     public string? Step { get; set; }
-    public string? Pattern { get; set; }
+    public new string? Pattern { get; set; }
     public int? MaxLength { get; set; }
     public int? MinLength { get; set; }
     public bool? Autofocus { get; set; }
@@ -46,17 +46,33 @@ public sealed class BsInput<T> : BsFormControl<T>
         // value, so `typeof(T)` in there is `string` and its own default step would never see the decimal.
         var derivedType = DeriveType();
 
-        var control = Input<string>(
-            Type: derivedType,
-            Name: Name ?? b.Accessor?.PropertyName,
-            Value: BindingHelpers.FormatValue(b.Current),
-            Placeholder: placeholder, Disabled: Disabled, ReadOnly: ReadOnly, Required: Required,
-            Min: Min, Max: Max, Pattern: Pattern, MaxLength: MaxLength, MinLength: MinLength,
-            Step: Step ?? (derivedType == InputType.Number ? BindingHelpers.DefaultStep(typeof(T)) : null),
-            Multiple: Multiple, Accept: Accept, Capture: Capture, List: List, Autofocus: Autofocus,
-            Autocomplete: Autocomplete, InputMode: InputMode, EnterKeyHint: EnterKeyHint, Spellcheck: Spellcheck,
-            Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
-            OnInputAsync: Disabled == true ? null : StringChangeHandler(b));
+        var control = Input
+            .Value(BindingHelpers.FormatValue(b.Current))
+            .Type(derivedType)
+            .Name(Name ?? b.Accessor?.PropertyName)
+            .Placeholder(placeholder)
+            .Disabled(Disabled)
+            .ReadOnly(ReadOnly)
+            .Required(Required)
+            .Min(Min)
+            .Max(Max)
+            .Pattern(Pattern)
+            .MaxLength(MaxLength)
+            .MinLength(MinLength)
+            .Step(Step ?? (derivedType == InputType.Number ? BindingHelpers.DefaultStep(typeof(T)) : null))
+            .Multiple(Multiple)
+            .Accept(Accept)
+            .Capture(Capture)
+            .List(List)
+            .Autofocus(Autofocus)
+            .Autocomplete(Autocomplete)
+            .InputMode(InputMode)
+            .EnterKeyHint(EnterKeyHint)
+            .Spellcheck(Spellcheck)
+            .Class(cls)
+            .Id(controlId)
+            .Aria(FieldAria(b, controlId))
+            .OnInputAsync(Disabled == true ? null : StringChangeHandler(b));
 
         return Field(controlId, b, control);
     }

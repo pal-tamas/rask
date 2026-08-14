@@ -11,7 +11,7 @@ property would become a required factory parameter) and dispatch from a lifecycl
 event handler:
 
 ```csharp
-public sealed class CodeSample : Component
+public sealed partial class CodeSample : Component
 {
     private readonly IJSRuntime _js;
     public CodeSample(IJSRuntime js) => _js = js;
@@ -72,7 +72,7 @@ later step on the same pattern.
 | `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`SetBytes`/`GetBytes`/`Delete`/`Keys`/`Clear`) — large async persistent storage, text or raw bytes |
 
 ```csharp
-public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
+public sealed partial class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
 {
     private async Task Save() => await storage.Local.SetAsync("theme", "dark");
 
@@ -157,7 +157,7 @@ in a **field** (so its id is stable across renders), then hand it to JS — it s
 function runs:
 
 ```csharp
-public sealed class FocusDemo : Component
+public sealed partial class FocusDemo : Component
 {
     private readonly IJSRuntime _js;
     private readonly ElementRef _input = ElementRef.New();
@@ -166,11 +166,11 @@ public sealed class FocusDemo : Component
     public FocusDemo(IJSRuntime js) => _js = js;
 
     protected override Component? Render() =>
-        Div()[
-            Input<string>(InputType.Text, Ref: _input),
-            Div(Ref: _box)["measure me"],
-            Button(OnClickAsync: Focus)["Focus"],
-            Button(OnClickAsync: Measure)["Measure"]
+        Div[
+            Input<string>().Type(InputType.Text).Ref(_input),
+            Div.Ref(_box)["measure me"],
+            Button.OnClickAsync(Focus)["Focus"],
+            Button.OnClickAsync(Measure)["Measure"]
         ];
 
     // Built-in helpers: ElementRefInterop.{FocusAsync, BlurAsync, ScrollIntoViewAsync}.
@@ -204,7 +204,7 @@ positional path, so a node your components never render is a node the diff can n
 private readonly ElementRef _host = ElementRef.New();   // a field — the id must be stable across renders
 
 // A leaf: no children here, ever. The library owns everything inside it.
-protected override Component? Render() => Div(Ref: _host, Class: "chart");
+protected override Component? Render() => Div.Ref(_host).Class("chart");
 
 // Mount in OnRendered, not OnMount — OnMount runs *before* the first render, so the element doesn't
 // exist yet and the ref would resolve to null. firstRender guards against re-mounting.

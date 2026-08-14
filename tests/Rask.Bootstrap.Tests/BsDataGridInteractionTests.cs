@@ -9,7 +9,7 @@ namespace Rask.Bootstrap.Tests;
 // BsDataGrid<T>'s state transitions, driven through real click handlers. These were previously untested
 // anywhere: the static suite renders only the initial frame, and the sort/page/expand paths are reachable
 // only by clicking. RaskTest dispatches handlers in-process and re-renders, so none of this needs a browser.
-public class BsDataGridInteractionTests
+public partial class BsDataGridInteractionTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Row(string Name, int Qty);
 
@@ -40,7 +40,7 @@ public class BsDataGridInteractionTests
     [Fact]
     public async Task ClickingASortableHeader_ReordersTheRows_AndFlipsAriaSort()
     {
-        var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns()));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows).Columns(Columns()));
         Assert.Equal(["Banana", "Apple", "Cherry"], BodyCells(grid.Html, 0));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]);
@@ -58,7 +58,7 @@ public class BsDataGridInteractionTests
     [Fact]
     public async Task SortingASecondColumn_MovesTheCaretAndTheSortState()
     {
-        var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns()));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows).Columns(Columns()));
 
         await grid.InvokeAsync(grid.HandlerIds("click")[0]);            // by Name
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[1]); // then by Qty
@@ -72,7 +72,7 @@ public class BsDataGridInteractionTests
     [Fact]
     public async Task ClickingAPage_ShowsADisjointSlice_AndUpdatesTheRangeSummary()
     {
-        var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows).Columns(Columns()).PageSize(2));
         var first = BodyCells(grid.Html, 0);
         Assert.Contains("1-2 / 3", grid.Html);
 
@@ -88,7 +88,7 @@ public class BsDataGridInteractionTests
     [Fact]
     public async Task NextAndPrev_WalkThePages()
     {
-        var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows).Columns(Columns()).PageSize(2));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[5]); // next
         Assert.Equal(["Cherry"], BodyCells(html, 0));
@@ -103,7 +103,7 @@ public class BsDataGridInteractionTests
     {
         // Regression: BsPageItem's Disabled only adds a CSS class, so the prev button stays clickable. An
         // unguarded decrement went to page -1 and rendered "-1-0 / 3".
-        var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows).Columns(Columns()).PageSize(2));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]); // prev, already on page 1
 
@@ -115,7 +115,7 @@ public class BsDataGridInteractionTests
     [Fact]
     public async Task NextOnTheLastPage_DoesNotOverflow()
     {
-        var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows).Columns(Columns()).PageSize(2));
 
         await grid.InvokeAsync(grid.HandlerIds("click")[5]);            // -> page 2 (last)
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[5]); // next again
@@ -127,7 +127,7 @@ public class BsDataGridInteractionTests
     [Fact]
     public async Task Sorting_ResetsToTheFirstPage()
     {
-        var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: Columns(), PageSize: 2));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows).Columns(Columns()).PageSize(2));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[4]); // page 2
         Assert.Contains("3-3 / 3", html);
@@ -146,7 +146,7 @@ public class BsDataGridInteractionTests
             new BsColumn<Row> { Title = "Name", Value = r => r.Name, Sortable = true },
             new BsColumn<Row> { Title = "Qty", Value = r => r.Qty, Footer = rows => rows.Sum(r => r.Qty) },
         ];
-        var grid = RaskTest.Render(BsDataGrid<Row>(Data: Rows, Columns: columns, PageSize: 2));
+        var grid = RaskTest.Render(BsDataGrid.Data(Rows).Columns(columns).PageSize(2));
         Assert.Contains("<tfoot><tr><td></td><td>9</td></tr></tfoot>", grid.Html);
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[3]); // page 2
@@ -158,8 +158,12 @@ public class BsDataGridInteractionTests
     [Fact]
     public async Task ClickingTheExpander_OpensAndClosesTheDetailRow()
     {
-        var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: Rows, Columns: Columns(),
-            RowKey: r => r.Name, ExpandedContent: r => Div()[$"detail-{r.Name}"]));
+        var grid = RaskTest.Render(BsDataGrid
+            .Data(Rows)
+            .Columns(Columns())
+            .Id("g")
+            .RowKey(r => r.Name)
+            .ExpandedContent(r => Div[$"detail-{r.Name}"]));
         Assert.DoesNotContain("<div>detail-Banana</div>", grid.Html);
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]); // first row's expander
@@ -187,8 +191,12 @@ public class BsDataGridInteractionTests
         // association for exactly the screen-reader users it exists for. The documented pattern in the guide
         // (RowKey: p => p.Name) hits this immediately.
         List<Row> rows = [new("Two Words", 1)];
-        var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: rows, Columns: Columns(),
-            RowKey: r => r.Name, ExpandedContent: _ => Div()["d"]));
+        var grid = RaskTest.Render(BsDataGrid
+            .Data(rows)
+            .Columns(Columns())
+            .Id("g")
+            .RowKey(r => r.Name)
+            .ExpandedContent(_ => Div["d"]));
 
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[2]);
 
@@ -202,8 +210,12 @@ public class BsDataGridInteractionTests
     public async Task TwoRowsCanBeOpenAtOnce_AndClosingOneKeepsTheOther()
     {
         // Each detail row is a keyed insert, so opening a second must not disturb the first.
-        var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: Rows, Columns: Columns(),
-            RowKey: r => r.Name, ExpandedContent: r => Div()[$"detail-{r.Name}"]));
+        var grid = RaskTest.Render(BsDataGrid
+            .Data(Rows)
+            .Columns(Columns())
+            .Id("g")
+            .RowKey(r => r.Name)
+            .ExpandedContent(r => Div[$"detail-{r.Name}"]));
 
         await grid.InvokeAsync(grid.HandlerIds("click")[2]); // Banana
         // Banana's detail row shifts the handler list, so Apple's expander is now at [3].
@@ -220,8 +232,12 @@ public class BsDataGridInteractionTests
     public async Task ExpansionFollowsTheRow_AcrossASort()
     {
         // Keyed by RowKey rather than position, so re-ordering keeps the same row open.
-        var grid = RaskTest.Render(BsDataGrid<Row>(Id: "g", Data: Rows, Columns: Columns(),
-            RowKey: r => r.Name, ExpandedContent: r => Div()[$"detail-{r.Name}"]));
+        var grid = RaskTest.Render(BsDataGrid
+            .Data(Rows)
+            .Columns(Columns())
+            .Id("g")
+            .RowKey(r => r.Name)
+            .ExpandedContent(r => Div[$"detail-{r.Name}"]));
 
         await grid.InvokeAsync(grid.HandlerIds("click")[2]);            // open Banana (first row)
         var html = await grid.InvokeAsync(grid.HandlerIds("click")[0]); // sort -> Apple, Banana, Cherry
@@ -253,14 +269,14 @@ public class BsDataGridInteractionTests
 
     // A parent that swaps the Data reference, the way a real filter would. Mutating one list in place would
     // leave the props reference-equal and the render cache would rightly skip the re-render.
-    private sealed class FilterHost : Component
+    private sealed partial class FilterHost : Component
     {
         private bool _empty;
 
         protected override Component? Render() =>
         [
-            Button(Type: "button", OnClick: () => _empty = !_empty)["filter"],
-            BsDataGrid<Row>(Data: _empty ? [] : Rows, Columns: Columns(), Empty: Div()["none"])
+            Button.Type("button").OnClick(() => _empty = !_empty)["filter"],
+            BsDataGrid.Data(_empty ? [] : Rows).Columns(Columns()).Empty(Div["none"])
         ];
     }
 }

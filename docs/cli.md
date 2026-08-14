@@ -137,7 +137,7 @@ MyApp/
   appsettings.json                logging levels (incl. Rask's own diagnostic categories)
   appsettings.Production.json     overrides applied when deployed
   Features/
-    Shared/App.cs                 the root shell every page renders through
+    Shared/App.cs                 the root component every page renders through
     Home/HomePage.cs              a [Route("/")] welcome page that teaches the CLI
   Properties/launchSettings.json
 ```

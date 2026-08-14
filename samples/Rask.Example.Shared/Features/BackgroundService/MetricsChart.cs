@@ -15,22 +15,24 @@ namespace Rask.Example.Shared.Features;
 // SVG sparkline of the CPU history — a second, independent subscriber. Reuses the
 // stateless Sparkline demo (zero JS, server-rendered SVG); the feed's rolling buffer is
 // the data series. ValueFormat renders the axis labels as percentages instead of money.
-public sealed class MetricsChart(IMetricsFeed feed) : Component
+public sealed partial class MetricsChart(IMetricsFeed feed) : Component
 {
     protected override void OnMount() => feed.Updated += StateHasChanged;
 
     protected override void OnUnmount() => feed.Updated -= StateHasChanged;
 
     protected override Component? Render() =>
-        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Sizing.H(100)))[
-            BsCardBody()[
-                H3(Class: "h6 text-secondary text-uppercase small mb-3")["CPU %, last minute"],
-                Div(Class: "metrics-chart-container", Id: "metrics-chart",
-                    Style: "position: relative; height: 160px;")[
-                    Sparkline(
-                        feed.State.Recent.Select(p => p.CpuPercent).ToList(),
-                        ValueFormat: "0.0'%'",
-                        Class: "metrics-chart-svg")
+        BsCard.Class(Bs.Join(Shadow.Sm, Border.None, Sizing.H(100)))[
+            BsCardBody[
+                H3.Class("h6 text-secondary text-uppercase small mb-3")["CPU %, last minute"],
+                Div
+                    .Class("metrics-chart-container")
+                    .Id("metrics-chart")
+                    .Style("position: relative; height: 160px;")[
+                    Sparkline
+                        .Values(feed.State.Recent.Select(p => p.CpuPercent).ToList())
+                        .ValueFormat("0.0'%'")
+                        .Class("metrics-chart-svg")
                 ]
             ]
         ];

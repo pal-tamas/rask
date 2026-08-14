@@ -6,12 +6,12 @@ using Rask.Core.Live;
 namespace Rask.Core.Tests.Live;
 
 /// <summary>
-///     Dispatch used to key on the message id alone. Handler ids are positional per render, so a frame
+///     Dispatch used to key on the message id alone. Action ids are positional per render, so a frame
 ///     that outlived the render it was issued against resolves to whatever now sits in that slot — an
 ///     <c>input</c> message landing on a parameterless callback ran it, silently. These pin the
 ///     cross-check of the frame's declared <c>type</c> against the argument the handler demands (#587).
 /// </summary>
-public class HandlerFrameTypeTests
+public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
 {
     private static JsonElement Frame(string json) => JsonDocument.Parse(json).RootElement;
 
@@ -21,7 +21,7 @@ public class HandlerFrameTypeTests
         // The reported misfire: h0 was an input handler when the client read the id, and is a click
         // handler by the time the message arrives.
         var fired = 0;
-        var view = new StubComponent(() => Button(OnClick: () => fired++)["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("h0", Frame("""{"id":"h0","type":"input","value":"x"}"""));
@@ -49,7 +49,7 @@ public class HandlerFrameTypeTests
     public async Task A_submit_frame_does_not_fire_a_parameterless_handler()
     {
         var fired = 0;
-        var view = new StubComponent(() => Button(OnClick: () => fired++)["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync(
@@ -63,7 +63,7 @@ public class HandlerFrameTypeTests
     public async Task A_keyboard_frame_does_not_fire_a_parameterless_handler()
     {
         var fired = 0;
-        var view = new StubComponent(() => Button(OnClick: () => fired++)["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync(
@@ -77,7 +77,7 @@ public class HandlerFrameTypeTests
     public async Task A_click_frame_fires_a_parameterless_handler()
     {
         var fired = 0;
-        var view = new StubComponent(() => Button(OnClick: () => fired++)["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("h0", Frame("""{"id":"h0","type":"click"}"""));
@@ -108,8 +108,8 @@ public class HandlerFrameTypeTests
         // #595's shape. Only `change` carries `values` — the clients add it on the change dispatch
         // alone — so this is the one frame type that may feed a whole-selection handler.
         var model = new TagsModel();
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b"), Option("c")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b"), Option.Value("c")]
         ]);
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change")!;
 
@@ -126,8 +126,8 @@ public class HandlerFrameTypeTests
         // `input` never carries `values`, so feeding one would silently collapse the user's whole
         // selection to the single `value` the frame does carry.
         var model = new TagsModel { Tags = ["b"] };
-        var view = new StubComponent(() => Form(model)[
-            Select(() => model.Tags, Multiple: true)[Option("a"), Option("b")]
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b")]
         ]);
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change")!;
 
@@ -149,7 +149,7 @@ public class HandlerFrameTypeTests
         // Same shape, different event: both carry nothing, so this one still dispatches. Telling them
         // apart would need the event name stored per handler — see the remarks on HandlerFrameShape.
         var fired = 0;
-        var view = new StubComponent(() => Div(OnFocus: () => fired++));
+        var view = new StubComponent(() => Div.OnFocus(() => fired++));
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("h0", Frame("""{"id":"h0","type":"focus"}"""));
@@ -164,7 +164,7 @@ public class HandlerFrameTypeTests
         // Forward compatibility: a browser holding a cached client from another deploy must not have its
         // events swallowed. Only a type some OTHER shape claims is refused.
         var fired = 0;
-        var view = new StubComponent(() => Button(OnClick: () => fired++)["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("h0", Frame("""{"id":"h0","type":"someFutureEvent"}"""));
@@ -178,7 +178,7 @@ public class HandlerFrameTypeTests
     {
         // RaskTest dispatches a bare payload, and so do plenty of unit tests. No claim, nothing to check.
         var fired = 0;
-        var view = new StubComponent(() => Button(OnClick: () => fired++)["x"]);
+        var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("h0", Frame("""{"value":"x"}"""));
@@ -207,7 +207,7 @@ public class HandlerFrameTypeTests
     public async Task A_scroll_frame_fires_a_scroll_handler()
     {
         ScrollEvent? captured = null;
-        var view = new StubComponent(() => Div(OnScroll: e => captured = e));
+        var view = new StubComponent(() => Div.OnScroll(e => captured = e));
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync(

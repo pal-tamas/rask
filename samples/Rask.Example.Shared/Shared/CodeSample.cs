@@ -3,7 +3,7 @@ using Microsoft.JSInterop;
 
 namespace Rask.Example.Shared;
 
-public sealed class CodeSample : Component
+public sealed partial class CodeSample : Component
 {
     // Clipboard interop is injected via the ctor (the framework's DI seam) so Source stays
     // a plain factory parameter — a settable non-nullable service prop would become a
@@ -22,7 +22,7 @@ public sealed class CodeSample : Component
 #pragma warning disable CS8618
     public CodeSample(IJSRuntime js) => _js = js;
 
-    public string? Title { get; set; }
+    public new string? Title { get; set; }
 
     // The demo source files to show, in tab order, as bare embedded-resource leaf names
     // (e.g. ["ElementRefDemo.cs", "ElementRefDemo.js"]). Each file gets its own tab labelled
@@ -65,32 +65,32 @@ public sealed class CodeSample : Component
         await _js.InvokeVoidAsync("Rask.CodeSample.copy", source, _copyButton);
     }
 
-    private Component Header()
+    private new Component Header()
     {
         Component files = Files.Count == 1
-            ? Span(Class: "sample-code-label ms-2")[Files[0]]
-            : Span(Class: "sample-tabs ms-2")[
-                Files.Select((file, index) => Button(
-                    Type: "button",
-                    Class: $"sample-tab{(index == _active ? " active" : "")}",
-                    Key: file,
-                    OnClick: () => _active = index)[file])
+            ? Span.Class("sample-code-label ms-2")[Files[0]]
+            : Span.Class("sample-tabs ms-2")[
+                Files.Select((file, index) => Button
+                    .Type("button")
+                    .Class($"sample-tab{(index == _active ? " active" : "")}")
+                    .Key(file)
+                    .OnClick(() => _active = index)[file])
             ];
 
-        return Div(Class: "sample-code-header")[
-            Span(Class: "sample-dot dot-r"),
-            Span(Class: "sample-dot dot-y"),
-            Span(Class: "sample-dot dot-g"),
+        return Div.Class("sample-code-header")[
+            Span.Class("sample-dot dot-r"),
+            Span.Class("sample-dot dot-y"),
+            Span.Class("sample-dot dot-g"),
             files,
-            Button(
-                Type: "button",
-                Class: "sample-copy",
-                Ref: _copyButton,
-                OnClickAsync: CopyAsync)[
-                    BsIcon(Name: BsIconName.Clipboard, Class: "me-1"),
+            Button
+                .Type("button")
+                .Class("sample-copy")
+                .Ref(_copyButton)
+                .OnClickAsync(CopyAsync)[
+                    BsIcon.Name(BsIconName.Clipboard).Class("me-1"),
                     // A real text node (not a CSS pseudo-element) so the button has an
                     // accessible name; the scoped JS swaps it to "Copied!" on click.
-                    Span(Class: "sample-copy-text")["Copy"]
+                    Span.Class("sample-copy-text")["Copy"]
             ]
         ];
     }
@@ -98,33 +98,33 @@ public sealed class CodeSample : Component
     protected override Component? Render()
     {
         var (_, activeSource, activeLanguage, codeClass) = Pane(_active);
-        return BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4), "sample-card"))[
+        return BsCard.Class(Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4), "sample-card"))[
             Title is null && Notes is null
                 ? null
-                : BsCardHeader(Class: "bg-white border-bottom")[
-                    Title is null ? null : H5(Class: "mb-0 fw-semibold")[Title],
+                : BsCardHeader.Class("bg-white border-bottom")[
+                    Title is null ? null : H5.Class("mb-0 fw-semibold")[Title],
                     Notes is null
                         ? null
-                        : P(Class: $"text-secondary small mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
+                        : P.Class($"text-secondary small mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
                 ],
             // Stacked, code first: the source pane on top, the live result below (full width). Reads
             // top-to-bottom — the code you'd write, then what it renders — and never squeezes either
             // pane into a narrow column on smaller viewports.
-            Div(Class: "sample-code-col")[
+            Div.Class("sample-code-col")[
                 Header(),
-                Pre(Class: "sample-code m-0")[
-                    Code(Class: codeClass)[
+                Pre.Class("sample-code m-0")[
+                    Code.Class(codeClass)[
                         // A known language is tokenized server-side and injected verbatim;
                         // an unknown extension falls back to plain, HTML-encoded text.
                         activeLanguage is null
-                            ? Text(activeSource.TrimEnd())
-                            : Raw(SyntaxHighlighter.Highlight(activeSource, activeLanguage))
+                            ? Text.Value(activeSource.TrimEnd())
+                            : Raw.Value(SyntaxHighlighter.Highlight(activeSource, activeLanguage))
                     ]
                 ]
             ],
-            Div(Class: "sample-result-col p-4")[
-                Div(Class: "sample-result-label")["Live result"],
-                Div(Class: "sample-result-body")[Result ?? null]
+            Div.Class("sample-result-col p-4")[
+                Div.Class("sample-result-label")["Live result"],
+                Div.Class("sample-result-body")[Result ?? null]
             ]
         ];
     }

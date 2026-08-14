@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 ///     pushes each fix to C#, which re-renders the readout (the handler calls <c>StateHasChanged()</c>,
 ///     the sanctioned pushed-update pattern). Stop disposes the watch (<c>clearWatch</c>).
 /// </summary>
-public sealed class GeolocationWatchDemo(IGeolocation geolocation) : Component, IAsyncDisposable
+public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Component, IAsyncDisposable
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     private IAsyncDisposable? _watch;
@@ -17,20 +17,20 @@ public sealed class GeolocationWatchDemo(IGeolocation geolocation) : Component, 
     private string? _status;
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                BsStack(Gap: 2, WrapItems: true, Class: Margin.Bottom(2))[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                BsStack.Gap(2).WrapItems(true).Class(Margin.Bottom(2))[
                     _watch is null
-                        ? Button(Class: "btn btn-primary btn-sm", Id: "geowatch-start", OnClickAsync: Start)[
+                        ? Button.Class("btn btn-primary btn-sm").Id("geowatch-start").OnClickAsync(Start)[
                             "Start watching"]
-                        : Button(Class: "btn btn-outline-danger btn-sm", Id: "geowatch-stop", OnClickAsync: Stop)[
+                        : Button.Class("btn btn-outline-danger btn-sm").Id("geowatch-stop").OnClickAsync(Stop)[
                             "Stop"]
                 ],
-                Div(Class: "small text-secondary")[
-                    "Position: ", Code(Id: "geowatch-value")[_location ?? "(not watching)"],
-                    Span(Class: "ms-2", Id: "geowatch-fixes")[$"({_fixes} fix(es))"]
+                Div.Class("small text-secondary")[
+                    "Position: ", Code.Id("geowatch-value")[_location ?? "(not watching)"],
+                    Span.Class("ms-2").Id("geowatch-fixes")[$"({_fixes} fix(es))"]
                 ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "geowatch-status")[_status ?? "(idle)"]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("geowatch-status")[_status ?? "(idle)"]]
             ]
         ];
 
@@ -53,7 +53,7 @@ public sealed class GeolocationWatchDemo(IGeolocation geolocation) : Component, 
         }
     }
 
-    private async Task Stop()
+    private new async Task Stop()
     {
         if (_watch is not null)
         {

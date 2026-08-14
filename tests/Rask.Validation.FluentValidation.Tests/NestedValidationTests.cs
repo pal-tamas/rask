@@ -8,7 +8,7 @@ namespace Rask.Validation.FluentValidation.Tests;
 // FluentValidation walks nested rules itself via .SetValidator(...) and RuleForEach(...). These
 // tests prove our routing layer translates the dotted PropertyName paths back to the right
 // (subInstance, terminal) FieldIdentifier so validation messages land at the bound field.
-public class NestedValidationTests
+public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task ValidateAsync_SubObjectRule_RoutesToSubInstance()
@@ -148,7 +148,7 @@ public class NestedValidationTests
 
         var page = RaskTest.Render(() => Form(p)[
             FluentValidationValidator(new PersonValidator()),
-            Input(() => p.Address!.Street),
+            Input.Bind(() => p.Address!.Street),
             RaskTest.EditContextProbe(ctx => captured = ctx)
         ]);
 
@@ -169,7 +169,7 @@ public class NestedValidationTests
         public List<LineItem> Items { get; set; } = new();
     }
 
-    private sealed class Address
+    private new sealed class Address
     {
         public string Street { get; set; } = "";
         public PostalInfo? Postal { get; set; }

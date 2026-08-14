@@ -5,7 +5,7 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Layout;
 
-public sealed class PathDisplayTests
+public sealed partial class PathDisplayTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Render_DisplaysCurrentRoutePath()
@@ -25,7 +25,7 @@ public sealed class PathDisplayTests
         // and propagates the parent's RenderHandle — needed for StateHasChanged to
         // actually queue a re-render. `new PathDisplay(...)` would bypass that.
         var host = new LiveHost(
-            () => PathDisplay(),
+            () => PathDisplay,
             TestServices.Default(routeState: routeState));
 
         host.RenderAsLiveRoot();

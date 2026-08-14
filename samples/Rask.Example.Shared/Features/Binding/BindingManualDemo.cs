@@ -5,21 +5,21 @@ namespace Rask.Example.Shared.Features;
 // registration). Without this wrapper the owner falls back to CodeSample, which
 // re-renders only itself and never re-evaluates the page's state.
 
-public sealed class BindingManualDemo : Component
+public sealed partial class BindingManualDemo : Component
 {
     private string _typed = "";
 
     protected override Component? Render() =>
     [
-        Input(
-            InputType.Text,
-            Class: "form-control mb-2",
-            Placeholder: "Type something",
-            Value: _typed,
-            OnInput: v => _typed = v),
-        P(Class: "small mb-0")[
+        Input
+            .Value(_typed)
+            .Type(InputType.Text)
+            .Class("form-control mb-2")
+            .Placeholder("Type something")
+            .OnInput(v => _typed = v),
+        P.Class("small mb-0")[
             "Echo: ",
-            Code()[string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""]
+            Code[string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""]
         ]
     ];
 }

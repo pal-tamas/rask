@@ -27,6 +27,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [The `rask` CLI](cli.md) | The `Rask.Cli` .NET tool — the whole lifecycle: `rask new` (scaffold), `rask db` (migrations), `rask dev` (hot-reload run), `rask deploy` (bare box → live HTTPS site), `rask info`. |
 | [Live playground](playground.md) | Write Rask C# in the browser with IntelliSense, as-you-type diagnostics, and a gallery of examples, then see it compile & render live (Roslyn in WebAssembly) — how it works, the entry-point convention, and its limitations. |
 | [Best practices](best-practices.md) | Production patterns and common pitfalls across component design, state, forms, data access, security, accessibility, performance and testing — each linking to the deep dive. |
+| [Building components](building-components.md) | How markup is written: naming a component and chaining onto it, the properties a component demands before it exists, bound versus controlled form controls, and what the IDE offers at each step. |
 | [Elements & the DSL](elements.md) | The primitives every component is built from: tag factories, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), toast messages (`IToaster`/`ToastOutlet`), `VirtualizeModel`, drag-and-drop. |
@@ -103,7 +104,7 @@ its own page:
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–035)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–042)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 
 ## Contributing

@@ -9,7 +9,7 @@ namespace Rask.Example.Wasm.Features;
 ///     The video is synthesized from an animated canvas by the sibling scoped JS
 ///     (<c>PictureInPictureDemo.js</c>) so the demo needs no shipped video file.
 /// </summary>
-public sealed class PictureInPictureDemo(IPictureInPicture pip, IJSRuntime js) : Component
+public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRuntime js) : Component
 {
     private readonly ElementRef _video = ElementRef.New();
     private string _status = "(idle)";
@@ -37,16 +37,22 @@ public sealed class PictureInPictureDemo(IPictureInPicture pip, IJSRuntime js) :
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Video(Ref: _video, Width: 320, Height: 180, Muted: true, PlaysInline: true, Controls: true,
-                    Class: "rounded border mb-2 bg-dark"),
-                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "pip-enter", OnClickAsync: Enter)[
+        Div.Class("card shadow-sm border-0")[
+            Div.Class("card-body")[
+                Video
+                    .Ref(_video)
+                    .Width(320)
+                    .Height(180)
+                    .Muted(true)
+                    .PlaysInline(true)
+                    .Controls(true)
+                    .Class("rounded border mb-2 bg-dark"),
+                Div.Class("d-flex gap-2 flex-wrap mb-2")[
+                    Button.Class("btn btn-primary btn-sm").Id("pip-enter").OnClickAsync(Enter)[
                         "Open miniplayer"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "pip-exit", OnClickAsync: Exit)["Exit"]
+                    Button.Class("btn btn-outline-danger btn-sm").Id("pip-exit").OnClickAsync(Exit)["Exit"]
                 ],
-                Div(Class: "small text-secondary")["Status: ", Code(Id: "pip-status")[_status]]
+                Div.Class("small text-secondary")["Status: ", Code.Id("pip-status")[_status]]
             ]
         ];
 

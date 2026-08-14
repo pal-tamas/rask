@@ -9,14 +9,14 @@ namespace Rask.Example.EfCore.Features.Cache;
 // sliding window is served straight from the DB — no recompute, no Redis. "Clear" removes the entry so the
 // next load recomputes, proving the cache is what's serving the repeated reads.
 [Route("cache")]
-public sealed class CacheReportPage(ICache cache) : Component
+public sealed partial class CacheReportPage(ICache cache) : Component
 {
     private const string CacheKey = "cache:demo:report";
 
     private Report? _report;
     private bool _servedFromCache;
 
-    protected override Component? Head => Title()["Cache — Rask EF Core"];
+    protected override Component? HeadAssets => Title["Cache — Rask EF Core"];
 
     private async Task LoadAsync()
     {
@@ -43,31 +43,35 @@ public sealed class CacheReportPage(ICache cache) : Component
     }
 
     protected override Component? Render() =>
-        Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
-            Div(Class: "card-body")[
-                H1(Class: "h4 mb-3")["Database-backed cache"],
-                P(Class: "text-secondary small")[
+        Div.Class("card shadow-sm border-0 mx-auto").Style("max-width: 32rem")[
+            Div.Class("card-body")[
+                H1.Class("h4 mb-3")["Database-backed cache"],
+                P.Class("text-secondary small")[
                     "The first load runs an \"expensive\" factory and stores the result as a row on the app's ",
                     "own SQLite database. Load again and it's served from that row — no recompute. ",
                     "Clear it to force the next load to recompute."
                 ],
                 _report is { } report
-                    ? Div(Class: "alert " + (_servedFromCache ? "alert-info" : "alert-success"), Id: "cache-result")[
-                        Div()[Strong()["Value: "], Span(Id: "cache-value")[report.Label]],
-                        Div(Class: "small")[
-                            "Computed at ", Span(Id: "cache-computed-at")[report.ComputedAt.ToString("HH:mm:ss.fff")]
+                    ? Div.Class("alert " + (_servedFromCache ? "alert-info" : "alert-success")).Id("cache-result")[
+                        Div[Strong["Value: "], Span.Id("cache-value")[report.Label]],
+                        Div.Class("small")[
+                            "Computed at ", Span.Id("cache-computed-at")[report.ComputedAt.ToString("HH:mm:ss.fff")]
                         ],
-                        Div(Class: "small mt-1")[
-                            Span(Id: "cache-source")[_servedFromCache ? "Served from cache" : "Computed fresh"]
+                        Div.Class("small mt-1")[
+                            Span.Id("cache-source")[_servedFromCache ? "Served from cache" : "Computed fresh"]
                         ]
                     ]
                     : null,
-                Div(Class: "d-flex gap-2 pt-2")[
-                    Button("button", Class: "btn btn-primary", Id: "cache-load", OnClickAsync: LoadAsync)[
-                        I(Class: "bi bi-lightning-charge me-1"), "Load report"
+                Div.Class("d-flex gap-2 pt-2")[
+                    Button.Type("button").Class("btn btn-primary").Id("cache-load").OnClickAsync(LoadAsync)[
+                        I.Class("bi bi-lightning-charge me-1"), "Load report"
                     ],
-                    Button("button", Class: "btn btn-outline-secondary", Id: "cache-clear", OnClickAsync: ClearAsync)[
-                        I(Class: "bi bi-trash me-1"), "Clear cache"
+                    Button
+                        .Type("button")
+                        .Class("btn btn-outline-secondary")
+                        .Id("cache-clear")
+                        .OnClickAsync(ClearAsync)[
+                        I.Class("bi bi-trash me-1"), "Clear cache"
                     ]
                 ]
             ]

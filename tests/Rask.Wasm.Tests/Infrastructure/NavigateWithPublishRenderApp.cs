@@ -12,7 +12,7 @@ namespace Rask.Wasm.Tests.Infrastructure;
 // InHandlerScope=true, sets _pendingRenderInScope, and forces
 // BuildPayloadCoalescingRerendersAsync to rebuild the payload — the rebuild
 // path the bug fix is about.
-internal sealed class NavigateWithPublishRenderApp : Component
+internal sealed partial class NavigateWithPublishRenderApp : Component
 {
     private readonly Navigator _nav;
     private readonly RouteState _routeState;
@@ -22,6 +22,9 @@ internal sealed class NavigateWithPublishRenderApp : Component
         _routeState = routeState;
         _nav = nav;
     }
+
+    protected override Component? HeadAssets => Title["nav-pub"];
+    protected override string? HtmlLang => null;
 
     protected override Component? Render()
     {
@@ -36,14 +39,10 @@ internal sealed class NavigateWithPublishRenderApp : Component
         // the navigation entry.
         StateHasChanged();
 
-        return [
-            Doctype(),
-            Html()[
-                Head()[Title()["nav-pub"]],
-                Body()[
-                    Div()[$"path={_routeState.Path}"],
-                    Button(OnClick: () => _nav.NavigateTo("/destination"))["go"]
-                ]
-            ]];
+        return
+        [
+            Div[$"path={_routeState.Path}"],
+            Button.OnClick(() => _nav.NavigateTo("/destination"))["go"]
+        ];
     }
 }

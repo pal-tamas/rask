@@ -24,18 +24,18 @@ namespace Rask.Core.Components;
 public sealed class Shareable : Component
 {
     /// <summary>The content to share (title / text / URL). At least one field should be set.</summary>
-    public required ShareData Data { get; set; }
+    public new required ShareData Data { get; set; }
 
     /// <summary>
     ///     Renders your trigger element, given the attribute bundle to apply to it via the element's
     ///     <c>Data</c> prop. The rendered element's click opens the share sheet.
     /// </summary>
-    public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
+    public new required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     protected override Component Render() =>
         // Serialized with the trim-safe source-gen context; the client reads data-rask-share on click and
         // fires navigator.share (or the native bridge) synchronously in the gesture.
-        Template(new Dictionary<string, string?>(StringComparer.Ordinal)
+        Template!(new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["rask-share"] = JsonSerializer.Serialize(Data, RaskBrowserJsonContext.Default.ShareData)
         });

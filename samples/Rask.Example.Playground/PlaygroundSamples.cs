@@ -57,7 +57,7 @@ public static class PlaygroundSamples
 
             // Rask's built-in form validation. Form<T> runs per-field `Validate:` rules and a form-level
             // rule; ValidationMessage renders a field's errors and ValidationSummary the form-level ones.
-            // Inputs are two-way bound with Input(() => model.Field) — everything re-checks as you type.
+            // Inputs are two-way bound with Input.Bind(() => model.Field) — everything re-checks as you type.
             public sealed class Playground : Component
             {
                 private readonly SignUp _model = new();
@@ -74,25 +74,29 @@ public static class PlaygroundSamples
                                 : new[] { "Passwords do not match." })[
 
                             Label()["Name"],
-                            Input(() => _model.Name, Class: "field", Placeholder: "Ada Lovelace",
-                                Validate: v => v.Trim().Length > 0
+                            Input.Bind(() => _model.Name)
+                                .Class("field")
+                                .Placeholder("Ada Lovelace")
+                                .Validate(v => v.Trim().Length > 0
                                     ? Array.Empty<string>()
                                     : new[] { "Name is required." }),
                             ValidationMessage(() => _model.Name, Errors),
 
                             Label()["Email"],
-                            Input(() => _model.Email, Type: InputType.Email, Class: "field",
-                                Placeholder: "ada@example.com",
-                                Validate: v => v.Contains('@')
+                            Input.Bind(() => _model.Email)
+                                .Type(InputType.Email)
+                                .Class("field")
+                                .Placeholder("ada@example.com")
+                                .Validate(v => v.Contains('@')
                                     ? Array.Empty<string>()
                                     : new[] { "Enter a valid email address." }),
                             ValidationMessage(() => _model.Email, Errors),
 
                             Label()["Password"],
-                            Input(() => _model.Password, Type: InputType.Password, Class: "field"),
+                            Input.Bind(() => _model.Password).Type(InputType.Password).Class("field"),
 
                             Label()["Confirm password"],
-                            Input(() => _model.Confirm, Type: InputType.Password, Class: "field"),
+                            Input.Bind(() => _model.Confirm).Type(InputType.Password).Class("field"),
 
                             ValidationSummary(Summary),
                             Button(Type: "submit", Class: "btn")["Sign up"]
@@ -150,13 +154,13 @@ public static class PlaygroundSamples
                     Div(Class: "card")[
                         H1()["Todos"],
                         Div(Class: "row")[
-                            Input(() => _draft.Text, Class: "field", Placeholder: "What needs doing?"),
+                            Input.Bind(() => _draft.Text).Class("field").Placeholder("What needs doing?"),
                             Button(Class: "btn", OnClick: Add)["Add"]
                         ],
                         Ul(Class: "list")[
                             _todos.Select(t => Li(Key: t.Id, Class: t.Done ? "done" : null)[
                                 Label(Class: "item")[
-                                    Input(() => t.Done),
+                                    Input.Bind(() => t.Done),
                                     Span()[t.Text]
                                 ],
                                 Button(Class: "link", OnClick: () => _todos.Remove(t))["Remove"]

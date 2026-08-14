@@ -11,7 +11,7 @@ public class RenderedComponentInstanceTests
         public int Count { get; private set; }
 
         protected override Component? Render() =>
-            Button(Type: "button", OnClick: () => Count++)[$"Count: {Count}"];
+            Button.Type("button").OnClick(() => Count++)[$"Count: {Count}"];
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class RenderedComponentInstanceTests
         private bool _done;
 
         protected override Component? Render() =>
-            _done ? Span()["done"] : Button(Type: "button", OnClick: () => _done = true)["go"];
+            _done ? Span["done"] : Button.Type("button").OnClick(() => _done = true)["go"];
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class RenderedComponentInstanceTests
         protected override Component? Render()
         {
             Renders++;
-            return Span()[$"{Renders}"];
+            return Span[$"{Renders}"];
         }
     }
 

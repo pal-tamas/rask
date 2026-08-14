@@ -16,12 +16,12 @@ column's `SortBy` expression, counts it, and materialises only the current page,
 all happen in the database and the whole table is never loaded.
 
 ```csharp
-BsDataGrid(
+BsDataGrid
     // Order it: Skip/Take over an unordered SQL query is undefined (rows can repeat or vanish between
     // pages, and EF warns). Sorting a column replaces this ordering; it is the fallback.
-    Data: db.Products.AsNoTracking().Where(p => p.Active).OrderBy(p => p.Id),
-    PageSize: 20,
-    Columns:
+    .Data(db.Products.AsNoTracking().Where(p => p.Active).OrderBy(p => p.Id))
+    .PageSize(20)
+    .Columns(
     [
         // SortBy has to be an Expression: only an expression tree becomes ORDER BY. A Func would pull the
         // whole table into memory to sort it there — exactly what Query exists to avoid.

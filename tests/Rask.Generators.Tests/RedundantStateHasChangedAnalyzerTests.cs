@@ -9,7 +9,7 @@ namespace Rask.Generators.Tests;
 public class RedundantStateHasChangedAnalyzerTests
 {
     // Wraps class members in a real Component, with the genuine Rask.Core factories in scope so the
-    // analyzer resolves real callback parameter symbols (Callback/CallbackAsync/AfterBind).
+    // analyzer resolves real callback parameter symbols (Action/Func<Task>/AfterBind).
     private static string App(string members) => $$"""
                                                   using System.Collections.Generic;
                                                   using System.Linq.Expressions;
@@ -17,7 +17,7 @@ public class RedundantStateHasChangedAnalyzerTests
                                                   using Rask.Core.Forms;
                                                   using static Rask.Core.Components.Generated;
                                                   namespace Demo;
-                                                  public sealed class App : Component
+                                                  public sealed partial class App : Component
                                                   {
                                                       {{members}}
                                                   }
@@ -35,8 +35,10 @@ public class RedundantStateHasChangedAnalyzerTests
     [Fact]
     public async Task OnChange_StateHasChanged_ReportsRask026()
     {
+        // Qualified: the generic builder entry (Component.Input<T>) shadows the unqualified factory.
         var d = Assert.Single(await Diagnostics(App(
-            "protected override Component? Render() => Input<string>(OnChange: _ => StateHasChanged());")));
+            "protected override Component? Render() => "
+            + "Rask.Core.Components.Generated.Input<string>(OnChange: _ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("OnChange", d.GetMessage());
     }
@@ -46,9 +48,31 @@ public class RedundantStateHasChangedAnalyzerTests
     {
         var d = Assert.Single(await Diagnostics(App(
             "private string _name = \"\";"
-            + "protected override Component? Render() => Input(() => _name, AfterBind: _ => StateHasChanged());")));
+            + "protected override Component? Render() => "
+            + "Rask.Core.Components.Generated.Input(() => _name, AfterBind: _ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("AfterBind", d.GetMessage());
+    }
+
+    // The same anti-pattern on the builder surface: the callback's name is the setter's, since every
+    // generated setter's parameter is called `value`.
+    [Fact]
+    public async Task BuilderSetter_AfterBind_StateHasChanged_ReportsRask026()
+    {
+        var d = Assert.Single(await Diagnostics(App(
+            "private string _name = \"\";"
+            + "protected override Component? Render() => Input.Bind(() => _name).AfterBind(_ => StateHasChanged());")));
+        Assert.Equal("RASK026", d.Id);
+        Assert.Contains("AfterBind", d.GetMessage());
+    }
+
+    [Fact]
+    public async Task BuilderSetter_Click_StateHasChanged_ReportsRask026()
+    {
+        var d = Assert.Single(await Diagnostics(App(
+            "protected override Component? Render() => Button.OnClick(() => StateHasChanged())[\"x\"];")));
+        Assert.Equal("RASK026", d.Id);
+        Assert.Contains("Click", d.GetMessage());
     }
 
     [Fact]
@@ -79,10 +103,10 @@ public class RedundantStateHasChangedAnalyzerTests
 
     [Fact]
     public async Task StateHasChangedInLambdaToUserHelperTakingCallback_NoDiagnostic() =>
-        // A user method whose parameter happens to be typed Callback carries no auto-re-render guarantee —
+        // A user method whose parameter happens to be typed Action carries no auto-re-render guarantee —
         // only generated component factories do. The StateHasChanged here may be genuinely required.
         Assert.Empty(await Diagnostics(App(
-            "private static Component Wrap(Callback cb) => Div()[Button(OnClick: cb)[\"x\"]];"
+            "private static Component Wrap(Action cb) => Div()[Button(OnClick: cb)[\"x\"]];"
             + "protected override Component? Render() => Wrap(() => StateHasChanged());")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)

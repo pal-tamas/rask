@@ -2,7 +2,7 @@ namespace Rask.Core.Components;
 
 /// <summary>Where the exception a boundary caught came from.</summary>
 /// <remarks>
-///     The distinction is load-bearing for the development error overlay: after a <see cref="Handler" />
+///     The distinction is load-bearing for the development error overlay: after a <see cref="Action" />
 ///     or <see cref="Lifecycle" /> fault the component tree is intact and the next render succeeds, so the
 ///     app can stay on screen with the error painted over it. After a <see cref="Render" /> fault it is
 ///     not — re-rendering the subtree that just threw would only throw again — so the fallback must
@@ -14,7 +14,7 @@ internal enum ErrorSource
     Render,
 
     /// <summary>Thrown by an event handler. The tree is intact.</summary>
-    Handler,
+    Action,
 
     /// <summary>Thrown by an async lifecycle hook, off the dispatch's call stack. The tree is intact.</summary>
     Lifecycle,
@@ -22,12 +22,18 @@ internal enum ErrorSource
 
 public sealed class ErrorBoundary : Component
 {
-    public Func<Exception, Callback, Component>? Fallback { get; set; }
+    public Func<Exception, Action, Component>? Fallback { get; set; }
 
     internal Exception? Error { get; private set; }
 
     /// <summary>Where <see cref="Error" /> came from. Meaningless when <see cref="Error" /> is null.</summary>
-    internal ErrorSource Source { get; private set; }
+    /// <remarks>
+    ///     <c>new</c> because the builder surface gives <see cref="Component" /> an entry named after every
+    ///     tag, and one of them is <c>&lt;source&gt;</c> — exactly the CS0108 the Rask quick-fix inserts
+    ///     <c>new</c> for. Hiding it here is deliberate: nothing inside a boundary builds a
+    ///     <c>&lt;source&gt;</c>.
+    /// </remarks>
+    internal new ErrorSource Source { get; private set; }
 
     // Boundary state (Error) lives outside the framework's prop/state diff, so the cached
     // render result would never reflect a Trip(). BypassRenderCache forces Render() to run
@@ -38,7 +44,7 @@ public sealed class ErrorBoundary : Component
     // props in one call.
     internal void SetProps(
         IEnumerable<Component>? children,
-        Func<Exception, Callback, Component>? fallback)
+        Func<Exception, Action, Component>? fallback)
     {
         Children = children;
         Fallback = fallback;
@@ -49,6 +55,19 @@ public sealed class ErrorBoundary : Component
         Error = ex;
         Source = source;
         StateHasChanged();
+    }
+
+    /// <summary>
+    ///     Records the error <b>without</b> asking for a render — the mirror of
+    ///     <see cref="ClearErrorInRender" />, for a caller that is already inside the render which will
+    ///     display the fallback (<c>RootErrorBoundary</c>, when the App's <c>Shell</c> override throws).
+    ///     <see cref="Trip" /> would signal a render from inside the render that is about to show the
+    ///     error, and since the same override throws again the frame after, that is a loop.
+    /// </summary>
+    internal void TripInRender(Exception ex)
+    {
+        Error = ex;
+        Source = ErrorSource.Render;
     }
 
     /// <summary>
@@ -86,12 +105,12 @@ public sealed class ErrorBoundary : Component
             return new Fragment(Children);
         }
 
-        if (Fallback is not null)
+        if (Fallback is { } fallback)
         {
             // Pass Recover as a captured Action so the fallback subtree can register it as
             // an event handler (e.g. `Button(OnClick: recover)`) without the user needing
             // to capture the boundary instance themselves.
-            return new Fragment(Fallback(Error, Recover));
+            return new Fragment(fallback(Error, Recover));
         }
 
         return new DefaultErrorPage(Error);

@@ -25,12 +25,12 @@ you already use for pages — no separate templating language.
 ## Use
 
 ```csharp
-public sealed class WelcomeEmail : Component
+public sealed partial class WelcomeEmail : Component
 {
     public string Name { get; set; } = "";
 
     protected override Component? Render() =>
-        Div()[H1()[$"Welcome, {Name}!"], P()["Thanks for signing up."]];
+        Div[H1[$"Welcome, {Name}!"], P["Thanks for signing up."]];
 }
 
 // Program.cs

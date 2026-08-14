@@ -5,11 +5,11 @@ The show/hide disclosure components from [`Rask.Bootstrap`](bootstrap.md) — `B
 flip it through the live runtime) and runs with **zero `bootstrap.js`**.
 
 ```csharp
-BsTabs(Active: _tab, OnSelect: t => _tab = t)[
+BsTabs.Active(_tab).OnSelect(t => _tab = t)[
     BsTabItem(Key: "one")["First"],
     BsTabItem(Key: "two")["Second"]
 ]
-BsCollapse(Open: _open)[ /* revealed content */ ]
+BsCollapse.Open(_open)[ /* revealed content */ ]
 ```
 
 ## Live example

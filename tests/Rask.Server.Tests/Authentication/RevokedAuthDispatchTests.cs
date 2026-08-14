@@ -105,19 +105,20 @@ public sealed class M2Counter
     public int Count;
 }
 
-public sealed class M2App : Component
+public sealed partial class M2App : Component
 {
-    protected override Component? Render() =>
-        [Doctype(), Html("en")[Head()[Title()["m2"]], Body()[Router()]]];
+    protected override Component? HeadAssets => Title["m2"];
+
+    protected override Component? Render() => Router;
 }
 
 [Route("/m2/protected")]
 [Authorize]
-public sealed class M2ProtectedPage(M2Counter counter) : Component
+public sealed partial class M2ProtectedPage(M2Counter counter) : Component
 {
     protected override Component? Render() =>
-        Div(Id: "m2")[
-            Span()[$"count={counter.Count}"],
-            Button(OnClick: () => counter.Count++)["bump"]
+        Div.Id("m2")[
+            Span[$"count={counter.Count}"],
+            Button.OnClick(() => counter.Count++)["bump"]
         ];
 }

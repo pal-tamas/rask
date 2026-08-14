@@ -16,7 +16,7 @@ public class AuthBeforeRaskAnalyzerTests
                                                    using Rask.Core;
                                                    using Rask.Server;
 
-                                                   public sealed class App : Component
+                                                   public sealed partial class App : Component
                                                    {
                                                        protected override Component? Render() => new Doctype();
                                                    }

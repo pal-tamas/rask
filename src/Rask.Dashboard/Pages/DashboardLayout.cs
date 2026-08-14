@@ -13,7 +13,7 @@ namespace Rask.Dashboard.Pages;
 /// protected by construction rather than by remembering to annotate it.
 /// </para>
 /// <para>
-/// The layout contributes its own stylesheet links via <see cref="Head" />. Head contributions are
+/// The layout contributes its own stylesheet links via <see cref="HeadAssets" />. Head-asset contributions are
 /// collected from every component in the tree and deduplicated by rendered HTML, so the dashboard is
 /// styled correctly inside a host that never linked Bootstrap, without double-linking in one that did —
 /// and they drop out again when the operator navigates back into the app.
@@ -21,34 +21,34 @@ namespace Rask.Dashboard.Pages;
 /// </summary>
 [Route("_ops")]
 [Authorize(Policy = RaskDashboardPolicies.Access)]
-public sealed class DashboardLayout(
+public sealed partial class DashboardLayout(
     IEnumerable<IQueuePanel> queues,
     RouteState route,
     DashboardSecurityState security) : Component
 {
-    protected override Component? Head =>
+    protected override Component? HeadAssets =>
     [
-        Title()["Ops"],
+        Title["Ops"],
         // An operator surface has no business in a search index, even behind a policy.
-        Meta(Name: "robots", Content: "noindex, nofollow"),
-        BootstrapStyles(),
-        RaskTokens(),
+        Meta.Name("robots").Content("noindex, nofollow"),
+        BootstrapStyles,
+        RaskTokens,
     ];
 
     protected override Component? Render() =>
     [
-        BsNavbar(Class: "border-bottom mb-4")[
-            BsContainer(Fluid: true)[
-                BsNavbarBrand(Href: Routes.OverviewPage(), Class: "d-flex align-items-center gap-2")[
-                    BsIcon(Name: BsIconName.Speedometer2),
-                    Span()["Ops"]
+        BsNavbar.Class("border-bottom mb-4")[
+            BsContainer.Fluid(true)[
+                BsNavbarBrand.Href(Routes.OverviewPage()).Class("d-flex align-items-center gap-2")[
+                    BsIcon.Name(BsIconName.Speedometer2),
+                    Span["Ops"]
                 ],
-                BsNav(Class: "ms-auto")[NavItems()]
+                BsNav.Class("ms-auto")[NavItems()]
             ]
         ],
-        BsContainer(Fluid: true)[
+        BsContainer.Fluid(true)[
             UnsecuredWarning(),
-            Outlet()
+            Outlet
         ],
     ];
 
@@ -68,13 +68,15 @@ public sealed class DashboardLayout(
         yield return NavLink(Routes.SystemPage(), "System", BsIconName.HddStack, exact: false);
     }
 
-    private Component NavLink(RouteUrl url, string label, BsIconName icon, bool exact) =>
-        BsNavItem(Key: label)[
-            BsLink(url, Class: Bs.Join(
+    private new Component NavLink(RouteUrl url, string label, BsIconName icon, bool exact) =>
+        BsNavItem.Key(label)[
+            BsLink
+                .Href(url)
+                .Class(Bs.Join(
                 "nav-link d-flex align-items-center gap-1",
                 IsActive(url.Path, exact) ? "active" : null))[
-                BsIcon(Name: icon),
-                Span()[label]
+                BsIcon.Name(icon),
+                Span[label]
             ]
         ];
 
@@ -92,11 +94,11 @@ public sealed class DashboardLayout(
     // only while it applies: an app that defined the policy has real access control and gets no banner.
     private Component? UnsecuredWarning() =>
         security.IsUnsecured
-            ? BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-center gap-2")[
-                BsIcon(Name: BsIconName.ExclamationTriangle),
-                Span()[
+            ? BsAlert.Color(BsColor.Warning).Class("d-flex align-items-center gap-2")[
+                BsIcon.Name(BsIconName.ExclamationTriangle),
+                Span[
                     "Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs. Define the ",
-                    Code()[RaskDashboardPolicies.Access],
+                    Code[RaskDashboardPolicies.Access],
                     " authorization policy; without one the dashboard denies everyone outside Development."
                 ]
             ]

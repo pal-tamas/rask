@@ -22,7 +22,8 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///         measuring that in-proc isn't possible.
 ///     </para>
 /// </summary>
-internal static class VirtualizationScroll
+[global::Rask.Core.RaskMarkup]
+internal static partial class VirtualizationScroll
 {
     public const int ItemCount = 1000;
     public const int ItemSizePx = 24;
@@ -57,12 +58,12 @@ internal static class VirtualizationScroll
                     // (Blazor's Virtualize keys rows too). On a scroll the visible window shifts by a
                     // few rows; keyed reconciliation then ships just the entering/leaving rows instead
                     // of re-emitting an id+text change for every slot in the window.
-                    rows.Add(C.Div(Class: "row", Id: $"r{item.Index}", Key: item.Index)[
-                        C.Span()[$"Item {item.Index}"]
+                    rows.Add(Div.Class("row").Id($"r{item.Index}").Key(item.Index)[
+                        Span[$"Item {item.Index}"]
                     ]);
                 }
 
-                return C.Div(Class: "viewport", Style: $"height:{ViewportHeightPx}px;overflow:auto")[rows];
+                return Div.Class("viewport").Style($"height:{ViewportHeightPx}px;overflow:auto")[rows];
             },
             items,
             ItemSize: ItemSizePx,

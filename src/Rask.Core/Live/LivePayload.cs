@@ -531,7 +531,7 @@ public static class LivePayload
         // dispatchJsInvoke, identical to the full-HTML branch.
         WriteJsInvokesArray(writer, jsInvokes);
 
-        // The diff frame stream never carries <head> content — user Head contributions are
+        // The diff frame stream never carries <head> content — user Head-asset contributions are
         // collected and spliced post-render (see HeadAssetRegistry), so a title/asset change
         // produces zero ops. When the head changed the session attaches the new
         // <head>...</head> element here; the client morphs it into document.head alongside

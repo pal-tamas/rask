@@ -19,6 +19,7 @@ public sealed class InputTypeMismatchAnalyzer : DiagnosticAnalyzer
     private const string InputMetadataName = "Rask.Core.Components.Input`1";
     private const string RaskCoreAssembly = "Rask.Core";
     private const string GeneratedClassName = "Generated";
+    private const string BuilderSettersPrefix = "RaskBuilderSetters";
     private const string TypeParameter = "Type";
 
     // The InputType members whose value is a string (text family). Mirrors InputType.cs.
@@ -70,25 +71,50 @@ public sealed class InputTypeMismatchAnalyzer : DiagnosticAnalyzer
     {
         var invocation = (InvocationExpressionSyntax)context.Node;
 
-        // Is this a generated Input factory? A static `Generated.Input<T>(...)` returning Input<T>.
-        if (context.SemanticModel.GetSymbolInfo(invocation, context.CancellationToken).Symbol is not IMethodSymbol method
-            || !method.IsStatic
-            || !string.Equals(method.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal)
-            || !string.Equals(method.Name, "Input", StringComparison.Ordinal)
-            || method.ReturnType is not INamedTypeSymbol { TypeArguments.Length: 1 } returnType
-            || !SymbolEqualityComparer.Default.Equals(returnType.OriginalDefinition, inputOpen))
+        if (context.SemanticModel.GetSymbolInfo(invocation, context.CancellationToken).Symbol is not IMethodSymbol method)
+        {
+            return;
+        }
+
+        // Two surfaces carry the same mistake. The factory passes Type as an argument to
+        // `Generated.Input<T>(…)`; the builder chains a `.Type(…)` setter onto an `Input<T>` receiver
+        // (`Input.Bind(() => m.Flag).Type(InputType.Text)`). Both resolve to the same question — is this
+        // Input's T a string? — so both are checked here rather than in two analyzers.
+        INamedTypeSymbol? control;
+        ExpressionSyntax? typeArg;
+        if (IsBuilderSetter(method) && string.Equals(method.Name, TypeParameter, StringComparison.Ordinal))
+        {
+            // The setter's receiver is the CHAIN, so the control is inside it: `Build<Input<bool>>`.
+            control = BuilderEntry.ChainedComponent(method.ReceiverType) as INamedTypeSymbol;
+            typeArg = invocation.ArgumentList.Arguments.Count == 1
+                ? invocation.ArgumentList.Arguments[0].Expression
+                : null;
+        }
+        else if (method.IsStatic
+                 && string.Equals(method.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal)
+                 && string.Equals(method.Name, "Input", StringComparison.Ordinal))
+        {
+            control = method.ReturnType as INamedTypeSymbol;
+            typeArg = FindTypeArgument(invocation, method);
+        }
+        else
+        {
+            return;
+        }
+
+        if (control is not { TypeArguments.Length: 1 }
+            || !SymbolEqualityComparer.Default.Equals(control.OriginalDefinition, inputOpen))
         {
             return;
         }
 
         // string T is the one case where the string-only InputTypes are valid.
-        var valueType = returnType.TypeArguments[0];
+        var valueType = control.TypeArguments[0];
         if (valueType.SpecialType == SpecialType.System_String)
         {
             return;
         }
 
-        var typeArg = FindTypeArgument(invocation, method);
         if (typeArg is null)
         {
             return; // No explicit Type → derived from T, nothing to flag.
@@ -102,6 +128,13 @@ public sealed class InputTypeMismatchAnalyzer : DiagnosticAnalyzer
                 valueType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat), member.Name));
         }
     }
+
+    // A builder-surface setter: a generated extension method on the global-namespace
+    // RaskBuilderSetters{Assembly} class. SemanticModel hands back the REDUCED symbol for `x.Type(v)`,
+    // whose IsStatic is false and whose ReceiverType is the component — which is exactly what we want.
+    private static bool IsBuilderSetter(IMethodSymbol method) =>
+        method.MethodKind == MethodKind.ReducedExtension
+        && method.ContainingType?.Name.StartsWith(BuilderSettersPrefix, StringComparison.Ordinal) == true;
 
     // The explicit Type argument expression — passed by name (Type: …) or positionally (its parameter
     // index within the leading positional arguments). Null when Type isn't supplied.
